@@ -13872,7 +13872,4 @@ describe('streamText', () => {
       expect(logWarningsSpy).toHaveBeenCalledWith([]);
     });
   });
-  
 });
-
-

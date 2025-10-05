@@ -436,86 +436,86 @@ describe('parseToolCall', () => {
       }
     `);
   });
-  
-describe('tool title', () => {
-  it('should include title in parsed dynamic tool call', async () => {
-    const result = await parseToolCall({
-      toolCall: {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'weather',
-        input: '{"location":"Paris"}',
-      },
-      tools: {
-        weather: {
-          type: 'dynamic',
-          title: '🌤️ Weather Information',
-          description: 'Get weather',
-          inputSchema: jsonSchema({
-            type: 'object',
-            properties: { location: { type: 'string' } },
-            additionalProperties: false,
-          }),
-          execute: async () => 'sunny',
+
+  describe('tool title', () => {
+    it('should include title in parsed dynamic tool call', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{"location":"Paris"}',
         },
-      },
-      repairToolCall: undefined,
-      system: undefined,
-      messages: [],
+        tools: {
+          weather: {
+            type: 'dynamic',
+            title: '🌤️ Weather Information',
+            description: 'Get weather',
+            inputSchema: jsonSchema({
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              additionalProperties: false,
+            }),
+            execute: async () => 'sunny',
+          },
+        },
+        repairToolCall: undefined,
+        system: undefined,
+        messages: [],
+      });
+
+      expect(result.title).toBe('🌤️ Weather Information');
+      expect(result.dynamic).toBe(true);
     });
 
-    expect(result.title).toBe('🌤️ Weather Information');
-    expect(result.dynamic).toBe(true);
-  });
-
-  it('should include title in parsed static tool call', async () => {
-    const result = await parseToolCall({
-      toolCall: {
-        type: 'tool-call',
-        toolCallId: 'call-2',
-        toolName: 'calculator',
-        input: '{"a":5,"b":3}',
-      },
-      tools: {
-        calculator: {
-          title: '🔢 Calculator',
-          description: 'Calculate',
-          inputSchema: z.object({ a: z.number(), b: z.number() }),
-          execute: async ({ a, b }) => a + b,
+    it('should include title in parsed static tool call', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'calculator',
+          input: '{"a":5,"b":3}',
         },
-      },
-      repairToolCall: undefined,
-      system: undefined,
-      messages: [],
+        tools: {
+          calculator: {
+            title: '🔢 Calculator',
+            description: 'Calculate',
+            inputSchema: z.object({ a: z.number(), b: z.number() }),
+            execute: async ({ a, b }) => a + b,
+          },
+        },
+        repairToolCall: undefined,
+        system: undefined,
+        messages: [],
+      });
+
+      expect(result.title).toBe('🔢 Calculator');
+      expect(result.dynamic).toBeUndefined();
     });
 
-    expect(result.title).toBe('🔢 Calculator');
-    expect(result.dynamic).toBeUndefined();
-  });
-
-  it('should include title in invalid tool call', async () => {
-    const result = await parseToolCall({
-      toolCall: {
-        type: 'tool-call',
-        toolCallId: 'call-4',
-        toolName: 'invalidTool',
-        input: 'invalid json',
-      },
-      tools: {
-        invalidTool: {
-          title: '❌ Invalid Tool',
-          description: 'Tool that will fail',
-          inputSchema: z.object({ required: z.string() }),
-          execute: async () => 'result',
+    it('should include title in invalid tool call', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-4',
+          toolName: 'invalidTool',
+          input: 'invalid json',
         },
-      },
-      repairToolCall: undefined,
-      system: undefined,
-      messages: [],
-    });
+        tools: {
+          invalidTool: {
+            title: '❌ Invalid Tool',
+            description: 'Tool that will fail',
+            inputSchema: z.object({ required: z.string() }),
+            execute: async () => 'result',
+          },
+        },
+        repairToolCall: undefined,
+        system: undefined,
+        messages: [],
+      });
 
-    expect(result.invalid).toBe(true);
-    expect(result.title).toBe('❌ Invalid Tool');
+      expect(result.invalid).toBe(true);
+      expect(result.title).toBe('❌ Invalid Tool');
+    });
   });
-});
 });
