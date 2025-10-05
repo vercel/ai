@@ -6047,4 +6047,240 @@ describe('processUIMessageStream', () => {
       `);
     });
   });
+
+  describe('initial tool execution after approval', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        // initial tool execution:
+        {
+          output: 'result1',
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+        },
+        // rest of the step:
+        { type: 'start-step' },
+        { id: '1', type: 'text-start' },
+        {
+          delta: 'Hello, world!',
+          id: '1',
+          type: 'text-delta',
+        },
+        { id: '1', type: 'text-end' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          role: 'assistant',
+          id: 'original-id',
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: { id: 'id-1', approved: true },
+              input: { value: 'value' },
+              rawInput: undefined,
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-tool1',
+            },
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "approval": {
+              "approved": true,
+              "id": "id-1",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "toolCallId": "call-1",
+            "type": "tool-tool1",
+          },
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+  });
 });

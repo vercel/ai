@@ -14190,6 +14190,44 @@ describe('streamText', () => {
             ]
           `);
       });
+
+      it('should include the tool result in the ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "output": "result1",
+              "toolCallId": "call-1",
+              "type": "tool-output-available",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello, world!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
+      });
     });
   });
 });
