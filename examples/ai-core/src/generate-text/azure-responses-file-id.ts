@@ -9,8 +9,8 @@ import 'dotenv/config';
  * AZURE_API_KEY="<your_api_key>"
  *
  * prepare 2
- * Please create vector store and put file in your vector.
- * URL:AOAI vector store portal
+ * Please put file in your Data files storage.
+ * URL:AOAI Data files storage portal
  * https://oai.azure.com/resource/datafile
  */
 
