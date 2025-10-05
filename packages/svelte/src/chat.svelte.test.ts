@@ -460,6 +460,7 @@ describe('onToolCall', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -479,6 +480,7 @@ describe('onToolCall', () => {
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
         providerExecuted: undefined,
         preliminary: undefined,
+        title: undefined,
       },
     ]);
   });
@@ -529,6 +531,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -553,6 +556,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -577,6 +581,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -602,6 +607,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -627,6 +633,7 @@ describe('tool invocations', () => {
         output: 'test-result',
         providerExecuted: undefined,
         preliminary: undefined,
+        title: undefined,
       },
     ]);
   });
@@ -661,6 +668,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -687,6 +695,7 @@ describe('tool invocations', () => {
         output: 'test-result',
         providerExecuted: undefined,
         preliminary: undefined,
+        title: undefined,
       },
     ]);
   });
@@ -720,6 +729,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -742,6 +752,7 @@ describe('tool invocations', () => {
           output: 'test-result',
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });

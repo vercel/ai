@@ -84,6 +84,12 @@ Not used for provider-defined tools.
   description?: string;
 
   /**
+   * An optional title of the tool.
+   * Will be used by the language model to display the tool.
+   */
+  title?: string;
+
+  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -201,6 +207,7 @@ Helper function for defining a dynamic tool.
  */
 export function dynamicTool(tool: {
   description?: string;
+  title?: string;
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;

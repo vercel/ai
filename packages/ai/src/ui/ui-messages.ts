@@ -209,6 +209,7 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
  */
 export type UIToolInvocation<TOOL extends UITool | Tool> = {
   toolCallId: string;
+  title?: string;
 } & (
   | {
       state: 'input-streaming';
@@ -255,6 +256,7 @@ export type DynamicToolUIPart = {
   type: 'dynamic-tool';
   toolName: string;
   toolCallId: string;
+  title?: string;
 } & (
   | {
       state: 'input-streaming';
