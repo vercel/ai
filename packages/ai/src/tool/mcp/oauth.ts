@@ -17,26 +17,29 @@ import {
   MCPClientOAuthError,
   ServerError,
   OAUTH_ERRORS,
+  InvalidClientError,
+  InvalidGrantError,
+  UnauthorizedClientError,
 } from '../../error/oauth-error';
+import {
+  resourceUrlFromServerUrl,
+  checkResourceAllowed,
+} from '../../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { FetchFunction } from '@ai-sdk/provider-utils';
 
-export type AuthResult = 'AUTHORIZED' | 'UNAUTHORIZED';
+export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
 
 export interface OAuthClientProvider {
   /**
    * Returns current access token if present; undefined otherwise.
    */
   tokens(): OAuthTokens | undefined | Promise<OAuthTokens | undefined>;
+  saveTokens(tokens: OAuthTokens): void | Promise<void>;
+  redirectToAuthorization(authorizationUrl: URL): void | Promise<void>;
+  saveCodeVerifier(codeVerifier: string): void | Promise<void>;
+  codeVerifier(): string | Promise<string>;
 
-  /**
-   * Performs (or completes) OAuth for the given server.
-   * Should persist tokens so subsequent tokens() calls return the new access_token.
-   */
-  authorize(options: {
-    serverUrl: URL;
-    resourceMetadataUrl?: URL;
-  }): Promise<AuthResult>;
   /**
    * Adds custom client authentication to OAuth token requests.
    *
@@ -61,6 +64,29 @@ export interface OAuthClientProvider {
     url: string | URL,
     metadata?: AuthorizationServerMetadata,
   ): void | Promise<void>;
+
+  /**
+   * If implemented, provides a way for the client to invalidate (e.g. delete) the specified
+   * credentials, in the case where the server has indicated that they are no longer valid.
+   * This avoids requiring the user to intervene manually.
+   */
+  invalidateCredentials?(
+    scope: 'all' | 'client' | 'tokens' | 'verifier',
+  ): void | Promise<void>;
+  get redirectUrl(): string | URL;
+  get clientMetadata(): OAuthClientMetadata;
+  clientInformation():
+    | OAuthClientInformation
+    | undefined
+    | Promise<OAuthClientInformation | undefined>;
+  saveClientInformation?(
+    clientInformation: OAuthClientInformation,
+  ): void | Promise<void>;
+  state?(): string | Promise<string>;
+  validateResourceURL?(
+    serverUrl: string | URL,
+    resource?: string,
+  ): Promise<URL | undefined>;
 }
 
 export class UnauthorizedError extends Error {
@@ -816,4 +842,218 @@ export async function registerClient(
   }
 
   return OAuthClientInformationFullSchema.parse(await response.json());
+}
+
+export async function auth(
+  provider: OAuthClientProvider,
+  options: {
+    serverUrl: string | URL;
+    authorizationCode?: string;
+    scope?: string;
+    resourceMetadataUrl?: URL;
+    fetchFn?: FetchFunction;
+  },
+): Promise<AuthResult> {
+  try {
+    return await authInternal(provider, options);
+  } catch (error) {
+    // Handle recoverable error types by invalidating credentials and retrying
+    if (
+      error instanceof InvalidClientError ||
+      error instanceof UnauthorizedClientError
+    ) {
+      await provider.invalidateCredentials?.('all');
+      return await authInternal(provider, options);
+    } else if (error instanceof InvalidGrantError) {
+      await provider.invalidateCredentials?.('tokens');
+      return await authInternal(provider, options);
+    }
+
+    // Throw otherwise
+    throw error;
+  }
+}
+
+export async function selectResourceURL(
+  serverUrl: string | URL,
+  provider: OAuthClientProvider,
+  resourceMetadata?: OAuthProtectedResourceMetadata,
+): Promise<URL | undefined> {
+  const defaultResource = resourceUrlFromServerUrl(serverUrl);
+
+  // If provider has custom validation, delegate to it
+  if (provider.validateResourceURL) {
+    return await provider.validateResourceURL(
+      defaultResource,
+      resourceMetadata?.resource,
+    );
+  }
+
+  // Only include resource parameter when Protected Resource Metadata is present
+  if (!resourceMetadata) {
+    return undefined;
+  }
+
+  // Validate that the metadata's resource is compatible with our request
+  if (
+    !checkResourceAllowed({
+      requestedResource: defaultResource,
+      configuredResource: resourceMetadata.resource,
+    })
+  ) {
+    throw new Error(
+      `Protected resource ${resourceMetadata.resource} does not match expected ${defaultResource} (or origin)`,
+    );
+  }
+  // Prefer the resource from metadata since it's what the server is telling us to request
+  return new URL(resourceMetadata.resource);
+}
+
+async function authInternal(
+  provider: OAuthClientProvider,
+  {
+    serverUrl,
+    authorizationCode,
+    scope,
+    resourceMetadataUrl,
+    fetchFn,
+  }: {
+    serverUrl: string | URL;
+    authorizationCode?: string;
+    scope?: string;
+    resourceMetadataUrl?: URL;
+    fetchFn?: FetchFunction;
+  },
+): Promise<AuthResult> {
+  let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
+  let authorizationServerUrl: string | URL | undefined;
+  try {
+    resourceMetadata = await discoverOAuthProtectedResourceMetadata(
+      serverUrl,
+      { resourceMetadataUrl },
+      fetchFn,
+    );
+    if (
+      resourceMetadata.authorization_servers &&
+      resourceMetadata.authorization_servers.length > 0
+    ) {
+      authorizationServerUrl = resourceMetadata.authorization_servers[0];
+    }
+  } catch {
+    // Ignore errors and fall back to /.well-known/oauth-authorization-server
+  }
+
+  /**
+   * If we don't get a valid authorization server metadata from protected resource metadata,
+   * fallback to the legacy MCP spec's implementation (version 2025-03-26): MCP server acts as the Authorization server.
+   */
+  if (!authorizationServerUrl) {
+    authorizationServerUrl = serverUrl;
+  }
+
+  const resource: URL | undefined = await selectResourceURL(
+    serverUrl,
+    provider,
+    resourceMetadata,
+  );
+
+  const metadata = await discoverAuthorizationServerMetadata(
+    authorizationServerUrl,
+    {
+      fetchFn,
+    },
+  );
+
+  // Handle client registration if needed
+  let clientInformation = await Promise.resolve(provider.clientInformation());
+  if (!clientInformation) {
+    if (authorizationCode !== undefined) {
+      throw new Error(
+        'Existing OAuth client information is required when exchanging an authorization code',
+      );
+    }
+
+    if (!provider.saveClientInformation) {
+      throw new Error(
+        'OAuth client information must be saveable for dynamic registration',
+      );
+    }
+
+    const fullInformation = await registerClient(authorizationServerUrl, {
+      metadata,
+      clientMetadata: provider.clientMetadata,
+      fetchFn,
+    });
+
+    await provider.saveClientInformation(fullInformation);
+    clientInformation = fullInformation;
+  }
+
+  // Exchange authorization code for tokens
+  if (authorizationCode !== undefined) {
+    const codeVerifier = await provider.codeVerifier();
+    const tokens = await exchangeAuthorization(authorizationServerUrl, {
+      metadata,
+      clientInformation,
+      authorizationCode,
+      codeVerifier,
+      redirectUri: provider.redirectUrl,
+      resource,
+      addClientAuthentication: provider.addClientAuthentication,
+      fetchFn: fetchFn,
+    });
+
+    await provider.saveTokens(tokens);
+    return 'AUTHORIZED';
+  }
+
+  const tokens = await provider.tokens();
+
+  // Handle token refresh or new authorization
+  if (tokens?.refresh_token) {
+    try {
+      // Attempt to refresh the token
+      const newTokens = await refreshAuthorization(authorizationServerUrl, {
+        metadata,
+        clientInformation,
+        refreshToken: tokens.refresh_token,
+        resource,
+        addClientAuthentication: provider.addClientAuthentication,
+        fetchFn,
+      });
+
+      await provider.saveTokens(newTokens);
+      return 'AUTHORIZED';
+    } catch (error) {
+      // If this is a ServerError, or an unknown type, log it out and try to continue. Otherwise, escalate so we can fix things and retry.
+      if (
+        !(error instanceof MCPClientOAuthError) ||
+        error instanceof ServerError
+      ) {
+        // Could not refresh OAuth tokens
+      } else {
+        // Refresh failed for another reason, re-throw
+        throw error;
+      }
+    }
+  }
+
+  const state = provider.state ? await provider.state() : undefined;
+
+  // Start new authorization flow
+  const { authorizationUrl, codeVerifier } = await startAuthorization(
+    authorizationServerUrl,
+    {
+      metadata,
+      clientInformation,
+      state,
+      redirectUrl: provider.redirectUrl,
+      scope: scope || provider.clientMetadata.scope,
+      resource,
+    },
+  );
+
+  await provider.saveCodeVerifier(codeVerifier);
+  await provider.redirectToAuthorization(authorizationUrl);
+  return 'REDIRECT';
 }
