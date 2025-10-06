@@ -475,11 +475,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         }),
                         z.object({
                           type: z.literal('container_file_citation'),
-                          container_id: z.string().nullish(),
-                          end_index: z.number().nullish(),
-                          file_id: z.string().nullish(),
-                          filename: z.string().nullish(),
-                          start_index: z.number().nullish(),
+                          container_id: z.string(),
+                          end_index: z.number(),
+                          file_id: z.string(),
+                          filename: z.string(),
+                          start_index: z.number(),
                         }),
                       ]),
                     ),
@@ -1549,11 +1549,11 @@ export const openaiReseponseAnnotationSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('container_file_citation'),
-    container_id: z.string().nullish(),
-    end_index: z.number().nullish(),
-    file_id: z.string().nullish(),
-    filename: z.string().nullish(),
-    start_index: z.number().nullish(),
+    container_id: z.string(),
+    end_index: z.number(),
+    file_id: z.string(),
+    filename: z.string(),
+    start_index: z.number(),
   }),
 ]);
 

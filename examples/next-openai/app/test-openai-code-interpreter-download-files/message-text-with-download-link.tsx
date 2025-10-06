@@ -33,14 +33,6 @@ export function MessageTextWithDownloadLink({
     const text = (() => {
       switch (cur.type) {
         case 'container_file_citation':
-          if (
-            !cur.container_id ||
-            !cur.file_id ||
-            !cur.filename ||
-            !cur.start_index ||
-            !cur.end_index
-          )
-            return acc;
           return (
             acc.slice(0, cur.start_index) +
             `${baseUrl}/api/chat-openai-code-interpreter-download-files/${cur.container_id}/${cur.file_id}` +
