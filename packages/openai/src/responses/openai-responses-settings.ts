@@ -11,11 +11,11 @@ export const openaiResponsesReasoningModelIds = [
   'computer-use-preview',
   'gpt-5',
   'gpt-5-2025-08-07',
+  'gpt-5-codex',
   'gpt-5-mini',
   'gpt-5-mini-2025-08-07',
   'gpt-5-nano',
   'gpt-5-nano-2025-08-07',
-  'gpt-5-codex',
 ] as const;
 
 export const openaiResponsesModelIds = [
