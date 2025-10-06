@@ -1,10 +1,18 @@
+import {
+  OAuthTokens,
+  OAuthProtectedResourceMetadata,
+  OAuthProtectedResourceMetadataSchema,
+} from './oauth-types';
+import { LATEST_PROTOCOL_VERSION } from './types';
+import { FetchFunction } from '@ai-sdk/provider-utils';
+
 export type AuthResult = 'AUTHORIZED' | 'UNAUTHORIZED';
 
 export interface OAuthClientProvider {
   /**
-   * Returns current access token if present; null otherwise.
+   * Returns current access token if present; undefined otherwise.
    */
-  tokens(): Promise<{ access_token: string } | null>;
+  tokens(): OAuthTokens | undefined | Promise<OAuthTokens | undefined>;
 
   /**
    * Performs (or completes) OAuth for the given server.
@@ -33,16 +41,161 @@ export function extractResourceMetadataUrl(
   const header =
     response.headers.get('www-authenticate') ??
     response.headers.get('WWW-Authenticate');
-  if (!header) return undefined;
+  if (!header) {
+    return undefined;
+  }
 
-  // Example: WWW-Authenticate: Bearer resource="https://mcp.example.com/.well-known/oauth-protected-resource"
-  // covers https, http, wss
-  const match = header.match(/resource="([^"]+)"/i);
-  if (!match) return undefined;
+  const [type, scheme] = header.split(' ');
+  if (type.toLowerCase() !== 'bearer' || !scheme) {
+    return undefined;
+  }
+
+  // Example: WWW-Authenticate: Bearer resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource"
+  // regex taken from MCP spec
+  const regex = /resource_metadata="([^"]*)"/;
+  const match = header.match(regex);
+  if (!match) {
+    return undefined;
+  }
 
   try {
     return new URL(match[1]);
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Constructs the well-known path for auth-related metadata discovery
+ */
+function buildWellKnownPath(
+  wellKnownPrefix:
+    | 'oauth-authorization-server'
+    | 'oauth-protected-resource'
+    | 'openid-configuration',
+  pathname: string = '',
+  options: { prependPathname?: boolean } = {},
+): string {
+  // Strip trailing slash from pathname to avoid double slashes
+  if (pathname.endsWith('/')) {
+    pathname = pathname.slice(0, -1);
+  }
+
+  return options.prependPathname
+    ? `${pathname}/.well-known/${wellKnownPrefix}`
+    : `/.well-known/${wellKnownPrefix}${pathname}`;
+}
+
+async function fetchWithCorsRetry(
+  url: URL,
+  headers?: Record<string, string>,
+  fetchFn: FetchFunction = fetch,
+): Promise<Response | undefined> {
+  try {
+    return await fetchFn(url, { headers });
+  } catch (error) {
+    if (error instanceof TypeError) {
+      if (headers) {
+        // CORS errors come back as TypeError, retry without headers
+        return fetchWithCorsRetry(url, undefined, fetchFn);
+      } else {
+        // We're getting CORS errors on retry too, return undefined
+        return undefined;
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * Tries to discover OAuth metadata at a specific URL
+ */
+async function tryMetadataDiscovery(
+  url: URL,
+  protocolVersion: string,
+  fetchFn: FetchFunction = fetch,
+): Promise<Response | undefined> {
+  const headers = {
+    'MCP-Protocol-Version': protocolVersion,
+  };
+  return await fetchWithCorsRetry(url, headers, fetchFn);
+}
+
+/**
+ * Determines if fallback to root discovery should be attempted
+ */
+function shouldAttemptFallback(
+  response: Response | undefined,
+  pathname: string,
+): boolean {
+  return (
+    !response ||
+    (response.status >= 400 && response.status < 500 && pathname !== '/')
+  );
+}
+
+/**
+ * Generic function for discovering OAuth metadata with fallback support
+ */
+async function discoverMetadataWithFallback(
+  serverUrl: string | URL,
+  wellKnownType: 'oauth-authorization-server' | 'oauth-protected-resource',
+  fetchFn: FetchFunction,
+  opts?: {
+    protocolVersion?: string;
+    metadataUrl?: string | URL;
+    metadataServerUrl?: string | URL;
+  },
+): Promise<Response | undefined> {
+  const issuer = new URL(serverUrl);
+  const protocolVersion = opts?.protocolVersion ?? LATEST_PROTOCOL_VERSION;
+
+  let url: URL;
+  if (opts?.metadataUrl) {
+    url = new URL(opts.metadataUrl);
+  } else {
+    // Try path-aware discovery first
+    const wellKnownPath = buildWellKnownPath(wellKnownType, issuer.pathname);
+    url = new URL(wellKnownPath, opts?.metadataServerUrl ?? issuer);
+    url.search = issuer.search;
+  }
+
+  let response = await tryMetadataDiscovery(url, protocolVersion, fetchFn);
+
+  // If path-aware discovery fails with 404 and we're not already at root, try fallback to root discovery
+  if (!opts?.metadataUrl && shouldAttemptFallback(response, issuer.pathname)) {
+    const rootUrl = new URL(`/.well-known/${wellKnownType}`, issuer);
+    response = await tryMetadataDiscovery(rootUrl, protocolVersion, fetchFn);
+  }
+
+  return response;
+}
+
+export async function discoverOAuthProtectedResourceMetadata(
+  serverUrl: string | URL,
+  opts?: { protocolVersion?: string; resourceMetadataUrl?: string | URL },
+  fetchFn: FetchFunction = fetch,
+): Promise<OAuthProtectedResourceMetadata> {
+  const response = await discoverMetadataWithFallback(
+    serverUrl,
+    'oauth-protected-resource',
+    fetchFn,
+    {
+      protocolVersion: opts?.protocolVersion,
+      metadataUrl: opts?.resourceMetadataUrl,
+    },
+  );
+
+  if (!response || response.status === 404) {
+    throw new Error(
+      `Resource server does not implement OAuth 2.0 Protected Resource Metadata.`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `HTTP ${response.status} trying to load well-known OAuth protected resource metadata.`,
+    );
+  }
+  return OAuthProtectedResourceMetadataSchema.parse(await response.json());
 }
