@@ -95,7 +95,6 @@ describe('collectToolApprovals', () => {
               "approved": true,
               "type": "tool-approval-response",
             },
-            "state": "approved",
             "toolCall": {
               "input": {
                 "value": "test-input",
@@ -104,7 +103,6 @@ describe('collectToolApprovals', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
-            "toolResult": undefined,
           },
         ],
         "deniedToolApprovals": [],
@@ -207,7 +205,6 @@ describe('collectToolApprovals', () => {
               "reason": "test-reason",
               "type": "tool-approval-response",
             },
-            "state": "denied",
             "toolCall": {
               "input": {
                 "value": "test-input",
@@ -216,7 +213,6 @@ describe('collectToolApprovals', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
-            "toolResult": undefined,
           },
         ],
       }
@@ -409,7 +405,6 @@ describe('collectToolApprovals', () => {
               "approved": true,
               "type": "tool-approval-response",
             },
-            "state": "approved",
             "toolCall": {
               "input": {
                 "value": "test-input-1",
@@ -418,7 +413,6 @@ describe('collectToolApprovals', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
-            "toolResult": undefined,
           },
           {
             "approvalRequest": {
@@ -431,7 +425,6 @@ describe('collectToolApprovals', () => {
               "approved": true,
               "type": "tool-approval-response",
             },
-            "state": "approved",
             "toolCall": {
               "input": {
                 "value": "test-input-2",
@@ -440,7 +433,6 @@ describe('collectToolApprovals', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
-            "toolResult": undefined,
           },
         ],
         "deniedToolApprovals": [
@@ -456,7 +448,6 @@ describe('collectToolApprovals', () => {
               "reason": "test-reason",
               "type": "tool-approval-response",
             },
-            "state": "denied",
             "toolCall": {
               "input": {
                 "value": "test-input-3",
@@ -465,7 +456,6 @@ describe('collectToolApprovals', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
-            "toolResult": undefined,
           },
           {
             "approvalRequest": {
@@ -478,7 +468,6 @@ describe('collectToolApprovals', () => {
               "approved": false,
               "type": "tool-approval-response",
             },
-            "state": "denied",
             "toolCall": {
               "input": {
                 "value": "test-input-4",
@@ -487,7 +476,6 @@ describe('collectToolApprovals', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
-            "toolResult": undefined,
           },
         ],
       }

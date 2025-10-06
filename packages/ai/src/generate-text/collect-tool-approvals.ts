@@ -7,6 +7,12 @@ import { TypedToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
+export type CollectedToolApprovals<TOOLS extends ToolSet> = {
+  approvalRequest: ToolApprovalRequest;
+  approvalResponse: ToolApprovalResponse;
+  toolCall: TypedToolCall<TOOLS>;
+};
+
 /**
  * If the last message is a tool message, this function collects all tool approvals
  * from that message.
@@ -16,16 +22,8 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
 }: {
   messages: ModelMessage[];
 }): {
-  approvedToolApprovals: Array<{
-    approvalRequest: ToolApprovalRequest;
-    approvalResponse: ToolApprovalResponse;
-    toolCall: TypedToolCall<TOOLS>;
-  }>;
-  deniedToolApprovals: Array<{
-    approvalRequest: ToolApprovalRequest;
-    approvalResponse: ToolApprovalResponse;
-    toolCall: TypedToolCall<TOOLS>;
-  }>;
+  approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
+  deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
 } {
   const lastMessage = messages.at(-1);
 
@@ -71,35 +69,32 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
     }
   }
 
-  const approvals = lastMessage.content
-    .filter(part => part.type === 'tool-approval-response')
-    .map(approvalResponse => {
-      const approvalRequest =
-        toolApprovalRequestsByApprovalId[approvalResponse.approvalId];
+  const approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
+  const deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
 
-      const toolResult = toolResults[approvalRequest!.toolCallId];
-      const toolCall = toolCallsByToolCallId[approvalRequest!.toolCallId];
+  const approvalResponses = lastMessage.content.filter(
+    part => part.type === 'tool-approval-response',
+  );
+  for (const approvalResponse of approvalResponses) {
+    const approvalRequest =
+      toolApprovalRequestsByApprovalId[approvalResponse.approvalId];
 
-      return {
-        approvalRequest,
-        approvalResponse,
-        toolCall,
-        toolResult,
-        state:
-          toolResult != null
-            ? 'processed'
-            : approvalResponse.approved
-              ? 'approved'
-              : 'denied',
-      };
-    });
+    if (toolResults[approvalRequest!.toolCallId] != null) {
+      continue;
+    }
 
-  return {
-    approvedToolApprovals: approvals.filter(
-      toolApproval => toolApproval.state === 'approved',
-    ),
-    deniedToolApprovals: approvals.filter(
-      toolApproval => toolApproval.state === 'denied',
-    ),
-  };
+    const approval: CollectedToolApprovals<TOOLS> = {
+      approvalRequest,
+      approvalResponse,
+      toolCall: toolCallsByToolCallId[approvalRequest!.toolCallId],
+    };
+
+    if (approvalResponse.approved) {
+      approvedToolApprovals.push(approval);
+    } else {
+      deniedToolApprovals.push(approval);
+    }
+  }
+
+  return { approvedToolApprovals, deniedToolApprovals };
 }
