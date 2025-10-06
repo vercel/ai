@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.1.0-beta.13
+
+### Patch Changes
+
+- 3771a27: The default api-version for Microsoft Azure OpenAI has been changed from preview to v1
+- Updated dependencies [357cfd7]
+  - @ai-sdk/openai@2.1.0-beta.13
+
 ## 2.1.0-beta.12
 
 ### Patch Changes
