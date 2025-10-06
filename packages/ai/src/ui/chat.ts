@@ -19,7 +19,6 @@ import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
-  ToolUIPart,
   UIMessagePart,
   UITools,
   type DataUIPart,
@@ -69,6 +68,16 @@ export type ChatRequestOptions = {
 
   metadata?: unknown;
 };
+
+export type ChatAddToolApproveResponseFunction = ({
+  id,
+  approved,
+  reason,
+}: {
+  id: string;
+  approved: boolean;
+  reason?: string;
+}) => void | PromiseLike<void>;
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
@@ -417,14 +426,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
-  addToolApprovalResponse = async ({
+  addToolApprovalResponse: ChatAddToolApproveResponseFunction = async ({
     id,
     approved,
     reason,
-  }: {
-    id: string;
-    approved: boolean;
-    reason?: string;
   }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;

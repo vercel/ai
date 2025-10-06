@@ -1,15 +1,12 @@
 import type { WeatherUIToolWithApprovalInvocation } from '@/tool/weather-tool-with-approval';
+import type { ChatAddToolApproveResponseFunction } from 'ai';
 
 export default function WeatherWithApprovalView({
   invocation,
   addToolApprovalResponse,
 }: {
   invocation: WeatherUIToolWithApprovalInvocation;
-  addToolApprovalResponse: (response: {
-    id: string;
-    approved: boolean;
-    reason?: string;
-  }) => void;
+  addToolApprovalResponse: ChatAddToolApproveResponseFunction;
 }) {
   switch (invocation.state) {
     case 'approval-requested':
@@ -43,19 +40,26 @@ export default function WeatherWithApprovalView({
         </div>
       );
     case 'approval-responded':
-    case 'output-denied':
       return (
         <div className="text-gray-500">
           Can I retrieve the weather for {invocation.input.city}?
           <div>{invocation.approval.approved ? 'Approved' : 'Denied'}</div>
         </div>
       );
+
     case 'output-available':
       return (
         <div className="text-gray-500">
           {invocation.output.state === 'loading'
             ? 'Fetching weather information...'
             : `Weather in ${invocation.input.city}: ${invocation.output.weather}`}
+        </div>
+      );
+    case 'output-denied':
+      return (
+        <div className="text-gray-500">
+          Weather in {invocation.input.city}:{' '}
+          <span className="text-red-500">Tool execution denied.</span>
         </div>
       );
     case 'output-error':
