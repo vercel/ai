@@ -61,7 +61,9 @@ class DemoOAuthProvider implements OAuthClientProvider {
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
     // For demo purposes, we return a static public client id; dynamic registration is handled by auth() if needed
     if (!this._clientInformation) {
-      this._clientInformation = { client_id: 'demo-client' } as OAuthClientInformation;
+      this._clientInformation = {
+        client_id: 'demo-client',
+      } as OAuthClientInformation;
     }
     return this._clientInformation;
   }
