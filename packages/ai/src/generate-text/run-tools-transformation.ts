@@ -242,6 +242,16 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             const tool = tools![toolCall.toolName];
 
+            if (tool.onInputAvailable != null) {
+              await tool.onInputAvailable({
+                input: toolCall.input,
+                toolCallId: toolCall.toolCallId,
+                messages,
+                abortSignal,
+                experimental_context,
+              });
+            }
+
             if (tool.needsApproval) {
               toolResultsStreamController!.enqueue({
                 type: 'tool-approval-request',
@@ -252,16 +262,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             }
 
             toolInputs.set(toolCall.toolCallId, toolCall.input);
-
-            if (tool.onInputAvailable != null) {
-              await tool.onInputAvailable({
-                input: toolCall.input,
-                toolCallId: toolCall.toolCallId,
-                messages,
-                abortSignal,
-                experimental_context,
-              });
-            }
 
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
