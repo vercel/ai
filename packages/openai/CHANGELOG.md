@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.43
+
+### Patch Changes
+
+- fd46da1: feat(provider/openai): add new model IDs `gpt-image-1-mini`, `gpt-5-pro`, `gpt-5-pro-2025-10-06`
+
 ## 2.0.42
 
 ### Patch Changes
