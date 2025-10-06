@@ -305,21 +305,15 @@ A function that attempts to repair a tool call that failed to parse.
         const initialMessages = initialPrompt.messages;
         const responseMessages: Array<ResponseMessage> = [];
 
-        const toolApprovals = collectToolApprovals<TOOLS>({
-          messages: initialMessages,
-        });
+        const { approvedToolApprovals, deniedToolApprovals } =
+          collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-        const approvedToolCalls = toolApprovals.filter(
-          toolApproval => toolApproval.state === 'approved',
-        );
-
-        const deniedToolApprovals = toolApprovals.filter(
-          toolApproval => toolApproval.state === 'denied',
-        );
-
-        if (deniedToolApprovals.length > 0 || approvedToolCalls.length > 0) {
+        if (
+          deniedToolApprovals.length > 0 ||
+          approvedToolApprovals.length > 0
+        ) {
           const toolOutputs = await executeTools({
-            toolCalls: approvedToolCalls.map(
+            toolCalls: approvedToolApprovals.map(
               toolApproval => toolApproval.toolCall,
             ),
             tools: tools as TOOLS,

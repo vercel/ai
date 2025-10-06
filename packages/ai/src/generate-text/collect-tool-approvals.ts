@@ -15,17 +15,25 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
   messages,
 }: {
   messages: ModelMessage[];
-}): Array<{
-  approvalRequest: ToolApprovalRequest;
-  approvalResponse: ToolApprovalResponse;
-  toolCall: TypedToolCall<TOOLS>;
-  toolResult: TypedToolResult<TOOLS> | undefined;
-  state: 'approved' | 'denied' | 'processed';
-}> {
+}): {
+  approvedToolApprovals: Array<{
+    approvalRequest: ToolApprovalRequest;
+    approvalResponse: ToolApprovalResponse;
+    toolCall: TypedToolCall<TOOLS>;
+  }>;
+  deniedToolApprovals: Array<{
+    approvalRequest: ToolApprovalRequest;
+    approvalResponse: ToolApprovalResponse;
+    toolCall: TypedToolCall<TOOLS>;
+  }>;
+} {
   const lastMessage = messages.at(-1);
 
   if (lastMessage?.role != 'tool') {
-    return [];
+    return {
+      approvedToolApprovals: [],
+      deniedToolApprovals: [],
+    };
   }
 
   // gather tool calls and prepare lookup
@@ -63,7 +71,7 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
     }
   }
 
-  return lastMessage.content
+  const approvals = lastMessage.content
     .filter(part => part.type === 'tool-approval-response')
     .map(approvalResponse => {
       const approvalRequest =
@@ -85,4 +93,13 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
               : 'denied',
       };
     });
+
+  return {
+    approvedToolApprovals: approvals.filter(
+      toolApproval => toolApproval.state === 'approved',
+    ),
+    deniedToolApprovals: approvals.filter(
+      toolApproval => toolApproval.state === 'denied',
+    ),
+  };
 }

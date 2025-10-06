@@ -1073,20 +1073,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
 
-        const toolApprovals = collectToolApprovals<TOOLS>({
-          messages: initialMessages,
-        });
-
-        const approvedToolCalls = toolApprovals.filter(
-          toolApproval => toolApproval.state === 'approved',
-        );
-
-        const deniedToolApprovals = toolApprovals.filter(
-          toolApproval => toolApproval.state === 'denied',
-        );
+        const { approvedToolApprovals, deniedToolApprovals } =
+          collectToolApprovals<TOOLS>({ messages: initialMessages });
 
         // initial tool execution step stream
-        if (deniedToolApprovals.length > 0 || approvedToolCalls.length > 0) {
+        if (
+          deniedToolApprovals.length > 0 ||
+          approvedToolApprovals.length > 0
+        ) {
           let toolExecutionStepStreamController:
             | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
             | undefined;
@@ -1112,9 +1106,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
             await Promise.all(
-              approvedToolCalls.map(async toolCall => {
+              approvedToolApprovals.map(async toolApproval => {
                 const result = await executeToolCall({
-                  toolCall: toolCall.toolCall,
+                  toolCall: toolApproval.toolCall,
                   tools,
                   tracer,
                   telemetry,
