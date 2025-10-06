@@ -349,10 +349,8 @@ A function that attempts to repair a tool call that failed to parse.
                   toolCallId: toolApproval.toolCall.toolCallId,
                   toolName: toolApproval.toolCall.toolName,
                   output: {
-                    type: 'error-text' as const,
-                    value:
-                      toolApproval.approvalResponse.reason ??
-                      'Tool execution denied.',
+                    type: 'execution-denied' as const,
+                    reason: toolApproval.approvalResponse.reason,
                   },
                 })),
             ],
