@@ -1,5 +1,6 @@
 import { ToolResultPart } from './content-part';
 import { ProviderOptions } from './provider-options';
+import { ToolApprovalResponse } from './tool-approval-response';
 
 /**
 A tool message. It contains the result of one or more tool calls.
@@ -19,4 +20,4 @@ export type ToolModelMessage = {
 /**
 Content of a tool message. It is an array of tool result parts.
  */
-export type ToolContent = Array<ToolResultPart>;
+export type ToolContent = Array<ToolResultPart | ToolApprovalResponse>;
