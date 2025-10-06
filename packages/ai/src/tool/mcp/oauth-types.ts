@@ -61,7 +61,74 @@ export const OAuthProtectedResourceMetadataSchema = z
   })
   .passthrough();
 
+export const OAuthMetadataSchema = z
+  .object({
+    issuer: z.string(),
+    authorization_endpoint: SafeUrlSchema,
+    token_endpoint: SafeUrlSchema,
+    registration_endpoint: SafeUrlSchema.optional(),
+    scopes_supported: z.array(z.string()).optional(),
+    response_types_supported: z.array(z.string()),
+    code_challenge_methods_supported: z.array(z.string()),
+    token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
+    token_endpoint_auth_signing_alg_values_supported: z
+      .array(z.string())
+      .optional(),
+  })
+  .passthrough();
+
+/**
+ * OpenID Connect Discovery 1.0 Provider Metadata
+ * see: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+ */
+export const OpenIdProviderMetadataSchema = z
+  .object({
+    issuer: z.string(),
+    authorization_endpoint: SafeUrlSchema,
+    token_endpoint: SafeUrlSchema,
+    userinfo_endpoint: SafeUrlSchema.optional(),
+    jwks_uri: SafeUrlSchema,
+    registration_endpoint: SafeUrlSchema.optional(),
+    scopes_supported: z.array(z.string()).optional(),
+    response_types_supported: z.array(z.string()),
+    subject_types_supported: z.array(z.string()),
+    id_token_signing_alg_values_supported: z.array(z.string()),
+    claims_supported: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+/**
+ * OpenID Connect Discovery metadata that may include OAuth 2.0 fields
+ * This schema represents the real-world scenario where OIDC providers
+ * return a mix of OpenID Connect and OAuth 2.0 metadata fields
+ */
+export const OpenIdProviderDiscoveryMetadataSchema =
+  OpenIdProviderMetadataSchema.merge(
+    OAuthMetadataSchema.pick({
+      code_challenge_methods_supported: true,
+    }),
+  );
+
+export const OAuthClientInformationSchema = z
+  .object({
+    client_id: z.string(),
+    client_secret: z.string().optional(),
+    client_id_issued_at: z.number().optional(),
+    client_secret_expires_at: z.number().optional(),
+  })
+  .strip();
+
+export type OAuthMetadata = z.infer<typeof OAuthMetadataSchema>;
+export type OpenIdProviderDiscoveryMetadata = z.infer<
+  typeof OpenIdProviderDiscoveryMetadataSchema
+>;
 export type OAuthTokens = z.infer<typeof OAuthTokensSchema>;
 export type OAuthProtectedResourceMetadata = z.infer<
   typeof OAuthProtectedResourceMetadataSchema
 >;
+export type OAuthClientInformation = z.infer<
+  typeof OAuthClientInformationSchema
+>;
+export type AuthorizationServerMetadata =
+  | OAuthMetadata
+  | OpenIdProviderDiscoveryMetadata;

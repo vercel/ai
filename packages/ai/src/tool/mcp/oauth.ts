@@ -2,6 +2,10 @@ import {
   OAuthTokens,
   OAuthProtectedResourceMetadata,
   OAuthProtectedResourceMetadataSchema,
+  OAuthMetadataSchema,
+  OpenIdProviderDiscoveryMetadataSchema,
+  AuthorizationServerMetadata,
+  OAuthClientInformation,
 } from './oauth-types';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { FetchFunction } from '@ai-sdk/provider-utils';
@@ -198,4 +202,131 @@ export async function discoverOAuthProtectedResourceMetadata(
     );
   }
   return OAuthProtectedResourceMetadataSchema.parse(await response.json());
+}
+
+/**
+ * Builds a list of discovery URLs to try for authorization server metadata.
+ * URLs are returned in priority order:
+ * 1. OAuth metadata at the given URL
+ * 2. OAuth metadata at root (if URL has path)
+ * 3. OIDC metadata endpoints
+ */
+export function buildDiscoveryUrls(
+  authorizationServerUrl: string | URL,
+): { url: URL; type: 'oauth' | 'oidc' }[] {
+  const url =
+    typeof authorizationServerUrl === 'string'
+      ? new URL(authorizationServerUrl)
+      : authorizationServerUrl;
+  const hasPath = url.pathname !== '/';
+  const urlsToTry: { url: URL; type: 'oauth' | 'oidc' }[] = [];
+
+  if (!hasPath) {
+    // Root path: https://example.com/.well-known/oauth-authorization-server
+    urlsToTry.push({
+      url: new URL('/.well-known/oauth-authorization-server', url.origin),
+      type: 'oauth',
+    });
+
+    urlsToTry.push({
+      url: new URL('/.well-known/openid-configuration', url.origin),
+      type: 'oidc',
+    });
+
+    return urlsToTry;
+  }
+
+  // Strip trailing slash from pathname to avoid double slashes
+  let pathname = url.pathname;
+  if (pathname.endsWith('/')) {
+    pathname = pathname.slice(0, -1);
+  }
+
+  // 1. OAuth metadata at the given URL
+  // Insert well-known before the path: https://example.com/.well-known/oauth-authorization-server/tenant1
+  urlsToTry.push({
+    url: new URL(
+      `/.well-known/oauth-authorization-server${pathname}`,
+      url.origin,
+    ),
+    type: 'oauth',
+  });
+
+  // Root path: https://example.com/.well-known/oauth-authorization-server
+  urlsToTry.push({
+    url: new URL('/.well-known/oauth-authorization-server', url.origin),
+    type: 'oauth',
+  });
+
+  // 3. OIDC metadata endpoints
+  //RFC 8414 style: Insert /.well-known/openid-configuration before the path
+  urlsToTry.push({
+    url: new URL(`/.well-known/openid-configuration${pathname}`, url.origin),
+    type: 'oidc',
+  });
+
+  // OIDC Discovery 1.0 style: Append /.well-known/openid-configuration after the path
+  urlsToTry.push({
+    url: new URL(`${pathname}/.well-known/openid-configuration`, url.origin),
+    type: 'oidc',
+  });
+
+  return urlsToTry;
+}
+
+export async function discoverAuthorizationServerMetadata(
+  authorizationServerUrl: string | URL,
+  {
+    fetchFn = fetch,
+    protocolVersion = LATEST_PROTOCOL_VERSION,
+  }: {
+    fetchFn?: FetchFunction;
+    protocolVersion?: string;
+  } = {},
+): Promise<AuthorizationServerMetadata | undefined> {
+  const headers = { 'MCP-Protocol-Version': protocolVersion };
+
+  const urlsToTry = buildDiscoveryUrls(authorizationServerUrl);
+
+  for (const { url: endpointUrl, type } of urlsToTry) {
+    const response = await fetchWithCorsRetry(endpointUrl, headers, fetchFn);
+
+    if (!response) {
+      /**
+       * CORS error occurred - don't throw as the endpoint may not allow CORS,
+       * continue trying other possible endpoints
+       */
+      continue;
+    }
+
+    if (!response.ok) {
+      // Continue looking for any 4xx response code.
+      if (response.status >= 400 && response.status < 500) {
+        continue; // Try next URL
+      }
+      throw new Error(
+        `HTTP ${response.status} trying to load ${type === 'oauth' ? 'OAuth' : 'OpenID provider'} metadata from ${endpointUrl}`,
+      );
+    }
+
+    // Parse and validate based on type
+    if (type === 'oauth') {
+      return OAuthMetadataSchema.parse(await response.json());
+    } else {
+      const metadata = OpenIdProviderDiscoveryMetadataSchema.parse(
+        await response.json(),
+      );
+
+      // MCP spec requires OIDC providers to support S256 PKCE
+      if (!metadata.code_challenge_methods_supported?.includes('S256')) {
+        throw new Error(
+          `Incompatible OIDC provider at ${endpointUrl}: does not support S256 code challenge method required by MCP specification`,
+        );
+      }
+
+      return metadata;
+    }
+  }
+
+  return undefined;
 }

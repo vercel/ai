@@ -4,6 +4,8 @@ import {
   type OAuthClientProvider,
   type AuthResult,
   discoverOAuthProtectedResourceMetadata,
+  buildDiscoveryUrls,
+  discoverAuthorizationServerMetadata,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
@@ -463,5 +465,248 @@ describe('discoverOAuthProtectedResourceMetadata', () => {
     expect(options.headers).toEqual({
       'MCP-Protocol-Version': LATEST_PROTOCOL_VERSION,
     });
+  });
+});
+
+describe('buildDiscoveryUrls', () => {
+  it('generates correct URLs for server without path', () => {
+    const urls = buildDiscoveryUrls('https://auth.example.com');
+
+    expect(urls).toHaveLength(2);
+    expect(urls.map(u => ({ url: u.url.toString(), type: u.type }))).toEqual([
+      {
+        url: 'https://auth.example.com/.well-known/oauth-authorization-server',
+        type: 'oauth',
+      },
+      {
+        url: 'https://auth.example.com/.well-known/openid-configuration',
+        type: 'oidc',
+      },
+    ]);
+  });
+
+  it('generates correct URLs for server with path', () => {
+    const urls = buildDiscoveryUrls('https://auth.example.com/tenant1');
+
+    expect(urls).toHaveLength(4);
+    expect(urls.map(u => ({ url: u.url.toString(), type: u.type }))).toEqual([
+      {
+        url: 'https://auth.example.com/.well-known/oauth-authorization-server/tenant1',
+        type: 'oauth',
+      },
+      {
+        url: 'https://auth.example.com/.well-known/oauth-authorization-server',
+        type: 'oauth',
+      },
+      {
+        url: 'https://auth.example.com/.well-known/openid-configuration/tenant1',
+        type: 'oidc',
+      },
+      {
+        url: 'https://auth.example.com/tenant1/.well-known/openid-configuration',
+        type: 'oidc',
+      },
+    ]);
+  });
+
+  it('handles URL object input', () => {
+    const urls = buildDiscoveryUrls(
+      new URL('https://auth.example.com/tenant1'),
+    );
+
+    expect(urls).toHaveLength(4);
+    expect(urls[0].url.toString()).toBe(
+      'https://auth.example.com/.well-known/oauth-authorization-server/tenant1',
+    );
+  });
+});
+
+describe('discoverAuthorizationServerMetadata', () => {
+  const validOAuthMetadata = {
+    issuer: 'https://auth.example.com',
+    authorization_endpoint: 'https://auth.example.com/authorize',
+    token_endpoint: 'https://auth.example.com/token',
+    registration_endpoint: 'https://auth.example.com/register',
+    response_types_supported: ['code'],
+    code_challenge_methods_supported: ['S256'],
+  };
+
+  const validOpenIdMetadata = {
+    issuer: 'https://auth.example.com',
+    authorization_endpoint: 'https://auth.example.com/authorize',
+    token_endpoint: 'https://auth.example.com/token',
+    jwks_uri: 'https://auth.example.com/jwks',
+    subject_types_supported: ['public'],
+    id_token_signing_alg_values_supported: ['RS256'],
+    response_types_supported: ['code'],
+    code_challenge_methods_supported: ['S256'],
+  };
+
+  it('tries URLs in order and returns first successful metadata', async () => {
+    // First OAuth URL fails with 404
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    });
+
+    // Second OAuth URL (root) succeeds
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validOAuthMetadata,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com/tenant1',
+    );
+
+    expect(metadata).toEqual(validOAuthMetadata);
+
+    // Verify it tried the URLs in the correct order
+    const calls = mockFetch.mock.calls;
+    expect(calls.length).toBe(2);
+    expect(calls[0][0].toString()).toBe(
+      'https://auth.example.com/.well-known/oauth-authorization-server/tenant1',
+    );
+    expect(calls[1][0].toString()).toBe(
+      'https://auth.example.com/.well-known/oauth-authorization-server',
+    );
+  });
+
+  it('throws error when OIDC provider does not support S256 PKCE', async () => {
+    // OAuth discovery fails
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    });
+
+    // OpenID Connect discovery succeeds but without S256 support
+    const invalidOpenIdMetadata = {
+      ...validOpenIdMetadata,
+      code_challenge_methods_supported: ['plain'], // Missing S256
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => invalidOpenIdMetadata,
+    });
+
+    await expect(
+      discoverAuthorizationServerMetadata('https://auth.example.com'),
+    ).rejects.toThrow(
+      'does not support S256 code challenge method required by MCP specification',
+    );
+  });
+
+  it('continues on 4xx errors', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validOpenIdMetadata,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://mcp.example.com',
+    );
+
+    expect(metadata).toEqual(validOpenIdMetadata);
+  });
+
+  it('throws on non-4xx errors', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    });
+
+    await expect(
+      discoverAuthorizationServerMetadata('https://mcp.example.com'),
+    ).rejects.toThrow('HTTP 500');
+  });
+
+  it('handles CORS errors with retry', async () => {
+    // First call fails with CORS
+    mockFetch.mockImplementationOnce(() =>
+      Promise.reject(new TypeError('CORS error')),
+    );
+
+    // Retry without headers succeeds
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validOAuthMetadata,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com',
+    );
+
+    expect(metadata).toEqual(validOAuthMetadata);
+    const calls = mockFetch.mock.calls;
+    expect(calls.length).toBe(2);
+
+    // First call should have headers
+    expect(calls[0][1]?.headers).toHaveProperty('MCP-Protocol-Version');
+
+    // Second call should not have headers (CORS retry)
+    expect(calls[1][1]?.headers).toBeUndefined();
+  });
+
+  it('supports custom fetch function', async () => {
+    const customFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => validOAuthMetadata,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com',
+      { fetchFn: customFetch },
+    );
+
+    expect(metadata).toEqual(validOAuthMetadata);
+    expect(customFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('supports custom protocol version', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validOAuthMetadata,
+    });
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com',
+      { protocolVersion: '2025-01-01' },
+    );
+
+    expect(metadata).toEqual(validOAuthMetadata);
+    const calls = mockFetch.mock.calls;
+    const [, options] = calls[0];
+    expect(options.headers).toEqual({
+      'MCP-Protocol-Version': '2025-01-01',
+    });
+  });
+
+  it('returns undefined when all URLs fail with CORS errors', async () => {
+    // All fetch attempts fail with CORS errors (TypeError)
+    mockFetch.mockImplementation(() =>
+      Promise.reject(new TypeError('CORS error')),
+    );
+
+    const metadata = await discoverAuthorizationServerMetadata(
+      'https://auth.example.com/tenant1',
+    );
+
+    expect(metadata).toBeUndefined();
+
+    // Verify that all discovery URLs were attempted
+    expect(mockFetch).toHaveBeenCalledTimes(8); // 4 URLs × 2 attempts each (with and without headers)
   });
 });
