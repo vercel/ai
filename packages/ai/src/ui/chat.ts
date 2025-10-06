@@ -19,6 +19,9 @@ import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
+  ToolUIPart,
+  UIMessagePart,
+  UITools,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -427,23 +430,30 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
 
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> =>
+        isToolUIPart(part) &&
+        part.state === 'approval-requested' &&
+        part.approval.id === id
+          ? {
+              ...part,
+              state: 'approval-responded',
+              approval: { id, approved, reason },
+            }
+          : part;
+
       // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {
         ...lastMessage,
-        parts: lastMessage.parts.map(part =>
-          isToolUIPart(part) &&
-          part.state === 'approval-requested' &&
-          part.approval.id === id
-            ? {
-                ...part,
-                state: 'approval-responded',
-                approval: { id, approved, reason },
-              }
-            : part,
-        ),
+        parts: lastMessage.parts.map(updatePart),
       });
 
-      // TODO update incoming stream
+      // update the active response if it exists
+      if (this.activeResponse) {
+        this.activeResponse.state.message.parts =
+          this.activeResponse.state.message.parts.map(updatePart);
+      }
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
@@ -484,30 +494,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
 
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> =>
+        isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+          ? ({ ...part, state, output, errorText } as typeof part)
+          : part;
+
       // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {
         ...lastMessage,
-        parts: lastMessage.parts.map(part =>
-          isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-            ? { ...part, state, output, errorText }
-            : part,
-        ),
+        parts: lastMessage.parts.map(updatePart),
       });
 
       // update the active response if it exists
       if (this.activeResponse) {
         this.activeResponse.state.message.parts =
-          this.activeResponse.state.message.parts.map(part =>
-            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-              ? ({
-                  ...part,
-                  state,
-                  output,
-                  errorText,
-                  approval: undefined,
-                } as typeof part)
-              : part,
-          );
+          this.activeResponse.state.message.parts.map(updatePart);
       }
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
