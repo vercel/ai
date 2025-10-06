@@ -1,6 +1,9 @@
 import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
 
+/**
+ * Tool output when the tool execution has been denied (for static tools).
+ */
 export type StaticToolOutputDenied<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: {
     type: 'tool-output-denied';
@@ -11,5 +14,8 @@ export type StaticToolOutputDenied<TOOLS extends ToolSet> = ValueOf<{
   };
 }>;
 
+/**
+ * Tool output when the tool execution has been denied.
+ */
 export type TypedToolOutputDenied<TOOLS extends ToolSet> =
   StaticToolOutputDenied<TOOLS>;
