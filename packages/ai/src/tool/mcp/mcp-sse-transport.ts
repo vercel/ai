@@ -11,6 +11,7 @@ import {
   OAuthClientProvider,
   extractResourceMetadataUrl,
   UnauthorizedError,
+  auth,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
@@ -87,13 +88,17 @@ export class SseMCPTransport implements MCPTransport {
 
           if (response.status === 401 && this.authProvider && !triedAuth) {
             this.resourceMetadataUrl = extractResourceMetadataUrl(response);
-            const result = await this.authProvider.authorize({
-              serverUrl: this.url,
-              resourceMetadataUrl: this.resourceMetadataUrl,
-            });
-
-            if (result !== 'AUTHORIZED') {
-              const error = new UnauthorizedError();
+            try {
+              const result = await auth(this.authProvider, {
+                serverUrl: this.url,
+                resourceMetadataUrl: this.resourceMetadataUrl,
+              });
+              if (result !== 'AUTHORIZED') {
+                const error = new UnauthorizedError();
+                this.onerror?.(error);
+                return reject(error);
+              }
+            } catch (error) {
               this.onerror?.(error);
               return reject(error);
             }
@@ -221,12 +226,17 @@ export class SseMCPTransport implements MCPTransport {
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
           this.resourceMetadataUrl = extractResourceMetadataUrl(response);
-          const result = await this.authProvider.authorize({
-            serverUrl: this.url,
-            resourceMetadataUrl: this.resourceMetadataUrl,
-          });
-          if (result !== 'AUTHORIZED') {
-            const error = new UnauthorizedError();
+          try {
+            const result = await auth(this.authProvider, {
+              serverUrl: this.url,
+              resourceMetadataUrl: this.resourceMetadataUrl,
+            });
+            if (result !== 'AUTHORIZED') {
+              const error = new UnauthorizedError();
+              this.onerror?.(error);
+              return;
+            }
+          } catch (error) {
             this.onerror?.(error);
             return;
           }
