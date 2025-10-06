@@ -1073,13 +1073,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
 
-        // create tool outputs (either execute or reject) for tool approval responses:
         const toolApprovals = collectToolApprovals<TOOLS>({
           messages: initialMessages,
         });
 
+        const approvedToolCalls = toolApprovals.filter(
+          toolApproval => toolApproval.state === 'approved',
+        );
+
+        const deniedToolApprovals = toolApprovals.filter(
+          toolApproval => toolApproval.state === 'denied',
+        );
+
         // initial tool execution step stream
-        if (toolApprovals.length > 0) {
+        if (deniedToolApprovals.length > 0 || approvedToolCalls.length > 0) {
           let toolExecutionStepStreamController:
             | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
             | undefined;
@@ -1094,14 +1101,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.addStream(toolExecutionStepStream);
 
           try {
-            const approvedToolCalls = toolApprovals
-              .filter(toolApproval => toolApproval.approvalResponse.approved)
-              .map(toolApproval => toolApproval.toolCall);
-
-            const deniedToolApprovals = toolApprovals.filter(
-              toolApproval => !toolApproval.approvalResponse.approved,
-            );
-
             for (const toolApproval of deniedToolApprovals) {
               toolExecutionStepStreamController?.enqueue({
                 type: 'tool-output-denied',
@@ -1115,7 +1114,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             await Promise.all(
               approvedToolCalls.map(async toolCall => {
                 const result = await executeToolCall({
-                  toolCall,
+                  toolCall: toolCall.toolCall,
                   tools,
                   tracer,
                   telemetry,
@@ -1137,7 +1136,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             initialResponseMessages.push({
               role: 'tool',
               content: [
-                // add tool results for approved tool calls:
+                // add regular tool results for approved tool calls:
                 ...toolOutputs.map(output => ({
                   type: 'tool-result' as const,
                   toolCallId: output.toolCallId,
@@ -1151,7 +1150,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     errorMode: output.type === 'tool-error' ? 'json' : 'none',
                   }),
                 })),
-                // add tool errors for rejected tool calls:
+                // add execution denied tool results for denied tool approvals:
                 ...deniedToolApprovals.map(toolApproval => ({
                   type: 'tool-result' as const,
                   toolCallId: toolApproval.toolCall.toolCallId,

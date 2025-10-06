@@ -305,17 +305,23 @@ A function that attempts to repair a tool call that failed to parse.
         const initialMessages = initialPrompt.messages;
         const responseMessages: Array<ResponseMessage> = [];
 
-        // create tool outputs (either execute or reject) for tool approval responses:
         const toolApprovals = collectToolApprovals<TOOLS>({
           messages: initialMessages,
         });
 
-        if (toolApprovals.length > 0) {
+        const approvedToolCalls = toolApprovals.filter(
+          toolApproval => toolApproval.state === 'approved',
+        );
+
+        const deniedToolApprovals = toolApprovals.filter(
+          toolApproval => toolApproval.state === 'denied',
+        );
+
+        if (deniedToolApprovals.length > 0 || approvedToolCalls.length > 0) {
           const toolOutputs = await executeTools({
-            // run only approved tool calls:
-            toolCalls: toolApprovals
-              .filter(toolApproval => toolApproval.approvalResponse.approved)
-              .map(toolApproval => toolApproval.toolCall),
+            toolCalls: approvedToolCalls.map(
+              toolApproval => toolApproval.toolCall,
+            ),
             tools: tools as TOOLS,
             tracer,
             telemetry,
@@ -327,7 +333,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push({
             role: 'tool',
             content: [
-              // add tool results for approved tool calls:
+              // add regular tool results for approved tool calls:
               ...toolOutputs.map(output => ({
                 type: 'tool-result' as const,
                 toolCallId: output.toolCallId,
@@ -341,18 +347,16 @@ A function that attempts to repair a tool call that failed to parse.
                   errorMode: output.type === 'tool-error' ? 'json' : 'none',
                 }),
               })),
-              // add tool errors for rejected tool calls:
-              ...toolApprovals
-                .filter(toolApproval => !toolApproval.approvalResponse.approved)
-                .map(toolApproval => ({
-                  type: 'tool-result' as const,
-                  toolCallId: toolApproval.toolCall.toolCallId,
-                  toolName: toolApproval.toolCall.toolName,
-                  output: {
-                    type: 'execution-denied' as const,
-                    reason: toolApproval.approvalResponse.reason,
-                  },
-                })),
+              // add execution denied tool results for denied tool approvals:
+              ...deniedToolApprovals.map(toolApproval => ({
+                type: 'tool-result' as const,
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+                output: {
+                  type: 'execution-denied' as const,
+                  reason: toolApproval.approvalResponse.reason,
+                },
+              })),
             ],
           });
         }
