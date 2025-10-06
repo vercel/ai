@@ -8,6 +8,7 @@ import {
   discoverAuthorizationServerMetadata,
   startAuthorization,
   exchangeAuthorization,
+  refreshAuthorization,
 } from './oauth';
 import { AuthorizationServerMetadata } from './oauth-types';
 import { ServerError } from '../../error/oauth-error';
@@ -1091,5 +1092,180 @@ describe('exchangeAuthorization', () => {
     expect(body.get('client_secret')).toBe('secret123');
     expect(body.get('redirect_uri')).toBe('http://localhost:3000/callback');
     expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
+  });
+});
+
+describe('refreshAuthorization', () => {
+  const validTokens = {
+    access_token: 'newaccess123',
+    token_type: 'Bearer',
+    expires_in: 3600,
+  };
+  const validTokensWithNewRefreshToken = {
+    ...validTokens,
+    refresh_token: 'newrefresh123',
+  };
+
+  const validMetadata = {
+    issuer: 'https://auth.example.com',
+    authorization_endpoint: 'https://auth.example.com/authorize',
+    token_endpoint: 'https://auth.example.com/token',
+    response_types_supported: ['code'],
+  };
+
+  const validClientInfo = {
+    client_id: 'client123',
+    client_secret: 'secret123',
+    redirect_uris: ['http://localhost:3000/callback'],
+    client_name: 'Test Client',
+  };
+
+  it('exchanges refresh token for new tokens', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokensWithNewRefreshToken,
+    });
+
+    const tokens = await refreshAuthorization('https://auth.example.com', {
+      clientInformation: validClientInfo,
+      refreshToken: 'refresh123',
+      resource: new URL('https://api.example.com/mcp-server'),
+    });
+
+    expect(tokens).toEqual(validTokensWithNewRefreshToken);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: 'https://auth.example.com/token',
+      }),
+      expect.objectContaining({
+        method: 'POST',
+        headers: new Headers({
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }),
+      }),
+    );
+
+    const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
+    expect(body.get('grant_type')).toBe('refresh_token');
+    expect(body.get('refresh_token')).toBe('refresh123');
+    expect(body.get('client_id')).toBe('client123');
+    expect(body.get('client_secret')).toBe('secret123');
+    expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
+  });
+
+  it('exchanges refresh token for new tokens with auth', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokensWithNewRefreshToken,
+    });
+
+    const tokens = await refreshAuthorization('https://auth.example.com', {
+      metadata: validMetadata as AuthorizationServerMetadata,
+      clientInformation: validClientInfo,
+      refreshToken: 'refresh123',
+      addClientAuthentication: (
+        headers: Headers,
+        params: URLSearchParams,
+        url: string | URL,
+        metadata?: AuthorizationServerMetadata,
+      ) => {
+        headers.set(
+          'Authorization',
+          'Basic ' +
+            btoa(
+              validClientInfo.client_id + ':' + validClientInfo.client_secret,
+            ),
+        );
+        params.set(
+          'example_url',
+          typeof url === 'string' ? url : url.toString(),
+        );
+        params.set('example_metadata', metadata?.authorization_endpoint ?? '?');
+        params.set('example_param', 'example_value');
+      },
+    });
+
+    expect(tokens).toEqual(validTokensWithNewRefreshToken);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: 'https://auth.example.com/token',
+      }),
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+
+    const headers = mockFetch.mock.calls[0][1].headers as Headers;
+    expect(headers.get('Content-Type')).toBe(
+      'application/x-www-form-urlencoded',
+    );
+    expect(headers.get('Authorization')).toBe(
+      'Basic Y2xpZW50MTIzOnNlY3JldDEyMw==',
+    );
+    const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
+    expect(body.get('grant_type')).toBe('refresh_token');
+    expect(body.get('refresh_token')).toBe('refresh123');
+    expect(body.get('client_id')).toBeNull();
+    expect(body.get('example_url')).toBe('https://auth.example.com');
+    expect(body.get('example_metadata')).toBe(
+      'https://auth.example.com/authorize',
+    );
+    expect(body.get('example_param')).toBe('example_value');
+    expect(body.get('client_secret')).toBeNull();
+  });
+
+  it('exchanges refresh token for new tokens and keep existing refresh token if none is returned', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokens,
+    });
+
+    const refreshToken = 'refresh123';
+    const tokens = await refreshAuthorization('https://auth.example.com', {
+      clientInformation: validClientInfo,
+      refreshToken,
+    });
+
+    expect(tokens).toEqual({ refresh_token: refreshToken, ...validTokens });
+  });
+
+  it('validates token response schema', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        // Missing required fields
+        access_token: 'newaccess123',
+      }),
+    });
+
+    await expect(
+      refreshAuthorization('https://auth.example.com', {
+        clientInformation: validClientInfo,
+        refreshToken: 'refresh123',
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('throws on error response', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: ServerError.errorCode,
+          error_description: 'Token refresh failed',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    await expect(
+      refreshAuthorization('https://auth.example.com', {
+        clientInformation: validClientInfo,
+        refreshToken: 'refresh123',
+      }),
+    ).rejects.toThrow('Token refresh failed');
   });
 });

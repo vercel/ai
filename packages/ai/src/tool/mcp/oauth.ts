@@ -680,3 +680,93 @@ export async function exchangeAuthorization(
 
   return OAuthTokensSchema.parse(await response.json());
 }
+
+/**
+ * Exchange a refresh token for an updated access token.
+ *
+ * Supports multiple client authentication methods as specified in OAuth 2.1:
+ * - Automatically selects the best authentication method based on server support
+ * - Preserves the original refresh token if a new one is not returned
+ *
+ * @param authorizationServerUrl - The authorization server's base URL
+ * @param options - Configuration object containing client info, refresh token, etc.
+ * @returns Promise resolving to OAuth tokens (preserves original refresh_token if not replaced)
+ * @throws {Error} When token refresh fails or authentication is invalid
+ */
+export async function refreshAuthorization(
+  authorizationServerUrl: string | URL,
+  {
+    metadata,
+    clientInformation,
+    refreshToken,
+    resource,
+    addClientAuthentication,
+    fetchFn,
+  }: {
+    metadata?: AuthorizationServerMetadata;
+    clientInformation: OAuthClientInformation;
+    refreshToken: string;
+    resource?: URL;
+    addClientAuthentication?: OAuthClientProvider['addClientAuthentication'];
+    fetchFn?: FetchFunction;
+  },
+): Promise<OAuthTokens> {
+  const grantType = 'refresh_token';
+
+  let tokenUrl: URL;
+  if (metadata) {
+    tokenUrl = new URL(metadata.token_endpoint);
+
+    if (
+      metadata.grant_types_supported &&
+      !metadata.grant_types_supported.includes(grantType)
+    ) {
+      throw new Error(
+        `Incompatible auth server: does not support grant type ${grantType}`,
+      );
+    }
+  } else {
+    tokenUrl = new URL('/token', authorizationServerUrl);
+  }
+
+  // Exchange refresh token
+  const headers = new Headers({
+    'Content-Type': 'application/x-www-form-urlencoded',
+  });
+  const params = new URLSearchParams({
+    grant_type: grantType,
+    refresh_token: refreshToken,
+  });
+
+  if (addClientAuthentication) {
+    addClientAuthentication(headers, params, authorizationServerUrl, metadata);
+  } else {
+    // Determine and apply client authentication method
+    const supportedMethods =
+      metadata?.token_endpoint_auth_methods_supported ?? [];
+    const authMethod = selectClientAuthMethod(
+      clientInformation,
+      supportedMethods,
+    );
+
+    applyClientAuthentication(authMethod, clientInformation, headers, params);
+  }
+
+  if (resource) {
+    params.set('resource', resource.href);
+  }
+
+  const response = await (fetchFn ?? fetch)(tokenUrl, {
+    method: 'POST',
+    headers,
+    body: params,
+  });
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return OAuthTokensSchema.parse({
+    refresh_token: refreshToken,
+    ...(await response.json()),
+  });
+}
