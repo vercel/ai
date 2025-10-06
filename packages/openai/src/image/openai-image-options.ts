@@ -1,7 +1,7 @@
 export type OpenAIImageModelId =
-  | 'gpt-image-1'
   | 'dall-e-3'
   | 'dall-e-2'
+  | 'gpt-image-1'
   | (string & {});
 
 // https://platform.openai.com/docs/guides/images
