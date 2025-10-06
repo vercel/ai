@@ -1265,7 +1265,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert a denied tool approval request', () => {
+    it('should convert a denied tool approval request and follow up text', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -1293,6 +1293,12 @@ describe('convertToModelMessages', () => {
               state: 'approval-responded',
               toolCallId: 'call-1',
               type: 'tool-weather',
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'I was not able to retrieve the weather.',
+              state: 'done',
             },
           ],
           role: 'assistant',
@@ -1339,6 +1345,15 @@ describe('convertToModelMessages', () => {
               },
             ],
             "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "I was not able to retrieve the weather.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
           },
         ]
       `);
