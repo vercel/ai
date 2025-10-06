@@ -1,9 +1,9 @@
 import { weatherToolWithApproval } from '@/tool/weather-tool-with-approval';
-import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { Agent, InferAgentUIMessage } from 'ai';
 
 export const weatherWithApprovalAgent = new Agent({
-  model: openai('gpt-5-mini'),
+  model: anthropic('claude-sonnet-4-5'),
   // context engineering required to make sure the model does not retry
   // the tool execution if it is not approved:
   system:
@@ -11,6 +11,9 @@ export const weatherWithApprovalAgent = new Agent({
     'Just say that the tool execution was not approved.',
   tools: {
     weather: weatherToolWithApproval,
+  },
+  onStepFinish: ({ request }) => {
+    console.log(JSON.stringify(request.body, null, 2));
   },
 });
 
