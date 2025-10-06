@@ -24,6 +24,7 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
+export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type {
   DynamicToolCall,
   StaticToolCall,
@@ -35,6 +36,10 @@ export type {
   StaticToolError,
   TypedToolError,
 } from './tool-error';
+export type {
+  StaticToolOutputDenied,
+  TypedToolOutputDenied,
+} from './tool-output-denied';
 export type {
   DynamicToolResult,
   StaticToolResult,
