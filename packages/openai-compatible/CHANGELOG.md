@@ -1,5 +1,15 @@
 # @ai-sdk/openai-compatible
 
+## 1.1.0-beta.7
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
 ## 1.1.0-beta.6
 
 ### Patch Changes

@@ -18,7 +18,9 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
-  ToolUIPart,
+  isToolUIPart,
+  UIMessagePart,
+  UITools,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -66,6 +68,27 @@ export type ChatRequestOptions = {
 
   metadata?: unknown;
 };
+
+/**
+ * Function that can be called to add a tool approval response to the chat.
+ */
+export type ChatAddToolApproveResponseFunction = ({
+  id,
+  approved,
+  reason,
+}: {
+  id: string;
+
+  /**
+   * Flag indicating whether the approval was granted or denied.
+   */
+  approved: boolean;
+
+  /**
+   * Optional reason for the approval or denial.
+   */
+  reason?: string;
+}) => void | PromiseLike<void>;
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
@@ -451,6 +474,54 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
+  addToolApprovalResponse: ChatAddToolApproveResponseFunction = async ({
+    id,
+    approved,
+    reason,
+  }) =>
+    this.jobExecutor.run(async () => {
+      const messages = this.state.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> =>
+        isToolUIPart(part) &&
+        part.state === 'approval-requested' &&
+        part.approval.id === id
+          ? {
+              ...part,
+              state: 'approval-responded',
+              approval: { id, approved, reason },
+            }
+          : part;
+
+      // update the message to trigger an immediate UI update
+      this.state.replaceMessage(messages.length - 1, {
+        ...lastMessage,
+        parts: lastMessage.parts.map(updatePart),
+      });
+
+      // update the active response if it exists
+      if (this.activeResponse) {
+        this.activeResponse.state.message.parts =
+          this.activeResponse.state.message.parts.map(updatePart);
+      }
+
+      // automatically send the message if the sendAutomaticallyWhen function returns true
+      if (
+        this.status !== 'streaming' &&
+        this.status !== 'submitted' &&
+        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+      ) {
+        // no await to avoid deadlocking
+        this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+        });
+      }
+    });
+
   addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     state = 'output-available',
     tool,
@@ -476,28 +547,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
 
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> =>
+        isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+          ? ({ ...part, state, output, errorText } as typeof part)
+          : part;
+
+      // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {
         ...lastMessage,
-        parts: lastMessage.parts.map(part =>
-          isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-            ? { ...part, state, output, errorText }
-            : part,
-        ),
+        parts: lastMessage.parts.map(updatePart),
       });
 
       // update the active response if it exists
       if (this.activeResponse) {
         this.activeResponse.state.message.parts =
-          this.activeResponse.state.message.parts.map(part =>
-            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-              ? ({
-                  ...part,
-                  state,
-                  output,
-                  errorText,
-                } as typeof part)
-              : part,
-          );
+          this.activeResponse.state.message.parts.map(updatePart);
       }
 
       // automatically send the message if the sendAutomaticallyWhen function returns true

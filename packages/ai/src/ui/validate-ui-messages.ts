@@ -117,6 +117,7 @@ const toolUIPartSchemas = [
     input: z.unknown().optional(),
     output: z.never().optional(),
     errorText: z.never().optional(),
+    approval: z.never().optional(),
   }),
   z.object({
     type: z.string().startsWith('tool-'),
@@ -127,6 +128,37 @@ const toolUIPartSchemas = [
     output: z.never().optional(),
     errorText: z.never().optional(),
     callProviderMetadata: providerMetadataSchema.optional(),
+    approval: z.never().optional(),
+  }),
+  z.object({
+    type: z.string().startsWith('tool-'),
+    toolCallId: z.string(),
+    state: z.literal('approval-requested'),
+    input: z.unknown(),
+    providerExecuted: z.boolean().optional(),
+    output: z.never().optional(),
+    errorText: z.never().optional(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+    approval: z.object({
+      id: z.string(),
+      approved: z.never().optional(),
+      reason: z.never().optional(),
+    }),
+  }),
+  z.object({
+    type: z.string().startsWith('tool-'),
+    toolCallId: z.string(),
+    state: z.literal('approval-responded'),
+    input: z.unknown(),
+    providerExecuted: z.boolean().optional(),
+    output: z.never().optional(),
+    errorText: z.never().optional(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+    approval: z.object({
+      id: z.string(),
+      approved: z.boolean(),
+      reason: z.string().optional(),
+    }),
   }),
   z.object({
     type: z.string().startsWith('tool-'),
@@ -138,6 +170,13 @@ const toolUIPartSchemas = [
     errorText: z.never().optional(),
     callProviderMetadata: providerMetadataSchema.optional(),
     preliminary: z.boolean().optional(),
+    approval: z
+      .object({
+        id: z.string(),
+        approved: z.literal(true),
+        reason: z.string().optional(),
+      })
+      .optional(),
   }),
   z.object({
     type: z.string().startsWith('tool-'),
@@ -148,6 +187,28 @@ const toolUIPartSchemas = [
     output: z.never().optional(),
     errorText: z.string(),
     callProviderMetadata: providerMetadataSchema.optional(),
+    approval: z
+      .object({
+        id: z.string(),
+        approved: z.literal(true),
+        reason: z.string().optional(),
+      })
+      .optional(),
+  }),
+  z.object({
+    type: z.string().startsWith('tool-'),
+    toolCallId: z.string(),
+    state: z.literal('output-denied'),
+    providerExecuted: z.boolean().optional(),
+    input: z.unknown(),
+    output: z.never().optional(),
+    errorText: z.never().optional(),
+    callProviderMetadata: providerMetadataSchema.optional(),
+    approval: z.object({
+      id: z.string(),
+      approved: z.literal(false),
+      reason: z.string().optional(),
+    }),
   }),
 ];
 
