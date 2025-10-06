@@ -1,5 +1,76 @@
 # ai
 
+## 5.1.0-beta.22
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+- a5e152d: fix(ai): back version support for V2 providers
+- 21e20c0: feat(provider): transcription model v3 spec
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+  - @ai-sdk/gateway@1.1.0-beta.16
+
+## 5.1.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [ef62178]
+  - @ai-sdk/gateway@1.1.0-beta.15
+
+## 5.1.0-beta.20
+
+### Patch Changes
+
+- 846e80e: fix(ai): bind functions for v2 -> v3 adapter
+- Updated dependencies [a90dca6]
+  - @ai-sdk/gateway@1.1.0-beta.14
+
+## 5.1.0-beta.19
+
+### Patch Changes
+
+- aa0515c: feat(ai): move Agent to stable
+- e7d9b00: feat(agent): add optional name property to agent
+- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+
+## 5.1.0-beta.18
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 9b8d17e: fix(agent): move provider options to main agent config
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+  - @ai-sdk/gateway@1.1.0-beta.13
+
+## 5.1.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [e6bfe91]
+  - @ai-sdk/gateway@1.1.0-beta.12
+
+## 5.1.0-beta.16
+
+### Patch Changes
+
+- 14ca35d: feat: add support for v2 specs
+- Updated dependencies [636e614]
+  - @ai-sdk/gateway@1.1.0-beta.11
+
+## 5.1.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [9f6149e]
+  - @ai-sdk/gateway@1.1.0-beta.10
+
 ## 5.1.0-beta.14
 
 ### Patch Changes

@@ -7,7 +7,7 @@ import {
   LanguageModelV3ProviderDefinedTool,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -35,6 +35,7 @@ import {
 } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { localShellInputSchema } from '../tool/local-shell';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -89,6 +90,20 @@ const codeInterpreterCallItem = z.object({
       ]),
     )
     .nullable(),
+});
+
+const localShellCallItem = z.object({
+  type: z.literal('local_shell_call'),
+  id: z.string(),
+  call_id: z.string(),
+  action: z.object({
+    type: z.literal('exec'),
+    command: z.array(z.string()),
+    timeout_ms: z.number().optional(),
+    user: z.string().optional(),
+    working_directory: z.string().optional(),
+    env: z.record(z.string(), z.string()).optional(),
+  }),
 });
 
 const imageGenerationCallItem = z.object({
@@ -204,6 +219,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         systemMessageMode: modelConfig.systemMessageMode,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
+        hasLocalShellTool: hasOpenAITool('openai.local_shell'),
       });
 
     warnings.push(...inputWarnings);
@@ -478,6 +494,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               fileSearchCallItem,
               codeInterpreterCallItem,
               imageGenerationCallItem,
+              localShellCallItem,
               z.object({
                 type: z.literal('function_call'),
                 call_id: z.string(),
@@ -571,6 +588,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               result: part.result,
             } satisfies z.infer<typeof imageGenerationOutputSchema>,
             providerExecuted: true,
+          });
+
+          break;
+        }
+
+        case 'local_shell_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: 'local_shell',
+            input: JSON.stringify({ action: part.action } satisfies z.infer<
+              typeof localShellInputSchema
+            >),
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+              },
+            },
           });
 
           break;
@@ -734,7 +769,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    const providerMetadata: SharedV2ProviderMetadata = {
+    const providerMetadata: SharedV3ProviderMetadata = {
       openai: { responseId: response.id },
     };
 
@@ -1070,6 +1105,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   } satisfies z.infer<typeof imageGenerationOutputSchema>,
                   providerExecuted: true,
                 });
+              } else if (value.item.type === 'local_shell_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: 'local_shell',
+                  input: JSON.stringify({
+                    action: {
+                      type: 'exec',
+                      command: value.item.action.command,
+                      timeoutMs: value.item.action.timeout_ms,
+                      user: value.item.action.user,
+                      workingDirectory: value.item.action.working_directory,
+                      env: value.item.action.env,
+                    },
+                  } satisfies z.infer<typeof localShellInputSchema>),
+                  providerMetadata: {
+                    openai: { itemId: value.item.id },
+                  },
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-end',
@@ -1104,6 +1160,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   delta: value.delta,
                 });
               }
+            } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
+              controller.enqueue({
+                type: 'tool-result',
+                toolCallId: value.item_id,
+                toolName: 'image_generation',
+                result: {
+                  result: value.partial_image_b64,
+                } satisfies z.infer<typeof imageGenerationOutputSchema>,
+                providerExecuted: true,
+                preliminary: true,
+              });
             } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
 
@@ -1240,7 +1307,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            const providerMetadata: SharedV2ProviderMetadata = {
+            const providerMetadata: SharedV3ProviderMetadata = {
               openai: {
                 responseId,
               },
@@ -1401,6 +1468,7 @@ const responseOutputItemDoneSchema = z.object({
     imageGenerationCallItem,
     webSearchCallItem,
     fileSearchCallItem,
+    localShellCallItem,
     z.object({
       type: z.literal('computer_call'),
       id: z.string(),
@@ -1414,6 +1482,13 @@ const responseFunctionCallArgumentsDeltaSchema = z.object({
   item_id: z.string(),
   output_index: z.number(),
   delta: z.string(),
+});
+
+const responseImageGenerationCallPartialImageSchema = z.object({
+  type: z.literal('response.image_generation_call.partial_image'),
+  item_id: z.string(),
+  output_index: z.number(),
+  partial_image_b64: z.string(),
 });
 
 const responseCodeInterpreterCallCodeDeltaSchema = z.object({
@@ -1470,6 +1545,7 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
+  responseImageGenerationCallPartialImageSchema,
   responseCodeInterpreterCallCodeDeltaSchema,
   responseCodeInterpreterCallCodeDoneSchema,
   responseAnnotationAddedSchema,
@@ -1527,6 +1603,11 @@ function isResponseFunctionCallArgumentsDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseFunctionCallArgumentsDeltaSchema> {
   return chunk.type === 'response.function_call_arguments.delta';
+}
+function isResponseImageGenerationCallPartialImageChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseImageGenerationCallPartialImageSchema> {
+  return chunk.type === 'response.image_generation_call.partial_image';
 }
 
 function isResponseCodeInterpreterCallCodeDeltaChunk(

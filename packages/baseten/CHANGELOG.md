@@ -1,5 +1,31 @@
 # @ai-sdk/baseten
 
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/openai-compatible@1.1.0-beta.7
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/openai-compatible@1.1.0-beta.6
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- 916bc46: bumped performance client to 0.0.10
+
 ## 1.0.0-beta.5
 
 ### Patch Changes

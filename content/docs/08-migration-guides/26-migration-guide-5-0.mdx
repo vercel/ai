@@ -2939,26 +2939,36 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs Default
+#### Structured Outputs
 
-Structured outputs are now enabled by default for supported OpenAI models.
+The `structuredOutputs` parameter has been replaced with the `strictJsonSchema` provider option. It is now disabled by default.
 
 ```tsx filename="AI SDK 4.0"
-const result = await generateText({
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
+  schema: z.object({ name: z.string() }),
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
-const result = await generateText({
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06'),
-  // structuredOutputs: true is now the default
+  schema: z.object({ name: z.string() }),
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // renamed and opt-in via provider options
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
 #### Compatibility Option Removal
 
-The `compatibility` option has been removed; strict mode is now the default.
+The `compatibility` option has been removed; strict compatibility mode is now the default.
 
 ```tsx filename="AI SDK 4.0"
 const openai = createOpenAI({

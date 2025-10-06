@@ -2029,6 +2029,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 outputFormat: 'webp',
                 quality: 'low',
                 size: '1024x1024',
+                partialImages: 2,
               },
             },
           ],
@@ -2053,9 +2054,58 @@ describe('OpenAIResponsesLanguageModel', () => {
             "tools": [
               {
                 "output_format": "webp",
+                "partial_images": 2,
                 "quality": "low",
                 "size": "1024x1024",
                 "type": "image_generation",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include generate image tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('local shell tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-local-shell-tool.1');
+
+        result = await createModel('gpt-5-codex').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.local_shell',
+              name: 'local_shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-codex",
+            "tools": [
+              {
+                "type": "local_shell",
               },
             ],
           }
@@ -4081,6 +4131,32 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should stream code image generation results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('local shell tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('openai-local-shell-tool.1');
+
+        result = await createModel('gpt-5-codex').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.local_shell',
+              name: 'local_shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should stream code local shell results', async () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();

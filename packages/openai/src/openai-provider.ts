@@ -3,12 +3,13 @@ import {
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
-  SpeechModelV2,
-  TranscriptionModelV2,
+  SpeechModelV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
+  loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
@@ -80,12 +81,12 @@ Creates a model for image generation.
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV3;
 
   /**
 Creates a model for speech generation.
    */
-  speech(modelId: OpenAISpeechModelId): SpeechModelV2;
+  speech(modelId: OpenAISpeechModelId): SpeechModelV3;
 
   /**
 OpenAI-specific tools.
@@ -138,7 +139,12 @@ export function createOpenAI(
   options: OpenAIProviderSettings = {},
 ): OpenAIProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.openai.com/v1';
+    withoutTrailingSlash(
+      loadOptionalSetting({
+        settingValue: options.baseURL,
+        environmentVariableName: 'OPENAI_BASE_URL',
+      }),
+    ) ?? 'https://api.openai.com/v1';
 
   const providerName = options.name ?? 'openai';
 

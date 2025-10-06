@@ -1,5 +1,67 @@
 # @ai-sdk/vue
 
+## 2.1.0-beta.22
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [a5e152d]
+- Updated dependencies [21e20c0]
+  - ai@5.1.0-beta.22
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 2.1.0-beta.21
+
+### Patch Changes
+
+- ai@5.1.0-beta.21
+
+## 2.1.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [846e80e]
+  - ai@5.1.0-beta.20
+
+## 2.1.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [aa0515c]
+- Updated dependencies [e7d9b00]
+- Updated dependencies [b1aeea7]
+  - ai@5.1.0-beta.19
+
+## 2.1.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [9b8d17e]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - ai@5.1.0-beta.18
+
+## 2.1.0-beta.17
+
+### Patch Changes
+
+- ai@5.1.0-beta.17
+
+## 2.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [14ca35d]
+  - ai@5.1.0-beta.16
+
+## 2.1.0-beta.15
+
+### Patch Changes
+
+- ai@5.1.0-beta.15
+
 ## 2.1.0-beta.14
 
 ### Patch Changes
