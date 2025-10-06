@@ -64,4 +64,22 @@ export type LanguageModelV3Source =
        * Additional provider metadata for the source.
        */
       providerMetadata?: SharedV3ProviderMetadata;
+    }
+  | {
+      type: 'source';
+
+      /**
+       * Source type for referencing a file within a container.
+       * containerId and fileId are used to download the container's file.
+       */
+      sourceType: 'executionFile';
+
+      /**
+       * The ID of the source.
+       */
+      id: string;
+      /**
+       * Additional provider metadata for the source.
+       */
+      providerMetadata?: SharedV3ProviderMetadata;
     };
