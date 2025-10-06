@@ -121,6 +121,27 @@ export const OAuthClientInformationSchema = z
   })
   .strip();
 
+export const OAuthClientMetadataSchema = z
+  .object({
+    redirect_uris: z.array(SafeUrlSchema),
+    token_endpoint_auth_method: z.string().optional(),
+    grant_types: z.array(z.string()).optional(),
+    response_types: z.array(z.string()).optional(),
+    client_name: z.string().optional(),
+    client_uri: SafeUrlSchema.optional(),
+    logo_uri: SafeUrlSchema.optional(),
+    scope: z.string().optional(),
+    contacts: z.array(z.string()).optional(),
+    tos_uri: SafeUrlSchema.optional(),
+    policy_uri: z.string().optional(),
+    jwks_uri: SafeUrlSchema.optional(),
+    jwks: z.any().optional(),
+    software_id: z.string().optional(),
+    software_version: z.string().optional(),
+    software_statement: z.string().optional(),
+  })
+  .strip();
+
 export type OAuthMetadata = z.infer<typeof OAuthMetadataSchema>;
 export type OpenIdProviderDiscoveryMetadata = z.infer<
   typeof OpenIdProviderDiscoveryMetadataSchema
@@ -141,3 +162,10 @@ export const OAuthErrorResponseSchema = z.object({
   error_description: z.string().optional(),
   error_uri: z.string().optional(),
 });
+export const OAuthClientInformationFullSchema = OAuthClientMetadataSchema.merge(
+  OAuthClientInformationSchema,
+);
+export type OAuthClientMetadata = z.infer<typeof OAuthClientMetadataSchema>;
+export type OAuthClientInformationFull = z.infer<
+  typeof OAuthClientInformationFullSchema
+>;

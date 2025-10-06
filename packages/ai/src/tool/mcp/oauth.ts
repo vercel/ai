@@ -9,6 +9,9 @@ import {
   OAuthClientInformation,
   OAuthTokensSchema,
   OAuthErrorResponseSchema,
+  OAuthClientMetadata,
+  OAuthClientInformationFull,
+  OAuthClientInformationFullSchema,
 } from './oauth-types';
 import {
   MCPClientOAuthError,
@@ -769,4 +772,48 @@ export async function refreshAuthorization(
     refresh_token: refreshToken,
     ...(await response.json()),
   });
+}
+
+/**
+ * Performs OAuth 2.0 Dynamic Client Registration according to RFC 7591.
+ */
+export async function registerClient(
+  authorizationServerUrl: string | URL,
+  {
+    metadata,
+    clientMetadata,
+    fetchFn,
+  }: {
+    metadata?: AuthorizationServerMetadata;
+    clientMetadata: OAuthClientMetadata;
+    fetchFn?: FetchFunction;
+  },
+): Promise<OAuthClientInformationFull> {
+  let registrationUrl: URL;
+
+  if (metadata) {
+    if (!metadata.registration_endpoint) {
+      throw new Error(
+        'Incompatible auth server: does not support dynamic client registration',
+      );
+    }
+
+    registrationUrl = new URL(metadata.registration_endpoint);
+  } else {
+    registrationUrl = new URL('/register', authorizationServerUrl);
+  }
+
+  const response = await (fetchFn ?? fetch)(registrationUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(clientMetadata),
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return OAuthClientInformationFullSchema.parse(await response.json());
 }
