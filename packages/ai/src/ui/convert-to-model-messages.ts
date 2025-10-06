@@ -1,6 +1,7 @@
 import {
   AssistantContent,
   ModelMessage,
+  ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text/tool-set';
@@ -178,6 +179,14 @@ export function convertToModelMessages(
                       : {}),
                   });
 
+                  if (part.approval != null) {
+                    content.push({
+                      type: 'tool-approval-request' as const,
+                      approvalId: part.approval.id,
+                      toolCallId: part.toolCallId,
+                    });
+                  }
+
                   if (
                     part.providerExecuted === true &&
                     (part.state === 'output-available' ||
@@ -221,9 +230,42 @@ export function convertToModelMessages(
             if (toolParts.length > 0) {
               modelMessages.push({
                 role: 'tool',
-                content: toolParts
-                  .map((toolPart): ToolResultPart | null => {
+                content: toolParts.flatMap(
+                  (toolPart): Array<ToolResultPart | ToolApprovalResponse> => {
+                    const outputs: Array<
+                      ToolResultPart | ToolApprovalResponse
+                    > = [];
+
+                    // add approval response for approved tool calls:
+                    if (
+                      toolPart.type !== 'dynamic-tool' &&
+                      toolPart.approval?.approved != null
+                    ) {
+                      outputs.push({
+                        type: 'tool-approval-response' as const,
+                        approvalId: toolPart.approval.id,
+                        approved: toolPart.approval.approved,
+                        reason: toolPart.approval.reason,
+                      });
+                    }
+
                     switch (toolPart.state) {
+                      case 'output-denied': {
+                        outputs.push({
+                          type: 'tool-result',
+                          toolCallId: toolPart.toolCallId,
+                          toolName: getToolName(toolPart),
+                          output: {
+                            type: 'error-text' as const,
+                            value:
+                              toolPart.approval.reason ??
+                              'Tool execution denied.',
+                          },
+                        });
+
+                        break;
+                      }
+
                       case 'output-error':
                       case 'output-available': {
                         const toolName =
@@ -231,7 +273,7 @@ export function convertToModelMessages(
                             ? toolPart.toolName
                             : getToolName(toolPart);
 
-                        return {
+                        outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
                           toolName,
@@ -246,17 +288,14 @@ export function convertToModelMessages(
                                 ? 'text'
                                 : 'none',
                           }),
-                        };
-                      }
-                      default: {
-                        return null;
+                        });
+                        break;
                       }
                     }
-                  })
-                  .filter(
-                    (output): output is NonNullable<typeof output> =>
-                      output != null,
-                  ),
+
+                    return outputs;
+                  },
+                ),
               });
             }
 

@@ -1,5 +1,15 @@
 # @ai-sdk/gladia
 
+## 1.1.0-beta.7
+
+### Patch Changes
+
+- 21e20c0: feat(provider): transcription model v3 spec
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
 ## 1.1.0-beta.6
 
 ### Patch Changes
