@@ -24,6 +24,7 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
+  codeInterpreterSourceExecutionFileSchema,
 } from '../tool/code-interpreter';
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
@@ -647,10 +648,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               } else if (annotation.type === 'container_file_citation') {
                 content.push({
-                  type: 'file',
-                  mediaType: 'container_file_citation',
-                  data: JSON.stringify(annotation),
-                });
+                  type:'source',
+                  sourceType:'executionFile',
+                  id: this.config.generateId?.() ?? generateId(),
+                  providerMetadata:{
+                    openai:{
+                      type:annotation.type,
+                      containerId: annotation.container_id,
+                      fileId: annotation.file_id,
+                      filename: annotation.filename ?? annotation.file_id,
+                      startIndex:annotation.start_index,
+                      endIndex:annotation.end_index,
+                    } satisfies z.infer<typeof codeInterpreterSourceExecutionFileSchema>
+                  } 
+                })
               }
             }
           }
@@ -1309,10 +1320,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               } else if (value.annotation.type === 'container_file_citation') {
                 controller.enqueue({
-                  type: 'file',
-                  mediaType: 'container_file_citation',
-                  data: JSON.stringify(value.annotation),
-                });
+                  type:'source',
+                  sourceType:'executionFile',
+                  id: self.config.generateId?.() ?? generateId(),
+                  providerMetadata:{
+                    openai:{
+                      type:value.annotation.type,
+                      containerId: value.annotation.container_id,
+                      fileId: value.annotation.file_id,
+                      filename: value.annotation.filename ?? value.annotation.file_id,
+                      startIndex:value.annotation.start_index,
+                      endIndex:value.annotation.end_index,
+                    } satisfies z.infer<typeof codeInterpreterSourceExecutionFileSchema>
+                  },
+                })
               }
             } else if (
               isResponseOutputItemDoneChunk(value) &&

@@ -28,6 +28,15 @@ export const codeInterpreterArgsSchema = z.object({
     .optional(),
 });
 
+export const codeInterpreterSourceExecutionFileSchema = z.object({
+  type: z.literal('container_file_citation'),
+  containerId: z.string(),
+  endIndex: z.number(),
+  fileId: z.string(),
+  filename: z.string(),
+  startIndex: z.number(),
+});
+
 type CodeInterpreterArgs = {
   /**
    * The code interpreter container.
