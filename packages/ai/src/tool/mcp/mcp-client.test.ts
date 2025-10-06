@@ -166,6 +166,52 @@ describe('MCPClient', () => {
     ).rejects.toThrow(MCPClientError);
   });
 
+  it('should format error message with code and data fields', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          failOnInvalidToolParams: true,
+        }),
+    );
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+    const tools = await client.tools({
+      schemas: {
+        'mock-tool': {
+          inputSchema: z.object({ bar: z.string() }),
+        },
+      },
+    });
+    const toolCall = tools['mock-tool'].execute;
+
+    try {
+      await toolCall({ bar: 'bar' }, { messages: [], toolCallId: '1' });
+      throw new Error('Expected error to be thrown');
+    } catch (error) {
+      expect(MCPClientError.isInstance(error)).toBe(true);
+      if (MCPClientError.isInstance(error)) {
+        // Should include error code
+        expect(error.message).toMatchInlineSnapshot(`
+          "Error -32602: Invalid tool inputSchema: {"bar":"bar"}
+          Data: {
+            "expectedSchema": {
+              "type": "object",
+              "properties": {
+                "foo": {
+                  "type": "string"
+                }
+              }
+            },
+            "receivedArguments": {
+              "bar": "bar"
+            }
+          }"
+        `);
+      }
+    }
+  });
+
   it('should throw if the server does not support any tools', async () => {
     createMockTransport.mockImplementation(
       () =>

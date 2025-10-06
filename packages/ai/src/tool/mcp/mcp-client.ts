@@ -40,6 +40,29 @@ import {
 
 const CLIENT_VERSION = '1.0.0';
 
+function formatJsonRpcError(error: {
+  code: number;
+  message: string;
+  data?: unknown;
+}): string {
+  let formattedMessage = `Error ${error.code}: ${error.message}`;
+
+  if (error.data !== undefined) {
+    try {
+      const dataStr =
+        typeof error.data === 'string'
+          ? error.data
+          : JSON.stringify(error.data, null, 2);
+      formattedMessage += `\nData: ${dataStr}`;
+    } catch {
+      // If JSON.stringify fails, just include a fallback
+      formattedMessage += `\nData: ${String(error.data)}`;
+    }
+  }
+
+  return formattedMessage;
+}
+
 export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
@@ -408,7 +431,7 @@ class DefaultMCPClient implements MCPClient {
       'result' in response
         ? response
         : new MCPClientError({
-            message: response.error.message,
+            message: formatJsonRpcError(response.error),
             cause: response.error,
           }),
     );

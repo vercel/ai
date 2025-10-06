@@ -114,6 +114,10 @@ export class MockMCPTransport implements MCPTransport {
             error: {
               code: -32601,
               message: `Tool ${toolName} not found`,
+              data: {
+                availableTools: this.tools.map(t => t.name),
+                requestedTool: toolName,
+              },
             },
           });
           return;
@@ -128,6 +132,10 @@ export class MockMCPTransport implements MCPTransport {
               message: `Invalid tool inputSchema: ${JSON.stringify(
                 message.params?.arguments,
               )}`,
+              data: {
+                expectedSchema: tool.inputSchema,
+                receivedArguments: message.params?.arguments,
+              },
             },
           });
           return;
