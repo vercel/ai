@@ -2,6 +2,12 @@ import 'dotenv/config';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import * as fs from 'fs';
+import { codeInterpreterSourceExecutionFileSchema as openaiExecuteFileSchema } from '@ai-sdk/openai/internal';
+import { z } from 'zod/v4';
+
+const executeFileSchema = z.object({
+  openai:openaiExecuteFileSchema,
+});
 
 async function main() {
   // Stream text generation
@@ -25,17 +31,14 @@ async function main() {
   console.dir(resultContent, { depth: Infinity });
 
   const fileList = resultContent
-    .filter(c => c.type === 'file')
-    .filter(c => c.file.mediaType === 'container_file_citation')
-    .map(c => JSON.parse(c.file.base64));
+    .filter(c => c.type === 'source' && c.sourceType === 'executionFile')
 
-  if (fileList.length > 0) {
-    const file = fileList[0];
-
-    if ('container_id' in file && 'file_id' in file) {
-      await downloadContainerFile(file.container_id, file.file_id);
+  await fileList.map( async(file)=>{
+    const executeFileParse = executeFileSchema.safeParse(file.providerMetadata);
+    if(executeFileParse.success){
+      await downloadContainerFile(executeFileParse.data.openai.containerId, executeFileParse.data.openai.fileId);
     }
-  }
+  });
 }
 
 async function downloadContainerFile(container: string, file: string) {
