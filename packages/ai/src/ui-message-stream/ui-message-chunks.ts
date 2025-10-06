@@ -110,6 +110,11 @@ export const uiMessageChunkSchema = z.union([
     providerMetadata: providerMetadataSchema.optional(),
   }),
   z.strictObject({
+    type: z.literal('source-execution-file'),
+    sourceId: z.string(),
+    providerMetadata: providerMetadataSchema.optional(),
+  }),
+  z.strictObject({
     type: z.literal('file'),
     url: z.string(),
     mediaType: z.string(),
@@ -257,6 +262,11 @@ export type UIMessageChunk<
       mediaType: string;
       title: string;
       filename?: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'source-execution-file';
+      sourceId: string;
       providerMetadata?: ProviderMetadata;
     }
   | {
