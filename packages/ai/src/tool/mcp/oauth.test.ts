@@ -6,8 +6,17 @@ import {
   discoverOAuthProtectedResourceMetadata,
   buildDiscoveryUrls,
   discoverAuthorizationServerMetadata,
+  startAuthorization,
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
+
+// Mock the pkce-challenge module
+vi.mock('pkce-challenge', () => ({
+  default: vi.fn(() => ({
+    code_verifier: 'test_verifier',
+    code_challenge: 'test_challenge',
+  })),
+}));
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -708,5 +717,164 @@ describe('discoverAuthorizationServerMetadata', () => {
 
     // Verify that all discovery URLs were attempted
     expect(mockFetch).toHaveBeenCalledTimes(8); // 4 URLs × 2 attempts each (with and without headers)
+  });
+});
+
+describe('startAuthorization', () => {
+  const validMetadata = {
+    issuer: 'https://auth.example.com',
+    authorization_endpoint: 'https://auth.example.com/auth',
+    token_endpoint: 'https://auth.example.com/tkn',
+    response_types_supported: ['code'],
+    code_challenge_methods_supported: ['S256'],
+  };
+
+  const validClientInfo = {
+    client_id: 'client123',
+    client_secret: 'secret123',
+    redirect_uris: ['http://localhost:3000/callback'],
+    client_name: 'Test Client',
+  };
+
+  it('generates authorization URL with PKCE challenge', async () => {
+    const { authorizationUrl, codeVerifier } = await startAuthorization(
+      'https://auth.example.com',
+      {
+        metadata: undefined,
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+        resource: new URL('https://api.example.com/mcp-server'),
+      },
+    );
+
+    expect(authorizationUrl.toString()).toMatch(
+      /^https:\/\/auth\.example\.com\/authorize\?/,
+    );
+    expect(authorizationUrl.searchParams.get('response_type')).toBe('code');
+    expect(authorizationUrl.searchParams.get('code_challenge')).toBe(
+      'test_challenge',
+    );
+    expect(authorizationUrl.searchParams.get('code_challenge_method')).toBe(
+      'S256',
+    );
+    expect(authorizationUrl.searchParams.get('redirect_uri')).toBe(
+      'http://localhost:3000/callback',
+    );
+    expect(authorizationUrl.searchParams.get('resource')).toBe(
+      'https://api.example.com/mcp-server',
+    );
+    expect(codeVerifier).toBe('test_verifier');
+  });
+
+  it('includes scope parameter when provided', async () => {
+    const { authorizationUrl } = await startAuthorization(
+      'https://auth.example.com',
+      {
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+        scope: 'read write profile',
+      },
+    );
+
+    expect(authorizationUrl.searchParams.get('scope')).toBe(
+      'read write profile',
+    );
+  });
+
+  it('excludes scope parameter when not provided', async () => {
+    const { authorizationUrl } = await startAuthorization(
+      'https://auth.example.com',
+      {
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+      },
+    );
+
+    expect(authorizationUrl.searchParams.has('scope')).toBe(false);
+  });
+
+  it('includes state parameter when provided', async () => {
+    const { authorizationUrl } = await startAuthorization(
+      'https://auth.example.com',
+      {
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+        state: 'foobar',
+      },
+    );
+
+    expect(authorizationUrl.searchParams.get('state')).toBe('foobar');
+  });
+
+  it('excludes state parameter when not provided', async () => {
+    const { authorizationUrl } = await startAuthorization(
+      'https://auth.example.com',
+      {
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+      },
+    );
+
+    expect(authorizationUrl.searchParams.has('state')).toBe(false);
+  });
+
+  // OpenID Connect requires that the user is prompted for consent if the scope includes 'offline_access'
+  it("includes consent prompt parameter if scope includes 'offline_access'", async () => {
+    const { authorizationUrl } = await startAuthorization(
+      'https://auth.example.com',
+      {
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+        scope: 'read write profile offline_access',
+      },
+    );
+
+    expect(authorizationUrl.searchParams.get('prompt')).toBe('consent');
+  });
+
+  it('uses metadata authorization_endpoint when provided', async () => {
+    const { authorizationUrl } = await startAuthorization(
+      'https://auth.example.com',
+      {
+        metadata: validMetadata,
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+      },
+    );
+
+    expect(authorizationUrl.toString()).toMatch(
+      /^https:\/\/auth\.example\.com\/auth\?/,
+    );
+  });
+
+  it('validates response type support', async () => {
+    const metadata = {
+      ...validMetadata,
+      response_types_supported: ['token'], // Does not support 'code'
+    };
+
+    await expect(
+      startAuthorization('https://auth.example.com', {
+        metadata,
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+      }),
+    ).rejects.toThrow(/does not support response type/);
+  });
+
+  it('validates PKCE support', async () => {
+    const metadata = {
+      ...validMetadata,
+      response_types_supported: ['code'],
+      code_challenge_methods_supported: ['plain'], // Does not support 'S256'
+    };
+
+    await expect(
+      startAuthorization('https://auth.example.com', {
+        metadata,
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+      }),
+    ).rejects.toThrow(/does not support code challenge method/);
   });
 });
