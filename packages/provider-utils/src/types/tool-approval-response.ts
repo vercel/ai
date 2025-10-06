@@ -1,5 +1,12 @@
+/**
+ * Tool approval response prompt part.
+ */
 export type ToolApprovalResponse = {
   type: 'tool-approval-response';
+
+  /**
+   * ID of the tool approval.
+   */
   approvalId: string;
 
   /**
@@ -8,7 +15,7 @@ export type ToolApprovalResponse = {
   approved: boolean;
 
   /**
-   * Reason for the approval or denial.
+   * Optional reason for the approval or denial.
    */
   reason?: string;
 };

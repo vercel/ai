@@ -69,13 +69,24 @@ export type ChatRequestOptions = {
   metadata?: unknown;
 };
 
+/**
+ * Function that can be called to add a tool approval response to the chat.
+ */
 export type ChatAddToolApproveResponseFunction = ({
   id,
   approved,
   reason,
 }: {
   id: string;
+
+  /**
+   * Flag indicating whether the approval was granted or denied.
+   */
   approved: boolean;
+
+  /**
+   * Optional reason for the approval or denial.
+   */
   reason?: string;
 }) => void | PromiseLike<void>;
 
