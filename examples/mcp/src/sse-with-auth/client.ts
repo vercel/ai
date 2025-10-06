@@ -1,43 +1,73 @@
 import { openai } from '@ai-sdk/openai';
 import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
+import type { OAuthClientProvider } from '../../../../packages/ai/src/tool/mcp/oauth.js';
 import type {
-  OAuthClientProvider,
-  AuthResult,
-} from '../../../../packages/ai/src/tool/mcp/oauth.js';
+  OAuthClientInformation,
+  OAuthClientMetadata,
+  OAuthTokens,
+} from '../../../../packages/ai/src/tool/mcp/oauth-types.js';
 
 // Simple OAuth provider that pre-configures a token for demo purposes
 class DemoOAuthProvider implements OAuthClientProvider {
-  private accessToken: string | null = null;
+  private _tokens?: OAuthTokens;
+  private _codeVerifier?: string;
+  private _clientInformation?: OAuthClientInformation;
+  private _redirectUrl: string | URL = 'http://localhost:8090/callback';
 
-  async tokens(): Promise<{ access_token: string } | null> {
-    return this.accessToken ? { access_token: this.accessToken } : null;
+  // Return the current tokens; for the demo we pre-configure an access token
+  async tokens(): Promise<OAuthTokens | undefined> {
+    if (!this._tokens) {
+      this._tokens = { access_token: 'demo-access-token-123' } as OAuthTokens;
+    }
+    return this._tokens;
   }
 
-  async authorize(options: {
-    serverUrl: URL;
-    resourceMetadataUrl?: URL;
-  }): Promise<AuthResult> {
-    console.log('  → Authorizing with server:', options.serverUrl.toString());
-    if (options.resourceMetadataUrl) {
-      console.log(
-        '  → Resource metadata URL:',
-        options.resourceMetadataUrl.toString(),
-      );
+  async saveTokens(tokens: OAuthTokens): Promise<void> {
+    this._tokens = tokens;
+  }
+
+  // Redirect handler used by the auth() flow when interactive authorization is needed
+  async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
+    console.log('  → Redirect to authorization:', authorizationUrl.toString());
+  }
+
+  async saveCodeVerifier(codeVerifier: string): Promise<void> {
+    this._codeVerifier = codeVerifier;
+  }
+
+  async codeVerifier(): Promise<string> {
+    if (!this._codeVerifier) {
+      throw new Error('No code verifier saved');
     }
+    return this._codeVerifier;
+  }
 
-    // In a real implementation, this would:
-    // 1. Discover OAuth endpoints via metadata
-    // 2. Register as a client (if needed)
-    // 3. Get authorization code
-    // 4. Exchange code for token
+  get redirectUrl(): string | URL {
+    return this._redirectUrl;
+  }
 
-    // For this demo, we use a pre-configured token that the server accepts
-    this.accessToken = 'demo-access-token-123';
-    console.log('  → Token acquired:', this.accessToken);
-    console.log('  → Authorization complete, transport will retry with token');
+  get clientMetadata(): OAuthClientMetadata {
+    return {
+      client_name: 'Demo OAuth MCP Client',
+      redirect_uris: [String(this._redirectUrl)],
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'client_secret_post',
+      scope: 'mcp:tools',
+    };
+  }
 
-    return 'AUTHORIZED';
+  async clientInformation(): Promise<OAuthClientInformation | undefined> {
+    // For demo purposes, we return a static public client id; dynamic registration is handled by auth() if needed
+    if (!this._clientInformation) {
+      this._clientInformation = { client_id: 'demo-client' } as OAuthClientInformation;
+    }
+    return this._clientInformation;
+  }
+
+  async saveClientInformation(info: OAuthClientInformation): Promise<void> {
+    this._clientInformation = info;
   }
 }
 
