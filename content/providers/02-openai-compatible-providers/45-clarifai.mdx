@@ -28,6 +28,8 @@ The Clarifai provider is available via the `@ai-sdk/openai-compatible` module as
 To use Clarifai, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
 
 ```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
 const clarifai = createOpenAICompatible({
   name: 'clarifai',
   baseURL: 'https://api.clarifai.com/v2/ext/openai/v1',
