@@ -402,6 +402,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'source-execution-file': {
+              state.message.parts.push({
+                type: 'source-execution-file',
+                sourceId: chunk.sourceId,
+                providerMetadata: chunk.providerMetadata,
+              });
+
+              write();
+              break;
+            }
+
             case 'tool-input-start': {
               const toolInvocations = state.message.parts.filter(isToolUIPart);
 
