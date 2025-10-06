@@ -12,8 +12,8 @@ import {
   LanguageModelV3,
   ProviderV3,
   ImageModelV3,
-  SpeechModelV2,
-  TranscriptionModelV2,
+  SpeechModelV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -72,12 +72,12 @@ Creates an Azure OpenAI model for text embeddings.
   /**
    * Creates an Azure OpenAI model for audio transcription.
    */
-  transcription(deploymentId: string): TranscriptionModelV2;
+  transcription(deploymentId: string): TranscriptionModelV3;
 
   /**
    * Creates an Azure OpenAI model for speech generation.
    */
-  speech(deploymentId: string): SpeechModelV2;
+  speech(deploymentId: string): SpeechModelV3;
 
   /**
    * AzureOpenAI-specific tools.
