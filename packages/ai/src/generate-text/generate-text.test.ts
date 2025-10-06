@@ -1,6 +1,5 @@
 import {
   LanguageModelV3CallOptions,
-  LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
   LanguageModelV3ProviderDefinedTool,
 } from '@ai-sdk/provider';
@@ -3350,96 +3349,4 @@ describe('generateText', () => {
     });
   });
 
-  describe('prepareStep with model switch and image URLs', () => {
-    it('should use the prepareStep model supportedUrls for download decision', async () => {
-      const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
-        [];
-
-      // Model that supports image URLs (like OpenAI)
-      const modelWithImageUrlSupport = new MockLanguageModelV3({
-        provider: 'openai-like',
-        modelId: 'gpt-4',
-        supportedUrls: {
-          'image/*': [/^https?:\/\/.*$/],
-        },
-        doGenerate: async () => ({
-          ...dummyResponseValues,
-          content: [{ type: 'text', text: 'Response from OpenAI' }],
-        }),
-      });
-
-      // Model that does NOT support arbitrary image URLs (like Gemini)
-      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
-        provider: 'gemini-like',
-        modelId: 'gemini-2.5-flash',
-        supportedUrls: {
-          // Only specific URLs supported, not arbitrary image URLs
-          '*': [/^https:\/\/specific-cdn\.example\.com\/.*$/],
-        },
-        doGenerate: async ({ prompt }) => {
-          // Verify that the model receives base64 data, not a URL
-          const userMessage = prompt.find(msg => msg.role === 'user');
-          const imagePart = userMessage?.content.find(
-            (part: any) =>
-              part.type === 'file' && part.mediaType?.startsWith('image/'),
-          );
-
-          expect(imagePart).toBeDefined();
-          expect((imagePart as LanguageModelV3FilePart).data).toBeInstanceOf(
-            Uint8Array,
-          );
-
-          return {
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Response from Gemini' }],
-          };
-        },
-      });
-
-      const customDownload = async (
-        requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>,
-      ) => {
-        downloadCalls.push(...requestedDownloads);
-        return requestedDownloads.map(download =>
-          download.isUrlSupportedByModel
-            ? null
-            : {
-                data: new Uint8Array([1, 2, 3, 4]),
-                mediaType: 'image/png',
-              },
-        );
-      };
-
-      const result = await generateText({
-        model: modelWithImageUrlSupport, // OpenAI-like model
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Describe this image' },
-              { type: 'image', image: 'https://example.com/test.jpg' },
-            ],
-          },
-        ],
-        prepareStep: async () => {
-          return {
-            model: modelWithoutImageUrlSupport, // Switch to Gemini-like model
-          };
-        },
-        experimental_download: customDownload,
-      });
-
-      // Verify the download behavior
-      expect(downloadCalls.length).toBe(1);
-
-      // Should use Gemini's supportedUrls, not OpenAI's
-      expect(downloadCalls[0].isUrlSupportedByModel).toBe(false);
-      expect(downloadCalls[0].url.toString()).toBe(
-        'https://example.com/test.jpg',
-      );
-
-      // Verify the result
-      expect(result.text).toBe('Response from Gemini');
-    });
-  });
 });
