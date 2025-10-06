@@ -236,25 +236,21 @@ export function convertToModelMessages(
                       ToolResultPart | ToolApprovalResponse
                     > = [];
 
+                    // add approval response for approved tool calls:
+                    if (
+                      toolPart.type !== 'dynamic-tool' &&
+                      toolPart.approval?.approved != null
+                    ) {
+                      outputs.push({
+                        type: 'tool-approval-response' as const,
+                        approvalId: toolPart.approval.id,
+                        approved: toolPart.approval.approved,
+                        reason: toolPart.approval.reason,
+                      });
+                    }
+
                     switch (toolPart.state) {
-                      case 'approval-responded': {
-                        outputs.push({
-                          type: 'tool-approval-response' as const,
-                          approvalId: toolPart.approval.id,
-                          approved: toolPart.approval.approved,
-                          reason: toolPart.approval.reason,
-                        });
-                        break;
-                      }
-
                       case 'output-denied': {
-                        outputs.push({
-                          type: 'tool-approval-response' as const,
-                          approvalId: toolPart.approval.id,
-                          approved: toolPart.approval.approved,
-                          reason: toolPart.approval.reason,
-                        });
-
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
