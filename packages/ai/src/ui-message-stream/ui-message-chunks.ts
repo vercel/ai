@@ -86,7 +86,6 @@ export const uiMessageChunkSchema = z.union([
   z.strictObject({
     type: z.literal('tool-output-denied'),
     toolCallId: z.string(),
-    dynamic: z.boolean().optional(),
   }),
   z.strictObject({
     type: z.literal('reasoning-start'),
@@ -250,7 +249,6 @@ export type UIMessageChunk<
   | {
       type: 'tool-output-denied';
       toolCallId: string;
-      dynamic?: boolean;
     }
   | {
       type: 'tool-input-start';
