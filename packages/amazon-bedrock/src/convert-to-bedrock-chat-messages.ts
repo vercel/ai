@@ -180,6 +180,11 @@ export async function convertToBedrockChatMessages(
                   case 'error-text':
                     toolResultContent = [{ text: output.value }];
                     break;
+                  case 'execution-denied':
+                    toolResultContent = [
+                      { text: output.reason ?? 'Tool execution denied.' },
+                    ];
+                    break;
                   case 'json':
                   case 'error-json':
                   default:

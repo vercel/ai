@@ -227,6 +227,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       providerExecuted?: boolean;
       output?: never;
       errorText?: never;
+      approval?: never;
     }
   | {
       state: 'input-available';
@@ -235,6 +236,33 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      approval?: never;
+    }
+  | {
+      state: 'approval-requested';
+      input: asUITool<TOOL>['input'];
+      providerExecuted?: boolean;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved?: never;
+        reason?: never;
+      };
+    }
+  | {
+      state: 'approval-responded';
+      input: asUITool<TOOL>['input'];
+      providerExecuted?: boolean;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved: boolean;
+        reason?: string;
+      };
     }
   | {
       state: 'output-available';
@@ -244,6 +272,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       providerExecuted?: boolean;
       callProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
+      approval?: {
+        id: string;
+        approved: true;
+        reason?: string;
+      };
     }
   | {
       state: 'output-error'; // TODO AI SDK 6: change to 'error' state
@@ -253,6 +286,24 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       errorText: string;
       providerExecuted?: boolean;
       callProviderMetadata?: ProviderMetadata;
+      approval?: {
+        id: string;
+        approved: true;
+        reason?: string;
+      };
+    }
+  | {
+      state: 'output-denied';
+      input: asUITool<TOOL>['input'];
+      providerExecuted?: boolean;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved: false;
+        reason?: string;
+      };
     }
 );
 
