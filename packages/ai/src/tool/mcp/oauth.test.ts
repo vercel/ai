@@ -7,7 +7,10 @@ import {
   buildDiscoveryUrls,
   discoverAuthorizationServerMetadata,
   startAuthorization,
+  exchangeAuthorization,
 } from './oauth';
+import { AuthorizationServerMetadata } from './oauth-types';
+import { ServerError } from '../../error/oauth-error';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
 // Mock the pkce-challenge module
@@ -876,5 +879,217 @@ describe('startAuthorization', () => {
         redirectUrl: 'http://localhost:3000/callback',
       }),
     ).rejects.toThrow(/does not support code challenge method/);
+  });
+});
+
+describe('exchangeAuthorization', () => {
+  const validTokens = {
+    access_token: 'access123',
+    token_type: 'Bearer',
+    expires_in: 3600,
+    refresh_token: 'refresh123',
+  };
+
+  const validMetadata: AuthorizationServerMetadata = {
+    issuer: 'https://auth.example.com',
+    authorization_endpoint: 'https://auth.example.com/authorize',
+    token_endpoint: 'https://auth.example.com/token',
+    response_types_supported: ['code'],
+    jwks_uri: 'https://auth.example.com/jwks',
+    subject_types_supported: ['public'],
+    id_token_signing_alg_values_supported: ['RS256'],
+    code_challenge_methods_supported: ['S256'],
+  };
+
+  const validClientInfo = {
+    client_id: 'client123',
+    client_secret: 'secret123',
+    redirect_uris: ['http://localhost:3000/callback'],
+    client_name: 'Test Client',
+  };
+
+  it('exchanges code for tokens', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokens,
+    });
+
+    const tokens = await exchangeAuthorization('https://auth.example.com', {
+      clientInformation: validClientInfo,
+      authorizationCode: 'code123',
+      codeVerifier: 'verifier123',
+      redirectUri: 'http://localhost:3000/callback',
+      resource: new URL('https://api.example.com/mcp-server'),
+    });
+
+    expect(tokens).toEqual(validTokens);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: 'https://auth.example.com/token',
+      }),
+      expect.objectContaining({
+        method: 'POST',
+        headers: new Headers({
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }),
+      }),
+    );
+
+    const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
+    expect(body.get('grant_type')).toBe('authorization_code');
+    expect(body.get('code')).toBe('code123');
+    expect(body.get('code_verifier')).toBe('verifier123');
+    expect(body.get('client_id')).toBe('client123');
+    expect(body.get('client_secret')).toBe('secret123');
+    expect(body.get('redirect_uri')).toBe('http://localhost:3000/callback');
+    expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
+  });
+
+  it('exchanges code for tokens with auth', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokens,
+    });
+
+    const tokens = await exchangeAuthorization('https://auth.example.com', {
+      metadata: validMetadata as AuthorizationServerMetadata,
+      clientInformation: validClientInfo,
+      authorizationCode: 'code123',
+      codeVerifier: 'verifier123',
+      redirectUri: 'http://localhost:3000/callback',
+      addClientAuthentication: (
+        headers: Headers,
+        params: URLSearchParams,
+        url: string | URL,
+        metadata: AuthorizationServerMetadata,
+      ) => {
+        headers.set(
+          'Authorization',
+          'Basic ' +
+            btoa(
+              validClientInfo.client_id + ':' + validClientInfo.client_secret,
+            ),
+        );
+        params.set(
+          'example_url',
+          typeof url === 'string' ? url : url.toString(),
+        );
+        params.set('example_metadata', metadata.authorization_endpoint);
+        params.set('example_param', 'example_value');
+      },
+    });
+
+    expect(tokens).toEqual(validTokens);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: 'https://auth.example.com/token',
+      }),
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+
+    const headers = mockFetch.mock.calls[0][1].headers as Headers;
+    expect(headers.get('Content-Type')).toBe(
+      'application/x-www-form-urlencoded',
+    );
+    expect(headers.get('Authorization')).toBe(
+      'Basic Y2xpZW50MTIzOnNlY3JldDEyMw==',
+    );
+    const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
+    expect(body.get('grant_type')).toBe('authorization_code');
+    expect(body.get('code')).toBe('code123');
+    expect(body.get('code_verifier')).toBe('verifier123');
+    expect(body.get('client_id')).toBeNull();
+    expect(body.get('redirect_uri')).toBe('http://localhost:3000/callback');
+    expect(body.get('example_url')).toBe('https://auth.example.com');
+    expect(body.get('example_metadata')).toBe(
+      'https://auth.example.com/authorize',
+    );
+    expect(body.get('example_param')).toBe('example_value');
+    expect(body.get('client_secret')).toBeNull();
+  });
+
+  it('validates token response schema', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        // Missing required fields
+        access_token: 'access123',
+      }),
+    });
+
+    await expect(
+      exchangeAuthorization('https://auth.example.com', {
+        clientInformation: validClientInfo,
+        authorizationCode: 'code123',
+        codeVerifier: 'verifier123',
+        redirectUri: 'http://localhost:3000/callback',
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('throws on error response', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: ServerError.errorCode,
+          error_description: 'Token exchange failed',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    await expect(
+      exchangeAuthorization('https://auth.example.com', {
+        clientInformation: validClientInfo,
+        authorizationCode: 'code123',
+        codeVerifier: 'verifier123',
+        redirectUri: 'http://localhost:3000/callback',
+      }),
+    ).rejects.toThrow('Token exchange failed');
+  });
+
+  it('supports overriding the fetch function used for requests', async () => {
+    const customFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => validTokens,
+    });
+
+    const tokens = await exchangeAuthorization('https://auth.example.com', {
+      clientInformation: validClientInfo,
+      authorizationCode: 'code123',
+      codeVerifier: 'verifier123',
+      redirectUri: 'http://localhost:3000/callback',
+      resource: new URL('https://api.example.com/mcp-server'),
+      fetchFn: customFetch,
+    });
+
+    expect(tokens).toEqual(validTokens);
+    expect(customFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    const [url, options] = customFetch.mock.calls[0];
+    expect(url.toString()).toBe('https://auth.example.com/token');
+    expect(options).toEqual(
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.any(Headers),
+        body: expect.any(URLSearchParams),
+      }),
+    );
+
+    const body = options.body as URLSearchParams;
+    expect(body.get('grant_type')).toBe('authorization_code');
+    expect(body.get('code')).toBe('code123');
+    expect(body.get('code_verifier')).toBe('verifier123');
+    expect(body.get('client_id')).toBe('client123');
+    expect(body.get('client_secret')).toBe('secret123');
+    expect(body.get('redirect_uri')).toBe('http://localhost:3000/callback');
+    expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
   });
 });

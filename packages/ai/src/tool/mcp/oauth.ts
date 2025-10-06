@@ -7,7 +7,14 @@ import {
   OpenIdProviderDiscoveryMetadataSchema,
   AuthorizationServerMetadata,
   OAuthClientInformation,
+  OAuthTokensSchema,
+  OAuthErrorResponseSchema,
 } from './oauth-types';
+import {
+  MCPClientOAuthError,
+  ServerError,
+  OAUTH_ERRORS,
+} from '../../error/oauth-error';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { FetchFunction } from '@ai-sdk/provider-utils';
 
@@ -27,6 +34,30 @@ export interface OAuthClientProvider {
     serverUrl: URL;
     resourceMetadataUrl?: URL;
   }): Promise<AuthResult>;
+  /**
+   * Adds custom client authentication to OAuth token requests.
+   *
+   * This optional method allows implementations to customize how client credentials
+   * are included in token exchange and refresh requests. When provided, this method
+   * is called instead of the default authentication logic, giving full control over
+   * the authentication mechanism.
+   *
+   * Common use cases include:
+   * - Supporting authentication methods beyond the standard OAuth 2.0 methods
+   * - Adding custom headers for proprietary authentication schemes
+   * - Implementing client assertion-based authentication (e.g., JWT bearer tokens)
+   *
+   * @param headers - The request headers (can be modified to add authentication)
+   * @param params - The request body parameters (can be modified to add credentials)
+   * @param url - The token endpoint URL being called
+   * @param metadata - Optional OAuth metadata for the server, which may include supported authentication methods
+   */
+  addClientAuthentication?(
+    headers: Headers,
+    params: URLSearchParams,
+    url: string | URL,
+    metadata?: AuthorizationServerMetadata,
+  ): void | Promise<void>;
 }
 
 export class UnauthorizedError extends Error {
@@ -409,4 +440,243 @@ export async function startAuthorization(
   }
 
   return { authorizationUrl, codeVerifier };
+}
+
+type ClientAuthMethod = 'client_secret_basic' | 'client_secret_post' | 'none';
+
+/**
+ * Determines the best client authentication method to use based on server support and client configuration.
+ *
+ * Priority order (highest to lowest):
+ * 1. client_secret_basic (if client secret is available)
+ * 2. client_secret_post (if client secret is available)
+ * 3. none (for public clients)
+ *
+ * @param clientInformation - OAuth client information containing credentials
+ * @param supportedMethods - Authentication methods supported by the authorization server
+ * @returns The selected authentication method
+ */
+function selectClientAuthMethod(
+  clientInformation: OAuthClientInformation,
+  supportedMethods: string[],
+): ClientAuthMethod {
+  const hasClientSecret = clientInformation.client_secret !== undefined;
+
+  // If server doesn't specify supported methods, use RFC 6749 defaults
+  if (supportedMethods.length === 0) {
+    return hasClientSecret ? 'client_secret_post' : 'none';
+  }
+
+  // Try methods in priority order (most secure first)
+  if (hasClientSecret && supportedMethods.includes('client_secret_basic')) {
+    return 'client_secret_basic';
+  }
+
+  if (hasClientSecret && supportedMethods.includes('client_secret_post')) {
+    return 'client_secret_post';
+  }
+
+  if (supportedMethods.includes('none')) {
+    return 'none';
+  }
+
+  // Fallback: use what we have
+  return hasClientSecret ? 'client_secret_post' : 'none';
+}
+
+/**
+ * Applies client authentication to the request based on the specified method.
+ *
+ * Implements OAuth 2.1 client authentication methods:
+ * - client_secret_basic: HTTP Basic authentication (RFC 6749 Section 2.3.1)
+ * - client_secret_post: Credentials in request body (RFC 6749 Section 2.3.1)
+ * - none: Public client authentication (RFC 6749 Section 2.1)
+ *
+ * @param method - The authentication method to use
+ * @param clientInformation - OAuth client information containing credentials
+ * @param headers - HTTP headers object to modify
+ * @param params - URL search parameters to modify
+ * @throws {Error} When required credentials are missing
+ */
+function applyClientAuthentication(
+  method: ClientAuthMethod,
+  clientInformation: OAuthClientInformation,
+  headers: Headers,
+  params: URLSearchParams,
+): void {
+  const { client_id, client_secret } = clientInformation;
+
+  switch (method) {
+    case 'client_secret_basic':
+      applyBasicAuth(client_id, client_secret, headers);
+      return;
+    case 'client_secret_post':
+      applyPostAuth(client_id, client_secret, params);
+      return;
+    case 'none':
+      applyPublicAuth(client_id, params);
+      return;
+    default:
+      throw new Error(`Unsupported client authentication method: ${method}`);
+  }
+}
+
+function applyBasicAuth(
+  clientId: string,
+  clientSecret: string | undefined,
+  headers: Headers,
+): void {
+  if (!clientSecret) {
+    throw new Error(
+      'client_secret_basic authentication requires a client_secret',
+    );
+  }
+
+  const credentials = btoa(`${clientId}:${clientSecret}`);
+  headers.set('Authorization', `Basic ${credentials}`);
+}
+
+/**
+ * Applies POST body authentication (RFC 6749 Section 2.3.1)
+ */
+function applyPostAuth(
+  clientId: string,
+  clientSecret: string | undefined,
+  params: URLSearchParams,
+): void {
+  params.set('client_id', clientId);
+  if (clientSecret) {
+    params.set('client_secret', clientSecret);
+  }
+}
+
+/**
+ * Applies public client authentication (RFC 6749 Section 2.1)
+ */
+function applyPublicAuth(clientId: string, params: URLSearchParams): void {
+  params.set('client_id', clientId);
+}
+
+/**
+ * Parses an OAuth error response from a string or Response object.
+ *
+ * If the input is a standard OAuth2.0 error response, it will be parsed according to the spec
+ * and an instance of the appropriate OAuthError subclass will be returned.
+ * If parsing fails, it falls back to a generic ServerError that includes
+ * the response status (if available) and original content.
+ *
+ * @param input - A Response object or string containing the error response
+ * @returns A Promise that resolves to an OAuthError instance
+ */
+export async function parseErrorResponse(
+  input: Response | string,
+): Promise<MCPClientOAuthError> {
+  const statusCode = input instanceof Response ? input.status : undefined;
+  const body = input instanceof Response ? await input.text() : input;
+
+  try {
+    const result = OAuthErrorResponseSchema.parse(JSON.parse(body));
+    const { error, error_description, error_uri } = result;
+    const errorClass = OAUTH_ERRORS[error] || ServerError;
+    return new errorClass({
+      message: error_description || '',
+      cause: error_uri,
+    });
+  } catch (error) {
+    // Not a valid OAuth error response, but try to inform the user of the raw data anyway
+    const errorMessage = `${statusCode ? `HTTP ${statusCode}: ` : ''}Invalid OAuth error response: ${error}. Raw body: ${body}`;
+    return new ServerError({ message: errorMessage });
+  }
+}
+
+/**
+ * Exchanges an authorization code for an access token with the given server.
+ *
+ * Supports multiple client authentication methods as specified in OAuth 2.1:
+ * - Automatically selects the best authentication method based on server support
+ * - Falls back to appropriate defaults when server metadata is unavailable
+ *
+ * @param authorizationServerUrl - The authorization server's base URL
+ * @param options - Configuration object containing client info, auth code, etc.
+ * @returns Promise resolving to OAuth tokens
+ * @throws {Error} When token exchange fails or authentication is invalid
+ */
+export async function exchangeAuthorization(
+  authorizationServerUrl: string | URL,
+  {
+    metadata,
+    clientInformation,
+    authorizationCode,
+    codeVerifier,
+    redirectUri,
+    resource,
+    addClientAuthentication,
+    fetchFn,
+  }: {
+    metadata?: AuthorizationServerMetadata;
+    clientInformation: OAuthClientInformation;
+    authorizationCode: string;
+    codeVerifier: string;
+    redirectUri: string | URL;
+    resource?: URL;
+    addClientAuthentication?: OAuthClientProvider['addClientAuthentication'];
+    fetchFn?: FetchFunction;
+  },
+): Promise<OAuthTokens> {
+  const grantType = 'authorization_code';
+
+  const tokenUrl = metadata?.token_endpoint
+    ? new URL(metadata.token_endpoint)
+    : new URL('/token', authorizationServerUrl);
+
+  if (
+    metadata?.grant_types_supported &&
+    !metadata.grant_types_supported.includes(grantType)
+  ) {
+    throw new Error(
+      `Incompatible auth server: does not support grant type ${grantType}`,
+    );
+  }
+
+  // Exchange code for tokens
+  const headers = new Headers({
+    'Content-Type': 'application/x-www-form-urlencoded',
+    Accept: 'application/json',
+  });
+  const params = new URLSearchParams({
+    grant_type: grantType,
+    code: authorizationCode,
+    code_verifier: codeVerifier,
+    redirect_uri: String(redirectUri),
+  });
+
+  if (addClientAuthentication) {
+    addClientAuthentication(headers, params, authorizationServerUrl, metadata);
+  } else {
+    // Determine and apply client authentication method
+    const supportedMethods =
+      metadata?.token_endpoint_auth_methods_supported ?? [];
+    const authMethod = selectClientAuthMethod(
+      clientInformation,
+      supportedMethods,
+    );
+
+    applyClientAuthentication(authMethod, clientInformation, headers, params);
+  }
+
+  if (resource) {
+    params.set('resource', resource.href);
+  }
+
+  const response = await (fetchFn ?? fetch)(tokenUrl, {
+    method: 'POST',
+    headers,
+    body: params,
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return OAuthTokensSchema.parse(await response.json());
 }

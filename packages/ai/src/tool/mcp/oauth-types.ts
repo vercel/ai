@@ -69,6 +69,7 @@ export const OAuthMetadataSchema = z
     registration_endpoint: SafeUrlSchema.optional(),
     scopes_supported: z.array(z.string()).optional(),
     response_types_supported: z.array(z.string()),
+    grant_types_supported: z.array(z.string()).optional(),
     code_challenge_methods_supported: z.array(z.string()),
     token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
     token_endpoint_auth_signing_alg_values_supported: z
@@ -91,9 +92,11 @@ export const OpenIdProviderMetadataSchema = z
     registration_endpoint: SafeUrlSchema.optional(),
     scopes_supported: z.array(z.string()).optional(),
     response_types_supported: z.array(z.string()),
+    grant_types_supported: z.array(z.string()).optional(),
     subject_types_supported: z.array(z.string()),
     id_token_signing_alg_values_supported: z.array(z.string()),
     claims_supported: z.array(z.string()).optional(),
+    token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
   })
   .passthrough();
 
@@ -132,3 +135,9 @@ export type OAuthClientInformation = z.infer<
 export type AuthorizationServerMetadata =
   | OAuthMetadata
   | OpenIdProviderDiscoveryMetadata;
+
+export const OAuthErrorResponseSchema = z.object({
+  error: z.string(),
+  error_description: z.string().optional(),
+  error_uri: z.string().optional(),
+});

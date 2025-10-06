@@ -1,0 +1,35 @@
+import { AISDKError } from '@ai-sdk/provider';
+
+const name = 'AI_MCPClientOAuthError';
+const marker = `vercel.ai.error.${name}`;
+const symbol = Symbol.for(marker);
+
+/**
+ * An error occurred with the MCP client within the OAuth flow.
+ */
+export class MCPClientOAuthError extends AISDKError {
+  private readonly [symbol] = true;
+
+  constructor({
+    name = 'MCPClientOAuthError',
+    message,
+    cause,
+  }: {
+    name?: string;
+    message: string;
+    cause?: unknown;
+  }) {
+    super({ name, message, cause });
+  }
+
+  static isInstance(error: unknown): error is MCPClientOAuthError {
+    return AISDKError.hasMarker(error, marker);
+  }
+}
+export class ServerError extends MCPClientOAuthError {
+  static errorCode = 'server_error';
+}
+
+export const OAUTH_ERRORS = {
+  [ServerError.errorCode]: ServerError,
+};
