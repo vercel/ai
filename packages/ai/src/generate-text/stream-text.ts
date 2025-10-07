@@ -1182,6 +1182,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
           });
 
+          const stepExperimentalContext =
+            prepareStepResult?.experimental_context ?? experimental_context;
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
@@ -1278,7 +1281,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
             repairToolCall,
             abortSignal,
-            experimental_context,
+            experimental_context: stepExperimentalContext,
             generateId,
           });
 
@@ -1449,7 +1452,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
-                          experimental_context,
+                          experimental_context: stepExperimentalContext,
                         });
                       }
 
@@ -1476,7 +1479,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
-                          experimental_context,
+                          experimental_context: stepExperimentalContext,
                         });
                       }
 

@@ -1103,6 +1103,7 @@ describe('generateText', () => {
       let result: GenerateTextResult<any, any>;
       let onStepFinishResults: StepResult<any>[];
       let doGenerateCalls: Array<LanguageModelV3CallOptions>;
+      let recordedContexts: unknown[];
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
@@ -1112,6 +1113,7 @@ describe('generateText', () => {
       beforeEach(async () => {
         onStepFinishResults = [];
         doGenerateCalls = [];
+        recordedContexts = [];
         prepareStepCalls = [];
 
         let responseCount = 0;
@@ -1171,11 +1173,12 @@ describe('generateText', () => {
           tools: {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
-              execute: async (args, options) => {
+              execute: async (args, { messages, experimental_context }) => {
                 expect(args).toStrictEqual({ value: 'value' });
-                expect(options.messages).toStrictEqual([
+                expect(messages).toStrictEqual([
                   { role: 'user', content: 'test-input' },
                 ]);
+                recordedContexts.push(experimental_context);
                 return 'result1';
               },
             }),
@@ -1203,6 +1206,7 @@ describe('generateText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
+                experimental_context: { step: 0 },
               };
             }
 
@@ -1212,10 +1216,15 @@ describe('generateText', () => {
                 model: trueModel,
                 activeTools: [],
                 system: 'system-message-1',
+                experimental_context: { step: 1 },
               };
             }
           },
         });
+      });
+
+      it('should override experimental_context in prepareStep', () => {
+        expect(recordedContexts).toEqual([{ step: 0 }]);
       });
 
       it('should contain all prepareStep calls', async () => {
@@ -3226,7 +3235,6 @@ describe('generateText', () => {
         prompt: 'test-input',
       });
 
-      // tool should be executed by client
       expect(recordedContext).toStrictEqual({
         context: 'test',
       });

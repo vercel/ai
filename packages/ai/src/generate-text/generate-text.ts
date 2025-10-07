@@ -401,6 +401,9 @@ A function that attempts to repair a tool call that failed to parse.
             messages: stepInputMessages,
           });
 
+          const stepExperimentalContext =
+            prepareStepResult?.experimental_context ?? experimental_context;
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
@@ -565,7 +568,7 @@ A function that attempts to repair a tool call that failed to parse.
                 toolCallId: toolCall.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
-                experimental_context,
+                experimental_context: stepExperimentalContext,
               });
             }
 
@@ -574,7 +577,7 @@ A function that attempts to repair a tool call that failed to parse.
                 tool,
                 toolCall,
                 messages: stepInputMessages,
-                experimental_context,
+                experimental_context: stepExperimentalContext,
               })
             ) {
               toolApprovalRequests[toolCall.toolCallId] = {
@@ -622,7 +625,7 @@ A function that attempts to repair a tool call that failed to parse.
                 telemetry,
                 messages: stepInputMessages,
                 abortSignal,
-                experimental_context,
+                experimental_context: stepExperimentalContext,
               })),
             );
           }

@@ -6622,6 +6622,7 @@ describe('streamText', () => {
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let doStreamCalls: Array<LanguageModelV3CallOptions>;
+      let recordedContexts: unknown[];
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
@@ -6630,6 +6631,7 @@ describe('streamText', () => {
 
       beforeEach(async () => {
         doStreamCalls = [];
+        recordedContexts = [];
         prepareStepCalls = [];
 
         result = streamText({
@@ -6691,7 +6693,10 @@ describe('streamText', () => {
           tools: {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
-              execute: async () => 'result1',
+              execute: async (_args, { experimental_context }) => {
+                recordedContexts.push(experimental_context);
+                return 'result1';
+              },
             }),
           },
           prompt: 'test-input',
@@ -6712,6 +6717,7 @@ describe('streamText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
+                experimental_context: { step: 0 },
               };
             }
 
@@ -6719,6 +6725,7 @@ describe('streamText', () => {
               return {
                 activeTools: [],
                 system: 'system-message-1',
+                experimental_context: { step: 1 },
               };
             }
           },
@@ -6854,6 +6861,11 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+
+      it('should override experimental_context in prepareStep', async () => {
+        await result.consumeStream();
+        expect(recordedContexts).toEqual([{ step: 0 }]);
       });
 
       it('should contain all prepareStep calls', async () => {
@@ -13005,7 +13017,6 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      // tool should be executed by client
       expect(recordedContext).toStrictEqual({
         context: 'test',
       });
