@@ -937,6 +937,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: webSearchToolName ?? 'web_search',
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -948,6 +949,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: 'computer_use',
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -962,6 +964,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: 'code_interpreter',
+                  providerExecuted: true,
                 });
 
                 controller.enqueue({

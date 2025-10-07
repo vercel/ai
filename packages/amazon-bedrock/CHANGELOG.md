@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.1.0-beta.14
+
+### Patch Changes
+
+- 11eefa4: Support user provided filenames in amazon-bedrock-provider
+
 ## 3.1.0-beta.13
 
 ### Patch Changes
