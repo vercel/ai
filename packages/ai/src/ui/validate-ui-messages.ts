@@ -47,6 +47,12 @@ const sourceDocumentUIPartSchema = z.object({
   providerMetadata: providerMetadataSchema.optional(),
 });
 
+const sourceExecutionFileUIPartSchema = z.object({
+  type: z.literal('source-execution-file'),
+  sourceId: z.string(),
+  providerMetadata: providerMetadataSchema.optional(),
+})
+
 const fileUIPartSchema = z.object({
   type: z.literal('file'),
   mediaType: z.string(),
@@ -222,6 +228,7 @@ const uiMessageSchema = z.object({
       reasoningUIPartSchema,
       sourceUrlUIPartSchema,
       sourceDocumentUIPartSchema,
+      sourceExecutionFileUIPartSchema,
       fileUIPartSchema,
       stepStartUIPartSchema,
       dataUIPartSchema,

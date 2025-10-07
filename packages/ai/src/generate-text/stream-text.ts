@@ -1972,6 +1972,16 @@ However, the LLM results are expected to be small enough to not cause issues.
                     : {}),
                 });
               }
+
+              if (sendSources && part.sourceType === 'executionFile') {
+                controller.enqueue({
+                  type: 'source-execution-file',
+                  sourceId: part.id,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
