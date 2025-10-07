@@ -3,16 +3,15 @@ import { Agent } from 'ai';
 import { run } from '../lib/run';
 
 const agent = new Agent({
-  model: openai('gpt-5'),
+  model: openai('gpt-4o'),
   system: 'You are a helpful assistant.',
+  onFinish({ text }) {
+    console.log(text);
+  },
 });
 
 run(async () => {
-  const result = agent.stream({
+  await agent.generate({
     prompt: 'Invent a new holiday and describe its traditions.',
   });
-
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
 });
