@@ -20,43 +20,11 @@ These components work together:
 The Agent class handles these three components. Here's an agent that uses multiple tools in a loop to accomplish a task:
 
 ```ts
-import { Agent, stepCountIs, tool } from 'ai';
+import { experimental_Agent as Agent, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 
 const weatherAgent = new Agent({
   model: 'openai/gpt-4o',
-<<<<<<< HEAD
-  prompt: 'What is the weather in San Francisco?',
-  tools: {
-    weather: tool({
-      description: 'Get the weather in a location',
-      parameters: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    }),
-  },
-});
-
-console.log(result.toolResults);
-```
-
-### Multi-Step Tool Usage (Agents)
-
-For complex problems, an LLM can make multiple tool calls across multiple steps. The model decides the order and number of tool calls based on the task.
-
-```ts
-import { generateText, stepCountIs, tool } from 'ai';
-import { z } from 'zod';
-
-const result = await generateText({
-  model: 'openai/gpt-4o',
-  prompt: 'What is the weather in San Francisco in celsius?',
-=======
->>>>>>> 6fd863f86 (docs: refactor agents section around stabilised agent class (#9245))
   tools: {
     weather: tool({
       description: 'Get the weather in a location (in Fahrenheit)',
@@ -79,47 +47,11 @@ const result = await generateText({
       },
     }),
   },
-  // Agent's default behavior is to stop after a maximum of 20 steps
-  // stopWhen: stepCountIs(20),
+  stopWhen: stepCountIs(20),
 });
 
-<<<<<<< HEAD
-console.log(result.text); // Output: The weather in San Francisco is currently _°C.
-```
-
-The LLM might:
-
-1. Call the `weather` tool to get the temperature in Fahrenheit
-2. Call the `convertFahrenheitToCelsius` tool to convert it
-3. Generate a text response with the converted temperature
-
-This behavior is flexible - the LLM determines the approach based on its understanding of the task.
-
-## Implementation Approaches
-
-The AI SDK provides two approaches to build agents:
-
-### Agent Class
-
-Object-oriented abstraction that handles the loop for you. Best when you want to:
-
-- Reuse agent configurations
-- Minimize boilerplate code
-- Build consistent agent behaviors
-
-```ts
-import { Experimental_Agent as Agent } from 'ai';
-
-const myAgent = new Agent({
-  model: 'openai/gpt-4o',
-  tools: {
-    // your tools here
-  },
-  stopWhen: stepCountIs(10), // Continue for up to 10 steps
-=======
 const result = await weatherAgent.generate({
   prompt: 'What is the weather in San Francisco in celsius?',
->>>>>>> 6fd863f86 (docs: refactor agents section around stabilised agent class (#9245))
 });
 
 console.log(result.text); // agent's final answer

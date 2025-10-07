@@ -9,7 +9,7 @@ You can control both the execution flow and the settings at each step of the age
 
 ## Stop Conditions
 
-The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, agents stop after 20 steps using `stepCountIs(20)`.
+The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, agents stop after a single step using `stepCountIs(1)`.
 
 When you provide `stopWhen`, the agent continues executing after tool calls until a stopping condition is met. When the condition is an array, execution stops when any of the conditions are met.
 
@@ -18,14 +18,14 @@ When you provide `stopWhen`, the agent continues executing after tool calls unti
 The AI SDK provides several built-in stopping conditions:
 
 ```ts
-import { Agent, stepCountIs } from 'ai';
+import { Experimental_Agent as Agent, stepCountIs } from 'ai';
 
 const agent = new Agent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools
   },
-  stopWhen: stepCountIs(20), // Default state: stop after 20 steps maximum
+  stopWhen: stepCountIs(20), // Stop after 20 steps maximum
 });
 
 const result = await agent.generate(
@@ -38,7 +38,7 @@ const result = await agent.generate(
 Combine multiple stopping conditions. The loop stops when it meets any condition:
 
 ```ts
-import { Agent, stepCountIs, hasToolCall } from 'ai';
+import { Experimental_Agent as Agent, stepCountIs, hasToolCall } from 'ai';
 
 const agent = new Agent({
   model: 'openai/gpt-4o',
@@ -59,7 +59,7 @@ const result = await agent.generate('Research and analyze the topic');
 Build custom stopping conditions for specific requirements:
 
 ```ts
-import { Agent, StopCondition, ToolSet } from 'ai';
+import { Experimental_Agent as Agent, StopCondition, ToolSet } from 'ai';
 
 const tools = {
   // your tools
@@ -108,7 +108,7 @@ The `prepareStep` callback runs before each step in the loop and defaults to the
 Switch models based on step requirements:
 
 ```ts
-import { Agent } from 'ai';
+import { Experimental_Agent as Agent } from 'ai';
 
 const agent = new Agent({
   model: 'openai/gpt-4o-mini', // Default model
@@ -135,7 +135,7 @@ const result = await agent.generate('...');
 Manage growing conversation history in long-running loops:
 
 ```ts
-import { Agent } from 'ai';
+import { Experimental_Agent as Agent } from 'ai';
 
 const agent = new Agent({
   model: 'openai/gpt-4o',
@@ -164,7 +164,7 @@ const result = await agent.generate('...');
 Control which tools are available at each step:
 
 ```ts
-import { Agent } from 'ai';
+import { Experimental_Agent as Agent } from 'ai';
 
 const agent = new Agent({
   model: 'openai/gpt-4o',
@@ -227,7 +227,7 @@ prepareStep: async ({ stepNumber }) => {
 Transform messages before sending them to the model:
 
 ```ts
-import { Agent } from 'ai';
+import { Experimental_Agent as Agent } from 'ai';
 
 const agent = new Agent({
   model: 'openai/gpt-4o',
