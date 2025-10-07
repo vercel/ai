@@ -1,5 +1,17 @@
 # @ai-sdk/hume
 
+## 2.0.0-beta.10
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
 ## 1.1.0-beta.9
 
 ### Patch Changes

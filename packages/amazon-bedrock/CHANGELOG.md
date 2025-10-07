@@ -1,5 +1,18 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.17
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/anthropic@3.0.0-beta.14
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
 ## 3.1.0-beta.16
 
 ### Patch Changes
