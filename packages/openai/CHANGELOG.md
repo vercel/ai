@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.44
+
+### Patch Changes
+
+- 28215ca: fix(provider/openai): add providerExecuted flag to tool start chunks
+
 ## 2.0.43
 
 ### Patch Changes
