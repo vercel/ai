@@ -55,12 +55,11 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
   }
   get clientMetadata(): OAuthClientMetadata {
     return {
-      client_name: 'MCP OAuth Client',
+      client_name: 'AI SDK MCP OAuth Example',
       redirect_uris: [String(this._redirectUrl)],
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'client_secret_post',
-      scope: 'mcp:tools',
     };
   }
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
@@ -112,7 +111,8 @@ async function main() {
   console.log('Creating MCP client with OAuth...');
 
   try {
-    const serverUrl = process.env.MCP_SERVER_URL || 'http://localhost:8081/sse';
+    const serverUrl =
+      process.env.MCP_SERVER_URL || 'https://mcp.notion.com/sse';
     const callbackPromise = waitForAuthorizationCode(
       Number(process.env.MCP_CALLBACK_PORT ?? 8090),
     );
@@ -174,8 +174,7 @@ async function main() {
         }
       },
       system: 'You are a helpful assistant with access to protected resources.',
-      prompt:
-        'List the user resources, then retrieve secret data for key "api-key-1".',
+      prompt: 'List the user resources.',
     });
 
     await mcpClient.close();
