@@ -76,6 +76,25 @@ export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
 ) => Promise<void> | void;
 
 /**
+Callback that is set using the `onFinish` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
+  event: StepResult<TOOLS> & {
+    /**
+Details for all steps.
+   */
+    readonly steps: StepResult<TOOLS>[];
+
+    /**
+Total usage for all steps. This is the sum of the usage of all steps.
+     */
+    readonly totalUsage: LanguageModelUsage;
+  },
+) => PromiseLike<void> | void;
+
+/**
 Generate a text and call tools for a given prompt using a language model.
 
 This function does not stream the output. If you want to stream the output, use `streamText` instead.
@@ -117,6 +136,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param experimental_generateMessageId - Generate a unique ID for each message.
 
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+@param onFinish - Callback that is called when all steps are finished and the response is complete.
 
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.

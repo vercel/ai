@@ -43,7 +43,7 @@ import { mockValues } from '../test/mock-values';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
-import { streamText } from './stream-text';
+import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
 
@@ -4712,9 +4712,7 @@ describe('streamText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<
-        Required<Parameters<typeof streamText>[0]>['onFinish']
-      >[0];
+      let result!: Parameters<StreamTextOnFinishCallback<any>>[0];
 
       const resultObject = streamText({
         model: createTestModel({
