@@ -47,6 +47,7 @@ export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
       inputSchema,
       outputSchema,
       execute,
+      needsApproval,
       toModelOutput,
       onInputStart,
       onInputDelta,
