@@ -294,7 +294,6 @@ export async function convertToOpenAIResponsesInput({
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool execution denied.';
               break;
-            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
