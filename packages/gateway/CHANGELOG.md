@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.1.0-beta.17
+
+### Patch Changes
+
+- 1d8ea2c: feat(provider/gateway): Add GPT-5 pro to Gateway model string autocomplete
+
 ## 1.1.0-beta.16
 
 ### Patch Changes

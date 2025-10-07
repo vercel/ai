@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.1.0-beta.11
+
+### Patch Changes
+
+- 9a728c8: support latest gemini model id
+
 ## 2.1.0-beta.10
 
 ### Patch Changes
