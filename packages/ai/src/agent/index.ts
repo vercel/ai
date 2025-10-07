@@ -6,6 +6,7 @@ export {
    */
   Agent as Experimental_Agent,
 } from './agent';
+export { type AgentOnFinishCallback } from './agent-on-finish-callback';
 export { type AgentOnStepFinishCallback } from './agent-on-step-finish-callback';
 export {
   type AgentSettings,
