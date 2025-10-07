@@ -7,7 +7,10 @@ import {
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  OpenAIResponsesFunctionCallOutput,
+  localShellInputSchema,
+  localShellOutputSchema,
+} from '../tool/local-shell';
+import {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
@@ -26,11 +29,13 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   fileIdPrefixes,
   store,
+  hasLocalShellTool = false,
 }: {
   prompt: LanguageModelV3Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
   store: boolean;
+  hasLocalShellTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV3CallWarning>;
@@ -146,6 +151,27 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              if (hasLocalShellTool && part.toolName === 'local_shell') {
+                const parsedInput = localShellInputSchema.parse(part.input);
+                input.push({
+                  type: 'local_shell_call',
+                  call_id: part.toolCallId,
+                  id:
+                    (part.providerOptions?.openai?.itemId as string) ??
+                    undefined,
+                  action: {
+                    type: 'exec',
+                    command: parsedInput.action.command,
+                    timeout_ms: parsedInput.action.timeoutMs,
+                    user: parsedInput.action.user,
+                    working_directory: parsedInput.action.workingDirectory,
+                    env: parsedInput.action.env,
+                  },
+                });
+
+                break;
+              }
+
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
@@ -245,12 +271,29 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           const output = part.output;
 
-          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
+          if (
+            hasLocalShellTool &&
+            part.toolName === 'local_shell' &&
+            output.type === 'json'
+          ) {
+            input.push({
+              type: 'local_shell_call_output',
+              call_id: part.toolCallId,
+              output: localShellOutputSchema.parse(output.value).output,
+            });
+            break;
+          }
+
+          let contentValue: string;
           switch (output.type) {
             case 'text':
             case 'error-text':
               contentValue = output.value;
               break;
+            case 'execution-denied':
+              contentValue = output.reason ?? 'Tool execution denied.';
+              break;
+            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);

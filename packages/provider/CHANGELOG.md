@@ -1,5 +1,19 @@
 # @ai-sdk/provider
 
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 2b0caef: feat(provider): add preliminary provider executed tool results to language model specification
+
 ## 2.1.0-beta.3
 
 ### Patch Changes

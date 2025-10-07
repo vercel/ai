@@ -46,7 +46,7 @@ const result = await generateText({
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
@@ -74,7 +74,7 @@ const result = await generateText({
   tools: {
     weather: tool({
       description: 'Get the weather in a location (in Fahrenheit)',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
@@ -84,7 +84,7 @@ const result = await generateText({
     }),
     convertFahrenheitToCelsius: tool({
       description: 'Convert temperature from Fahrenheit to Celsius',
-      parameters: z.object({
+      inputSchema: z.object({
         temperature: z.number().describe('Temperature in Fahrenheit'),
       }),
       execute: async ({ temperature }) => {
@@ -120,7 +120,7 @@ Object-oriented abstraction that handles the loop for you. Best when you want to
 - Build consistent agent behaviors
 
 ```ts
-import { Experimental_Agent as Agent } from 'ai';
+import { Agent } from 'ai';
 
 const myAgent = new Agent({
   model: 'openai/gpt-4o',

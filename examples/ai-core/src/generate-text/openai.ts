@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const { text, usage } = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-5-pro'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -1,5 +1,69 @@
 # @ai-sdk/azure
 
+## 2.1.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [000e87b]
+  - @ai-sdk/openai@2.1.0-beta.14
+
+## 2.1.0-beta.13
+
+### Patch Changes
+
+- 3771a27: The default api-version for Microsoft Azure OpenAI has been changed from preview to v1
+- Updated dependencies [357cfd7]
+  - @ai-sdk/openai@2.1.0-beta.13
+
+## 2.1.0-beta.12
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+- 21e20c0: feat(provider): transcription model v3 spec
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [21e20c0]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/openai@2.1.0-beta.12
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 2.1.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+  - @ai-sdk/openai@2.1.0-beta.11
+
+## 2.1.0-beta.10
+
+### Patch Changes
+
+- d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
+- Updated dependencies [d64ece9]
+  - @ai-sdk/openai@2.1.0-beta.10
+
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [9a51b92]
+  - @ai-sdk/openai@2.1.0-beta.9
+
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [4122d2a]
+- Updated dependencies [3997a42]
+- Updated dependencies [cb4d238]
+  - @ai-sdk/openai@2.1.0-beta.8
+
 ## 2.1.0-beta.7
 
 ### Patch Changes

@@ -1,5 +1,94 @@
 # @ai-sdk/svelte
 
+## 3.1.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [c99da05]
+  - ai@5.1.0-beta.26
+
+## 3.1.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [457f1c6]
+  - ai@5.1.0-beta.25
+
+## 3.1.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [90e5bdd]
+  - ai@5.1.0-beta.24
+
+## 3.1.0-beta.23
+
+### Patch Changes
+
+- ai@5.1.0-beta.23
+
+## 3.1.0-beta.22
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [a5e152d]
+- Updated dependencies [21e20c0]
+  - ai@5.1.0-beta.22
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 3.1.0-beta.21
+
+### Patch Changes
+
+- ai@5.1.0-beta.21
+
+## 3.1.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [846e80e]
+  - ai@5.1.0-beta.20
+
+## 3.1.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [aa0515c]
+- Updated dependencies [e7d9b00]
+- Updated dependencies [b1aeea7]
+  - ai@5.1.0-beta.19
+
+## 3.1.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [9b8d17e]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - ai@5.1.0-beta.18
+
+## 3.1.0-beta.17
+
+### Patch Changes
+
+- ai@5.1.0-beta.17
+
+## 3.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [14ca35d]
+  - ai@5.1.0-beta.16
+
+## 3.1.0-beta.15
+
+### Patch Changes
+
+- ai@5.1.0-beta.15
+
 ## 3.1.0-beta.14
 
 ### Patch Changes

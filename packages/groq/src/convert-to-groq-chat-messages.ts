@@ -114,6 +114,9 @@ export function convertToGroqChatMessages(
             case 'error-text':
               contentValue = output.value;
               break;
+            case 'execution-denied':
+              contentValue = output.reason ?? 'Tool execution denied.';
+              break;
             case 'content':
             case 'json':
             case 'error-json':
