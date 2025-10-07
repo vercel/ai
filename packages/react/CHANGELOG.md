@@ -1,5 +1,23 @@
 # @ai-sdk/react
 
+## 2.1.0-beta.23
+
+### Patch Changes
+
+- ai@5.1.0-beta.23
+
+## 2.1.0-beta.22
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [a5e152d]
+- Updated dependencies [21e20c0]
+  - ai@5.1.0-beta.22
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
 ## 2.1.0-beta.21
 
 ### Patch Changes

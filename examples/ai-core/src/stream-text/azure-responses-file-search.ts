@@ -19,7 +19,7 @@ const VectorStoreId = 'vs_xxxxxxxxxxxxxxxxxxxxxxxx'; // put your vector store id
 async function main() {
   // Basic text generation
   const result = await streamText({
-    model: azure.responses('gpt-4.1-mini'),
+    model: azure.responses('gpt-4.1-mini'), // use your own deployment
     prompt: 'What is quantum computing?', // please question about your documents.
     tools: {
       file_search: azure.tools.fileSearch({

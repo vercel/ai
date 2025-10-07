@@ -20,8 +20,10 @@ import { GeneratedFile } from './generated-file';
 import { ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
+import { StaticToolOutputDenied } from './tool-output-denied';
 import {
   DynamicToolResult,
   StaticToolResult,
@@ -329,6 +331,7 @@ Converts the result to a streamed response object with a stream data part stream
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
+// TODO AI SDK 5.1 rename
 export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'text-start';
@@ -386,6 +389,8 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
+  | ({ type: 'tool-output-denied' } & StaticToolOutputDenied<TOOLS>)
+  | ToolApprovalRequestOutput<TOOLS>
   | {
       type: 'start-step';
       request: LanguageModelRequestMetadata;
