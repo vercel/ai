@@ -1,13 +1,5 @@
 'use client';
 
-/**
- * This example requires additional dependencies.
- * Install them with:
- *
- * pnpm add clsx tailwind-merge streamdown
- *
- */
-
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Streamdown } from 'streamdown';

@@ -33,5 +33,7 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(uiMessages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    sendSources:true, // to display 'source-execution-file' part in the client.
+  });
 }

@@ -29,7 +29,7 @@ export default function TestOpenAIWebSearch() {
                 return <MessageTextWithDownloadLink key={index} part={part} />;
               case 'tool-code_interpreter':
                 return <CodeInterpreterView key={index} invocation={part} />;
-              case 'file':
+              case 'source-execution-file':
                 return (
                   <div key={index} className="py-4">
                     <ContainerFileCitationDownloadButton
