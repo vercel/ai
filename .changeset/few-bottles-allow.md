@@ -3,6 +3,7 @@
 ---
 
 Add support for 7 new Cerebras models:
+
 - llama-3.3-70b (70B parameters)
 - llama3.1-8b (8B parameters)
 - gpt-oss-120b (120B parameters)
