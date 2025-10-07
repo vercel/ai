@@ -2,7 +2,7 @@ import { ModelMessage } from '@ai-sdk/provider-utils';
 import { TypedToolCall } from './tool-call';
 import { ToolSet } from './tool-set';
 
-export function isApprovalNeeded<TOOLS extends ToolSet>({
+export async function isApprovalNeeded<TOOLS extends ToolSet>({
   tool,
   toolCall,
   messages,
@@ -21,7 +21,7 @@ export function isApprovalNeeded<TOOLS extends ToolSet>({
     return tool.needsApproval;
   }
 
-  return tool.needsApproval(toolCall.input, {
+  return await tool.needsApproval(toolCall.input, {
     toolCallId: toolCall.toolCallId,
     messages,
     experimental_context,

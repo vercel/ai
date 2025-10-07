@@ -570,7 +570,7 @@ A function that attempts to repair a tool call that failed to parse.
             }
 
             if (
-              isApprovalNeeded({
+              await isApprovalNeeded({
                 tool,
                 toolCall,
                 messages: stepInputMessages,

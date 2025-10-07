@@ -254,7 +254,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             }
 
             if (
-              isApprovalNeeded({
+              await isApprovalNeeded({
                 tool,
                 toolCall,
                 messages,
