@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.1.0-beta.8
+
+### Patch Changes
+
+- e06565c: feat(provider-utils): add needsApproval support to provider-defined tools
+
 ## 3.1.0-beta.7
 
 ### Patch Changes
