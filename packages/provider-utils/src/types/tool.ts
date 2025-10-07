@@ -103,7 +103,7 @@ Whether the tool needs approval before it can be executed.
   needsApproval?:
     | boolean
     | ((
-        input: INPUT,
+        input: [INPUT] extends [never] ? undefined : INPUT,
         options: {
           /**
            * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
