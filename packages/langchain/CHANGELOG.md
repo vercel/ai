@@ -1,5 +1,16 @@
 # @ai-sdk/langchain
 
+## 2.0.0-beta.29
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - ai@6.0.0-beta.29
+
 ## 1.1.0-beta.28
 
 ### Patch Changes
