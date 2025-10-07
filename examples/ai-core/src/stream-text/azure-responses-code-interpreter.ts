@@ -12,11 +12,11 @@ import 'dotenv/config';
 async function main() {
   // Basic text generation
   const result = streamText({
-    model: azure.responses('gpt-5-mini'),
+    model: azure.responses('gpt-5-mini'), // use your own deployment
     prompt:
       'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results.',
     tools: {
-      code_interpreter: azure.tools.codeInterpreter({}),
+      code_interpreter: azure.tools.codeInterpreter(),
     },
   });
 
