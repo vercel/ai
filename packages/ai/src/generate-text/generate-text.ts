@@ -694,6 +694,12 @@ A function that attempts to repair a tool call that failed to parse.
 
         const lastStep = steps[steps.length - 1];
 
+        await onFinish?.({
+          ...lastStep,
+          steps,
+          totalUsage: lastStep.usage, // TODO aggregate usage
+        });
+
         return new DefaultGenerateTextResult({
           steps,
           resolvedOutput: await output?.parseOutput(
