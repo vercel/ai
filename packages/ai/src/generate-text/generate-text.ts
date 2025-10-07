@@ -694,14 +694,24 @@ A function that attempts to repair a tool call that failed to parse.
 
         const lastStep = steps[steps.length - 1];
 
-        await onFinish?.({
-          ...lastStep,
-          steps,
-          totalUsage: lastStep.usage, // TODO aggregate usage
-        });
+        const totalUsage = steps.reduce(
+          (totalUsage, step) => {
+            return addLanguageModelUsage(totalUsage, step.usage);
+          },
+          {
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          } as LanguageModelUsage,
+        );
+
+        await onFinish?.({ ...lastStep, steps, totalUsage });
 
         return new DefaultGenerateTextResult({
           steps,
+          totalUsage,
           resolvedOutput: await output?.parseOutput(
             { text: lastStep.text },
             {
@@ -758,15 +768,18 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
+  readonly totalUsage: LanguageModelUsage;
 
   private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
     resolvedOutput: OUTPUT;
+    totalUsage: LanguageModelUsage;
   }) {
     this.steps = options.steps;
     this.resolvedOutput = options.resolvedOutput;
+    this.totalUsage = options.totalUsage;
   }
 
   private get finalStep() {
@@ -843,21 +856,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 
   get usage() {
     return this.finalStep.usage;
-  }
-
-  get totalUsage() {
-    return this.steps.reduce(
-      (totalUsage, step) => {
-        return addLanguageModelUsage(totalUsage, step.usage);
-      },
-      {
-        inputTokens: undefined,
-        outputTokens: undefined,
-        totalTokens: undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
-      } as LanguageModelUsage,
-    );
   }
 
   get experimental_output() {

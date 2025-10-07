@@ -877,13 +877,18 @@ describe('generateText', () => {
   });
 
   describe('options.stopWhen', () => {
+    let result: GenerateTextResult<any, any>;
+    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
+    let onStepFinishResults: StepResult<any>[];
+
+    beforeEach(() => {
+      result = undefined as any;
+      onFinishResult = undefined as any;
+      onStepFinishResults = [];
+    });
+
     describe('2 steps: initial, tool-result', () => {
-      let result: GenerateTextResult<any, any>;
-      let onStepFinishResults: StepResult<any>[];
-
       beforeEach(async () => {
-        onStepFinishResults = [];
-
         let responseCount = 0;
         result = await generateText({
           model: new MockLanguageModelV3({
@@ -974,10 +979,13 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
-          stopWhen: stepCountIs(3),
+          onFinish: async event => {
+            onFinishResult = event as unknown as typeof onFinishResult;
+          },
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
+          stopWhen: stepCountIs(3),
         });
       });
 
@@ -1025,8 +1033,14 @@ describe('generateText', () => {
         expect(result.steps).toMatchSnapshot();
       });
 
-      it('onStepFinish should be called for each step', () => {
-        expect(onStepFinishResults).toMatchSnapshot();
+      describe('callbacks', () => {
+        it('onFinish should send correct information', async () => {
+          expect(onFinishResult).toMatchSnapshot();
+        });
+
+        it('onStepFinish should be called for each step', () => {
+          expect(onStepFinishResults).toMatchSnapshot();
+        });
       });
     });
 
