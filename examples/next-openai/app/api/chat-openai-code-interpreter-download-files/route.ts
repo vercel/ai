@@ -34,6 +34,6 @@ export async function POST(req: Request) {
   });
 
   return result.toUIMessageStreamResponse({
-    sendSources:true, // to display 'source-execution-file' part in the client.
+    sendSources: true, // to display 'source-execution-file' part in the client.
   });
 }

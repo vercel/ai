@@ -5,7 +5,7 @@ import { codeInterpreterSourceExecutionFileSchema as openaiExecuteFileSchema } f
 import { z } from 'zod/v4';
 
 const executeFileSchema = z.object({
-  openai:openaiExecuteFileSchema,
+  openai: openaiExecuteFileSchema,
 });
 
 export function ContainerFileCitationDownloadButton({
@@ -13,18 +13,13 @@ export function ContainerFileCitationDownloadButton({
 }: {
   part: SourceExecutionFileUIPart;
 }) {
-
   const executeFileParse = executeFileSchema.safeParse(part.providerMetadata);
-  if(!executeFileParse.success)return null;
+  if (!executeFileParse.success) return null;
 
   const {
-    data:{
-      openai:{
-        containerId,
-        fileId,
-        filename,
-      }
-    }
+    data: {
+      openai: { containerId, fileId, filename },
+    },
   } = executeFileParse;
   const onClick = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';

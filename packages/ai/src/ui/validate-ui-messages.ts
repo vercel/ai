@@ -51,7 +51,7 @@ const sourceExecutionFileUIPartSchema = z.object({
   type: z.literal('source-execution-file'),
   sourceId: z.string(),
   providerMetadata: providerMetadataSchema.optional(),
-})
+});
 
 const fileUIPartSchema = z.object({
   type: z.literal('file'),

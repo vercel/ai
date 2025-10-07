@@ -6,7 +6,7 @@ import { codeInterpreterSourceExecutionFileSchema as openaiExecuteFileSchema } f
 import { z } from 'zod/v4';
 
 const executeFileSchema = z.object({
-  openai:openaiExecuteFileSchema,
+  openai: openaiExecuteFileSchema,
 });
 
 async function main() {
@@ -27,14 +27,17 @@ async function main() {
   console.dir(result.toolResults, { depth: Infinity });
   console.dir(result.content, { depth: Infinity });
 
+  const fileList = result.content.filter(
+    c => c.type === 'source' && c.sourceType === 'executionFile',
+  );
 
-  const fileList = result.content
-    .filter(c => c.type === 'source' && c.sourceType === 'executionFile');
-
-  await fileList.map( async(file)=>{
+  await fileList.map(async file => {
     const executeFileParse = executeFileSchema.safeParse(file.providerMetadata);
-    if(executeFileParse.success){
-      await downloadContainerFile(executeFileParse.data.openai.containerId, executeFileParse.data.openai.fileId);
+    if (executeFileParse.success) {
+      await downloadContainerFile(
+        executeFileParse.data.openai.containerId,
+        executeFileParse.data.openai.fileId,
+      );
     }
   });
 }

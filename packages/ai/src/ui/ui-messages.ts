@@ -162,7 +162,7 @@ export type SourceExecutionFileUIPart = {
   type: 'source-execution-file';
   sourceId: string;
   providerMetadata?: ProviderMetadata;
-}
+};
 
 /**
  * A file part of a message.
