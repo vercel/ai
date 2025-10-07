@@ -409,6 +409,7 @@ class DefaultMCPClient implements MCPClient {
         ? response
         : new MCPClientError({
             message: response.error.message,
+            data: response.error.data,
             cause: response.error,
           }),
     );
