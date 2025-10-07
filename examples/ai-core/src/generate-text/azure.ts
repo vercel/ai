@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const { text, usage } = await generateText({
-    model: azure('v0-gpt-35-turbo'), // use your own deployment
+    model: azure('gpt-4.1-mini'), // use your own deployment
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
