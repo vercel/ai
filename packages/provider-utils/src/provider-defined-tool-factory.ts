@@ -4,6 +4,7 @@ import { FlexibleSchema } from './schema';
 export type ProviderDefinedToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
   options: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT>;
+    needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
     toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
     onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
     onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
@@ -23,6 +24,7 @@ export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
   return <OUTPUT>({
     execute,
     outputSchema,
+    needsApproval,
     toModelOutput,
     onInputStart,
     onInputDelta,
@@ -31,6 +33,7 @@ export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
   }: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT>;
     outputSchema?: FlexibleSchema<OUTPUT>;
+    needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
     toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
     onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
     onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
@@ -58,6 +61,7 @@ export type ProviderDefinedToolFactoryWithOutputSchema<
 > = (
   options: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT>;
+    needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
     toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
     onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
     onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
@@ -82,6 +86,7 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
 }): ProviderDefinedToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS> {
   return ({
     execute,
+    needsApproval,
     toModelOutput,
     onInputStart,
     onInputDelta,
@@ -89,6 +94,7 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
     ...args
   }: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT>;
+    needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
     toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
     onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
     onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
@@ -102,6 +108,7 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
       inputSchema,
       outputSchema,
       execute,
+      needsApproval,
       toModelOutput,
       onInputStart,
       onInputDelta,
