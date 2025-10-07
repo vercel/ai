@@ -42,6 +42,7 @@ import { executeToolCall } from './execute-tool-call';
 import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isApprovalNeeded } from './is-approval-needed';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
@@ -568,7 +569,14 @@ A function that attempts to repair a tool call that failed to parse.
               });
             }
 
-            if (tool?.needsApproval) {
+            if (
+              await isApprovalNeeded({
+                tool,
+                toolCall,
+                messages: stepInputMessages,
+                experimental_context,
+              })
+            ) {
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
                 approvalId: generateId(),
