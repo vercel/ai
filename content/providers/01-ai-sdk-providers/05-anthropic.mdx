@@ -93,11 +93,69 @@ const { text } = await generateText({
 Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-<Note>
-  The Anthropic API returns streaming tool calls all at once after a delay. This
-  causes the `streamObject` function to generate the object fully after a delay
-  instead of streaming it incrementally.
-</Note>
+### Structured Outputs and Tool Input Streaming
+
+By default, the Anthropic API returns streaming tool calls and structured outputs all at once after a delay. To enable incremental streaming of tool inputs (when using `streamText` with tools) and structured outputs (when using `streamObject`), you need to set the `anthropic-beta` header to `fine-grained-tool-streaming-2025-05-14`.
+
+**For structured outputs with `streamObject`:**
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamObject } from 'ai';
+import { z } from 'zod';
+
+const result = streamObject({
+  model: anthropic('claude-sonnet-4-20250514'),
+  schema: z.object({
+    characters: z.array(
+      z.object({
+        name: z.string(),
+        class: z.string(),
+        description: z.string(),
+      }),
+    ),
+  }),
+  prompt: 'Generate 3 character descriptions for a fantasy role playing game.',
+  headers: {
+    'anthropic-beta': 'fine-grained-tool-streaming-2025-05-14',
+  },
+});
+
+for await (const partialObject of result.partialObjectStream) {
+  console.log(partialObject);
+}
+```
+
+**For tool input streaming with `streamText`:**
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: anthropic('claude-sonnet-4-20250514'),
+  tools: {
+    writeFile: tool({
+      description: 'Write content to a file',
+      parameters: z.object({
+        path: z.string(),
+        content: z.string(),
+      }),
+      execute: async ({ path, content }) => {
+        // Implementation
+        return { success: true };
+      },
+    }),
+  },
+  prompt: 'Write a short story to story.txt',
+  headers: {
+    'anthropic-beta': 'fine-grained-tool-streaming-2025-05-14',
+  },
+});
+```
+
+Without this header, tool inputs and structured outputs may arrive all at once after a delay instead of streaming incrementally.
 
 The following optional provider options are available for Anthropic models:
 
