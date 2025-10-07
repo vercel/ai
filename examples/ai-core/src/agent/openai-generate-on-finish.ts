@@ -5,8 +5,8 @@ import { run } from '../lib/run';
 const agent = new Agent({
   model: openai('gpt-4o'),
   system: 'You are a helpful assistant.',
-  onFinish(event) {
-    console.dir(event, { depth: Infinity });
+  onFinish({ text }) {
+    console.log(text);
   },
 });
 
