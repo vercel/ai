@@ -1,5 +1,14 @@
 # ai
 
+## 5.1.0-beta.28
+
+### Patch Changes
+
+- 521c537: feat(ai): Tool.needsApproval can be a function
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/gateway@1.1.0-beta.19
+
 ## 5.1.0-beta.27
 
 ### Patch Changes
