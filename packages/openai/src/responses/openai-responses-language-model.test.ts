@@ -3531,6 +3531,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "ws_test",
+            "providerExecuted": true,
             "toolName": "web_search",
             "type": "tool-input-start",
           },
@@ -3642,6 +3643,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "providerExecuted": true,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -3687,6 +3689,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "providerExecuted": true,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -3732,6 +3735,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "providerExecuted": true,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -3777,6 +3781,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "providerExecuted": true,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
