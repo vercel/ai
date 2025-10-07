@@ -42,6 +42,7 @@ import { executeToolCall } from './execute-tool-call';
 import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isApprovalNeeded } from './is-approval-needed';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
@@ -74,6 +75,25 @@ Callback that is set using the `onStepFinish` option.
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   stepResult: StepResult<TOOLS>,
 ) => Promise<void> | void;
+
+/**
+Callback that is set using the `onFinish` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
+  event: StepResult<TOOLS> & {
+    /**
+Details for all steps.
+   */
+    readonly steps: StepResult<TOOLS>[];
+
+    /**
+Total usage for all steps. This is the sum of the usage of all steps.
+     */
+    readonly totalUsage: LanguageModelUsage;
+  },
+) => PromiseLike<void> | void;
 
 /**
 Generate a text and call tools for a given prompt using a language model.
@@ -117,6 +137,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param experimental_generateMessageId - Generate a unique ID for each message.
 
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+@param onFinish - Callback that is called when all steps are finished and the response is complete.
 
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
@@ -151,6 +172,7 @@ export async function generateText<
     currentDate = () => new Date(),
   } = {},
   onStepFinish,
+  onFinish,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -230,9 +252,14 @@ A function that attempts to repair a tool call that failed to parse.
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
     /**
-    Callback that is called when each step (LLM call) is finished, including intermediate steps.
-    */
+     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     */
     onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     */
+    onFinish?: GenerateTextOnFinishCallback<NoInfer<TOOLS>>;
 
     /**
      * Context that is passed into tool execution.
@@ -542,7 +569,14 @@ A function that attempts to repair a tool call that failed to parse.
               });
             }
 
-            if (tool?.needsApproval) {
+            if (
+              await isApprovalNeeded({
+                tool,
+                toolCall,
+                messages: stepInputMessages,
+                experimental_context,
+              })
+            ) {
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
                 approvalId: generateId(),
@@ -668,8 +702,45 @@ A function that attempts to repair a tool call that failed to parse.
 
         const lastStep = steps[steps.length - 1];
 
+        const totalUsage = steps.reduce(
+          (totalUsage, step) => {
+            return addLanguageModelUsage(totalUsage, step.usage);
+          },
+          {
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          } as LanguageModelUsage,
+        );
+
+        await onFinish?.({
+          finishReason: lastStep.finishReason,
+          usage: lastStep.usage,
+          content: lastStep.content,
+          text: lastStep.text,
+          reasoningText: lastStep.reasoningText,
+          reasoning: lastStep.reasoning,
+          files: lastStep.files,
+          sources: lastStep.sources,
+          toolCalls: lastStep.toolCalls,
+          staticToolCalls: lastStep.staticToolCalls,
+          dynamicToolCalls: lastStep.dynamicToolCalls,
+          toolResults: lastStep.toolResults,
+          staticToolResults: lastStep.staticToolResults,
+          dynamicToolResults: lastStep.dynamicToolResults,
+          request: lastStep.request,
+          response: lastStep.response,
+          warnings: lastStep.warnings,
+          providerMetadata: lastStep.providerMetadata,
+          steps,
+          totalUsage,
+        });
+
         return new DefaultGenerateTextResult({
           steps,
+          totalUsage,
           resolvedOutput: await output?.parseOutput(
             { text: lastStep.text },
             {
@@ -726,15 +797,18 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
+  readonly totalUsage: LanguageModelUsage;
 
   private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
     resolvedOutput: OUTPUT;
+    totalUsage: LanguageModelUsage;
   }) {
     this.steps = options.steps;
     this.resolvedOutput = options.resolvedOutput;
+    this.totalUsage = options.totalUsage;
   }
 
   private get finalStep() {
@@ -811,21 +885,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 
   get usage() {
     return this.finalStep.usage;
-  }
-
-  get totalUsage() {
-    return this.steps.reduce(
-      (totalUsage, step) => {
-        return addLanguageModelUsage(totalUsage, step.usage);
-      },
-      {
-        inputTokens: undefined,
-        outputTokens: undefined,
-        totalTokens: undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
-      } as LanguageModelUsage,
-    );
   }
 
   get experimental_output() {

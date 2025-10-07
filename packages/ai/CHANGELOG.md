@@ -1,5 +1,47 @@
 # ai
 
+## 5.1.0-beta.28
+
+### Patch Changes
+
+- 521c537: feat(ai): Tool.needsApproval can be a function
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/gateway@1.1.0-beta.19
+
+## 5.1.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - @ai-sdk/gateway@1.1.0-beta.18
+
+## 5.1.0-beta.26
+
+### Patch Changes
+
+- c99da05: feat(ai): add onFinish to Agent
+
+## 5.1.0-beta.25
+
+### Patch Changes
+
+- 457f1c6: feat(ai): onFinish callback for generateText
+
+## 5.1.0-beta.24
+
+### Patch Changes
+
+- 90e5bdd: chore(ai): restructure agent files
+
+## 5.1.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [1d8ea2c]
+  - @ai-sdk/gateway@1.1.0-beta.17
+
 ## 5.1.0-beta.22
 
 ### Patch Changes
