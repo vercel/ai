@@ -1250,6 +1250,7 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model               | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -1332,11 +1333,12 @@ const model = openai.image('dall-e-3');
 
 ### Model Capabilities
 
-| Model         | Sizes                           |
-| ------------- | ------------------------------- |
-| `gpt-image-1` | 1024x1024, 1536x1024, 1024x1536 |
-| `dall-e-3`    | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2`    | 256x256, 512x512, 1024x1024     |
+| Model              | Sizes                           |
+| ------------------ | ------------------------------- |
+| `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
+| `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
+| `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
+| `dall-e-2`         | 256x256, 512x512, 1024x1024     |
 
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 

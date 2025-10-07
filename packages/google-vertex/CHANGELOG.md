@@ -1,5 +1,24 @@
 # @ai-sdk/google-vertex
 
+## 3.1.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [9a728c8]
+  - @ai-sdk/google@2.1.0-beta.11
+
+## 3.1.0-beta.14
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+  - @ai-sdk/anthropic@2.1.0-beta.11
+  - @ai-sdk/google@2.1.0-beta.10
+
 ## 3.1.0-beta.13
 
 ### Patch Changes

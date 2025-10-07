@@ -64,6 +64,11 @@ export const uiMessageChunkSchema = z.union([
     errorText: z.string(),
   }),
   z.strictObject({
+    type: z.literal('tool-approval-request'),
+    approvalId: z.string(),
+    toolCallId: z.string(),
+  }),
+  z.strictObject({
     type: z.literal('tool-output-available'),
     toolCallId: z.string(),
     output: z.unknown(),
@@ -77,6 +82,10 @@ export const uiMessageChunkSchema = z.union([
     errorText: z.string(),
     providerExecuted: z.boolean().optional(),
     dynamic: z.boolean().optional(),
+  }),
+  z.strictObject({
+    type: z.literal('tool-output-denied'),
+    toolCallId: z.string(),
   }),
   z.strictObject({
     type: z.literal('reasoning-start'),
@@ -218,6 +227,11 @@ export type UIMessageChunk<
       errorText: string;
     }
   | {
+      type: 'tool-approval-request';
+      approvalId: string;
+      toolCallId: string;
+    }
+  | {
       type: 'tool-output-available';
       toolCallId: string;
       output: unknown;
@@ -231,6 +245,10 @@ export type UIMessageChunk<
       errorText: string;
       providerExecuted?: boolean;
       dynamic?: boolean;
+    }
+  | {
+      type: 'tool-output-denied';
+      toolCallId: string;
     }
   | {
       type: 'tool-input-start';
