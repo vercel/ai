@@ -8,8 +8,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "type": "text",
     },
   ],
+  "dynamicToolCalls": [],
+  "dynamicToolResults": [],
+  "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "body": undefined,
@@ -61,6 +66,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "modelId": "test-response-model-id",
     "timestamp": 1970-01-01T00:00:10.000Z,
   },
+  "sources": [],
+  "staticToolCalls": [],
+  "staticToolResults": [],
   "steps": [
     DefaultStepResult {
       "content": [
@@ -205,6 +213,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "warnings": [],
     },
   ],
+  "text": "Hello, world!",
+  "toolCalls": [],
+  "toolResults": [],
   "totalUsage": {
     "cachedInputTokens": undefined,
     "inputTokens": 13,

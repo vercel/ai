@@ -707,7 +707,28 @@ A function that attempts to repair a tool call that failed to parse.
           } as LanguageModelUsage,
         );
 
-        await onFinish?.({ ...lastStep, steps, totalUsage });
+        await onFinish?.({
+          finishReason: lastStep.finishReason,
+          usage: lastStep.usage,
+          content: lastStep.content,
+          text: lastStep.text,
+          reasoningText: lastStep.reasoningText,
+          reasoning: lastStep.reasoning,
+          files: lastStep.files,
+          sources: lastStep.sources,
+          toolCalls: lastStep.toolCalls,
+          staticToolCalls: lastStep.staticToolCalls,
+          dynamicToolCalls: lastStep.dynamicToolCalls,
+          toolResults: lastStep.toolResults,
+          staticToolResults: lastStep.staticToolResults,
+          dynamicToolResults: lastStep.dynamicToolResults,
+          request: lastStep.request,
+          response: lastStep.response,
+          warnings: lastStep.warnings,
+          providerMetadata: lastStep.providerMetadata,
+          steps,
+          totalUsage,
+        });
 
         return new DefaultGenerateTextResult({
           steps,

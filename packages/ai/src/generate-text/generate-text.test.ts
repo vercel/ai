@@ -722,8 +722,13 @@ describe('generateText', () => {
               "type": "tool-result",
             },
           ],
+          "dynamicToolCalls": [],
+          "dynamicToolResults": [],
+          "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "reasoning": [],
+          "reasoningText": undefined,
           "request": {},
           "response": {
             "body": undefined,
@@ -770,6 +775,31 @@ describe('generateText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "sources": [],
+          "staticToolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "staticToolResults": [
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
           "steps": [
             DefaultStepResult {
               "content": [
@@ -854,6 +884,31 @@ describe('generateText', () => {
                 "totalTokens": 13,
               },
               "warnings": [],
+            },
+          ],
+          "text": "Hello, World!",
+          "toolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "toolResults": [
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
             },
           ],
           "totalUsage": {
