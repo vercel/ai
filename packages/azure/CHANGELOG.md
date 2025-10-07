@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 2.0.44
+
+### Patch Changes
+
+- 03b924a: The default api-version for Microsoft Azure OpenAI has been changed from preview to v1
+
 ## 2.0.43
 
 ### Patch Changes
