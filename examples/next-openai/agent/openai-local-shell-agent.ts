@@ -18,8 +18,11 @@ export const openaiLocalShellAgent = new Agent({
   system: 'You are an agent with access to a shell environment.',
   tools: {
     local_shell: openai.tools.localShell({
-      needsApproval: true,
-      execute: async ({ action }) => {
+      needsApproval({ action }) {
+        // allow only `ls` to be executed without approval
+        return action.command.join(' ') !== 'ls';
+      },
+      async execute({ action }) {
         const [cmd, ...args] = action.command;
 
         const sandbox = await getSandbox();
