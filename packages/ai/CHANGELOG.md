@@ -1,5 +1,11 @@
 # ai
 
+## 5.1.0-beta.26
+
+### Patch Changes
+
+- c99da05: feat(ai): add onFinish to Agent
+
 ## 5.1.0-beta.25
 
 ### Patch Changes
