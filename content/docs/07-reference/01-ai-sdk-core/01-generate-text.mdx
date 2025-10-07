@@ -709,7 +709,48 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'usage',
               type: 'LanguageModelUsage',
-              description: 'The token usage of the step.',
+              description: 'The token usage of last step.',
+              properties: [
+                {
+                  type: 'LanguageModelUsage',
+                  parameters: [
+                    {
+                      name: 'inputTokens',
+                      type: 'number | undefined',
+                      description: 'The number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'outputTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The number of output (completion) tokens used.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+                    },
+                    {
+                      name: 'reasoningTokens',
+                      type: 'number | undefined',
+                      isOptional: true,
+                      description: 'The number of reasoning tokens used.',
+                    },
+                    {
+                      name: 'cachedInputTokens',
+                      type: 'number | undefined',
+                      isOptional: true,
+                      description: 'The number of cached input tokens.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'totalUsage',
+              type: 'LanguageModelUsage',
+              description: 'The total token usage from all steps.',
               properties: [
                 {
                   type: 'LanguageModelUsage',
