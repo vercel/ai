@@ -138,7 +138,7 @@ const result = streamText({
   tools: {
     writeFile: tool({
       description: 'Write content to a file',
-      parameters: z.object({
+      inputSchema: z.object({
         path: z.string(),
         content: z.string(),
       }),
