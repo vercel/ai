@@ -1,5 +1,11 @@
 # ai
 
+## 5.1.0-beta.25
+
+### Patch Changes
+
+- 457f1c6: feat(ai): onFinish callback for generateText
+
 ## 5.1.0-beta.24
 
 ### Patch Changes
