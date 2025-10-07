@@ -103,7 +103,7 @@ Whether the tool needs approval before it can be executed.
   needsApproval?:
     | boolean
     | ((
-        input: [INPUT] extends [never] ? undefined : INPUT,
+        input: [INPUT] extends [never] ? unknown : INPUT,
         options: {
           /**
            * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
@@ -145,7 +145,7 @@ Whether the tool needs approval before it can be executed.
    */
   onInputAvailable?: (
     options: {
-      input: [INPUT] extends [never] ? undefined : INPUT;
+      input: [INPUT] extends [never] ? unknown : INPUT;
     } & ToolCallOptions,
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {

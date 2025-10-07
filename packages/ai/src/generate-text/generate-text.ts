@@ -568,12 +568,23 @@ A function that attempts to repair a tool call that failed to parse.
               });
             }
 
-            if (tool?.needsApproval) {
-              toolApprovalRequests[toolCall.toolCallId] = {
-                type: 'tool-approval-request',
-                approvalId: generateId(),
-                toolCall,
-              };
+            if (tool?.needsApproval != null) {
+              const needsApproval =
+                typeof tool.needsApproval === 'function'
+                  ? await tool.needsApproval(toolCall.input, {
+                      toolCallId: toolCall.toolCallId,
+                      messages: stepInputMessages,
+                      experimental_context,
+                    })
+                  : tool.needsApproval;
+
+              if (needsApproval) {
+                toolApprovalRequests[toolCall.toolCallId] = {
+                  type: 'tool-approval-request',
+                  approvalId: generateId(),
+                  toolCall,
+                };
+              }
             }
           }
 
