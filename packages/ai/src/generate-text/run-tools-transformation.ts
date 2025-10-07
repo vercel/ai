@@ -13,6 +13,7 @@ import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { executeToolCall } from './execute-tool-call';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { isApprovalNeeded } from './is-approval-needed';
 import { parseToolCall } from './parse-tool-call';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
@@ -252,7 +253,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               });
             }
 
-            if (tool.needsApproval) {
+            if (
+              isApprovalNeeded({
+                tool,
+                toolCall,
+                messages,
+                experimental_context,
+              })
+            ) {
               toolResultsStreamController!.enqueue({
                 type: 'tool-approval-request',
                 approvalId: generateId(),
