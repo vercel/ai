@@ -1,5 +1,11 @@
 # ai
 
+## 5.1.0-beta.24
+
+### Patch Changes
+
+- 90e5bdd: chore(ai): restructure agent files
+
 ## 5.1.0-beta.23
 
 ### Patch Changes
