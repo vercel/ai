@@ -18,6 +18,7 @@ jobs:
       github.event.pull_request.user.login == 'vercel-ai-sdk[bot]' &&
       startsWith(github.event.pull_request.head.ref, 'changeset-release/')
 
+    steps:
       - name: merge pull request
         run: |
           gh pr merge ${{ github.event.pull_request.number }} --auto --squash
