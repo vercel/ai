@@ -11,6 +11,7 @@ import {
   localShellOutputSchema,
 } from '../tool/local-shell';
 import {
+  OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api-types';
@@ -284,7 +285,7 @@ export async function convertToOpenAIResponsesInput({
             break;
           }
 
-          let contentValue: string;
+          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
             case 'error-text':
