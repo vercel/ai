@@ -17,19 +17,13 @@ jobs:
     if: |
       github.event.pull_request.user.login == 'vercel-ai-sdk[bot]' &&
       startsWith(github.event.pull_request.head.ref, 'changeset-release/')
-    
-    steps:
-      - name: Create access token for GitHub App
-        uses: actions/create-github-app-token@v2
-        id: app-token
-        with:
-          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
-          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
 
       - name: merge pull request
         run: |
           gh pr merge ${{ github.event.pull_request.number }} --auto --squash
           gh pr review ${{ github.event.pull_request.number }} --approve
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          # this should really be an app token. But for that we would need to register a secondary app,
+          # since the vercel=ai-sdk app already creates the pull request and it cannot approve its own pull requests.
+          GH_TOKEN: ${{ secrets.GR2M_PR_REVIEW_TOKEN }}
           GH_REPO: ${{ github.repository }}
