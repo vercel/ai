@@ -171,6 +171,7 @@ export async function generateText<
     currentDate = () => new Date(),
   } = {},
   onStepFinish,
+  onFinish,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -250,9 +251,14 @@ A function that attempts to repair a tool call that failed to parse.
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
     /**
-    Callback that is called when each step (LLM call) is finished, including intermediate steps.
-    */
+     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     */
     onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     */
+    onFinish?: GenerateTextOnFinishCallback<NoInfer<TOOLS>>;
 
     /**
      * Context that is passed into tool execution.
