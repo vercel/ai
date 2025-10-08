@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 1.0.34
+
+### Patch Changes
+
+- 143f65b: fix(provider/gateway): add "react-native" as export condition for browser behavior
+
+  This avoids the use of native Node APIs in bundles created for React Native / Expo apps
+
 ## 1.0.33
 
 ### Patch Changes
