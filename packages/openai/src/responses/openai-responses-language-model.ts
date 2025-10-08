@@ -1560,34 +1560,32 @@ const responseCodeInterpreterCallCodeDoneSchema = z.object({
   code: z.string(),
 });
 
-export const openaiReseponseAnnotationSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('url_citation'),
-    url: z.string(),
-    title: z.string(),
-  }),
-  z.object({
-    type: z.literal('file_citation'),
-    file_id: z.string(),
-    filename: z.string().nullish(),
-    index: z.number().nullish(),
-    start_index: z.number().nullish(),
-    end_index: z.number().nullish(),
-    quote: z.string().nullish(),
-  }),
-  z.object({
-    type: z.literal('container_file_citation'),
-    container_id: z.string(),
-    end_index: z.number(),
-    file_id: z.string(),
-    filename: z.string(),
-    start_index: z.number(),
-  }),
-]);
-
 const responseAnnotationAddedSchema = z.object({
   type: z.literal('response.output_text.annotation.added'),
-  annotation: openaiReseponseAnnotationSchema,
+  annotation: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('url_citation'),
+      url: z.string(),
+      title: z.string(),
+    }),
+    z.object({
+      type: z.literal('file_citation'),
+      file_id: z.string(),
+      filename: z.string().nullish(),
+      index: z.number().nullish(),
+      start_index: z.number().nullish(),
+      end_index: z.number().nullish(),
+      quote: z.string().nullish(),
+    }),
+    z.object({
+      type: z.literal('container_file_citation'),
+      container_id: z.string(),
+      end_index: z.number(),
+      file_id: z.string(),
+      filename: z.string(),
+      start_index: z.number(),
+    }),
+  ]),
 });
 
 const responseReasoningSummaryPartAddedSchema = z.object({
