@@ -1,6 +1,5 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { StandardSchemaV1 } from '@standard-schema/spec';
-import { LazyValidator } from './lazy-validator';
 
 /**
  * Used to mark validator functions so we can support both Zod and custom schemas.
@@ -51,11 +50,39 @@ export function isValidator(value: unknown): value is Validator {
   );
 }
 
+/**
+ * Creates a validator with deferred creation.
+ * This is important to reduce the startup time of the library
+ * and to avoid initializing unused validators.
+ *
+ * @param createValidator A function that creates a validator.
+ * @returns A function that returns a validator.
+ */
+export function lazyValidator<OBJECT>(
+  createValidator: () => Validator<OBJECT>,
+): LazyValidator<OBJECT> {
+  // cache the validator to avoid initializing it multiple times
+  let validator: Validator<OBJECT> | undefined;
+  return () => {
+    if (validator == null) {
+      validator = createValidator();
+    }
+    return validator;
+  };
+}
+
+export type LazyValidator<OBJECT> = () => Validator<OBJECT>;
+
+export type InferFromLazyValidator<LAZY_VALIDATOR> =
+  LAZY_VALIDATOR extends LazyValidator<infer OBJECT> ? OBJECT : never;
+
+export type FlexibleValidator<OBJECT> =
+  | Validator<OBJECT>
+  | LazyValidator<OBJECT>
+  | StandardSchemaV1<unknown, OBJECT>;
+
 export function asValidator<OBJECT>(
-  value:
-    | Validator<OBJECT>
-    | LazyValidator<OBJECT>
-    | StandardSchemaV1<unknown, OBJECT>,
+  value: FlexibleValidator<OBJECT>,
 ): Validator<OBJECT> {
   return isValidator(value)
     ? value

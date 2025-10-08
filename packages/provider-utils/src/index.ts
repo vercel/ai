@@ -10,11 +10,6 @@ export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-a
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
 export { isUrlSupported } from './is-url-supported';
-export {
-  lazyValidator,
-  type InferFromLazyValidator,
-  type LazyValidator,
-} from './lazy-validator';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
@@ -41,7 +36,18 @@ export {
 } from './schema';
 export * from './uint8-utils';
 export * from './validate-types';
-export * from './validator';
+export {
+  asValidator,
+  isValidator,
+  lazyValidator,
+  standardSchemaValidator,
+  validator,
+  type FlexibleValidator,
+  type InferFromLazyValidator,
+  type LazyValidator,
+  type ValidationResult,
+  type Validator,
+} from './validator';
 export { VERSION } from './version';
 export { withUserAgentSuffix } from './with-user-agent-suffix';
 export * from './without-trailing-slash';

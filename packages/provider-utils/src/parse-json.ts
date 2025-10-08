@@ -5,10 +5,9 @@ import {
 } from '@ai-sdk/provider';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { LazyValidator } from './lazy-validator';
 import { secureJsonParse } from './secure-json-parse';
 import { safeValidateTypes, validateTypes } from './validate-types';
-import { Validator } from './validator';
+import { LazyValidator, Validator } from './validator';
 
 /**
  * Parses a JSON string into an unknown object.
