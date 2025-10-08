@@ -5,7 +5,7 @@ description: Learn how to use the MCP Sampling AI Provider.
 
 # MCP Sampling AI Provider
 
-The [MCP Sampling AI Provider](https://github.com/mcpc-tech/mcpc/tree/main/packages/mcp-sampling-ai-provider) enables MCP servers to use AI models through the AI SDK's standard interface. This effectively transforms your MCP server into an agentic tool that can reason and make decisions, rather than just a simple connector.
+The [MCP Sampling AI Provider](https://github.com/mcpc-tech/mcpc/tree/main/packages/mcp-sampling-ai-provider) allows MCP servers to use AI models through the AI SDK by leveraging your existing client subscriptions (like VS Code Copilot). This transforms your MCP server into an agentic tool that can reason and make decisions, without requiring separate API keys or subscriptions.
 
 The provider implements `LanguageModelV2` by forwarding requests to MCP's [sampling capability](https://modelcontextprotocol.io/specification/2025-06-18/client/sampling), offering unique advantages:
 
@@ -142,7 +142,7 @@ const server = new Server(
 );
 
 // Register a translation tool that uses AI
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async request => {
   if (request.params.name === 'translate') {
     // Create provider from the server
     const provider = createMCPSamplingProvider({ server });
@@ -180,7 +180,7 @@ const server = new Server(
   { capabilities: { sampling: {}, tools: {} } },
 );
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async request => {
   if (request.params.name === 'generate-story') {
     const provider = createMCPSamplingProvider({ server });
 
@@ -221,7 +221,7 @@ const server = new Server(
   { capabilities: { sampling: {}, tools: {} } },
 );
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async request => {
   if (request.params.name === 'generate-recipe') {
     const provider = createMCPSamplingProvider({ server });
 
@@ -243,7 +243,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       prompt: 'Generate a delicious lasagna recipe.',
     });
 
-    return { content: [{ type: 'text', text: JSON.stringify(object, null, 2) }] };
+    return {
+      content: [{ type: 'text', text: JSON.stringify(object, null, 2) }],
+    };
   }
 });
 
@@ -268,7 +270,7 @@ const server = new Server(
   { capabilities: { sampling: {}, tools: {} } },
 );
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async request => {
   if (request.params.name === 'ask-weather') {
     const provider = createMCPSamplingProvider({ server });
 
@@ -287,7 +289,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         },
       },
-      prompt: request.params.arguments?.question || 'What is the weather in San Francisco?',
+      prompt:
+        request.params.arguments?.question ||
+        'What is the weather in San Francisco?',
       maxSteps: 5,
     });
 
@@ -327,7 +331,7 @@ const client = new Client(
 );
 
 setupClientSampling(client, {
-  handler: async (params) => {
+  handler: async params => {
     const modelId = selectModelFromPreferences(params.modelPreferences, {
       hints: {
         'gpt-5': 'openai/gpt-5-mini',
