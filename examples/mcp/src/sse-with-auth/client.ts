@@ -8,7 +8,7 @@ import {
 } from 'ai';
 import 'dotenv/config';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
+import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
 import type {
   OAuthClientInformation,
   OAuthClientMetadata,
@@ -120,7 +120,9 @@ async function main() {
     );
 
     // Proactively start/refresh auth. If redirect is needed, wait for code and exchange.
-    const startResult = await auth(authProvider, { serverUrl: new URL(serverUrl) });
+    const startResult = await auth(authProvider, {
+      serverUrl: new URL(serverUrl),
+    });
     if (startResult !== 'AUTHORIZED') {
       console.log('🔐 Authorization required. Waiting for OAuth callback...');
       const authorizationCode = await callbackPromise;
