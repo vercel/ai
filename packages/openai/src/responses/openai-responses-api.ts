@@ -506,14 +506,11 @@ export type OpenAIResponsesChunk = InferFromLazyValidator<
   typeof openaiResponsesChunkSchema
 >;
 
-export type OpenAIResponsesLogprobs = Array<{
-  token: string;
-  logprob: number;
-  top_logprobs: Array<{
-    token: string;
-    logprob: number;
-  }>;
-}> | null;
+export type OpenAIResponsesLogprobs = NonNullable<
+  (OpenAIResponsesChunk & {
+    type: 'response.output_text.delta';
+  })['logprobs']
+> | null;
 
 export const openaiResponsesResponseSchema = lazyValidator(() =>
   zodSchema(
