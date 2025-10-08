@@ -7,7 +7,7 @@
 'ai': patch
 ---
 
-code interpreter enable download files.
+Allow clients to download CodeInterpreter output files
 
 - The client can receive the OpenAI annotation `container_file_citation` using the TextUIPart's providerMetadata.
 - A third type, `source-execution-file`, can be created in SourceUIPart to build a download UI that is independent of the text. ProviderMetadata for this purpose has also been defined.
