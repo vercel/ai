@@ -22,17 +22,38 @@ const execute = async (
   }
 
   const infoUrl = `https://api.openai.com/v1/containers/${container}/files/${file}`;
-  const infoResponse = await fetch(infoUrl, {
+  const infoPromise = await fetch(infoUrl, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },
   });
+
+  const downloadUrl = `https://api.openai.com/v1/containers/${container}/files/${file}/content`;
+  const downloadPromise = await fetch(downloadUrl, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+
+  const [infoResponse, downloadResponse] = await Promise.all([
+    infoPromise,
+    downloadPromise,
+  ]);
+
   if (!infoResponse.ok) {
     throw new Error(
       `HTTP Error: ${infoResponse.status} ${infoResponse.statusText}`,
     );
   }
+
+  if (!downloadResponse.ok) {
+    throw new Error(
+      `HTTP Error: ${downloadResponse.status} ${downloadResponse.statusText}`,
+    );
+  }
+
   const {
     path,
   }: {
@@ -46,20 +67,6 @@ const execute = async (
   } = await infoResponse.json();
 
   const filename = path.split('/').at(-1) || 'result-file';
-
-  const downloadUrl = `https://api.openai.com/v1/containers/${container}/files/${file}/content`;
-  const downloadResponse = await fetch(downloadUrl, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-  });
-
-  if (!downloadResponse.ok) {
-    throw new Error(
-      `HTTP Error: ${downloadResponse.status} ${downloadResponse.statusText}`,
-    );
-  }
 
   // get as binary data
   const arrayBuffer = await downloadResponse.arrayBuffer();
