@@ -177,6 +177,33 @@ const modelWithDocumentSources = new MockLanguageModelV3({
   }),
 });
 
+const modelWithFileExecutionSources = new MockLanguageModelV3({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'source',
+        sourceType: 'execution-file',
+        id: 'exe-123',
+        providerMetadata: { provider: { custom: 'exe-value' } },
+      },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello from document!' },
+      { type: 'text-end', id: '1' },
+      {
+        type: 'source',
+        sourceType: 'execution-file',
+        id: 'exe-456',
+        providerMetadata: { provider: { custom: 'exe-value2' } },
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
 const modelWithFiles = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
@@ -2916,6 +2943,64 @@ describe('streamText', () => {
               "sourceId": "doc-456",
               "title": "Text Document",
               "type": "source-document",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+    
+    it('should send execution source content when sendSources is true', async () => {
+      const result = streamText({
+        model: modelWithFileExecutionSources,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({ sendSources: true });
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "providerMetadata": {
+                "provider": {
+                  "custom": "exe-value",
+                },
+              },
+              "sourceId": "exe-123",
+              "type": "source-execution-file",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello from document!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "providerMetadata": {
+                "provider": {
+                  "custom": "exe-value2",
+                },
+              },
+              "sourceId": "exe-456",
+              "type": "source-execution-file",
             },
             {
               "type": "finish-step",
