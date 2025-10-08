@@ -40,7 +40,7 @@ run(async () => {
       }
 
       case 'source': {
-        if(chunk.sourceType === "document"){
+        if (chunk.sourceType === 'document') {
           process.stdout.write(
             `\n\n\x1b[36mSource: ${chunk.title} (${JSON.stringify(chunk)})\x1b[0m\n\n`,
           );
