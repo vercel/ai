@@ -1,5 +1,89 @@
 # ai
 
+## 6.0.0-beta.29
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/gateway@2.0.0-beta.20
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 5.1.0-beta.28
+
+### Patch Changes
+
+- 521c537: feat(ai): Tool.needsApproval can be a function
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/gateway@1.1.0-beta.19
+
+## 5.1.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - @ai-sdk/gateway@1.1.0-beta.18
+
+## 5.1.0-beta.26
+
+### Patch Changes
+
+- c99da05: feat(ai): add onFinish to Agent
+
+## 5.1.0-beta.25
+
+### Patch Changes
+
+- 457f1c6: feat(ai): onFinish callback for generateText
+
+## 5.1.0-beta.24
+
+### Patch Changes
+
+- 90e5bdd: chore(ai): restructure agent files
+
+## 5.1.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [1d8ea2c]
+  - @ai-sdk/gateway@1.1.0-beta.17
+
+## 5.1.0-beta.22
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+- a5e152d: fix(ai): back version support for V2 providers
+- 21e20c0: feat(provider): transcription model v3 spec
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+  - @ai-sdk/gateway@1.1.0-beta.16
+
+## 5.1.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [ef62178]
+  - @ai-sdk/gateway@1.1.0-beta.15
+
+## 5.1.0-beta.20
+
+### Patch Changes
+
+- 846e80e: fix(ai): bind functions for v2 -> v3 adapter
+- Updated dependencies [a90dca6]
+  - @ai-sdk/gateway@1.1.0-beta.14
+
 ## 5.1.0-beta.19
 
 ### Patch Changes

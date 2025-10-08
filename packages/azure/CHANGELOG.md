@@ -1,5 +1,63 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.17
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/openai@3.0.0-beta.17
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 2.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/openai@2.1.0-beta.16
+
+## 2.1.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - @ai-sdk/openai@2.1.0-beta.15
+
+## 2.1.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [000e87b]
+  - @ai-sdk/openai@2.1.0-beta.14
+
+## 2.1.0-beta.13
+
+### Patch Changes
+
+- 3771a27: The default api-version for Microsoft Azure OpenAI has been changed from preview to v1
+- Updated dependencies [357cfd7]
+  - @ai-sdk/openai@2.1.0-beta.13
+
+## 2.1.0-beta.12
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+- 21e20c0: feat(provider): transcription model v3 spec
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [21e20c0]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/openai@2.1.0-beta.12
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
 ## 2.1.0-beta.11
 
 ### Patch Changes

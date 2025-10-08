@@ -128,7 +128,7 @@ export async function convertToBedrockChatMessages(
                       bedrockContent.push({
                         document: {
                           format: getBedrockDocumentFormat(part.mediaType),
-                          name: generateDocumentName(),
+                          name: part.filename ?? generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                           ...(enableCitations && {
                             citations: { enabled: true },
@@ -179,6 +179,11 @@ export async function convertToBedrockChatMessages(
                   case 'text':
                   case 'error-text':
                     toolResultContent = [{ text: output.value }];
+                    break;
+                  case 'execution-denied':
+                    toolResultContent = [
+                      { text: output.reason ?? 'Tool execution denied.' },
+                    ];
                     break;
                   case 'json':
                   case 'error-json':
