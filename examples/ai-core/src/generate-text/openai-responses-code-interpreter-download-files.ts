@@ -1,13 +1,8 @@
 import 'dotenv/config';
-import { openai } from '@ai-sdk/openai';
+import { openai,openaiSourceExecutionFileProviderMetadataSchema } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import * as fs from 'fs';
-import { codeInterpreterSourceExecutionFileSchema as openaiExecuteFileSchema } from '@ai-sdk/openai/internal';
-import { z } from 'zod/v4';
 
-const executeFileSchema = z.object({
-  openai: openaiExecuteFileSchema,
-});
 
 async function main() {
   // Basic text generation
@@ -32,7 +27,7 @@ async function main() {
   );
 
   await fileList.map(async file => {
-    const executeFileParse = executeFileSchema.safeParse(file.providerMetadata);
+    const executeFileParse = openaiSourceExecutionFileProviderMetadataSchema.safeParse(file.providerMetadata);
     if (executeFileParse.success) {
       await downloadContainerFile(
         executeFileParse.data.openai.containerId,
