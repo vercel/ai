@@ -20,3 +20,6 @@ export function lazyValidator<OBJECT>(
     return validator;
   };
 }
+
+export type InferFromLazyValidator<LAZY_VALIDATOR> =
+  LAZY_VALIDATOR extends () => Validator<infer OBJECT> ? OBJECT : never;

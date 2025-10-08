@@ -10,7 +10,7 @@ export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-a
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
 export { isUrlSupported } from './is-url-supported';
-export { lazyValidator } from './lazy-validator';
+export { lazyValidator, type InferFromLazyValidator } from './lazy-validator';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
