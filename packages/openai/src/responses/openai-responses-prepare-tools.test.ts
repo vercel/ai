@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
   describe('code interpreter', () => {
-    it('should prepare code interpreter tool with no container (auto mode)', () => {
-      const result = prepareResponsesTools({
+    it('should prepare code interpreter tool with no container (auto mode)', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',
@@ -33,8 +33,8 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare code interpreter tool with string container ID', () => {
-      const result = prepareResponsesTools({
+    it('should prepare code interpreter tool with string container ID', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',
@@ -62,8 +62,8 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare code interpreter tool with file IDs container', () => {
-      const result = prepareResponsesTools({
+    it('should prepare code interpreter tool with file IDs container', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',
@@ -100,8 +100,8 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare code interpreter tool with empty file IDs array', () => {
-      const result = prepareResponsesTools({
+    it('should prepare code interpreter tool with empty file IDs array', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',
@@ -134,8 +134,8 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare code interpreter tool with undefined file IDs', () => {
-      const result = prepareResponsesTools({
+    it('should prepare code interpreter tool with undefined file IDs', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',
@@ -168,8 +168,8 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should handle tool choice selection with code interpreter', () => {
-      const result = prepareResponsesTools({
+    it('should handle tool choice selection with code interpreter', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',
@@ -204,8 +204,8 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should handle multiple tools including code interpreter', () => {
-      const result = prepareResponsesTools({
+    it('should handle multiple tools including code interpreter', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'function',
@@ -260,8 +260,8 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('image generation', () => {
-    it('should prepare image_generation tool with all options', () => {
-      const result = prepareResponsesTools({
+    it('should prepare image_generation tool with all options', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',
@@ -303,8 +303,8 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should support tool choice selection for image_generation', () => {
-      const result = prepareResponsesTools({
+    it('should support tool choice selection for image_generation', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',
@@ -338,8 +338,8 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('local shell', () => {
-    it('should prepare local_shell tool', () => {
-      const result = prepareResponsesTools({
+    it('should prepare local_shell tool', async () => {
+      const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider-defined',

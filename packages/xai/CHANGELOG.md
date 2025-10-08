@@ -1,5 +1,28 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/openai-compatible@2.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
+## 3.0.0-beta.11
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/openai-compatible@2.0.0-beta.10
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
 ## 2.1.0-beta.10
 
 ### Patch Changes

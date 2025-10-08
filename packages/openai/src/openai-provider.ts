@@ -23,7 +23,7 @@ import { OpenAIImageModel } from './image/openai-image-model';
 import { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
-import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
+import { OpenAIResponsesModelId } from './responses/openai-responses-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';

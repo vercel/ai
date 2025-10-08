@@ -1,5 +1,36 @@
 # ai
 
+## 6.0.0-beta.31
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+  - @ai-sdk/gateway@2.0.0-beta.22
+
+## 6.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [7b1b1b1]
+  - @ai-sdk/gateway@2.0.0-beta.21
+
+## 6.0.0-beta.29
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/gateway@2.0.0-beta.20
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
 ## 5.1.0-beta.28
 
 ### Patch Changes

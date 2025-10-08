@@ -1,5 +1,5 @@
 import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 export const webSearch_20250305ArgsSchema = z.object({
   maxUses: z.number().optional(),

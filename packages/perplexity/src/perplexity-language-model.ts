@@ -15,7 +15,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
 import { PerplexityLanguageModelId } from './perplexity-language-model-options';

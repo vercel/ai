@@ -1,6 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { expectTypeOf } from 'vitest';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { FinishReason } from '../types';
 import { streamObject } from './stream-object';
