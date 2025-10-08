@@ -676,6 +676,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
+            isError: part.status === 'failed',
             result: { status: part.status },
             providerExecuted: true,
           });
