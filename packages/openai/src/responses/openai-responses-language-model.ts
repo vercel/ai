@@ -27,6 +27,7 @@ import {
 } from '../tool/code-interpreter';
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
+import { localShellInputSchema } from '../tool/local-shell';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -35,7 +36,6 @@ import {
 } from './openai-responses-api-types';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
-import { localShellInputSchema } from '../tool/local-shell';
 
 const webSearchCallItem = z.object({
   type: z.literal('web_search_call'),
@@ -1767,7 +1767,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningEffort: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
   safetyIdentifier: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
+  serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).nullish(),
   store: z.boolean().nullish(),
   strictJsonSchema: z.boolean().nullish(),
   textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
