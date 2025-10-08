@@ -1,5 +1,8 @@
 import 'dotenv/config';
-import { azure,azureSourceExecutionFileProviderMetadataSchema } from '@ai-sdk/azure';
+import {
+  azure,
+  azureSourceExecutionFileProviderMetadataSchema,
+} from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import * as fs from 'fs';
 

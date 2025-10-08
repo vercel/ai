@@ -1,5 +1,8 @@
 import 'dotenv/config';
-import { openai ,openaiSourceExecutionFileProviderMetadataSchema} from '@ai-sdk/openai';
+import {
+  openai,
+  openaiSourceExecutionFileProviderMetadataSchema,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import * as fs from 'fs';
 
@@ -29,7 +32,10 @@ async function main() {
   );
 
   await fileList.map(async file => {
-    const executeFileParse = openaiSourceExecutionFileProviderMetadataSchema.safeParse(file.providerMetadata);
+    const executeFileParse =
+      openaiSourceExecutionFileProviderMetadataSchema.safeParse(
+        file.providerMetadata,
+      );
     if (executeFileParse.success) {
       await downloadContainerFile(
         executeFileParse.data.openai.containerId,
