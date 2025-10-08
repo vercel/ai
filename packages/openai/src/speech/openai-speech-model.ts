@@ -8,7 +8,7 @@ import {
 import * as z from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { OpenAISpeechAPITypes } from './openai-speech-api-types';
+import { OpenAISpeechAPITypes } from './openai-speech-api';
 import { OpenAISpeechModelId } from './openai-speech-options';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
