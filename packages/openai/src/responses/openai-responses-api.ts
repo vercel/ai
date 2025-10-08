@@ -491,7 +491,13 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
         param: z.string().nullish(),
         sequence_number: z.number(),
       }),
-      // z.object({ type: z.string() }).loose(), // fallback for unknown chunks
+      z
+        .object({ type: z.string() })
+        .loose()
+        .transform(value => ({
+          type: 'unknown_chunk' as const,
+          message: value.type,
+        })), // fallback for unknown chunks
     ]),
   ),
 );

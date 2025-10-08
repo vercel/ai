@@ -48,7 +48,7 @@ export type InferSchema<SCHEMA> = SCHEMA extends z3.Schema
  * @param options.validate Optional. A validation function for the schema.
  */
 export function jsonSchema<OBJECT = unknown>(
-  jsonSchema: JSONSchema7,
+  jsonSchema: JSONSchema7 | (() => JSONSchema7),
   {
     validate,
   }: {
@@ -61,7 +61,12 @@ export function jsonSchema<OBJECT = unknown>(
     [schemaSymbol]: true,
     _type: undefined as OBJECT, // should never be used directly
     [validatorSymbol]: true,
-    jsonSchema,
+    get jsonSchema() {
+      if (typeof jsonSchema === 'function') {
+        jsonSchema = jsonSchema(); // cache the function results
+      }
+      return jsonSchema;
+    },
     validate,
   };
 }
