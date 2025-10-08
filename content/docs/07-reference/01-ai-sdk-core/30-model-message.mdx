@@ -221,9 +221,9 @@ export type LanguageModelV3ToolResultOutput =
             type: 'media';
 
             /**
-          Base-64 encoded media data.
+            Media data. Can be a base64 encoded string or a URL.
             */
-            data: string;
+            data: string | URL;
 
             /**
           IANA media type.

@@ -218,9 +218,9 @@ Text content.
             type: 'media';
 
             /**
-Base-64 encoded media data.
-*/
-            data: string;
+            Media data. Can be a base64 encoded string or a URL.
+            */
+            data: string | URL;
 
             /**
 IANA media type.
