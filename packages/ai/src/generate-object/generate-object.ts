@@ -298,6 +298,7 @@ Default and recommended: 'auto' (best mode for the model).
         },
       }),
       tracer,
+      root: telemetry?.rootSpan,
       fn: async span => {
         let result: string;
         let finishReason: FinishReason;

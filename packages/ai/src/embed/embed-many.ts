@@ -121,6 +121,7 @@ Only applicable for HTTP-based providers.
       },
     }),
     tracer,
+    root: telemetry?.rootSpan,
     fn: async span => {
       const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
         model.maxEmbeddingsPerCall,
