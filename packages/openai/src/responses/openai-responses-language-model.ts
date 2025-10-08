@@ -27,90 +27,19 @@ import {
 } from '../tool/code-interpreter';
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
+import { localShellInputSchema } from '../tool/local-shell';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
+  OpenAIResponsesChunk,
+  openaiResponsesChunkSchema,
   OpenAIResponsesIncludeOptions,
   OpenAIResponsesIncludeValue,
+  OpenAIResponsesLogprobs,
+  openaiResponsesResponseSchema,
 } from './openai-responses-api';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
-import { localShellInputSchema } from '../tool/local-shell';
-
-const webSearchCallItem = z.object({
-  type: z.literal('web_search_call'),
-  id: z.string(),
-  status: z.string(),
-  action: z
-    .discriminatedUnion('type', [
-      z.object({
-        type: z.literal('search'),
-        query: z.string().nullish(),
-      }),
-      z.object({
-        type: z.literal('open_page'),
-        url: z.string(),
-      }),
-      z.object({
-        type: z.literal('find'),
-        url: z.string(),
-        pattern: z.string(),
-      }),
-    ])
-    .nullish(),
-});
-
-const fileSearchCallItem = z.object({
-  type: z.literal('file_search_call'),
-  id: z.string(),
-  queries: z.array(z.string()),
-  results: z
-    .array(
-      z.object({
-        attributes: z.record(z.string(), z.unknown()),
-        file_id: z.string(),
-        filename: z.string(),
-        score: z.number(),
-        text: z.string(),
-      }),
-    )
-    .nullish(),
-});
-
-const codeInterpreterCallItem = z.object({
-  type: z.literal('code_interpreter_call'),
-  id: z.string(),
-  code: z.string().nullable(),
-  container_id: z.string(),
-  outputs: z
-    .array(
-      z.discriminatedUnion('type', [
-        z.object({ type: z.literal('logs'), logs: z.string() }),
-        z.object({ type: z.literal('image'), url: z.string() }),
-      ]),
-    )
-    .nullable(),
-});
-
-const localShellCallItem = z.object({
-  type: z.literal('local_shell_call'),
-  id: z.string(),
-  call_id: z.string(),
-  action: z.object({
-    type: z.literal('exec'),
-    command: z.array(z.string()),
-    timeout_ms: z.number().optional(),
-    user: z.string().optional(),
-    working_directory: z.string().optional(),
-    env: z.record(z.string(), z.string()).optional(),
-  }),
-});
-
-const imageGenerationCallItem = z.object({
-  type: z.literal('image_generation_call'),
-  id: z.string(),
-  result: z.string(),
-});
 
 /**
  * `top_logprobs` request body argument can be set to an integer between
@@ -120,19 +49,6 @@ const imageGenerationCallItem = z.object({
  * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-top_logprobs
  */
 const TOP_LOGPROBS_MAX = 20;
-
-const LOGPROBS_SCHEMA = z.array(
-  z.object({
-    token: z.string(),
-    logprob: z.number(),
-    top_logprobs: z.array(
-      z.object({
-        token: z.string(),
-        logprob: z.number(),
-      }),
-    ),
-  }),
-);
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -434,87 +350,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        z.object({
-          id: z.string(),
-          created_at: z.number(),
-          error: z
-            .object({
-              code: z.string(),
-              message: z.string(),
-            })
-            .nullish(),
-          model: z.string(),
-          output: z.array(
-            z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('message'),
-                role: z.literal('assistant'),
-                id: z.string(),
-                content: z.array(
-                  z.object({
-                    type: z.literal('output_text'),
-                    text: z.string(),
-                    logprobs: LOGPROBS_SCHEMA.nullish(),
-                    annotations: z.array(
-                      z.discriminatedUnion('type', [
-                        z.object({
-                          type: z.literal('url_citation'),
-                          start_index: z.number(),
-                          end_index: z.number(),
-                          url: z.string(),
-                          title: z.string(),
-                        }),
-                        z.object({
-                          type: z.literal('file_citation'),
-                          file_id: z.string(),
-                          filename: z.string().nullish(),
-                          index: z.number().nullish(),
-                          start_index: z.number().nullish(),
-                          end_index: z.number().nullish(),
-                          quote: z.string().nullish(),
-                        }),
-                        z.object({
-                          type: z.literal('container_file_citation'),
-                        }),
-                      ]),
-                    ),
-                  }),
-                ),
-              }),
-              webSearchCallItem,
-              fileSearchCallItem,
-              codeInterpreterCallItem,
-              imageGenerationCallItem,
-              localShellCallItem,
-              z.object({
-                type: z.literal('function_call'),
-                call_id: z.string(),
-                name: z.string(),
-                arguments: z.string(),
-                id: z.string(),
-              }),
-              z.object({
-                type: z.literal('computer_call'),
-                id: z.string(),
-                status: z.string().optional(),
-              }),
-              z.object({
-                type: z.literal('reasoning'),
-                id: z.string(),
-                encrypted_content: z.string().nullish(),
-                summary: z.array(
-                  z.object({
-                    type: z.literal('summary_text'),
-                    text: z.string(),
-                  }),
-                ),
-              }),
-            ]),
-          ),
-          service_tier: z.string().nullish(),
-          incomplete_details: z.object({ reason: z.string() }).nullish(),
-          usage: usageSchema,
-        }),
+        openaiResponsesResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -533,7 +369,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     }
 
     const content: Array<LanguageModelV3Content> = [];
-    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
+    const logprobs: Array<OpenAIResponsesLogprobs> = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -835,7 +671,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
+    const logprobs: Array<OpenAIResponsesLogprobs> = [];
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
@@ -865,7 +701,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
+          ParseResult<OpenAIResponsesChunk>,
           LanguageModelV3StreamPart
         >({
           start(controller) {
@@ -1330,249 +1166,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 }
 
-const usageSchema = z.object({
-  input_tokens: z.number(),
-  input_tokens_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-  output_tokens: z.number(),
-  output_tokens_details: z
-    .object({ reasoning_tokens: z.number().nullish() })
-    .nullish(),
-});
-
-const textDeltaChunkSchema = z.object({
-  type: z.literal('response.output_text.delta'),
-  item_id: z.string(),
-  delta: z.string(),
-  logprobs: LOGPROBS_SCHEMA.nullish(),
-});
-
-const errorChunkSchema = z.object({
-  type: z.literal('error'),
-  code: z.string(),
-  message: z.string(),
-  param: z.string().nullish(),
-  sequence_number: z.number(),
-});
-
-const responseFinishedChunkSchema = z.object({
-  type: z.enum(['response.completed', 'response.incomplete']),
-  response: z.object({
-    incomplete_details: z.object({ reason: z.string() }).nullish(),
-    usage: usageSchema,
-    service_tier: z.string().nullish(),
-  }),
-});
-
-const responseCreatedChunkSchema = z.object({
-  type: z.literal('response.created'),
-  response: z.object({
-    id: z.string(),
-    created_at: z.number(),
-    model: z.string(),
-    service_tier: z.string().nullish(),
-  }),
-});
-
-const responseOutputItemAddedSchema = z.object({
-  type: z.literal('response.output_item.added'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
-      encrypted_content: z.string().nullish(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-    }),
-    z.object({
-      type: z.literal('web_search_call'),
-      id: z.string(),
-      status: z.string(),
-      action: z
-        .object({
-          type: z.literal('search'),
-          query: z.string().optional(),
-        })
-        .nullish(),
-    }),
-    z.object({
-      type: z.literal('computer_call'),
-      id: z.string(),
-      status: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_search_call'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('image_generation_call'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('code_interpreter_call'),
-      id: z.string(),
-      container_id: z.string(),
-      code: z.string().nullable(),
-      outputs: z
-        .array(
-          z.discriminatedUnion('type', [
-            z.object({ type: z.literal('logs'), logs: z.string() }),
-            z.object({ type: z.literal('image'), url: z.string() }),
-          ]),
-        )
-        .nullable(),
-      status: z.string(),
-    }),
-  ]),
-});
-
-const responseOutputItemDoneSchema = z.object({
-  type: z.literal('response.output_item.done'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
-      encrypted_content: z.string().nullish(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-      status: z.literal('completed'),
-    }),
-    codeInterpreterCallItem,
-    imageGenerationCallItem,
-    webSearchCallItem,
-    fileSearchCallItem,
-    localShellCallItem,
-    z.object({
-      type: z.literal('computer_call'),
-      id: z.string(),
-      status: z.literal('completed'),
-    }),
-  ]),
-});
-
-const responseFunctionCallArgumentsDeltaSchema = z.object({
-  type: z.literal('response.function_call_arguments.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  delta: z.string(),
-});
-
-const responseImageGenerationCallPartialImageSchema = z.object({
-  type: z.literal('response.image_generation_call.partial_image'),
-  item_id: z.string(),
-  output_index: z.number(),
-  partial_image_b64: z.string(),
-});
-
-const responseCodeInterpreterCallCodeDeltaSchema = z.object({
-  type: z.literal('response.code_interpreter_call_code.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  delta: z.string(),
-});
-
-const responseCodeInterpreterCallCodeDoneSchema = z.object({
-  type: z.literal('response.code_interpreter_call_code.done'),
-  item_id: z.string(),
-  output_index: z.number(),
-  code: z.string(),
-});
-
-const responseAnnotationAddedSchema = z.object({
-  type: z.literal('response.output_text.annotation.added'),
-  annotation: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('url_citation'),
-      url: z.string(),
-      title: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_citation'),
-      file_id: z.string(),
-      filename: z.string().nullish(),
-      index: z.number().nullish(),
-      start_index: z.number().nullish(),
-      end_index: z.number().nullish(),
-      quote: z.string().nullish(),
-    }),
-  ]),
-});
-
-const responseReasoningSummaryPartAddedSchema = z.object({
-  type: z.literal('response.reasoning_summary_part.added'),
-  item_id: z.string(),
-  summary_index: z.number(),
-});
-
-const responseReasoningSummaryTextDeltaSchema = z.object({
-  type: z.literal('response.reasoning_summary_text.delta'),
-  item_id: z.string(),
-  summary_index: z.number(),
-  delta: z.string(),
-});
-
-const openaiResponsesChunkSchema = z.union([
-  textDeltaChunkSchema,
-  responseFinishedChunkSchema,
-  responseCreatedChunkSchema,
-  responseOutputItemAddedSchema,
-  responseOutputItemDoneSchema,
-  responseFunctionCallArgumentsDeltaSchema,
-  responseImageGenerationCallPartialImageSchema,
-  responseCodeInterpreterCallCodeDeltaSchema,
-  responseCodeInterpreterCallCodeDoneSchema,
-  responseAnnotationAddedSchema,
-  responseReasoningSummaryPartAddedSchema,
-  responseReasoningSummaryTextDeltaSchema,
-  errorChunkSchema,
-  z.object({ type: z.string() }).loose(), // fallback for unknown chunks
-]);
-
-type ExtractByType<
-  T,
-  K extends T extends { type: infer U } ? U : never,
-> = T extends { type: K } ? T : never;
-
 function isTextDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof textDeltaChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_text.delta' } {
   return chunk.type === 'response.output_text.delta';
 }
 
 function isResponseOutputItemDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemDoneSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_item.done' } {
   return chunk.type === 'response.output_item.done';
 }
 
 function isResponseOutputItemDoneReasoningChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemDoneSchema> & {
-  item: ExtractByType<
-    z.infer<typeof responseOutputItemDoneSchema>['item'],
-    'reasoning'
-  >;
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_item.done' } & {
+  item: { type: 'reasoning' };
 } {
   return (
     isResponseOutputItemDoneChunk(chunk) && chunk.item.type === 'reasoning'
@@ -1580,55 +1189,63 @@ function isResponseOutputItemDoneReasoningChunk(
 }
 
 function isResponseFinishedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseFinishedChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.completed' | 'response.incomplete';
+} {
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
 }
 
 function isResponseCreatedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCreatedChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.created' } {
   return chunk.type === 'response.created';
 }
 
 function isResponseFunctionCallArgumentsDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseFunctionCallArgumentsDeltaSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.function_call_arguments.delta';
+} {
   return chunk.type === 'response.function_call_arguments.delta';
 }
 function isResponseImageGenerationCallPartialImageChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseImageGenerationCallPartialImageSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.image_generation_call.partial_image';
+} {
   return chunk.type === 'response.image_generation_call.partial_image';
 }
 
 function isResponseCodeInterpreterCallCodeDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCodeInterpreterCallCodeDeltaSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.code_interpreter_call_code.delta';
+} {
   return chunk.type === 'response.code_interpreter_call_code.delta';
 }
 
 function isResponseCodeInterpreterCallCodeDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCodeInterpreterCallCodeDoneSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.code_interpreter_call_code.done';
+} {
   return chunk.type === 'response.code_interpreter_call_code.done';
 }
 
 function isResponseOutputItemAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemAddedSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_item.added' } {
   return chunk.type === 'response.output_item.added';
 }
 
 function isResponseOutputItemAddedReasoningChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemAddedSchema> & {
-  item: ExtractByType<
-    z.infer<typeof responseOutputItemAddedSchema>['item'],
-    'reasoning'
-  >;
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.output_item.added';
+  item: { type: 'reasoning' };
 } {
   return (
     isResponseOutputItemAddedChunk(chunk) && chunk.item.type === 'reasoning'
@@ -1636,26 +1253,32 @@ function isResponseOutputItemAddedReasoningChunk(
 }
 
 function isResponseAnnotationAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseAnnotationAddedSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.output_text.annotation.added';
+} {
   return chunk.type === 'response.output_text.annotation.added';
 }
 
 function isResponseReasoningSummaryPartAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryPartAddedSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.reasoning_summary_part.added';
+} {
   return chunk.type === 'response.reasoning_summary_part.added';
 }
 
 function isResponseReasoningSummaryTextDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.reasoning_summary_text.delta';
+} {
   return chunk.type === 'response.reasoning_summary_text.delta';
 }
 
 function isErrorChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof errorChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'error' } {
   return chunk.type === 'error';
 }
 

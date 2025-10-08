@@ -1,4 +1,10 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
+import {
+  InferFromLazyValidator,
+  lazyValidator,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
@@ -216,3 +222,462 @@ export type OpenAIResponsesReasoning = {
     text: string;
   }>;
 };
+
+export const openaiResponsesChunkSchema = lazyValidator(() =>
+  zodSchema(
+    z.union([
+      z.object({
+        type: z.literal('response.output_text.delta'),
+        item_id: z.string(),
+        delta: z.string(),
+        logprobs: z
+          .array(
+            z.object({
+              token: z.string(),
+              logprob: z.number(),
+              top_logprobs: z.array(
+                z.object({
+                  token: z.string(),
+                  logprob: z.number(),
+                }),
+              ),
+            }),
+          )
+          .nullish(),
+      }),
+      z.object({
+        type: z.enum(['response.completed', 'response.incomplete']),
+        response: z.object({
+          incomplete_details: z.object({ reason: z.string() }).nullish(),
+          usage: z.object({
+            input_tokens: z.number(),
+            input_tokens_details: z
+              .object({ cached_tokens: z.number().nullish() })
+              .nullish(),
+            output_tokens: z.number(),
+            output_tokens_details: z
+              .object({ reasoning_tokens: z.number().nullish() })
+              .nullish(),
+          }),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
+        type: z.literal('response.created'),
+        response: z.object({
+          id: z.string(),
+          created_at: z.number(),
+          model: z.string(),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
+        type: z.literal('response.output_item.added'),
+        output_index: z.number(),
+        item: z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('message'),
+            id: z.string(),
+          }),
+          z.object({
+            type: z.literal('reasoning'),
+            id: z.string(),
+            encrypted_content: z.string().nullish(),
+          }),
+          z.object({
+            type: z.literal('function_call'),
+            id: z.string(),
+            call_id: z.string(),
+            name: z.string(),
+            arguments: z.string(),
+          }),
+          z.object({
+            type: z.literal('web_search_call'),
+            id: z.string(),
+            status: z.string(),
+            action: z
+              .object({
+                type: z.literal('search'),
+                query: z.string().optional(),
+              })
+              .nullish(),
+          }),
+          z.object({
+            type: z.literal('computer_call'),
+            id: z.string(),
+            status: z.string(),
+          }),
+          z.object({
+            type: z.literal('file_search_call'),
+            id: z.string(),
+          }),
+          z.object({
+            type: z.literal('image_generation_call'),
+            id: z.string(),
+          }),
+          z.object({
+            type: z.literal('code_interpreter_call'),
+            id: z.string(),
+            container_id: z.string(),
+            code: z.string().nullable(),
+            outputs: z
+              .array(
+                z.discriminatedUnion('type', [
+                  z.object({ type: z.literal('logs'), logs: z.string() }),
+                  z.object({ type: z.literal('image'), url: z.string() }),
+                ]),
+              )
+              .nullable(),
+            status: z.string(),
+          }),
+        ]),
+      }),
+      z.object({
+        type: z.literal('response.output_item.done'),
+        output_index: z.number(),
+        item: z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('message'),
+            id: z.string(),
+          }),
+          z.object({
+            type: z.literal('reasoning'),
+            id: z.string(),
+            encrypted_content: z.string().nullish(),
+          }),
+          z.object({
+            type: z.literal('function_call'),
+            id: z.string(),
+            call_id: z.string(),
+            name: z.string(),
+            arguments: z.string(),
+            status: z.literal('completed'),
+          }),
+          z.object({
+            type: z.literal('code_interpreter_call'),
+            id: z.string(),
+            code: z.string().nullable(),
+            container_id: z.string(),
+            outputs: z
+              .array(
+                z.discriminatedUnion('type', [
+                  z.object({ type: z.literal('logs'), logs: z.string() }),
+                  z.object({ type: z.literal('image'), url: z.string() }),
+                ]),
+              )
+              .nullable(),
+          }),
+          z.object({
+            type: z.literal('image_generation_call'),
+            id: z.string(),
+            result: z.string(),
+          }),
+          z.object({
+            type: z.literal('web_search_call'),
+            id: z.string(),
+            status: z.string(),
+            action: z
+              .discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('search'),
+                  query: z.string().nullish(),
+                }),
+                z.object({
+                  type: z.literal('open_page'),
+                  url: z.string(),
+                }),
+                z.object({
+                  type: z.literal('find'),
+                  url: z.string(),
+                  pattern: z.string(),
+                }),
+              ])
+              .nullish(),
+          }),
+          z.object({
+            type: z.literal('file_search_call'),
+            id: z.string(),
+            queries: z.array(z.string()),
+            results: z
+              .array(
+                z.object({
+                  attributes: z.record(z.string(), z.unknown()),
+                  file_id: z.string(),
+                  filename: z.string(),
+                  score: z.number(),
+                  text: z.string(),
+                }),
+              )
+              .nullish(),
+          }),
+          z.object({
+            type: z.literal('local_shell_call'),
+            id: z.string(),
+            call_id: z.string(),
+            action: z.object({
+              type: z.literal('exec'),
+              command: z.array(z.string()),
+              timeout_ms: z.number().optional(),
+              user: z.string().optional(),
+              working_directory: z.string().optional(),
+              env: z.record(z.string(), z.string()).optional(),
+            }),
+          }),
+          z.object({
+            type: z.literal('computer_call'),
+            id: z.string(),
+            status: z.literal('completed'),
+          }),
+        ]),
+      }),
+      z.object({
+        type: z.literal('response.function_call_arguments.delta'),
+        item_id: z.string(),
+        output_index: z.number(),
+        delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.image_generation_call.partial_image'),
+        item_id: z.string(),
+        output_index: z.number(),
+        partial_image_b64: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.code_interpreter_call_code.delta'),
+        item_id: z.string(),
+        output_index: z.number(),
+        delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.code_interpreter_call_code.done'),
+        item_id: z.string(),
+        output_index: z.number(),
+        code: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.output_text.annotation.added'),
+        annotation: z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('url_citation'),
+            url: z.string(),
+            title: z.string(),
+          }),
+          z.object({
+            type: z.literal('file_citation'),
+            file_id: z.string(),
+            filename: z.string().nullish(),
+            index: z.number().nullish(),
+            start_index: z.number().nullish(),
+            end_index: z.number().nullish(),
+            quote: z.string().nullish(),
+          }),
+        ]),
+      }),
+      z.object({
+        type: z.literal('response.reasoning_summary_part.added'),
+        item_id: z.string(),
+        summary_index: z.number(),
+      }),
+      z.object({
+        type: z.literal('response.reasoning_summary_text.delta'),
+        item_id: z.string(),
+        summary_index: z.number(),
+        delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('error'),
+        code: z.string(),
+        message: z.string(),
+        param: z.string().nullish(),
+        sequence_number: z.number(),
+      }),
+      // z.object({ type: z.string() }).loose(), // fallback for unknown chunks
+    ]),
+  ),
+);
+
+export type OpenAIResponsesChunk = InferFromLazyValidator<
+  typeof openaiResponsesChunkSchema
+>;
+
+export type OpenAIResponsesLogprobs = Array<{
+  token: string;
+  logprob: number;
+  top_logprobs: Array<{
+    token: string;
+    logprob: number;
+  }>;
+}> | null;
+
+export const openaiResponsesResponseSchema = lazyValidator(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      created_at: z.number(),
+      error: z
+        .object({
+          code: z.string(),
+          message: z.string(),
+        })
+        .nullish(),
+      model: z.string(),
+      output: z.array(
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('message'),
+            role: z.literal('assistant'),
+            id: z.string(),
+            content: z.array(
+              z.object({
+                type: z.literal('output_text'),
+                text: z.string(),
+                logprobs: z
+                  .array(
+                    z.object({
+                      token: z.string(),
+                      logprob: z.number(),
+                      top_logprobs: z.array(
+                        z.object({
+                          token: z.string(),
+                          logprob: z.number(),
+                        }),
+                      ),
+                    }),
+                  )
+                  .nullish(),
+                annotations: z.array(
+                  z.discriminatedUnion('type', [
+                    z.object({
+                      type: z.literal('url_citation'),
+                      start_index: z.number(),
+                      end_index: z.number(),
+                      url: z.string(),
+                      title: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('file_citation'),
+                      file_id: z.string(),
+                      filename: z.string().nullish(),
+                      index: z.number().nullish(),
+                      start_index: z.number().nullish(),
+                      end_index: z.number().nullish(),
+                      quote: z.string().nullish(),
+                    }),
+                    z.object({
+                      type: z.literal('container_file_citation'),
+                    }),
+                  ]),
+                ),
+              }),
+            ),
+          }),
+          z.object({
+            type: z.literal('web_search_call'),
+            id: z.string(),
+            status: z.string(),
+            action: z
+              .discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('search'),
+                  query: z.string().nullish(),
+                }),
+                z.object({
+                  type: z.literal('open_page'),
+                  url: z.string(),
+                }),
+                z.object({
+                  type: z.literal('find'),
+                  url: z.string(),
+                  pattern: z.string(),
+                }),
+              ])
+              .nullish(),
+          }),
+          z.object({
+            type: z.literal('file_search_call'),
+            id: z.string(),
+            queries: z.array(z.string()),
+            results: z
+              .array(
+                z.object({
+                  attributes: z.record(z.string(), z.unknown()),
+                  file_id: z.string(),
+                  filename: z.string(),
+                  score: z.number(),
+                  text: z.string(),
+                }),
+              )
+              .nullish(),
+          }),
+          z.object({
+            type: z.literal('code_interpreter_call'),
+            id: z.string(),
+            code: z.string().nullable(),
+            container_id: z.string(),
+            outputs: z
+              .array(
+                z.discriminatedUnion('type', [
+                  z.object({ type: z.literal('logs'), logs: z.string() }),
+                  z.object({ type: z.literal('image'), url: z.string() }),
+                ]),
+              )
+              .nullable(),
+          }),
+          z.object({
+            type: z.literal('image_generation_call'),
+            id: z.string(),
+            result: z.string(),
+          }),
+          z.object({
+            type: z.literal('local_shell_call'),
+            id: z.string(),
+            call_id: z.string(),
+            action: z.object({
+              type: z.literal('exec'),
+              command: z.array(z.string()),
+              timeout_ms: z.number().optional(),
+              user: z.string().optional(),
+              working_directory: z.string().optional(),
+              env: z.record(z.string(), z.string()).optional(),
+            }),
+          }),
+          z.object({
+            type: z.literal('function_call'),
+            call_id: z.string(),
+            name: z.string(),
+            arguments: z.string(),
+            id: z.string(),
+          }),
+          z.object({
+            type: z.literal('computer_call'),
+            id: z.string(),
+            status: z.string().optional(),
+          }),
+          z.object({
+            type: z.literal('reasoning'),
+            id: z.string(),
+            encrypted_content: z.string().nullish(),
+            summary: z.array(
+              z.object({
+                type: z.literal('summary_text'),
+                text: z.string(),
+              }),
+            ),
+          }),
+        ]),
+      ),
+      service_tier: z.string().nullish(),
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: z.object({
+        input_tokens: z.number(),
+        input_tokens_details: z
+          .object({ cached_tokens: z.number().nullish() })
+          .nullish(),
+        output_tokens: z.number(),
+        output_tokens_details: z
+          .object({ reasoning_tokens: z.number().nullish() })
+          .nullish(),
+      }),
+    }),
+  ),
+);
