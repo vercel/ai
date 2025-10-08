@@ -7,12 +7,13 @@ import {
   UnauthorizedError,
 } from 'ai';
 import 'dotenv/config';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
 import type {
-  OAuthClientProvider,
   OAuthClientInformation,
   OAuthClientMetadata,
   OAuthTokens,
-} from 'ai';
+} from '@modelcontextprotocol/sdk/shared/auth.js';
 import { createServer } from 'node:http';
 import { exec } from 'node:child_process';
 
@@ -118,37 +119,27 @@ async function main() {
       Number(process.env.MCP_CALLBACK_PORT ?? 8090),
     );
 
-    const connect = async () =>
-      experimental_createMCPClient({
-        transport: { type: 'http', url: serverUrl, authProvider },
+    // Proactively start/refresh auth. If redirect is needed, wait for code and exchange.
+    const startResult = await auth(authProvider, { serverUrl: new URL(serverUrl) });
+    if (startResult !== 'AUTHORIZED') {
+      console.log('🔐 Authorization required. Waiting for OAuth callback...');
+      const authorizationCode = await callbackPromise;
+      console.log('↪ Exchanging authorization code for tokens...');
+      await auth(authProvider, {
+        serverUrl: new URL(serverUrl),
+        authorizationCode,
       });
+    }
+
+    const connect = async () => {
+      const transport = new StreamableHTTPClientTransport(new URL(serverUrl), {
+        authProvider,
+      });
+      return experimental_createMCPClient({ transport });
+    };
 
     let mcpClient;
-    try {
-      mcpClient = await connect();
-    } catch (error) {
-      const unauthorized =
-        error instanceof UnauthorizedError ||
-        (error &&
-          typeof error === 'object' &&
-          (error as any).name === 'UnauthorizedError');
-      if (unauthorized) {
-        console.log('🔐 Authorization required. Waiting for OAuth callback...');
-
-        const authorizationCode = await callbackPromise;
-
-        console.log('↪ Exchanging authorization code for tokens...');
-        await auth(authProvider, {
-          serverUrl: new URL(serverUrl),
-          authorizationCode,
-        });
-
-        console.log('↪ Retrying connection with authorized tokens...');
-        mcpClient = await connect();
-      } else {
-        throw error;
-      }
-    }
+    mcpClient = await connect();
 
     console.log('✓ MCP client connected with OAuth authentication');
 
