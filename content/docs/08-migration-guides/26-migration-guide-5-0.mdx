@@ -2027,6 +2027,23 @@ The `experimental_attachments` property has been replaced with the parts array.
 }
 ```
 
+<Note>
+  **Important:** Most AI providers only support specific file types as file parts:
+  - **OpenAI/Azure OpenAI**: Only `image/*`, `application/pdf`, and `audio/*` are supported
+  - **Text files** (`text/plain`, `text/markdown`, etc.) are **not supported** as file parts
+
+For text files, read the content and send as a text part instead:
+
+```tsx
+// Instead of this:
+{ type: 'file', data: buffer, mediaType: 'text/plain' }
+
+// Do this:
+{ type: 'text', text: buffer.toString('utf-8') }
+```
+
+</Note>
+
 ### Embedding Changes
 
 #### Provider Options for Embeddings
@@ -2939,36 +2956,26 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs
+#### Structured Outputs Default
 
-The `structuredOutputs` parameter has been replaced with the `strictJsonSchema` provider option. It is now disabled by default.
+Structured outputs are now enabled by default for supported OpenAI models.
 
 ```tsx filename="AI SDK 4.0"
-import { openai } from '@ai-sdk/openai';
-
-const result = await generateObject({
+const result = await generateText({
   model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
-  schema: z.object({ name: z.string() }),
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-
-const result = await generateObject({
+const result = await generateText({
   model: openai('gpt-4.1-2024-08-06'),
-  schema: z.object({ name: z.string() }),
-  providerOptions: {
-    openai: {
-      strictJsonSchema: true, // renamed and opt-in via provider options
-    } satisfies OpenAIResponsesProviderOptions,
-  },
+  // structuredOutputs: true is now the default
 });
 ```
 
 #### Compatibility Option Removal
 
-The `compatibility` option has been removed; strict compatibility mode is now the default.
+The `compatibility` option has been removed; strict mode is now the default.
 
 ```tsx filename="AI SDK 4.0"
 const openai = createOpenAI({
