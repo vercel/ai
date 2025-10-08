@@ -30,8 +30,10 @@ export * from './response-handler';
 export {
   asSchema,
   jsonSchema,
+  lazySchema,
   type FlexibleSchema,
   type InferSchema,
+  type LazySchema,
   type Schema,
 } from './schema';
 export * from './uint8-utils';
