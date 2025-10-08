@@ -82,6 +82,8 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
       input,
+      providerExecuted: toolCall.providerExecuted,
+      providerMetadata: toolCall.providerMetadata,
       dynamic: true,
       invalid: true,
       error,
