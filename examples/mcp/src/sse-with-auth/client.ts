@@ -113,17 +113,14 @@ async function main() {
   console.log('Creating MCP client with OAuth...');
 
   try {
-    const serverUrl =
-      process.env.MCP_SERVER_URL || 'https://mcp.notion.com/sse';
+    const serverUrl = process.env.MCP_SERVER_URL || 'https://mcp.vercel.com/';
     const callbackPromise = waitForAuthorizationCode(
       Number(process.env.MCP_CALLBACK_PORT ?? 8090),
     );
 
     const connect = async () =>
       experimental_createMCPClient({
-        transport: { type: 'sse', url: serverUrl, authProvider },
-        onUncaughtError: error =>
-          console.error('MCP Client uncaught error:', error),
+        transport: { type: 'http', url: serverUrl, authProvider },
       });
 
     let mcpClient;
@@ -175,8 +172,9 @@ async function main() {
           });
         }
       },
-      system: 'You are a helpful assistant with access to protected resources.',
-      prompt: 'List the user resources.',
+      system: 'You are a helpful assistant with access to protected tools.',
+      prompt:
+        'List the tools available for me to call. Arrange them in alphabetical order.',
     });
 
     await mcpClient.close();
@@ -191,8 +189,6 @@ async function main() {
   }
 }
 
-// Handle OAuth callback in a real application
-// For this demo, the server auto-approves and the provider handles it internally
 main().catch(error => {
   console.error('\nFatal error:', error);
   process.exit(1);
