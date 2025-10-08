@@ -90,6 +90,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
   {
     "providerMetadata": {
       "openai": {
+        "annotations": [],
         "itemId": "msg_68c2e2e513c88190a72cefb37140d19a0b24aae9c6c01e4f",
       },
     },
@@ -212,6 +213,14 @@ providers and models, and which ones are available in the AI SDK.",
   {
     "providerMetadata": {
       "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 350,
+            "type": "file_citation",
+          },
+        ],
         "itemId": "msg_0365d26c32c64c650068cabb0e66b081949f66f61dacef39f3",
       },
     },
@@ -276,6 +285,14 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
   {
     "providerMetadata": {
       "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 438,
+            "type": "file_citation",
+          },
+        ],
         "itemId": "msg_0a098396a8feca410068caae457c508196b2fcd079d1d3ec74",
       },
     },
@@ -334,6 +351,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
   {
     "providerMetadata": {
       "openai": {
+        "annotations": [],
         "itemId": "msg_0a33d15155cb126d0068c96c723ed88195b1405bc370bb8a65",
       },
     },
@@ -2396,7 +2414,34 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "text-delta",
   },
   {
+    "id": "id-0",
+    "providerMetadata": {
+      "openai": {
+        "containerId": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+        "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+        "filename": "roll2dice_sums_10000.csv",
+      },
+    },
+    "sourceType": "execution-file",
+    "type": "source",
+  },
+  {
     "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "container_id": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+            "end_index": 465,
+            "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+            "filename": "roll2dice_sums_10000.csv",
+            "start_index": 423,
+            "type": "container_file_citation",
+          },
+        ],
+        "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -2932,6 +2977,19 @@ providers and models, and which ones are available in the AI SDK.",
   },
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 379,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3429,6 +3487,25 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > without re
   },
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 154,
+            "type": "file_citation",
+          },
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 382,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3520,6 +3597,12 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
   },
   {
     "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+      },
+    },
     "type": "text-end",
   },
   {

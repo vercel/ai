@@ -167,6 +167,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1214,6 +1215,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1324,6 +1326,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1458,6 +1461,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1571,6 +1575,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1727,6 +1732,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1746,6 +1752,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
                 },
               },
@@ -2352,6 +2359,43 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [
+                    {
+                      "end_index": 606,
+                      "start_index": 486,
+                      "title": "Bruce Lee statue to be installed in SF Chinatown",
+                      "type": "url_citation",
+                      "url": "https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com",
+                    },
+                    {
+                      "end_index": 1035,
+                      "start_index": 912,
+                      "title": "The Bay Area is set to make an office leasing comeback",
+                      "type": "url_citation",
+                      "url": "https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com",
+                    },
+                    {
+                      "end_index": 1472,
+                      "start_index": 1346,
+                      "title": "Where to see spring blooms in the Bay Area",
+                      "type": "url_citation",
+                      "url": "https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com",
+                    },
+                    {
+                      "end_index": 2023,
+                      "start_index": 1884,
+                      "title": "Oceanfront Great Highway park set to open in April",
+                      "type": "url_citation",
+                      "url": "https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com",
+                    },
+                    {
+                      "end_index": 2540,
+                      "start_index": 2404,
+                      "title": "San Francisco's spring seasons are getting warmer",
+                      "type": "url_citation",
+                      "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
+                    },
+                  ],
                   "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
                 },
               },
@@ -2662,6 +2706,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_computer_test",
                 },
               },
@@ -2804,6 +2849,22 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "end_index": 10,
+                    "start_index": 0,
+                    "title": "Example URL",
+                    "type": "url_citation",
+                    "url": "https://example.com",
+                  },
+                  {
+                    "end_index": 30,
+                    "file_id": "file-abc123",
+                    "quote": "This is a quote from the file",
+                    "start_index": 20,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_123",
               },
             },
@@ -2894,6 +2955,15 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "end_index": 20,
+                    "file_id": "file-xyz789",
+                    "quote": "Important information from document",
+                    "start_index": 0,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_456",
               },
             },
@@ -2982,6 +3052,20 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_789",
               },
             },
@@ -3065,6 +3149,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3136,6 +3226,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3363,6 +3459,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3439,6 +3541,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3573,6 +3681,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_test",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_test",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3954,6 +4068,43 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [
+                      {
+                        "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
+                        "type": "url_citation",
+                        "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+                      },
+                      {
+                        "title": "Berlin 2025 – the main events | visitBerlin.de",
+                        "type": "url_citation",
+                        "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+                      },
+                      {
+                        "title": "Berlin 2025 – the main events | visitBerlin.de",
+                        "type": "url_citation",
+                        "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+                      },
+                      {
+                        "title": "Berlin 2025 – the main events | visitBerlin.de",
+                        "type": "url_citation",
+                        "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+                      },
+                      {
+                        "title": "Berlin 2025 – the main events | visitBerlin.de",
+                        "type": "url_citation",
+                        "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+                      },
+                      {
+                        "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
+                        "type": "url_citation",
+                        "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+                      },
+                    ],
+                    "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4327,6 +4478,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4438,6 +4595,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4621,6 +4784,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4734,6 +4903,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4931,6 +5106,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4994,6 +5175,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -5222,6 +5409,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_123",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "title": "Example URL",
+                    "type": "url_citation",
+                    "url": "https://example.com",
+                  },
+                  {
+                    "file_id": "file-abc123",
+                    "quote": "This is a quote from the file",
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_123",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5286,6 +5490,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
