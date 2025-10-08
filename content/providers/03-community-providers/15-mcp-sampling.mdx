@@ -403,6 +403,7 @@ If your MCP client doesn't support sampling natively, you can add sampling capab
 
 ```typescript
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import {
   convertAISDKFinishReasonToMCP,
   selectModelFromPreferences,
@@ -441,6 +442,14 @@ setupClientSampling(client, {
       stopReason: convertAISDKFinishReasonToMCP(result.finishReason),
     };
   },
+});
+
+const transport = new StdioClientTransport({
+  command: 'npx',
+  args: [
+    '-y',
+    'example_mcp_server.ts',
+  ],
 });
 
 await client.connect(transport);
