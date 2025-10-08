@@ -191,6 +191,7 @@ describe('MCPClient', () => {
     } catch (error) {
       expect(MCPClientError.isInstance(error)).toBe(true);
       if (MCPClientError.isInstance(error)) {
+        expect(error.code).toBe(-32602);
         expect(error.data).toMatchInlineSnapshot(`
           {
             "expectedSchema": {
