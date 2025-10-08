@@ -19,8 +19,7 @@
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import { FlexibleValidator, InferValidator } from '@ai-sdk/provider-utils';
 
 /**
 Create a type from an object with all keys and nested keys set to optional.
@@ -30,10 +29,9 @@ It always recurses into arrays.
 Adopted from [type-fest](https://github.com/sindresorhus/type-fest/tree/main) PartialDeep.
  */
 
-export type DeepPartial<T> = T extends z3.ZodTypeAny
-  ? DeepPartialInternal<z3.infer<T>> // resolve Zod schemas first to prevent infinite recursion
-  : T extends z4.core.$ZodType
-    ? DeepPartialInternal<z4.infer<T>>
+export type DeepPartial<T> =
+  T extends FlexibleValidator<unknown>
+    ? InferValidator<T> // resolve validators first to prevent infinite recursion
     : DeepPartialInternal<T>;
 
 type DeepPartialInternal<T> = T extends
