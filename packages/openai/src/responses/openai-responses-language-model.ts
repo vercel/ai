@@ -1767,7 +1767,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningEffort: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
   safetyIdentifier: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
+  serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).nullish(),
   store: z.boolean().nullish(),
   strictJsonSchema: z.boolean().nullish(),
   textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
