@@ -1024,24 +1024,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
 
-                if (value.item.status === 'completed') {
-                  controller.enqueue({
-                    type: 'tool-result',
-                    toolCallId: value.item.id,
-                    toolName: 'web_search',
-                    result: { status: value.item.status },
-                    providerExecuted: true,
-                  });
-                } else {
-                  controller.enqueue({
-                    type: 'tool-result',
-                    toolCallId: value.item.id,
-                    toolName: 'web_search',
-                    isError: true,
-                    result: { status: value.item.status },
-                    providerExecuted: true,
-                  });
-                }
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search',
+                  isError: value.item.status === 'failed',
+                  result: { status: value.item.status },
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
