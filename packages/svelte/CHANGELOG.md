@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- ai@6.0.0-beta.30
+
 ## 4.0.0-beta.29
 
 ### Major Changes
