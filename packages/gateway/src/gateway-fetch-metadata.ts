@@ -7,7 +7,7 @@ import {
 import { asGatewayError } from './errors';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayLanguageModelEntry } from './gateway-model-entry';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 type GatewayFetchMetadataConfig = GatewayConfig;
 

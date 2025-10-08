@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { SharedV2ProviderMetadata } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
+=======
+import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
+import * as z from 'zod/v4';
+>>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
 import { jsonValueSchema } from './json-value';
 
 /**

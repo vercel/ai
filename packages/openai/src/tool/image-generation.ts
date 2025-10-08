@@ -1,15 +1,33 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import {
+  createProviderDefinedToolFactoryWithOutputSchema,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
 
-export const imageGenerationArgsSchema = z
-  .object({
-    background: z.enum(['auto', 'opaque', 'transparent']).optional(),
-    inputFidelity: z.enum(['low', 'high']).optional(),
-    inputImageMask: z
+export const imageGenerationArgsSchema = lazySchema(() =>
+  zodSchema(
+    z
       .object({
-        fileId: z.string().optional(),
-        imageUrl: z.string().optional(),
+        background: z.enum(['auto', 'opaque', 'transparent']).optional(),
+        inputFidelity: z.enum(['low', 'high']).optional(),
+        inputImageMask: z
+          .object({
+            fileId: z.string().optional(),
+            imageUrl: z.string().optional(),
+          })
+          .optional(),
+        model: z.string().optional(),
+        moderation: z.enum(['auto']).optional(),
+        outputCompression: z.number().int().min(0).max(100).optional(),
+        outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
+        partialImages: z.number().int().min(0).max(3).optional(),
+        quality: z.enum(['auto', 'low', 'medium', 'high']).optional(),
+        size: z
+          .enum(['1024x1024', '1024x1536', '1536x1024', 'auto'])
+          .optional(),
       })
+<<<<<<< HEAD
       .optional(),
     model: z.string().optional(),
     moderation: z.enum(['auto']).optional(),
@@ -19,10 +37,17 @@ export const imageGenerationArgsSchema = z
     size: z.enum(['1024x1024', '1024x1536', '1536x1024', 'auto']).optional(),
   })
   .strict();
+=======
+      .strict(),
+  ),
+);
+>>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
 
-export const imageGenerationOutputSchema = z.object({
-  result: z.string(),
-});
+const imageGenerationInputSchema = lazySchema(() => zodSchema(z.object({})));
+
+export const imageGenerationOutputSchema = lazySchema(() =>
+  zodSchema(z.object({ result: z.string() })),
+);
 
 type ImageGenerationArgs = {
   /**
@@ -99,7 +124,7 @@ const imageGenerationToolFactory =
   >({
     id: 'openai.image_generation',
     name: 'image_generation',
-    inputSchema: z.object({}),
+    inputSchema: imageGenerationInputSchema,
     outputSchema: imageGenerationOutputSchema,
   });
 

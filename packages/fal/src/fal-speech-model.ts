@@ -8,7 +8,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { FalConfig } from './fal-config';
 import { falFailedResponseHandler } from './fal-error';
 import { FAL_EMOTIONS, FAL_LANGUAGE_BOOSTS } from './fal-api-types';

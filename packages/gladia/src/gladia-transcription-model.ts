@@ -14,7 +14,7 @@ import {
   postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
 import { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';

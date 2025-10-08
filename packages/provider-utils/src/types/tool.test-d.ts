@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { z } from 'zod/v4';
 import {
   Tool,
@@ -7,6 +8,14 @@ import {
 import { tool } from './tool';
 import { describe, it, expectTypeOf } from 'vitest';
 import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
+=======
+import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
+import { describe, expectTypeOf, it } from 'vitest';
+import * as z from 'zod/v4';
+import { FlexibleSchema } from '../schema';
+import { ModelMessage } from './model-message';
+import { Tool, tool, ToolExecuteFunction } from './tool';
+>>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
 
 describe('tool type', () => {
   describe('input type', () => {

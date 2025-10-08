@@ -1,7 +1,7 @@
-import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import { JSONSchema7 } from '@ai-sdk/provider';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
+import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import { zodSchema } from './zod-schema';
 
 /**
@@ -26,20 +26,46 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   readonly jsonSchema: JSONSchema7;
 };
 
+/**
+ * Creates a schema with deferred creation.
+ * This is important to reduce the startup time of the library
+ * and to avoid initializing unused validators.
+ *
+ * @param createValidator A function that creates a schema.
+ * @returns A function that returns a schema.
+ */
+export function lazySchema<SCHEMA>(
+  createSchema: () => Schema<SCHEMA>,
+): LazySchema<SCHEMA> {
+  // cache the validator to avoid initializing it multiple times
+  let schema: Schema<SCHEMA> | undefined;
+  return () => {
+    if (schema == null) {
+      schema = createSchema();
+    }
+    return schema;
+  };
+}
+
+export type LazySchema<SCHEMA> = () => Schema<SCHEMA>;
+
 // Note: Zod types here exactly match the types in zod-schema.ts
 // to prevent type errors when using zod schemas with flexible schemas.
-export type FlexibleSchema<T> =
-  | z4.core.$ZodType<T, any>
-  | z3.Schema<T, z3.ZodTypeDef, any>
-  | Schema<T>;
+export type FlexibleSchema<SCHEMA> =
+  | z4.core.$ZodType<SCHEMA, any>
+  | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
+  | Schema<SCHEMA>
+  | LazySchema<SCHEMA>;
 
 export type InferSchema<SCHEMA> = SCHEMA extends z3.Schema
   ? z3.infer<SCHEMA>
   : SCHEMA extends z4.core.$ZodType
     ? z4.infer<SCHEMA>
-    : SCHEMA extends Schema<infer T>
+    : SCHEMA extends LazySchema<infer T>
       ? T
-      : never;
+      : SCHEMA extends Schema<infer T>
+        ? T
+        : never;
 
 /**
  * Create a schema using a JSON Schema.
@@ -48,7 +74,7 @@ export type InferSchema<SCHEMA> = SCHEMA extends z3.Schema
  * @param options.validate Optional. A validation function for the schema.
  */
 export function jsonSchema<OBJECT = unknown>(
-  jsonSchema: JSONSchema7,
+  jsonSchema: JSONSchema7 | (() => JSONSchema7),
   {
     validate,
   }: {
@@ -61,7 +87,12 @@ export function jsonSchema<OBJECT = unknown>(
     [schemaSymbol]: true,
     _type: undefined as OBJECT, // should never be used directly
     [validatorSymbol]: true,
-    jsonSchema,
+    get jsonSchema() {
+      if (typeof jsonSchema === 'function') {
+        jsonSchema = jsonSchema(); // cache the function results
+      }
+      return jsonSchema;
+    },
     validate,
   };
 }
@@ -78,11 +109,7 @@ function isSchema(value: unknown): value is Schema {
 }
 
 export function asSchema<OBJECT>(
-  schema:
-    | z4.core.$ZodType<OBJECT, any>
-    | z3.Schema<OBJECT, z3.ZodTypeDef, any>
-    | Schema<OBJECT>
-    | undefined,
+  schema: FlexibleSchema<OBJECT> | undefined,
 ): Schema<OBJECT> {
   return schema == null
     ? jsonSchema({
@@ -91,5 +118,7 @@ export function asSchema<OBJECT>(
       })
     : isSchema(schema)
       ? schema
-      : zodSchema(schema);
+      : typeof schema === 'function'
+        ? schema()
+        : zodSchema(schema);
 }

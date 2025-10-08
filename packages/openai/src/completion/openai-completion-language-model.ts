@@ -15,14 +15,15 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import {
-  openaiErrorDataSchema,
-  openaiFailedResponseHandler,
-} from '../openai-error';
+import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
+import {
+  OpenAICompletionChunk,
+  openaiCompletionChunkSchema,
+  openaiCompletionResponseSchema,
+} from './openai-completion-api';
 import {
   OpenAICompletionModelId,
   openaiCompletionProviderOptions,
@@ -245,8 +246,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
+<<<<<<< HEAD
           ParseResult<z.infer<typeof openaiCompletionChunkSchema>>,
           LanguageModelV2StreamPart
+=======
+          ParseResult<OpenAICompletionChunk>,
+          LanguageModelV3StreamPart
+>>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -328,57 +334,3 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     };
   }
 }
-
-const usageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiCompletionResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      text: z.string(),
-      finish_reason: z.string(),
-      logprobs: z
-        .object({
-          tokens: z.array(z.string()),
-          token_logprobs: z.array(z.number()),
-          top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
-        })
-        .nullish(),
-    }),
-  ),
-  usage: usageSchema.nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiCompletionChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        text: z.string(),
-        finish_reason: z.string().nullish(),
-        index: z.number(),
-        logprobs: z
-          .object({
-            tokens: z.array(z.string()),
-            token_logprobs: z.array(z.number()),
-            top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
-          })
-          .nullish(),
-      }),
-    ),
-    usage: usageSchema.nullish(),
-  }),
-  openaiErrorDataSchema,
-]);
