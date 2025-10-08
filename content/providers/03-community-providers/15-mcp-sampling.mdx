@@ -7,7 +7,7 @@ description: Learn how to use the MCP Sampling AI Provider.
 
 The [MCP Sampling AI Provider](https://github.com/mcpc-tech/mcpc/tree/main/packages/mcp-sampling-ai-provider) allows MCP servers to use AI models through the AI SDK by leveraging your existing client subscriptions (like VS Code Copilot). This transforms your MCP server into an agentic tool that can reason and make decisions, without requiring separate API keys or subscriptions.
 
-The provider implements `LanguageModelV2` by forwarding requests to MCP's [sampling capability](https://modelcontextprotocol.io/specification/2025-06-18/client/sampling), offering unique advantages:
+The provider implements `LanguageModelV2` by forwarding requests through MCP's [sampling feature](https://modelcontextprotocol.io/specification/2025-06-18/client/sampling) to the MCP client, offering unique advantages:
 
 - **Server-Side AI Integration**: Enable MCP servers to call language models directly through AI SDK's standard interface
 - **No Direct Model Management**: Forward AI requests to MCP clients, eliminating the need for multiple API keys
