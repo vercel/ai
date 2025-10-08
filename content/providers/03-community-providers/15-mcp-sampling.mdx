@@ -141,6 +141,32 @@ const server = new Server(
   { capabilities: { sampling: {}, tools: {} } },
 );
 
+// List available tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: 'translate',
+        description: 'Translate text to a target language using AI',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            text: {
+              type: 'string',
+              description: 'The text to translate',
+            },
+            target_lang: {
+              type: 'string',
+              description: 'The target language (e.g., "Spanish", "French")',
+            },
+          },
+          required: ['text', 'target_lang'],
+        },
+      },
+    ],
+  };
+});
+
 // Register a translation tool that uses AI
 server.setRequestHandler(CallToolRequestSchema, async request => {
   if (request.params.name === 'translate') {
@@ -171,7 +197,10 @@ Stream text responses using the MCP Sampling Provider:
 ```typescript
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { createMCPSamplingProvider } from '@mcpc-tech/mcp-sampling-ai-provider';
 import { streamText } from 'ai';
 
@@ -179,6 +208,21 @@ const server = new Server(
   { name: 'ai-assistant', version: '1.0.0' },
   { capabilities: { sampling: {}, tools: {} } },
 );
+
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: 'generate-story',
+        description: 'Generate a story or poem using AI',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+    ],
+  };
+});
 
 server.setRequestHandler(CallToolRequestSchema, async request => {
   if (request.params.name === 'generate-story') {
@@ -211,7 +255,10 @@ Generate structured objects using the MCP Sampling Provider:
 ```typescript
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { createMCPSamplingProvider } from '@mcpc-tech/mcp-sampling-ai-provider';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -220,6 +267,21 @@ const server = new Server(
   { name: 'recipe-generator', version: '1.0.0' },
   { capabilities: { sampling: {}, tools: {} } },
 );
+
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: 'generate-recipe',
+        description: 'Generate a recipe using AI',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+    ],
+  };
+});
 
 server.setRequestHandler(CallToolRequestSchema, async request => {
   if (request.params.name === 'generate-recipe') {
@@ -260,7 +322,10 @@ Use tools with the MCP Sampling Provider. Note: This is implemented via system p
 ```typescript
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { createMCPSamplingProvider } from '@mcpc-tech/mcp-sampling-ai-provider';
 import { generateText } from 'ai';
 import { z } from 'zod';
@@ -269,6 +334,26 @@ const server = new Server(
   { name: 'weather-agent', version: '1.0.0' },
   { capabilities: { sampling: {}, tools: {} } },
 );
+
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: 'ask-weather',
+        description: 'Ask a weather-related question',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            question: {
+              type: 'string',
+              description: 'The weather question to ask',
+            },
+          },
+        },
+      },
+    ],
+  };
+});
 
 server.setRequestHandler(CallToolRequestSchema, async request => {
   if (request.params.name === 'ask-weather') {
