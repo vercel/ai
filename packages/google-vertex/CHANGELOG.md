@@ -1,5 +1,108 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.18
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/anthropic@3.0.0-beta.14
+  - @ai-sdk/google@3.0.0-beta.14
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 3.1.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/anthropic@2.1.0-beta.13
+  - @ai-sdk/google@2.1.0-beta.13
+
+## 3.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - @ai-sdk/anthropic@2.1.0-beta.12
+  - @ai-sdk/google@2.1.0-beta.12
+
+## 3.1.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [9a728c8]
+  - @ai-sdk/google@2.1.0-beta.11
+
+## 3.1.0-beta.14
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+  - @ai-sdk/anthropic@2.1.0-beta.11
+  - @ai-sdk/google@2.1.0-beta.10
+
+## 3.1.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [dedf206]
+  - @ai-sdk/anthropic@2.1.0-beta.10
+
+## 3.1.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/anthropic@2.1.0-beta.9
+  - @ai-sdk/provider@2.1.0-beta.4
+  - @ai-sdk/google@2.1.0-beta.9
+
+## 3.1.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [7728ac5]
+  - @ai-sdk/google@2.1.0-beta.8
+
+## 3.1.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [a5a8db4]
+  - @ai-sdk/anthropic@2.1.0-beta.8
+
+## 3.1.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [e1e2821]
+  - @ai-sdk/anthropic@2.1.0-beta.7
+
+## 3.1.0-beta.8
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+- Updated dependencies [10c1322]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/anthropic@2.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.3
+  - @ai-sdk/google@2.1.0-beta.7
+
 ## 3.1.0-beta.7
 
 ### Patch Changes

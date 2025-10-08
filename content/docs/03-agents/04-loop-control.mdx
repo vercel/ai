@@ -5,34 +5,32 @@ description: Control agent execution with built-in loop management using stopWhe
 
 # Loop Control
 
-When building agents with the AI SDK, you can control both the execution flow and the settings at each step of the agent loop. The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
-
-Both parameters work with:
-
-- `generateText` and `streamText` functions from AI SDK Core
-- The `Agent` class for object-oriented agent implementations
+You can control both the execution flow and the settings at each step of the agent loop. The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
 
 ## Stop Conditions
 
-The `stopWhen` parameter controls when to stop the generation when there are tool results in the last step. By default, the stopping condition is `stepCountIs(1)`, which allows only a single step.
+The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, agents stop after 20 steps using `stepCountIs(20)`.
 
-When you provide `stopWhen`, the AI SDK continues generating responses after tool calls until a stopping condition is met. When the condition is an array, the generation stops when any of the conditions are met.
+When you provide `stopWhen`, the agent continues executing after tool calls until a stopping condition is met. When the condition is an array, execution stops when any of the conditions are met.
 
 ### Use Built-in Conditions
 
 The AI SDK provides several built-in stopping conditions:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { Agent, stepCountIs } from 'ai';
 
-const result = await generateText({
+const agent = new Agent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools
   },
-  stopWhen: stepCountIs(10), // Stop after 10 steps maximum
-  prompt: 'Analyze this dataset and create a summary report',
+  stopWhen: stepCountIs(20), // Default state: stop after 20 steps maximum
 });
+
+const result = await agent.generate(
+  'Analyze this dataset and create a summary report',
+);
 ```
 
 ### Combine Multiple Conditions
@@ -40,19 +38,20 @@ const result = await generateText({
 Combine multiple stopping conditions. The loop stops when it meets any condition:
 
 ```ts
-import { generateText, stepCountIs, hasToolCall } from 'ai';
+import { Agent, stepCountIs, hasToolCall } from 'ai';
 
-const result = await generateText({
+const agent = new Agent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools
   },
   stopWhen: [
-    stepCountIs(10), // Maximum 10 steps
+    stepCountIs(20), // Maximum 20 steps
     hasToolCall('someTool'), // Stop after calling 'someTool'
   ],
-  prompt: 'Research and analyze the topic',
 });
+
+const result = await agent.generate('Research and analyze the topic');
 ```
 
 ### Create Custom Conditions
@@ -60,7 +59,7 @@ const result = await generateText({
 Build custom stopping conditions for specific requirements:
 
 ```ts
-import { generateText, StopCondition, ToolSet } from 'ai';
+import { Agent, StopCondition, ToolSet } from 'ai';
 
 const tools = {
   // your tools
@@ -71,12 +70,15 @@ const hasAnswer: StopCondition<typeof tools> = ({ steps }) => {
   return steps.some(step => step.text?.includes('ANSWER:')) ?? false;
 };
 
-const result = await generateText({
+const agent = new Agent({
   model: 'openai/gpt-4o',
   tools,
   stopWhen: hasAnswer,
-  prompt: 'Find the answer and respond with "ANSWER: [your answer]"',
 });
+
+const result = await agent.generate(
+  'Find the answer and respond with "ANSWER: [your answer]"',
+);
 ```
 
 Custom conditions receive step information across all steps:
@@ -106,9 +108,9 @@ The `prepareStep` callback runs before each step in the loop and defaults to the
 Switch models based on step requirements:
 
 ```ts
-import { generateText } from 'ai';
+import { Agent } from 'ai';
 
-const result = await generateText({
+const agent = new Agent({
   model: 'openai/gpt-4o-mini', // Default model
   tools: {
     // your tools
@@ -124,6 +126,8 @@ const result = await generateText({
     return {};
   },
 });
+
+const result = await agent.generate('...');
 ```
 
 ### Context Management
@@ -131,7 +135,9 @@ const result = await generateText({
 Manage growing conversation history in long-running loops:
 
 ```ts
-const result = await generateText({
+import { Agent } from 'ai';
+
+const agent = new Agent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools
@@ -149,6 +155,8 @@ const result = await generateText({
     return {};
   },
 });
+
+const result = await agent.generate('...');
 ```
 
 ### Tool Selection
@@ -156,7 +164,9 @@ const result = await generateText({
 Control which tools are available at each step:
 
 ```ts
-const result = await generateText({
+import { Agent } from 'ai';
+
+const agent = new Agent({
   model: 'openai/gpt-4o',
   tools: {
     search: searchTool,
@@ -186,6 +196,8 @@ const result = await generateText({
     };
   },
 });
+
+const result = await agent.generate('...');
 ```
 
 You can also force a specific tool to be used:
@@ -215,9 +227,10 @@ prepareStep: async ({ stepNumber }) => {
 Transform messages before sending them to the model:
 
 ```ts
-const result = await generateText({
+import { Agent } from 'ai';
+
+const agent = new Agent({
   model: 'openai/gpt-4o',
-  messages,
   tools: {
     // your tools
   },
@@ -236,6 +249,8 @@ const result = await generateText({
     return { messages: processedMessages };
   },
 });
+
+const result = await agent.generate('...');
 ```
 
 ## Access Step Information
@@ -266,6 +281,45 @@ prepareStep: async ({
 
 ## Manual Loop Control
 
-For scenarios requiring complete control over the agent loop, implement your own loop management instead of using `stopWhen` and `prepareStep`. This approach provides maximum flexibility for complex workflows.
+For scenarios requiring complete control over the agent loop, you can use AI SDK Core functions (`generateText` and `streamText`) to implement your own loop management instead of using `stopWhen` and `prepareStep`. This approach provides maximum flexibility for complex workflows.
+
+### Implementing a Manual Loop
+
+Build your own agent loop when you need full control over execution:
+
+```ts
+import { generateText, ModelMessage } from 'ai';
+
+const messages: ModelMessage[] = [{ role: 'user', content: '...' }];
+
+let step = 0;
+const maxSteps = 10;
+
+while (step < maxSteps) {
+  const result = await generateText({
+    model: 'openai/gpt-4o',
+    messages,
+    tools: {
+      // your tools here
+    },
+  });
+
+  messages.push(...result.response.messages);
+
+  if (result.text) {
+    break; // Stop when model generates text
+  }
+
+  step++;
+}
+```
+
+This manual approach gives you complete control over:
+
+- Message history management
+- Step-by-step decision making
+- Custom stopping conditions
+- Dynamic tool and model selection
+- Error handling and recovery
 
 [Learn more about manual agent loops in the cookbook](/cookbook/node/manual-agent-loop).

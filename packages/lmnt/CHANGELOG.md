@@ -1,5 +1,59 @@
 # @ai-sdk/lmnt
 
+## 2.0.0-beta.10
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 1.1.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+
+## 1.1.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+
+## 1.1.0-beta.7
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 1.1.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 1.1.0-beta.5
+
+### Patch Changes
+
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
 ## 1.1.0-beta.4
 
 ### Patch Changes

@@ -1,5 +1,5 @@
 import {
-  TranscriptionModelV2,
+  TranscriptionModelV3,
   ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
@@ -23,7 +23,7 @@ export interface AssemblyAIProvider extends ProviderV3 {
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV3;
 }
 
 export interface AssemblyAIProviderSettings {

@@ -3,7 +3,7 @@ import {
   LanguageModelV3DataContent,
   LanguageModelV3Message,
   LanguageModelV3Prompt,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
@@ -60,7 +60,7 @@ export async function convertToAnthropicMessagesPrompt({
   const messages: AnthropicMessagesPrompt['messages'] = [];
 
   async function shouldEnableCitations(
-    providerMetadata: SharedV2ProviderMetadata | undefined,
+    providerMetadata: SharedV3ProviderMetadata | undefined,
   ): Promise<boolean> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -72,7 +72,7 @@ export async function convertToAnthropicMessagesPrompt({
   }
 
   async function getDocumentMetadata(
-    providerMetadata: SharedV2ProviderMetadata | undefined,
+    providerMetadata: SharedV3ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -284,6 +284,9 @@ export async function convertToAnthropicMessagesPrompt({
                   case 'text':
                   case 'error-text':
                     contentValue = output.value;
+                    break;
+                  case 'execution-denied':
+                    contentValue = output.reason ?? 'Tool execution denied.';
                     break;
                   case 'json':
                   case 'error-json':

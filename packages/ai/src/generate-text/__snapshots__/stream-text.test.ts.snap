@@ -258,12 +258,11 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "type": "tool-call",
   },
   {
+    "dynamic": false,
     "input": {
       "value": "value",
     },
     "output": "value-result",
-    "providerExecuted": undefined,
-    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-result",
@@ -377,12 +376,11 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "type": "tool-call",
   },
   {
+    "dynamic": false,
     "input": {
       "value": "value",
     },
     "output": "value-result",
-    "providerExecuted": undefined,
-    "providerMetadata": undefined,
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-result",

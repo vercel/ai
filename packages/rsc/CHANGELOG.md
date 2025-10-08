@@ -1,5 +1,138 @@
 # @ai-sdk/rsc
 
+## 2.0.0-beta.29
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - ai@6.0.0-beta.29
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 1.1.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - ai@5.1.0-beta.28
+
+## 1.1.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - ai@5.1.0-beta.27
+
+## 1.1.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [c99da05]
+  - ai@5.1.0-beta.26
+
+## 1.1.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [457f1c6]
+  - ai@5.1.0-beta.25
+
+## 1.1.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [90e5bdd]
+  - ai@5.1.0-beta.24
+
+## 1.1.0-beta.23
+
+### Patch Changes
+
+- ai@5.1.0-beta.23
+
+## 1.1.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [a5e152d]
+- Updated dependencies [21e20c0]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - ai@5.1.0-beta.22
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 1.1.0-beta.21
+
+### Patch Changes
+
+- ai@5.1.0-beta.21
+
+## 1.1.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [846e80e]
+  - ai@5.1.0-beta.20
+
+## 1.1.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [aa0515c]
+- Updated dependencies [e7d9b00]
+- Updated dependencies [b1aeea7]
+  - ai@5.1.0-beta.19
+
+## 1.1.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+- Updated dependencies [9b8d17e]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+  - ai@5.1.0-beta.18
+
+## 1.1.0-beta.17
+
+### Patch Changes
+
+- ai@5.1.0-beta.17
+
+## 1.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [14ca35d]
+  - ai@5.1.0-beta.16
+
+## 1.1.0-beta.15
+
+### Patch Changes
+
+- ai@5.1.0-beta.15
+
+## 1.1.0-beta.14
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [7c3c216]
+- Updated dependencies [8dac895]
+- Updated dependencies [e0d1ea9]
+- Updated dependencies [10c1322]
+  - ai@5.1.0-beta.14
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
 ## 1.1.0-beta.13
 
 ### Patch Changes

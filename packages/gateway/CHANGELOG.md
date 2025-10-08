@@ -1,5 +1,95 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.20
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 1.1.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+
+## 1.1.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+
+## 1.1.0-beta.17
+
+### Patch Changes
+
+- 1d8ea2c: feat(provider/gateway): Add GPT-5 pro to Gateway model string autocomplete
+
+## 1.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 1.1.0-beta.15
+
+### Patch Changes
+
+- ef62178: feat(gateway): oidc refresh with `@vercel/oidc`
+
+## 1.1.0-beta.14
+
+### Patch Changes
+
+- a90dca6: feat(provider/gateway): Add zAI GLM 4.6 to Gateway language model settings
+
+## 1.1.0-beta.13
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 1.1.0-beta.12
+
+### Patch Changes
+
+- e6bfe91: feat(provider/gateway): Update DeepSeek model string autocomplete
+
+## 1.1.0-beta.11
+
+### Patch Changes
+
+- 636e614: feat(provider/gateway): Add DeepSeek V3.2 Exp to Gateway language model settings
+
+## 1.1.0-beta.10
+
+### Patch Changes
+
+- 9f6149e: feat(provider/gateway): Add Sonnet 4.5 to Gateway model string autocomplete
+
+## 1.1.0-beta.9
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
 ## 1.1.0-beta.8
 
 ### Patch Changes
