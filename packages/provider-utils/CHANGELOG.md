@@ -1,5 +1,37 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.10
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/provider@3.0.0-beta.6
+
+## 3.1.0-beta.9
+
+### Patch Changes
+
+- 521c537: feat(ai): Tool.needsApproval can be a function
+
+## 3.1.0-beta.8
+
+### Patch Changes
+
+- e06565c: feat(provider-utils): add needsApproval support to provider-defined tools
+
+## 3.1.0-beta.7
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+
 ## 3.1.0-beta.6
 
 ### Patch Changes

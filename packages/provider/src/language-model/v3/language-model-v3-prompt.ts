@@ -185,11 +185,22 @@ Result of the tool call.
   providerOptions?: SharedV3ProviderOptions;
 }
 
+/**
+ * Result of a tool call.
+ */
 export type LanguageModelV3ToolResultOutput =
   | { type: 'text'; value: string }
+  | { type: 'json'; value: JSONValueLoose }
   | {
-      type: 'json';
-      value: JSONValueLoose ;
+      /**
+       * Type when the user has denied the execution of the tool call.
+       */
+      type: 'execution-denied';
+
+      /**
+       * Optional reason for the execution denial.
+       */
+      reason?: string;
     }
   | { type: 'error-text'; value: string }
   | {

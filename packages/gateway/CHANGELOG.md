@@ -1,5 +1,46 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.20
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 1.1.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+
+## 1.1.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+
+## 1.1.0-beta.17
+
+### Patch Changes
+
+- 1d8ea2c: feat(provider/gateway): Add GPT-5 pro to Gateway model string autocomplete
+
+## 1.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
 ## 1.1.0-beta.15
 
 ### Patch Changes

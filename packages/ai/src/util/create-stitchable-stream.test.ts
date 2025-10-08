@@ -179,62 +179,61 @@ describe('createStitchableStream', () => {
         'Cannot add inner stream: outer stream is closed',
       );
     });
+  });
 
-    describe('terminate', () => {
-      it('should immediately close the stream and cancel all inner streams', async () => {
-        const { stream, addStream, terminate } =
-          createStitchableStream<number>();
+  describe('terminate', () => {
+    it('should immediately close the stream and cancel all inner streams', async () => {
+      const { stream, addStream, terminate } = createStitchableStream<number>();
 
-        let stream1Cancelled = false;
-        let stream2Cancelled = false;
+      let stream1Cancelled = false;
+      let stream2Cancelled = false;
 
-        const mockStream1 = new ReadableStream({
-          start(controller) {
-            controller.enqueue(1);
-            controller.enqueue(2);
-          },
-          cancel() {
-            stream1Cancelled = true;
-          },
-        });
-
-        const mockStream2 = new ReadableStream({
-          start(controller) {
-            controller.enqueue(3);
-            controller.enqueue(4);
-          },
-          cancel() {
-            stream2Cancelled = true;
-          },
-        });
-
-        addStream(mockStream1);
-        addStream(mockStream2);
-
-        // Start reading from the stream
-        const reader = stream.getReader();
-        const firstRead = await reader.read();
-
-        terminate();
-
-        // Should immediately close without reading remaining values
-        const finalRead = await reader.read();
-
-        expect(firstRead).toEqual({ done: false, value: 1 });
-        expect(finalRead).toEqual({ done: true, value: undefined });
-        expect(stream1Cancelled).toBe(true);
-        expect(stream2Cancelled).toBe(true);
+      const mockStream1 = new ReadableStream({
+        start(controller) {
+          controller.enqueue(1);
+          controller.enqueue(2);
+        },
+        cancel() {
+          stream1Cancelled = true;
+        },
       });
 
-      it('should throw an error when adding a stream after terminating', async () => {
-        const { addStream, terminate } = createStitchableStream<number>();
-
-        terminate();
-
-        expect(() => addStream(convertArrayToReadableStream([1, 2]))).toThrow(
-          'Cannot add inner stream: outer stream is closed',
-        );
+      const mockStream2 = new ReadableStream({
+        start(controller) {
+          controller.enqueue(3);
+          controller.enqueue(4);
+        },
+        cancel() {
+          stream2Cancelled = true;
+        },
       });
+
+      addStream(mockStream1);
+      addStream(mockStream2);
+
+      // Start reading from the stream
+      const reader = stream.getReader();
+      const firstRead = await reader.read();
+
+      terminate();
+
+      // Should immediately close without reading remaining values
+      const finalRead = await reader.read();
+
+      expect(firstRead).toEqual({ done: false, value: 1 });
+      expect(finalRead).toEqual({ done: true, value: undefined });
+      expect(stream1Cancelled).toBe(true);
+      expect(stream2Cancelled).toBe(true);
+    });
+
+    it('should throw an error when adding a stream after terminating', async () => {
+      const { addStream, terminate } = createStitchableStream<number>();
+
+      terminate();
+
+      expect(() => addStream(convertArrayToReadableStream([1, 2]))).toThrow(
+        'Cannot add inner stream: outer stream is closed',
+      );
     });
   });
 });
