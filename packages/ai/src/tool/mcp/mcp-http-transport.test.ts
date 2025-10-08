@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../../error/mcp-client-error';
@@ -87,10 +87,79 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should (re)open inbound SSE after 202 Accepted', async () => {
+    const controller = new TestResponseController();
+
+    // Call 0 (GET from start): 405 -> no inbound SSE
+    // Call 1 (POST send): 202 -> should trigger inbound SSE open
+    // Call 2 (GET after 202): controlled stream opens successfully
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return { type: 'empty', status: 202 };
+        case 2:
+          return { type: 'controlled-stream', controller };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+
+    // POST a request that gets 202
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+
+    expect(server.calls[2].requestMethod).toBe('GET');
+    expect(server.calls[2].requestHeaders.accept).toBe('text/event-stream');
+  });
+
+  it('should DELETE to terminate session on close when session exists', async () => {
+    // Call 0: GET from start returns 405 (skip SSE)
+    // Call 1: POST returns JSON and sets mcp-session-id header
+    // Call 2: DELETE on close to terminate session
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            headers: { 'mcp-session-id': 'xyz-session' },
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+          };
+        case 2:
+          return { type: 'empty', status: 200 };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+
+    await transport.close();
+
+    expect(server.calls[2].requestMethod).toBe('DELETE');
+    expect(server.calls[2].requestHeaders['mcp-session-id']).toBe(
+      'xyz-session',
+    );
+  });
+
   it('should report HTTP errors from POST', async () => {
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/mcp' });
 
-    // Ensure the optional inbound SSE GET succeeds first
     const controller = new TestResponseController();
     server.urls['http://localhost:4000/mcp'].response = {
       type: 'controlled-stream',
@@ -100,7 +169,6 @@ describe('HttpMCPTransport', () => {
 
     await transport.start();
 
-    // Wait until the optional inbound SSE GET has actually been initiated
     await new Promise<void>(resolve => {
       const check = () => {
         if (
@@ -151,7 +219,6 @@ describe('HttpMCPTransport', () => {
 
     await transport.start();
 
-    // Send invalid message over inbound SSE
     controller.write(
       `event: message\ndata: ${JSON.stringify({ foo: 'bar' })}\n\n`,
     );
@@ -174,7 +241,6 @@ describe('HttpMCPTransport', () => {
       headers: customHeaders as unknown as Record<string, string>,
     });
 
-    // Make inbound SSE succeed
     server.urls['http://localhost:4000/mcp'].response = {
       type: 'controlled-stream',
       controller,
@@ -192,7 +258,6 @@ describe('HttpMCPTransport', () => {
 
     await transport.send(message);
 
-    // Verify inbound SSE GET headers
     expect(server.calls[0].requestHeaders).toEqual({
       'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'text/event-stream',
@@ -200,7 +265,6 @@ describe('HttpMCPTransport', () => {
     });
     expect(server.calls[0].requestUserAgent).toContain('ai-sdk/');
 
-    // Verify POST request headers
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
       'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
