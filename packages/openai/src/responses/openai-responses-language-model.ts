@@ -24,7 +24,6 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
-  codeInterpreterSourceExecutionFileSchema,
 } from '../tool/code-interpreter';
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
@@ -112,6 +111,15 @@ const imageGenerationCallItem = z.object({
   id: z.string(),
   result: z.string(),
 });
+
+const sourceExecutionFileCodeInterpreterItem = z.object({
+  containerId: z.string(),
+  fileId: z.string(),
+  filename: z.string(),
+});
+type SourceExecutionFileCodeInterpreterItem = z.infer<
+  typeof sourceExecutionFileCodeInterpreterItem
+>;
 
 /**
  * `top_logprobs` request body argument can be set to an integer between
@@ -656,12 +664,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: annotation.type,
                       containerId: annotation.container_id,
                       fileId: annotation.file_id,
-                      filename: annotation.filename ?? annotation.file_id,
-                      startIndex: annotation.start_index,
-                      endIndex: annotation.end_index,
-                    } satisfies z.infer<
-                      typeof codeInterpreterSourceExecutionFileSchema
-                    >,
+                      filename: annotation.filename,
+                    } satisfies SourceExecutionFileCodeInterpreterItem,
                   },
                 });
               }
@@ -1333,13 +1337,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: value.annotation.type,
                       containerId: value.annotation.container_id,
                       fileId: value.annotation.file_id,
-                      filename:
-                        value.annotation.filename ?? value.annotation.file_id,
-                      startIndex: value.annotation.start_index,
-                      endIndex: value.annotation.end_index,
-                    } satisfies z.infer<
-                      typeof codeInterpreterSourceExecutionFileSchema
-                    >,
+                      filename: value.annotation.filename,
+                    } satisfies SourceExecutionFileCodeInterpreterItem,
                   },
                 });
               }
