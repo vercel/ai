@@ -9,7 +9,7 @@ import { z } from 'zod/v4';
 import {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
-} from './openai-responses-api-types';
+} from './openai-responses-api';
 import {
   localShellInputSchema,
   localShellOutputSchema,

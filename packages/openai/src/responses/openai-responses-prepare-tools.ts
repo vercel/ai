@@ -8,7 +8,7 @@ import { fileSearchArgsSchema } from '../tool/file-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
-import { OpenAIResponsesTool } from './openai-responses-api-types';
+import { OpenAIResponsesTool } from './openai-responses-api';
 
 export function prepareResponsesTools({
   tools,

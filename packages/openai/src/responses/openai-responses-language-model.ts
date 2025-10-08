@@ -32,7 +32,7 @@ import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-rea
 import {
   OpenAIResponsesIncludeOptions,
   OpenAIResponsesIncludeValue,
-} from './openai-responses-api-types';
+} from './openai-responses-api';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 import { localShellInputSchema } from '../tool/local-shell';
