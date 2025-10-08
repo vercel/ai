@@ -4,7 +4,6 @@ import {
   LanguageModelV3CallWarning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
-  LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
@@ -20,13 +19,18 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { Type } from 'typebox';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
-import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
+import {
+  GroqChatModelId,
+  GroqProviderOptions,
+  groqProviderOptions,
+} from './groq-chat-options';
+import { groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
+import { typeboxValidator } from './typebox-validator';
 
 type GroqChatConfig = {
   provider: string;
@@ -75,10 +79,20 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   }) {
     const warnings: LanguageModelV3CallWarning[] = [];
 
+    try {
+      const groqOptions = await parseProviderOptions({
+        provider: 'groq',
+        providerOptions,
+        schema: typeboxValidator<GroqProviderOptions>(groqProviderOptions),
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: groqProviderOptions,
+      schema: typeboxValidator<GroqProviderOptions>(groqProviderOptions),
     });
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
@@ -181,7 +195,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       body: args,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        groqChatResponseSchema,
+        typeboxValidator<GroqChatResponse>(groqChatResponseSchema),
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -255,8 +269,9 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
         stream: true,
       },
       failedResponseHandler: groqFailedResponseHandler,
-      successfulResponseHandler:
-        createEventSourceResponseHandler(groqChatChunkSchema),
+      successfulResponseHandler: createEventSourceResponseHandler(
+        typeboxValidator<GroqChatChunk>(groqChatChunkSchema),
+      ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -286,7 +301,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof groqChatChunkSchema>>,
+          ParseResult<GroqChatChunk>,
           LanguageModelV3StreamPart
         >({
           start(controller) {
@@ -521,94 +536,128 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const groqChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      message: z.object({
-        content: z.string().nullish(),
-        reasoning: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
+export const groqChatResponseSchema = Type.Object({
+  id: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  created: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+  model: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  choices: Type.Array(
+    Type.Object({
+      message: Type.Object({
+        content: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+        reasoning: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+        tool_calls: Type.Optional(
+          Type.Union([
+            Type.Array(
+              Type.Object({
+                id: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+                type: Type.Literal('function'),
+                function: Type.Object({
+                  name: Type.String(),
+                  arguments: Type.String(),
+                }),
               }),
-            }),
-          )
-          .nullish(),
+            ),
+            Type.Null(),
+          ]),
+        ),
       }),
-      index: z.number(),
-      finish_reason: z.string().nullish(),
+      index: Type.Number(),
+      finish_reason: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     }),
   ),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-      prompt_tokens_details: z
-        .object({
-          cached_tokens: z.number().nullish(),
-        })
-        .nullish(),
-    })
-    .nullish(),
+  usage: Type.Optional(
+    Type.Union([
+      Type.Object({
+        prompt_tokens: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+        completion_tokens: Type.Optional(
+          Type.Union([Type.Number(), Type.Null()]),
+        ),
+        total_tokens: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+        prompt_tokens_details: Type.Optional(
+          Type.Union([
+            Type.Object({
+              cached_tokens: Type.Optional(
+                Type.Union([Type.Number(), Type.Null()]),
+              ),
+            }),
+            Type.Null(),
+          ]),
+        ),
+      }),
+      Type.Null(),
+    ]),
+  ),
 });
+
+type GroqChatResponse = Type.Static<typeof groqChatResponseSchema>;
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const groqChatChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        delta: z
-          .object({
-            content: z.string().nullish(),
-            reasoning: z.string().nullish(),
-            tool_calls: z
-              .array(
-                z.object({
-                  index: z.number(),
-                  id: z.string().nullish(),
-                  type: z.literal('function').optional(),
-                  function: z.object({
-                    name: z.string().nullish(),
-                    arguments: z.string().nullish(),
+const groqChatChunkSchema = Type.Union([
+  Type.Object({
+    id: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    created: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+    model: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    choices: Type.Array(
+      Type.Object({
+        delta: Type.Optional(
+          Type.Object({
+            content: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+            reasoning: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+            tool_calls: Type.Optional(
+              Type.Array(
+                Type.Object({
+                  index: Type.Number(),
+                  id: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+                  type: Type.Optional(Type.Literal('function')),
+                  function: Type.Object({
+                    name: Type.Optional(
+                      Type.Union([Type.String(), Type.Null()]),
+                    ),
+                    arguments: Type.Optional(
+                      Type.Union([Type.String(), Type.Null()]),
+                    ),
                   }),
                 }),
-              )
-              .nullish(),
-          })
-          .nullish(),
-        finish_reason: z.string().nullable().optional(),
-        index: z.number(),
+              ),
+            ),
+          }),
+        ),
+        finish_reason: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+        index: Type.Number(),
       }),
     ),
-    x_groq: z
-      .object({
-        usage: z
-          .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-            total_tokens: z.number().nullish(),
-            prompt_tokens_details: z
-              .object({
-                cached_tokens: z.number().nullish(),
-              })
-              .nullish(),
-          })
-          .nullish(),
-      })
-      .nullish(),
+    x_groq: Type.Optional(
+      Type.Object({
+        usage: Type.Optional(
+          Type.Object({
+            prompt_tokens: Type.Optional(
+              Type.Union([Type.Number(), Type.Null()]),
+            ),
+            completion_tokens: Type.Optional(
+              Type.Union([Type.Number(), Type.Null()]),
+            ),
+            total_tokens: Type.Optional(
+              Type.Union([Type.Number(), Type.Null()]),
+            ),
+            prompt_tokens_details: Type.Optional(
+              Type.Object({
+                cached_tokens: Type.Optional(
+                  Type.Union([Type.Number(), Type.Null()]),
+                ),
+              }),
+            ),
+          }),
+        ),
+      }),
+    ),
   }),
-  groqErrorDataSchema,
+  Type.Object({
+    error: Type.Object({
+      message: Type.String(),
+      type: Type.String(),
+    }),
+  }),
 ]);
+
+type GroqChatChunk = Type.Static<typeof groqChatChunkSchema>;

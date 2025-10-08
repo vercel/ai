@@ -1,16 +1,17 @@
-import * as z from 'zod/v4';
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import { Static, Type } from 'typebox';
+import { typeboxValidator } from './typebox-validator';
 
-export const groqErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    type: z.string(),
+export const groqErrorDataSchema = Type.Object({
+  error: Type.Object({
+    message: Type.String(),
+    type: Type.String(),
   }),
 });
 
-export type GroqErrorData = z.infer<typeof groqErrorDataSchema>;
+export type GroqErrorData = Static<typeof groqErrorDataSchema>;
 
 export const groqFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: groqErrorDataSchema,
+  errorSchema: typeboxValidator<GroqErrorData>(groqErrorDataSchema),
   errorToMessage: data => data.error.message,
 });

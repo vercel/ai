@@ -2,7 +2,6 @@ import {
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
-  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -12,10 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
 import { GroqChatModelId } from './groq-chat-options';
-import { GroqTranscriptionModelId } from './groq-transcription-options';
-import { GroqTranscriptionModel } from './groq-transcription-model';
 
-import { groqTools } from './groq-tools';
 import { VERSION } from './version';
 export interface GroqProvider extends ProviderV3 {
   /**
@@ -27,16 +23,6 @@ Creates a model for text generation.
 Creates an Groq chat model for text generation.
    */
   languageModel(modelId: GroqChatModelId): LanguageModelV3;
-
-  /**
-Creates a model for transcription.
-   */
-  transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV3;
-
-  /**
-   * Tools provided by Groq.
-   */
-  tools: typeof groqTools;
 }
 
 export interface GroqProviderSettings {
@@ -100,15 +86,6 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     return createChatModel(modelId);
   };
 
-  const createTranscriptionModel = (modelId: GroqTranscriptionModelId) => {
-    return new GroqTranscriptionModel(modelId, {
-      provider: 'groq.transcription',
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-  };
-
   const provider = function (modelId: GroqChatModelId) {
     return createLanguageModel(modelId);
   };
@@ -122,10 +99,18 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
-  provider.transcription = createTranscriptionModel;
-  provider.transcriptionModel = createTranscriptionModel;
-
-  provider.tools = groqTools;
+  provider.transcription = () => {
+    throw new NoSuchModelError({
+      modelId: 'transcription',
+      modelType: 'transcriptionModel',
+    });
+  };
+  provider.transcriptionModel = () => {
+    throw new NoSuchModelError({
+      modelId: 'transcription',
+      modelType: 'transcriptionModel',
+    });
+  };
 
   return provider;
 }

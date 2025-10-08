@@ -1,4 +1,4 @@
-import * as z from 'zod/v4';
+import { Static, Type } from 'typebox';
 
 // https://console.groq.com/docs/models
 export type GroqChatModelId =
@@ -26,27 +26,33 @@ export type GroqChatModelId =
   | 'deepseek-r1-distill-qwen-32b'
   | (string & {});
 
-export const groqProviderOptions = z.object({
-  reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
-  reasoningEffort: z.string().optional(),
+export const groqProviderOptions = Type.Object({
+  reasoningFormat: Type.Optional(
+    Type.Union([
+      Type.Literal('parsed'),
+      Type.Literal('raw'),
+      Type.Literal('hidden'),
+    ]),
+  ),
+  reasoningEffort: Type.Optional(Type.String()),
 
   /**
    * Whether to enable parallel function calling during tool use. Default to true.
    */
-  parallelToolCalls: z.boolean().optional(),
+  parallelToolCalls: Type.Optional(Type.Boolean()),
 
   /**
    * A unique identifier representing your end-user, which can help OpenAI to
    * monitor and detect abuse. Learn more.
    */
-  user: z.string().optional(),
+  user: Type.Optional(Type.String()),
 
   /**
    * Whether to use structured outputs.
    *
    * @default true
    */
-  structuredOutputs: z.boolean().optional(),
+  structuredOutputs: Type.Optional(Type.Boolean()),
 
   /**
    * Service tier for the request.
@@ -56,7 +62,13 @@ export const groqProviderOptions = z.object({
    *
    * @default 'on_demand'
    */
-  serviceTier: z.enum(['on_demand', 'flex', 'auto']).optional(),
+  serviceTier: Type.Optional(
+    Type.Union([
+      Type.Literal('on_demand'),
+      Type.Literal('flex'),
+      Type.Literal('auto'),
+    ]),
+  ),
 });
 
-export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;
+export type GroqProviderOptions = Static<typeof groqProviderOptions>;
