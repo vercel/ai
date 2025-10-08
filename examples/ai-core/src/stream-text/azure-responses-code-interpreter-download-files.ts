@@ -28,7 +28,7 @@ async function main() {
   console.dir(resultContent, { depth: Infinity });
 
   const fileList = resultContent.filter(
-    c => c.type === 'source' && c.sourceType === 'executionFile',
+    c => c.type === 'source' && c.sourceType === 'execution-file',
   );
 
   await fileList.map(async file => {

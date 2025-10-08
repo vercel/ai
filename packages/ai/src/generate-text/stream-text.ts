@@ -1970,7 +1970,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 });
               }
 
-              if (sendSources && part.sourceType === 'executionFile') {
+              if (sendSources && part.sourceType === 'execution-file') {
                 controller.enqueue({
                   type: 'source-execution-file',
                   sourceId: part.id,

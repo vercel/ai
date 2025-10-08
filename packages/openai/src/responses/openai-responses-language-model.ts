@@ -659,7 +659,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (annotation.type === 'container_file_citation') {
                 content.push({
                   type: 'source',
-                  sourceType: 'executionFile',
+                  sourceType: 'execution-file',
                   id: this.config.generateId?.() ?? generateId(),
                   providerMetadata: {
                     [providerKey]: {
@@ -1332,7 +1332,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.annotation.type === 'container_file_citation') {
                 controller.enqueue({
                   type: 'source',
-                  sourceType: 'executionFile',
+                  sourceType: 'execution-file',
                   id: self.config.generateId?.() ?? generateId(),
                   providerMetadata: {
                     [providerKey]: {
