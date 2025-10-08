@@ -2953,7 +2953,7 @@ describe('streamText', () => {
           ]
         `);
     });
-    
+
     it('should send execution source content when sendSources is true', async () => {
       const result = streamText({
         model: modelWithFileExecutionSources,
