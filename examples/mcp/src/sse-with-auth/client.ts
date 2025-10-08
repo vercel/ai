@@ -4,7 +4,6 @@ import {
   generateText,
   stepCountIs,
   auth,
-  UnauthorizedError,
 } from 'ai';
 import 'dotenv/config';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -111,22 +110,15 @@ function waitForAuthorizationCode(port: number): Promise<string> {
 async function main() {
   const authProvider = new InMemoryOAuthClientProvider();
 
-  console.log('Creating MCP client with OAuth...');
-
   try {
-    const serverUrl = process.env.MCP_SERVER_URL || 'https://mcp.vercel.com/';
-    const callbackPromise = waitForAuthorizationCode(
-      Number(process.env.MCP_CALLBACK_PORT ?? 8090),
-    );
-
-    // Proactively start/refresh auth. If redirect is needed, wait for code and exchange.
+    const serverUrl = 'https://mcp.vercel.com/';
+    const callbackPromise = waitForAuthorizationCode(Number(8090));
     const startResult = await auth(authProvider, {
       serverUrl: new URL(serverUrl),
     });
     if (startResult !== 'AUTHORIZED') {
-      console.log('🔐 Authorization required. Waiting for OAuth callback...');
       const authorizationCode = await callbackPromise;
-      console.log('↪ Exchanging authorization code for tokens...');
+
       await auth(authProvider, {
         serverUrl: new URL(serverUrl),
         authorizationCode,
@@ -143,12 +135,10 @@ async function main() {
     let mcpClient;
     mcpClient = await connect();
 
-    console.log('✓ MCP client connected with OAuth authentication');
-
     const tools = await mcpClient.tools();
 
-    console.log(`✓ Retrieved ${Object.keys(tools).length} protected tools`);
-    console.log(`  Available tools: ${Object.keys(tools).join(', ')}`);
+    console.log(`Retrieved ${Object.keys(tools).length} protected tools`);
+    console.log(`Available tools: ${Object.keys(tools).join(', ')}`);
 
     const { text: answer } = await generateText({
       model: openai('gpt-4o-mini'),
@@ -172,17 +162,11 @@ async function main() {
 
     await mcpClient.close();
 
-    console.log('\n=== Final Answer ===');
-    console.log(answer);
-    console.log('\n✓ MCP client closed');
+    console.log(`FINAL ANSWER: ${answer}`);
   } catch (error) {
-    console.error('\nError during MCP client execution:');
     console.error(error);
     throw error;
   }
 }
 
-main().catch(error => {
-  console.error('\nFatal error:', error);
-  process.exit(1);
-});
+main().catch(console.error);
