@@ -46,7 +46,6 @@ const webSearchCallItem = z.object({
       z.object({
         type: z.literal('search'),
         query: z.string().nullish(),
-        sources: z.array(z.looseObject({})).nullish(),
       }),
       z.object({
         type: z.literal('open_page'),
