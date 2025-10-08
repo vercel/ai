@@ -43,7 +43,7 @@ import { mockValues } from '../test/mock-values';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
-import { streamText } from './stream-text';
+import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
 
@@ -4712,9 +4712,7 @@ describe('streamText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<
-        Required<Parameters<typeof streamText>[0]>['onFinish']
-      >[0];
+      let result!: Parameters<StreamTextOnFinishCallback<any>>[0];
 
       const resultObject = streamText({
         model: createTestModel({
@@ -5515,24 +5513,21 @@ describe('streamText', () => {
 
   describe('options.stopWhen', () => {
     let result: StreamTextResult<any, any>;
-    let onFinishResult: Parameters<
-      Required<Parameters<typeof streamText>[0]>['onFinish']
-    >[0];
+    let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
     let onStepFinishResults: StepResult<any>[];
     let tracer: MockTracer;
     let stepInputs: Array<any>;
 
     beforeEach(() => {
+      result = undefined as any;
+      onFinishResult = undefined as any;
+      onStepFinishResults = [];
       tracer = new MockTracer();
       stepInputs = [];
     });
 
     describe('2 steps: initial, tool-result', () => {
       beforeEach(async () => {
-        result = undefined as any;
-        onFinishResult = undefined as any;
-        onStepFinishResults = [];
-
         let responseCount = 0;
         result = streamText({
           model: new MockLanguageModelV3({
@@ -5605,7 +5600,6 @@ describe('streamText', () => {
           },
           prompt: 'test-input',
           onFinish: async event => {
-            expect(onFinishResult).to.be.undefined;
             onFinishResult = event as unknown as typeof onFinishResult;
           },
           onStepFinish: async event => {
@@ -6627,7 +6621,6 @@ describe('streamText', () => {
     });
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
-      let result: StreamTextResult<any, any>;
       let doStreamCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
         stepNumber: number;
@@ -7229,10 +7222,6 @@ describe('streamText', () => {
         });
 
       beforeEach(async () => {
-        result = undefined as any;
-        onFinishResult = undefined as any;
-        onStepFinishResults = [];
-
         let responseCount = 0;
         result = streamText({
           model: new MockLanguageModelV3({
@@ -13945,6 +13934,306 @@ describe('streamText', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('when a single tool has a needsApproval function', () => {
+      let result: StreamTextResult<any, any>;
+      let needsApprovalCalls: Array<{ input: any; options: any }> = [];
+
+      beforeEach(async () => {
+        needsApprovalCalls = [];
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value-needs-approval" }`,
+              },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-2',
+                toolName: 'tool1',
+                input: `{ "value": "value-no-approval" }`,
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: input => `result for ${input.value}`,
+              needsApproval: (input, options) => {
+                needsApprovalCalls.push({ input, options });
+                return input.value === 'value-needs-approval';
+              },
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+        });
+      });
+
+      it('should add tool approval requests to the full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "input": {
+                  "value": "value-needs-approval",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "id-1",
+                "toolCall": {
+                  "input": {
+                    "value": "value-needs-approval",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                "type": "tool-approval-request",
+              },
+              {
+                "input": {
+                  "value": "value-no-approval",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-2",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "dynamic": false,
+                "input": {
+                  "value": "value-no-approval",
+                },
+                "output": "result for value-no-approval",
+                "toolCallId": "call-2",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+              },
+              {
+                "finishReason": "tool-calls",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      it('should add tool approval requests to the UI message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "input": {
+                  "value": "value-needs-approval",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-input-available",
+              },
+              {
+                "approvalId": "id-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+              {
+                "input": {
+                  "value": "value-no-approval",
+                },
+                "toolCallId": "call-2",
+                "toolName": "tool1",
+                "type": "tool-input-available",
+              },
+              {
+                "output": "result for value-no-approval",
+                "toolCallId": "call-2",
+                "type": "tool-output-available",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      it('should only execute 1 step when the tool needs approval', async () => {
+        expect((await result.steps).length).toBe(1);
+      });
+
+      it('should have tool-calls finish reason', async () => {
+        expect(await result.finishReason).toBe('tool-calls');
+      });
+
+      it('should add a tool approval request to the content', async () => {
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value-needs-approval",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "approvalId": "id-1",
+              "toolCall": {
+                "input": {
+                  "value": "value-needs-approval",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              "type": "tool-approval-request",
+            },
+            {
+              "input": {
+                "value": "value-no-approval",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value-no-approval",
+              },
+              "output": "result for value-no-approval",
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+
+      it('should add tool approval requests to the response messages', async () => {
+        expect((await result.response).messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value-needs-approval",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+                {
+                  "input": {
+                    "value": "value-no-approval",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-2",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result for value-no-approval",
+                  },
+                  "toolCallId": "call-2",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
+      });
+
+      it('should call the needsApproval function with the correct input and options', async () => {
+        expect(needsApprovalCalls).toMatchInlineSnapshot(`[]`);
       });
     });
 

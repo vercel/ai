@@ -28,7 +28,7 @@ import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
-import { generateText } from './generate-text';
+import { generateText, GenerateTextOnFinishCallback } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
@@ -39,15 +39,17 @@ vi.mock('../version', () => {
   };
 });
 
+const testUsage = {
+  inputTokens: 3,
+  outputTokens: 10,
+  totalTokens: 13,
+  reasoningTokens: undefined,
+  cachedInputTokens: undefined,
+};
+
 const dummyResponseValues = {
   finishReason: 'stop' as const,
-  usage: {
-    inputTokens: 3,
-    outputTokens: 10,
-    totalTokens: 13,
-    reasoningTokens: undefined,
-    cachedInputTokens: undefined,
-  },
+  usage: testUsage,
   warnings: [],
 };
 
@@ -650,14 +652,298 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.onFinish', () => {
+    it('should send correct information', async () => {
+      let result!: Parameters<GenerateTextOnFinishCallback<any>>[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [
+              { type: 'text', text: 'Hello, World!' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+            finishReason: 'stop',
+            usage: testUsage,
+            response: {
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+              headers: { call: '2' },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
+            },
+            warnings: [],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          },
+        },
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
+        prompt: 'irrelevant',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "Hello, World!",
+              "type": "text",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "dynamicToolCalls": [],
+          "dynamicToolResults": [],
+          "files": [],
+          "finishReason": "stop",
+          "providerMetadata": undefined,
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {},
+          "response": {
+            "body": undefined,
+            "headers": {
+              "call": "2",
+            },
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello, World!",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "value-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
+          "sources": [],
+          "staticToolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "staticToolResults": [
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "steps": [
+            DefaultStepResult {
+              "content": [
+                {
+                  "text": "Hello, World!",
+                  "type": "text",
+                },
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "value-result",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "body": undefined,
+                "headers": {
+                  "call": "2",
+                },
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "Hello, World!",
+                        "type": "text",
+                      },
+                      {
+                        "input": {
+                          "value": "value",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "text",
+                          "value": "value-result",
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ],
+          "text": "Hello, World!",
+          "toolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "toolResults": [
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "totalUsage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "warnings": [],
+        }
+      `);
+    });
+  });
+
   describe('options.stopWhen', () => {
+    let result: GenerateTextResult<any, any>;
+    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
+    let onStepFinishResults: StepResult<any>[];
+
+    beforeEach(() => {
+      result = undefined as any;
+      onFinishResult = undefined as any;
+      onStepFinishResults = [];
+    });
+
     describe('2 steps: initial, tool-result', () => {
-      let result: GenerateTextResult<any, any>;
-      let onStepFinishResults: StepResult<any>[];
-
       beforeEach(async () => {
-        onStepFinishResults = [];
-
         let responseCount = 0;
         result = await generateText({
           model: new MockLanguageModelV3({
@@ -748,10 +1034,13 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
-          stopWhen: stepCountIs(3),
+          onFinish: async event => {
+            onFinishResult = event as unknown as typeof onFinishResult;
+          },
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
+          stopWhen: stepCountIs(3),
         });
       });
 
@@ -799,8 +1088,14 @@ describe('generateText', () => {
         expect(result.steps).toMatchSnapshot();
       });
 
-      it('onStepFinish should be called for each step', () => {
-        expect(onStepFinishResults).toMatchSnapshot();
+      describe('callbacks', () => {
+        it('onFinish should send correct information', async () => {
+          expect(onFinishResult).toMatchSnapshot();
+        });
+
+        it('onStepFinish should be called for each step', () => {
+          expect(onStepFinishResults).toMatchSnapshot();
+        });
       });
     });
 
@@ -836,14 +1131,6 @@ describe('generateText', () => {
                       toolCallId: 'call-1',
                       toolName: 'tool1',
                       input: `{ "value": "value" }`,
-                    },
-                  ],
-                  toolResults: [
-                    {
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      input: { value: 'value' },
-                      output: 'result1',
                     },
                   ],
                   finishReason: 'tool-calls',
@@ -3449,6 +3736,202 @@ describe('generateText', () => {
                 },
               ],
               "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('when a single tool has a needsApproval function', () => {
+      let result: GenerateTextResult<any, any>;
+      let needsApprovalCalls: Array<{ input: any; options: any }> = [];
+
+      beforeEach(async () => {
+        needsApprovalCalls = [];
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value-needs-approval" }`,
+                },
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-2',
+                  toolName: 'tool1',
+                  input: `{ "value": "value-no-approval" }`,
+                },
+              ],
+              finishReason: 'tool-calls',
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: input => `result for ${input.value}`,
+              needsApproval: (input, options) => {
+                needsApprovalCalls.push({ input, options });
+                return input.value === 'value-needs-approval';
+              },
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+        });
+      });
+
+      it('should only execute 1 step when the tool needs approval', async () => {
+        expect(result.steps.length).toBe(1);
+      });
+
+      it('should have tool-calls finish reason', async () => {
+        expect(result.finishReason).toBe('tool-calls');
+      });
+
+      it('should add a tool approval request to the content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value-needs-approval",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value-no-approval",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value-no-approval",
+              },
+              "output": "result for value-no-approval",
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "approvalId": "id-1",
+              "toolCall": {
+                "input": {
+                  "value": "value-needs-approval",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              "type": "tool-approval-request",
+            },
+          ]
+        `);
+      });
+
+      it('should include tool approval request in response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value-needs-approval",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "input": {
+                    "value": "value-no-approval",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-2",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result for value-no-approval",
+                  },
+                  "toolCallId": "call-2",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
+      });
+
+      it('should call the needsApproval function with the correct input and options', async () => {
+        expect(needsApprovalCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value-needs-approval",
+              },
+              "options": {
+                "experimental_context": undefined,
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-1",
+              },
+            },
+            {
+              "input": {
+                "value": "value-no-approval",
+              },
+              "options": {
+                "experimental_context": undefined,
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-2",
+              },
             },
           ]
         `);

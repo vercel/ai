@@ -7,6 +7,7 @@ import { ToolSet } from '../generate-text/tool-set';
 import { CallSettings } from '../prompt/call-settings';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import { AgentOnFinishCallback } from './agent-on-finish-callback';
 import { AgentOnStepFinishCallback } from './agent-on-step-finish-callback';
 
 /**
@@ -84,9 +85,14 @@ A function that attempts to repair a tool call that failed to parse.
   experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
   /**
-  Callback that is called when each step (LLM call) is finished, including intermediate steps.
-  */
+   * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+   */
   onStepFinish?: AgentOnStepFinishCallback<NoInfer<TOOLS>>;
+
+  /**
+   * Callback that is called when all steps are finished and the response is complete.
+   */
+  onFinish?: AgentOnFinishCallback<NoInfer<TOOLS>>;
 
   /**
 Additional provider-specific options. They are passed through

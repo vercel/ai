@@ -100,7 +100,30 @@ Use descriptions to make the input understandable for the language model.
   /**
 Whether the tool needs approval before it can be executed.
    */
-  needsApproval?: boolean;
+  needsApproval?:
+    | boolean
+    | ((
+        input: [INPUT] extends [never] ? unknown : INPUT,
+        options: {
+          /**
+           * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+           */
+          toolCallId: string;
+
+          /**
+           * Messages that were sent to the language model to initiate the response that contained the tool call.
+           * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
+           */
+          messages: ModelMessage[];
+
+          /**
+           * Additional context.
+           *
+           * Experimental (can break in patch releases).
+           */
+          experimental_context?: unknown;
+        },
+      ) => boolean | PromiseLike<boolean>);
 
   /**
    * Optional function that is called when the argument streaming starts.
@@ -122,7 +145,7 @@ Whether the tool needs approval before it can be executed.
    */
   onInputAvailable?: (
     options: {
-      input: [INPUT] extends [never] ? undefined : INPUT;
+      input: [INPUT] extends [never] ? unknown : INPUT;
     } & ToolCallOptions,
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {

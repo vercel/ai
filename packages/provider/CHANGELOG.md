@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.6
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
 ## 2.1.0-beta.5
 
 ### Patch Changes
