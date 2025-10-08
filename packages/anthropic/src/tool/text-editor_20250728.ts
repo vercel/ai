@@ -1,5 +1,5 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 export const textEditor_20250728ArgsSchema = z.object({
   maxCharacters: z.number().optional(),
