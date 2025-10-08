@@ -1,16 +1,18 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
-import 'dotenv/config';
-import type { OAuthClientProvider } from '../../../../packages/ai/src/tool/mcp/oauth.js';
 import {
+  experimental_createMCPClient,
+  generateText,
+  stepCountIs,
   auth,
   UnauthorizedError,
-} from '../../../../packages/ai/src/tool/mcp/oauth.js';
+} from 'ai';
+import 'dotenv/config';
 import type {
+  OAuthClientProvider,
   OAuthClientInformation,
   OAuthClientMetadata,
   OAuthTokens,
-} from '../../../../packages/ai/src/tool/mcp/oauth-types.js';
+} from 'ai';
 import { createServer } from 'node:http';
 import { exec } from 'node:child_process';
 
