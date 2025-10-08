@@ -78,13 +78,14 @@ export type FlexibleValidator<OBJECT> =
   | LazyValidator<OBJECT>
   | StandardSchemaV1<unknown, OBJECT>;
 
-export type InferValidator<SCHEMA> = SCHEMA extends StandardSchemaV1
-  ? StandardSchemaV1<unknown, SCHEMA>
-  : SCHEMA extends LazyValidator<infer T>
+export type InferValidator<SCHEMA> =
+  SCHEMA extends StandardSchemaV1<unknown, infer T>
     ? T
-    : SCHEMA extends Validator<infer T>
+    : SCHEMA extends LazyValidator<infer T>
       ? T
-      : never;
+      : SCHEMA extends Validator<infer T>
+        ? T
+        : never;
 
 export function asValidator<OBJECT>(
   value: FlexibleValidator<OBJECT>,
