@@ -1,6 +1,7 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { Validator, asValidator } from './validator';
+import { LazyValidator } from './lazy-validator';
 
 /**
  * Validates the types of an unknown object using a schema and
@@ -16,7 +17,10 @@ export async function validateTypes<OBJECT>({
   schema,
 }: {
   value: unknown;
-  schema: StandardSchemaV1<unknown, OBJECT> | Validator<OBJECT>;
+  schema:
+    | StandardSchemaV1<unknown, OBJECT>
+    | Validator<OBJECT>
+    | LazyValidator<OBJECT>;
 }): Promise<OBJECT> {
   const result = await safeValidateTypes({ value, schema });
 
@@ -41,7 +45,10 @@ export async function safeValidateTypes<OBJECT>({
   schema,
 }: {
   value: unknown;
-  schema: StandardSchemaV1<unknown, OBJECT> | Validator<OBJECT>;
+  schema:
+    | StandardSchemaV1<unknown, OBJECT>
+    | Validator<OBJECT>
+    | LazyValidator<OBJECT>;
 }): Promise<
   | {
       success: true;

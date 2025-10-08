@@ -1,5 +1,6 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { StandardSchemaV1 } from '@standard-schema/spec';
+import { LazyValidator } from './lazy-validator';
 
 /**
  * Used to mark validator functions so we can support both Zod and custom schemas.
@@ -51,9 +52,16 @@ export function isValidator(value: unknown): value is Validator {
 }
 
 export function asValidator<OBJECT>(
-  value: Validator<OBJECT> | StandardSchemaV1<unknown, OBJECT>,
+  value:
+    | Validator<OBJECT>
+    | LazyValidator<OBJECT>
+    | StandardSchemaV1<unknown, OBJECT>,
 ): Validator<OBJECT> {
-  return isValidator(value) ? value : standardSchemaValidator(value);
+  return isValidator(value)
+    ? value
+    : typeof value === 'function'
+      ? value()
+      : standardSchemaValidator(value);
 }
 
 export function standardSchemaValidator<OBJECT>(

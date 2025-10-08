@@ -3,7 +3,9 @@ import {
   EventSourceParserStream,
 } from 'eventsource-parser/stream';
 import { ZodType } from 'zod/v4';
+import { LazyValidator } from './lazy-validator';
 import { ParseResult, safeParseJSON } from './parse-json';
+import { Validator } from './validator';
 
 /**
  * Parses a JSON event stream into a stream of parsed JSON objects.
@@ -13,7 +15,7 @@ export function parseJsonEventStream<T>({
   schema,
 }: {
   stream: ReadableStream<Uint8Array>;
-  schema: ZodType<T>;
+  schema: ZodType<T> | Validator<T> | LazyValidator<T>;
 }): ReadableStream<ParseResult<T>> {
   return stream
     .pipeThrough(new TextDecoderStream())

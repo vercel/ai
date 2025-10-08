@@ -10,7 +10,7 @@ import { Validator } from './validator';
  */
 export function lazyValidator<OBJECT>(
   createValidator: () => Validator<OBJECT>,
-): () => Validator<OBJECT> {
+): LazyValidator<OBJECT> {
   // cache the validator to avoid initializing it multiple times
   let validator: Validator<OBJECT> | undefined;
   return () => {
@@ -21,5 +21,7 @@ export function lazyValidator<OBJECT>(
   };
 }
 
+export type LazyValidator<OBJECT> = () => Validator<OBJECT>;
+
 export type InferFromLazyValidator<LAZY_VALIDATOR> =
-  LAZY_VALIDATOR extends () => Validator<infer OBJECT> ? OBJECT : never;
+  LAZY_VALIDATOR extends LazyValidator<infer OBJECT> ? OBJECT : never;
