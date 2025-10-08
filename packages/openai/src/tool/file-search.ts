@@ -3,7 +3,7 @@ import {
   OpenAIResponsesFileSearchToolComparisonFilter,
   OpenAIResponsesFileSearchToolCompoundFilter,
 } from '../responses/openai-responses-api';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 const comparisonFilterSchema = z.object({
   key: z.string(),

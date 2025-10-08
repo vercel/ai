@@ -1,5 +1,5 @@
 import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 export const localShellInputSchema = z.object({
   action: z.object({

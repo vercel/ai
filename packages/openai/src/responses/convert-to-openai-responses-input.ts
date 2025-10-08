@@ -5,7 +5,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
