@@ -28,9 +28,9 @@ const agent = new Agent({
   stopWhen: stepCountIs(20), // Default state: stop after 20 steps maximum
 });
 
-const result = await agent.generate(
-  'Analyze this dataset and create a summary report',
-);
+const result = await agent.generate({
+  prompt: 'Analyze this dataset and create a summary report',
+});
 ```
 
 ### Combine Multiple Conditions
@@ -51,7 +51,9 @@ const agent = new Agent({
   ],
 });
 
-const result = await agent.generate('Research and analyze the topic');
+const result = await agent.generate({
+  prompt: 'Research and analyze the topic',
+});
 ```
 
 ### Create Custom Conditions
@@ -76,9 +78,9 @@ const agent = new Agent({
   stopWhen: hasAnswer,
 });
 
-const result = await agent.generate(
-  'Find the answer and respond with "ANSWER: [your answer]"',
-);
+const result = await agent.generate({
+  prompt: 'Find the answer and respond with "ANSWER: [your answer]"',
+});
 ```
 
 Custom conditions receive step information across all steps:
@@ -127,7 +129,9 @@ const agent = new Agent({
   },
 });
 
-const result = await agent.generate('...');
+const result = await agent.generate({
+  prompt: '...',
+});
 ```
 
 ### Context Management
@@ -156,7 +160,9 @@ const agent = new Agent({
   },
 });
 
-const result = await agent.generate('...');
+const result = await agent.generate({
+  prompt: '...',
+});
 ```
 
 ### Tool Selection
@@ -197,7 +203,9 @@ const agent = new Agent({
   },
 });
 
-const result = await agent.generate('...');
+const result = await agent.generate({
+  prompt: '...',
+});
 ```
 
 You can also force a specific tool to be used:
@@ -250,7 +258,9 @@ const agent = new Agent({
   },
 });
 
-const result = await agent.generate('...');
+const result = await agent.generate({
+  prompt: '...',
+});
 ```
 
 ## Access Step Information
