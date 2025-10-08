@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseJSON, safeParseJSON, isParsableJson } from './parse-json';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 
 describe('parseJSON', () => {

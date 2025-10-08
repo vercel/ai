@@ -17,7 +17,7 @@ import {
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';

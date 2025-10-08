@@ -1,15 +1,22 @@
-import { z } from 'zod/v4';
+import {
+  InferValidator,
+  lazyValidator,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
 
 // https://platform.openai.com/docs/models
 export type OpenAICompletionModelId = 'gpt-3.5-turbo-instruct' | (string & {});
 
-export const openaiCompletionProviderOptions = z.object({
-  /**
+export const openaiCompletionProviderOptions = lazyValidator(() =>
+  zodSchema(
+    z.object({
+      /**
 Echo back the prompt in addition to the completion.
    */
-  echo: z.boolean().optional(),
+      echo: z.boolean().optional(),
 
-  /**
+      /**
 Modify the likelihood of specified tokens appearing in the completion.
 
 Accepts a JSON object that maps tokens (specified by their token ID in
@@ -23,20 +30,20 @@ should result in a ban or exclusive selection of the relevant token.
 As an example, you can pass {"50256": -100} to prevent the <|endoftext|>
 token from being generated.
  */
-  logitBias: z.record(z.string(), z.number()).optional(),
+      logitBias: z.record(z.string(), z.number()).optional(),
 
-  /**
+      /**
 The suffix that comes after a completion of inserted text.
  */
-  suffix: z.string().optional(),
+      suffix: z.string().optional(),
 
-  /**
+      /**
 A unique identifier representing your end-user, which can help OpenAI to
 monitor and detect abuse. Learn more.
  */
-  user: z.string().optional(),
+      user: z.string().optional(),
 
-  /**
+      /**
 Return the log probabilities of the tokens. Including logprobs will increase
 the response size and can slow down response times. However, it can
 be useful to better understand how the model is behaving.
@@ -45,9 +52,11 @@ were generated.
 Setting to a number will return the log probabilities of the top n
 tokens that were generated.
    */
-  logprobs: z.union([z.boolean(), z.number()]).optional(),
-});
+      logprobs: z.union([z.boolean(), z.number()]).optional(),
+    }),
+  ),
+);
 
-export type OpenAICompletionProviderOptions = z.infer<
+export type OpenAICompletionProviderOptions = InferValidator<
   typeof openaiCompletionProviderOptions
 >;

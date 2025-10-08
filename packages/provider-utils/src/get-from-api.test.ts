@@ -5,7 +5,7 @@ import {
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
 } from './response-handler';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 import { withUserAgentSuffix } from './with-user-agent-suffix';
 
