@@ -20,6 +20,7 @@ export function zod3Schema<OBJECT>(
   const useReferences = options?.useReferences ?? false;
 
   return jsonSchema(
+    // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
       zodToJsonSchema(zodSchema, {
         $refStrategy: useReferences ? 'root' : 'none',
@@ -51,6 +52,7 @@ export function zod4Schema<OBJECT>(
   const useReferences = options?.useReferences ?? false;
 
   return jsonSchema(
+    // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
       z4.toJSONSchema(zodSchema, {
         target: 'draft-7',
