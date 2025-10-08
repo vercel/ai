@@ -1,5 +1,5 @@
 import {
-  InferFromLazyValidator,
+  InferValidator,
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -150,6 +150,6 @@ export const openaiChatLanguageModelOptions = lazyValidator(() =>
   ),
 );
 
-export type OpenAIChatLanguageModelOptions = InferFromLazyValidator<
+export type OpenAIChatLanguageModelOptions = InferValidator<
   typeof openaiChatLanguageModelOptions
 >;

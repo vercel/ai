@@ -1,5 +1,5 @@
 import {
-  InferFromLazyValidator,
+  InferValidator,
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -49,6 +49,6 @@ export const openAITranscriptionProviderOptions = lazyValidator(() =>
   ),
 );
 
-export type OpenAITranscriptionProviderOptions = InferFromLazyValidator<
+export type OpenAITranscriptionProviderOptions = InferValidator<
   typeof openAITranscriptionProviderOptions
 >;

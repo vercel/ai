@@ -1,5 +1,5 @@
 import {
-  InferFromLazyValidator,
+  InferValidator,
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -57,6 +57,6 @@ tokens that were generated.
   ),
 );
 
-export type OpenAICompletionProviderOptions = InferFromLazyValidator<
+export type OpenAICompletionProviderOptions = InferValidator<
   typeof openaiCompletionProviderOptions
 >;

@@ -45,7 +45,7 @@ export {
   standardSchemaValidator,
   validator,
   type FlexibleValidator,
-  type InferFromLazyValidator,
+  type InferValidator,
   type LazyValidator,
   type ValidationResult,
   type Validator,

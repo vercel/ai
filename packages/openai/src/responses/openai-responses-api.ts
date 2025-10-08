@@ -1,6 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import {
-  InferFromLazyValidator,
+  InferValidator,
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -502,7 +502,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
   ),
 );
 
-export type OpenAIResponsesChunk = InferFromLazyValidator<
+export type OpenAIResponsesChunk = InferValidator<
   typeof openaiResponsesChunkSchema
 >;
 

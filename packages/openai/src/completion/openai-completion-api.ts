@@ -1,7 +1,7 @@
 import * as z from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
 import {
-  InferFromLazyValidator,
+  InferValidator,
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -76,10 +76,10 @@ export const openaiCompletionChunkSchema = lazyValidator(() =>
   ),
 );
 
-export type OpenAICompletionChunk = InferFromLazyValidator<
+export type OpenAICompletionChunk = InferValidator<
   typeof openaiCompletionChunkSchema
 >;
 
-export type OpenAICompletionResponse = InferFromLazyValidator<
+export type OpenAICompletionResponse = InferValidator<
   typeof openaiCompletionResponseSchema
 >;
