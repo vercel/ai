@@ -1,5 +1,5 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 /**
  * Browser search tool for Groq models.

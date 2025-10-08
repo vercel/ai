@@ -5,7 +5,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { LMNTConfig } from './lmnt-config';
 import { lmntFailedResponseHandler } from './lmnt-error';
 import { LMNTSpeechModelId } from './lmnt-speech-options';

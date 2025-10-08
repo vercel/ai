@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 // https://vercel.com/docs/ai-gateway/provider-options
 export const gatewayProviderOptions = z.object({

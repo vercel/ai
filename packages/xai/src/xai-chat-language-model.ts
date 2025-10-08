@@ -15,7 +15,7 @@ import {
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';

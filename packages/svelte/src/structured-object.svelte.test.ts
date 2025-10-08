@@ -3,7 +3,7 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { render } from '@testing-library/svelte';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { StructuredObject } from './structured-object.svelte.js';
 import StructuredObjectSynchronization from './tests/structured-object-synchronization.svelte';
 import { vi, describe, beforeEach, expect, it } from 'vitest';

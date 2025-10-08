@@ -5,7 +5,7 @@ import {
   ToolModelMessage,
   UserModelMessage,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import {
   filePartSchema,
