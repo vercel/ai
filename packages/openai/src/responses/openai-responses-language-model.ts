@@ -38,17 +38,12 @@ import {
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
 } from './openai-responses-api';
+import {
+  OpenAIResponsesModelId,
+  openaiResponsesProviderOptionsSchema,
+  TOP_LOGPROBS_MAX,
+} from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { OpenAIResponsesModelId } from './openai-responses-settings';
-
-/**
- * `top_logprobs` request body argument can be set to an integer between
- * 0 and 20 specifying the number of most likely tokens to return at each
- * token position, each with an associated log probability.
- *
- * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-top_logprobs
- */
-const TOP_LOGPROBS_MAX = 20;
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -1346,57 +1341,3 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     isReasoningModel: false,
   };
 }
-
-// TODO AI SDK 6: use optional here instead of nullish
-const openaiResponsesProviderOptionsSchema = z.object({
-  include: z
-    .array(
-      z.enum([
-        'reasoning.encrypted_content',
-        'file_search_call.results',
-        'message.output_text.logprobs',
-      ]),
-    )
-    .nullish(),
-  instructions: z.string().nullish(),
-
-  /**
-   * Return the log probabilities of the tokens.
-   *
-   * Setting to true will return the log probabilities of the tokens that
-   * were generated.
-   *
-   * Setting to a number will return the log probabilities of the top n
-   * tokens that were generated.
-   *
-   * @see https://platform.openai.com/docs/api-reference/responses/create
-   * @see https://cookbook.openai.com/examples/using_logprobs
-   */
-  logprobs: z
-    .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
-    .optional(),
-
-  /**
-   * The maximum number of total calls to built-in tools that can be processed in a response.
-   * This maximum number applies across all built-in tool calls, not per individual tool.
-   * Any further attempts to call a tool by the model will be ignored.
-   */
-  maxToolCalls: z.number().nullish(),
-
-  metadata: z.any().nullish(),
-  parallelToolCalls: z.boolean().nullish(),
-  previousResponseId: z.string().nullish(),
-  promptCacheKey: z.string().nullish(),
-  reasoningEffort: z.string().nullish(),
-  reasoningSummary: z.string().nullish(),
-  safetyIdentifier: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
-  store: z.boolean().nullish(),
-  strictJsonSchema: z.boolean().nullish(),
-  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
-  user: z.string().nullish(),
-});
-
-export type OpenAIResponsesProviderOptions = z.infer<
-  typeof openaiResponsesProviderOptionsSchema
->;
