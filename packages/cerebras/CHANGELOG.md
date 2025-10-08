@@ -1,6 +1,27 @@
 # @ai-sdk/cerebras
 
+<<<<<<< HEAD
 ## 1.0.21
+=======
+## 2.0.0-beta.12
+
+### Minor Changes
+
+- Added support for new Cerebras models:
+  - `gpt-oss-120b` - 120 billion parameter high-performance model
+  - `qwen-3-235b-a22b-instruct-2507` - 235 billion parameter instruction-tuned model
+  - `qwen-3-235b-a22b-thinking-2507` - 235 billion parameter model with enhanced reasoning
+  - `qwen-3-32b` - 32 billion parameter multilingual model
+  - `qwen-3-coder-480b` - 480 billion parameter model specialized for code generation
+- Removed deprecated `llama3.1-70b` model
+- Updated documentation with comprehensive model information
+
+## 2.0.0-beta.11
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+>>>>>>> 42e9f6401 (Update Cerebras Models (#9258))
 
 ### Patch Changes
 
