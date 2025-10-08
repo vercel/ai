@@ -1,26 +1,22 @@
 'use client';
 
 import { SourceExecutionFileUIPart } from 'ai';
-import { codeInterpreterSourceExecutionFileSchema as openaiExecuteFileSchema } from '@ai-sdk/openai/internal';
-import { z } from 'zod/v4';
-
-const executeFileSchema = z.object({
-  openai: openaiExecuteFileSchema,
-});
+import { openaiSourceExecutionFileProviderMetadataSchema } from '@ai-sdk/openai';
 
 export function ContainerFileCitationDownloadButton({
   part,
 }: {
   part: SourceExecutionFileUIPart;
 }) {
-  const executeFileParse = executeFileSchema.safeParse(part.providerMetadata);
-  if (!executeFileParse.success) return null;
+  const executeFileParsed =
+    openaiSourceExecutionFileProviderMetadataSchema.safeParse(
+      part.providerMetadata,
+    );
+  if (!executeFileParsed.success) return null;
 
   const {
-    data: {
-      openai: { containerId, fileId, filename },
-    },
-  } = executeFileParse;
+    openai: { containerId, fileId, filename },
+  } = executeFileParsed.data;
   const onClick = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 

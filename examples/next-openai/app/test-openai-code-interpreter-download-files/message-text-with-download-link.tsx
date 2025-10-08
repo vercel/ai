@@ -1,23 +1,15 @@
-import { openaiReseponseAnnotationSchema } from '@ai-sdk/openai';
-import { OpenAICodeInterpreterMessage } from '../api/chat-openai-code-interpreter-download-files/route';
-import z from 'zod/v4';
+import { openaiResponsesTextUIPartProviderMetadataSchema } from '@ai-sdk/openai';
 import { Response } from './additional-dependencies';
+import { TextUIPart } from 'ai';
 
-type UIMessageTextPart = Extract<
-  OpenAICodeInterpreterMessage['parts'][number],
-  { type: 'text' }
->;
-
-export function MessageTextWithDownloadLink({
-  part,
-}: {
-  part: UIMessageTextPart;
-}) {
-  const annotationsAny = part.providerMetadata?.openai.annotations;
-  const annotationsParse = z
-    .array(openaiReseponseAnnotationSchema)
-    .safeParse(annotationsAny);
-  const annotations = annotationsParse.success ? annotationsParse.data : [];
+export function MessageTextWithDownloadLink({ part }: { part: TextUIPart }) {
+  const providerMetadataParsed =
+    openaiResponsesTextUIPartProviderMetadataSchema.safeParse(
+      part.providerMetadata,
+    );
+  const annotations = providerMetadataParsed.success
+    ? providerMetadataParsed.data.openai.annotations
+    : [];
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -25,6 +17,7 @@ export function MessageTextWithDownloadLink({
     const text = (() => {
       switch (cur.type) {
         case 'container_file_citation':
+          if (cur.start_index === 0 && cur.end_index === 0) return acc;
           return (
             acc.slice(0, cur.start_index) +
             `${baseUrl}/api/chat-openai-code-interpreter-download-files/${cur.container_id}/${cur.file_id}` +

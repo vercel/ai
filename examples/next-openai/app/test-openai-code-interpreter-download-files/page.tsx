@@ -42,7 +42,6 @@ export default function TestOpenAIWebSearch() {
           })}
         </div>
       ))}
-
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
   );
