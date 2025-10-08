@@ -11,7 +11,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
-  InferFromLazyValidator,
   ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -26,6 +25,7 @@ import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
+  OpenAIChatChunk,
   openaiChatChunkSchema,
   openaiChatResponseSchema,
 } from './openai-chat-api';
@@ -452,7 +452,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<InferFromLazyValidator<typeof openaiChatChunkSchema>>,
+          ParseResult<OpenAIChatChunk>,
           LanguageModelV3StreamPart
         >({
           start(controller) {

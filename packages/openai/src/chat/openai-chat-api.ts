@@ -1,5 +1,9 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { lazyValidator, zodSchema } from '@ai-sdk/provider-utils';
+import {
+  InferFromLazyValidator,
+  lazyValidator,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
 
@@ -188,3 +192,11 @@ export const openaiChatChunkSchema = lazyValidator(() =>
     ]),
   ),
 );
+
+export type OpenAIChatResponse = InferFromLazyValidator<
+  typeof openaiChatResponseSchema
+>;
+
+export type OpenAIChatChunk = InferFromLazyValidator<
+  typeof openaiChatChunkSchema
+>;
