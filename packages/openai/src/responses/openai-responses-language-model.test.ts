@@ -3654,7 +3654,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "tool-input-end",
               },
               {
-                "input": "{"action":{"type":"search","query":"Berlin news today"}}",
+                "input": "{"action":{"type":"search","query":"Berlin news today","sources":[{"type":"url","url":"https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/"},{"type":"url","url":"https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025"},{"type":"url","url":"https://en.wikipedia.org/wiki/75th_Berlin_International_Film_Festival"},{"type":"url","url":"https://apnews.com/article/ecf774eea5cdc7cbf88adf3887102d9b"},{"type":"url","url":"https://apnews.com/article/1710be90a0e733d016e32db4d8353e1c"},{"type":"url","url":"https://en.wikipedia.org/wiki/Rave_The_Planet_Parade"},{"type":"url","url":"https://en.wikipedia.org/wiki/2025_DFB-Pokal_final"},{"type":"url","url":"https://en.wikipedia.org/wiki/2025_Berlin_Tennis_Open"},{"type":"url","url":"https://en.wikipedia.org/wiki/Parkb%C3%BChne_Wuhlheide"},{"type":"url","url":"https://en.wikipedia.org/wiki/2025_Berlin_Tennis_Open_%E2%80%93_Singles"},{"type":"url","url":"https://www.visitberlin.de/en/berlin-2025-the-main-events"},{"type":"url","url":"https://helloberl.in/berlin-events-feb-27-march-2nd-2025/"}]}}",
                 "providerExecuted": true,
                 "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
                 "toolName": "web_search",
@@ -3700,7 +3700,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "tool-input-end",
               },
               {
-                "input": "{"action":{"type":"search"}}",
+                "input": "{"action":{"type":"search","sources":[{"type":"url","url":"https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/"}]}}",
                 "providerExecuted": true,
                 "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
                 "toolName": "web_search",
@@ -3746,7 +3746,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "tool-input-end",
               },
               {
-                "input": "{"action":{"type":"search"}}",
+                "input": "{"action":{"type":"search","sources":[{"type":"url","url":"https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025"}]}}",
                 "providerExecuted": true,
                 "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
                 "toolName": "web_search",
@@ -3792,7 +3792,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "tool-input-end",
               },
               {
-                "input": "{"action":{"type":"search"}}",
+                "input": "{"action":{"type":"search","sources":[{"type":"url","url":"https://www.visitberlin.de/en/berlin-2025-the-main-events"}]}}",
                 "providerExecuted": true,
                 "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
                 "toolName": "web_search",
