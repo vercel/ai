@@ -1847,3 +1847,14 @@ const openaiResponsesProviderOptionsSchema = z.object({
 export type OpenAIResponsesProviderOptions = z.infer<
   typeof openaiResponsesProviderOptionsSchema
 >;
+
+export const openaiResponsesTextUIPartProviderMetadataSchema = z.object({
+  openai: z.object({
+    itemId: z.string(),
+    annotations: z.array(responseAnnotationAddedSchema.shape.annotation),
+  }),
+});
+
+export const openaiSourceExecutionFileProviderMetadataSchema = z.object({
+  openai: sourceExecutionFileCodeInterpreterItem,
+});
