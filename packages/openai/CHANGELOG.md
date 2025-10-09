@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.46
+
+### Patch Changes
+
+- 66f69e7: Add 'default' as service tier
+
 ## 2.0.45
 
 ### Patch Changes
