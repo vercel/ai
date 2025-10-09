@@ -11,6 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 import {
+  OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
@@ -296,7 +297,7 @@ export async function convertToOpenAIResponsesInput({
             break;
           }
 
-          let contentValue: string;
+          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -306,6 +307,36 @@ export async function convertToOpenAIResponsesInput({
               contentValue = output.reason ?? 'Tool execution denied.';
               break;
             case 'content':
+              contentValue = output.value.map(outputPart => {
+                switch (outputPart.type) {
+                  case 'text': {
+                    return {
+                      type: 'input_text',
+                      text: outputPart.text,
+                    };
+                  }
+                  case 'media': {
+                    if (isFileId(outputPart.data, fileIdPrefixes)) {
+                      return {
+                        type: 'input_file',
+                        file_id: outputPart.data,
+                      };
+                    }
+                    if (outputPart.mediaType.startsWith('image/')) {
+                      return {
+                        type: 'input_image',
+                        image_url: `data:${outputPart.mediaType};base64,${outputPart.data}`,
+                      };
+                    } else {
+                      return {
+                        type: 'input_file',
+                        file_url: `data:${outputPart.mediaType};base64,${outputPart.data}`,
+                      };
+                    }
+                  }
+                }
+              });
+              break;
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);

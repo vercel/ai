@@ -1658,6 +1658,101 @@ describe('convertToOpenAIResponsesInput', () => {
         },
       ]);
     });
+
+    it('should convert content-type tool results with text, image, and file media', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_content_1',
+                toolName: 'some_tool',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'hello' },
+                    { type: 'media', mediaType: 'image/png', data: 'AAECAw==' },
+                    {
+                      type: 'media',
+                      mediaType: 'application/pdf',
+                      data: 'AQIDBAU=',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_content_1',
+          output: [
+            { type: 'input_text', text: 'hello' },
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,AAECAw==',
+            },
+            {
+              type: 'input_file',
+              file_url: 'data:application/pdf;base64,AQIDBAU=',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should use file_id in content-type tool results when prefixes match (image and pdf)', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_content_2',
+                toolName: 'some_tool',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'media',
+                      mediaType: 'image/png',
+                      data: 'file-img-123',
+                    },
+                    {
+                      type: 'media',
+                      mediaType: 'application/pdf',
+                      data: 'file-pdf-456',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+        fileIdPrefixes: ['file-'],
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_content_2',
+          output: [
+            { type: 'input_file', file_id: 'file-img-123' },
+            { type: 'input_file', file_id: 'file-pdf-456' },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('provider-defined tools', () => {
