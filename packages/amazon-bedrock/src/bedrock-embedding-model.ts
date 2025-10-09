@@ -17,7 +17,7 @@ import {
   bedrockEmbeddingProviderOptions,
 } from './bedrock-embedding-options';
 import { BedrockErrorSchema } from './bedrock-error';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 type BedrockEmbeddingConfig = {
   baseUrl: () => string;

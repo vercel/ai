@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { tool } from '@ai-sdk/provider-utils';
 import { ChatInit } from './chat';
 import { ToolSet } from '../generate-text/tool-set';

@@ -4,12 +4,16 @@ import {
   LanguageModelV3ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import {
+  convertToBase64,
+  parseProviderOptions,
+  validateTypes,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
 import {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
-} from './openai-responses-api-types';
+} from './openai-responses-api';
 import {
   localShellInputSchema,
   localShellOutputSchema,
@@ -152,7 +156,10 @@ export async function convertToOpenAIResponsesInput({
               }
 
               if (hasLocalShellTool && part.toolName === 'local_shell') {
-                const parsedInput = localShellInputSchema.parse(part.input);
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: localShellInputSchema,
+                });
                 input.push({
                   type: 'local_shell_call',
                   call_id: part.toolCallId,
@@ -276,10 +283,15 @@ export async function convertToOpenAIResponsesInput({
             part.toolName === 'local_shell' &&
             output.type === 'json'
           ) {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: localShellOutputSchema,
+            });
+
             input.push({
               type: 'local_shell_call_output',
               call_id: part.toolCallId,
-              output: localShellOutputSchema.parse(output.value).output,
+              output: parsedOutput.output,
             });
             break;
           }

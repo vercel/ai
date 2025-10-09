@@ -9,7 +9,7 @@ import {
   BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
 import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 const mockPrepareAnthropicTools = vi.mocked(prepareTools);
 
