@@ -3,7 +3,7 @@ import {
   LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
+import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
 import { getCacheControl } from './get-cache-control';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';

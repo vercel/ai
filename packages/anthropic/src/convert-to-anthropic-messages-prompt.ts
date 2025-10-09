@@ -10,16 +10,16 @@ import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
   AnthropicMessagesPrompt,
+  anthropicReasoningMetadataSchema,
   AnthropicToolResultContent,
   AnthropicUserMessage,
   AnthropicWebFetchToolResultContent,
-} from './anthropic-api-types';
-import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
+} from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { getCacheControl } from './get-cache-control';
-import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
+import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV3DataContent): string {
   if (typeof data === 'string') {
