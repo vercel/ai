@@ -409,7 +409,7 @@ describe('prepareTools', () => {
 
   it('should limit cache breakpoints to 4', async () => {
     const cacheControlValidator = new CacheControlValidator();
-    const result = prepareTools({
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
