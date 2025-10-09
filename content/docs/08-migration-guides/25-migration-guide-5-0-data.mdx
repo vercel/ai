@@ -11,7 +11,7 @@ AI SDK 5.0 introduces changes to the message structure and persistence patterns.
 
 ## Recommended Migration Process
 
-Follow this two-phase approach for a safe, zero-downtime migration:
+Follow this two-phase approach for a safe migration:
 
 ### Phase 1: Get Your App Working (Runtime Conversion)
 
@@ -24,13 +24,13 @@ Follow this two-phase approach for a safe, zero-downtime migration:
 
 Your database schema remains unchanged during Phase 1. You're only adding a conversion layer that transforms messages at runtime.
 
-**Timeline:** Can be completed in hours or days, with zero downtime.
+**Timeline:** Can be completed in hours or days.
 
 ### Phase 2: Migrate to V5 Schema (Recommended)
 
 **Goal:** Migrate your data to a v5-compatible schema, eliminating the runtime conversion overhead.
 
-While Phase 1 gets you working immediately, migrate your schema within weeks of completing Phase 1. This phase uses a side-by-side migration approach with an equivalent v5 schema:
+While Phase 1 gets you working immediately, you should migrate your schema soon after completing Phase 1. This phase uses a side-by-side migration approach with an equivalent v5 schema:
 
 1. Create `messages_v5` table alongside existing `messages` table
 2. Start dual-writing to both tables (with conversion)
@@ -40,7 +40,7 @@ While Phase 1 gets you working immediately, migrate your schema within weeks of 
 6. Remove dual-write (write only to v5)
 7. Drop old tables
 
-**Timeline:** Should be done within weeks of Phase 1, with zero downtime.
+**Timeline:** Should be done soon after Phase 1.
 
 **Why this matters:**
 
@@ -526,7 +526,7 @@ Use these examples as a guide, then adapt them to your specific setup.
 
 </Note>
 
-### Overview: Zero-Downtime Migration Strategy
+### Overview: Migration Strategy
 
 1. **Create `messages_v5` table** alongside existing `messages` table
 2. **Dual-write** new messages to both schemas (with conversion)
