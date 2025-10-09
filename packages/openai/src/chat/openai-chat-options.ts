@@ -111,13 +111,15 @@ export const openaiChatLanguageModelOptions = lazyValidator(() =>
 
       /**
        * Service tier for the request.
-       * - 'auto': Default service tier
+       * - 'auto': Default service tier. The request will be processed with the service tier configured in the
+       *           Project settings. Unless otherwise configured, the Project will use 'default'.
        * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
        * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
+       * - 'default': The request will be processed with the standard pricing and performance for the selected model.
        *
        * @default 'auto'
        */
-      serviceTier: z.enum(['auto', 'flex', 'priority']).optional(),
+      serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).optional(),
 
       /**
        * Whether to use strict JSON schema validation.
