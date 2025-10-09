@@ -27,21 +27,9 @@ export const imageGenerationArgsSchema = lazySchema(() =>
           .enum(['1024x1024', '1024x1536', '1536x1024', 'auto'])
           .optional(),
       })
-<<<<<<< HEAD
-      .optional(),
-    model: z.string().optional(),
-    moderation: z.enum(['auto']).optional(),
-    outputCompression: z.number().int().min(0).max(100).optional(),
-    outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
-    quality: z.enum(['auto', 'low', 'medium', 'high']).optional(),
-    size: z.enum(['1024x1024', '1024x1536', '1536x1024', 'auto']).optional(),
-  })
-  .strict();
-=======
       .strict(),
   ),
 );
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
 
 const imageGenerationInputSchema = lazySchema(() => zodSchema(z.object({})));
 

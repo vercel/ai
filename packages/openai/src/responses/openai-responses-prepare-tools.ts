@@ -31,13 +31,8 @@ export async function prepareResponsesTools({
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
     | { type: 'image_generation' };
-<<<<<<< HEAD
   toolWarnings: LanguageModelV2CallWarning[];
-} {
-=======
-  toolWarnings: LanguageModelV3CallWarning[];
 }> {
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 

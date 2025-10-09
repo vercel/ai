@@ -246,13 +246,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-<<<<<<< HEAD
-          ParseResult<z.infer<typeof openaiCompletionChunkSchema>>,
-          LanguageModelV2StreamPart
-=======
           ParseResult<OpenAICompletionChunk>,
-          LanguageModelV3StreamPart
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
+          LanguageModelV2StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

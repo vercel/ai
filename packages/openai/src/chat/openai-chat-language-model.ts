@@ -452,13 +452,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-<<<<<<< HEAD
-          ParseResult<z.infer<typeof openaiChatChunkSchema>>,
-          LanguageModelV2StreamPart
-=======
           ParseResult<OpenAIChatChunk>,
-          LanguageModelV3StreamPart
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
+          LanguageModelV2StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

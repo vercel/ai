@@ -363,13 +363,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       });
     }
 
-<<<<<<< HEAD
     const content: Array<LanguageModelV2Content> = [];
-    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
-=======
-    const content: Array<LanguageModelV3Content> = [];
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -701,13 +696,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-<<<<<<< HEAD
-          ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
-          LanguageModelV2StreamPart
-=======
           ParseResult<OpenAIResponsesChunk>,
-          LanguageModelV3StreamPart
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
+          LanguageModelV2StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -999,20 +989,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   delta: value.delta,
                 });
               }
-<<<<<<< HEAD
-=======
-            } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
-              controller.enqueue({
-                type: 'tool-result',
-                toolCallId: value.item_id,
-                toolName: 'image_generation',
-                result: {
-                  result: value.partial_image_b64,
-                } satisfies InferValidator<typeof imageGenerationOutputSchema>,
-                providerExecuted: true,
-                preliminary: true,
-              });
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
             } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
 
@@ -1180,225 +1156,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   }
 }
 
-<<<<<<< HEAD
-const usageSchema = z.object({
-  input_tokens: z.number(),
-  input_tokens_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-  output_tokens: z.number(),
-  output_tokens_details: z
-    .object({ reasoning_tokens: z.number().nullish() })
-    .nullish(),
-});
-
-const textDeltaChunkSchema = z.object({
-  type: z.literal('response.output_text.delta'),
-  item_id: z.string(),
-  delta: z.string(),
-  logprobs: LOGPROBS_SCHEMA.nullish(),
-});
-
-const errorChunkSchema = z.object({
-  type: z.literal('error'),
-  code: z.string(),
-  message: z.string(),
-  param: z.string().nullish(),
-  sequence_number: z.number(),
-});
-
-const responseFinishedChunkSchema = z.object({
-  type: z.enum(['response.completed', 'response.incomplete']),
-  response: z.object({
-    incomplete_details: z.object({ reason: z.string() }).nullish(),
-    usage: usageSchema,
-    service_tier: z.string().nullish(),
-  }),
-});
-
-const responseCreatedChunkSchema = z.object({
-  type: z.literal('response.created'),
-  response: z.object({
-    id: z.string(),
-    created_at: z.number(),
-    model: z.string(),
-    service_tier: z.string().nullish(),
-  }),
-});
-
-const responseOutputItemAddedSchema = z.object({
-  type: z.literal('response.output_item.added'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
-      encrypted_content: z.string().nullish(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-    }),
-    z.object({
-      type: z.literal('web_search_call'),
-      id: z.string(),
-      status: z.string(),
-      action: z
-        .object({
-          type: z.literal('search'),
-          query: z.string().optional(),
-        })
-        .nullish(),
-    }),
-    z.object({
-      type: z.literal('computer_call'),
-      id: z.string(),
-      status: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_search_call'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('image_generation_call'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('code_interpreter_call'),
-      id: z.string(),
-      container_id: z.string(),
-      code: z.string().nullable(),
-      outputs: z
-        .array(
-          z.discriminatedUnion('type', [
-            z.object({ type: z.literal('logs'), logs: z.string() }),
-            z.object({ type: z.literal('image'), url: z.string() }),
-          ]),
-        )
-        .nullable(),
-      status: z.string(),
-    }),
-  ]),
-});
-
-const responseOutputItemDoneSchema = z.object({
-  type: z.literal('response.output_item.done'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
-      encrypted_content: z.string().nullish(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-      status: z.literal('completed'),
-    }),
-    codeInterpreterCallItem,
-    imageGenerationCallItem,
-    webSearchCallItem,
-    fileSearchCallItem,
-    localShellCallItem,
-    z.object({
-      type: z.literal('computer_call'),
-      id: z.string(),
-      status: z.literal('completed'),
-    }),
-  ]),
-});
-
-const responseFunctionCallArgumentsDeltaSchema = z.object({
-  type: z.literal('response.function_call_arguments.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  delta: z.string(),
-});
-
-const responseCodeInterpreterCallCodeDeltaSchema = z.object({
-  type: z.literal('response.code_interpreter_call_code.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  delta: z.string(),
-});
-
-const responseCodeInterpreterCallCodeDoneSchema = z.object({
-  type: z.literal('response.code_interpreter_call_code.done'),
-  item_id: z.string(),
-  output_index: z.number(),
-  code: z.string(),
-});
-
-const responseAnnotationAddedSchema = z.object({
-  type: z.literal('response.output_text.annotation.added'),
-  annotation: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('url_citation'),
-      url: z.string(),
-      title: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_citation'),
-      file_id: z.string(),
-      filename: z.string().nullish(),
-      index: z.number().nullish(),
-      start_index: z.number().nullish(),
-      end_index: z.number().nullish(),
-      quote: z.string().nullish(),
-    }),
-  ]),
-});
-
-const responseReasoningSummaryPartAddedSchema = z.object({
-  type: z.literal('response.reasoning_summary_part.added'),
-  item_id: z.string(),
-  summary_index: z.number(),
-});
-
-const responseReasoningSummaryTextDeltaSchema = z.object({
-  type: z.literal('response.reasoning_summary_text.delta'),
-  item_id: z.string(),
-  summary_index: z.number(),
-  delta: z.string(),
-});
-
-const openaiResponsesChunkSchema = z.union([
-  textDeltaChunkSchema,
-  responseFinishedChunkSchema,
-  responseCreatedChunkSchema,
-  responseOutputItemAddedSchema,
-  responseOutputItemDoneSchema,
-  responseFunctionCallArgumentsDeltaSchema,
-  responseCodeInterpreterCallCodeDeltaSchema,
-  responseCodeInterpreterCallCodeDoneSchema,
-  responseAnnotationAddedSchema,
-  responseReasoningSummaryPartAddedSchema,
-  responseReasoningSummaryTextDeltaSchema,
-  errorChunkSchema,
-  z.object({ type: z.string() }).loose(), // fallback for unknown chunks
-]);
-
-type ExtractByType<
-  T,
-  K extends T extends { type: infer U } ? U : never,
-> = T extends { type: K } ? T : never;
-
-=======
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
 function isTextDeltaChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'response.output_text.delta' } {
@@ -1444,16 +1201,6 @@ function isResponseFunctionCallArgumentsDeltaChunk(
 } {
   return chunk.type === 'response.function_call_arguments.delta';
 }
-<<<<<<< HEAD
-=======
-function isResponseImageGenerationCallPartialImageChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & {
-  type: 'response.image_generation_call.partial_image';
-} {
-  return chunk.type === 'response.image_generation_call.partial_image';
-}
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
 
 function isResponseCodeInterpreterCallCodeDeltaChunk(
   chunk: OpenAIResponsesChunk,
