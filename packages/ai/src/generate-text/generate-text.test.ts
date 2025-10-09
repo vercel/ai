@@ -1,4 +1,5 @@
 import {
+  LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
@@ -4473,44 +4474,38 @@ describe('generateText', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
       const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
         [];
+      const languageModelCalls: Array<
+        Parameters<LanguageModelV3['doGenerate']>[0]
+      > = [];
 
-      // Model that supports image URLs (like OpenAI)
       const modelWithImageUrlSupport = new MockLanguageModelV3({
-        provider: 'openai-like',
-        modelId: 'gpt-4',
+        provider: 'with-image-url-support',
+        modelId: 'with-image-url-support',
         supportedUrls: {
           'image/*': [/^https?:\/\/.*$/],
         },
-        doGenerate: async () => ({
-          ...dummyResponseValues,
-          content: [{ type: 'text', text: 'Response from OpenAI' }],
-        }),
-      });
-
-      // Model that does NOT support arbitrary image URLs (like Gemini)
-      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
-        provider: 'gemini-like',
-        modelId: 'gemini-2.5-flash',
-        supportedUrls: {
-          // Only specific URLs supported, not arbitrary image URLs
-          '*': [/^https:\/\/specific-cdn\.example\.com\/.*$/],
-        },
-        doGenerate: async ({ prompt }) => {
-          // Verify that the model receives base64 data, not a URL
-          const userMessage = prompt.find(msg => msg.role === 'user');
-          const imagePart = userMessage?.content.find(
-            (part: any) =>
-              part.type === 'file' && part.mediaType?.startsWith('image/'),
-          );
-
-          expect(imagePart).toBeDefined();
-          expect((imagePart as LanguageModelV3FilePart).data).toBeInstanceOf(
-            Uint8Array,
-          );
-
+        doGenerate: async options => {
+          languageModelCalls.push(options);
           return {
             ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Response from Gemini' }],
+            content: [
+              { type: 'text', text: 'response from with-image-url-support' },
+            ],
+          };
+        },
+      });
+
+      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
+        provider: 'without-image-url-support',
+        modelId: 'without-image-url-support',
+        supportedUrls: {},
+        doGenerate: async options => {
+          languageModelCalls.push(options);
+          return {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'response from without-image-url-support' },
+            ],
           };
         },
       });
@@ -4530,7 +4525,7 @@ describe('generateText', () => {
       };
 
       const result = await generateText({
-        model: modelWithImageUrlSupport, // OpenAI-like model
+        model: modelWithImageUrlSupport,
         messages: [
           {
             role: 'user',
@@ -4541,24 +4536,69 @@ describe('generateText', () => {
           },
         ],
         prepareStep: async () => {
-          return {
-            model: modelWithoutImageUrlSupport, // Switch to Gemini-like model
-          };
+          return { model: modelWithoutImageUrlSupport }; // model switch
         },
         experimental_download: customDownload,
       });
 
-      // Verify the download behavior
-      expect(downloadCalls.length).toBe(1);
+      expect(downloadCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "isUrlSupportedByModel": false,
+            "url": "https://example.com/test.jpg",
+          },
+        ]
+      `);
 
-      // Should use Gemini's supportedUrls, not OpenAI's
-      expect(downloadCalls[0].isUrlSupportedByModel).toBe(false);
-      expect(downloadCalls[0].url.toString()).toBe(
-        'https://example.com/test.jpg',
-      );
+      expect(languageModelCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
+            },
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Describe this image",
+                    "type": "text",
+                  },
+                  {
+                    "data": Uint8Array [
+                      1,
+                      2,
+                      3,
+                      4,
+                    ],
+                    "filename": undefined,
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": undefined,
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          },
+        ]
+      `);
 
-      // Verify the result
-      expect(result.text).toBe('Response from Gemini');
+      expect(result.text).toBe('response from without-image-url-support');
     });
   });
 });
