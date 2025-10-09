@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.34
+
+### Patch Changes
+
+- bb10a89: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+
 ## 6.0.0-beta.33
 
 ### Patch Changes
