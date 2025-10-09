@@ -738,17 +738,23 @@ A function that attempts to repair a tool call that failed to parse.
           totalUsage,
         });
 
-        return new DefaultGenerateTextResult({
-          steps,
-          totalUsage,
-          resolvedOutput: await output?.parseOutput(
+        // parse output only if the last step was finished with "stop":
+        let resolvedOutput;
+        if (lastStep.finishReason === 'stop') {
+          resolvedOutput = await output?.parseOutput(
             { text: lastStep.text },
             {
               response: lastStep.response,
               usage: lastStep.usage,
               finishReason: lastStep.finishReason,
             },
-          ),
+          );
+        }
+
+        return new DefaultGenerateTextResult({
+          steps,
+          totalUsage,
+          resolvedOutput,
         });
       },
     });
