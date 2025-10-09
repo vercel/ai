@@ -1,5 +1,14 @@
 # @ai-sdk/cohere
 
+## 2.0.13
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+
 ## 2.0.12
 
 ### Patch Changes

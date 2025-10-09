@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.32
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - @ai-sdk/anthropic@2.0.24
+
 ## 3.0.31
 
 ### Patch Changes
