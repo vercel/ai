@@ -1,9 +1,13 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import {
+  createProviderDefinedToolFactoryWithOutputSchema,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
 import {
   OpenAIResponsesFileSearchToolComparisonFilter,
   OpenAIResponsesFileSearchToolCompoundFilter,
-} from '../responses/openai-responses-api-types';
-import { z } from 'zod/v4';
+} from '../responses/openai-responses-api';
 
 const comparisonFilterSchema = z.object({
   key: z.string(),
@@ -18,32 +22,42 @@ const compoundFilterSchema: z.ZodType<any> = z.object({
   ),
 });
 
-export const fileSearchArgsSchema = z.object({
-  vectorStoreIds: z.array(z.string()),
-  maxNumResults: z.number().optional(),
-  ranking: z
-    .object({
-      ranker: z.string().optional(),
-      scoreThreshold: z.number().optional(),
-    })
-    .optional(),
-  filters: z.union([comparisonFilterSchema, compoundFilterSchema]).optional(),
-});
+export const fileSearchArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      vectorStoreIds: z.array(z.string()),
+      maxNumResults: z.number().optional(),
+      ranking: z
+        .object({
+          ranker: z.string().optional(),
+          scoreThreshold: z.number().optional(),
+        })
+        .optional(),
+      filters: z
+        .union([comparisonFilterSchema, compoundFilterSchema])
+        .optional(),
+    }),
+  ),
+);
 
-export const fileSearchOutputSchema = z.object({
-  queries: z.array(z.string()),
-  results: z
-    .array(
-      z.object({
-        attributes: z.record(z.string(), z.unknown()),
-        fileId: z.string(),
-        filename: z.string(),
-        score: z.number(),
-        text: z.string(),
-      }),
-    )
-    .nullable(),
-});
+export const fileSearchOutputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      queries: z.array(z.string()),
+      results: z
+        .array(
+          z.object({
+            attributes: z.record(z.string(), z.unknown()),
+            fileId: z.string(),
+            filename: z.string(),
+            score: z.number(),
+            text: z.string(),
+          }),
+        )
+        .nullable(),
+    }),
+  ),
+);
 
 export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
   {},

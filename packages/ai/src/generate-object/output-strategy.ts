@@ -9,23 +9,22 @@ import {
 } from '@ai-sdk/provider';
 import {
   asSchema,
+  FlexibleSchema,
   safeValidateTypes,
   Schema,
   ValidationResult,
 } from '@ai-sdk/provider-utils';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../util/async-iterable-stream';
-import { DeepPartial } from '../util/deep-partial';
 import {
   FinishReason,
   LanguageModelResponseMetadata,
   LanguageModelUsage,
 } from '../types';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
+import { DeepPartial } from '../util/deep-partial';
 import { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
@@ -393,10 +392,7 @@ export function getOutputStrategy<SCHEMA>({
   enumValues,
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
-  schema?:
-    | z4.core.$ZodType<SCHEMA, any>
-    | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
-    | Schema<SCHEMA>;
+  schema?: FlexibleSchema<SCHEMA>;
   enumValues?: Array<SCHEMA>;
 }): OutputStrategy<any, any, any> {
   switch (output) {

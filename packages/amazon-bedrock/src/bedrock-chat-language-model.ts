@@ -21,7 +21,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
   BedrockConverseInput,
@@ -137,14 +137,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
-    const { toolConfig, additionalTools, toolWarnings, betas } = prepareTools({
-      tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
-      toolChoice:
-        jsonResponseTool != null
-          ? { type: 'tool', toolName: jsonResponseTool.name }
-          : toolChoice,
-      modelId: this.modelId,
-    });
+    const { toolConfig, additionalTools, toolWarnings, betas } =
+      await prepareTools({
+        tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
+        toolChoice:
+          jsonResponseTool != null
+            ? { type: 'tool', toolName: jsonResponseTool.name }
+            : toolChoice,
+        modelId: this.modelId,
+      });
 
     warnings.push(...toolWarnings);
 

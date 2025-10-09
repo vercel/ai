@@ -6,7 +6,7 @@ import {
   tool,
   ToolCallOptions,
 } from '@ai-sdk/provider-utils';
-import { z, ZodType } from 'zod/v4';
+import * as z from 'zod/v4';
 import { MCPClientError } from '../../error/mcp-client-error';
 import {
   JSONRPCError,
@@ -199,7 +199,7 @@ class DefaultMCPClient implements MCPClient {
     }
   }
 
-  private async request<T extends ZodType<object>>({
+  private async request<T extends z.ZodType<object>>({
     request,
     resultSchema,
     options,
@@ -409,6 +409,8 @@ class DefaultMCPClient implements MCPClient {
         ? response
         : new MCPClientError({
             message: response.error.message,
+            code: response.error.code,
+            data: response.error.data,
             cause: response.error,
           }),
     );

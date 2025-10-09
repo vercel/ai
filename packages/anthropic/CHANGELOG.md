@@ -1,5 +1,20 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- 9cff587: chore(provider/anthropic): lazy schema loading
+
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
 ## 3.0.0-beta.14
 
 ### Major Changes

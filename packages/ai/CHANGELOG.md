@@ -1,5 +1,35 @@
 # ai
 
+## 6.0.0-beta.33
+
+### Patch Changes
+
+- f733285: fix(ai): only parse experimental_output in generateText when finishReason is stop
+
+## 6.0.0-beta.32
+
+### Patch Changes
+
+- 7e4649f: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+
+## 6.0.0-beta.31
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+  - @ai-sdk/gateway@2.0.0-beta.22
+
+## 6.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [7b1b1b1]
+  - @ai-sdk/gateway@2.0.0-beta.21
+
 ## 6.0.0-beta.29
 
 ### Major Changes

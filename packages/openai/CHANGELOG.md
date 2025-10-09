@@ -1,5 +1,21 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- 484aa93: Add 'default' as service tier
+
+## 3.0.0-beta.18
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
 ## 3.0.0-beta.17
 
 ### Major Changes

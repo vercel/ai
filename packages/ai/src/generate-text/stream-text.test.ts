@@ -2,6 +2,7 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3CallWarning,
+  LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderDefinedTool,
@@ -34,7 +35,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
@@ -15094,6 +15095,151 @@ describe('streamText', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('prepareStep with model switch and image URLs', () => {
+    it('should use the prepareStep model supportedUrls for download decision', async () => {
+      const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
+        [];
+      const languageModelCalls: Array<
+        Parameters<LanguageModelV3['doGenerate']>[0]
+      > = [];
+
+      const modelWithImageUrlSupport = new MockLanguageModelV3({
+        provider: 'with-image-url-support',
+        modelId: 'with-image-url-support',
+        supportedUrls: {
+          'image/*': [/^https?:\/\/.*$/],
+        },
+        doStream: async options => {
+          languageModelCalls.push(options);
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: 'response from with-image-url-support',
+              },
+              { type: 'text-end', id: '1' },
+            ]),
+          };
+        },
+      });
+
+      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
+        provider: 'without-image-url-support',
+        modelId: 'without-image-url-support',
+        supportedUrls: {},
+        doStream: async options => {
+          languageModelCalls.push(options);
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: 'response from without-image-url-support',
+              },
+              { type: 'text-end', id: '1' },
+            ]),
+          };
+        },
+      });
+
+      const customDownload = async (
+        requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>,
+      ) => {
+        downloadCalls.push(...requestedDownloads);
+        return requestedDownloads.map(download =>
+          download.isUrlSupportedByModel
+            ? null
+            : {
+                data: new Uint8Array([1, 2, 3, 4]),
+                mediaType: 'image/png',
+              },
+        );
+      };
+
+      const result = streamText({
+        model: modelWithImageUrlSupport,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image' },
+              { type: 'image', image: 'https://example.com/test.jpg' },
+            ],
+          },
+        ],
+        prepareStep: async () => {
+          return {
+            model: modelWithoutImageUrlSupport, // model switch
+          };
+        },
+        experimental_download: customDownload,
+      });
+
+      await result.consumeStream();
+
+      expect(downloadCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "isUrlSupportedByModel": false,
+            "url": "https://example.com/test.jpg",
+          },
+        ]
+      `);
+
+      expect(languageModelCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": undefined,
+            "includeRawChunks": false,
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Describe this image",
+                    "type": "text",
+                  },
+                  {
+                    "data": Uint8Array [
+                      1,
+                      2,
+                      3,
+                      4,
+                    ],
+                    "filename": undefined,
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": undefined,
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          },
+        ]
+      `);
+
+      expect(await result.text).toBe('response from without-image-url-support');
     });
   });
 });

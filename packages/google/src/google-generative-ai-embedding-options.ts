@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-001'

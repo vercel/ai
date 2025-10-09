@@ -1,9 +1,28 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
-export const textEditor_20250728ArgsSchema = z.object({
-  maxCharacters: z.number().optional(),
-});
+export const textEditor_20250728ArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      maxCharacters: z.number().optional(),
+    }),
+  ),
+);
+
+const textEditor_20250728InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      command: z.enum(['view', 'create', 'str_replace', 'insert']),
+      path: z.string(),
+      file_text: z.string().optional(),
+      insert_line: z.number().int().optional(),
+      new_str: z.string().optional(),
+      old_str: z.string().optional(),
+      view_range: z.array(z.number().int()).optional(),
+    }),
+  ),
+);
 
 const factory = createProviderDefinedToolFactory<
   {
@@ -52,15 +71,7 @@ const factory = createProviderDefinedToolFactory<
 >({
   id: 'anthropic.text_editor_20250728',
   name: 'str_replace_based_edit_tool',
-  inputSchema: z.object({
-    command: z.enum(['view', 'create', 'str_replace', 'insert']),
-    path: z.string(),
-    file_text: z.string().optional(),
-    insert_line: z.number().int().optional(),
-    new_str: z.string().optional(),
-    old_str: z.string().optional(),
-    view_range: z.array(z.number().int()).optional(),
-  }),
+  inputSchema: textEditor_20250728InputSchema,
 });
 
 export const textEditor_20250728 = (
