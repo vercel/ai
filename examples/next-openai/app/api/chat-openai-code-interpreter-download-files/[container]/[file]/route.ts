@@ -22,7 +22,7 @@ const execute = async (
   }
 
   const infoUrl = `https://api.openai.com/v1/containers/${container}/files/${file}`;
-  const infoPromise = await fetch(infoUrl, {
+  const infoPromise = fetch(infoUrl, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -30,7 +30,7 @@ const execute = async (
   });
 
   const downloadUrl = `https://api.openai.com/v1/containers/${container}/files/${file}/content`;
-  const downloadPromise = await fetch(downloadUrl, {
+  const downloadPromise = fetch(downloadUrl, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${apiKey}`,

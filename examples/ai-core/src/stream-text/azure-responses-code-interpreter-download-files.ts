@@ -31,7 +31,7 @@ async function main() {
     c => c.type === 'source' && c.sourceType === 'execution-file',
   );
 
-  await fileList.map(async file => {
+  await Promise.all(fileList.map(async file => {
     const executeFileParse =
       azureSourceExecutionFileProviderMetadataSchema.safeParse(
         file.providerMetadata,
@@ -42,7 +42,7 @@ async function main() {
         executeFileParse.data.azure.fileId,
       );
     }
-  });
+  }));
 }
 
 async function downloadContainerFile(container: string, file: string) {
