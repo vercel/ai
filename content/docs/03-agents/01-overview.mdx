@@ -28,7 +28,7 @@ const weatherAgent = new Agent({
   tools: {
     weather: tool({
       description: 'Get the weather in a location (in Fahrenheit)',
-      parameters: z.object({
+      inputSchema: z.object({
         location: z.string().describe('The location to get the weather for'),
       }),
       execute: async ({ location }) => ({
@@ -38,7 +38,7 @@ const weatherAgent = new Agent({
     }),
     convertFahrenheitToCelsius: tool({
       description: 'Convert temperature from Fahrenheit to Celsius',
-      parameters: z.object({
+      inputSchema: z.object({
         temperature: z.number().describe('Temperature in Fahrenheit'),
       }),
       execute: async ({ temperature }) => {
