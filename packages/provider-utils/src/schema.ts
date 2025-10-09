@@ -22,7 +22,7 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   /**
    * The JSON Schema for the schema. It is passed to the providers.
    */
-  readonly jsonSchema: JSONSchema7;
+  readonly jsonSchema: JSONSchema7 | PromiseLike<JSONSchema7>;
 };
 
 /**

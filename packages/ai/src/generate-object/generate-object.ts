@@ -352,7 +352,7 @@ Default and recommended: 'auto' (best mode for the model).
               const result = await model.doGenerate({
                 responseFormat: {
                   type: 'json',
-                  schema: outputStrategy.jsonSchema,
+                  schema: await outputStrategy.jsonSchema(),
                   name: schemaName,
                   description: schemaDescription,
                 },

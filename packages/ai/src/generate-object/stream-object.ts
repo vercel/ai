@@ -502,7 +502,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         const callOptions = {
           responseFormat: {
             type: 'json' as const,
-            schema: outputStrategy.jsonSchema,
+            schema: await outputStrategy.jsonSchema(),
             name: schemaName,
             description: schemaDescription,
           },
