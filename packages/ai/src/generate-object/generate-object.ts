@@ -272,6 +272,7 @@ Default and recommended: 'auto' (best mode for the model).
   });
 
   const tracer = getTracer(telemetry);
+  const jsonSchema = await outputStrategy.jsonSchema();
 
   try {
     return await recordSpan({
@@ -290,7 +291,7 @@ Default and recommended: 'auto' (best mode for the model).
           },
           'ai.schema':
             outputStrategy.jsonSchema != null
-              ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
+              ? { input: () => JSON.stringify(jsonSchema) }
               : undefined,
           'ai.schema.name': schemaName,
           'ai.schema.description': schemaDescription,
@@ -386,7 +387,7 @@ Default and recommended: 'auto' (best mode for the model).
 
               // Add response information to the span:
               span.setAttributes(
-                selectTelemetryAttributes({
+                await selectTelemetryAttributes({
                   telemetry,
                   attributes: {
                     'ai.response.finishReason': result.finishReason,
@@ -447,7 +448,7 @@ Default and recommended: 'auto' (best mode for the model).
 
         // Add response information to the span:
         span.setAttributes(
-          selectTelemetryAttributes({
+          await selectTelemetryAttributes({
             telemetry,
             attributes: {
               'ai.response.finishReason': finishReason,

@@ -1,7 +1,7 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import type { TelemetrySettings } from './telemetry-settings';
 
-export function selectTelemetryAttributes({
+export async function selectTelemetryAttributes({
   telemetry,
   attributes,
 }: {
@@ -9,19 +9,28 @@ export function selectTelemetryAttributes({
   attributes: {
     [attributeKey: string]:
       | AttributeValue
-      | { input: () => AttributeValue | undefined }
-      | { output: () => AttributeValue | undefined }
+      | {
+          input: () => AttributeValue | PromiseLike<AttributeValue> | undefined;
+        }
+      | {
+          output: () =>
+            | AttributeValue
+            | PromiseLike<AttributeValue>
+            | undefined;
+        }
       | undefined;
   };
-}): Attributes {
+}): Promise<Attributes> {
   // when telemetry is disabled, return an empty object to avoid serialization overhead:
   if (telemetry?.isEnabled !== true) {
     return {};
   }
 
-  return Object.entries(attributes).reduce((attributes, [key, value]) => {
+  const resultAttributes: Attributes = {};
+
+  for (const [key, value] of Object.entries(attributes)) {
     if (value == null) {
-      return attributes;
+      continue;
     }
 
     // input value, check if it should be recorded:
@@ -32,12 +41,16 @@ export function selectTelemetryAttributes({
     ) {
       // default to true:
       if (telemetry?.recordInputs === false) {
-        return attributes;
+        continue;
       }
 
-      const result = value.input();
+      const result = await value.input();
 
-      return result == null ? attributes : { ...attributes, [key]: result };
+      if (result != null) {
+        resultAttributes[key] = result;
+      }
+
+      continue;
     }
 
     // output value, check if it should be recorded:
@@ -48,15 +61,20 @@ export function selectTelemetryAttributes({
     ) {
       // default to true:
       if (telemetry?.recordOutputs === false) {
-        return attributes;
+        continue;
       }
 
-      const result = value.output();
+      const result = await value.output();
 
-      return result == null ? attributes : { ...attributes, [key]: result };
+      if (result != null) {
+        resultAttributes[key] = result;
+      }
+      continue;
     }
 
     // value is an attribute value already:
-    return { ...attributes, [key]: value };
-  }, {});
+    resultAttributes[key] = value as AttributeValue;
+  }
+
+  return resultAttributes;
 }

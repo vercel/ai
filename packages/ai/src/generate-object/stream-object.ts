@@ -483,7 +483,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           },
           'ai.schema':
             outputStrategy.jsonSchema != null
-              ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
+              ? {
+                  input: async () =>
+                    JSON.stringify(await outputStrategy.jsonSchema()),
+                }
               : undefined,
           'ai.schema.name': schemaName,
           'ai.schema.description': schemaDescription,
@@ -771,7 +774,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   };
 
                   doStreamSpan.setAttributes(
-                    selectTelemetryAttributes({
+                    await selectTelemetryAttributes({
                       telemetry,
                       attributes: {
                         'ai.response.finishReason': finishReason,
@@ -807,7 +810,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                   // Add response information to the root span:
                   rootSpan.setAttributes(
-                    selectTelemetryAttributes({
+                    await selectTelemetryAttributes({
                       telemetry,
                       attributes: {
                         'ai.usage.inputTokens': finalUsage.inputTokens,
