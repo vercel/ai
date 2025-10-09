@@ -1017,11 +1017,76 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   id: value.item.id,
                 });
 
+                let result:
+                  | {
+                      input: {
+                        action: { type: 'search'; query: string | undefined };
+                      };
+                      output: {
+                        status: string;
+                        sources?: Array<Record<string, unknown>>;
+                      };
+                    }
+                  | {
+                      input: {
+                        action: { type: 'open_page'; url: string };
+                      };
+                      output: { status: string };
+                    }
+                  | {
+                      input: {
+                        action: { type: 'find'; url: string; pattern: string };
+                      };
+                      output: { status: string };
+                    }
+                  | {
+                      input: { action: undefined };
+                      output: { status: string };
+                    };
+
+                if (value.item.action?.type === 'search') {
+                  result = {
+                    input: {
+                      action: {
+                        type: 'search',
+                        query: value.item.action.query ?? undefined,
+                      },
+                    },
+                    output: {
+                      status: value.item.status,
+                      sources: value.item.action.sources ?? undefined,
+                    },
+                  };
+                } else if (value.item.action?.type === 'open_page') {
+                  result = {
+                    input: {
+                      action: { type: 'open_page', url: value.item.action.url },
+                    },
+                    output: { status: value.item.status },
+                  };
+                } else if (value.item.action?.type === 'find') {
+                  result = {
+                    input: {
+                      action: {
+                        type: 'find',
+                        url: value.item.action.url,
+                        pattern: value.item.action.pattern,
+                      },
+                    },
+                    output: { status: value.item.status },
+                  };
+                } else {
+                  result = {
+                    input: { action: undefined },
+                    output: { status: value.item.status },
+                  };
+                }
+
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
                   toolName: 'web_search',
-                  input: JSON.stringify({ action: value.item.action }),
+                  input: JSON.stringify(result.input),
                   providerExecuted: true,
                 });
 
@@ -1029,7 +1094,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'web_search',
-                  result: { status: value.item.status },
+                  result: result.output,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
