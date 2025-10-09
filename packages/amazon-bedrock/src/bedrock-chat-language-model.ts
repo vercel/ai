@@ -257,8 +257,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       await convertToBedrockChatMessages(filteredPrompt);
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
-    const { reasoningConfig: _, ...filteredBedrockOptions } =
-      providerOptions?.bedrock || {};
+    const {
+      reasoningConfig: _,
+      additionalModelRequestFields: __,
+      ...filteredBedrockOptions
+    } = providerOptions?.bedrock || {};
 
     return {
       command: {
