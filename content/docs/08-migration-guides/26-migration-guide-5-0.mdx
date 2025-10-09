@@ -880,6 +880,74 @@ Tool UI parts now use more granular states that better represent the streaming l
 - `result` → `output-available` (tool execution successful)
 - New: `output-error` (tool execution failed)
 
+#### Rendering Tool Invocations (Catch-All Pattern)
+
+In v4, you typically rendered tool invocations using a catch-all `tool-invocation` type. In v5, the **recommended approach is to handle each tool specifically using its typed part name (e.g., `tool-getWeather`)**. However, if you need a catch-all pattern for rendering all tool invocations the same way, you can use the `isToolUIPart` and `getToolName` helper functions as a fallback.
+
+```tsx filename="AI SDK 4.0"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'text':
+        return <div key={index}>{part.text}</div>;
+      case 'tool-invocation':
+        const { toolInvocation } = part;
+        return (
+          <details key={`tool-${toolInvocation.toolCallId}`}>
+            <summary>
+              <span>{toolInvocation.toolName}</span>
+              {toolInvocation.state === 'result' ? (
+                <span>Click to expand</span>
+              ) : (
+                <span>calling...</span>
+              )}
+            </summary>
+            {toolInvocation.state === 'result' ? (
+              <div>
+                <pre>{JSON.stringify(toolInvocation.result, null, 2)}</pre>
+              </div>
+            ) : null}
+          </details>
+        );
+    }
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { isToolUIPart, getToolName } from 'ai';
+
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'text':
+        return <div key={index}>{part.text}</div>;
+      default:
+        if (isToolUIPart(part)) {
+          const toolInvocation = part;
+          return (
+            <details key={`tool-${toolInvocation.toolCallId}`}>
+              <summary>
+                <span>{getToolName(toolInvocation)}</span>
+                {toolInvocation.state === 'output-available' ? (
+                  <span>Click to expand</span>
+                ) : (
+                  <span>calling...</span>
+                )}
+              </summary>
+              {toolInvocation.state === 'output-available' ? (
+                <div>
+                  <pre>{JSON.stringify(toolInvocation.output, null, 2)}</pre>
+                </div>
+              ) : null}
+            </details>
+          );
+        }
+    }
+  });
+}
+```
+
 #### Media Type Standardization
 
 `mimeType` has been renamed to `mediaType` for consistency. Both image and file types are supported in model messages.
@@ -2028,17 +2096,9 @@ The `experimental_attachments` property has been replaced with the parts array.
 ```
 
 <Note>
-  **Important:** AI providers have specific limitations on which file types are supported as file parts.
-
-For example, **OpenAI and Azure OpenAI** only support:
-
-- `image/*` (PNG, JPEG, etc.)
-- `application/pdf`
-- `audio/*`
-
-**Text files** (`text/plain`, `text/markdown`, etc.) are **not supported** as file parts.
-
-For text files, read the content and send as a text part instead:
+  Some models do not support text files (text/plain, text/markdown, text/csv,
+  etc.) as file parts. For text files, read the content and send as a text part
+  instead:
 
 ```tsx
 // Instead of this:
@@ -2962,26 +3022,36 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs Default
+#### Structured Outputs
 
-Structured outputs are now enabled by default for supported OpenAI models.
+The `structuredOutputs` parameter has been replaced with the `strictJsonSchema` provider option. It is now disabled by default.
 
 ```tsx filename="AI SDK 4.0"
-const result = await generateText({
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
+  schema: z.object({ name: z.string() }),
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
-const result = await generateText({
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06'),
-  // structuredOutputs: true is now the default
+  schema: z.object({ name: z.string() }),
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // renamed and opt-in via provider options
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
 #### Compatibility Option Removal
 
-The `compatibility` option has been removed; strict mode is now the default.
+The `compatibility` option has been removed; strict compatibility mode is now the default.
 
 ```tsx filename="AI SDK 4.0"
 const openai = createOpenAI({
