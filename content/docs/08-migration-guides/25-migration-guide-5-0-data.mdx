@@ -20,7 +20,7 @@ Follow this two-phase approach for a safe migration:
 1. Update dependencies (install v4 types alongside v5)
 2. Add conversion functions to transform between v4 and v5 message formats
 3. Update data fetching logic to convert messages when reading from the database
-4. Update the rest of your application code to AI SDK 5.0 (see [main migration guide](/docs/migration-guides/migration-guide-5-0))
+4. Update the rest of your application code to AI SDK 5.0 (see the [main migration guide](/docs/migration-guides/migration-guide-5-0))
 
 Your database schema remains unchanged during Phase 1. You're only adding a conversion layer that transforms messages at runtime.
 
@@ -30,7 +30,7 @@ Your database schema remains unchanged during Phase 1. You're only adding a conv
 
 **Goal:** Migrate your data to a v5-compatible schema, eliminating the runtime conversion overhead.
 
-While Phase 1 gets you working immediately, you should migrate your schema soon after completing Phase 1. This phase uses a side-by-side migration approach with an equivalent v5 schema:
+While Phase 1 gets you working immediately, migrate your schema soon after completing Phase 1. This phase uses a side-by-side migration approach with an equivalent v5 schema:
 
 1. Create `messages_v5` table alongside existing `messages` table
 2. Start dual-writing to both tables (with conversion)
@@ -40,7 +40,7 @@ While Phase 1 gets you working immediately, you should migrate your schema soon 
 6. Remove dual-write (write only to v5)
 7. Drop old tables
 
-**Timeline:** Should be done soon after Phase 1.
+**Timeline:** Do this soon after Phase 1.
 
 **Why this matters:**
 
@@ -70,7 +70,7 @@ Before starting, understand the main persistence-related changes in AI SDK 5.0:
 
 ## Phase 1: Runtime Conversion Pattern
 
-This approach creates a conversion layer without making changes to your database schema.
+This creates a conversion layer without making changes to your database schema.
 
 ### Step 1: Update Dependencies
 
@@ -91,7 +91,7 @@ Run:
 pnpm install
 ```
 
-Now you can import v4 types for proper type safety:
+Import v4 types for proper type safety:
 
 ```tsx
 import type { Message as V4Message } from 'ai-legacy';
@@ -422,9 +422,7 @@ export function convertV5MessageToV4(msg: MyUIMessage): LegacyUIMessage {
 
 Apply the conversion when loading messages from your database:
 
-<Note type="warning">
-  Adapt this pseudocode to your specific database and ORM.
-</Note>
+<Note type="warning">Adapt this code to your specific database and ORM.</Note>
 
 ```tsx
 import { convertV4MessageToV5, type MyUIMessage } from './conversion';
@@ -503,7 +501,9 @@ With Steps 3 and 4 complete, you have a bidirectional conversion layer:
 
 Your database schema remains unchanged, but your application now works with v5 format.
 
-**What's next:** Follow the [main migration guide](/docs/migration-guides/migration-guide-5-0) to update the rest of your application code to AI SDK 5.0, including API routes, components, and other code that uses the AI SDK. Then proceed to Phase 2.
+**What's next:** Follow the main migration guide to update the rest of your application code to AI SDK 5.0, including API routes, components, and other code that uses the AI SDK. Then proceed to Phase 2.
+
+See the [main migration guide](/docs/migration-guides/migration-guide-5-0) for details.
 
 ## Phase 2: Side-by-Side Schema Migration
 
@@ -518,7 +518,7 @@ Now that your application is updated to AI SDK 5.0 and working with the runtime 
 This phase uses a simplified approach: create a new `messages_v5` table with the same structure as your current `messages` table, but storing v5-formatted message parts.
 
 <Note type="warning">
-**Adapt Phase 2 and 3 Examples to Your Setup**
+**Adapt phase 2 examples to your setup**
 
 These code examples demonstrate migration patterns. Your implementation will differ based on your database (Postgres, MySQL, SQLite), ORM (Drizzle, Prisma, raw SQL), schema design, and data persistence patterns.
 
@@ -879,4 +879,4 @@ The following community members have shared their migration experiences:
 - [AI SDK Migration: Handling Previously Saved Messages](https://jhakim.com/blog/ai-sdk-migration-handling-previously-saved-messages) - Detailed transformation function implementation
 - [How we migrated Atypica.ai to AI SDK v5 without breaking 10M+ chat histories](https://blog.web3nomad.com/p/how-we-migrated-atypicaai-to-ai-sdk-v5-without-breaking-10m-chat-histories) - Runtime conversion approach for large-scale migration
 
-For more details on the API changes, see the [main migration guide](/docs/migration-guides/migration-guide-5-0).
+For more API change details, see the [main migration guide](/docs/migration-guides/migration-guide-5-0).
