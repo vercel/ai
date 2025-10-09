@@ -38,6 +38,7 @@ import {
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 function createCitationSource(
@@ -197,11 +198,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       schema: anthropicProviderOptions,
     });
 
+    // Create a shared cache control validator to track breakpoints across tools and messages
+    const cacheControlValidator = new CacheControlValidator();
+
     const { prompt: messagesPrompt, betas: messagesBetas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
+        cacheControlValidator,
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
@@ -277,13 +282,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
             disableParallelToolUse: true,
+            cacheControlValidator,
           }
         : {
             tools: tools ?? [],
             toolChoice,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+            cacheControlValidator,
           },
     );
+
+    // Extract cache control warnings once at the end
+    const cacheWarnings = cacheControlValidator.getWarnings();
 
     return {
       args: {
@@ -291,7 +301,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         tools: anthropicTools,
         tool_choice: anthropicToolChoice,
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
       betas: new Set([...messagesBetas, ...toolsBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
     };
