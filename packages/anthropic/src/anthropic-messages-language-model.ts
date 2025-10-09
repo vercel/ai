@@ -6,24 +6,32 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
+  LanguageModelV3Source,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  InferValidator,
-  ParseResult,
-  Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   generateId,
+  InferValidator,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
+  Resolvable,
   resolve,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import {
+  anthropicMessagesChunkSchema,
+  anthropicMessagesResponseSchema,
+  AnthropicReasoningMetadata,
+  Citation,
+} from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
   anthropicProviderOptions,
@@ -31,14 +39,8 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import {
-  anthropicMessagesChunkSchema,
-  anthropicMessagesResponseSchema,
-  AnthropicReasoningMetadata,
-  Citation,
-} from './anthropic-messages-api';
 
-function processCitation(
+function createCitationSource(
   citation: Citation,
   citationDocuments: Array<{
     title: string;
@@ -46,43 +48,39 @@ function processCitation(
     mediaType: string;
   }>,
   generateId: () => string,
-  onSource: (source: any) => void,
-) {
-  if (citation.type === 'page_location' || citation.type === 'char_location') {
-    const documentInfo = citationDocuments[citation.document_index];
-    if (!documentInfo) {
-      return null;
-    }
-
-    const providerMetadata =
-      citation.type === 'page_location'
-        ? {
-            citedText: citation.cited_text,
-            startPageNumber: citation.start_page_number,
-            endPageNumber: citation.end_page_number,
-          }
-        : {
-            citedText: citation.cited_text,
-            startCharIndex: citation.start_char_index,
-            endCharIndex: citation.end_char_index,
-          };
-
-    const sourcex = {
-      type: 'source' as const,
-      sourceType: 'document' as const,
-      id: generateId(),
-      mediaType: documentInfo.mediaType,
-      title: citation.document_title ?? documentInfo.title,
-      filename: documentInfo.filename,
-      providerMetadata: {
-        anthropic: providerMetadata,
-      },
-    };
-
-    if (sourcex) {
-      onSource(sourcex);
-    }
+): LanguageModelV3Source | undefined {
+  if (citation.type !== 'page_location' && citation.type !== 'char_location') {
+    return;
   }
+
+  const documentInfo = citationDocuments[citation.document_index];
+
+  if (!documentInfo) {
+    return;
+  }
+
+  return {
+    type: 'source' as const,
+    sourceType: 'document' as const,
+    id: generateId(),
+    mediaType: documentInfo.mediaType,
+    title: citation.document_title ?? documentInfo.title,
+    filename: documentInfo.filename,
+    providerMetadata: {
+      anthropic:
+        citation.type === 'page_location'
+          ? {
+              citedText: citation.cited_text,
+              startPageNumber: citation.start_page_number,
+              endPageNumber: citation.end_page_number,
+            }
+          : {
+              citedText: citation.cited_text,
+              startCharIndex: citation.start_char_index,
+              endCharIndex: citation.end_char_index,
+            },
+    } satisfies SharedV3ProviderMetadata,
+  };
 }
 
 type AnthropicMessagesConfig = {
@@ -406,12 +404,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             // Process citations if present
             if (part.citations) {
               for (const citation of part.citations) {
-                processCitation(
+                const source = createCitationSource(
                   citation,
                   citationDocuments,
                   this.generateId,
-                  source => content.push(source),
                 );
+
+                if (source) {
+                  content.push(source);
+                }
               }
             }
           }
@@ -1050,14 +1051,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   case 'citations_delta': {
                     const citation = value.delta.citation;
-
-                    processCitation(
+                    const source = createCitationSource(
                       citation,
                       citationDocuments,
                       generateId,
-                      source => controller.enqueue(source),
                     );
-                    // Web search citations are handled in web_search_tool_result content block
+
+                    if (source) {
+                      controller.enqueue(source);
+                    }
+
                     return;
                   }
 
