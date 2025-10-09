@@ -1,6 +1,5 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import { StandardSchemaV1 } from '@standard-schema/spec';
 import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import { zodSchema } from './zod-schema';
 
@@ -49,18 +48,14 @@ export function lazySchema<SCHEMA>(
 
 export type LazySchema<SCHEMA> = () => Schema<SCHEMA>;
 
-// Note: Zod types here exactly match the types in zod-schema.ts
-// to prevent type errors when using zod schemas with flexible schemas.
 export type FlexibleSchema<SCHEMA> =
-  | z4.core.$ZodType<SCHEMA, any>
-  | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
   | Schema<SCHEMA>
-  | LazySchema<SCHEMA>;
+  | LazySchema<SCHEMA>
+  | StandardSchemaV1<unknown, SCHEMA>;
 
-export type InferSchema<SCHEMA> = SCHEMA extends z3.Schema
-  ? z3.infer<SCHEMA>
-  : SCHEMA extends z4.core.$ZodType
-    ? z4.infer<SCHEMA>
+export type InferSchema<SCHEMA> =
+  SCHEMA extends StandardSchemaV1<unknown, infer T>
+    ? T
     : SCHEMA extends LazySchema<infer T>
       ? T
       : SCHEMA extends Schema<infer T>
@@ -120,5 +115,17 @@ export function asSchema<OBJECT>(
       ? schema
       : typeof schema === 'function'
         ? schema()
-        : zodSchema(schema);
+        : standardSchema(schema);
+}
+
+export function standardSchema<OBJECT>(
+  standardSchema: StandardSchemaV1<unknown, OBJECT>,
+): Schema<OBJECT> {
+  const vendor = standardSchema['~standard'].vendor;
+
+  if (vendor === 'zod') {
+    return zodSchema(standardSchema as any);
+  }
+
+  throw new Error(`Unsupported standard schema vendor: ${vendor}`);
 }
