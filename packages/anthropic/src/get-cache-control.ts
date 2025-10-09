@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import { SharedV2ProviderMetadata } from '@ai-sdk/provider';
 import { AnthropicCacheControl } from './anthropic-api-types';
+=======
+import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
+import { AnthropicCacheControl } from './anthropic-messages-api';
+>>>>>>> 9cff5876a (chore(provider/anthropic): lazy schema loading (#9317))
 
 export function getCacheControl(
   providerMetadata: SharedV2ProviderMetadata | undefined,
