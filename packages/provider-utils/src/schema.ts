@@ -1,9 +1,10 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
 import { StandardSchemaV1 } from '@standard-schema/spec';
 import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import { zodSchema } from './zod-schema';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
+import { valibotToJsonSchema } from './valibot-to-json-schema/valibot-to-json-schema';
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
@@ -128,13 +129,32 @@ export function standardSchema<OBJECT>(
 ): Schema<OBJECT> {
   const vendor = standardSchema['~standard'].vendor;
 
-  if (vendor === 'zod') {
-    return zodSchema(
-      standardSchema as
-        | z4.core.$ZodType<any, any>
-        | z3.Schema<any, z3.ZodTypeDef, any>,
-    );
+  // TODO push resolution into jsonschema resolution
+  switch (vendor) {
+    case 'zod': {
+      return zodSchema(
+        standardSchema as
+          | z4.core.$ZodType<any, any>
+          | z3.Schema<any, z3.ZodTypeDef, any>,
+      );
+    }
+    case 'valibot': {
+      return jsonSchema(() => valibotToJsonSchema(standardSchema), {
+        validate: async value => {
+          const result = await standardSchema['~standard'].validate(value);
+          return 'value' in result
+            ? { success: true, value: result.value }
+            : {
+                success: false,
+                error: new TypeValidationError({
+                  value,
+                  cause: result.issues,
+                }),
+              };
+        },
+      });
+    }
+    default:
+      throw new Error(`Unsupported standard schema vendor: ${vendor}`);
   }
-
-  throw new Error(`Unsupported standard schema vendor: ${vendor}`);
 }
