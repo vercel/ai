@@ -600,16 +600,65 @@ A function that attempts to repair a tool call that failed to parse.
 
         const lastStep = steps[steps.length - 1];
 
+<<<<<<< HEAD
         return new DefaultGenerateTextResult({
           steps,
           resolvedOutput: await output?.parseOutput(
+=======
+        const totalUsage = steps.reduce(
+          (totalUsage, step) => {
+            return addLanguageModelUsage(totalUsage, step.usage);
+          },
+          {
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          } as LanguageModelUsage,
+        );
+
+        await onFinish?.({
+          finishReason: lastStep.finishReason,
+          usage: lastStep.usage,
+          content: lastStep.content,
+          text: lastStep.text,
+          reasoningText: lastStep.reasoningText,
+          reasoning: lastStep.reasoning,
+          files: lastStep.files,
+          sources: lastStep.sources,
+          toolCalls: lastStep.toolCalls,
+          staticToolCalls: lastStep.staticToolCalls,
+          dynamicToolCalls: lastStep.dynamicToolCalls,
+          toolResults: lastStep.toolResults,
+          staticToolResults: lastStep.staticToolResults,
+          dynamicToolResults: lastStep.dynamicToolResults,
+          request: lastStep.request,
+          response: lastStep.response,
+          warnings: lastStep.warnings,
+          providerMetadata: lastStep.providerMetadata,
+          steps,
+          totalUsage,
+        });
+
+        // parse output only if the last step was finished with "stop":
+        let resolvedOutput;
+        if (lastStep.finishReason === 'stop') {
+          resolvedOutput = await output?.parseOutput(
+>>>>>>> f733285b4 (fix(ai): only parse experimental_output in generateText when finishReason is stop (#8803))
             { text: lastStep.text },
             {
               response: lastStep.response,
               usage: lastStep.usage,
               finishReason: lastStep.finishReason,
             },
-          ),
+          );
+        }
+
+        return new DefaultGenerateTextResult({
+          steps,
+          totalUsage,
+          resolvedOutput,
         });
       },
     });
