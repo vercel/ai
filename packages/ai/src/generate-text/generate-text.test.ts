@@ -21,7 +21,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';

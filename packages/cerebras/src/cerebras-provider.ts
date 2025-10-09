@@ -11,7 +11,7 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { CerebrasChatModelId } from './cerebras-chat-options';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import { VERSION } from './version';
 

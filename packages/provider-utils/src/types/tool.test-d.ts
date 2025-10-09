@@ -1,12 +1,12 @@
-import { z } from 'zod/v4';
+import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
 import {
+  FlexibleSchema,
   Tool,
   ToolExecuteFunction,
-  FlexibleSchema,
 } from '@ai-sdk/provider-utils';
+import { describe, expectTypeOf, it } from 'vitest';
+import * as z from 'zod/v4';
 import { tool } from './tool';
-import { describe, it, expectTypeOf } from 'vitest';
-import { LanguageModelV2ToolResultPart } from '@ai-sdk/provider';
 
 describe('tool type', () => {
   describe('input type', () => {

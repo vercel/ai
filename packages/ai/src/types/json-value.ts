@@ -1,5 +1,5 @@
 import { JSONValue as OriginalJSONValue } from '@ai-sdk/provider';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 export const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
   z.union([

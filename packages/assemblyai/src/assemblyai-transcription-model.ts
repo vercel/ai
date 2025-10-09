@@ -9,7 +9,7 @@ import {
   postJsonToApi,
   postToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';

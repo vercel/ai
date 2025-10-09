@@ -15,7 +15,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { FalImageModelId, FalImageSize } from './fal-image-settings';
 
 interface FalImageModelConfig {

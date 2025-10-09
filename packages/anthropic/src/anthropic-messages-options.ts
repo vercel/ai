@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
 export type AnthropicMessagesModelId =

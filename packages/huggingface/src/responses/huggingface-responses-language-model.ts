@@ -16,7 +16,7 @@ import {
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';

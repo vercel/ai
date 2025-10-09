@@ -15,7 +15,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { LumaImageSettings } from './luma-image-settings';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;

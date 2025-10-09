@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 // https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
 export type BedrockChatModelId =

@@ -7,10 +7,9 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
-  Resolvable,
   parseProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   GoogleVertexEmbeddingModelId,
