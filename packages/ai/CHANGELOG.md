@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.64
+
+### Patch Changes
+
+- e33947b: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+
 ## 5.0.63
 
 ### Patch Changes
