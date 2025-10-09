@@ -38,6 +38,10 @@
     {
       "path": "../../packages/anthropic"
     },
+        {
+      "path": "../../packages/azure"
+    },
+
     {
       "path": "../../packages/deepseek"
     },
