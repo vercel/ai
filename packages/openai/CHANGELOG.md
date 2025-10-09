@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- 484aa93: Add 'default' as service tier
+
 ## 3.0.0-beta.18
 
 ### Patch Changes
