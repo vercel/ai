@@ -1,5 +1,5 @@
 import { openaiResponsesTextUIPartProviderMetadataSchema } from '@ai-sdk/openai';
-import { Response } from './additional-dependencies';
+//import { Response } from './additional-dependencies';
 import { TextUIPart } from 'ai';
 
 export function MessageTextWithDownloadLink({ part }: { part: TextUIPart }) {
@@ -30,5 +30,6 @@ export function MessageTextWithDownloadLink({ part }: { part: TextUIPart }) {
     return text;
   }, part.text);
 
-  return <Response>{text}</Response>;
+  //return <Response>{text}</Response>;
+  return<div>{text}</div>
 }
