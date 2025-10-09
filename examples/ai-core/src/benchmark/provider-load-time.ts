@@ -3,7 +3,9 @@ import { spawn } from 'child_process';
 const provider = process.argv[2];
 
 if (!provider) {
-  console.error('Please provide a provider name as an argument, e.g., "anthropic"');
+  console.error(
+    'Please provide a provider name as an argument, e.g., "anthropic"',
+  );
   process.exit(1);
 }
 
@@ -23,15 +25,15 @@ console.log(t1 - t0);
     ]);
 
     let output = '';
-    child.stdout.on('data', (data) => {
+    child.stdout.on('data', data => {
       output += data.toString();
     });
 
-    child.stderr.on('data', (data) => {
+    child.stderr.on('data', data => {
       console.error('Error:', data.toString());
     });
 
-    child.on('close', (code) => {
+    child.on('close', code => {
       if (code !== 0) {
         reject(new Error(`Child process exited with code ${code}`));
       } else {
