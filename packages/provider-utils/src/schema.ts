@@ -69,7 +69,10 @@ export type InferSchema<SCHEMA> =
  * @param options.validate Optional. A validation function for the schema.
  */
 export function jsonSchema<OBJECT = unknown>(
-  jsonSchema: JSONSchema7 | (() => JSONSchema7),
+  jsonSchema:
+    | JSONSchema7
+    | PromiseLike<JSONSchema7>
+    | (() => JSONSchema7 | PromiseLike<JSONSchema7>),
   {
     validate,
   }: {
