@@ -6,13 +6,12 @@ import {
   auth,
 } from 'ai';
 import 'dotenv/config';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
 import type {
+  OAuthClientProvider,
   OAuthClientInformation,
   OAuthClientMetadata,
   OAuthTokens,
-} from '@modelcontextprotocol/sdk/shared/auth.js';
+} from 'ai';
 import { createServer } from 'node:http';
 import { exec } from 'node:child_process';
 
@@ -72,6 +71,21 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
   }
 }
 
+async function authorizeWithPkceOnce(
+  authProvider: OAuthClientProvider,
+  serverUrl: string,
+  waitForCode: () => Promise<string>,
+): Promise<void> {
+  const result = await auth(authProvider, { serverUrl: new URL(serverUrl) });
+  if (result !== 'AUTHORIZED') {
+    const authorizationCode = await waitForCode();
+    await auth(authProvider, {
+      serverUrl: new URL(serverUrl),
+      authorizationCode,
+    });
+  }
+}
+
 function waitForAuthorizationCode(port: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
@@ -109,64 +123,43 @@ function waitForAuthorizationCode(port: number): Promise<string> {
 
 async function main() {
   const authProvider = new InMemoryOAuthClientProvider();
+  const serverUrl = 'https://example-server.modelcontextprotocol.io/mcp';
 
-  try {
-    const serverUrl = 'https://mcp.vercel.com/';
-    const callbackPromise = waitForAuthorizationCode(Number(8090));
-    const startResult = await auth(authProvider, {
-      serverUrl: new URL(serverUrl),
-    });
-    if (startResult !== 'AUTHORIZED') {
-      const authorizationCode = await callbackPromise;
+  await authorizeWithPkceOnce(authProvider, serverUrl, () =>
+    waitForAuthorizationCode(Number(8090)),
+  );
 
-      await auth(authProvider, {
-        serverUrl: new URL(serverUrl),
-        authorizationCode,
-      });
-    }
+  const mcpClient = await experimental_createMCPClient({
+    transport: { type: 'http', url: serverUrl, authProvider },
+  });
+  const tools = await mcpClient.tools();
 
-    const connect = async () => {
-      const transport = new StreamableHTTPClientTransport(new URL(serverUrl), {
-        authProvider,
-      });
-      return experimental_createMCPClient({ transport });
-    };
+  console.log(`Retrieved ${Object.keys(tools).length} protected tools`);
+  console.log(`Available tools: ${Object.keys(tools).join(', ')}`);
 
-    let mcpClient;
-    mcpClient = await connect();
+  const { text: answer } = await generateText({
+    model: openai('gpt-4o-mini'),
+    tools,
+    stopWhen: stepCountIs(10),
+    onStepFinish: async ({ toolResults }) => {
+      if (toolResults.length > 0) {
+        console.log('Tool execution results:');
+        toolResults.forEach(result => {
+          console.log(
+            `  - ${result.toolName}:`,
+            JSON.stringify(result, null, 2),
+          );
+        });
+      }
+    },
+    system: 'You are a helpful assistant with access to protected tools.',
+    prompt:
+      'List the tools available for me to call. Arrange them in alphabetical order.',
+  });
 
-    const tools = await mcpClient.tools();
+  await mcpClient.close();
 
-    console.log(`Retrieved ${Object.keys(tools).length} protected tools`);
-    console.log(`Available tools: ${Object.keys(tools).join(', ')}`);
-
-    const { text: answer } = await generateText({
-      model: openai('gpt-4o-mini'),
-      tools,
-      stopWhen: stepCountIs(10),
-      onStepFinish: async ({ toolResults }) => {
-        if (toolResults.length > 0) {
-          console.log('Tool execution results:');
-          toolResults.forEach(result => {
-            console.log(
-              `  - ${result.toolName}:`,
-              JSON.stringify(result, null, 2),
-            );
-          });
-        }
-      },
-      system: 'You are a helpful assistant with access to protected tools.',
-      prompt:
-        'List the tools available for me to call. Arrange them in alphabetical order.',
-    });
-
-    await mcpClient.close();
-
-    console.log(`FINAL ANSWER: ${answer}`);
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+  console.log(`FINAL ANSWER: ${answer}`);
 }
 
 main().catch(console.error);

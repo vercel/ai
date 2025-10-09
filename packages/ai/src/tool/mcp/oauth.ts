@@ -115,7 +115,6 @@ export function extractResourceMetadataUrl(
     return undefined;
   }
 
-  // Example: WWW-Authenticate: Bearer resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource"
   // regex taken from MCP spec
   const regex = /resource_metadata="([^"]*)"/;
   const match = header.match(regex);
@@ -141,7 +140,6 @@ function buildWellKnownPath(
   pathname: string = '',
   options: { prependPathname?: boolean } = {},
 ): string {
-  // Strip trailing slash from pathname to avoid double slashes
   if (pathname.endsWith('/')) {
     pathname = pathname.slice(0, -1);
   }
@@ -161,10 +159,8 @@ async function fetchWithCorsRetry(
   } catch (error) {
     if (error instanceof TypeError) {
       if (headers) {
-        // CORS errors come back as TypeError, retry without headers
         return fetchWithCorsRetry(url, undefined, fetchFn);
       } else {
-        // We're getting CORS errors on retry too, return undefined
         return undefined;
       }
     }
@@ -219,7 +215,6 @@ async function discoverMetadataWithFallback(
   if (opts?.metadataUrl) {
     url = new URL(opts.metadataUrl);
   } else {
-    // Try path-aware discovery first
     const wellKnownPath = buildWellKnownPath(wellKnownType, issuer.pathname);
     url = new URL(wellKnownPath, opts?.metadataServerUrl ?? issuer);
     url.search = issuer.search;
@@ -227,7 +222,6 @@ async function discoverMetadataWithFallback(
 
   let response = await tryMetadataDiscovery(url, protocolVersion, fetchFn);
 
-  // If path-aware discovery fails with 404 and we're not already at root, try fallback to root discovery
   if (!opts?.metadataUrl && shouldAttemptFallback(response, issuer.pathname)) {
     const rootUrl = new URL(`/.well-known/${wellKnownType}`, issuer);
     response = await tryMetadataDiscovery(rootUrl, protocolVersion, fetchFn);
@@ -283,7 +277,6 @@ export function buildDiscoveryUrls(
   const urlsToTry: { url: URL; type: 'oauth' | 'oidc' }[] = [];
 
   if (!hasPath) {
-    // Root path: https://example.com/.well-known/oauth-authorization-server
     urlsToTry.push({
       url: new URL('/.well-known/oauth-authorization-server', url.origin),
       type: 'oauth',
@@ -297,14 +290,11 @@ export function buildDiscoveryUrls(
     return urlsToTry;
   }
 
-  // Strip trailing slash from pathname to avoid double slashes
   let pathname = url.pathname;
   if (pathname.endsWith('/')) {
     pathname = pathname.slice(0, -1);
   }
 
-  // 1. OAuth metadata at the given URL
-  // Insert well-known before the path: https://example.com/.well-known/oauth-authorization-server/tenant1
   urlsToTry.push({
     url: new URL(
       `/.well-known/oauth-authorization-server${pathname}`,
@@ -313,20 +303,16 @@ export function buildDiscoveryUrls(
     type: 'oauth',
   });
 
-  // Root path: https://example.com/.well-known/oauth-authorization-server
   urlsToTry.push({
     url: new URL('/.well-known/oauth-authorization-server', url.origin),
     type: 'oauth',
   });
 
-  // 3. OIDC metadata endpoints
-  //RFC 8414 style: Insert /.well-known/openid-configuration before the path
   urlsToTry.push({
     url: new URL(`/.well-known/openid-configuration${pathname}`, url.origin),
     type: 'oidc',
   });
 
-  // OIDC Discovery 1.0 style: Append /.well-known/openid-configuration after the path
   urlsToTry.push({
     url: new URL(`${pathname}/.well-known/openid-configuration`, url.origin),
     type: 'oidc',
@@ -363,14 +349,13 @@ export async function discoverAuthorizationServerMetadata(
     if (!response.ok) {
       // Continue looking for any 4xx response code.
       if (response.status >= 400 && response.status < 500) {
-        continue; // Try next URL
+        continue;
       }
       throw new Error(
         `HTTP ${response.status} trying to load ${type === 'oauth' ? 'OAuth' : 'OpenID provider'} metadata from ${endpointUrl}`,
       );
     }
 
-    // Parse and validate based on type
     if (type === 'oauth') {
       return OAuthMetadataSchema.parse(await response.json());
     } else {
@@ -435,7 +420,6 @@ export async function startAuthorization(
     authorizationUrl = new URL('/authorize', authorizationServerUrl);
   }
 
-  // Generate PKCE challenge
   const challenge = await pkceChallenge();
   const codeVerifier = challenge.code_verifier;
   const codeChallenge = challenge.code_challenge;
@@ -491,12 +475,10 @@ function selectClientAuthMethod(
 ): ClientAuthMethod {
   const hasClientSecret = clientInformation.client_secret !== undefined;
 
-  // If server doesn't specify supported methods, use RFC 6749 defaults
   if (supportedMethods.length === 0) {
     return hasClientSecret ? 'client_secret_post' : 'none';
   }
 
-  // Try methods in priority order (most secure first)
   if (hasClientSecret && supportedMethods.includes('client_secret_basic')) {
     return 'client_secret_basic';
   }
@@ -509,7 +491,6 @@ function selectClientAuthMethod(
     return 'none';
   }
 
-  // Fallback: use what we have
   return hasClientSecret ? 'client_secret_post' : 'none';
 }
 
@@ -667,7 +648,6 @@ export async function exchangeAuthorization(
     );
   }
 
-  // Exchange code for tokens
   const headers = new Headers({
     'Content-Type': 'application/x-www-form-urlencoded',
     Accept: 'application/json',
@@ -682,7 +662,6 @@ export async function exchangeAuthorization(
   if (addClientAuthentication) {
     addClientAuthentication(headers, params, authorizationServerUrl, metadata);
   } else {
-    // Determine and apply client authentication method
     const supportedMethods =
       metadata?.token_endpoint_auth_methods_supported ?? [];
     const authMethod = selectClientAuthMethod(
@@ -758,7 +737,6 @@ export async function refreshAuthorization(
     tokenUrl = new URL('/token', authorizationServerUrl);
   }
 
-  // Exchange refresh token
   const headers = new Headers({
     'Content-Type': 'application/x-www-form-urlencoded',
   });
@@ -770,7 +748,6 @@ export async function refreshAuthorization(
   if (addClientAuthentication) {
     addClientAuthentication(headers, params, authorizationServerUrl, metadata);
   } else {
-    // Determine and apply client authentication method
     const supportedMethods =
       metadata?.token_endpoint_auth_methods_supported ?? [];
     const authMethod = selectClientAuthMethod(
@@ -857,7 +834,6 @@ export async function auth(
   try {
     return await authInternal(provider, options);
   } catch (error) {
-    // Handle recoverable error types by invalidating credentials and retrying
     if (
       error instanceof InvalidClientError ||
       error instanceof UnauthorizedClientError
@@ -869,7 +845,6 @@ export async function auth(
       return await authInternal(provider, options);
     }
 
-    // Throw otherwise
     throw error;
   }
 }
@@ -881,7 +856,6 @@ export async function selectResourceURL(
 ): Promise<URL | undefined> {
   const defaultResource = resourceUrlFromServerUrl(serverUrl);
 
-  // If provider has custom validation, delegate to it
   if (provider.validateResourceURL) {
     return await provider.validateResourceURL(
       defaultResource,
@@ -889,12 +863,10 @@ export async function selectResourceURL(
     );
   }
 
-  // Only include resource parameter when Protected Resource Metadata is present
   if (!resourceMetadata) {
     return undefined;
   }
 
-  // Validate that the metadata's resource is compatible with our request
   if (
     !checkResourceAllowed({
       requestedResource: defaultResource,
@@ -905,7 +877,6 @@ export async function selectResourceURL(
       `Protected resource ${resourceMetadata.resource} does not match expected ${defaultResource} (or origin)`,
     );
   }
-  // Prefer the resource from metadata since it's what the server is telling us to request
   return new URL(resourceMetadata.resource);
 }
 
@@ -939,9 +910,7 @@ async function authInternal(
     ) {
       authorizationServerUrl = resourceMetadata.authorization_servers[0];
     }
-  } catch {
-    // Ignore errors and fall back to /.well-known/oauth-authorization-server
-  }
+  } catch {}
 
   /**
    * If we don't get a valid authorization server metadata from protected resource metadata,
@@ -964,7 +933,6 @@ async function authInternal(
     },
   );
 
-  // Handle client registration if needed
   let clientInformation = await Promise.resolve(provider.clientInformation());
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
@@ -1025,14 +993,11 @@ async function authInternal(
       await provider.saveTokens(newTokens);
       return 'AUTHORIZED';
     } catch (error) {
-      // If this is a ServerError, or an unknown type, log it out and try to continue. Otherwise, escalate so we can fix things and retry.
       if (
         !(error instanceof MCPClientOAuthError) ||
         error instanceof ServerError
       ) {
-        // Could not refresh OAuth tokens
       } else {
-        // Refresh failed for another reason, re-throw
         throw error;
       }
     }
