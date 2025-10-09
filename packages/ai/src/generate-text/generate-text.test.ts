@@ -2938,45 +2938,43 @@ describe('generateText', () => {
       });
     });
 
-    describe('tool-calls with experimental_output', () => {
-      it('should not parse output when finish reason is tool-calls', async () => {
-        const result = await generateText({
-          model: new MockLanguageModelV3({
-            doGenerate: async () => ({
-              ...dummyResponseValues,
-              finishReason: 'tool-calls',
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
-                  toolName: 'testTool',
-                  input: `{ "value": "test" }`,
-                },
-              ],
-            }),
+    it('should not parse output when finish reason is tool-calls', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: 'tool-calls',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: `{ "value": "test" }`,
+              },
+            ],
           }),
-          prompt: 'prompt',
-          experimental_output: Output.object({
-            schema: z.object({ summary: z.string() }),
-          }),
-          tools: {
-            testTool: {
-              inputSchema: z.object({ value: z.string() }),
-              execute: async () => 'tool result',
-            },
+        }),
+        prompt: 'prompt',
+        experimental_output: Output.object({
+          schema: z.object({ summary: z.string() }),
+        }),
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
           },
-        });
-
-        // experimental_output should be undefined when finish reason is tool-calls
-        expect(() => {
-          result.experimental_output;
-        }).toThrow('No output specified');
-
-        // But tool calls should work normally
-        expect(result.toolCalls).toHaveLength(1);
-        expect(result.toolResults).toHaveLength(1);
+        },
       });
+
+      // experimental_output should be undefined when finish reason is tool-calls
+      expect(() => {
+        result.experimental_output;
+      }).toThrow('No output specified');
+
+      // But tool calls should work normally
+      expect(result.toolCalls).toHaveLength(1);
+      expect(result.toolResults).toHaveLength(1);
     });
   });
 
