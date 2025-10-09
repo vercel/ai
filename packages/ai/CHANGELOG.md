@@ -1,5 +1,12 @@
 # ai
 
+## 5.0.63
+
+### Patch Changes
+
+- 22609f8: fix(ai): only parse experimental_output in generateText when finishReason is stop
+- b552c94: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+
 ## 5.0.62
 
 ### Patch Changes
