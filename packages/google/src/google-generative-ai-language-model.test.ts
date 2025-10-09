@@ -4,15 +4,17 @@ import {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+import {
+  GoogleGenerativeAILanguageModel,
+  getGroundingMetadataSchema,
+  getUrlContextMetadataSchema,
+} from './google-generative-ai-language-model';
 
 import {
   GoogleGenerativeAIGroundingMetadata,
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
-// import { groundingMetadataSchema } from './tool/google-search';
-// import { urlContextMetadataSchema } from './tool/url-context';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
@@ -48,135 +50,138 @@ const provider = createGoogleGenerativeAI({
 });
 const model = provider.chat('gemini-pro');
 
-// describe('groundingMetadataSchema', () => {
-//   it('validates complete grounding metadata with web search results', () => {
-//     const metadata = {
-//       webSearchQueries: ["What's the weather in Chicago this weekend?"],
-//       searchEntryPoint: {
-//         renderedContent: 'Sample rendered content for search results',
-//       },
-//       groundingChunks: [
-//         {
-//           web: {
-//             uri: 'https://example.com/weather',
-//             title: 'Chicago Weather Forecast',
-//           },
-//         },
-//       ],
-//       groundingSupports: [
-//         {
-//           segment: {
-//             startIndex: 0,
-//             endIndex: 65,
-//             text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
-//           },
-//           groundingChunkIndices: [0],
-//           confidenceScores: [0.99],
-//         },
-//       ],
-//       retrievalMetadata: {
-//         webDynamicRetrievalScore: 0.96879,
-//       },
-//     };
+const groundingMetadataSchema = getGroundingMetadataSchema()
+const urlContextMetadataSchema = getUrlContextMetadataSchema()
 
-//     const result = groundingMetadataSchema.safeParse(metadata);
-//     expect(result.success).toBe(true);
-//   });
+describe('groundingMetadataSchema', () => {
+  it('validates complete grounding metadata with web search results', () => {
+    const metadata = {
+      webSearchQueries: ["What's the weather in Chicago this weekend?"],
+      searchEntryPoint: {
+        renderedContent: 'Sample rendered content for search results',
+      },
+      groundingChunks: [
+        {
+          web: {
+            uri: 'https://example.com/weather',
+            title: 'Chicago Weather Forecast',
+          },
+        },
+      ],
+      groundingSupports: [
+        {
+          segment: {
+            startIndex: 0,
+            endIndex: 65,
+            text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+          },
+          groundingChunkIndices: [0],
+          confidenceScores: [0.99],
+        },
+      ],
+      retrievalMetadata: {
+        webDynamicRetrievalScore: 0.96879,
+      },
+    };
 
-//   it('validates complete grounding metadata with Vertex AI Search results', () => {
-//     const metadata = {
-//       retrievalQueries: ['How to make appointment to renew driving license?'],
-//       groundingChunks: [
-//         {
-//           retrievedContext: {
-//             uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
-//             title: 'dmv',
-//           },
-//         },
-//       ],
-//       groundingSupports: [
-//         {
-//           segment: {
-//             startIndex: 25,
-//             endIndex: 147,
-//           },
-//           segment_text: 'ipsum lorem ...',
-//           supportChunkIndices: [1, 2],
-//           confidenceScore: [0.9541752, 0.97726375],
-//         },
-//       ],
-//     };
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
 
-//     const result = groundingMetadataSchema.safeParse(metadata);
-//     expect(result.success).toBe(true);
-//   });
+  it('validates complete grounding metadata with Vertex AI Search results', () => {
+    const metadata = {
+      retrievalQueries: ['How to make appointment to renew driving license?'],
+      groundingChunks: [
+        {
+          retrievedContext: {
+            uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+            title: 'dmv',
+          },
+        },
+      ],
+      groundingSupports: [
+        {
+          segment: {
+            startIndex: 25,
+            endIndex: 147,
+          },
+          segment_text: 'ipsum lorem ...',
+          supportChunkIndices: [1, 2],
+          confidenceScore: [0.9541752, 0.97726375],
+        },
+      ],
+    };
 
-//   it('validates partial grounding metadata', () => {
-//     const metadata = {
-//       webSearchQueries: ['sample query'],
-//       // Missing other optional fields
-//     };
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
 
-//     const result = groundingMetadataSchema.safeParse(metadata);
-//     expect(result.success).toBe(true);
-//   });
+  it('validates partial grounding metadata', () => {
+    const metadata = {
+      webSearchQueries: ['sample query'],
+      // Missing other optional fields
+    };
 
-//   it('validates empty grounding metadata', () => {
-//     const metadata = {};
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
 
-//     const result = groundingMetadataSchema.safeParse(metadata);
-//     expect(result.success).toBe(true);
-//   });
+  it('validates empty grounding metadata', () => {
+    const metadata = {};
 
-//   it('validates metadata with empty retrievalMetadata', () => {
-//     const metadata = {
-//       webSearchQueries: ['sample query'],
-//       retrievalMetadata: {},
-//     };
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
 
-//     const result = groundingMetadataSchema.safeParse(metadata);
-//     expect(result.success).toBe(true);
-//   });
+  it('validates metadata with empty retrievalMetadata', () => {
+    const metadata = {
+      webSearchQueries: ['sample query'],
+      retrievalMetadata: {},
+    };
 
-//   it('rejects invalid data types', () => {
-//     const metadata = {
-//       webSearchQueries: 'not an array', // Should be an array
-//       groundingSupports: [
-//         {
-//           confidenceScores: 'not an array', // Should be an array of numbers
-//         },
-//       ],
-//     };
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
 
-//     const result = groundingMetadataSchema.safeParse(metadata);
-//     expect(result.success).toBe(false);
-//   });
-// });
+  it('rejects invalid data types', () => {
+    const metadata = {
+      webSearchQueries: 'not an array', // Should be an array
+      groundingSupports: [
+        {
+          confidenceScores: 'not an array', // Should be an array of numbers
+        },
+      ],
+    };
 
-// describe('urlContextMetadata', () => {
-//   it('validates complete url context output', () => {
-//     const output = {
-//       urlMetadata: [
-//         {
-//           retrievedUrl: 'https://example.com/weather',
-//           urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
-//         },
-//       ],
-//     };
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(false);
+  });
+});
 
-//     const result = urlContextMetadataSchema.safeParse(output);
-//     expect(result.success).toBe(true);
-//   });
+describe('urlContextMetadata', () => {
+  it('validates complete url context output', () => {
+    const output = {
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/weather',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
+    };
 
-//   it('validates empty url context output', () => {
-//     const output = {
-//       urlMetadata: [],
-//     };
+    const result = urlContextMetadataSchema.safeParse(output);
+    expect(result.success).toBe(true);
+  });
 
-//     const result = urlContextMetadataSchema.safeParse(output);
-//     expect(result.success).toBe(true);
-//   });
-// });
+  it('validates empty url context output', () => {
+    const output = {
+      urlMetadata: [],
+    };
+
+    const result = urlContextMetadataSchema.safeParse(output);
+    expect(result.success).toBe(true);
+  });
+});
 
 describe('doGenerate', () => {
   const TEST_URL_GEMINI_PRO =
