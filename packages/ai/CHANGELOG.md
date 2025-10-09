@@ -1,5 +1,16 @@
 # ai
 
+## 5.0.62
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- 6f0644c: chore: load zod schemas lazily
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - @ai-sdk/gateway@1.0.35
+
 ## 5.0.61
 
 ### Patch Changes
