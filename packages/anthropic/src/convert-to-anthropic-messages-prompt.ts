@@ -6,7 +6,11 @@ import {
   SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  parseProviderOptions,
+  validateTypes,
+} from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
   AnthropicMessagesPrompt,
@@ -451,8 +455,10 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const codeExecutionOutput =
-                    codeExecution_20250522OutputSchema.parse(output.value);
+                  const codeExecutionOutput = await validateTypes({
+                    value: output.value,
+                    schema: codeExecution_20250522OutputSchema,
+                  });
 
                   anthropicContent.push({
                     type: 'code_execution_tool_result',
@@ -481,9 +487,10 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const webFetchOutput = webFetch_20250910OutputSchema.parse(
-                    output.value,
-                  );
+                  const webFetchOutput = await validateTypes({
+                    value: output.value,
+                    schema: webFetch_20250910OutputSchema,
+                  });
 
                   anthropicContent.push({
                     type: 'web_fetch_tool_result',
@@ -521,9 +528,10 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const webSearchOutput = webSearch_20250305OutputSchema.parse(
-                    output.value,
-                  );
+                  const webSearchOutput = await validateTypes({
+                    value: output.value,
+                    schema: webSearch_20250305OutputSchema,
+                  });
 
                   anthropicContent.push({
                     type: 'web_search_tool_result',

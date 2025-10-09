@@ -271,7 +271,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       toolChoice: anthropicToolChoice,
       toolWarnings,
       betas: toolsBetas,
-    } = prepareTools(
+    } = await prepareTools(
       jsonResponseTool != null
         ? {
             tools: [jsonResponseTool],
