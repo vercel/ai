@@ -31,6 +31,7 @@ import { localShellInputSchema } from '../tool/local-shell';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
+  OpenaiResponsesAnnotationSchema,
   OpenAIResponsesChunk,
   openaiResponsesChunkSchema,
   OpenAIResponsesIncludeOptions,
@@ -44,7 +45,6 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import {z} from 'zod/v4'
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -484,7 +484,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       containerId: annotation.container_id,
                       fileId: annotation.file_id,
                       filename: annotation.filename,
-                    } satisfies SourceExecutionFileCodeInterpreterItem,
+                    },
                   },
                 });
               }
@@ -699,7 +699,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     > = {};
 
     const ongoingAnnotations: Array<
-      z.infer<typeof responseAnnotationAddedSchema>['annotation']
+      OpenaiResponsesAnnotationSchema
     > = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
@@ -1163,7 +1163,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       containerId: value.annotation.container_id,
                       fileId: value.annotation.file_id,
                       filename: value.annotation.filename,
-                    } satisfies SourceExecutionFileCodeInterpreterItem,
+                    },
                   },
                 });
               }

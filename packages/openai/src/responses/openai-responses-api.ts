@@ -223,6 +223,33 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
+const openaiResponsesAnnotationSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('url_citation'),
+    url: z.string(),
+    title: z.string(),
+  }),
+  z.object({
+    type: z.literal('file_citation'),
+    file_id: z.string(),
+    filename: z.string().nullish(),
+    index: z.number().nullish(),
+    start_index: z.number().nullish(),
+    end_index: z.number().nullish(),
+    quote: z.string().nullish(),
+  }),
+  z.object({
+    type: z.literal('container_file_citation'),
+    container_id: z.string(),
+    file_id: z.string(),
+    filename: z.string(),
+    start_index: z.number(),
+    end_index: z.number(),
+  })
+]);
+export type OpenaiResponsesAnnotationSchema = z.infer<typeof openaiResponsesAnnotationSchema>;
+
+
 export const openaiResponsesChunkSchema = lazyValidator(() =>
   zodSchema(
     z.union([
@@ -456,22 +483,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
       }),
       z.object({
         type: z.literal('response.output_text.annotation.added'),
-        annotation: z.discriminatedUnion('type', [
-          z.object({
-            type: z.literal('url_citation'),
-            url: z.string(),
-            title: z.string(),
-          }),
-          z.object({
-            type: z.literal('file_citation'),
-            file_id: z.string(),
-            filename: z.string().nullish(),
-            index: z.number().nullish(),
-            start_index: z.number().nullish(),
-            end_index: z.number().nullish(),
-            quote: z.string().nullish(),
-          }),
-        ]),
+        annotation: openaiResponsesAnnotationSchema,
       }),
       z.object({
         type: z.literal('response.reasoning_summary_part.added'),
@@ -568,6 +580,11 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
                     }),
                     z.object({
                       type: z.literal('container_file_citation'),
+                      container_id: z.string(),
+                      file_id: z.string(),
+                      filename: z.string(),
+                      start_index: z.number(),
+                      end_index: z.number(),
                     }),
                   ]),
                 ),
@@ -684,3 +701,18 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
     }),
   ),
 );
+
+export const openaiResponsesTextUIPartProviderMetadataSchema = z.object({
+  openai: z.object({
+    itemId: z.string(),
+    annotations: z.array(openaiResponsesAnnotationSchema),
+  }),
+});
+
+export const openaiSourceExecutionFileProviderMetadataSchema = z.object({
+  openai: z.object({
+  containerId: z.string(),
+  fileId: z.string(),
+  filename: z.string(),
+  }),
+});
