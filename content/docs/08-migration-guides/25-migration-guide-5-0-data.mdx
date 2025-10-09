@@ -11,7 +11,7 @@ AI SDK 5.0 introduces changes to the message structure and persistence patterns.
 
 ## Recommended Migration Process
 
-Follow this three-phase approach for a safe, zero-downtime migration:
+Follow this two-phase approach for a safe, zero-downtime migration:
 
 ### Phase 1: Get Your App Working (Runtime Conversion)
 
@@ -48,14 +48,6 @@ While Phase 1 gets you working immediately, migrate your schema within weeks of 
 - Eliminates technical debt early
 - Type safety with v5 message format
 - Easier to maintain and extend
-
-### Phase 3: Optimize Your Schema (Optional)
-
-**Goal:** Further optimize your schema by normalizing message parts into a separate table.
-
-Phase 2 gets you to a v5-compatible schema, but you may want to optimize further for better query performance and flexibility. This phase is optional but recommended for production applications with complex message structures.
-
-**Timeline:** Can be done months after Phase 2, or not at all if your current schema works well.
 
 ## Understanding the Changes
 
@@ -879,112 +871,6 @@ ALTER TABLE messages_v5 RENAME TO messages;
 ```
 
 **Phase 2 is now complete!** Your application is fully migrated to v5 schema with no runtime conversion overhead.
-
-## Phase 3: Optimize Your Schema (Optional)
-
-Phase 2 gets you to a v5-compatible schema that works well for most applications. However, storing message parts as JSONB has some limitations:
-
-- Difficult to query specific part types (e.g., "find all tool calls")
-- No database-level type safety for part fields
-- Less efficient indexing for part-specific searches
-- Harder to analyze message patterns at scale
-
-**Phase 3 normalizes your schema** by moving parts into a separate table with proper columns for each part type. This is optional but recommended for:
-
-- Production applications with complex queries
-- Apps that need to analyze message patterns
-- Systems requiring efficient part-level indexing
-- Teams wanting stronger type safety
-
-### Overview: Normalized Schema Design
-
-Instead of storing parts as JSONB, create a `parts` table with dedicated columns for different part types:
-
-```typescript
-export const messages = pgTable('messages', {
-  id: varchar().primaryKey(),
-  chatId: varchar().references(() => chats.id, { onDelete: 'cascade' }),
-  role: varchar().$type<'user' | 'assistant' | 'system'>(),
-  createdAt: timestamp().defaultNow(),
-});
-
-export const parts = pgTable('parts', {
-  id: varchar().primaryKey(),
-  messageId: varchar().references(() => messages.id, { onDelete: 'cascade' }),
-  type: varchar().$type<MyUIMessage['parts'][number]['type']>(),
-  order: integer().notNull(),
-  createdAt: timestamp().defaultNow(),
-
-  // Text parts
-  text_text: text(),
-
-  // Reasoning parts
-  reasoning_text: text(),
-
-  // Tool call parts
-  tool_toolCallId: varchar(),
-  tool_toolName: varchar(),
-  tool_state: varchar().$type<
-    'input-streaming' | 'input-available' | 'output-available'
-  >(),
-  tool_input: jsonb(),
-  tool_output: jsonb(),
-
-  // File parts
-  file_mediaType: varchar(),
-  file_filename: varchar(),
-  file_url: varchar(),
-
-  // Data parts
-  data_id: varchar(),
-  data_data: jsonb(),
-});
-```
-
-### Benefits
-
-**Query Performance:**
-
-```sql
--- Find all messages with tool calls
-SELECT DISTINCT messages.*
-FROM messages
-JOIN parts ON parts.messageId = messages.id
-WHERE parts.type LIKE 'tool-%';
-
--- Find messages with specific tool
-SELECT messages.*
-FROM messages
-JOIN parts ON parts.messageId = messages.id
-WHERE parts.tool_toolName = 'searchWeb';
-```
-
-**Type Safety:**
-
-- Database enforces part structure
-- Easier to validate data integrity
-- Better error messages for invalid data
-
-**Indexing:**
-
-```sql
--- Create indexes for common queries
-CREATE INDEX idx_parts_tool_name ON parts(tool_toolName);
-CREATE INDEX idx_parts_type ON parts(type);
-```
-
-### Migration Strategy
-
-Use the same side-by-side approach from Phase 2:
-
-1. Create normalized `messages_optimized` and `parts_optimized` tables
-2. Dual-write to both schemas
-3. Migrate existing data with a background job
-4. Switch reads to optimized schema
-5. Remove dual-write
-6. Drop old tables
-
-This phase follows the same pattern as Phase 2, just with a different target schema. Refer to Phase 2 steps for the detailed migration process.
 
 ## Community Resources
 
