@@ -15,7 +15,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { BasetenChatModelId } from './baseten-chat-options';
 import { BasetenEmbeddingModelId } from './baseten-embedding-options';
 import { PerformanceClient } from '@basetenlabs/performance-client';
@@ -63,12 +63,12 @@ export interface BasetenProviderSettings {
 
 export interface BasetenProvider extends ProviderV3 {
   /**
-Creates a chat model for text generation. 
+Creates a chat model for text generation.
 */
   (modelId?: BasetenChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation. 
+Creates a chat model for text generation.
 */
   chatModel(modelId?: BasetenChatModelId): LanguageModelV3;
 

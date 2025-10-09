@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import type { GatewayError } from './gateway-error';
 import { GatewayAuthenticationError } from './gateway-authentication-error';
 import { GatewayInvalidRequestError } from './gateway-invalid-request-error';

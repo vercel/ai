@@ -1,5 +1,5 @@
 import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 /**
  * A tool that enables the model to generate and run Python code.

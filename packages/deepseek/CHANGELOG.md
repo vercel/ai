@@ -1,5 +1,15 @@
 # @ai-sdk/deepseek
 
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/openai-compatible@2.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
 ## 2.0.0-beta.10
 
 ### Major Changes
