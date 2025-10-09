@@ -50,7 +50,7 @@ export function lazySchema<SCHEMA>(
 
 export type LazySchema<SCHEMA> = () => Schema<SCHEMA>;
 
-export type FlexibleSchema<SCHEMA> =
+export type FlexibleSchema<SCHEMA = any> =
   | Schema<SCHEMA>
   | LazySchema<SCHEMA>
   | StandardSchemaV1<unknown, SCHEMA>;
