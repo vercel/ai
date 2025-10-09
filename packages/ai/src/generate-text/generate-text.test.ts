@@ -1,4 +1,5 @@
 import {
+  LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2FunctionTool,
   LanguageModelV2ProviderDefinedTool,
@@ -3385,6 +3386,138 @@ describe('generateText', () => {
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
       expect(logWarningsSpy).toHaveBeenCalledWith([]);
+    });
+  });
+
+  describe('prepareStep with model switch and image URLs', () => {
+    it('should use the prepareStep model supportedUrls for download decision', async () => {
+      const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
+        [];
+      const languageModelCalls: Array<
+        Parameters<LanguageModelV2['doGenerate']>[0]
+      > = [];
+
+      const modelWithImageUrlSupport = new MockLanguageModelV2({
+        provider: 'with-image-url-support',
+        modelId: 'with-image-url-support',
+        supportedUrls: {
+          'image/*': [/^https?:\/\/.*$/],
+        },
+        doGenerate: async options => {
+          languageModelCalls.push(options);
+          return {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'response from with-image-url-support' },
+            ],
+          };
+        },
+      });
+
+      const modelWithoutImageUrlSupport = new MockLanguageModelV2({
+        provider: 'without-image-url-support',
+        modelId: 'without-image-url-support',
+        supportedUrls: {},
+        doGenerate: async options => {
+          languageModelCalls.push(options);
+          return {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'response from without-image-url-support' },
+            ],
+          };
+        },
+      });
+
+      const customDownload = async (
+        requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>,
+      ) => {
+        downloadCalls.push(...requestedDownloads);
+        return requestedDownloads.map(download =>
+          download.isUrlSupportedByModel
+            ? null
+            : {
+                data: new Uint8Array([1, 2, 3, 4]),
+                mediaType: 'image/png',
+              },
+        );
+      };
+
+      const result = await generateText({
+        model: modelWithImageUrlSupport,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image' },
+              { type: 'image', image: 'https://example.com/test.jpg' },
+            ],
+          },
+        ],
+        prepareStep: async () => {
+          return { model: modelWithoutImageUrlSupport }; // model switch
+        },
+        experimental_download: customDownload,
+      });
+
+      expect(downloadCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "isUrlSupportedByModel": false,
+            "url": "https://example.com/test.jpg",
+          },
+        ]
+      `);
+
+      expect(languageModelCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
+            },
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Describe this image",
+                    "type": "text",
+                  },
+                  {
+                    "data": Uint8Array [
+                      1,
+                      2,
+                      3,
+                      4,
+                    ],
+                    "filename": undefined,
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": undefined,
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          },
+        ]
+      `);
+
+      expect(result.text).toBe('response from without-image-url-support');
     });
   });
 });
