@@ -67,11 +67,6 @@ export const uiMessageChunkSchema = lazyValidator(() =>
         errorText: z.string(),
       }),
       z.strictObject({
-        type: z.literal('tool-approval-request'),
-        approvalId: z.string(),
-        toolCallId: z.string(),
-      }),
-      z.strictObject({
         type: z.literal('tool-output-available'),
         toolCallId: z.string(),
         output: z.unknown(),
@@ -85,10 +80,6 @@ export const uiMessageChunkSchema = lazyValidator(() =>
         errorText: z.string(),
         providerExecuted: z.boolean().optional(),
         dynamic: z.boolean().optional(),
-      }),
-      z.strictObject({
-        type: z.literal('tool-output-denied'),
-        toolCallId: z.string(),
       }),
       z.strictObject({
         type: z.literal('reasoning-start'),
