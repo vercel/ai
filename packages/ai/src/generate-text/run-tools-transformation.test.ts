@@ -4,16 +4,11 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-<<<<<<< HEAD
-import { z } from 'zod/v4';
-=======
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod/v4';
->>>>>>> 95f65c281 (chore(ai): load zod schemas lazily (#9275))
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
-import { describe, it, expect } from 'vitest';
 
 const testUsage = {
   inputTokens: 3,
