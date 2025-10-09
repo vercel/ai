@@ -1,6 +1,11 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import type { TelemetrySettings } from './telemetry-settings';
 
+type ResolvableAttributeValue = () =>
+  | AttributeValue
+  | PromiseLike<AttributeValue>
+  | undefined;
+
 export async function selectTelemetryAttributes({
   telemetry,
   attributes,
@@ -9,15 +14,8 @@ export async function selectTelemetryAttributes({
   attributes: {
     [attributeKey: string]:
       | AttributeValue
-      | {
-          input: () => AttributeValue | PromiseLike<AttributeValue> | undefined;
-        }
-      | {
-          output: () =>
-            | AttributeValue
-            | PromiseLike<AttributeValue>
-            | undefined;
-        }
+      | { input: ResolvableAttributeValue }
+      | { output: ResolvableAttributeValue }
       | undefined;
   };
 }): Promise<Attributes> {
