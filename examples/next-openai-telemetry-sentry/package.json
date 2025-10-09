@@ -14,7 +14,7 @@
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",
     "@opentelemetry/sdk-logs": "0.55.0",
-    "@sentry/nextjs": "^8.42.0",
+    "@sentry/nextjs": "^10.17.0",
     "@sentry/opentelemetry": "8.22.0",
     "@vercel/otel": "1.10.0",
     "ai": "workspace:*",
@@ -27,12 +27,12 @@
     "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@vercel/ai-tsconfig": "workspace:*",
     "autoprefixer": "^10.4.14",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "typescript": "5.8.3",
-    "@vercel/ai-tsconfig": "workspace:*"
+    "typescript": "5.8.3"
   }
 }

@@ -1,5 +1,5 @@
 import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 const urlMetadataSchema = z.object({

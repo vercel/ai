@@ -86,6 +86,7 @@ export type GatewayModelId =
   | 'openai/gpt-5-codex'
   | 'openai/gpt-5-mini'
   | 'openai/gpt-5-nano'
+  | 'openai/gpt-5-pro'
   | 'openai/gpt-oss-120b'
   | 'openai/gpt-oss-20b'
   | 'openai/o1'
@@ -113,4 +114,5 @@ export type GatewayModelId =
   | 'zai/glm-4.5'
   | 'zai/glm-4.5-air'
   | 'zai/glm-4.5v'
+  | 'zai/glm-4.6'
   | (string & {});

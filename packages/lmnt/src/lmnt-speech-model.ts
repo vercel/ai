@@ -1,11 +1,11 @@
-import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { LMNTConfig } from './lmnt-config';
 import { lmntFailedResponseHandler } from './lmnt-error';
 import { LMNTSpeechModelId } from './lmnt-speech-options';
@@ -83,8 +83,8 @@ interface LMNTSpeechModelConfig extends LMNTConfig {
   };
 }
 
-export class LMNTSpeechModel implements SpeechModelV2 {
-  readonly specificationVersion = 'v2';
+export class LMNTSpeechModel implements SpeechModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
@@ -102,8 +102,8 @@ export class LMNTSpeechModel implements SpeechModelV2 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
-    const warnings: SpeechModelV2CallWarning[] = [];
+  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
+    const warnings: SpeechModelV3CallWarning[] = [];
 
     // Parse provider options
     const lmntOptions = await parseProviderOptions({
@@ -167,8 +167,8 @@ export class LMNTSpeechModel implements SpeechModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
+    options: Parameters<SpeechModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

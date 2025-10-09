@@ -1,7 +1,7 @@
 import { EmptyResponseBodyError } from '@ai-sdk/provider';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { describe, it, expect, vi, MockInstance } from 'vitest';
 
 // Helper that constructs a properly framed message.

@@ -5,14 +5,16 @@ import {
   ToolModelMessage,
   UserModelMessage,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import {
   filePartSchema,
   imagePartSchema,
   reasoningPartSchema,
   textPartSchema,
+  toolApprovalRequestSchema,
   toolCallPartSchema,
+  toolApprovalResponseSchema,
   toolResultPartSchema,
 } from './content-part';
 
@@ -75,6 +77,7 @@ export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
           reasoningPartSchema,
           toolCallPartSchema,
           toolResultPartSchema,
+          toolApprovalRequestSchema,
         ]),
       ),
     ]),
@@ -95,7 +98,7 @@ export type CoreToolMessage = ToolModelMessage;
 
 export const toolModelMessageSchema: z.ZodType<ToolModelMessage> = z.object({
   role: z.literal('tool'),
-  content: z.array(toolResultPartSchema),
+  content: z.array(z.union([toolResultPartSchema, toolApprovalResponseSchema])),
   providerOptions: providerMetadataSchema.optional(),
 });
 

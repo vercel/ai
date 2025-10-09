@@ -1,6 +1,6 @@
 import { MetadataExtractor } from '@ai-sdk/openai-compatible';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 const buildDeepseekMetadata = (
   usage: z.infer<typeof deepSeekUsageSchema> | undefined,
