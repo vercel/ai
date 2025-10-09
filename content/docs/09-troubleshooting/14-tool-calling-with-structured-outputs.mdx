@@ -45,9 +45,10 @@ const result = await generateText({
 });
 ```
 
-## Important: Tool Calls vs Structured Output
+## Tool Calls vs Structured Output
 
-When a generation finishes with tool calls (finish reason: `tool-calls`), the structured output parsing is automatically skipped. This means:
+When a generation finishes with tool calls (finish reason: `tool-calls`), the structured output parsing is automatically skipped.
+This means:
 
 - experimental_output will not enforce structured output when the LLM returns with tool calls as a last message.
 - This prevents unnecessary parsing of tool call responses that don't contain structured text output
@@ -105,4 +106,5 @@ const result = await generateText({
 // result.experimental_output will contain the parsed structured output
 ```
 
-For more information about using structured outputs with `generateText` and `streamText` see [Generating Structured Data](/docs/ai-sdk-core/generating-structured-data#structured-outputs-with-generatetext-and-streamtext).
+For more information about using structured outputs with `generateText` and `streamText`
+see [Generating Structured Data](/docs/ai-sdk-core/generating-structured-data#structured-outputs-with-generatetext-and-streamtext).
