@@ -669,7 +669,7 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
           }),
         ]),
       ),
-      service_tier: z.enum(['auto', 'flex', 'priority', 'default']).nullish(),
+      service_tier: z.string().nullish(),
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: z.object({
         input_tokens: z.number(),
