@@ -31,5 +31,5 @@ export function MessageTextWithDownloadLink({ part }: { part: TextUIPart }) {
   }, part.text);
 
   //return <Response>{text}</Response>;
-  return<div>{text}</div>
+  return <div>{text}</div>;
 }
