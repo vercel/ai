@@ -1,5 +1,9 @@
 // re-exports:
-export { gateway, createGateway } from '@ai-sdk/gateway';
+export {
+  gateway,
+  createGateway,
+  type GatewayProviderOptions,
+} from '@ai-sdk/gateway';
 export {
   asSchema,
   createIdGenerator,
