@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.36
+
+### Patch Changes
+
+- 638a561: feat (provider/gateway): add 'only' to provider options
+
 ## 1.0.35
 
 ### Patch Changes
