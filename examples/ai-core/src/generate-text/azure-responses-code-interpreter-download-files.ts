@@ -28,20 +28,21 @@ async function main() {
     c => c.type === 'source' && c.sourceType === 'execution-file',
   );
 
-  await Promise.all( fileList.map(async file => {
-    const executeFileParse =
-      azureSourceExecutionFileProviderMetadataSchema.safeParse(
-        file.providerMetadata,
-      );
-    if (executeFileParse.success) {
-      await downloadContainerFile(
-        executeFileParse.data.azure.containerId,
-        executeFileParse.data.azure.fileId,
-      );
-    }
-  }))
+  await Promise.all(
+    fileList.map(async file => {
+      const executeFileParse =
+        azureSourceExecutionFileProviderMetadataSchema.safeParse(
+          file.providerMetadata,
+        );
+      if (executeFileParse.success) {
+        await downloadContainerFile(
+          executeFileParse.data.azure.containerId,
+          executeFileParse.data.azure.fileId,
+        );
+      }
+    }),
+  );
 }
-
 
 async function downloadContainerFile(container: string, file: string) {
   try {

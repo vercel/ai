@@ -31,18 +31,20 @@ async function main() {
     c => c.type === 'source' && c.sourceType === 'execution-file',
   );
 
-  await Promise.all(fileList.map(async file => {
-    const executeFileParse =
-      openaiSourceExecutionFileProviderMetadataSchema.safeParse(
-        file.providerMetadata,
-      );
-    if (executeFileParse.success) {
-      await downloadContainerFile(
-        executeFileParse.data.openai.containerId,
-        executeFileParse.data.openai.fileId,
-      );
-    }
-  }));
+  await Promise.all(
+    fileList.map(async file => {
+      const executeFileParse =
+        openaiSourceExecutionFileProviderMetadataSchema.safeParse(
+          file.providerMetadata,
+        );
+      if (executeFileParse.success) {
+        await downloadContainerFile(
+          executeFileParse.data.openai.containerId,
+          executeFileParse.data.openai.fileId,
+        );
+      }
+    }),
+  );
 }
 
 async function downloadContainerFile(container: string, file: string) {
