@@ -7,13 +7,13 @@ description: Learn how to migrate your persisted messages and chat data from AI 
 
 AI SDK 5.0 introduces changes to the message structure and persistence patterns. Unlike code migrations that can often be automated with codemods, data migration depends on your specific persistence approach, database schema, and application requirements.
 
-**This guide helps you get your application working with AI SDK 5.0 first** using a runtime conversion layer. This allows you to update your app immediately without database migrations blocking you. You can then optimize your database schema for v5 at your own pace.
+**This guide helps you get your application working with AI SDK 5.0 first** using a runtime conversion layer. This allows you to update your app immediately without database migrations blocking you. You can then migrate your data schema at your own pace.
 
 ## Recommended Migration Process
 
-Follow this two-phase approach for a safe, zero-downtime migration:
+Follow this three-phase approach for a safe, zero-downtime migration:
 
-#chore (ai): export gateway provider options## Phase 1: Get Your App Working (Runtime Conversion)
+### Phase 1: Get Your App Working (Runtime Conversion)
 
 **Goal:** Update your application to AI SDK 5.0 without touching your database.
 
@@ -26,26 +26,36 @@ Your database schema remains unchanged during Phase 1. You're only adding a conv
 
 **Timeline:** Can be completed in hours or days, with zero downtime.
 
-### Phase 2: Optimize Your Schema (Recommended)
+### Phase 2: Migrate to V5 Schema (Recommended)
 
-**Goal:** Migrate to a v5-optimized database schema for better performance, type safety, and maintainability.
+**Goal:** Migrate your data to a v5-compatible schema, eliminating the runtime conversion overhead.
 
-While Phase 1 gets you working immediately, optimize your schema within weeks of completing Phase 1. This phase uses a side-by-side migration approach:
+While Phase 1 gets you working immediately, migrate your schema within weeks of completing Phase 1. This phase uses a side-by-side migration approach with an equivalent v5 schema:
 
-1. Create new tables for v5 schema alongside existing tables
-2. Start saving new messages to the v5 schema
-3. Run a background migration to convert and copy existing messages
-4. Verify data integrity and application behavior
-5. Switch over completely and drop old tables
+1. Create `messages_v5` table alongside existing `messages` table
+2. Start dual-writing to both tables (with conversion)
+3. Run a background migration to convert existing messages
+4. Switch reads to the v5 schema
+5. Remove conversion from your route handlers
+6. Remove dual-write (write only to v5)
+7. Drop old tables
 
 **Timeline:** Should be done within weeks of Phase 1, with zero downtime.
 
 **Why this matters:**
 
-- Better query performance
-- Type safety at the database level
+- Removes runtime conversion overhead
+- Eliminates technical debt early
+- Type safety with v5 message format
 - Easier to maintain and extend
-- Removes technical debt early
+
+### Phase 3: Optimize Your Schema (Optional)
+
+**Goal:** Further optimize your schema by normalizing message parts into a separate table.
+
+Phase 2 gets you to a v5-compatible schema, but you may want to optimize further for better query performance and flexibility. This phase is optional but recommended for production applications with complex message structures.
+
+**Timeline:** Can be done months after Phase 2, or not at all if your current schema works well.
 
 ## Understanding the Changes
 
@@ -101,92 +111,95 @@ import type { UIMessage } from 'ai';
 Create type guards to detect which message format you're working with, and build a conversion function that handles all v4 message types:
 
 ```tsx
-// import type {
+import type {
   ToolInvocation,
   Message as V4Message,
   UIMessage as LegacyUIMessage,
-} from "ai-legacy";
-import type { ToolUIPart, UIMessage, UITools } from "ai";
+} from 'ai-legacy';
+import type { ToolUIPart, UIMessage, UITools } from 'ai';
 
 export type MyUIMessage = UIMessage<unknown, { custom: any }, UITools>;
 
-type V4Part = NonNullable<V4Message["parts"]>[number];
-type V5Part = MyUIMessage["parts"][number];
+type V4Part = NonNullable<V4Message['parts']>[number];
+type V5Part = MyUIMessage['parts'][number];
 
 // Type definitions for V4 parts
-type V4ToolInvocationPart = Extract<V4Part, { type: "tool-invocation" }>;
+type V4ToolInvocationPart = Extract<V4Part, { type: 'tool-invocation' }>;
 
-type V4ReasoningPart = Extract<V4Part, { type: "reasoning" }>;
+type V4ReasoningPart = Extract<V4Part, { type: 'reasoning' }>;
 
-type V4SourcePart = Extract<V4Part, { type: "source" }>;
+type V4SourcePart = Extract<V4Part, { type: 'source' }>;
 
-type V4FilePart = Extract<V4Part, { type: "file" }>;
+type V4FilePart = Extract<V4Part, { type: 'file' }>;
 
 // Type guards
 function isV4Message(msg: V4Message | MyUIMessage): msg is V4Message {
   return (
-    "toolInvocations" in msg ||
-    (msg?.parts?.some((p) => p.type === "tool-invocation") ?? false) ||
-    msg?.role === "data" ||
-    ("reasoning" in msg && typeof msg.reasoning === "string") ||
-    (msg?.parts?.some((p) => "args" in p || "result" in p) ?? false) ||
-    (msg?.parts?.some((p) => "reasoning" in p && "details" in p) ?? false) ||
-    (msg?.parts?.some((p) => p.type === "file" && "mimeType" in p && "data" in p) ?? false)
+    'toolInvocations' in msg ||
+    (msg?.parts?.some(p => p.type === 'tool-invocation') ?? false) ||
+    msg?.role === 'data' ||
+    ('reasoning' in msg && typeof msg.reasoning === 'string') ||
+    (msg?.parts?.some(p => 'args' in p || 'result' in p) ?? false) ||
+    (msg?.parts?.some(p => 'reasoning' in p && 'details' in p) ?? false) ||
+    (msg?.parts?.some(
+      p => p.type === 'file' && 'mimeType' in p && 'data' in p,
+    ) ??
+      false)
   );
 }
 
 function isV4ToolInvocationPart(part: unknown): part is V4ToolInvocationPart {
   return (
-    typeof part === "object" &&
+    typeof part === 'object' &&
     part !== null &&
-    "type" in part &&
-    part.type === "tool-invocation" &&
-    "toolInvocation" in part
+    'type' in part &&
+    part.type === 'tool-invocation' &&
+    'toolInvocation' in part
   );
 }
 
 function isV4ReasoningPart(part: unknown): part is V4ReasoningPart {
   return (
-    typeof part === "object" &&
+    typeof part === 'object' &&
     part !== null &&
-    "type" in part &&
-    part.type === "reasoning" &&
-    "reasoning" in part
+    'type' in part &&
+    part.type === 'reasoning' &&
+    'reasoning' in part
   );
 }
 
 function isV4SourcePart(part: unknown): part is V4SourcePart {
   return (
-    typeof part === "object" &&
+    typeof part === 'object' &&
     part !== null &&
-    "type" in part &&
-    part.type === "source" &&
-    "source" in part
+    'type' in part &&
+    part.type === 'source' &&
+    'source' in part
   );
 }
 
 function isV4FilePart(part: unknown): part is V4FilePart {
   return (
-    typeof part === "object" &&
+    typeof part === 'object' &&
     part !== null &&
-    "type" in part &&
-    part.type === "file" &&
-    "mimeType" in part &&
-    "data" in part
+    'type' in part &&
+    part.type === 'file' &&
+    'mimeType' in part &&
+    'data' in part
   );
 }
 
 // State mapping
 const V4_TO_V5_STATE_MAP = {
-  "partial-call": "input-streaming",
-  call: "input-available",
-  result: "output-available",
+  'partial-call': 'input-streaming',
+  call: 'input-available',
+  result: 'output-available',
 } as const;
 
 function convertToolInvocationState(
-  v4State: ToolInvocation["state"],
-): "input-streaming" | "input-available" | "output-available" {
-  return V4_TO_V5_STATE_MAP[v4State] ?? "output-available";
+  v4State: ToolInvocation['state'],
+): 'input-streaming' | 'input-available' | 'output-available' {
+  return V4_TO_V5_STATE_MAP[v4State] ?? 'output-available';
 }
 
 // Tool conversion
@@ -198,7 +211,7 @@ function convertV4ToolInvocationToV5ToolUIPart(
     toolCallId: toolInvocation.toolCallId,
     input: toolInvocation.args,
     output:
-      toolInvocation.state === "result" ? toolInvocation.result : undefined,
+      toolInvocation.state === 'result' ? toolInvocation.result : undefined,
     state: convertToolInvocationState(toolInvocation.state),
   };
 }
@@ -209,12 +222,12 @@ function convertV4ToolInvocationPart(part: V4ToolInvocationPart): V5Part {
 }
 
 function convertV4ReasoningPart(part: V4ReasoningPart): V5Part {
-  return { type: "reasoning", text: part.reasoning };
+  return { type: 'reasoning', text: part.reasoning };
 }
 
 function convertV4SourcePart(part: V4SourcePart): V5Part {
   return {
-    type: "source-url",
+    type: 'source-url',
     url: part.source.url,
     sourceId: part.source.id,
     title: part.source.title,
@@ -223,7 +236,7 @@ function convertV4SourcePart(part: V4SourcePart): V5Part {
 
 function convertV4FilePart(part: V4FilePart): V5Part {
   return {
-    type: "file",
+    type: 'file',
     mediaType: part.mimeType,
     url: part.data,
   };
@@ -250,10 +263,10 @@ function convertPart(part: V4Part | V5Part): V5Part {
 function createBaseMessage(
   msg: V4Message | MyUIMessage,
   index: number,
-): Pick<MyUIMessage, "id" | "role"> {
+): Pick<MyUIMessage, 'id' | 'role'> {
   return {
     id: msg.id || `msg-${index}`,
-    role: msg.role === "data" ? "assistant" : msg.role,
+    role: msg.role === 'data' ? 'assistant' : msg.role,
   };
 }
 
@@ -262,18 +275,18 @@ function convertDataMessage(msg: V4Message, index: number): MyUIMessage {
     ...createBaseMessage(msg, index),
     parts: [
       {
-        type: "data-custom",
+        type: 'data-custom',
         data: msg.data || msg.content,
       },
     ],
   };
 }
 
-function buildPartsFromTopLevelFields(msg: V4Message): MyUIMessage["parts"] {
-  const parts: MyUIMessage["parts"] = [];
+function buildPartsFromTopLevelFields(msg: V4Message): MyUIMessage['parts'] {
+  const parts: MyUIMessage['parts'] = [];
 
   if (msg.reasoning) {
-    parts.push({ type: "reasoning", text: msg.reasoning });
+    parts.push({ type: 'reasoning', text: msg.reasoning });
   }
 
   if (msg.toolInvocations) {
@@ -282,14 +295,14 @@ function buildPartsFromTopLevelFields(msg: V4Message): MyUIMessage["parts"] {
     );
   }
 
-  if (msg.content && typeof msg.content === "string") {
-    parts.push({ type: "text", text: msg.content });
+  if (msg.content && typeof msg.content === 'string') {
+    parts.push({ type: 'text', text: msg.content });
   }
 
   return parts;
 }
 
-function convertPartsArray(parts: V4Part[]): MyUIMessage["parts"] {
+function convertPartsArray(parts: V4Part[]): MyUIMessage['parts'] {
   return parts.map(convertPart);
 }
 
@@ -301,7 +314,7 @@ export function convertV4MessageToV5(
     return msg as MyUIMessage;
   }
 
-  if (msg.role === "data") {
+  if (msg.role === 'data') {
     return convertDataMessage(msg, index);
   }
 
@@ -318,13 +331,13 @@ function convertV5ToolUIPartToV4ToolInvocation(
   part: ToolUIPart,
 ): ToolInvocation {
   const state =
-    part.state === "input-streaming"
-      ? "partial-call"
-      : part.state === "input-available"
-        ? "call"
-        : "result";
+    part.state === 'input-streaming'
+      ? 'partial-call'
+      : part.state === 'input-available'
+        ? 'call'
+        : 'result';
 
-  const toolName = part.type.startsWith("tool-")
+  const toolName = part.type.startsWith('tool-')
     ? part.type.slice(5)
     : part.type;
 
@@ -335,8 +348,8 @@ function convertV5ToolUIPartToV4ToolInvocation(
     state,
   };
 
-  if (state === "result" && part.output !== undefined) {
-    return { ...base, state: "result" as const, result: part.output };
+  if (state === 'result' && part.output !== undefined) {
+    return { ...base, state: 'result' as const, result: part.output };
   }
 
   return base as ToolInvocation;
@@ -348,48 +361,48 @@ export function convertV5MessageToV4(msg: MyUIMessage): LegacyUIMessage {
   const base: LegacyUIMessage = {
     id: msg.id,
     role: msg.role,
-    content: "",
+    content: '',
     parts,
   };
 
-  let textContent = "";
+  let textContent = '';
   let reasoning: string | undefined;
   const toolInvocations: ToolInvocation[] = [];
 
   for (const part of msg.parts) {
-    if (part.type === "text") {
+    if (part.type === 'text') {
       textContent = part.text;
-      parts.push({ type: "text", text: part.text });
-    } else if (part.type === "reasoning") {
+      parts.push({ type: 'text', text: part.text });
+    } else if (part.type === 'reasoning') {
       reasoning = part.text;
       parts.push({
-        type: "reasoning",
+        type: 'reasoning',
         reasoning: part.text,
-        details: [{ type: "text", text: part.text }],
+        details: [{ type: 'text', text: part.text }],
       });
-    } else if (part.type.startsWith("tool-")) {
+    } else if (part.type.startsWith('tool-')) {
       const toolInvocation = convertV5ToolUIPartToV4ToolInvocation(
         part as ToolUIPart,
       );
-      parts.push({ type: "tool-invocation", toolInvocation: toolInvocation });
+      parts.push({ type: 'tool-invocation', toolInvocation: toolInvocation });
       toolInvocations.push(toolInvocation);
-    } else if (part.type === "source-url") {
+    } else if (part.type === 'source-url') {
       parts.push({
-        type: "source",
+        type: 'source',
         source: {
           id: part.sourceId,
           url: part.url,
           title: part.title,
-          sourceType: "url",
+          sourceType: 'url',
         },
       });
-    } else if (part.type === "file") {
+    } else if (part.type === 'file') {
       parts.push({
-        type: "file",
+        type: 'file',
         mimeType: part.mediaType,
         data: part.url,
       });
-    } else if (part.type === "data-custom") {
+    } else if (part.type === 'data-custom') {
       base.data = part.data;
     }
   }
@@ -510,110 +523,71 @@ Now that your application is updated to AI SDK 5.0 and working with the runtime 
 
 **Phase 2 migrates your message history to the v5 schema**, eliminating the conversion layer and enabling better performance and long-term maintainability.
 
-Create new tables alongside your existing ones to migrate with zero downtime and easy rollback.
+This phase uses a simplified approach: create a new `messages_v5` table with the same structure as your current `messages` table, but storing v5-formatted message parts.
 
 <Note type="warning">
-**Adapt Phase 2 Examples to Your Setup**
+**Adapt Phase 2 and 3 Examples to Your Setup**
 
 These code examples demonstrate migration patterns. Your implementation will differ based on your database (Postgres, MySQL, SQLite), ORM (Drizzle, Prisma, raw SQL), schema design, and data persistence patterns.
 
 Use these examples as a guide, then adapt them to your specific setup.
+
 </Note>
 
 ### Overview: Zero-Downtime Migration Strategy
 
-1. **Create new v5 tables** alongside existing v4 tables
-2. **Dual-write** new messages to both schemas during migration
+1. **Create `messages_v5` table** alongside existing `messages` table
+2. **Dual-write** new messages to both schemas (with conversion)
 3. **Background migration** to convert existing messages
 4. **Verify** data integrity
-5. **Update read functions** to use v5 schema
-6. **Update write functions** to use v5 schema only
-7. **Switch over** completely and remove old tables
+5. **Update read functions** to use `messages_v5` schema
+6. **Remove conversion** from route handlers
+7. **Remove dual-write** (write only to `messages_v5`)
+8. **Clean up** old tables
 
 This ensures your application keeps running throughout the migration with no data loss risk.
 
 ### Step 1: Create V5 Schema Alongside V4
 
-Create new tables with a `_v5` suffix (or similar naming) to distinguish them from your existing tables:
+Create a new `messages_v5` table with the same structure as your existing table, but designed to store v5 message parts:
 
 **Existing v4 Schema (keep running):**
 
 ```typescript
+import { UIMessage } from 'ai-legacy';
+
 export const messages = pgTable('messages', {
-  id: varchar().primaryKey(),
-  chatId: varchar().references(() => chats.id),
-  role: varchar().$type<'user' | 'assistant' | 'system' | 'data'>(),
-  content: text(),
-  parts: jsonb().$type<UIMessage['parts'][]>(), // Flexible but problematic
-  createdAt: timestamp().defaultNow(),
+  id: varchar()
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  chatId: varchar()
+    .references(() => chats.id, { onDelete: 'cascade' })
+    .notNull(),
+  createdAt: timestamp().defaultNow().notNull(),
+  parts: jsonb().$type<UIMessage['parts']>().notNull(),
+  role: text().$type<UIMessage['role']>().notNull(),
 });
 ```
 
 **New v5 Schema (create alongside):**
 
 ```typescript
-import { ToolUIPart } from 'ai';
-import { UIMessage } from 'ai-legacy';
-import {
-  integer,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  varchar,
-} from 'drizzle-orm/pg-core';
-import { customAlphabet } from 'nanoid';
-import { MyUIMessage } from '../convert-utils';
-import { InferInsertModel } from 'drizzle-orm';
-
-// existing message schema...
-
-type MyUIMessagePartType = MyUIMessage['parts'][number]['type'];
+import { MyUIMessage } from './conversion';
 
 export const messages_v5 = pgTable('messages_v5', {
-  id: varchar().primaryKey(),
-  chatId: varchar().references(() => chats.id, { onDelete: 'cascade' }),
-  role: varchar().$type<MyUIMessage['role']>(),
-  createdAt: timestamp().defaultNow(),
+  id: varchar()
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  chatId: varchar()
+    .references(() => chats.id, { onDelete: 'cascade' })
+    .notNull(),
+  createdAt: timestamp().defaultNow().notNull(),
+  parts: jsonb().$type<MyUIMessage['parts']>().notNull(),
+  role: text().$type<MyUIMessage['role']>().notNull(),
 });
-
-export const parts_v5 = pgTable('parts_v5', {
-  id: varchar().primaryKey(),
-  messageId: varchar().references(() => messages_v5.id, {
-    onDelete: 'cascade',
-  }),
-  type: varchar().$type<MyUIMessagePartType>(),
-  order: integer().notNull(),
-  createdAt: timestamp().defaultNow(),
-
-  // Text parts
-  text_text: text(),
-
-  // Reasoning parts
-  reasoning_text: text(),
-
-  // Tool call parts
-  tool_toolCallId: varchar(),
-  tool_toolName: varchar(),
-  tool_state: varchar().$type<ToolUIPart['state']>(),
-  tool_input: jsonb(),
-  tool_output: jsonb(),
-
-  // File parts
-  file_mediaType: varchar(),
-  file_filename: varchar(),
-  file_url: varchar(),
-
-  // Data parts
-  data_id: varchar(),
-  data_data: jsonb(),
-});
-
-export type PartsV5 = InferInsertModel<typeof parts_v5>;
 ```
 
-Run your migration to create the new tables:
+Run your migration to create the new table:
 
 ```bash
 pnpm drizzle-kit generate
@@ -622,12 +596,12 @@ pnpm drizzle-kit migrate
 
 ### Step 2: Implement Dual-Write for New Messages
 
-Update your save functions to write to both schemas during the migration period:
+Update your save functions to write to both schemas during the migration period. This ensures new messages are available in both formats:
 
 ```typescript
 import { convertV4MessageToV5 } from './conversion';
-import { messages, messages_v5, parts_v5 } from './schema';
-import type { UIMessage, isToolUIPart, getToolName } from 'ai';
+import { messages, messages_v5 } from './schema';
+import type { UIMessage } from 'ai-legacy';
 
 export const upsertMessage = async ({
   chatId,
@@ -636,94 +610,54 @@ export const upsertMessage = async ({
 }: {
   id: string;
   chatId: string;
-  message: UIMessage;
+  message: UIMessage; // Still accepts v4 format
 }) => {
-  const v5Message = convertV4MessageToV5(message, 1);
-  const result = await db.transaction(async tx => {
-    // Write to v5 schema (new)
-    await tx
-      .insert(messages_v5)
-      .values({
-        id,
-        chatId,
-        role: v5Message.role,
-        createdAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: messages_v5.id,
-        set: {
-          chatId,
-          role: v5Message.role,
-        },
-      });
-
-    // Save parts to v5 schema
-    for (let i = 0; i < (v5Message.parts ?? []).length; i++) {
-      const part = v5Message.parts[i];
-      const partData: PartsV5 = {
-        id: `${id}-part-${i}`,
-        messageId: v5Message.id,
-        type: part.type,
-        order: i,
-      };
-
-      // Map part fields based on type
-      switch (part.type) {
-        case 'text':
-          partData.text_text = part.text;
-          break;
-        case 'reasoning':
-          partData.reasoning_text = part.text;
-          break;
-        case 'file':
-          partData.file_mediaType = part.mediaType;
-          partData.file_filename = part.filename;
-          partData.file_url = part.url;
-          break;
-        case 'data-custom':
-          partData.data_data = part.data;
-          partData.data_id = part.id;
-          break;
-        default:
-          if (isToolUIPart(part)) {
-            partData.tool_toolCallId = part.toolCallId;
-            partData.tool_toolName = getToolName(part);
-            partData.tool_state = part.state;
-            partData.tool_input = part.input;
-            partData.tool_output = part.output;
-            break;
-          }
-          break;
-      }
-
-      await tx.insert(parts_v5).values(partData).onConflictDoUpdate({
-        target: parts_v5.id,
-        set: partData,
-      });
-    }
-
-    // Also write to v4 schema (legacy)
-    const [v4Result] = await tx
+  return await db.transaction(async tx => {
+    // Write to v4 schema (existing)
+    const [result] = await tx
       .insert(messages)
       .values({
         chatId,
-        parts: message.parts,
+        parts: message.parts ?? [],
         role: message.role,
         id,
       })
       .onConflictDoUpdate({
         target: messages.id,
         set: {
-          parts: message.parts,
+          parts: message.parts ?? [],
           chatId,
         },
       })
       .returning();
 
-    return v4Result;
-  });
+    // Convert and write to v5 schema (new)
+    const v5Message = convertV4MessageToV5(
+      {
+        ...message,
+        content: '',
+      },
+      0,
+    );
 
-  return result;
+    await tx
+      .insert(messages_v5)
+      .values({
+        chatId,
+        parts: v5Message.parts ?? [],
+        role: v5Message.role,
+        id,
+      })
+      .onConflictDoUpdate({
+        target: messages_v5.id,
+        set: {
+          parts: v5Message.parts ?? [],
+          chatId,
+        },
+      });
+
+    return result;
+  });
 };
 ```
 
@@ -732,13 +666,12 @@ export const upsertMessage = async ({
 Create a script to migrate existing messages from v4 to v5 schema:
 
 ```typescript
-import { convertV4MessageToV5 } from './convert-utils';
+import { convertV4MessageToV5 } from './conversion';
 import { db } from './db';
-import { messages, messages_v5, parts_v5, PartsV5 } from './db/schema';
-import { getToolName, isToolUIPart } from 'ai';
+import { messages, messages_v5 } from './db/schema';
 
 async function migrateExistingMessages() {
-  console.log('Starting background migration of existing messages...');
+  console.log('Starting migration of existing messages...');
 
   // Get all v4 messages that haven't been migrated yet
   const migratedIds = await db.select({ id: messages_v5.id }).from(messages_v5);
@@ -777,53 +710,9 @@ async function migrateExistingMessages() {
             id: v5Message.id,
             chatId: msg.chatId,
             role: v5Message.role,
+            parts: v5Message.parts,
             createdAt: msg.createdAt,
           });
-
-          // Insert parts
-          for (let i = 0; i < (v5Message.parts ?? []).length; i++) {
-            const part = v5Message.parts[i];
-            const partData: PartsV5 = {
-              id: `${msg.id}-part-${i}`,
-              messageId: v5Message.id,
-              type: part.type,
-              order: i,
-            };
-
-            // Map part fields based on type
-            switch (part.type) {
-              case 'text':
-                partData.text_text = part.text;
-                break;
-              case 'reasoning':
-                partData.reasoning_text = part.text;
-                break;
-              case 'file':
-                partData.file_mediaType = part.mediaType;
-                partData.file_filename = part.filename;
-                partData.file_url = part.url;
-                break;
-              case 'data-custom':
-                partData.data_data = part.data;
-                partData.data_id = part.id;
-                break;
-              default:
-                if (isToolUIPart(part)) {
-                  partData.tool_toolCallId = part.toolCallId;
-                  partData.tool_toolName = getToolName(part);
-                  partData.tool_state = part.state;
-                  partData.tool_input = part.input;
-                  partData.tool_output = part.output;
-                  break;
-                }
-                break;
-            }
-
-            await tx.insert(parts_v5).values(partData).onConflictDoUpdate({
-              target: parts_v5.id,
-              set: partData,
-            });
-          }
 
           migrated++;
         } catch (error) {
@@ -857,18 +746,16 @@ Create a verification script to ensure data integrity:
 ```typescript
 import { count } from 'drizzle-orm';
 import { db } from './db';
-import { messages, messages_v5, parts_v5 } from './db/schema';
+import { messages, messages_v5 } from './db/schema';
 
 async function verifyMigration() {
   // Count messages in both schemas
   const v4Count = await db.select({ count: count() }).from(messages);
   const v5Count = await db.select({ count: count() }).from(messages_v5);
-  const partsCount = await db.select({ count: count() }).from(parts_v5);
 
   console.log('Migration Status:');
   console.log(`V4 Messages: ${v4Count[0].count}`);
   console.log(`V5 Messages: ${v5Count[0].count}`);
-  console.log(`V5 Parts: ${partsCount[0].count}`);
   console.log(
     `Migration progress: ${((v5Count[0].count / v4Count[0].count) * 100).toFixed(2)}%`,
   );
@@ -879,122 +766,30 @@ verifyMigration().catch(console.error);
 
 ### Step 5: Read from V5 Schema
 
-Once migration is complete, update your read functions to use the new v5 schema:
+Once migration is complete, update your read functions to use the new v5 schema. Since the data is now in v5 format, you don't need conversion:
 
 ```typescript
-import type { UIMessage } from 'ai';
+import type { MyUIMessage } from './conversion';
 
 export const loadChat = async (chatId: string): Promise<MyUIMessage[]> => {
-  // Load messages and parts from v5 schema
-  const messagesWithParts = await db
+  // Load from v5 schema - no conversion needed
+  const messages = await db
     .select()
     .from(messages_v5)
-    .leftJoin(parts_v5, eq(messages_v5.id, parts_v5.messageId))
     .where(eq(messages_v5.chatId, chatId))
     .orderBy(messages_v5.createdAt);
 
-  // Group parts by message
-  const messageMap = new Map<string, MyUIMessage>();
-
-  for (const row of messagesWithParts) {
-    const msg = row.messages_v5;
-    const part = row.parts_v5;
-
-    if (!messageMap.has(msg.id)) {
-      messageMap.set(msg.id, {
-        id: msg.id,
-        role: msg.role,
-        parts: [],
-      });
-    }
-
-    const message = messageMap.get(msg.id)!;
-
-    if (part) {
-      let convertedPart: MyUIMessage['parts'][number] | null = null;
-
-      switch (part.type) {
-        case 'text':
-          convertedPart = {
-            type: 'text',
-            text: part.text_text!,
-          };
-          break;
-        case 'reasoning':
-          convertedPart = {
-            type: 'reasoning',
-            text: part.reasoning_text!,
-          };
-          break;
-        case 'file':
-          convertedPart = {
-            type: 'file',
-            mediaType: part.file_mediaType!,
-            filename: part.file_filename ?? undefined,
-            url: part.file_url!,
-          };
-          break;
-        case 'data-custom':
-          convertedPart = {
-            type: 'data-custom',
-            data: part.data_data,
-            id: part.data_id ?? undefined,
-          };
-          break;
-        default:
-          if (part.type?.startsWith('tool-')) {
-            convertedPart = {
-              type: part.type as `tool-${string}`,
-              toolCallId: part.tool_toolCallId!,
-              input: part.tool_input,
-              output: part.tool_output,
-              state: part.tool_state! as 'output-available',
-            };
-          }
-          break;
-      }
-
-      if (convertedPart) {
-        message.parts.push(convertedPart);
-      }
-    }
-  }
-
-  // Sort parts by order
-  for (const message of messageMap.values()) {
-    message.parts.sort((a, b) => {
-      const aOrder =
-        messagesWithParts.find(
-          row =>
-            row.parts_v5?.messageId === message.id &&
-            row.parts_v5.type === a.type,
-        )?.parts_v5?.order ?? 0;
-      const bOrder =
-        messagesWithParts.find(
-          row =>
-            row.parts_v5?.messageId === message.id &&
-            row.parts_v5.type === b.type,
-        )?.parts_v5?.order ?? 0;
-      return aOrder - bOrder;
-    });
-  }
-
-  return Array.from(messageMap.values());
+  return messages;
 };
 ```
 
 ### Step 6: Write to V5 Schema Only
 
-Once your read functions work with v5 and your background migration is complete (or nearly complete), stop dual-writing and only write to v5.
-
-Update your `upsertMessage` (or similar) function to:
-
-1. Accept v5 messages directly (change type from `UIMessage` to `MyUIMessage`)
-2. Remove the `convertV4MessageToV5` call
-3. Remove the dual-write to the v4 schema (the old `messages` table insert)
-4. Only write to the v5 schema
+Once your read functions work with v5 and your background migration is complete, stop dual-writing and only write to v5:
 
 ```typescript
+import type { MyUIMessage } from './conversion';
+
 export const upsertMessage = async ({
   chatId,
   message,
@@ -1002,101 +797,194 @@ export const upsertMessage = async ({
 }: {
   id: string;
   chatId: string;
-  message: MyUIMessage; // Now accepts v5 format directly
+  message: MyUIMessage; // Now accepts v5 format
 }) => {
-  const result = await db.transaction(async tx => {
-    // Write to v5 schema only
-    await tx
-      .insert(messages_v5)
-      .values({
-        id,
+  // Write to v5 schema only
+  const [result] = await db
+    .insert(messages_v5)
+    .values({
+      chatId,
+      parts: message.parts ?? [],
+      role: message.role,
+      id,
+    })
+    .onConflictDoUpdate({
+      target: messages_v5.id,
+      set: {
+        parts: message.parts ?? [],
         chatId,
-        role: message.role,
-        createdAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: messages_v5.id,
-        set: { chatId, role: message.role },
-      });
-
-    // Save parts to v5 schema
-    for (let i = 0; i < (message.parts ?? []).length; i++) {
-      const part = message.parts[i];
-      const partData: PartsV5 = {
-        id: `${id}-part-${i}`,
-        messageId: message.id,
-        type: part.type,
-        order: i,
-      };
-
-      // Map part fields based on type
-      switch (part.type) {
-        case 'text':
-          partData.text_text = part.text;
-          break;
-        case 'reasoning':
-          partData.reasoning_text = part.text;
-          break;
-        case 'file':
-          partData.file_mediaType = part.mediaType;
-          partData.file_filename = part.filename;
-          partData.file_url = part.url;
-          break;
-        case 'data-custom':
-          partData.data_data = part.data;
-          partData.data_id = part.id;
-          break;
-        default:
-          if (isToolUIPart(part)) {
-            partData.tool_toolCallId = part.toolCallId;
-            partData.tool_toolName = getToolName(part);
-            partData.tool_state = part.state;
-            partData.tool_input = part.input;
-            partData.tool_output = part.output;
-          }
-          break;
-      }
-
-      await tx.insert(parts_v5).values(partData).onConflictDoUpdate({
-        target: parts_v5.id,
-        set: partData,
-      });
-    }
-  });
+      },
+    })
+    .returning();
 
   return result;
 };
 ```
 
-Since your write function now expects v5 messages, remove conversion calls in your route handlers:
+Update your route handler to pass v5 messages directly:
 
-```typescript
-await upsertMessage({
-  chatId,
-  id: message.id,
-  message, // Pass v5 message directly - no conversion needed
-});
+```tsx
+export async function POST(req: Request) {
+  const { message, chatId }: { message: MyUIMessage; chatId: string } =
+    await req.json();
+
+  // Pass v5 message directly - no conversion needed
+  await upsertMessage({
+    chatId,
+    id: message.id,
+    message,
+  });
+
+  const previousMessages = await loadChat(chatId);
+  const messages = [...previousMessages, message];
+
+  const result = streamText({
+    model: openai('gpt-4'),
+    messages: convertToModelMessages(messages),
+    tools: {
+      // Your tools here
+    },
+  });
+
+  return result.toUIMessageStreamResponse({
+    generateMessageId: generateId,
+    originalMessages: messages,
+    onFinish: async ({ responseMessage }) => {
+      await upsertMessage({
+        chatId,
+        id: responseMessage.id,
+        message: responseMessage, // No conversion needed
+      });
+    },
+  });
+}
 ```
 
-At this point, you're fully on v5 for both reads and writes. All new messages go to the v5 schema.
-
-### Step 7: Complete the Switch
+### Step 8: Complete the Switch
 
 Once verification passes and you're confident in the migration:
 
-1. **Stop dual-writes**: Remove v4 writes from your save functions
-2. **Test thoroughly**: Ensure your application works correctly with v5 schema
-3. **Monitor**: Watch for issues in production
-4. **Clean up**: After a safe period (1-2 weeks), drop the old tables
+1. **Remove conversion functions**: Delete the v4↔v5 conversion utilities
+2. **Remove `ai-legacy` dependency**: Uninstall the v4 types package
+3. **Test thoroughly**: Ensure your application works correctly with v5 schema
+4. **Monitor**: Watch for issues in production
+5. **Clean up**: After a safe period (1-2 weeks), drop the old table
 
 ```sql
 -- After confirming everything works
 DROP TABLE messages;
 
--- Rename v5 tables to standard names
+-- Optionally rename v5 table to standard name
 ALTER TABLE messages_v5 RENAME TO messages;
-ALTER TABLE parts_v5 RENAME TO parts;
 ```
+
+**Phase 2 is now complete!** Your application is fully migrated to v5 schema with no runtime conversion overhead.
+
+## Phase 3: Optimize Your Schema (Optional)
+
+Phase 2 gets you to a v5-compatible schema that works well for most applications. However, storing message parts as JSONB has some limitations:
+
+- Difficult to query specific part types (e.g., "find all tool calls")
+- No database-level type safety for part fields
+- Less efficient indexing for part-specific searches
+- Harder to analyze message patterns at scale
+
+**Phase 3 normalizes your schema** by moving parts into a separate table with proper columns for each part type. This is optional but recommended for:
+
+- Production applications with complex queries
+- Apps that need to analyze message patterns
+- Systems requiring efficient part-level indexing
+- Teams wanting stronger type safety
+
+### Overview: Normalized Schema Design
+
+Instead of storing parts as JSONB, create a `parts` table with dedicated columns for different part types:
+
+```typescript
+export const messages = pgTable('messages', {
+  id: varchar().primaryKey(),
+  chatId: varchar().references(() => chats.id, { onDelete: 'cascade' }),
+  role: varchar().$type<'user' | 'assistant' | 'system'>(),
+  createdAt: timestamp().defaultNow(),
+});
+
+export const parts = pgTable('parts', {
+  id: varchar().primaryKey(),
+  messageId: varchar().references(() => messages.id, { onDelete: 'cascade' }),
+  type: varchar().$type<MyUIMessage['parts'][number]['type']>(),
+  order: integer().notNull(),
+  createdAt: timestamp().defaultNow(),
+
+  // Text parts
+  text_text: text(),
+
+  // Reasoning parts
+  reasoning_text: text(),
+
+  // Tool call parts
+  tool_toolCallId: varchar(),
+  tool_toolName: varchar(),
+  tool_state: varchar().$type<
+    'input-streaming' | 'input-available' | 'output-available'
+  >(),
+  tool_input: jsonb(),
+  tool_output: jsonb(),
+
+  // File parts
+  file_mediaType: varchar(),
+  file_filename: varchar(),
+  file_url: varchar(),
+
+  // Data parts
+  data_id: varchar(),
+  data_data: jsonb(),
+});
+```
+
+### Benefits
+
+**Query Performance:**
+
+```sql
+-- Find all messages with tool calls
+SELECT DISTINCT messages.*
+FROM messages
+JOIN parts ON parts.messageId = messages.id
+WHERE parts.type LIKE 'tool-%';
+
+-- Find messages with specific tool
+SELECT messages.*
+FROM messages
+JOIN parts ON parts.messageId = messages.id
+WHERE parts.tool_toolName = 'searchWeb';
+```
+
+**Type Safety:**
+
+- Database enforces part structure
+- Easier to validate data integrity
+- Better error messages for invalid data
+
+**Indexing:**
+
+```sql
+-- Create indexes for common queries
+CREATE INDEX idx_parts_tool_name ON parts(tool_toolName);
+CREATE INDEX idx_parts_type ON parts(type);
+```
+
+### Migration Strategy
+
+Use the same side-by-side approach from Phase 2:
+
+1. Create normalized `messages_optimized` and `parts_optimized` tables
+2. Dual-write to both schemas
+3. Migrate existing data with a background job
+4. Switch reads to optimized schema
+5. Remove dual-write
+6. Drop old tables
+
+This phase follows the same pattern as Phase 2, just with a different target schema. Refer to Phase 2 steps for the detailed migration process.
 
 ## Community Resources
 
