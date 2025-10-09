@@ -245,10 +245,11 @@ const openaiResponsesAnnotationSchema = z.discriminatedUnion('type', [
     filename: z.string(),
     start_index: z.number(),
     end_index: z.number(),
-  })
+  }),
 ]);
-export type OpenaiResponsesAnnotationSchema = z.infer<typeof openaiResponsesAnnotationSchema>;
-
+export type OpenaiResponsesAnnotationSchema = z.infer<
+  typeof openaiResponsesAnnotationSchema
+>;
 
 export const openaiResponsesChunkSchema = lazyValidator(() =>
   zodSchema(
@@ -711,8 +712,8 @@ export const openaiResponsesTextUIPartProviderMetadataSchema = z.object({
 
 export const openaiSourceExecutionFileProviderMetadataSchema = z.object({
   openai: z.object({
-  containerId: z.string(),
-  fileId: z.string(),
-  filename: z.string(),
+    containerId: z.string(),
+    fileId: z.string(),
+    filename: z.string(),
   }),
 });

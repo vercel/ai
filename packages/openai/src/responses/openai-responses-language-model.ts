@@ -698,9 +698,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       | undefined
     > = {};
 
-    const ongoingAnnotations: Array<
-      OpenaiResponsesAnnotationSchema
-    > = [];
+    const ongoingAnnotations: Array<OpenaiResponsesAnnotationSchema> = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
