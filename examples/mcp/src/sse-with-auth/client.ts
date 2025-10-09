@@ -1,17 +1,13 @@
 import { openai } from '@ai-sdk/openai';
-import {
-  experimental_createMCPClient,
-  generateText,
-  stepCountIs,
-  auth,
-} from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
+import { experimental_createMCPClient, auth } from '@ai-sdk/mcp';
 import type {
   OAuthClientProvider,
   OAuthClientInformation,
   OAuthClientMetadata,
   OAuthTokens,
-} from 'ai';
+} from '@ai-sdk/mcp';
 import { createServer } from 'node:http';
 import { exec } from 'node:child_process';
 

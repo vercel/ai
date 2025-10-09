@@ -20,11 +20,11 @@ import {
   InvalidClientError,
   InvalidGrantError,
   UnauthorizedClientError,
-} from '../../error/oauth-error';
+} from '../error/oauth-error';
 import {
   resourceUrlFromServerUrl,
   checkResourceAllowed,
-} from '../../util/oauth-util';
+} from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { FetchFunction } from '@ai-sdk/provider-utils';
 

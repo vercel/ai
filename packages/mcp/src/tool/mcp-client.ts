@@ -7,7 +7,7 @@ import {
   ToolCallOptions,
 } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
-import { MCPClientError } from '../../error/mcp-client-error';
+import { MCPClientError } from '../error/mcp-client-error';
 import {
   JSONRPCError,
   JSONRPCNotification,

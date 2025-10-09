@@ -24,6 +24,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@ai-sdk/mcp": "workspace:*",
     "@types/express": "5.0.0",
     "@types/node": "20.17.24",
     "tsx": "4.19.2",

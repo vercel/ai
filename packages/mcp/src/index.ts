@@ -4,17 +4,17 @@ export type {
   JSONRPCNotification,
   JSONRPCRequest,
   JSONRPCResponse,
-} from './mcp/json-rpc-message';
+} from './tool/json-rpc-message';
 export {
   createMCPClient as experimental_createMCPClient,
   type MCPClientConfig as experimental_MCPClientConfig,
   type MCPClient as experimental_MCPClient,
-} from './mcp/mcp-client';
-export { auth, UnauthorizedError } from './mcp/oauth';
-export type { OAuthClientProvider } from './mcp/oauth';
+} from './tool/mcp-client';
+export { auth, UnauthorizedError } from './tool/oauth';
+export type { OAuthClientProvider } from './tool/oauth';
 export type {
   OAuthClientInformation,
   OAuthClientMetadata,
   OAuthTokens,
-} from './mcp/oauth-types';
-export type { MCPTransport } from './mcp/mcp-transport';
+} from './tool/oauth-types';
+export type { MCPTransport } from './tool/mcp-transport';

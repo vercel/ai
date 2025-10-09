@@ -5,7 +5,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
-import { MCPClientError } from '../../error/mcp-client-error';
+import { MCPClientError } from '../error/mcp-client-error';
 
 describe('HttpMCPTransport', () => {
   const server = createTestServer({

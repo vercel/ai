@@ -3,10 +3,10 @@ import {
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
-import { MCPClientError } from '../../error/mcp-client-error';
+import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
-import { VERSION } from '../../version';
+import { VERSION } from '../version';
 import {
   OAuthClientProvider,
   extractResourceMetadataUrl,
