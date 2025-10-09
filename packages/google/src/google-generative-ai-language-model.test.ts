@@ -50,8 +50,8 @@ const provider = createGoogleGenerativeAI({
 });
 const model = provider.chat('gemini-pro');
 
-const groundingMetadataSchema = getGroundingMetadataSchema()
-const urlContextMetadataSchema = getUrlContextMetadataSchema()
+const groundingMetadataSchema = getGroundingMetadataSchema();
+const urlContextMetadataSchema = getUrlContextMetadataSchema();
 
 describe('groundingMetadataSchema', () => {
   it('validates complete grounding metadata with web search results', () => {
