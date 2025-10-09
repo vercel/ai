@@ -2,6 +2,8 @@ import { JSONSchema7 } from '@ai-sdk/provider';
 import { StandardSchemaV1 } from '@standard-schema/spec';
 import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import { zodSchema } from './zod-schema';
+import * as z3 from 'zod/v3';
+import * as z4 from 'zod/v4';
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
@@ -127,7 +129,11 @@ export function standardSchema<OBJECT>(
   const vendor = standardSchema['~standard'].vendor;
 
   if (vendor === 'zod') {
-    return zodSchema(standardSchema as any);
+    return zodSchema(
+      standardSchema as
+        | z4.core.$ZodType<any, any>
+        | z3.Schema<any, z3.ZodTypeDef, any>,
+    );
   }
 
   throw new Error(`Unsupported standard schema vendor: ${vendor}`);
