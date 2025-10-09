@@ -1795,8 +1795,8 @@ describe('doGenerate', () => {
     mockPrepareAnthropicTools.mockReturnValue(
       Promise.resolve({
         tools: [
-        { name: 'bash', type: 'bash_20241022', cache_control: undefined },
-      ],
+          { name: 'bash', type: 'bash_20241022', cache_control: undefined },
+        ],
         toolChoice: { type: 'auto' },
         toolWarnings: [],
         betas: new Set(['computer-use-2024-10-22']),
