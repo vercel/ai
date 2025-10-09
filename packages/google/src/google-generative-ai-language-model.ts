@@ -10,15 +10,18 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  InferValidator,
   ParseResult,
   Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  zodSchema,
 } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -32,11 +35,6 @@ import {
 } from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
-import {
-  groundingChunkSchema,
-  groundingMetadataSchema,
-} from './tool/google-search';
-import { urlContextMetadataSchema } from './tool/url-context';
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -358,7 +356,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof chunkSchema>>,
+          ParseResult<ChunkSchema>,
           LanguageModelV3StreamPart
         >({
           start(controller) {
@@ -640,7 +638,7 @@ function getToolCallsFromParts({
   parts,
   generateId,
 }: {
-  parts: z.infer<typeof contentSchema>['parts'];
+  parts: ContentSchema['parts'];
   generateId: () => string;
 }) {
   const functionCallParts = parts?.filter(
@@ -665,7 +663,7 @@ function getToolCallsFromParts({
       }));
 }
 
-function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
+function getInlineDataParts(parts: ContentSchema['parts']) {
   return parts?.filter(
     (
       part,
@@ -679,14 +677,14 @@ function extractSources({
   groundingMetadata,
   generateId,
 }: {
-  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
+  groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
 }): undefined | LanguageModelV3Source[] {
   return groundingMetadata?.groundingChunks
     ?.filter(
       (
         chunk,
-      ): chunk is z.infer<typeof groundingChunkSchema> & {
+      ): chunk is GroundingChunkSchema & {
         web: { uri: string; title?: string };
       } => chunk.web != null,
     )
@@ -699,45 +697,93 @@ function extractSources({
     }));
 }
 
-const contentSchema = z.object({
-  parts: z
-    .array(
-      z.union([
-        // note: order matters since text can be fully empty
-        z.object({
-          functionCall: z.object({
-            name: z.string(),
-            args: z.unknown(),
-          }),
-          thoughtSignature: z.string().nullish(),
-        }),
-        z.object({
-          inlineData: z.object({
-            mimeType: z.string(),
-            data: z.string(),
-          }),
-        }),
-        z.object({
-          executableCode: z
-            .object({
-              language: z.string(),
-              code: z.string(),
-            })
-            .nullish(),
-          codeExecutionResult: z
-            .object({
-              outcome: z.string(),
-              output: z.string(),
-            })
-            .nullish(),
-          text: z.string().nullish(),
-          thought: z.boolean().nullish(),
-          thoughtSignature: z.string().nullish(),
-        }),
-      ]),
-    )
-    .nullish(),
-});
+// const groundingMetadataSchema = lazySchema(() =>
+//   zodSchema(
+//     z.object({
+//       webSearchQueries: z.array(z.string()).nullish(),
+//       retrievalQueries: z.array(z.string()).nullish(),
+//       searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
+//       groundingChunks: z
+//         .array(
+//           z.object({
+//             web: z.object({ uri: z.string(), title: z.string() }).nullish(),
+//             retrievedContext: z
+//               .object({ uri: z.string(), title: z.string() })
+//               .nullish(),
+//           }),
+//         )
+//         .nullish(),
+//       groundingSupports: z
+//         .array(
+//           z.object({
+//             segment: z.object({
+//               startIndex: z.number().nullish(),
+//               endIndex: z.number().nullish(),
+//               text: z.string().nullish(),
+//             }),
+//             segment_text: z.string().nullish(),
+//             groundingChunkIndices: z.array(z.number()).nullish(),
+//             supportChunkIndices: z.array(z.number()).nullish(),
+//             confidenceScores: z.array(z.number()).nullish(),
+//             confidenceScore: z.array(z.number()).nullish(),
+//           }),
+//         )
+//         .nullish(),
+//       retrievalMetadata: z
+//         .union([
+//           z.object({
+//             webDynamicRetrievalScore: z.number(),
+//           }),
+//           z.object({}),
+//         ])
+//         .nullish(),
+//     }),
+//   ),
+// );
+
+// const contentSchema = lazySchema(() =>
+//   zodSchema(
+//     z.object({
+//       parts: z
+//         .array(
+//           z.union([
+//             // note: order matters since text can be fully empty
+//             z.object({
+//               functionCall: z.object({
+//                 name: z.string(),
+//                 args: z.unknown(),
+//               }),
+//               thoughtSignature: z.string().nullish(),
+//             }),
+//             z.object({
+//               inlineData: z.object({
+//                 mimeType: z.string(),
+//                 data: z.string(),
+//               }),
+//             }),
+//             z.object({
+//               executableCode: z
+//                 .object({
+//                   language: z.string(),
+//                   code: z.string(),
+//                 })
+//                 .nullish(),
+//               codeExecutionResult: z
+//                 .object({
+//                   outcome: z.string(),
+//                   output: z.string(),
+//                 })
+//                 .nullish(),
+//               text: z.string().nullish(),
+//               thought: z.boolean().nullish(),
+//               thoughtSignature: z.string().nullish(),
+//             }),
+//           ]),
+//         )
+//         .nullish(),
+//     }),
+//   ),
+// );
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
 export const safetyRatingSchema = z.object({
@@ -757,44 +803,275 @@ const usageSchema = z.object({
   totalTokenCount: z.number().nullish(),
 });
 
-const responseSchema = z.object({
-  candidates: z.array(
+// https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
+// const urlContextMetadataSchema = lazySchema(() =>
+//   zodSchema(
+//     z.object({
+//       urlMetadata: z.array(
+//         z.object({
+//           retrievedUrl: z.string(),
+//           urlRetrievalStatus: z.string(),
+//         }),
+//       ),
+//     }),
+//   ),
+// );
+
+const responseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      content: contentSchema.nullish().or(z.object({}).strict()),
-      finishReason: z.string().nullish(),
-      safetyRatings: z.array(safetyRatingSchema).nullish(),
-      groundingMetadata: groundingMetadataSchema.nullish(),
-      urlContextMetadata: urlContextMetadataSchema.nullish(),
+      candidates: z.array(
+        z.object({
+          content: z
+            .object({
+              parts: z
+                .array(
+                  z.union([
+                    // note: order matters since text can be fully empty
+                    z.object({
+                      functionCall: z.object({
+                        name: z.string(),
+                        args: z.unknown(),
+                      }),
+                      thoughtSignature: z.string().nullish(),
+                    }),
+                    z.object({
+                      inlineData: z.object({
+                        mimeType: z.string(),
+                        data: z.string(),
+                      }),
+                    }),
+                    z.object({
+                      executableCode: z
+                        .object({
+                          language: z.string(),
+                          code: z.string(),
+                        })
+                        .nullish(),
+                      codeExecutionResult: z
+                        .object({
+                          outcome: z.string(),
+                          output: z.string(),
+                        })
+                        .nullish(),
+                      text: z.string().nullish(),
+                      thought: z.boolean().nullish(),
+                      thoughtSignature: z.string().nullish(),
+                    }),
+                  ]),
+                )
+                .nullish(),
+            })
+            .nullish()
+            .or(z.object({}).strict()),
+          finishReason: z.string().nullish(),
+          safetyRatings: z.array(safetyRatingSchema).nullish(),
+          groundingMetadata: z
+            .object({
+              webSearchQueries: z.array(z.string()).nullish(),
+              retrievalQueries: z.array(z.string()).nullish(),
+              searchEntryPoint: z
+                .object({ renderedContent: z.string() })
+                .nullish(),
+              groundingChunks: z
+                .array(
+                  z.object({
+                    web: z
+                      .object({ uri: z.string(), title: z.string() })
+                      .nullish(),
+                    retrievedContext: z
+                      .object({ uri: z.string(), title: z.string() })
+                      .nullish(),
+                  }),
+                )
+                .nullish(),
+              groundingSupports: z
+                .array(
+                  z.object({
+                    segment: z.object({
+                      startIndex: z.number().nullish(),
+                      endIndex: z.number().nullish(),
+                      text: z.string().nullish(),
+                    }),
+                    segment_text: z.string().nullish(),
+                    groundingChunkIndices: z.array(z.number()).nullish(),
+                    supportChunkIndices: z.array(z.number()).nullish(),
+                    confidenceScores: z.array(z.number()).nullish(),
+                    confidenceScore: z.array(z.number()).nullish(),
+                  }),
+                )
+                .nullish(),
+              retrievalMetadata: z
+                .union([
+                  z.object({
+                    webDynamicRetrievalScore: z.number(),
+                  }),
+                  z.object({}),
+                ])
+                .nullish(),
+            })
+            .nullish(),
+          urlContextMetadata: z
+            .object({
+              urlMetadata: z.array(
+                z.object({
+                  retrievedUrl: z.string(),
+                  urlRetrievalStatus: z.string(),
+                }),
+              ),
+            })
+            .nullish(),
+        }),
+      ),
+      usageMetadata: usageSchema.nullish(),
+      promptFeedback: z
+        .object({
+          blockReason: z.string().nullish(),
+          safetyRatings: z.array(safetyRatingSchema).nullish(),
+        })
+        .nullish(),
     }),
   ),
-  usageMetadata: usageSchema.nullish(),
-  promptFeedback: z
-    .object({
-      blockReason: z.string().nullish(),
-      safetyRatings: z.array(safetyRatingSchema).nullish(),
-    })
-    .nullish(),
-});
+);
+
+type ContentSchema = NonNullable<
+  InferValidator<typeof responseSchema>['candidates'][number]['content']
+>;
+export type SafetyRatingSchema = z.infer<typeof safetyRatingSchema>;
+export type GroundingMetadataSchema = NonNullable<
+  InferValidator<
+    typeof responseSchema
+  >['candidates'][number]['groundingMetadata']
+>;
+
+type GroundingChunkSchema = NonNullable<
+  GroundingMetadataSchema['groundingChunks']
+>[number];
+
+export type UrlContextMetadataSchema = NonNullable<
+  InferValidator<
+    typeof responseSchema
+  >['candidates'][number]['urlContextMetadata']
+>;
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const chunkSchema = z.object({
-  candidates: z
-    .array(
-      z.object({
-        content: contentSchema.nullish(),
-        finishReason: z.string().nullish(),
-        safetyRatings: z.array(safetyRatingSchema).nullish(),
-        groundingMetadata: groundingMetadataSchema.nullish(),
-        urlContextMetadata: urlContextMetadataSchema.nullish(),
-      }),
-    )
-    .nullish(),
-  usageMetadata: usageSchema.nullish(),
-  promptFeedback: z
-    .object({
-      blockReason: z.string().nullish(),
-      safetyRatings: z.array(safetyRatingSchema).nullish(),
-    })
-    .nullish(),
-});
+const chunkSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      candidates: z
+        .array(
+          z.object({
+            content: z
+              .object({
+                parts: z
+                  .array(
+                    z.union([
+                      // note: order matters since text can be fully empty
+                      z.object({
+                        functionCall: z.object({
+                          name: z.string(),
+                          args: z.unknown(),
+                        }),
+                        thoughtSignature: z.string().nullish(),
+                      }),
+                      z.object({
+                        inlineData: z.object({
+                          mimeType: z.string(),
+                          data: z.string(),
+                        }),
+                      }),
+                      z.object({
+                        executableCode: z
+                          .object({
+                            language: z.string(),
+                            code: z.string(),
+                          })
+                          .nullish(),
+                        codeExecutionResult: z
+                          .object({
+                            outcome: z.string(),
+                            output: z.string(),
+                          })
+                          .nullish(),
+                        text: z.string().nullish(),
+                        thought: z.boolean().nullish(),
+                        thoughtSignature: z.string().nullish(),
+                      }),
+                    ]),
+                  )
+                  .nullish(),
+              })
+              .nullish(),
+            finishReason: z.string().nullish(),
+            safetyRatings: z.array(safetyRatingSchema).nullish(),
+            groundingMetadata: z
+              .object({
+                webSearchQueries: z.array(z.string()).nullish(),
+                retrievalQueries: z.array(z.string()).nullish(),
+                searchEntryPoint: z
+                  .object({ renderedContent: z.string() })
+                  .nullish(),
+                groundingChunks: z
+                  .array(
+                    z.object({
+                      web: z
+                        .object({ uri: z.string(), title: z.string() })
+                        .nullish(),
+                      retrievedContext: z
+                        .object({ uri: z.string(), title: z.string() })
+                        .nullish(),
+                    }),
+                  )
+                  .nullish(),
+                groundingSupports: z
+                  .array(
+                    z.object({
+                      segment: z.object({
+                        startIndex: z.number().nullish(),
+                        endIndex: z.number().nullish(),
+                        text: z.string().nullish(),
+                      }),
+                      segment_text: z.string().nullish(),
+                      groundingChunkIndices: z.array(z.number()).nullish(),
+                      supportChunkIndices: z.array(z.number()).nullish(),
+                      confidenceScores: z.array(z.number()).nullish(),
+                      confidenceScore: z.array(z.number()).nullish(),
+                    }),
+                  )
+                  .nullish(),
+                retrievalMetadata: z
+                  .union([
+                    z.object({
+                      webDynamicRetrievalScore: z.number(),
+                    }),
+                    z.object({}),
+                  ])
+                  .nullish(),
+              })
+              .nullish(),
+            urlContextMetadata: z
+              .object({
+                urlMetadata: z.array(
+                  z.object({
+                    retrievedUrl: z.string(),
+                    urlRetrievalStatus: z.string(),
+                  }),
+                ),
+              })
+              .nullish(),
+          }),
+        )
+        .nullish(),
+      usageMetadata: usageSchema.nullish(),
+      promptFeedback: z
+        .object({
+          blockReason: z.string().nullish(),
+          safetyRatings: z.array(safetyRatingSchema).nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+type ChunkSchema = InferValidator<typeof chunkSchema>;
