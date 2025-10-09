@@ -3,18 +3,18 @@ import {
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
   openaiResponsesReasoningModelIds,
-} from './openai-responses-settings';
+} from './openai-responses-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -3533,6 +3533,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "ws_test",
+            "providerExecuted": true,
             "toolName": "web_search",
             "type": "tool-input-start",
           },
@@ -3644,6 +3645,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+                "providerExecuted": true,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -3689,6 +3691,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+                "providerExecuted": true,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -3734,6 +3737,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+                "providerExecuted": true,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -3779,6 +3783,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+                "providerExecuted": true,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },

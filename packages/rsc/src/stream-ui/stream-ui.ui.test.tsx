@@ -2,7 +2,7 @@ import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { LanguageModelUsage } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { streamUI } from './stream-ui';
 import { describe, it, expect, beforeEach } from 'vitest';
 

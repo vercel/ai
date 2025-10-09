@@ -8,13 +8,11 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  FlexibleSchema,
   ProviderOptions,
   type InferSchema,
-  type Schema,
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
@@ -169,10 +167,7 @@ functionality that can be fully encapsulated in the provider.
 A result object for accessing the partial object stream and additional information.
  */
 export function streamObject<
-  SCHEMA extends
-    | z3.Schema
-    | z4.core.$ZodType
-    | Schema = z4.core.$ZodType<JSONValue>,
+  SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
   OUTPUT extends
     | 'object'
     | 'array'

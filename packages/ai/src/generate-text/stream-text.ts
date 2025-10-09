@@ -216,13 +216,10 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
 @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
-@param onFinish - Callback that is called when the LLM response and all request tool executions
-(for tools that have an `execute` function) are finished.
+@param onFinish - Callback that is called when all steps are finished and the response is complete.
 
 @return
 A result object for accessing different stream types and additional information.

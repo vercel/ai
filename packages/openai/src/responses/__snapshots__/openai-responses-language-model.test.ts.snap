@@ -403,6 +403,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   },
   {
     "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "providerExecuted": true,
     "toolName": "code_interpreter",
     "type": "tool-input-start",
   },
@@ -833,6 +834,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   },
   {
     "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "providerExecuted": true,
     "toolName": "code_interpreter",
     "type": "tool-input-start",
   },
@@ -1243,6 +1245,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   },
   {
     "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
+    "providerExecuted": true,
     "toolName": "code_interpreter",
     "type": "tool-input-start",
   },

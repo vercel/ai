@@ -1,25 +1,57 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import {
+  createProviderDefinedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
 
-export const webSearchArgsSchema = z.object({
-  filters: z
-    .object({
-      allowedDomains: z.array(z.string()).optional(),
-    })
-    .optional(),
+export const webSearchArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      filters: z
+        .object({
+          allowedDomains: z.array(z.string()).optional(),
+        })
+        .optional(),
 
-  searchContextSize: z.enum(['low', 'medium', 'high']).optional(),
+      searchContextSize: z.enum(['low', 'medium', 'high']).optional(),
 
-  userLocation: z
-    .object({
-      type: z.literal('approximate'),
-      country: z.string().optional(),
-      city: z.string().optional(),
-      region: z.string().optional(),
-      timezone: z.string().optional(),
-    })
-    .optional(),
-});
+      userLocation: z
+        .object({
+          type: z.literal('approximate'),
+          country: z.string().optional(),
+          city: z.string().optional(),
+          region: z.string().optional(),
+          timezone: z.string().optional(),
+        })
+        .optional(),
+    }),
+  ),
+);
+
+const webSearchInputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      action: z
+        .discriminatedUnion('type', [
+          z.object({
+            type: z.literal('search'),
+            query: z.string().nullish(),
+          }),
+          z.object({
+            type: z.literal('open_page'),
+            url: z.string(),
+          }),
+          z.object({
+            type: z.literal('find'),
+            url: z.string(),
+            pattern: z.string(),
+          }),
+        ])
+        .nullish(),
+    }),
+  ),
+);
 
 export const webSearchToolFactory = createProviderDefinedToolFactory<
   {
@@ -75,25 +107,7 @@ export const webSearchToolFactory = createProviderDefinedToolFactory<
 >({
   id: 'openai.web_search',
   name: 'web_search',
-  inputSchema: z.object({
-    action: z
-      .discriminatedUnion('type', [
-        z.object({
-          type: z.literal('search'),
-          query: z.string().nullish(),
-        }),
-        z.object({
-          type: z.literal('open_page'),
-          url: z.string(),
-        }),
-        z.object({
-          type: z.literal('find'),
-          url: z.string(),
-          pattern: z.string(),
-        }),
-      ])
-      .nullish(),
-  }),
+  inputSchema: webSearchInputSchema,
 });
 
 export const webSearch = (

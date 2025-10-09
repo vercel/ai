@@ -1,5 +1,30 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import {
+  createProviderDefinedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
+
+const computer_20241022InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      action: z.enum([
+        'key',
+        'type',
+        'mouse_move',
+        'left_click',
+        'left_click_drag',
+        'right_click',
+        'middle_click',
+        'double_click',
+        'screenshot',
+        'cursor_position',
+      ]),
+      coordinate: z.array(z.number().int()).optional(),
+      text: z.string().optional(),
+    }),
+  ),
+);
 
 export const computer_20241022 = createProviderDefinedToolFactory<
   {
@@ -59,20 +84,5 @@ export const computer_20241022 = createProviderDefinedToolFactory<
 >({
   id: 'anthropic.computer_20241022',
   name: 'computer',
-  inputSchema: z.object({
-    action: z.enum([
-      'key',
-      'type',
-      'mouse_move',
-      'left_click',
-      'left_click_drag',
-      'right_click',
-      'middle_click',
-      'double_click',
-      'screenshot',
-      'cursor_position',
-    ]),
-    coordinate: z.array(z.number().int()).optional(),
-    text: z.string().optional(),
-  }),
+  inputSchema: computer_20241022InputSchema,
 });

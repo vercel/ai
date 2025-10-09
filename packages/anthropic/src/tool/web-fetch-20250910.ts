@@ -1,36 +1,56 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import {
+  createProviderDefinedToolFactoryWithOutputSchema,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
 
-export const webFetch_20250910ArgsSchema = z.object({
-  maxUses: z.number().optional(),
-  allowedDomains: z.array(z.string()).optional(),
-  blockedDomains: z.array(z.string()).optional(),
-  citations: z.object({ enabled: z.boolean() }).optional(),
-  maxContentTokens: z.number().optional(),
-});
+export const webFetch_20250910ArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      maxUses: z.number().optional(),
+      allowedDomains: z.array(z.string()).optional(),
+      blockedDomains: z.array(z.string()).optional(),
+      citations: z.object({ enabled: z.boolean() }).optional(),
+      maxContentTokens: z.number().optional(),
+    }),
+  ),
+);
 
-export const webFetch_20250910OutputSchema = z.object({
-  type: z.literal('web_fetch_result'),
-  url: z.string(),
-  content: z.object({
-    type: z.literal('document'),
-    title: z.string(),
-    citations: z.object({ enabled: z.boolean() }).optional(),
-    source: z.union([
-      z.object({
-        type: z.literal('base64'),
-        mediaType: z.literal('application/pdf'),
-        data: z.string(),
+export const webFetch_20250910OutputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      type: z.literal('web_fetch_result'),
+      url: z.string(),
+      content: z.object({
+        type: z.literal('document'),
+        title: z.string(),
+        citations: z.object({ enabled: z.boolean() }).optional(),
+        source: z.union([
+          z.object({
+            type: z.literal('base64'),
+            mediaType: z.literal('application/pdf'),
+            data: z.string(),
+          }),
+          z.object({
+            type: z.literal('text'),
+            mediaType: z.literal('text/plain'),
+            data: z.string(),
+          }),
+        ]),
       }),
-      z.object({
-        type: z.literal('text'),
-        mediaType: z.literal('text/plain'),
-        data: z.string(),
-      }),
-    ]),
-  }),
-  retrievedAt: z.string().nullable(),
-});
+      retrievedAt: z.string().nullable(),
+    }),
+  ),
+);
+
+const webFetch_20250910InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      url: z.string(),
+    }),
+  ),
+);
 
 const factory = createProviderDefinedToolFactoryWithOutputSchema<
   {
@@ -114,9 +134,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
 >({
   id: 'anthropic.web_fetch_20250910',
   name: 'web_fetch',
-  inputSchema: z.object({
-    url: z.string(),
-  }),
+  inputSchema: webFetch_20250910InputSchema,
   outputSchema: webFetch_20250910OutputSchema,
 });
 

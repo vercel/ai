@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { prepareToolsAndToolChoice } from './prepare-tools-and-tool-choice';
 import { Tool, tool } from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';

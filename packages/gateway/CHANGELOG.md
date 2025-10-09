@@ -1,5 +1,54 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- 7b1b1b1: fix(provider/gateway): add "react-native" as export condition for browser behavior
+
+  This avoids the use of native Node APIs in bundles created for React Native / Expo apps
+
+## 2.0.0-beta.20
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 1.1.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+
+## 1.1.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+
+## 1.1.0-beta.17
+
+### Patch Changes
+
+- 1d8ea2c: feat(provider/gateway): Add GPT-5 pro to Gateway model string autocomplete
+
 ## 1.1.0-beta.16
 
 ### Patch Changes

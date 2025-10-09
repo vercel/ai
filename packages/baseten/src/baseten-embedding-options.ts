@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 // https://www.baseten.co/library/tag/embedding/
 // Pass in the model URL directly, we won't be using the model ID

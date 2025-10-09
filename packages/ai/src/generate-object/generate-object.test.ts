@@ -15,7 +15,7 @@ import {
   vitest,
   vi,
 } from 'vitest';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
