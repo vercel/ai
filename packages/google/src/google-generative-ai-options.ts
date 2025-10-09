@@ -132,6 +132,28 @@ Optional. A list of unique safety settings for blocking unsafe content.
       'MEDIA_RESOLUTION_HIGH',
     ])
     .optional(),
+  
+  /**
+   * Optional. Configures the image generation aspect ratio for Gemini models.
+   *
+   * https://ai.google.dev/gemini-api/docs/image-generation#aspect_ratios
+   */
+  imageConfig: z.object({
+    aspectRatio: z
+      .enum([
+        '1:1',
+        '2:3',
+        '3:2',
+        '3:4',
+        '4:3',
+        '4:5',
+        '5:4',
+        '9:16',
+        '16:9',
+        '21:9',
+      ])
+      .optional(),
+  }).optional(),
 });
 
 export type GoogleGenerativeAIProviderOptions = z.infer<
