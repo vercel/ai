@@ -880,9 +880,9 @@ Tool UI parts now use more granular states that better represent the streaming l
 - `result` → `output-available` (tool execution successful)
 - New: `output-error` (tool execution failed)
 
-#### Rendering Tool Invocations
+#### Rendering Tool Invocations (Catch-All Pattern)
 
-In v4, you typically rendered tool invocations using a catch-all `tool-invocation` type. In v5, you need to use helper functions `isToolUIPart` and `getToolName` to handle tool parts in a default case.
+In v4, you typically rendered tool invocations using a catch-all `tool-invocation` type. In v5, the recommended approach is to handle each tool specifically using its typed part name (e.g., `tool-getWeather`). However, if you need a catch-all pattern for rendering all tool invocations the same way, you can use the `isToolUIPart` and `getToolName` helper functions as a fallback.
 
 ```tsx filename="AI SDK 4.0"
 {
