@@ -23,15 +23,9 @@ export async function prepareTools({
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
   betas: Set<string>;
-<<<<<<< HEAD
   toolWarnings: LanguageModelV2CallWarning[];
-} {
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
-=======
-  toolWarnings: LanguageModelV3CallWarning[];
 }> {
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
->>>>>>> 9cff5876a (chore(provider/anthropic): lazy schema loading (#9317))
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
   const betas = new Set<string>();
 
   if (tools == null || tools.length === 0) {

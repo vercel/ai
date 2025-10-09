@@ -1,26 +1,15 @@
 import {
   JSONObject,
-<<<<<<< HEAD
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2FunctionTool,
   LanguageModelV2Prompt,
+  LanguageModelV2Source,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-=======
-  LanguageModelV3,
-  LanguageModelV3CallWarning,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3Prompt,
-  LanguageModelV3Source,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
-  SharedV3ProviderMetadata,
->>>>>>> 9cff5876a (chore(provider/anthropic): lazy schema loading (#9317))
+  SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -59,7 +48,7 @@ function createCitationSource(
     mediaType: string;
   }>,
   generateId: () => string,
-): LanguageModelV3Source | undefined {
+): LanguageModelV2Source | undefined {
   if (citation.type !== 'page_location' && citation.type !== 'char_location') {
     return;
   }
@@ -90,7 +79,7 @@ function createCitationSource(
               startCharIndex: citation.start_char_index,
               endCharIndex: citation.end_char_index,
             },
-    } satisfies SharedV3ProviderMetadata,
+    } satisfies SharedV2ProviderMetadata,
   };
 }
 
@@ -696,13 +685,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-<<<<<<< HEAD
-          ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>,
-          LanguageModelV2StreamPart
-=======
           ParseResult<InferValidator<typeof anthropicMessagesChunkSchema>>,
-          LanguageModelV3StreamPart
->>>>>>> 9cff5876a (chore(provider/anthropic): lazy schema loading (#9317))
+          LanguageModelV2StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
