@@ -61,6 +61,7 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'client_secret_post',
+      scope: 'read',
     };
   }
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
@@ -68,6 +69,56 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
   }
   async saveClientInformation(info: OAuthClientInformation): Promise<void> {
     this._clientInformation = info;
+  }
+  addClientAuthentication = async (
+    headers: Headers,
+    params: URLSearchParams,
+    _url: string | URL,
+  ): Promise<void> => {
+    const info = this._clientInformation;
+    if (!info) {
+      return;
+    }
+
+    const method = (info as any).token_endpoint_auth_method as
+      | 'client_secret_post'
+      | 'client_secret_basic'
+      | 'none'
+      | undefined;
+
+    const hasSecret = Boolean((info as any).client_secret);
+    const clientId = info.client_id;
+    const clientSecret = (info as any).client_secret as string | undefined;
+
+    // Prefer the method assigned at registration; fall back sensibly
+    const chosen = method ?? (hasSecret ? 'client_secret_post' : 'none');
+
+    if (chosen === 'client_secret_basic') {
+      if (!clientSecret) {
+        params.set('client_id', clientId);
+        return;
+      }
+      const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString(
+        'base64',
+      );
+      headers.set('Authorization', `Basic ${credentials}`);
+      return;
+    }
+
+    if (chosen === 'client_secret_post') {
+      params.set('client_id', clientId);
+      if (clientSecret) params.set('client_secret', clientSecret);
+      return;
+    }
+
+    // none (public client)
+    params.set('client_id', clientId);
+  };
+  async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier') {
+    if (scope === 'all' || scope === 'tokens') this._tokens = undefined;
+    if (scope === 'all' || scope === 'client')
+      this._clientInformation = undefined;
+    if (scope === 'all' || scope === 'verifier') this._codeVerifier = undefined;
   }
 }
 
@@ -123,7 +174,7 @@ function waitForAuthorizationCode(port: number): Promise<string> {
 
 async function main() {
   const authProvider = new InMemoryOAuthClientProvider();
-  const serverUrl = 'https://example-server.modelcontextprotocol.io/mcp';
+  const serverUrl = 'https://mcp.jam.dev/mcp';
 
   await authorizeWithPkceOnce(authProvider, serverUrl, () =>
     waitForAuthorizationCode(Number(8090)),
