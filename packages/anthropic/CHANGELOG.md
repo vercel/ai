@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- 9cff587: chore(provider/anthropic): lazy schema loading
+
 ## 3.0.0-beta.15
 
 ### Patch Changes
