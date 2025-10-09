@@ -230,7 +230,35 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
           z.object({
             type: z.literal('text'),
             text: z.string(),
-            citations: z.array(citationSchema).optional(),
+            citations: z
+              .array(
+                z.discriminatedUnion('type', [
+                  z.object({
+                    type: z.literal('web_search_result_location'),
+                    cited_text: z.string(),
+                    url: z.string(),
+                    title: z.string(),
+                    encrypted_index: z.string(),
+                  }),
+                  z.object({
+                    type: z.literal('page_location'),
+                    cited_text: z.string(),
+                    document_index: z.number(),
+                    document_title: z.string().nullable(),
+                    start_page_number: z.number(),
+                    end_page_number: z.number(),
+                  }),
+                  z.object({
+                    type: z.literal('char_location'),
+                    cited_text: z.string(),
+                    document_index: z.number(),
+                    document_title: z.string().nullable(),
+                    start_char_index: z.number(),
+                    end_char_index: z.number(),
+                  }),
+                ]),
+              )
+              .optional(),
           }),
           z.object({
             type: z.literal('thinking'),
@@ -455,7 +483,31 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('citations_delta'),
-            citation: citationSchema,
+            citation: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('web_search_result_location'),
+                cited_text: z.string(),
+                url: z.string(),
+                title: z.string(),
+                encrypted_index: z.string(),
+              }),
+              z.object({
+                type: z.literal('page_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                start_page_number: z.number(),
+                end_page_number: z.number(),
+              }),
+              z.object({
+                type: z.literal('char_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                start_char_index: z.number(),
+                end_char_index: z.number(),
+              }),
+            ]),
           }),
         ]),
       }),
@@ -504,30 +556,8 @@ export type AnthropicReasoningMetadata = InferValidator<
   typeof anthropicReasoningMetadataSchema
 >;
 
-const citationSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('web_search_result_location'),
-    cited_text: z.string(),
-    url: z.string(),
-    title: z.string(),
-    encrypted_index: z.string(),
-  }),
-  z.object({
-    type: z.literal('page_location'),
-    cited_text: z.string(),
-    document_index: z.number(),
-    document_title: z.string().nullable(),
-    start_page_number: z.number(),
-    end_page_number: z.number(),
-  }),
-  z.object({
-    type: z.literal('char_location'),
-    cited_text: z.string(),
-    document_index: z.number(),
-    document_title: z.string().nullable(),
-    start_char_index: z.number(),
-    end_char_index: z.number(),
-  }),
-]);
-
-export type Citation = z.infer<typeof citationSchema>;
+export type Citation = NonNullable<
+  (InferValidator<typeof anthropicMessagesResponseSchema>['content'][number] & {
+    type: 'text';
+  })['citations']
+>[number];
