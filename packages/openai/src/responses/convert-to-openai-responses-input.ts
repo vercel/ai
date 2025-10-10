@@ -303,13 +303,6 @@ export async function convertToOpenAIResponsesInput({
             case 'error-text':
               contentValue = output.value;
               break;
-<<<<<<< HEAD
-            case 'content':
-=======
-            case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
-              break;
->>>>>>> 68c618783 (feat(provider/openai): support file and image tool results (#8959))
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
