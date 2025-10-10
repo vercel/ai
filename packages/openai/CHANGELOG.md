@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- 68c6187: feat(provider/openai): support file and image tool results
+
 ## 3.0.0-beta.19
 
 ### Patch Changes
