@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- 7e32fea: feat(ai): valibot support
+
 ## 4.0.0-beta.11
 
 ### Patch Changes
