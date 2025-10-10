@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { Agent, InferAgentUIMessage } from 'ai';
 
 export const openaiWebSearchAgent = new Agent({
-  model: openai('gpt-5-mini '),
+  model: openai('gpt-5-mini'),
   tools: {
     web_search: openai.tools.webSearch({
       searchContextSize: 'low',
