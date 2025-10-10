@@ -196,7 +196,10 @@ export function createGatewayProvider(
     })
       .getCredits()
       .catch(async (error: unknown) => {
-        throw asGatewayError(error, await parseAuthMethod(await getHeaders()));
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
       });
   };
 

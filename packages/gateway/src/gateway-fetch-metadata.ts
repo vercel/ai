@@ -44,7 +44,7 @@ export class GatewayFetchMetadata {
 
       return value;
     } catch (error) {
-      throw asGatewayError(error);
+      throw await asGatewayError(error);
     }
   }
 
@@ -67,7 +67,7 @@ export class GatewayFetchMetadata {
 
       return value;
     } catch (error) {
-      throw asGatewayError(error);
+      throw await asGatewayError(error);
     }
   }
 }

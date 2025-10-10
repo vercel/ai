@@ -79,7 +79,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
         response: { headers: responseHeaders, body: rawValue },
       };
     } catch (error) {
-      throw asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
