@@ -2875,6 +2875,12 @@ await generateText({
 
 ## Message Persistence Changes
 
+<Note>
+  If you have persisted messages in a database, see the [Data Migration
+  Guide](/docs/migration-guides/migration-guide-5-0-data) for comprehensive
+  guidance on migrating your stored message data to the v5 format.
+</Note>
+
 In v4, you would typically use helper functions like `appendResponseMessages` or `appendClientMessage` to format messages in the `onFinish` callback of `streamText`:
 
 ```tsx filename="AI SDK 4.0"
@@ -2925,8 +2931,8 @@ const result = streamText({
 });
 
 return result.toUIMessageStreamResponse({
-  originalMessages: messages, // Pass original messages for context
-  generateMessageId: () => generateId(), // ID generation moved here for UI messages
+  originalMessages: messages, // IMPORTANT: Required to prevent duplicate messages
+  generateMessageId: () => generateId(), // IMPORTANT: Required for proper message ID generation
   onFinish: ({ messages, responseMessage }) => {
     // messages contains all messages (original + response) in UIMessage format
     saveChat({ chatId, messages });
@@ -2936,6 +2942,14 @@ return result.toUIMessageStreamResponse({
   },
 });
 ```
+
+<Note>
+  **Important:** When using `toUIMessageStreamResponse`, you should always
+  provide both `originalMessages` and `generateMessageId` parameters. Without
+  these, you may experience duplicate or repeated assistant messages in your UI.
+  For more details, see [Troubleshooting: Repeated Assistant
+  Messages](/docs/troubleshooting/repeated-assistant-messages).
+</Note>
 
 ### Message ID Generation
 
@@ -2979,6 +2993,7 @@ import { openai } from '@ai-sdk/openai';
 
 const stream = createUIMessageStream({
   originalMessages: messages,
+  generateId: generateId, // Required for proper message ID generation
   execute: ({ writer }) => {
     // Write custom data parts
     writer.write({
