@@ -1,9 +1,9 @@
 import {
-  type InferValidator,
+  type InferSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-001'
@@ -47,6 +47,6 @@ export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIEmbeddingProviderOptions = InferValidator<
+export type GoogleGenerativeAIEmbeddingProviderOptions = InferSchema<
   typeof googleGenerativeAIEmbeddingProviderOptions
 >;

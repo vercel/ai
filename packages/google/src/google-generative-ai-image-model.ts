@@ -2,14 +2,14 @@ import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  type InferValidator,
+  type InferSchema,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIImageModelId,
@@ -162,6 +162,6 @@ const googleImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIImageProviderOptions = InferValidator<
+export type GoogleGenerativeAIImageProviderOptions = InferSchema<
   typeof googleImageProviderOptionsSchema
 >;

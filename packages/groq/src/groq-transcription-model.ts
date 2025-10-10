@@ -10,7 +10,7 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
 import { GroqTranscriptionModelId } from './groq-transcription-options';

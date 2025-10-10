@@ -10,7 +10,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
-  InferValidator,
+  InferSchema,
   ParseResult,
   Resolvable,
   combineHeaders,
@@ -23,7 +23,7 @@ import {
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
@@ -833,12 +833,10 @@ const responseSchema = lazySchema(() =>
 );
 
 type ContentSchema = NonNullable<
-  InferValidator<typeof responseSchema>['candidates'][number]['content']
+  InferSchema<typeof responseSchema>['candidates'][number]['content']
 >;
 export type GroundingMetadataSchema = NonNullable<
-  InferValidator<
-    typeof responseSchema
-  >['candidates'][number]['groundingMetadata']
+  InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
 >;
 
 type GroundingChunkSchema = NonNullable<
@@ -846,13 +844,11 @@ type GroundingChunkSchema = NonNullable<
 >[number];
 
 export type UrlContextMetadataSchema = NonNullable<
-  InferValidator<
-    typeof responseSchema
-  >['candidates'][number]['urlContextMetadata']
+  InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
 >;
 
 export type SafetyRatingSchema = NonNullable<
-  InferValidator<typeof responseSchema>['candidates'][number]['safetyRatings']
+  InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
 >[number];
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -882,4 +878,4 @@ const chunkSchema = lazySchema(() =>
   ),
 );
 
-type ChunkSchema = InferValidator<typeof chunkSchema>;
+type ChunkSchema = InferSchema<typeof chunkSchema>;
