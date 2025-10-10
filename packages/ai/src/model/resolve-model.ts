@@ -47,9 +47,7 @@ function transformToV3TranscriptionModel(
   }) as unknown as TranscriptionModelV3;
 }
 
-function transformToV3SpeechModel(
-  model: SpeechModelV2,
-): SpeechModelV3 {
+function transformToV3SpeechModel(model: SpeechModelV2): SpeechModelV3 {
   return new Proxy(model, {
     get(target, prop: keyof SpeechModelV2) {
       if (prop === 'specificationVersion') return 'v3';
