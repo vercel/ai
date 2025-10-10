@@ -1,15 +1,13 @@
 import { spawn } from 'child_process';
 
-const provider = process.argv[2];
+const moduleName = process.argv[2];
 
-if (!provider) {
+if (!moduleName) {
   console.error(
-    'Please provide a provider name as an argument, e.g., "anthropic"',
+    'Please provide a module name as an argument, e.g., "@ai-sdk/anthropic"',
   );
   process.exit(1);
 }
-
-const moduleName = `@ai-sdk/${provider}`;
 
 async function runInSeparateProcess(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -45,7 +43,7 @@ console.log(t1 - t0);
 
 async function main() {
   const times: number[] = [];
-  const iterations = 10;
+  const iterations = 50;
 
   console.log(`Running import benchmark 10 times for ${moduleName}...\n`);
 
