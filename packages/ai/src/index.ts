@@ -40,6 +40,7 @@ export * from './types';
 export * from './ui';
 export * from './ui-message-stream';
 export * from './util';
+export * from '@ai-sdk/mcp'
 
 // telemetry types:
 export type { TelemetrySettings } from './telemetry/telemetry-settings';
