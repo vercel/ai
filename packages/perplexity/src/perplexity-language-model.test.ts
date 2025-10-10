@@ -7,7 +7,7 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import {
   perplexityImageSchema,
   PerplexityLanguageModel,
