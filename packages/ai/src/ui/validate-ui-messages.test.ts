@@ -124,7 +124,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -455,7 +464,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -1031,7 +1049,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -1060,7 +1087,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"result":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["result"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "result"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
