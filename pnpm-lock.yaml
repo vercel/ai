@@ -1429,9 +1429,6 @@ importers:
       '@opentelemetry/api':
         specifier: 1.9.0
         version: 1.9.0
-      pkce-challenge:
-        specifier: ^5.0.0
-        version: 5.0.0
     devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*

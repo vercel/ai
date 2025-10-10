@@ -57,8 +57,7 @@
     "@ai-sdk/gateway": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@opentelemetry/api": "1.9.0",
-    "pkce-challenge": "^5.0.0"
+    "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
