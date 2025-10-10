@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateObject({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-3-7-sonnet-latest'),
     schema: v.object({
       recipe: v.object({
         name: v.string(),

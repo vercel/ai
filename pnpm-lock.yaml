@@ -188,6 +188,9 @@ importers:
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
+      effect:
+        specifier: 3.18.4
+        version: 3.18.4
       image-type:
         specifier: ^5.2.0
         version: 5.2.0
