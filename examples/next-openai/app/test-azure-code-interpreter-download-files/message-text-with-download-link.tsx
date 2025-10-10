@@ -1,15 +1,29 @@
-import { azureResponsesTextUIPartProviderMetadataSchema } from '@ai-sdk/azure';
+'use client';
+
 import { Response } from './additional-dependencies';
 import { TextUIPart } from 'ai';
+import { openaiResponsesTextUIPartProviderMetadataSchema } from '@ai-sdk/openai';
+import { azureResponsesTextUIPartProviderMetadataSchema } from '@ai-sdk/azure';
+import { z } from 'zod/v4';
+
+// union of each providers
+const responsesTextUIPartProviderMetadataSchema = z.union([
+  openaiResponsesTextUIPartProviderMetadataSchema,
+  azureResponsesTextUIPartProviderMetadataSchema,
+]);
 
 export function MessageTextWithDownloadLink({ part }: { part: TextUIPart }) {
+  if (!part.providerMetadata) return <Response>{part.text}</Response>;
+
   const providerMetadataParsed =
-    azureResponsesTextUIPartProviderMetadataSchema.safeParse(
-      part.providerMetadata,
-    );
-  const annotations = providerMetadataParsed.success
-    ? providerMetadataParsed.data.azure.annotations
-    : [];
+    responsesTextUIPartProviderMetadataSchema.safeParse(part.providerMetadata);
+
+  if (!providerMetadataParsed.success) return <Response>{part.text}</Response>;
+
+  const [provider, annotations] =
+    'openai' in providerMetadataParsed.data
+      ? ['openai' as const, providerMetadataParsed.data.openai.annotations]
+      : ['azure' as const, providerMetadataParsed.data.azure.annotations];
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -20,7 +34,7 @@ export function MessageTextWithDownloadLink({ part }: { part: TextUIPart }) {
           if (cur.start_index === 0 && cur.end_index === 0) return acc;
           return (
             acc.slice(0, cur.start_index) +
-            `${baseUrl}/api/chat-azure-code-interpreter-download-files/${cur.container_id}/${cur.file_id}` +
+            `${baseUrl}/api/chat-${provider}-code-interpreter-download-files/${cur.container_id}/${cur.file_id}` +
             acc.slice(cur.end_index)
           );
         default:
