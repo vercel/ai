@@ -173,6 +173,12 @@ importers:
       '@opentelemetry/sdk-trace-node':
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec':
+        specifier: 1.0.0
+        version: 1.0.0
+      '@valibot/to-json-schema':
+        specifier: ^1.3.0
+        version: 1.3.0(valibot@1.1.0(typescript@5.8.3))
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -192,7 +198,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       valibot:
-        specifier: ^1.0.0-rc.0 || ^1.0.0
+        specifier: 1.1.0
         version: 1.1.0(typescript@5.8.3)
       zod:
         specifier: 3.25.76
@@ -851,6 +857,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
         version: 1.17.3
+      '@valibot/to-json-schema':
+        specifier: ^1.3.0
+        version: 1.3.0(valibot@1.1.0(typescript@5.8.3))
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
@@ -878,6 +887,9 @@ importers:
       resumable-stream:
         specifier: ^2.2.0
         version: 2.2.4
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -2377,6 +2389,9 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
+      '@valibot/to-json-schema':
+        specifier: ^1.3.0
+        version: 1.3.0(valibot@1.1.0(typescript@5.8.3))
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
@@ -2389,6 +2404,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76

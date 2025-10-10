@@ -2,9 +2,12 @@ import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
+  type InferValidator,
+  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  zodSchema,
 } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
@@ -136,21 +139,29 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
 }
 
 // minimal version of the schema
-const googleImageResponseSchema = z.object({
-  predictions: z
-    .array(z.object({ bytesBase64Encoded: z.string() }))
-    .default([]),
-});
+const googleImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      predictions: z
+        .array(z.object({ bytesBase64Encoded: z.string() }))
+        .default([]),
+    }),
+  ),
+);
 
 // Note: For the initial GA launch of Imagen 3, safety filters are not configurable.
 // https://ai.google.dev/gemini-api/docs/imagen#imagen-model
-const googleImageProviderOptionsSchema = z.object({
-  personGeneration: z
-    .enum(['dont_allow', 'allow_adult', 'allow_all'])
-    .nullish(),
-  aspectRatio: z.enum(['1:1', '3:4', '4:3', '9:16', '16:9']).nullish(),
-});
+const googleImageProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      personGeneration: z
+        .enum(['dont_allow', 'allow_adult', 'allow_all'])
+        .nullish(),
+      aspectRatio: z.enum(['1:1', '3:4', '4:3', '9:16', '16:9']).nullish(),
+    }),
+  ),
+);
 
-export type GoogleGenerativeAIImageProviderOptions = z.infer<
+export type GoogleGenerativeAIImageProviderOptions = InferValidator<
   typeof googleImageProviderOptionsSchema
 >;

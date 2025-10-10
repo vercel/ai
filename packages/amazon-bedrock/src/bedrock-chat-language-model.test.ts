@@ -1792,12 +1792,14 @@ describe('doGenerate', () => {
   });
 
   it('should handle Anthropic provider-defined tools', async () => {
-    mockPrepareAnthropicTools.mockReturnValue({
-      tools: [{ name: 'bash', type: 'bash_20241022' }],
-      toolChoice: { type: 'auto' },
-      toolWarnings: [],
-      betas: new Set(['computer-use-2024-10-22']),
-    });
+    mockPrepareAnthropicTools.mockReturnValue(
+      Promise.resolve({
+        tools: [{ name: 'bash', type: 'bash_20241022' }],
+        toolChoice: { type: 'auto' },
+        toolWarnings: [],
+        betas: new Set(['computer-use-2024-10-22']),
+      }),
+    );
 
     // Set up the mock response for this specific URL and test case
     server.urls[anthropicGenerateUrl].response = {

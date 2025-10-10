@@ -1,6 +1,25 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`zodSchema > json schema conversion > nullable > should support nullable 1`] = `
+exports[`standardSchema > valibot > should create a schema with simple types 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "number": {
+      "type": "number",
+    },
+    "text": {
+      "type": "string",
+    },
+  },
+  "required": [
+    "text",
+    "number",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`zodSchema > zod/v4 > json schema conversion > nullable > should support nullable 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -23,7 +42,7 @@ exports[`zodSchema > json schema conversion > nullable > should support nullable
 }
 `;
 
-exports[`zodSchema > json schema conversion > should create a schema with simple types 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should create a schema with simple types 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -43,7 +62,7 @@ exports[`zodSchema > json schema conversion > should create a schema with simple
 }
 `;
 
-exports[`zodSchema > json schema conversion > should duplicate referenced schemas (and not use references) by default 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should duplicate referenced schemas (and not use references) by default 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -95,7 +114,7 @@ exports[`zodSchema > json schema conversion > should duplicate referenced schema
 }
 `;
 
-exports[`zodSchema > json schema conversion > should support arrays 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should support arrays 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -114,7 +133,7 @@ exports[`zodSchema > json schema conversion > should support arrays 1`] = `
 }
 `;
 
-exports[`zodSchema > json schema conversion > should support optional arrays 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should support optional arrays 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -130,7 +149,7 @@ exports[`zodSchema > json schema conversion > should support optional arrays 1`]
 }
 `;
 
-exports[`zodSchema > json schema conversion > should support optional enums 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should support optional enums 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -148,7 +167,7 @@ exports[`zodSchema > json schema conversion > should support optional enums 1`] 
 }
 `;
 
-exports[`zodSchema > json schema conversion > should support optional fields in object 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should support optional fields in object 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -167,7 +186,7 @@ exports[`zodSchema > json schema conversion > should support optional fields in 
 }
 `;
 
-exports[`zodSchema > json schema conversion > should support optional fields with descriptions in object 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should support optional fields with descriptions in object 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -188,7 +207,7 @@ exports[`zodSchema > json schema conversion > should support optional fields wit
 }
 `;
 
-exports[`zodSchema > json schema conversion > should support required enums 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should support required enums 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -209,7 +228,7 @@ exports[`zodSchema > json schema conversion > should support required enums 1`] 
 }
 `;
 
-exports[`zodSchema > json schema conversion > should use recursive references with z.lazy when useReferences is true 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should use recursive references with z.lazy when useReferences is true 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -246,7 +265,7 @@ exports[`zodSchema > json schema conversion > should use recursive references wi
 }
 `;
 
-exports[`zodSchema > json schema conversion > should use references when useReferences is true 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should use references when useReferences is true 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -290,7 +309,7 @@ exports[`zodSchema > json schema conversion > should use references when useRefe
 }
 `;
 
-exports[`zodSchema > json schema conversion > z4 schema > generates correct JSON SChema for z4 and .literal and .enum 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > z4 schema > generates correct JSON SChema for z4 and .literal and .enum 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,

@@ -29,7 +29,8 @@ import { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
-  readonly jsonSchema: JSONSchema7 | undefined;
+
+  jsonSchema(): Promise<JSONSchema7 | undefined>;
 
   validatePartialResult({
     value,
@@ -63,7 +64,7 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
 
 const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   type: 'no-schema',
-  jsonSchema: undefined,
+  jsonSchema: async () => undefined,
 
   async validatePartialResult({ value, textDelta }) {
     return { success: true, value: { partial: value, textDelta } };
@@ -103,7 +104,7 @@ const objectOutputStrategy = <OBJECT>(
   schema: Schema<OBJECT>,
 ): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => ({
   type: 'object',
-  jsonSchema: schema.jsonSchema,
+  jsonSchema: async () => await schema.jsonSchema,
 
   async validatePartialResult({ value, textDelta }) {
     return {
@@ -132,23 +133,25 @@ const objectOutputStrategy = <OBJECT>(
 const arrayOutputStrategy = <ELEMENT>(
   schema: Schema<ELEMENT>,
 ): OutputStrategy<ELEMENT[], ELEMENT[], AsyncIterableStream<ELEMENT>> => {
-  // remove $schema from schema.jsonSchema:
-  const { $schema, ...itemSchema } = schema.jsonSchema;
-
   return {
     type: 'enum',
 
     // wrap in object that contains array of elements, since most LLMs will not
     // be able to generate an array directly:
     // possible future optimization: use arrays directly when model supports grammar-guided generation
-    jsonSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        elements: { type: 'array', items: itemSchema },
-      },
-      required: ['elements'],
-      additionalProperties: false,
+    jsonSchema: async () => {
+      // remove $schema from schema.jsonSchema:
+      const { $schema, ...itemSchema } = await schema.jsonSchema;
+
+      return {
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        properties: {
+          elements: { type: 'array', items: itemSchema },
+        },
+        required: ['elements'],
+        additionalProperties: false,
+      };
     },
 
     async validatePartialResult({
@@ -302,7 +305,7 @@ const enumOutputStrategy = <ENUM extends string>(
     // wrap in object that contains result, since most LLMs will not
     // be able to generate an enum value directly:
     // possible future optimization: use enums directly when model supports top-level enums
-    jsonSchema: {
+    jsonSchema: async () => ({
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
@@ -310,7 +313,7 @@ const enumOutputStrategy = <ENUM extends string>(
       },
       required: ['result'],
       additionalProperties: false,
-    },
+    }),
 
     async validateFinalResult(
       value: JSONValue | undefined,

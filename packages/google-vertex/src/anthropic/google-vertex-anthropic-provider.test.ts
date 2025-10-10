@@ -15,6 +15,8 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   createJsonErrorResponseHandler: vi.fn(),
   createProviderDefinedToolFactory: vi.fn(),
   createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+  lazySchema: vi.fn(),
+  zodSchema: vi.fn(),
 }));
 
 vi.mock('@ai-sdk/anthropic/internal', async () => {

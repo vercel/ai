@@ -1,5 +1,45 @@
 # ai
 
+## 6.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - @ai-sdk/gateway@2.0.0-beta.25
+
+## 6.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [0e29b8b]
+  - @ai-sdk/gateway@2.0.0-beta.24
+
+## 6.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [acc14d8]
+  - @ai-sdk/gateway@2.0.0-beta.23
+
+## 6.0.0-beta.34
+
+### Patch Changes
+
+- bb10a89: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+
+## 6.0.0-beta.33
+
+### Patch Changes
+
+- f733285: fix(ai): only parse experimental_output in generateText when finishReason is stop
+
+## 6.0.0-beta.32
+
+### Patch Changes
+
+- 7e4649f: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+
 ## 6.0.0-beta.31
 
 ### Patch Changes

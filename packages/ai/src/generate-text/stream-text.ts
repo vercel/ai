@@ -928,7 +928,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // Add response information to the root span:
           rootSpan.setAttributes(
-            selectTelemetryAttributes({
+            await selectTelemetryAttributes({
               telemetry,
               attributes: {
                 'ai.response.finishReason': finishReason,
@@ -1182,21 +1182,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
           });
 
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
-            supportedUrls: await model.supportedUrls,
+            supportedUrls: await stepModel.supportedUrls,
             download,
           });
 
-          const stepModel = resolveLanguageModel(
-            prepareStepResult?.model ?? model,
-          );
-
           const { toolChoice: stepToolChoice, tools: stepTools } =
-            prepareToolsAndToolChoice({
+            await prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: prepareStepResult?.activeTools ?? activeTools,
@@ -1258,7 +1258,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   ...callSettings,
                   tools: stepTools,
                   toolChoice: stepToolChoice,
-                  responseFormat: output?.responseFormat,
+                  responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
@@ -1514,7 +1514,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   // record telemetry information first to ensure best effort timing
                   try {
                     doStreamSpan.setAttributes(
-                      selectTelemetryAttributes({
+                      await selectTelemetryAttributes({
                         telemetry,
                         attributes: {
                           'ai.response.finishReason': stepFinishReason,

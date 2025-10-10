@@ -1,5 +1,24 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- 68c6187: feat(provider/openai): support file and image tool results
+
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- 484aa93: Add 'default' as service tier
+
 ## 3.0.0-beta.18
 
 ### Patch Changes

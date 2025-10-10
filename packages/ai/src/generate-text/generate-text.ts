@@ -401,21 +401,21 @@ A function that attempts to repair a tool call that failed to parse.
             messages: stepInputMessages,
           });
 
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
-            supportedUrls: await model.supportedUrls,
+            supportedUrls: await stepModel.supportedUrls,
             download,
           });
 
-          const stepModel = resolveLanguageModel(
-            prepareStepResult?.model ?? model,
-          );
-
           const { toolChoice: stepToolChoice, tools: stepTools } =
-            prepareToolsAndToolChoice({
+            await prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: prepareStepResult?.activeTools ?? activeTools,
@@ -469,7 +469,7 @@ A function that attempts to repair a tool call that failed to parse.
                   ...callSettings,
                   tools: stepTools,
                   toolChoice: stepToolChoice,
-                  responseFormat: output?.responseFormat,
+                  responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
@@ -487,7 +487,7 @@ A function that attempts to repair a tool call that failed to parse.
 
                 // Add response information to the span:
                 span.setAttributes(
-                  selectTelemetryAttributes({
+                  await selectTelemetryAttributes({
                     telemetry,
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
@@ -673,7 +673,7 @@ A function that attempts to repair a tool call that failed to parse.
 
         // Add response information to the span:
         span.setAttributes(
-          selectTelemetryAttributes({
+          await selectTelemetryAttributes({
             telemetry,
             attributes: {
               'ai.response.finishReason': currentModelResponse.finishReason,
@@ -738,17 +738,23 @@ A function that attempts to repair a tool call that failed to parse.
           totalUsage,
         });
 
-        return new DefaultGenerateTextResult({
-          steps,
-          totalUsage,
-          resolvedOutput: await output?.parseOutput(
+        // parse output only if the last step was finished with "stop":
+        let resolvedOutput;
+        if (lastStep.finishReason === 'stop') {
+          resolvedOutput = await output?.parseOutput(
             { text: lastStep.text },
             {
               response: lastStep.response,
               usage: lastStep.usage,
               finishReason: lastStep.finishReason,
             },
-          ),
+          );
+        }
+
+        return new DefaultGenerateTextResult({
+          steps,
+          totalUsage,
+          resolvedOutput,
         });
       },
     });
