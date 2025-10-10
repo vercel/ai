@@ -1,6 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { InferValidator, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 export type AnthropicMessagesPrompt = {
   system: Array<AnthropicTextContent> | undefined;
