@@ -144,7 +144,7 @@ jobs:
               --assignee ${{ github.event.pull_request.merged_by.login }} \
               --draft)
           else
-              PR_URL=$(gh pr create \
+            PR_URL=$(gh pr create \
               --title "$PR_TITLE" \
               --body "$PR_BODY_NO_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
