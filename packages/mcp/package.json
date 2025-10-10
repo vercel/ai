@@ -34,7 +34,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "pkce-challenge": "^5.0.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
@@ -42,7 +43,6 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "pkce-challenge": "^5.0.0",
     "zod": "3.25.76"
   },
   "peerDependencies": {
