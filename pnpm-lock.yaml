@@ -1420,6 +1420,9 @@ importers:
       '@ai-sdk/gateway':
         specifier: workspace:*
         version: link:../gateway
+      '@ai-sdk/mcp':
+        specifier: workspace:*
+        version: link:../mcp
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider

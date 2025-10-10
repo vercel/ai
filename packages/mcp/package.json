@@ -30,6 +30,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./mcp-stdio": {
+      "types": "./dist/mcp-stdio/index.d.ts",
+      "import": "./dist/mcp-stdio/index.mjs",
+      "module": "./dist/mcp-stdio/index.mjs",
+      "require": "./dist/mcp-stdio/index.js"
     }
   },
   "dependencies": {
