@@ -6,15 +6,17 @@ import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+import {
+  GoogleGenerativeAILanguageModel,
+  getGroundingMetadataSchema,
+  getUrlContextMetadataSchema,
+} from './google-generative-ai-language-model';
 
 import {
   GoogleGenerativeAIGroundingMetadata,
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
-import { groundingMetadataSchema } from './tool/google-search';
-import { urlContextMetadataSchema } from './tool/url-context';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
@@ -49,6 +51,9 @@ const provider = createGoogleGenerativeAI({
   generateId: () => 'test-id',
 });
 const model = provider.chat('gemini-pro');
+
+const groundingMetadataSchema = getGroundingMetadataSchema();
+const urlContextMetadataSchema = getUrlContextMetadataSchema();
 
 describe('groundingMetadataSchema', () => {
   it('validates complete grounding metadata with web search results', () => {
