@@ -1,5 +1,5 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 export const openaiTranscriptionResponseSchema = lazySchema(() =>
   zodSchema(

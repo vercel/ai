@@ -1,5 +1,5 @@
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 /**
  * `top_logprobs` request body argument can be set to an integer between

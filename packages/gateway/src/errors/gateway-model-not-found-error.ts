@@ -1,4 +1,4 @@
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { GatewayError } from './gateway-error';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
