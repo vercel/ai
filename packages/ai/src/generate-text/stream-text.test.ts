@@ -4669,6 +4669,12 @@ describe('streamText', () => {
             "type": "tool-call",
           },
           {
+            "id": "4",
+            "providerMetadata": undefined,
+            "text": " World",
+            "type": "text-delta",
+          },
+          {
             "dynamic": false,
             "input": {
               "value": "test",
@@ -4677,12 +4683,6 @@ describe('streamText', () => {
             "toolCallId": "2",
             "toolName": "tool1",
             "type": "tool-result",
-          },
-          {
-            "id": "4",
-            "providerMetadata": undefined,
-            "text": " World",
-            "type": "text-delta",
           },
         ]
       `);
@@ -12941,15 +12941,20 @@ describe('streamText', () => {
       it('should end full stream with abort part', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
-            },
-            {
-              "type": "abort",
-            },
-          ]
-        `);
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "type": "abort",
+              },
+            ]
+          `);
       });
     });
   });

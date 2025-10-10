@@ -3,6 +3,7 @@ import {
   isAbortError,
   safeValidateTypes,
   type FetchFunction,
+  type FlexibleSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import {
@@ -10,10 +11,7 @@ import {
   isDeepEqualData,
   parsePartialJson,
   type DeepPartial,
-  type Schema,
 } from 'ai';
-import type * as z3 from 'zod/v3';
-import type * as z4 from 'zod/v4';
 import {
   getStructuredObjectContext,
   hasStructuredObjectContext,
@@ -22,7 +20,7 @@ import {
 } from './structured-object-context.svelte.js';
 
 export type Experimental_StructuredObjectOptions<
-  SCHEMA extends z3.Schema | z4.core.$ZodType | Schema,
+  SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
 > = {
   /**
@@ -88,7 +86,7 @@ export type Experimental_StructuredObjectOptions<
 };
 
 export class StructuredObject<
-  SCHEMA extends z3.Schema | z4.core.$ZodType | Schema,
+  SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = unknown,
 > {
