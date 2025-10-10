@@ -353,13 +353,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-<<<<<<< HEAD
-          ParseResult<z.infer<typeof chunkSchema>>,
-          LanguageModelV2StreamPart
-=======
           ParseResult<ChunkSchema>,
-          LanguageModelV3StreamPart
->>>>>>> ee50cc5b6 (fix(provider/google): lazy schema loading (#9341))
+          LanguageModelV2StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

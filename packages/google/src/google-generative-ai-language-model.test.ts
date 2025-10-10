@@ -2,21 +2,15 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
-<<<<<<< HEAD
 import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-=======
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
   GoogleGenerativeAILanguageModel,
   getGroundingMetadataSchema,
   getUrlContextMetadataSchema,
 } from './google-generative-ai-language-model';
->>>>>>> ee50cc5b6 (fix(provider/google): lazy schema loading (#9341))
 
 import {
   GoogleGenerativeAIGroundingMetadata,

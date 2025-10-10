@@ -121,17 +121,6 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
        */
       labels: z.record(z.string(), z.string()).optional(),
 
-<<<<<<< HEAD
-  /**
-   * Optional. Defines labels used in billing reports. Available on Vertex AI only.
-   *
-   * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls
-   */
-  labels: z.record(z.string(), z.string()).optional(),
-});
-
-export type GoogleGenerativeAIProviderOptions = z.infer<
-=======
       /**
        * Optional. If specified, the media resolution specified will be used.
        *
@@ -150,6 +139,5 @@ export type GoogleGenerativeAIProviderOptions = z.infer<
 );
 
 export type GoogleGenerativeAIProviderOptions = InferValidator<
->>>>>>> ee50cc5b6 (fix(provider/google): lazy schema loading (#9341))
   typeof googleGenerativeAIProviderOptions
 >;
