@@ -3515,6 +3515,14 @@ describe('OpenAIResponsesLanguageModel', () => {
         };
 
         const { stream } = await createModel('gpt-5-nano').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
           prompt: TEST_PROMPT,
         });
 
