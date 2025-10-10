@@ -121,9 +121,9 @@ export function asSchema<OBJECT>(
       })
     : isSchema(schema)
       ? schema
-      : typeof schema === 'function'
-        ? schema()
-        : standardSchema(schema);
+      : '~standard' in schema
+        ? standardSchema(schema)
+        : schema();
 }
 
 export function standardSchema<OBJECT>(
@@ -153,6 +153,7 @@ export function standardSchema<OBJECT>(
         valibotToJsonSchema,
       );
     }
+
     default: {
       return standardSchemaWithJsonSchemaResolver(standardSchema, () => {
         throw new Error(`Unsupported standard schema vendor: ${vendor}`);
