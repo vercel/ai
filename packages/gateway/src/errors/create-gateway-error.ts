@@ -9,8 +9,15 @@ import {
 } from './gateway-model-not-found-error';
 import { GatewayInternalServerError } from './gateway-internal-server-error';
 import { GatewayResponseError } from './gateway-response-error';
+import {
+  InferValidator,
+  lazyValidator,
+  safeValidateTypes,
+  validateTypes,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 
-export function createGatewayErrorFromResponse({
+export async function createGatewayErrorFromResponse({
   response,
   statusCode,
   defaultMessage = 'Gateway request failed',
@@ -22,8 +29,12 @@ export function createGatewayErrorFromResponse({
   defaultMessage?: string;
   cause?: unknown;
   authMethod?: 'api-key' | 'oidc';
-}): GatewayError {
-  const parseResult = gatewayErrorResponseSchema.safeParse(response);
+}): Promise<GatewayError> {
+  const parseResult = await safeValidateTypes({
+    value: response,
+    schema: gatewayErrorResponseSchema,
+  });
+
   if (!parseResult.success) {
     return new GatewayResponseError({
       message: `Invalid error response format: ${defaultMessage}`,
@@ -34,7 +45,7 @@ export function createGatewayErrorFromResponse({
     });
   }
 
-  const validatedResponse: GatewayErrorResponse = parseResult.data;
+  const validatedResponse: GatewayErrorResponse = parseResult.value;
   const errorType = validatedResponse.error.type;
   const message = validatedResponse.error.message;
 
@@ -51,13 +62,15 @@ export function createGatewayErrorFromResponse({
     case 'rate_limit_exceeded':
       return new GatewayRateLimitError({ message, statusCode, cause });
     case 'model_not_found': {
-      const modelResult = modelNotFoundParamSchema.safeParse(
-        validatedResponse.error.param,
-      );
+      const modelResult = await safeValidateTypes({
+        value: validatedResponse.error.param,
+        schema: modelNotFoundParamSchema,
+      });
+
       return new GatewayModelNotFoundError({
         message,
         statusCode,
-        modelId: modelResult.success ? modelResult.data.modelId : undefined,
+        modelId: modelResult.success ? modelResult.value.modelId : undefined,
         cause,
       });
     }
@@ -68,13 +81,19 @@ export function createGatewayErrorFromResponse({
   }
 }
 
-const gatewayErrorResponseSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    type: z.string().nullish(),
-    param: z.unknown().nullish(),
-    code: z.union([z.string(), z.number()]).nullish(),
-  }),
-});
+const gatewayErrorResponseSchema = lazyValidator(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        message: z.string(),
+        type: z.string().nullish(),
+        param: z.unknown().nullish(),
+        code: z.union([z.string(), z.number()]).nullish(),
+      }),
+    }),
+  ),
+);
 
-export type GatewayErrorResponse = z.infer<typeof gatewayErrorResponseSchema>;
+export type GatewayErrorResponse = InferValidator<
+  typeof gatewayErrorResponseSchema
+>;

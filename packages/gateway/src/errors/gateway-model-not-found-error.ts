@@ -1,13 +1,18 @@
 import * as z from 'zod/v4';
 import { GatewayError } from './gateway-error';
+import { lazyValidator, zodSchema } from '@ai-sdk/provider-utils';
 
 const name = 'GatewayModelNotFoundError';
 const marker = `vercel.ai.gateway.error.${name}`;
 const symbol = Symbol.for(marker);
 
-export const modelNotFoundParamSchema = z.object({
-  modelId: z.string(),
-});
+export const modelNotFoundParamSchema = lazyValidator(() =>
+  zodSchema(
+    z.object({
+      modelId: z.string(),
+    }),
+  ),
+);
 
 /**
  * Model not found or not available

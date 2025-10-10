@@ -173,12 +173,24 @@ importers:
       '@opentelemetry/sdk-trace-node':
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec':
+        specifier: 1.0.0
+        version: 1.0.0
+      '@valibot/to-json-schema':
+        specifier: ^1.3.0
+        version: 1.3.0(valibot@1.1.0(typescript@5.8.3))
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
+      arktype:
+        specifier: 2.1.22
+        version: 2.1.22
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
+      effect:
+        specifier: 3.18.4
+        version: 3.18.4
       image-type:
         specifier: ^5.2.0
         version: 5.2.0
@@ -192,7 +204,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       valibot:
-        specifier: ^1.0.0-rc.0 || ^1.0.0
+        specifier: 1.1.0
         version: 1.1.0(typescript@5.8.3)
       zod:
         specifier: 3.25.76
@@ -854,6 +866,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
         version: 1.17.3
+      '@valibot/to-json-schema':
+        specifier: ^1.3.0
+        version: 1.3.0(valibot@1.1.0(typescript@5.8.3))
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
@@ -881,6 +896,9 @@ importers:
       resumable-stream:
         specifier: ^2.2.0
         version: 2.2.4
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -1497,9 +1515,6 @@ importers:
       ai:
         specifier: workspace:*
         version: link:../ai
-      zod:
-        specifier: ^3.25.76 || ^4.1.8
-        version: 3.25.76
     devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
@@ -1528,6 +1543,9 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.0.7(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@20.17.24)(jiti@2.4.0)(jsdom@24.0.0)(less@4.4.0)(msw@2.7.0(@types/node@20.17.24)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.7.0)
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/anthropic:
     dependencies:
@@ -2414,9 +2432,18 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
+      '@valibot/to-json-schema':
+        specifier: ^1.3.0
+        version: 1.3.0(valibot@1.1.0(typescript@5.8.3))
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      arktype:
+        specifier: ^2.1.22
+        version: 2.1.22
+      effect:
+        specifier: ^3.18.4
+        version: 3.18.4
       msw:
         specifier: 2.7.0
         version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
@@ -2426,6 +2453,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -2827,9 +2857,6 @@ importers:
       vue:
         specifier: ^3.3.4
         version: 3.5.13(typescript@5.8.3)
-      zod:
-        specifier: ^3.25.76 || ^4.1.8
-        version: 3.25.76
     devDependencies:
       '@ai-sdk/test-server':
         specifier: workspace:*
@@ -2873,6 +2900,9 @@ importers:
       vitest:
         specifier: 2.1.4
         version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@20.17.24)(jsdom@24.0.0)(less@4.4.0)(msw@2.6.4(@types/node@20.17.24)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/xai:
     dependencies:
@@ -3230,6 +3260,12 @@ packages:
 
   '@anthropic-ai/sdk@0.9.1':
     resolution: {integrity: sha512-wa1meQ2WSfoY8Uor3EdrJq0jTiZJoKoSii2ZVWRY1oN4Tlr5s59pADg9T79FTbPe1/se5c3pBeZgJL63wmuoBA==}
+
+  '@ark/schema@0.49.0':
+    resolution: {integrity: sha512-GphZBLpW72iS0v4YkeUtV3YIno35Gimd7+ezbPO9GwEi9kzdUrPVjvf6aXSBAfHikaFc/9pqZOpv3pOXnC71tw==}
+
+  '@ark/util@0.49.0':
+    resolution: {integrity: sha512-/BtnX7oCjNkxi2vi6y1399b+9xd1jnCrDYhZ61f0a+3X8x8DxlK52VgEEzyuC2UQMPACIfYrmHkhD3lGt2GaMA==}
 
   '@asamuzakjp/css-color@2.8.3':
     resolution: {integrity: sha512-GIc76d9UI1hCvOATjZPyHFmE5qhRccp3/zGfMPapK3jBi+yocEzp6BBB0UnfRYP9NP4FANqUZYb0hnfs3TM3hw==}
@@ -10185,6 +10221,9 @@ packages:
     resolution: {integrity: sha512-COROpnaoap1E2F000S62r6A60uHZnmlvomhfyT2DlTcrY1OrBKn2UhH7qn5wTC9zMvD0AY7csdPSNwKP+7WiQw==}
     engines: {node: '>= 0.4'}
 
+  arktype@2.1.22:
+    resolution: {integrity: sha512-xdzl6WcAhrdahvRRnXaNwsipCgHuNoLobRqhiP8RjnfL9Gp947abGlo68GAIyLtxbD+MLzNyH2YR4kEqioMmYQ==}
+
   array-buffer-byte-length@1.0.1:
     resolution: {integrity: sha512-ahC5W1xgou+KTXix4sAO8Ki12Q+jf4i0+tmk3sC+zgcynshkHxzpXdImBehiUYKKKDwvfFiJl1tZt6ewscS1Mg==}
     engines: {node: '>= 0.4'}
@@ -11450,6 +11489,9 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
+  effect@3.18.4:
+    resolution: {integrity: sha512-b1LXQJLe9D11wfnOKAk3PKxuqYshQ0Heez+y5pnkd3jLj1yx9QhM72zZ9uUrOQyNvrs2GZZd/3maL0ZV18YuDA==}
+
   ejs@3.1.10:
     resolution: {integrity: sha512-UeJmFfOrAQS8OJWPZ4qtgHyWExa088/MtK5UEyoJGFH67cDEXkZSviOiKRCZ4Xij0zxI3JECgYs3oKx+AizQBA==}
     engines: {node: '>=0.10.0'}
@@ -11941,6 +11983,10 @@ packages:
 
   externality@1.0.2:
     resolution: {integrity: sha512-LyExtJWKxtgVzmgtEHyQtLFpw1KFhQphF9nTG8TpAIVkiI/xQ3FJh75tRFLYl4hkn7BNIIdLJInuDAavX35pMw==}
+
+  fast-check@3.23.2:
+    resolution: {integrity: sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A==}
+    engines: {node: '>=8.0.0'}
 
   fast-decode-uri-component@1.0.1:
     resolution: {integrity: sha512-WKgKWg5eUxvRZGwW8FvfbaH7AXSh2cL+3j5fMGzUMCxWBJ3dV3a7Wz8y2f/uQ0e3B6WmodD3oS54jTQ9HVTIIg==}
@@ -18392,6 +18438,12 @@ snapshots:
       web-streams-polyfill: 3.3.3
     transitivePeerDependencies:
       - encoding
+
+  '@ark/schema@0.49.0':
+    dependencies:
+      '@ark/util': 0.49.0
+
+  '@ark/util@0.49.0': {}
 
   '@asamuzakjp/css-color@2.8.3':
     dependencies:
@@ -27335,6 +27387,11 @@ snapshots:
 
   aria-query@5.3.2: {}
 
+  arktype@2.1.22:
+    dependencies:
+      '@ark/schema': 0.49.0
+      '@ark/util': 0.49.0
+
   array-buffer-byte-length@1.0.1:
     dependencies:
       call-bind: 1.0.7
@@ -28691,6 +28748,11 @@ snapshots:
 
   ee-first@1.1.1: {}
 
+  effect@3.18.4:
+    dependencies:
+      '@standard-schema/spec': 1.0.0
+      fast-check: 3.23.2
+
   ejs@3.1.10:
     dependencies:
       jake: 10.9.2
@@ -29890,6 +29952,10 @@ snapshots:
       mlly: 1.7.3
       pathe: 1.1.2
       ufo: 1.5.4
+
+  fast-check@3.23.2:
+    dependencies:
+      pure-rand: 6.1.0
 
   fast-decode-uri-component@1.0.1: {}
 

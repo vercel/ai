@@ -1,5 +1,56 @@
 # @ai-sdk/vue
 
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - ai@6.0.0-beta.40
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- f6f0c5a: chore: remove zod from ui packages
+- Updated dependencies [f6f0c5a]
+  - ai@6.0.0-beta.39
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - ai@6.0.0-beta.38
+
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - ai@6.0.0-beta.37
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- ai@6.0.0-beta.36
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- ai@6.0.0-beta.35
+
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [bb10a89]
+  - ai@6.0.0-beta.34
+
 ## 3.0.0-beta.33
 
 ### Patch Changes
