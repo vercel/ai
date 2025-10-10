@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 2.0.19
+
+### Patch Changes
+
+- a107843: fix(provider/google): lazy schema loading
+
+  import time improved by 12.5% (22.3ms ➡️ 19.5ms)
+
 ## 2.0.18
 
 ### Patch Changes
