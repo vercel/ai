@@ -3639,7 +3639,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
 ]
 `;
 
-exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > should stream code local shell results 1`] = `
+exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should stream code local shell results 1`] = `
 [
   {
     "type": "stream-start",
