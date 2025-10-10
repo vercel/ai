@@ -3,7 +3,7 @@ import {
   lazyValidator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 // https://platform.openai.com/docs/models
 export type OpenAICompletionModelId = 'gpt-3.5-turbo-instruct' | (string & {});

@@ -7,7 +7,7 @@ import {
   Validator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import {

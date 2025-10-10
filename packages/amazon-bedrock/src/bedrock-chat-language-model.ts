@@ -21,7 +21,7 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
   BedrockConverseInput,
