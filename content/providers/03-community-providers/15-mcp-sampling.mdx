@@ -446,10 +446,7 @@ setupClientSampling(client, {
 
 const transport = new StdioClientTransport({
   command: 'npx',
-  args: [
-    '-y',
-    'example_mcp_server.ts',
-  ],
+  args: ['-y', 'example_mcp_server.ts'],
 });
 
 await client.connect(transport);
