@@ -286,10 +286,7 @@ export async function convertToAnthropicMessagesPrompt({
                               source: {
                                 type: 'base64',
                                 media_type: contentPart.mediaType,
-                                data:
-                                  typeof contentPart.data === 'string'
-                                    ? contentPart.data
-                                    : convertToBase64(contentPart.data),
+                                data: contentPart.data,
                               },
                               cache_control: undefined,
                             };
