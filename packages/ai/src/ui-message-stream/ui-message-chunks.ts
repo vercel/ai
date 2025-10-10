@@ -10,9 +10,9 @@ import {
   UIMessage,
 } from '../ui/ui-messages';
 import { ValueOf } from '../util/value-of';
-import { lazyValidator, zodSchema } from '@ai-sdk/provider-utils';
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
-export const uiMessageChunkSchema = lazyValidator(() =>
+export const uiMessageChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
       z.strictObject({

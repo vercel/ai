@@ -1,12 +1,8 @@
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 
 // https://vercel.com/docs/ai-gateway/provider-options
-const gatewayProviderOptions = lazyValidator(() =>
+const gatewayProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -25,6 +21,4 @@ const gatewayProviderOptions = lazyValidator(() =>
   ),
 );
 
-export type GatewayProviderOptions = InferValidator<
-  typeof gatewayProviderOptions
->;
+export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;

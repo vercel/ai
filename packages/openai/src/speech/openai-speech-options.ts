@@ -1,8 +1,4 @@
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 
 export type OpenAISpeechModelId =
@@ -12,7 +8,7 @@ export type OpenAISpeechModelId =
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
-export const openaiSpeechProviderOptionsSchema = lazyValidator(() =>
+export const openaiSpeechProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       instructions: z.string().nullish(),
@@ -21,6 +17,6 @@ export const openaiSpeechProviderOptionsSchema = lazyValidator(() =>
   ),
 );
 
-export type OpenAISpeechCallOptions = InferValidator<
+export type OpenAISpeechCallOptions = InferSchema<
   typeof openaiSpeechProviderOptionsSchema
 >;

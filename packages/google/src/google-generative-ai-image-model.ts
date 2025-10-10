@@ -2,7 +2,7 @@ import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
-  type InferValidator,
+  type InferSchema,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
@@ -162,6 +162,6 @@ const googleImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIImageProviderOptions = InferValidator<
+export type GoogleGenerativeAIImageProviderOptions = InferSchema<
   typeof googleImageProviderOptionsSchema
 >;

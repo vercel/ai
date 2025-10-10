@@ -1,14 +1,10 @@
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 
 // https://platform.openai.com/docs/models
 export type OpenAICompletionModelId = 'gpt-3.5-turbo-instruct' | (string & {});
 
-export const openaiCompletionProviderOptions = lazyValidator(() =>
+export const openaiCompletionProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -57,6 +53,6 @@ tokens that were generated.
   ),
 );
 
-export type OpenAICompletionProviderOptions = InferValidator<
+export type OpenAICompletionProviderOptions = InferSchema<
   typeof openaiCompletionProviderOptions
 >;

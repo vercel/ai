@@ -1,5 +1,5 @@
 import {
-  type InferValidator,
+  type InferSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -47,6 +47,6 @@ export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIEmbeddingProviderOptions = InferValidator<
+export type GoogleGenerativeAIEmbeddingProviderOptions = InferSchema<
   typeof googleGenerativeAIEmbeddingProviderOptions
 >;

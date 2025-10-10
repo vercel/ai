@@ -1,8 +1,4 @@
-import {
-  type InferValidator,
-  lazySchema,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 
 export type GoogleGenerativeAIModelId =
@@ -143,6 +139,6 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIProviderOptions = InferValidator<
+export type GoogleGenerativeAIProviderOptions = InferSchema<
   typeof googleGenerativeAIProviderOptions
 >;

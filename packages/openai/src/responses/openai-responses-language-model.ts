@@ -14,7 +14,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  InferValidator,
+  InferSchema,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -408,7 +408,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: 'image_generation',
             result: {
               result: part.result,
-            } satisfies InferValidator<typeof imageGenerationOutputSchema>,
+            } satisfies InferSchema<typeof imageGenerationOutputSchema>,
             providerExecuted: true,
           });
 
@@ -422,7 +422,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: 'local_shell',
             input: JSON.stringify({
               action: part.action,
-            } satisfies InferValidator<typeof localShellInputSchema>),
+            } satisfies InferSchema<typeof localShellInputSchema>),
             providerMetadata: {
               openai: {
                 itemId: part.id,
@@ -559,7 +559,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   score: result.score,
                   text: result.text,
                 })) ?? null,
-            } satisfies InferValidator<typeof fileSearchOutputSchema>,
+            } satisfies InferSchema<typeof fileSearchOutputSchema>,
             providerExecuted: true,
           });
           break;
@@ -573,7 +573,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             input: JSON.stringify({
               code: part.code,
               containerId: part.container_id,
-            } satisfies InferValidator<typeof codeInterpreterInputSchema>),
+            } satisfies InferSchema<typeof codeInterpreterInputSchema>),
             providerExecuted: true,
           });
 
@@ -583,7 +583,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: 'code_interpreter',
             result: {
               outputs: part.outputs,
-            } satisfies InferValidator<typeof codeInterpreterOutputSchema>,
+            } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
             providerExecuted: true,
           });
           break;
@@ -905,7 +905,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         score: result.score,
                         text: result.text,
                       })) ?? null,
-                  } satisfies InferValidator<typeof fileSearchOutputSchema>,
+                  } satisfies InferSchema<typeof fileSearchOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
@@ -917,9 +917,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: 'code_interpreter',
                   result: {
                     outputs: value.item.outputs,
-                  } satisfies InferValidator<
-                    typeof codeInterpreterOutputSchema
-                  >,
+                  } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'image_generation_call') {
@@ -929,9 +927,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: 'image_generation',
                   result: {
                     result: value.item.result,
-                  } satisfies InferValidator<
-                    typeof imageGenerationOutputSchema
-                  >,
+                  } satisfies InferSchema<typeof imageGenerationOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'local_shell_call') {
@@ -950,7 +946,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       workingDirectory: value.item.action.working_directory,
                       env: value.item.action.env,
                     },
-                  } satisfies InferValidator<typeof localShellInputSchema>),
+                  } satisfies InferSchema<typeof localShellInputSchema>),
                   providerMetadata: {
                     openai: { itemId: value.item.id },
                   },
@@ -996,7 +992,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 toolName: 'image_generation',
                 result: {
                   result: value.partial_image_b64,
-                } satisfies InferValidator<typeof imageGenerationOutputSchema>,
+                } satisfies InferSchema<typeof imageGenerationOutputSchema>,
                 providerExecuted: true,
                 preliminary: true,
               });
@@ -1035,9 +1031,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   input: JSON.stringify({
                     code: value.code,
                     containerId: toolCall.codeInterpreter!.containerId,
-                  } satisfies InferValidator<
-                    typeof codeInterpreterInputSchema
-                  >),
+                  } satisfies InferSchema<typeof codeInterpreterInputSchema>),
                   providerExecuted: true,
                 });
               }
