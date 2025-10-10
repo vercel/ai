@@ -4,9 +4,9 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { openaiImageResponseSchema } from './openai-image-api';
 import {
   OpenAIImageModelId,
   hasDefaultResponseFormat,
@@ -109,11 +109,3 @@ export class OpenAIImageModel implements ImageModelV3 {
     };
   }
 }
-
-// minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiImageResponseSchema = z.object({
-  data: z.array(
-    z.object({ b64_json: z.string(), revised_prompt: z.string().optional() }),
-  ),
-});
