@@ -3514,7 +3514,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         };
 
-        const { stream } = await createModel('o3-2025-04-16').doStream({
+        const { stream } = await createModel('gpt-5-nano').doStream({
           prompt: TEST_PROMPT,
         });
 
