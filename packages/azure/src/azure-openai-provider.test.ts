@@ -5,7 +5,10 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createAzure } from './azure-openai-provider';
 import { describe, it, expect, vi } from 'vitest';
-import { convertReadableStreamToArray, mockId } from '@ai-sdk/provider-utils/test';
+import {
+  convertReadableStreamToArray,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
 import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
 
 vi.mock('./version', () => ({
@@ -19,11 +22,12 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
 function createModel(modelId: string) {
   return new OpenAIResponsesLanguageModel(modelId, {
     provider: 'azure.responses',
-    url: ({ path }) => `https://test-resource.openai.azure.com/openai/v1${path}`,
+    url: ({ path }) =>
+      `https://test-resource.openai.azure.com/openai/v1${path}`,
     //headers: () => ({ Authorization: `Bearer APIKEY` }),
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
-    fileIdPrefixes:["assistant-",],
+    fileIdPrefixes: ['assistant-'],
   });
 }
 
@@ -835,9 +839,11 @@ describe('responses', () => {
     });
   });
 
-  describe('doStream', ()=>{
-    it('should handle file_citation annotations without optional fields in streaming',async ()=>{
-      server.urls['https://test-resource.openai.azure.com/openai/v1/responses'].response = {
+  describe('doStream', () => {
+    it('should handle file_citation annotations without optional fields in streaming', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/responses'
+      ].response = {
         type: 'stream-chunks',
         chunks: [
           `data:{"type":"response.content_part.added","item_id":"msg_456","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
@@ -918,7 +924,6 @@ describe('responses', () => {
           },
         ]
       `);
-    })
-  })
-  
+    });
+  });
 });
