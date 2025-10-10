@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.39
+
+### Patch Changes
+
+- d66a7c5: Add claude sonnet 4.5 in google vertex anthropic provider
+
 ## 3.0.38
 
 ### Patch Changes
