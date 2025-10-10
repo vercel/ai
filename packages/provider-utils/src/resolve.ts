@@ -1,8 +1,8 @@
 export type Resolvable<T> =
   | T // Raw value
-  | Promise<T> // Promise of value
+  | PromiseLike<T> // Promise of value
   | (() => T) // Function returning value
-  | (() => Promise<T>); // Function returning promise of value
+  | (() => PromiseLike<T>); // Function returning promise of value
 
 /**
  * Resolves a value that could be a raw value, a Promise, a function returning a value,

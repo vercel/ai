@@ -1,4 +1,4 @@
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { MCPClientError } from '../../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';

@@ -15,7 +15,7 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
@@ -86,7 +86,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         warnings,
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
@@ -159,7 +159,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 

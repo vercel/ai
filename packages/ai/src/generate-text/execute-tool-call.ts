@@ -94,7 +94,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
       try {
         span.setAttributes(
-          selectTelemetryAttributes({
+          await selectTelemetryAttributes({
             telemetry,
             attributes: {
               'ai.toolCall.result': {
