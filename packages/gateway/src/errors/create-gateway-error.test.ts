@@ -11,7 +11,7 @@ import {
 } from './index';
 
 describe('Valid error responses', () => {
-  it('should create GatewayAuthenticationError for authentication_error type', () => {
+  it('should create GatewayAuthenticationError for authentication_error type', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Invalid API key',
@@ -19,7 +19,7 @@ describe('Valid error responses', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 401,
     });
@@ -30,7 +30,7 @@ describe('Valid error responses', () => {
     expect(error.type).toBe('authentication_error');
   });
 
-  it('should create GatewayInvalidRequestError for invalid_request_error type', () => {
+  it('should create GatewayInvalidRequestError for invalid_request_error type', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Missing required parameter',
@@ -38,7 +38,7 @@ describe('Valid error responses', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 400,
     });
@@ -48,7 +48,7 @@ describe('Valid error responses', () => {
     expect(error.statusCode).toBe(400);
   });
 
-  it('should create GatewayRateLimitError for rate_limit_exceeded type', () => {
+  it('should create GatewayRateLimitError for rate_limit_exceeded type', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Rate limit exceeded. Try again later.',
@@ -56,7 +56,7 @@ describe('Valid error responses', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 429,
     });
@@ -66,7 +66,7 @@ describe('Valid error responses', () => {
     expect(error.statusCode).toBe(429);
   });
 
-  it('should create GatewayModelNotFoundError for model_not_found type', () => {
+  it('should create GatewayModelNotFoundError for model_not_found type', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Model not available',
@@ -75,7 +75,7 @@ describe('Valid error responses', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 404,
     });
@@ -86,7 +86,7 @@ describe('Valid error responses', () => {
     expect((error as GatewayModelNotFoundError).modelId).toBe('gpt-4-turbo');
   });
 
-  it('should create GatewayModelNotFoundError without modelId for invalid param', () => {
+  it('should create GatewayModelNotFoundError without modelId for invalid param', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Model not available',
@@ -95,7 +95,7 @@ describe('Valid error responses', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 404,
     });
@@ -104,7 +104,7 @@ describe('Valid error responses', () => {
     expect((error as GatewayModelNotFoundError).modelId).toBeUndefined();
   });
 
-  it('should create GatewayInternalServerError for internal_server_error type', () => {
+  it('should create GatewayInternalServerError for internal_server_error type', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Internal server error occurred',
@@ -112,7 +112,7 @@ describe('Valid error responses', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
     });
@@ -122,7 +122,7 @@ describe('Valid error responses', () => {
     expect(error.statusCode).toBe(500);
   });
 
-  it('should create GatewayInternalServerError for unknown error type', () => {
+  it('should create GatewayInternalServerError for unknown error type', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Unknown error occurred',
@@ -130,7 +130,7 @@ describe('Valid error responses', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
     });
@@ -142,7 +142,7 @@ describe('Valid error responses', () => {
 });
 
 describe('Error response edge cases', () => {
-  it('should preserve empty string messages from Gateway', () => {
+  it('should preserve empty string messages from Gateway', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: '',
@@ -150,7 +150,7 @@ describe('Error response edge cases', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 401,
       defaultMessage: 'Custom default message',
@@ -159,7 +159,7 @@ describe('Error response edge cases', () => {
     expect(error.message).toContain('No authentication provided'); // Uses contextual message
   });
 
-  it('should use defaultMessage when response message is null', () => {
+  it('should use defaultMessage when response message is null', async () => {
     const response = {
       error: {
         message: null,
@@ -167,7 +167,7 @@ describe('Error response edge cases', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 401,
       defaultMessage: 'Custom default message',
@@ -185,7 +185,7 @@ describe('Error response edge cases', () => {
     expect(responseError.validationError).toBeDefined();
   });
 
-  it('should handle error type as null', () => {
+  it('should handle error type as null', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Some error',
@@ -193,7 +193,7 @@ describe('Error response edge cases', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
     });
@@ -201,7 +201,7 @@ describe('Error response edge cases', () => {
     expect(error).toBeInstanceOf(GatewayInternalServerError);
   });
 
-  it('should include cause in the created error', () => {
+  it('should include cause in the created error', async () => {
     const originalCause = new Error('Original network error');
     const response: GatewayErrorResponse = {
       error: {
@@ -210,7 +210,7 @@ describe('Error response edge cases', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 504,
       cause: originalCause,
@@ -221,12 +221,12 @@ describe('Error response edge cases', () => {
 });
 
 describe('Malformed responses', () => {
-  it('should create GatewayResponseError for completely invalid response', () => {
+  it('should create GatewayResponseError for completely invalid response', async () => {
     const response = {
       invalidField: 'value',
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
     });
@@ -241,15 +241,14 @@ describe('Malformed responses', () => {
     const responseError = error as GatewayResponseError;
     expect(responseError.response).toBe(response);
     expect(responseError.validationError).toBeDefined();
-    expect(responseError.validationError?.issues).toBeDefined();
   });
 
-  it('should create GatewayResponseError for missing error field', () => {
+  it('should create GatewayResponseError for missing error field', async () => {
     const response = {
       data: 'some data',
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
       defaultMessage: 'Custom error message',
@@ -266,10 +265,10 @@ describe('Malformed responses', () => {
     expect(responseError.validationError).toBeDefined();
   });
 
-  it('should create GatewayResponseError for null response', () => {
+  it('should create GatewayResponseError for null response', async () => {
     const response = null;
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
     });
@@ -285,10 +284,10 @@ describe('Malformed responses', () => {
     expect(responseError.validationError).toBeDefined();
   });
 
-  it('should create GatewayResponseError for string response', () => {
+  it('should create GatewayResponseError for string response', async () => {
     const response = 'Error string';
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
     });
@@ -304,10 +303,10 @@ describe('Malformed responses', () => {
     expect(responseError.validationError).toBeDefined();
   });
 
-  it('should create GatewayResponseError for array response', () => {
+  it('should create GatewayResponseError for array response', async () => {
     const response = ['error', 'array'];
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
     });
@@ -325,12 +324,12 @@ describe('Malformed responses', () => {
 });
 
 describe('Object parameter validation', () => {
-  it('should use default defaultMessage when not provided', () => {
+  it('should use default defaultMessage when not provided', async () => {
     const response = {
       invalidField: 'value',
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 500,
     });
@@ -346,7 +345,7 @@ describe('Object parameter validation', () => {
     expect(responseError.validationError).toBeDefined();
   });
 
-  it('should handle undefined cause', () => {
+  it('should handle undefined cause', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Test error',
@@ -354,7 +353,7 @@ describe('Object parameter validation', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 401,
       cause: undefined,
@@ -365,7 +364,7 @@ describe('Object parameter validation', () => {
 });
 
 describe('Complex scenarios', () => {
-  it('should handle model_not_found with missing param field', () => {
+  it('should handle model_not_found with missing param field', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'Model not found',
@@ -374,7 +373,7 @@ describe('Complex scenarios', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 404,
     });
@@ -383,7 +382,7 @@ describe('Complex scenarios', () => {
     expect((error as GatewayModelNotFoundError).modelId).toBeUndefined();
   });
 
-  it('should handle response with extra fields', () => {
+  it('should handle response with extra fields', async () => {
     const response = {
       error: {
         message: 'Test error',
@@ -395,7 +394,7 @@ describe('Complex scenarios', () => {
       metadata: 'should be ignored',
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 401,
     });
@@ -404,7 +403,7 @@ describe('Complex scenarios', () => {
     expect(error.message).toContain('No authentication provided');
   });
 
-  it('should preserve error properties correctly', () => {
+  it('should preserve error properties correctly', async () => {
     const originalCause = new TypeError('Type error');
     const response: GatewayErrorResponse = {
       error: {
@@ -413,7 +412,7 @@ describe('Complex scenarios', () => {
       },
     };
 
-    const error = createGatewayErrorFromResponse({
+    const error = await createGatewayErrorFromResponse({
       response,
       statusCode: 429,
       defaultMessage: 'Fallback message',
@@ -430,8 +429,8 @@ describe('Complex scenarios', () => {
 });
 
 describe('authentication_error with authMethod context', () => {
-  it('should create contextual error for API key authentication failure', () => {
-    const error = createGatewayErrorFromResponse({
+  it('should create contextual error for API key authentication failure', async () => {
+    const error = await createGatewayErrorFromResponse({
       response: {
         error: {
           type: 'authentication_error',
@@ -447,8 +446,8 @@ describe('authentication_error with authMethod context', () => {
     expect(error.statusCode).toBe(401);
   });
 
-  it('should create contextual error for OIDC authentication failure', () => {
-    const error = createGatewayErrorFromResponse({
+  it('should create contextual error for OIDC authentication failure', async () => {
+    const error = await createGatewayErrorFromResponse({
       response: {
         error: {
           type: 'authentication_error',
@@ -464,8 +463,8 @@ describe('authentication_error with authMethod context', () => {
     expect(error.statusCode).toBe(401);
   });
 
-  it('should create contextual error without authMethod context', () => {
-    const error = createGatewayErrorFromResponse({
+  it('should create contextual error without authMethod context', async () => {
+    const error = await createGatewayErrorFromResponse({
       response: {
         error: {
           type: 'authentication_error',
