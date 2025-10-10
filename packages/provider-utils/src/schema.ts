@@ -173,7 +173,7 @@ export function standardSchema<OBJECT>(
     }
 
     default: {
-      return standardSchemaWithJsonSchemaResolver(standardSchema, () => {
+      return standardSchemaWithJsonSchemaResolver(standardSchema, () => () => {
         throw new Error(`Unsupported standard schema vendor: ${vendor}`);
       });
     }
@@ -184,7 +184,7 @@ function standardSchemaWithJsonSchemaResolver<OBJECT>(
   standardSchema: StandardSchemaV1<unknown, OBJECT>,
   jsonSchemaResolver: (
     schema: StandardSchemaV1<unknown, OBJECT>,
-  ) => JSONSchema7 | PromiseLike<JSONSchema7>,
+  ) => () => JSONSchema7 | PromiseLike<JSONSchema7>,
 ): Schema<OBJECT> {
   return jsonSchema(jsonSchemaResolver(standardSchema), {
     validate: async value => {
