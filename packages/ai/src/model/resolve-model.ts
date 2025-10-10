@@ -130,7 +130,9 @@ export function resolveTranscriptionModel(
   return getGlobalProvider().transcriptionModel?.(model);
 }
 
-export function resolveSpeechModel(model: SpeechModel): SpeechModelV3 | undefined {
+export function resolveSpeechModel(
+  model: SpeechModel,
+): SpeechModelV3 | undefined {
   if (typeof model !== 'string') {
     if (
       model.specificationVersion !== 'v3' &&
