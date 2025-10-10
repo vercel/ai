@@ -836,6 +836,7 @@ The page also discusses",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "stopSequence": null,
         "usage": {
           "cache_creation": {
             "ephemeral_1h_input_tokens": 0,
@@ -1574,6 +1575,7 @@ The main tech story today appears to be Apple's significant",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "stopSequence": null,
         "usage": {
           "cache_creation": {
             "ephemeral_1h_input_tokens": 0,

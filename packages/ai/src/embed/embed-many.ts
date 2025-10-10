@@ -162,7 +162,7 @@ Only applicable for HTTP-based providers.
                 const usage = modelResponse.usage ?? { tokens: NaN };
 
                 doEmbedSpan.setAttributes(
-                  selectTelemetryAttributes({
+                  await selectTelemetryAttributes({
                     telemetry,
                     attributes: {
                       'ai.embeddings': {
@@ -188,7 +188,7 @@ Only applicable for HTTP-based providers.
         );
 
         span.setAttributes(
-          selectTelemetryAttributes({
+          await selectTelemetryAttributes({
             telemetry,
             attributes: {
               'ai.embeddings': {
@@ -263,7 +263,7 @@ Only applicable for HTTP-based providers.
                   const usage = modelResponse.usage ?? { tokens: NaN };
 
                   doEmbedSpan.setAttributes(
-                    selectTelemetryAttributes({
+                    await selectTelemetryAttributes({
                       telemetry,
                       attributes: {
                         'ai.embeddings': {
@@ -311,7 +311,7 @@ Only applicable for HTTP-based providers.
       }
 
       span.setAttributes(
-        selectTelemetryAttributes({
+        await selectTelemetryAttributes({
           telemetry,
           attributes: {
             'ai.embeddings': {

@@ -8,10 +8,10 @@ To learn more about how to use the AI SDK, check out our [API Reference](https:/
 
 ## Installation
 
-You will need Node.js 18+ and pnpm installed on your local development machine.
+You will need Node.js 18+ and npm (or another package manager) installed on your local development machine.
 
 ```shell
-npm i ai
+npm install ai
 ```
 
 ## Unified Provider Architecture
@@ -19,7 +19,7 @@ npm i ai
 The AI SDK provides a [unified API](https://ai-sdk.dev/docs/foundations/providers-and-models) to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai), and [more](https://ai-sdk.dev/providers/ai-sdk-providers).
 
 ```shell
-npm i @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
+npm install @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
 ```
 
 Alternatively you can use the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway).
@@ -47,7 +47,26 @@ const { text } = await generateText({
 });
 ```
 
-### Agent
+### Generating Structured Data
+
+```ts
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: 'openai/gpt-4.1',
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
+### Agents
 
 ```ts
 import { Agent } from 'ai';
@@ -75,7 +94,7 @@ The [AI SDK UI](https://ai-sdk.dev/docs/ai-sdk-ui/overview) module provides a se
 You need to install the package for your framework, e.g.:
 
 ```shell
-npm i @ai-sdk/react
+npm install @ai-sdk/react
 ```
 
 #### Agent @/agent/image-generation-agent.ts

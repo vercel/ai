@@ -1,6 +1,5 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec';
-import { Validator, asValidator } from './validator';
+import { FlexibleSchema, asSchema } from './schema';
 
 /**
  * Validates the types of an unknown object using a schema and
@@ -16,7 +15,7 @@ export async function validateTypes<OBJECT>({
   schema,
 }: {
   value: unknown;
-  schema: StandardSchemaV1<unknown, OBJECT> | Validator<OBJECT>;
+  schema: FlexibleSchema<OBJECT>;
 }): Promise<OBJECT> {
   const result = await safeValidateTypes({ value, schema });
 
@@ -41,7 +40,7 @@ export async function safeValidateTypes<OBJECT>({
   schema,
 }: {
   value: unknown;
-  schema: StandardSchemaV1<unknown, OBJECT> | Validator<OBJECT>;
+  schema: FlexibleSchema<OBJECT>;
 }): Promise<
   | {
       success: true;
@@ -54,14 +53,14 @@ export async function safeValidateTypes<OBJECT>({
       rawValue: unknown;
     }
 > {
-  const validator = asValidator(schema);
+  const actualSchema = asSchema(schema);
 
   try {
-    if (validator.validate == null) {
+    if (actualSchema.validate == null) {
       return { success: true, value: value as OBJECT, rawValue: value };
     }
 
-    const result = await validator.validate(value);
+    const result = await actualSchema.validate(value);
 
     if (result.success) {
       return { success: true, value: result.value, rawValue: value };

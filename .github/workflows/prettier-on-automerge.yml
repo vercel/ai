@@ -3,6 +3,8 @@ name: Prettier on Auto-merge
 on:
   pull_request_target:
     types: [auto_merge_enabled]
+  check_run:
+    types: [completed]
 
 permissions:
   contents: write
@@ -13,6 +15,17 @@ jobs:
     name: Run Prettier
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Only run if:
+    # 1. Triggered by auto_merge_enabled event, OR
+    # 2. Triggered by check_run completion where the check is "Prettier", failed, and PR has auto-merge enabled
+    if: |
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'check_run' && 
+       github.event.check_run.name == 'Prettier' && 
+       github.event.check_run.conclusion == 'failure' &&
+       github.event.check_run.pull_requests != null &&
+       github.event.check_run.pull_requests[0] != null &&
+       github.event.check_run.pull_requests[0].auto_merge != null)
     
     steps:
       - name: Create access token for GitHub App
@@ -33,12 +46,24 @@ jobs:
           git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
           git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
 
+      - name: Normalize pull_request.head
+        id: pr-head
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
+            echo "ref=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
+            echo "repo_full_name=${{ github.event.pull_request.head.repo.full_name }}" >> "$GITHUB_OUTPUT"
+          else
+            # check_run event
+            echo "ref=${{ github.event.check_run.pull_requests[0].head.ref }}" >> "$GITHUB_OUTPUT"
+            echo "repo_full_name=${{ github.event.check_run.pull_requests[0].head.repo.full_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout Repository
         uses: actions/checkout@v5
         with:
           token: ${{ steps.app-token.outputs.token }}
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ steps.pr-head.outputs.ref }}
+          repository: ${{ steps.pr-head.outputs.repo_full_name }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

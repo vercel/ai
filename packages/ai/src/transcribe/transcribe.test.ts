@@ -1,7 +1,7 @@
 import {
   JSONValue,
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV3,
+  TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   afterEach,
@@ -13,7 +13,7 @@ import {
   vi,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
+import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { transcribe } from './transcribe';
 
 vi.mock('../version', () => {
@@ -52,7 +52,7 @@ const createMockResponse = (options: {
   }>;
   language?: string;
   durationInSeconds?: number;
-  warnings?: TranscriptionModelV2CallWarning[];
+  warnings?: TranscriptionModelV3CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
@@ -88,10 +88,10 @@ describe('transcribe', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<TranscriptionModelV2['doGenerate']>[0];
+    let capturedArgs!: Parameters<TranscriptionModelV3['doGenerate']>[0];
 
     await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -120,7 +120,7 @@ describe('transcribe', () => {
 
   it('should return warnings', async () => {
     const result = await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async () =>
           createMockResponse({
             ...sampleTranscript,
@@ -149,7 +149,7 @@ describe('transcribe', () => {
   });
 
   it('should call logWarnings with the correct warnings', async () => {
-    const expectedWarnings: TranscriptionModelV2CallWarning[] = [
+    const expectedWarnings: TranscriptionModelV3CallWarning[] = [
       {
         type: 'other',
         message: 'Setting is not supported',
@@ -162,7 +162,7 @@ describe('transcribe', () => {
     ];
 
     await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async () =>
           createMockResponse({
             ...sampleTranscript,
@@ -178,7 +178,7 @@ describe('transcribe', () => {
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
     await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async () =>
           createMockResponse({
             ...sampleTranscript,
@@ -194,7 +194,7 @@ describe('transcribe', () => {
 
   it('should return the transcript', async () => {
     const result = await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async () =>
           createMockResponse({
             ...sampleTranscript,
@@ -221,7 +221,7 @@ describe('transcribe', () => {
     it('should throw NoTranscriptGeneratedError when no transcript is returned', async () => {
       await expect(
         transcribe({
-          model: new MockTranscriptionModelV2({
+          model: new MockTranscriptionModelV3({
             doGenerate: async () =>
               createMockResponse({
                 text: '',
@@ -248,7 +248,7 @@ describe('transcribe', () => {
     it('should include response headers in error when no transcript generated', async () => {
       await expect(
         transcribe({
-          model: new MockTranscriptionModelV2({
+          model: new MockTranscriptionModelV3({
             doGenerate: async () =>
               createMockResponse({
                 text: '',
@@ -285,7 +285,7 @@ describe('transcribe', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async () =>
           createMockResponse({
             ...sampleTranscript,

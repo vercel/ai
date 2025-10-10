@@ -64,7 +64,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **apiVersion** _string_
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
-  Defaults to `preview`.
+  Defaults to `v1`.
 
 - **baseURL** _string_
 
@@ -184,7 +184,7 @@ const { text } = await generateText({
 
 <Note>
   The URL for calling Azure chat models will be constructed as follows:
-  `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=preview`
+  `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=v1`
 </Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
@@ -667,10 +667,12 @@ const model = azure.transcription('whisper-1');
   ```ts
   const azure = createAzure({
     useDeploymentBasedUrls: true,
+    apiVersion: '2025-04-01-preview',
   });
   ```
   
   This uses the legacy endpoint format which may be required for certain Azure OpenAI deployments.
+  When using useDeploymentBasedUrls, the default api-version is not valid. You must set it to `2025-04-01-preview` or an earlier value.
 </Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
