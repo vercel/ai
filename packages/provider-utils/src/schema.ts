@@ -5,7 +5,7 @@ import * as z4 from 'zod/v4';
 import { arktypeToJsonSchema } from './to-json-schema/arktype-to-json-schema';
 import { effectToJsonSchema } from './to-json-schema/effect-to-json-schema';
 import { valibotToJsonSchema } from './to-json-schema/valibot-to-json-schema';
-import zodToJsonSchema from './zod-to-json-schema';
+import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
@@ -220,7 +220,7 @@ export function zod3Schema<OBJECT>(
   return jsonSchema(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
-      zodToJsonSchema(zodSchema, {
+      zod3ToJsonSchema(zodSchema, {
         $refStrategy: useReferences ? 'root' : 'none',
       }) as JSONSchema7,
     {
