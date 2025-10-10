@@ -108,7 +108,7 @@ export function resolveEmbeddingModel<VALUE = string>(
 
 export function resolveTranscriptionModel(
   model: TranscriptionModel,
-): TranscriptionModelV3 {
+): TranscriptionModelV3 | undefined {
   if (typeof model !== 'string') {
     if (
       model.specificationVersion !== 'v3' &&
@@ -127,10 +127,10 @@ export function resolveTranscriptionModel(
     return model;
   }
 
-  return getGlobalProvider().transcriptionModel(model);
+  return getGlobalProvider().transcriptionModel?.(model);
 }
 
-export function resolveSpeechModel(model: SpeechModel): SpeechModelV3 {
+export function resolveSpeechModel(model: SpeechModel): SpeechModelV3 | undefined {
   if (typeof model !== 'string') {
     if (
       model.specificationVersion !== 'v3' &&
@@ -149,7 +149,7 @@ export function resolveSpeechModel(model: SpeechModel): SpeechModelV3 {
     return model;
   }
 
-  return getGlobalProvider().speechModel(model);
+  return getGlobalProvider().speechModel?.(model);
 }
 
 function getGlobalProvider(): ProviderV3 {
