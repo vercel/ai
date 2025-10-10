@@ -42,6 +42,7 @@ import { executeToolCall } from './execute-tool-call';
 import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isApprovalNeeded } from './is-approval-needed';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
@@ -400,18 +401,18 @@ A function that attempts to repair a tool call that failed to parse.
             messages: stepInputMessages,
           });
 
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
-            supportedUrls: await model.supportedUrls,
+            supportedUrls: await stepModel.supportedUrls,
             download,
           });
-
-          const stepModel = resolveLanguageModel(
-            prepareStepResult?.model ?? model,
-          );
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
@@ -568,7 +569,14 @@ A function that attempts to repair a tool call that failed to parse.
               });
             }
 
-            if (tool?.needsApproval) {
+            if (
+              await isApprovalNeeded({
+                tool,
+                toolCall,
+                messages: stepInputMessages,
+                experimental_context,
+              })
+            ) {
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
                 approvalId: generateId(),
@@ -730,17 +738,23 @@ A function that attempts to repair a tool call that failed to parse.
           totalUsage,
         });
 
-        return new DefaultGenerateTextResult({
-          steps,
-          totalUsage,
-          resolvedOutput: await output?.parseOutput(
+        // parse output only if the last step was finished with "stop":
+        let resolvedOutput;
+        if (lastStep.finishReason === 'stop') {
+          resolvedOutput = await output?.parseOutput(
             { text: lastStep.text },
             {
               response: lastStep.response,
               usage: lastStep.usage,
               finishReason: lastStep.finishReason,
             },
-          ),
+          );
+        }
+
+        return new DefaultGenerateTextResult({
+          steps,
+          totalUsage,
+          resolvedOutput,
         });
       },
     });

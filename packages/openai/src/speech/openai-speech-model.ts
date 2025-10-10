@@ -5,21 +5,13 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { OpenAISpeechAPITypes } from './openai-speech-api-types';
-import { OpenAISpeechModelId } from './openai-speech-options';
-
-// https://platform.openai.com/docs/api-reference/audio/createSpeech
-const OpenAIProviderOptionsSchema = z.object({
-  instructions: z.string().nullish(),
-  speed: z.number().min(0.25).max(4.0).default(1.0).nullish(),
-});
-
-export type OpenAISpeechCallOptions = z.infer<
-  typeof OpenAIProviderOptionsSchema
->;
+import { OpenAISpeechAPITypes } from './openai-speech-api';
+import {
+  openaiSpeechProviderOptionsSchema,
+  OpenAISpeechModelId,
+} from './openai-speech-options';
 
 interface OpenAISpeechModelConfig extends OpenAIConfig {
   _internal?: {
@@ -54,7 +46,7 @@ export class OpenAISpeechModel implements SpeechModelV3 {
     const openAIOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
-      schema: OpenAIProviderOptionsSchema,
+      schema: openaiSpeechProviderOptionsSchema,
     });
 
     // Create request body

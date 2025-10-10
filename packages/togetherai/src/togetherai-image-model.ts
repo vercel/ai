@@ -7,7 +7,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 interface TogetherAIImageModelConfig {
   provider: string;

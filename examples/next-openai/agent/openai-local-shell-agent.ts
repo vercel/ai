@@ -15,11 +15,16 @@ async function getSandbox(): Promise<Sandbox> {
 
 export const openaiLocalShellAgent = new Agent({
   model: openai('gpt-5-codex'),
-  system: 'You are an agent with access to a shell environment.',
+  system:
+    'You are an agent with access to a shell environment.' +
+    'When a command execution is denied, ask the user if they want to execute something else.',
   tools: {
     local_shell: openai.tools.localShell({
-      needsApproval: true,
-      execute: async ({ action }) => {
+      needsApproval({ action }) {
+        // allow only `ls` to be executed without approval
+        return action.command.join(' ') !== 'ls';
+      },
+      async execute({ action }) {
         const [cmd, ...args] = action.command;
 
         const sandbox = await getSandbox();

@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =

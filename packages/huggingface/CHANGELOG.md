@@ -1,5 +1,36 @@
 # @ai-sdk/huggingface
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/openai-compatible@2.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
+## 1.0.0-beta.5
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/openai-compatible@2.0.0-beta.10
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/openai-compatible@1.1.0-beta.9
+
 ## 1.0.0-beta.3
 
 ### Patch Changes

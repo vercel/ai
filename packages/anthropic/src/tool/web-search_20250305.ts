@@ -1,29 +1,49 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import {
+  createProviderDefinedToolFactoryWithOutputSchema,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
 
-export const webSearch_20250305ArgsSchema = z.object({
-  maxUses: z.number().optional(),
-  allowedDomains: z.array(z.string()).optional(),
-  blockedDomains: z.array(z.string()).optional(),
-  userLocation: z
-    .object({
-      type: z.literal('approximate'),
-      city: z.string().optional(),
-      region: z.string().optional(),
-      country: z.string().optional(),
-      timezone: z.string().optional(),
-    })
-    .optional(),
-});
+export const webSearch_20250305ArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      maxUses: z.number().optional(),
+      allowedDomains: z.array(z.string()).optional(),
+      blockedDomains: z.array(z.string()).optional(),
+      userLocation: z
+        .object({
+          type: z.literal('approximate'),
+          city: z.string().optional(),
+          region: z.string().optional(),
+          country: z.string().optional(),
+          timezone: z.string().optional(),
+        })
+        .optional(),
+    }),
+  ),
+);
 
-export const webSearch_20250305OutputSchema = z.array(
-  z.object({
-    url: z.string(),
-    title: z.string(),
-    pageAge: z.string().nullable(),
-    encryptedContent: z.string(),
-    type: z.literal('web_search_result'),
-  }),
+export const webSearch_20250305OutputSchema = lazySchema(() =>
+  zodSchema(
+    z.array(
+      z.object({
+        url: z.string(),
+        title: z.string(),
+        pageAge: z.string().nullable(),
+        encryptedContent: z.string(),
+        type: z.literal('web_search_result'),
+      }),
+    ),
+  ),
+);
+
+const webSearch_20250305InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      query: z.string(),
+    }),
+  ),
 );
 
 const factory = createProviderDefinedToolFactoryWithOutputSchema<
@@ -105,9 +125,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
 >({
   id: 'anthropic.web_search_20250305',
   name: 'web_search',
-  inputSchema: z.object({
-    query: z.string(),
-  }),
+  inputSchema: webSearch_20250305InputSchema,
   outputSchema: webSearch_20250305OutputSchema,
 });
 

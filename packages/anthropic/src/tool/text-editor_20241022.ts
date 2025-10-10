@@ -1,5 +1,23 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import {
+  createProviderDefinedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import * as z from 'zod/v4';
+
+const textEditor_20241022InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      command: z.enum(['view', 'create', 'str_replace', 'insert', 'undo_edit']),
+      path: z.string(),
+      file_text: z.string().optional(),
+      insert_line: z.number().int().optional(),
+      new_str: z.string().optional(),
+      old_str: z.string().optional(),
+      view_range: z.array(z.number().int()).optional(),
+    }),
+  ),
+);
 
 export const textEditor_20241022 = createProviderDefinedToolFactory<
   {
@@ -42,13 +60,5 @@ export const textEditor_20241022 = createProviderDefinedToolFactory<
 >({
   id: 'anthropic.text_editor_20241022',
   name: 'str_replace_editor',
-  inputSchema: z.object({
-    command: z.enum(['view', 'create', 'str_replace', 'insert', 'undo_edit']),
-    path: z.string(),
-    file_text: z.string().optional(),
-    insert_line: z.number().int().optional(),
-    new_str: z.string().optional(),
-    old_str: z.string().optional(),
-    view_range: z.array(z.number().int()).optional(),
-  }),
+  inputSchema: textEditor_20241022InputSchema,
 });

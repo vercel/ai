@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
 import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
-import { z } from 'zod/v4';
+import * as z from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import * as logWarningsModule from '../logger/log-warnings';

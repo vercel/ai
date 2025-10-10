@@ -5,72 +5,26 @@ description: Learn how to build agents with the AI SDK.
 
 # Agents
 
-Agents are **large language models (LLMs)** using **tools** in a **loop** to accomplish tasks.
+Agents are **large language models (LLMs)** that use **tools** in a **loop** to accomplish tasks.
 
-Each component plays a distinct role:
+These components work together:
 
-- **LLMs** process input (text) and decide what action to take next
-- **Tools** extend what the model can do beyond text generation (e.g. reading files, calling APIs, writing to databases)
+- **LLMs** process input and decide the next action
+- **Tools** extend capabilities beyond text generation (reading files, calling APIs, writing to databases)
 - **Loop** orchestrates execution through:
   - **Context management** - Maintaining conversation history and deciding what the model sees (input) at each step
   - **Stopping conditions** - Determining when the loop (task) is complete
 
-## Building Blocks
+## Agent Class
 
-You combine these fundamental components to create increasingly sophisticated systems:
-
-### Single-Step Generation
-
-One call to an LLM to get a response. Use this for straightforward tasks like classification or text generation.
+The Agent class handles these three components. Here's an agent that uses multiple tools in a loop to accomplish a task:
 
 ```ts
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: 'openai/gpt-4o',
-  prompt: 'Classify this sentiment: "I love this product!"',
-});
-```
-
-### Tool Usage
-
-Enhance LLM capabilities through tools that provide access to external systems. Tools can read data to augment context (like fetching files or querying databases) or write data to take actions (like sending emails or updating records).
-
-```ts
-import { generateText, tool } from 'ai';
+import { Agent, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 
-const result = await generateText({
+const weatherAgent = new Agent({
   model: 'openai/gpt-4o',
-  prompt: 'What is the weather in San Francisco?',
-  tools: {
-    weather: tool({
-      description: 'Get the weather in a location',
-      inputSchema: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    }),
-  },
-});
-
-console.log(result.toolResults);
-```
-
-### Multi-Step Tool Usage (Agents)
-
-For complex problems, an LLM can make multiple tool calls across multiple steps. The model decides the order and number of tool calls based on the task.
-
-```ts
-import { generateText, stepCountIs, tool } from 'ai';
-import { z } from 'zod';
-
-const result = await generateText({
-  model: 'openai/gpt-4o',
-  prompt: 'What is the weather in San Francisco in celsius?',
   tools: {
     weather: tool({
       description: 'Get the weather in a location (in Fahrenheit)',
@@ -93,124 +47,49 @@ const result = await generateText({
       },
     }),
   },
-  stopWhen: stepCountIs(10), // Stop after maximum 10 steps
+  // Agent's default behavior is to stop after a maximum of 20 steps
+  // stopWhen: stepCountIs(20),
 });
 
-console.log(result.text); // Output: The weather in San Francisco is currently _°C.
-```
-
-The LLM might:
-
-1. Call the `weather` tool to get the temperature in Fahrenheit
-2. Call the `convertFahrenheitToCelsius` tool to convert it
-3. Generate a text response with the converted temperature
-
-This behavior is flexible - the LLM determines the approach based on its understanding of the task.
-
-## Implementation Approaches
-
-The AI SDK provides two approaches to build agents:
-
-### Agent Class
-
-Object-oriented abstraction that handles the loop for you. Best when you want to:
-
-- Reuse agent configurations
-- Minimize boilerplate code
-- Build consistent agent behaviors
-
-```ts
-import { Agent } from 'ai';
-
-const myAgent = new Agent({
-  model: 'openai/gpt-4o',
-  tools: {
-    // your tools here
-  },
-  stopWhen: stepCountIs(10), // Continue for up to 10 steps
+const result = await weatherAgent.generate({
+  prompt: 'What is the weather in San Francisco in celsius?',
 });
 
-const result = await myAgent.generate({
-  prompt: 'Analyze the latest sales data and create a summary report',
-});
-
-console.log(result.text);
+console.log(result.text); // agent's final answer
+console.log(result.steps); // steps taken by the agent
 ```
 
-[Learn more about the Agent class](/docs/agents/agent-class).
+The agent automatically:
 
-### Core Functions
+1. Calls the `weather` tool to get the temperature in Fahrenheit
+2. Calls `convertFahrenheitToCelsius` to convert it
+3. Generates a final text response with the result
 
-Use `generateText` or `streamText` with tools. Choose between:
+The Agent class handles the loop, context management, and stopping conditions.
 
-**Built-in Loop** - Let the SDK manage the execution cycle:
+## Why Use the Agent Class?
 
-```ts
-import { generateText, stepCountIs } from 'ai';
+The Agent class is the recommended approach for building agents with the AI SDK because it:
 
-const result = await generateText({
-  model: 'openai/gpt-4o',
-  prompt: 'Research machine learning trends and provide key insights',
-  tools: {
-    // your tools here
-  },
-  stopWhen: stepCountIs(10),
-  prepareStep: ({ stepNumber }) => {
-    // Modify settings between steps
-  },
-  onStepFinish: step => {
-    // Monitor or save progress
-  },
-});
-```
+- **Reduces boilerplate** - Manages loops and message arrays
+- **Improves reusability** - Define once, use throughout your application
+- **Simplifies maintenance** - Single place to update agent configuration
 
-[Learn more about loop control](/docs/agents/loop-control).
+For most use cases, start with the Agent class. Use core functions (`generateText`, `streamText`) when you need explicit control over each step for complex structured workflows.
 
-**Manual Loop** - Full control over execution:
+## Structured Workflows
 
-```ts
-import { generateText, ModelMessage } from 'ai';
-
-const messages: ModelMessage[] = [{ role: 'user', content: '...' }];
-
-let step = 0;
-const maxSteps = 10;
-
-while (step < maxSteps) {
-  const result = await generateText({
-    model: 'openai/gpt-4o',
-    messages,
-    tools: {
-      // your tools here
-    },
-  });
-
-  messages.push(...result.response.messages);
-
-  if (result.text) {
-    break; // Stop when model generates text
-  }
-
-  step++;
-}
-```
-
-## When You Need More Control
-
-Agents are powerful but non-deterministic. When you need reliable, repeatable outcomes, combine tool calling with standard programming patterns:
+Agents are flexible and powerful, but non-deterministic. When you need reliable, repeatable outcomes with explicit control flow, use core functions with structured workflow patterns combining:
 
 - Conditional statements for explicit branching
-- Functions for reusable logic
+- Standard functions for reusable logic
 - Error handling for robustness
 - Explicit control flow for predictability
 
-This approach gives you the benefits of AI while maintaining control over critical paths.
-
-[Explore workflow patterns](/docs/agents/workflows).
+[Explore workflow patterns](/docs/agents/workflows) to learn more about building structured, reliable systems.
 
 ## Next Steps
 
-- **[Agent Class](/docs/agents/agent-class)** - Build reusable agents with the object-oriented API
-- **[Loop Control](/docs/agents/loop-control)** - Control agent execution with stopWhen and prepareStep
-- **[Workflow Patterns](/docs/agents/workflows)** - Build reliable multi-agent systems
-- **[Manual Loop Example](/cookbook/node/manual-agent-loop)** - See a complete example of custom loop management
+- **[Building Agents](/docs/agents/building-agents)** - Guide to creating agents with the Agent class
+- **[Workflow Patterns](/docs/agents/workflows)** - Structured patterns using core functions for complex workflows
+- **[Loop Control](/docs/agents/loop-control)** - Execution control with stopWhen and prepareStep
