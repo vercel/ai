@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.38
+
+### Patch Changes
+
+- 227ca94: fix: revert zod import change
+
 ## 1.0.37
 
 ### Patch Changes
