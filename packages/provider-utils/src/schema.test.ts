@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
 import { standardSchema, zodSchema } from './schema';
+import { type } from 'arktype';
 
 describe('zodSchema', () => {
   describe('zod/v4', () => {
@@ -192,6 +193,19 @@ describe('zodSchema', () => {
 });
 
 describe('standardSchema', () => {
+  describe('arktype', () => {
+    it('should create a schema with simple types', async () => {
+      const schema = standardSchema(
+        type({
+          text: 'string',
+          number: 'number',
+        }),
+      );
+
+      expect(await schema.jsonSchema).toMatchSnapshot();
+    });
+  });
+
   describe('valibot', () => {
     it('should create a schema with simple types', async () => {
       const schema = standardSchema(
