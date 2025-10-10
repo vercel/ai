@@ -1,11 +1,7 @@
-<<<<<<< HEAD
-import type { EmbeddingModelV2 } from '@ai-sdk/provider';
-=======
 import type {
-  EmbeddingModelV3,
-  SharedV3ProviderMetadata,
+  EmbeddingModelV2,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
->>>>>>> 0e29b8b18 (chore(provider/gateway): lazy schema loading (#9357))
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -19,11 +15,7 @@ import {
 import * as z from 'zod/v4';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
-<<<<<<< HEAD
-import type { SharedV2ProviderMetadata } from '@ai-sdk/provider';
-=======
 import type { GatewayConfig } from './gateway-config';
->>>>>>> 0e29b8b18 (chore(provider/gateway): lazy schema loading (#9357))
 
 export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';

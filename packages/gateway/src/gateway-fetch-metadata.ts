@@ -72,13 +72,6 @@ export class GatewayFetchMetadata {
   }
 }
 
-<<<<<<< HEAD
-const gatewayLanguageModelSpecificationSchema = z.object({
-  specificationVersion: z.literal('v2'),
-  provider: z.string(),
-  modelId: z.string(),
-});
-=======
 const gatewayAvailableModelsResponseSchema = lazyValidator(() =>
   zodSchema(
     z.object({
@@ -108,7 +101,7 @@ const gatewayAvailableModelsResponseSchema = lazyValidator(() =>
             )
             .nullish(),
           specification: z.object({
-            specificationVersion: z.literal('v3'),
+            specificationVersion: z.literal('v2'),
             provider: z.string(),
             modelId: z.string(),
           }),
@@ -118,7 +111,6 @@ const gatewayAvailableModelsResponseSchema = lazyValidator(() =>
     }),
   ),
 );
->>>>>>> 0e29b8b18 (chore(provider/gateway): lazy schema loading (#9357))
 
 const gatewayCreditsResponseSchema = lazyValidator(() =>
   zodSchema(
