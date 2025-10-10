@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.12
+
+### Patch Changes
+
+- 17f9872: fix: revert zod import change
+
 ## 3.0.11
 
 ### Patch Changes
