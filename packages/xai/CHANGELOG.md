@@ -1,5 +1,23 @@
 # @ai-sdk/xai
 
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - @ai-sdk/openai-compatible@1.0.21
+
+## 2.0.24
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/openai-compatible@1.0.20
+  - @ai-sdk/provider-utils@3.0.11
+
 ## 2.0.23
 
 ### Patch Changes

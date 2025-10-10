@@ -1,5 +1,58 @@
 # @ai-sdk/langchain
 
+## 1.0.68
+
+### Patch Changes
+
+- ai@5.0.68
+
+## 1.0.67
+
+### Patch Changes
+
+- ai@5.0.67
+
+## 1.0.66
+
+### Patch Changes
+
+- ai@5.0.66
+
+## 1.0.65
+
+### Patch Changes
+
+- ai@5.0.65
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [e33947b]
+  - ai@5.0.64
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [22609f8]
+- Updated dependencies [b552c94]
+  - ai@5.0.63
+
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - ai@5.0.62
+
+## 1.0.61
+
+### Patch Changes
+
+- ai@5.0.61
+
 ## 1.0.60
 
 ### Patch Changes

@@ -63,12 +63,12 @@ export interface BasetenProviderSettings {
 
 export interface BasetenProvider extends ProviderV2 {
   /**
-Creates a chat model for text generation. 
+Creates a chat model for text generation.
 */
   (modelId?: BasetenChatModelId): LanguageModelV2;
 
   /**
-Creates a chat model for text generation. 
+Creates a chat model for text generation.
 */
   chatModel(modelId?: BasetenChatModelId): LanguageModelV2;
 

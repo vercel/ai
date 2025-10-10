@@ -11,7 +11,7 @@ import {
 } from '@ai-sdk/anthropic/internal';
 import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
-export function prepareTools({
+export async function prepareTools({
   tools,
   toolChoice,
   modelId,
@@ -19,12 +19,12 @@ export function prepareTools({
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   modelId: string;
-}): {
+}): Promise<{
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
   betas: Set<string>;
   toolWarnings: LanguageModelV2CallWarning[];
-} {
+}> {
   const toolWarnings: LanguageModelV2CallWarning[] = [];
   const betas = new Set<string>();
 
@@ -90,7 +90,7 @@ export function prepareTools({
       toolChoice: preparedAnthropicToolChoice,
       toolWarnings: anthropicToolWarnings,
       betas: anthropicBetas,
-    } = prepareAnthropicTools({
+    } = await prepareAnthropicTools({
       tools: providerDefinedTools,
       toolChoice,
     });

@@ -7,7 +7,6 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
-  Resolvable,
   parseProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';

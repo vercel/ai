@@ -1,13 +1,11 @@
 import { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  FlexibleSchema,
   InferSchema,
   ProviderOptions,
-  Schema,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';
@@ -38,12 +36,12 @@ import { LanguageModelUsage } from '../types/usage';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
+import { VERSION } from '../version';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -112,10 +110,7 @@ functionality that can be fully encapsulated in the provider.
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  SCHEMA extends
-    | z3.Schema
-    | z4.core.$ZodType
-    | Schema = z4.core.$ZodType<JSONValue>,
+  SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
   OUTPUT extends
     | 'object'
     | 'array'

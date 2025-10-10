@@ -1,5 +1,39 @@
 # @ai-sdk/google-vertex
 
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - @ai-sdk/anthropic@2.0.26
+  - @ai-sdk/google@2.0.20
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [a107843]
+  - @ai-sdk/google@2.0.19
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [b2b4837]
+  - @ai-sdk/anthropic@2.0.25
+
+## 3.0.35
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - @ai-sdk/anthropic@2.0.24
+  - @ai-sdk/google@2.0.18
+
 ## 3.0.34
 
 ### Patch Changes

@@ -1,5 +1,62 @@
 # @ai-sdk/react
 
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - ai@5.0.68
+
+## 2.0.67
+
+### Patch Changes
+
+- ai@5.0.67
+
+## 2.0.66
+
+### Patch Changes
+
+- ai@5.0.66
+
+## 2.0.65
+
+### Patch Changes
+
+- ai@5.0.65
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [e33947b]
+  - ai@5.0.64
+
+## 2.0.63
+
+### Patch Changes
+
+- Updated dependencies [22609f8]
+- Updated dependencies [b552c94]
+  - ai@5.0.63
+
+## 2.0.62
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - ai@5.0.62
+
+## 2.0.61
+
+### Patch Changes
+
+- ai@5.0.61
+
 ## 2.0.60
 
 ### Patch Changes

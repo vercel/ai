@@ -1,5 +1,65 @@
 # ai
 
+## 5.0.68
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - @ai-sdk/gateway@1.0.39
+
+## 5.0.67
+
+### Patch Changes
+
+- Updated dependencies [227ca94]
+  - @ai-sdk/gateway@1.0.38
+
+## 5.0.66
+
+### Patch Changes
+
+- Updated dependencies [ec5a0a0]
+  - @ai-sdk/gateway@1.0.37
+
+## 5.0.65
+
+### Patch Changes
+
+- Updated dependencies [638a561]
+  - @ai-sdk/gateway@1.0.36
+
+## 5.0.64
+
+### Patch Changes
+
+- e33947b: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+
+## 5.0.63
+
+### Patch Changes
+
+- 22609f8: fix(ai): only parse experimental_output in generateText when finishReason is stop
+- b552c94: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+
+## 5.0.62
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- 6f0644c: chore: load zod schemas lazily
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - @ai-sdk/gateway@1.0.35
+
+## 5.0.61
+
+### Patch Changes
+
+- Updated dependencies [143f65b]
+  - @ai-sdk/gateway@1.0.34
+
 ## 5.0.60
 
 ### Patch Changes

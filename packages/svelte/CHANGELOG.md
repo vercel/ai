@@ -1,5 +1,62 @@
 # @ai-sdk/svelte
 
+## 3.0.68
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - ai@5.0.68
+
+## 3.0.67
+
+### Patch Changes
+
+- ai@5.0.67
+
+## 3.0.66
+
+### Patch Changes
+
+- ai@5.0.66
+
+## 3.0.65
+
+### Patch Changes
+
+- ai@5.0.65
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [e33947b]
+  - ai@5.0.64
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [22609f8]
+- Updated dependencies [b552c94]
+  - ai@5.0.63
+
+## 3.0.62
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - ai@5.0.62
+
+## 3.0.61
+
+### Patch Changes
+
+- ai@5.0.61
+
 ## 3.0.60
 
 ### Patch Changes

@@ -1,5 +1,34 @@
 # @ai-sdk/openai
 
+## 2.0.48
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+
+## 2.0.47
+
+### Patch Changes
+
+- 99e2a2a: feat(provider/openai): support file and image tool results
+
+## 2.0.46
+
+### Patch Changes
+
+- 66f69e7: Add 'default' as service tier
+
+## 2.0.45
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- 6f0644c: chore: load zod schemas lazily
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+
 ## 2.0.44
 
 ### Patch Changes

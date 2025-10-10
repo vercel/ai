@@ -1,5 +1,5 @@
 import { SharedV2ProviderMetadata } from '@ai-sdk/provider';
-import { AnthropicCacheControl } from './anthropic-api-types';
+import { AnthropicCacheControl } from './anthropic-messages-api';
 
 export function getCacheControl(
   providerMetadata: SharedV2ProviderMetadata | undefined,
