@@ -2065,7 +2065,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-web-search-tool.1');
@@ -3276,12 +3276,8 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-<<<<<<< HEAD
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
-=======
       it('should stream file search results without results include', async () => {
         prepareChunksFixtureResponse('openai-file-search-tool.1');
->>>>>>> 643437e32 (chore(provider/openai): update webSearch tool example and tests (#9360))
 
         const result = await createModel('gpt-5-nano').doStream({
           prompt: TEST_PROMPT,
@@ -3331,13 +3327,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('code interpreter tool', () => {
-<<<<<<< HEAD
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
-
-      beforeEach(async () => {
-=======
       it('should stream code interpreter results', async () => {
->>>>>>> 643437e32 (chore(provider/openai): update webSearch tool example and tests (#9360))
         prepareChunksFixtureResponse('openai-code-interpreter-tool.1');
 
         const result = await createModel('gpt-5-nano').doStream({
@@ -3359,13 +3349,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-<<<<<<< HEAD
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
-
-      beforeEach(async () => {
-=======
       it('should stream code image generation results', async () => {
->>>>>>> 643437e32 (chore(provider/openai): update webSearch tool example and tests (#9360))
         prepareChunksFixtureResponse('openai-image-generation-tool.1');
 
         const result = await createModel('gpt-5-nano').doStream({
@@ -3386,15 +3370,8 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
-    describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
-
-      beforeEach(async () => {
-=======
     describe('local shell tool', () => {
       it('should stream code local shell results', async () => {
->>>>>>> 643437e32 (chore(provider/openai): update webSearch tool example and tests (#9360))
         prepareChunksFixtureResponse('openai-local-shell-tool.1');
 
         const result = await createModel('gpt-5-codex').doStream({
