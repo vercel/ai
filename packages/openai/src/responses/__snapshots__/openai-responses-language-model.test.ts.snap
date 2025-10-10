@@ -424,6 +424,43 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
   {
     "providerMetadata": {
       "openai": {
+        "annotations": [
+          {
+            "end_index": 606,
+            "start_index": 486,
+            "title": "Bruce Lee statue to be installed in SF Chinatown",
+            "type": "url_citation",
+            "url": "https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com",
+          },
+          {
+            "end_index": 1035,
+            "start_index": 912,
+            "title": "The Bay Area is set to make an office leasing comeback",
+            "type": "url_citation",
+            "url": "https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com",
+          },
+          {
+            "end_index": 1472,
+            "start_index": 1346,
+            "title": "Where to see spring blooms in the Bay Area",
+            "type": "url_citation",
+            "url": "https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com",
+          },
+          {
+            "end_index": 2023,
+            "start_index": 1884,
+            "title": "Oceanfront Great Highway park set to open in April",
+            "type": "url_citation",
+            "url": "https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com",
+          },
+          {
+            "end_index": 2540,
+            "start_index": 2404,
+            "title": "San Francisco's spring seasons are getting warmer",
+            "type": "url_citation",
+            "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
+          },
+        ],
         "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
       },
     },
@@ -3849,6 +3886,12 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   },
   {
     "id": "msg_test",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_test",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3924,6 +3967,12 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   },
   {
     "id": "msg_test",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_test",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -4288,6 +4337,43 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
   },
   {
     "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
+            "type": "url_citation",
+            "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+          },
+          {
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
+            "type": "url_citation",
+            "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+          },
+        ],
+        "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+      },
+    },
     "type": "text-end",
   },
   {
