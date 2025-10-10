@@ -51,16 +51,7 @@
     "vitest": "2.1.4"
   },
   "peerDependencies": {
-    "vue": "^3.3.4",
-    "zod": "^3.25.76 || ^4.1.8"
-  },
-  "peerDependenciesMeta": {
-    "vue": {
-      "optional": true
-    },
-    "zod": {
-      "optional": true
-    }
+    "vue": "^3.3.4"
   },
   "engines": {
     "node": ">=18"
