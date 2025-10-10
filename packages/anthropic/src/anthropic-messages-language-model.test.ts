@@ -11,9 +11,9 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { type DocumentCitation } from './anthropic-messages-language-model';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
+import { Citation } from './anthropic-messages-api';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -73,7 +73,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         | {
             type: 'text';
             text: string;
-            citations?: Array<DocumentCitation>;
+            citations?: Array<Citation>;
           }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }

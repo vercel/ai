@@ -1,5 +1,101 @@
 # ai
 
+## 6.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+  - @ai-sdk/gateway@2.0.0-beta.29
+
+## 6.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/gateway@2.0.0-beta.28
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+
+## 6.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - @ai-sdk/gateway@2.0.0-beta.27
+
+## 6.0.0-beta.39
+
+### Patch Changes
+
+- f6f0c5a: chore: remove zod from ui packages
+
+## 6.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - @ai-sdk/gateway@2.0.0-beta.26
+
+## 6.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - @ai-sdk/gateway@2.0.0-beta.25
+
+## 6.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [0e29b8b]
+  - @ai-sdk/gateway@2.0.0-beta.24
+
+## 6.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [acc14d8]
+  - @ai-sdk/gateway@2.0.0-beta.23
+
+## 6.0.0-beta.34
+
+### Patch Changes
+
+- bb10a89: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+
+## 6.0.0-beta.33
+
+### Patch Changes
+
+- f733285: fix(ai): only parse experimental_output in generateText when finishReason is stop
+
+## 6.0.0-beta.32
+
+### Patch Changes
+
+- 7e4649f: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+
+## 6.0.0-beta.31
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+  - @ai-sdk/gateway@2.0.0-beta.22
+
+## 6.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [7b1b1b1]
+  - @ai-sdk/gateway@2.0.0-beta.21
+
 ## 6.0.0-beta.29
 
 ### Major Changes

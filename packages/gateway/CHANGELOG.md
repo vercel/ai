@@ -1,5 +1,70 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- f0b2157: fix: revert zod import change
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+
+## 2.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+
+## 2.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+
+## 2.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+
+## 2.0.0-beta.24
+
+### Patch Changes
+
+- 0e29b8b: chore(provider/gateway): lazy schema loading
+
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- acc14d8: feat (provider/gateway): add 'only' to provider options
+
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- 7b1b1b1: fix(provider/gateway): add "react-native" as export condition for browser behavior
+
+  This avoids the use of native Node APIs in bundles created for React Native / Expo apps
+
 ## 2.0.0-beta.20
 
 ### Major Changes
