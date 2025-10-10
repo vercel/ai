@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.39
+
+### Patch Changes
+
+- f6f0c5a: chore: remove zod from ui packages
+
 ## 6.0.0-beta.38
 
 ### Patch Changes
