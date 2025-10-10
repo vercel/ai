@@ -3,25 +3,28 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import 'dotenv/config';
 
 async function main() {
-  const provider = createOpenAICompatible({
-    name: 'provider',
-    apiKey: process.env.PROVIDER_API_KEY,
-    baseURL: process.env.PROVIDER_BASE_URL || '',
+  const openai = createOpenAICompatible({
+    baseURL: 'https://api.openai.com/v1',
+    name: 'openai',
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
   });
 
-  const model = provider('gpt-5-mini');
+  const model = openai.chatModel('gpt-5-mini');
 
-  const { text } = await generateText({
+  const result = await generateText({
     model: model,
     prompt: 'Explain the theory of relativity in simple terms.',
     providerOptions: {
-      provider: {
+      openai: {
         textVerbosity: 'low',
         reasoningEffort: 'low',
       },
     },
   });
-  console.log(text);
+  console.log(result.text);
+  console.log(result.request.body)
 }
 
 main().catch(console.error);
