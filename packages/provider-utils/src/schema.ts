@@ -3,6 +3,7 @@ import { StandardSchemaV1 } from '@standard-schema/spec';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { arktypeToJsonSchema } from './to-json-schema/arktype-to-json-schema';
+import { effectToJsonSchema } from './to-json-schema/effect-to-json-schema';
 import { valibotToJsonSchema } from './to-json-schema/valibot-to-json-schema';
 import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import zodToJsonSchema from './zod-to-json-schema';
@@ -144,6 +145,13 @@ export function standardSchema<OBJECT>(
       return standardSchemaWithJsonSchemaResolver(
         standardSchema,
         arktypeToJsonSchema,
+      );
+    }
+
+    case 'effect': {
+      return standardSchemaWithJsonSchemaResolver(
+        standardSchema,
+        effectToJsonSchema,
       );
     }
 

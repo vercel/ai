@@ -19,6 +19,26 @@ exports[`standardSchema > arktype > should create a schema with simple types 1`]
 }
 `;
 
+exports[`standardSchema > effect > should create a schema with simple types 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "number": {
+      "type": "number",
+    },
+    "text": {
+      "type": "string",
+    },
+  },
+  "required": [
+    "text",
+    "number",
+  ],
+  "type": "object",
+}
+`;
+
 exports[`standardSchema > valibot > should create a schema with simple types 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",

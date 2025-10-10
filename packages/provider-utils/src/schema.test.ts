@@ -1,9 +1,10 @@
+import { type } from 'arktype';
+import { Schema as EffectSchema } from 'effect';
 import * as v from 'valibot';
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
 import { standardSchema, zodSchema } from './schema';
-import { type } from 'arktype';
 
 describe('zodSchema', () => {
   describe('zod/v4', () => {
@@ -200,6 +201,21 @@ describe('standardSchema', () => {
           text: 'string',
           number: 'number',
         }),
+      );
+
+      expect(await schema.jsonSchema).toMatchSnapshot();
+    });
+  });
+
+  describe('effect', () => {
+    it('should create a schema with simple types', async () => {
+      const schema = standardSchema(
+        EffectSchema.standardSchemaV1(
+          EffectSchema.Struct({
+            text: EffectSchema.String,
+            number: EffectSchema.Number,
+          }),
+        ),
       );
 
       expect(await schema.jsonSchema).toMatchSnapshot();
