@@ -24,7 +24,7 @@ async function main() {
     },
   });
   console.log(result.text);
-  console.log(result.request.body)
+  console.log(result.request.body);
 }
 
 main().catch(console.error);
