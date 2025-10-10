@@ -290,7 +290,7 @@ Default and recommended: 'auto' (best mode for the model).
             input: () => JSON.stringify({ system, prompt, messages }),
           },
           'ai.schema':
-            outputStrategy.jsonSchema != null
+            jsonSchema != null
               ? { input: () => JSON.stringify(jsonSchema) }
               : undefined,
           'ai.schema.name': schemaName,
@@ -353,7 +353,7 @@ Default and recommended: 'auto' (best mode for the model).
               const result = await model.doGenerate({
                 responseFormat: {
                   type: 'json',
-                  schema: await outputStrategy.jsonSchema(),
+                  schema: jsonSchema,
                   name: schemaName,
                   description: schemaDescription,
                 },

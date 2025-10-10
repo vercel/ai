@@ -481,13 +481,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           'ai.prompt': {
             input: () => JSON.stringify({ system, prompt, messages }),
           },
-          'ai.schema':
-            outputStrategy.jsonSchema != null
-              ? {
-                  input: async () =>
-                    JSON.stringify(await outputStrategy.jsonSchema()),
-                }
-              : undefined,
+          'ai.schema': {
+            input: async () =>
+              JSON.stringify(await outputStrategy.jsonSchema()),
+          },
           'ai.schema.name': schemaName,
           'ai.schema.description': schemaDescription,
           'ai.settings.output': outputStrategy.type,
