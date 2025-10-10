@@ -2,7 +2,8 @@ import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
 import { StandardSchemaV1 } from '@standard-schema/spec';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import { valibotToJsonSchema } from './valibot-to-json-schema/valibot-to-json-schema';
+import { arktypeToJsonSchema } from './to-json-schema/arktype-to-json-schema';
+import { valibotToJsonSchema } from './to-json-schema/valibot-to-json-schema';
 import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import zodToJsonSchema from './zod-to-json-schema';
 
@@ -120,9 +121,9 @@ export function asSchema<OBJECT>(
       })
     : isSchema(schema)
       ? schema
-      : typeof schema === 'function'
-        ? schema()
-        : standardSchema(schema);
+      : '~standard' in schema
+        ? standardSchema(schema)
+        : schema();
 }
 
 export function standardSchema<OBJECT>(
@@ -138,12 +139,21 @@ export function standardSchema<OBJECT>(
           | z3.Schema<any, z3.ZodTypeDef, any>,
       );
     }
+
+    case 'arktype': {
+      return standardSchemaWithJsonSchemaResolver(
+        standardSchema,
+        arktypeToJsonSchema,
+      );
+    }
+
     case 'valibot': {
       return standardSchemaWithJsonSchemaResolver(
         standardSchema,
         valibotToJsonSchema,
       );
     }
+
     default: {
       return standardSchemaWithJsonSchemaResolver(standardSchema, () => {
         throw new Error(`Unsupported standard schema vendor: ${vendor}`);
