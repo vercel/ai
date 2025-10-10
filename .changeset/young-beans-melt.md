@@ -2,4 +2,4 @@
 '@ai-sdk/gateway': patch
 ---
 
-fix(provider/gateway): revert zod import change
+fix: revert zod import change
