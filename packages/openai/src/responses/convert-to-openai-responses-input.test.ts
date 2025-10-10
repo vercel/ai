@@ -1774,7 +1774,8 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_123",
             "output": [
               {
-                "file_data": "AQIDBAU=",
+                "file_data": "data:application/pdf;base64,AQIDBAU=",
+                "filename": "data",
                 "type": "input_file",
               },
             ],
@@ -1836,7 +1837,8 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "input_image",
               },
               {
-                "file_data": "AQIDBAU=",
+                "file_data": "data:application/pdf;base64,AQIDBAU=",
+                "filename": "data",
                 "type": "input_file",
               },
             ],

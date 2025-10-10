@@ -324,7 +324,8 @@ export async function convertToOpenAIResponsesInput({
                         }
                       : {
                           type: 'input_file' as const,
-                          file_data: item.data,
+                          filename: 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
                         };
                   }
                 }
