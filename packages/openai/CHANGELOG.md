@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.47
+
+### Patch Changes
+
+- 99e2a2a: feat(provider/openai): support file and image tool results
+
 ## 2.0.46
 
 ### Patch Changes
