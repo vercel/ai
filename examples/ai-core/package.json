@@ -48,6 +48,7 @@
     "sharp": "^0.33.5",
     "@standard-schema/spec": "1.0.0",
     "terminal-image": "^2.0.0",
+    "valibot": "1.1.0",
     "zod": "3.25.76"
   },
   "scripts": {
