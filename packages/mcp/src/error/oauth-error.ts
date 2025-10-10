@@ -30,10 +30,6 @@ export class ServerError extends MCPClientOAuthError {
   static errorCode = 'server_error';
 }
 
-export const OAUTH_ERRORS = {
-  [ServerError.errorCode]: ServerError,
-};
-
 export class InvalidClientError extends MCPClientOAuthError {
   static errorCode = 'invalid_client';
 }
@@ -45,3 +41,10 @@ export class InvalidGrantError extends MCPClientOAuthError {
 export class UnauthorizedClientError extends MCPClientOAuthError {
   static errorCode = 'unauthorized_client';
 }
+
+export const OAUTH_ERRORS = {
+  [ServerError.errorCode]: ServerError,
+  [InvalidClientError.errorCode]: InvalidClientError,
+  [InvalidGrantError.errorCode]: InvalidGrantError,
+  [UnauthorizedClientError.errorCode]: UnauthorizedClientError,
+};
