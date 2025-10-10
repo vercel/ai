@@ -13,7 +13,7 @@ import useSWR from 'swr';
 const getOriginalFetch = () => fetch;
 
 export type Experimental_UseObjectOptions<
-  SCHEMA extends FlexibleSchema<any>,
+  SCHEMA extends FlexibleSchema,
   RESULT,
 > = {
   /**
@@ -22,7 +22,7 @@ export type Experimental_UseObjectOptions<
   api: string;
 
   /**
-   * A Zod schema that defines the shape of the complete object.
+   * A schema that defines the shape of the complete object.
    */
   schema: SCHEMA;
 
