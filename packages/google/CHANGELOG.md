@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- ee50cc5: fix(provider/google): lazy schema loading
+
+  import time improved by 12.5% (22.3ms ➡️ 19.5ms)
+
 ## 3.0.0-beta.15
 
 ### Patch Changes
