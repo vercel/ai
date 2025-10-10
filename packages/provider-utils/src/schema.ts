@@ -71,6 +71,7 @@ export type InferSchema<SCHEMA> =
  * @param jsonSchema The JSON Schema for the schema.
  * @param options.validate Optional. A validation function for the schema.
  */
+// TODO rename to 'schema'
 export function jsonSchema<OBJECT = unknown>(
   jsonSchema:
     | JSONSchema7
@@ -129,7 +130,6 @@ export function standardSchema<OBJECT>(
 ): Schema<OBJECT> {
   const vendor = standardSchema['~standard'].vendor;
 
-  // TODO push resolution into jsonschema resolution
   switch (vendor) {
     case 'zod': {
       return zodSchema(
@@ -139,24 +139,39 @@ export function standardSchema<OBJECT>(
       );
     }
     case 'valibot': {
-      return jsonSchema(() => valibotToJsonSchema(standardSchema), {
-        validate: async value => {
-          const result = await standardSchema['~standard'].validate(value);
-          return 'value' in result
-            ? { success: true, value: result.value }
-            : {
-                success: false,
-                error: new TypeValidationError({
-                  value,
-                  cause: result.issues,
-                }),
-              };
-        },
+      return standardSchemaWithJsonSchemaResolver(
+        standardSchema,
+        valibotToJsonSchema,
+      );
+    }
+    default: {
+      return standardSchemaWithJsonSchemaResolver(standardSchema, () => {
+        throw new Error(`Unsupported standard schema vendor: ${vendor}`);
       });
     }
-    default:
-      throw new Error(`Unsupported standard schema vendor: ${vendor}`);
   }
+}
+
+function standardSchemaWithJsonSchemaResolver<OBJECT>(
+  standardSchema: StandardSchemaV1<unknown, OBJECT>,
+  jsonSchemaResolver: (
+    schema: StandardSchemaV1<unknown, OBJECT>,
+  ) => JSONSchema7 | PromiseLike<JSONSchema7>,
+): Schema<OBJECT> {
+  return jsonSchema(jsonSchemaResolver(standardSchema), {
+    validate: async value => {
+      const result = await standardSchema['~standard'].validate(value);
+      return 'value' in result
+        ? { success: true, value: result.value }
+        : {
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: result.issues,
+            }),
+          };
+    },
+  });
 }
 
 export function zod3Schema<OBJECT>(
