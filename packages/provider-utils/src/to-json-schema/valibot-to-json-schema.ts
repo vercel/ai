@@ -8,6 +8,6 @@ export const valibotToJsonSchema = async (
     return toJsonSchema(schema as any);
   } catch {
     // TODO dedicated error class
-    throw new Error(`Failed to import @valibot/to-json-schema`);
+    throw new Error(`Failed to import module '@valibot/to-json-schema'`);
   }
 };

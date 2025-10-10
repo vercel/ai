@@ -1,5 +1,19 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+
+## 2.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+
 ## 2.0.0-beta.25
 
 ### Patch Changes

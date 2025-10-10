@@ -3,14 +3,14 @@ import {
   isAbortError,
   safeValidateTypes,
   type FetchFunction,
-  type FlexibleSchema,
-  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import {
   asSchema,
   isDeepEqualData,
   parsePartialJson,
   type DeepPartial,
+  type FlexibleSchema,
+  type InferSchema,
 } from 'ai';
 import {
   getStructuredObjectContext,
@@ -29,7 +29,7 @@ export type Experimental_StructuredObjectOptions<
   api: string;
 
   /**
-   * A Zod schema that defines the shape of the complete object.
+   * A schema that defines the shape of the complete object.
    */
   schema: SCHEMA;
 

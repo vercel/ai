@@ -1,5 +1,29 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - ai@6.0.0-beta.40
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- f6f0c5a: chore: remove zod from ui packages
+- Updated dependencies [f6f0c5a]
+  - ai@6.0.0-beta.39
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - ai@6.0.0-beta.38
+
 ## 3.0.0-beta.37
 
 ### Patch Changes
