@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
 import {
-  lazyValidator,
+  lazySchema,
   safeValidateTypes,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -18,6 +18,6 @@ export async function parseAuthMethod(
   return result.success ? result.value : undefined;
 }
 
-const gatewayAuthMethodSchema = lazyValidator(() =>
+const gatewayAuthMethodSchema = lazySchema(() =>
   zodSchema(z.union([z.literal('api-key'), z.literal('oidc')])),
 );

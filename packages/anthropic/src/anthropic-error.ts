@@ -1,6 +1,6 @@
 import {
   createJsonErrorResponseHandler,
-  InferValidator,
+  InferSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -18,9 +18,7 @@ export const anthropicErrorDataSchema = lazySchema(() =>
   ),
 );
 
-export type AnthropicErrorData = InferValidator<
-  typeof anthropicErrorDataSchema
->;
+export type AnthropicErrorData = InferSchema<typeof anthropicErrorDataSchema>;
 
 export const anthropicFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: anthropicErrorDataSchema,

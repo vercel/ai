@@ -1,7 +1,7 @@
-import { lazyValidator, zodSchema } from '@ai-sdk/provider-utils';
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const openaiTranscriptionResponseSchema = lazyValidator(() =>
+export const openaiTranscriptionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       text: z.string(),

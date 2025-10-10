@@ -10,8 +10,8 @@ import {
 import { GatewayInternalServerError } from './gateway-internal-server-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
-  InferValidator,
-  lazyValidator,
+  InferSchema,
+  lazySchema,
   safeValidateTypes,
   validateTypes,
   zodSchema,
@@ -81,7 +81,7 @@ export async function createGatewayErrorFromResponse({
   }
 }
 
-const gatewayErrorResponseSchema = lazyValidator(() =>
+const gatewayErrorResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       error: z.object({
@@ -94,6 +94,6 @@ const gatewayErrorResponseSchema = lazyValidator(() =>
   ),
 );
 
-export type GatewayErrorResponse = InferValidator<
+export type GatewayErrorResponse = InferSchema<
   typeof gatewayErrorResponseSchema
 >;

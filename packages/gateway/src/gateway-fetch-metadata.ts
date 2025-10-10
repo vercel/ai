@@ -2,7 +2,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getFromApi,
-  lazyValidator,
+  lazySchema,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -72,7 +72,7 @@ export class GatewayFetchMetadata {
   }
 }
 
-const gatewayAvailableModelsResponseSchema = lazyValidator(() =>
+const gatewayAvailableModelsResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       models: z.array(
@@ -112,7 +112,7 @@ const gatewayAvailableModelsResponseSchema = lazyValidator(() =>
   ),
 );
 
-const gatewayCreditsResponseSchema = lazyValidator(() =>
+const gatewayCreditsResponseSchema = lazySchema(() =>
   zodSchema(
     z
       .object({

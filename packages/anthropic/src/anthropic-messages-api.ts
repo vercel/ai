@@ -1,5 +1,5 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { InferValidator, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 export type AnthropicMessagesPrompt = {
@@ -552,12 +552,12 @@ export const anthropicReasoningMetadataSchema = lazySchema(() =>
   ),
 );
 
-export type AnthropicReasoningMetadata = InferValidator<
+export type AnthropicReasoningMetadata = InferSchema<
   typeof anthropicReasoningMetadataSchema
 >;
 
 export type Citation = NonNullable<
-  (InferValidator<typeof anthropicMessagesResponseSchema>['content'][number] & {
+  (InferSchema<typeof anthropicMessagesResponseSchema>['content'][number] & {
     type: 'text';
   })['citations']
 >[number];

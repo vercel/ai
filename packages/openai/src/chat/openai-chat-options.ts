@@ -1,8 +1,4 @@
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://platform.openai.com/docs/models
@@ -44,7 +40,7 @@ export type OpenAIChatModelId =
   | 'gpt-5-chat-latest'
   | (string & {});
 
-export const openaiChatLanguageModelOptions = lazyValidator(() =>
+export const openaiChatLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -152,6 +148,6 @@ export const openaiChatLanguageModelOptions = lazyValidator(() =>
   ),
 );
 
-export type OpenAIChatLanguageModelOptions = InferValidator<
+export type OpenAIChatLanguageModelOptions = InferSchema<
   typeof openaiChatLanguageModelOptions
 >;

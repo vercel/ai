@@ -6,7 +6,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  lazyValidator,
+  lazySchema,
   postJsonToApi,
   resolve,
   zodSchema,
@@ -95,7 +95,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
   }
 }
 
-const gatewayEmbeddingResponseSchema = lazyValidator(() =>
+const gatewayEmbeddingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       embeddings: z.array(z.array(z.number())),

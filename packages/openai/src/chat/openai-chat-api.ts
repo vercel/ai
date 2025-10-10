@@ -1,9 +1,5 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
 
@@ -25,7 +21,7 @@ export type OpenAIChatToolChoice =
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiChatResponseSchema = lazyValidator(() =>
+export const openaiChatResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string().nullish(),
@@ -107,7 +103,7 @@ export const openaiChatResponseSchema = lazyValidator(() =>
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiChatChunkSchema = lazyValidator(() =>
+export const openaiChatChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
       z.object({
@@ -193,8 +189,6 @@ export const openaiChatChunkSchema = lazyValidator(() =>
   ),
 );
 
-export type OpenAIChatResponse = InferValidator<
-  typeof openaiChatResponseSchema
->;
+export type OpenAIChatResponse = InferSchema<typeof openaiChatResponseSchema>;
 
-export type OpenAIChatChunk = InferValidator<typeof openaiChatChunkSchema>;
+export type OpenAIChatChunk = InferSchema<typeof openaiChatChunkSchema>;
