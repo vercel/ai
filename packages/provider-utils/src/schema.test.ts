@@ -1,7 +1,8 @@
+import * as v from 'valibot';
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
-import { zodSchema } from './schema';
+import { standardSchema, zodSchema } from './schema';
 
 describe('zodSchema', () => {
   describe('zod/v4', () => {
@@ -186,6 +187,21 @@ describe('zodSchema', () => {
           rawValue: { user: { id: '123', name: 'John' } },
         });
       });
+    });
+  });
+});
+
+describe('standardSchema', () => {
+  describe('valibot', () => {
+    it('should create a schema with simple types', async () => {
+      const schema = standardSchema(
+        v.object({
+          text: v.string(),
+          number: v.number(),
+        }),
+      );
+
+      expect(await schema.jsonSchema).toMatchSnapshot();
     });
   });
 });
