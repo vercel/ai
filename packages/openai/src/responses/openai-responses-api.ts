@@ -73,7 +73,7 @@ export type OpenAIResponsesFunctionCallOutput = {
     | Array<
         | { type: 'input_text'; text: string }
         | { type: 'input_image'; image_url: string }
-        | { type: 'input_file'; file_data: string }
+        | { type: 'input_file'; filename: string; file_data: string }
       >;
 };
 
