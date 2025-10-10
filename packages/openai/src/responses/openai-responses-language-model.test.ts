@@ -3518,81 +3518,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        const result = await convertReadableStreamToArray(stream);
-        expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "resp_test",
-            "modelId": "o3-2025-04-16",
-            "timestamp": 2025-03-10T18:10:55.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "ws_test",
-            "providerExecuted": true,
-            "toolName": "web_search",
-            "type": "tool-input-start",
-          },
-          {
-            "id": "ws_test",
-            "type": "tool-input-end",
-          },
-          {
-            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
-            "providerExecuted": true,
-            "toolCallId": "ws_test",
-            "toolName": "web_search",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "status": "completed",
-            },
-            "toolCallId": "ws_test",
-            "toolName": "web_search",
-            "type": "tool-result",
-          },
-          {
-            "id": "msg_test",
-            "providerMetadata": {
-              "openai": {
-                "itemId": "msg_test",
-              },
-            },
-            "type": "text-start",
-          },
-          {
-            "delta": "Based on the search results, here are the upcoming features.",
-            "id": "msg_test",
-            "type": "text-delta",
-          },
-          {
-            "id": "msg_test",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "openai": {
-                "responseId": "resp_test",
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
-            },
-          },
-        ]
-      `);
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
 
       it('should stream web search results (sources, tool calls, tool results)', async () => {
@@ -3610,442 +3536,66 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await convertReadableStreamToArray(stream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
-                "modelId": "gpt-5-nano-2025-08-07",
-                "timestamp": 2025-09-10T14:14:36.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-                "providerExecuted": true,
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "{"action":{"type":"search","query":"Berlin news today"}}",
-                "providerExecuted": true,
-                "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                },
-                "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-                "providerExecuted": true,
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "{"action":{"type":"search"}}",
-                "providerExecuted": true,
-                "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                },
-                "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-                "providerExecuted": true,
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "{"action":{"type":"search"}}",
-                "providerExecuted": true,
-                "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                },
-                "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-                "providerExecuted": true,
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "{"action":{"type":"search"}}",
-                "providerExecuted": true,
-                "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                },
-                "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                  },
-                },
-                "type": "text-start",
-              },
-              {
-                "delta": "Here’s what’s notable in Berlin today (September 10, 2025), based on three quick web searches:
-
-            - Berlin Art Week 2025 kicks off today and runs through September 14. The city’s autumn art season opens with more than 100 venues, featuring exhibitions from Patti Smith, Mark Leckey, Katharina Grosse, Carrie Mae Weems, and more. ([wallpaper.com](https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025))
-
-            - The city is highlighting its 200-year Museum Island anniversary this year, with ongoing events and exhibitions around Berlin’s historic center. This is part of Berlin’s big year of cultural highlights. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-            - 49h ICC: Open House is scheduled for September 11–14, offering guided tours and design talks at the former ICC Berlin. It’s one of the major architecture/design events associated with Berlin 2025. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-            - Open Monument Day is coming up on September 13–14, when many",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "id-0",
-                "sourceType": "url",
-                "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
-                "type": "source",
-                "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
-              },
-              {
-                "id": "id-1",
-                "sourceType": "url",
-                "title": "Berlin 2025 – the main events | visitBerlin.de",
-                "type": "source",
-                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-              },
-              {
-                "id": "id-2",
-                "sourceType": "url",
-                "title": "Berlin 2025 – the main events | visitBerlin.de",
-                "type": "source",
-                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-              },
-              {
-                "delta": " historic sites around Berlin open to the public with special programs. If you’re in town this weekend, it’s a good chance to explore landmarks that aren’t usually accessible.",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-            - If you’re a sports fan, Berlin will host NFL games",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "id-3",
-                "sourceType": "url",
-                "title": "Berlin 2025 – the main events | visitBerlin.de",
-                "type": "source",
-                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-              },
-              {
-                "delta": " in November 2025 (three regular-season games in the Olympic Stadium, with the Indianapolis Colts among",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " the teams). It’s part of Berlin’s ongoing slate of major events this year",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": ". ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-            - For some broader",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "id-4",
-                "sourceType": "url",
-                "title": "Berlin 2025 – the main events | visitBerlin.de",
-                "type": "source",
-                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-              },
-              {
-                "delta": " context, Berlin has been discussing its role in postwar security arrangements for Ukraine, with",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " German officials signaling readiness to increase support but delaying a formal deployment decision until broader conditions are",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " clearer. This",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " was reported for early September 2025. ([reuters.com](https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/))",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "id-5",
-                "sourceType": "url",
-                "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
-                "type": "source",
-                "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
-              },
-              {
-                "delta": "
-
-            Would you like me to pull live updates or focus on a specific topic (arts,",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " politics, sports) from today?",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-end",
-              },
-              {
-                "finishReason": "stop",
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
-                    "serviceTier": "default",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "cachedInputTokens": 34560,
-                  "inputTokens": 60093,
-                  "outputTokens": 4080,
-                  "reasoningTokens": 3648,
-                  "totalTokens": 64173,
-                },
-              },
-            ]
-          `);
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+      it('should stream file search results without results include', async () => {
+        prepareChunksFixtureResponse('openai-file-search-tool.1');
 
-      describe('without results include', () => {
-        beforeEach(async () => {
-          prepareChunksFixtureResponse('openai-file-search-tool.1');
-
-          result = await createModel('gpt-5-nano').doStream({
-            prompt: TEST_PROMPT,
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'openai.file_search',
-                name: 'file_search',
-                args: {
-                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
-                },
-              },
-            ],
-          });
-        });
-
-        it('should stream file search results', async () => {
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
-        });
-      });
-
-      describe('with results include', () => {
-        beforeEach(async () => {
-          prepareChunksFixtureResponse('openai-file-search-tool.2');
-
-          result = await createModel('gpt-5-nano').doStream({
-            prompt: TEST_PROMPT,
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'openai.file_search',
-                name: 'file_search',
-                args: {
-                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
-                },
-              },
-            ],
-            providerOptions: {
-              openai: {
-                include: ['file_search_call.results'],
+        const result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
               },
             },
-          });
+          ],
         });
 
-        it('should stream file search results', async () => {
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+
+      it('should stream file search results with results include', async () => {
+        prepareChunksFixtureResponse('openai-file-search-tool.2');
+
+        const result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+              },
+            },
+          ],
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
+            },
+          },
         });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
-
-      beforeEach(async () => {
+      it('should stream code interpreter results', async () => {
         prepareChunksFixtureResponse('openai-code-interpreter-tool.1');
 
-        result = await createModel('gpt-5-nano').doStream({
+        const result = await createModel('gpt-5-nano').doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -4056,9 +3606,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-      });
 
-      it('should stream code interpreter results', async () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
@@ -4066,12 +3614,10 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
-
-      beforeEach(async () => {
+      it('should stream code image generation results', async () => {
         prepareChunksFixtureResponse('openai-image-generation-tool.1');
 
-        result = await createModel('gpt-5-nano').doStream({
+        const result = await createModel('gpt-5-nano').doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -4082,9 +3628,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-      });
 
-      it('should stream code image generation results', async () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
@@ -4092,12 +3636,10 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('local shell tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
-
-      beforeEach(async () => {
+      it('should stream code local shell results', async () => {
         prepareChunksFixtureResponse('openai-local-shell-tool.1');
 
-        result = await createModel('gpt-5-codex').doStream({
+        const result = await createModel('gpt-5-codex').doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -4108,9 +3650,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-      });
 
-      it('should stream code local shell results', async () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
