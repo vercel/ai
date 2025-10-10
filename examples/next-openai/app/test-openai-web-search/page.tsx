@@ -1,9 +1,10 @@
 'use client';
 
+import { OpenAIWebSearchMessage } from '@/agent/openai-web-search-agent';
+import ChatInput from '@/component/chat-input';
+import OpenAIWebSearchView from '@/component/openai-web-search-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import ChatInput from '@/component/chat-input';
-import { OpenAIWebSearchMessage } from '@/app/api/chat-openai-web-search/route';
 
 export default function TestOpenAIWebSearch() {
   const { error, status, sendMessage, messages, regenerate, stop } =
@@ -26,27 +27,7 @@ export default function TestOpenAIWebSearch() {
             }
 
             if (part.type === 'tool-web_search') {
-              if (part.state === 'input-available') {
-                return (
-                  <pre
-                    key={index}
-                    className="overflow-auto p-2 text-sm bg-gray-100 rounded"
-                  >
-                    {JSON.stringify(part.input, null, 2)}
-                  </pre>
-                );
-              }
-              if (part.state === 'output-available') {
-                return (
-                  <pre
-                    key={index}
-                    className="overflow-auto p-2 text-sm bg-gray-100 rounded"
-                  >
-                    {JSON.stringify(part.input, null, 2)}
-                    {`\n\nDONE - Web search completed`}
-                  </pre>
-                );
-              }
+              return <OpenAIWebSearchView invocation={part} key={index} />;
             }
 
             if (part.type === 'source-url') {
