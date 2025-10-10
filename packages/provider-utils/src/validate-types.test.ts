@@ -1,9 +1,8 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
-
-import { validateTypes, safeValidateTypes } from './validate-types';
-import { validator } from './validator';
 import { describe, expect, it } from 'vitest';
+import { jsonSchema } from './schema';
+import { safeValidateTypes, validateTypes } from './validate-types';
 
 const customSchema: StandardSchemaV1<{ name: string; age: number }> = {
   '~standard': {
@@ -21,21 +20,27 @@ const customSchema: StandardSchemaV1<{ name: string; age: number }> = {
     },
   },
 };
-const customValidator = validator<{ name: string; age: number }>(async value =>
-  typeof value === 'object' &&
-  value !== null &&
-  'name' in value &&
-  typeof value.name === 'string' &&
-  'age' in value &&
-  typeof value.age === 'number'
-    ? { success: true, value: value as { name: string; age: number } }
-    : {
-        success: false,
-        error: new TypeValidationError({
-          value,
-          cause: [new Error('Invalid input')],
-        }),
-      },
+const customValidator = jsonSchema<{ name: string; age: number }>(
+  () => {
+    throw new Error('Not implemented');
+  },
+  {
+    validate: async value =>
+      typeof value === 'object' &&
+      value !== null &&
+      'name' in value &&
+      typeof value.name === 'string' &&
+      'age' in value &&
+      typeof value.age === 'number'
+        ? { success: true, value: value as { name: string; age: number } }
+        : {
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: [new Error('Invalid input')],
+            }),
+          },
+  },
 );
 
 describe('validateTypes', () => {
