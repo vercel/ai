@@ -3,17 +3,19 @@ import { Attributes, Span, Tracer, SpanStatusCode } from '@opentelemetry/api';
 export function recordSpan<T>({
   name,
   tracer,
+  root,
   attributes,
   fn,
   endWhenDone = true,
 }: {
   name: string;
   tracer: Tracer;
+  root?: boolean;
   attributes: Attributes;
   fn: (span: Span) => Promise<T>;
   endWhenDone?: boolean;
 }) {
-  return tracer.startActiveSpan(name, { attributes }, async span => {
+  return tracer.startActiveSpan(name, { attributes, root }, async span => {
     try {
       const result = await fn(span);
 

@@ -328,6 +328,7 @@ A function that attempts to repair a tool call that failed to parse.
         },
       }),
       tracer,
+      root: telemetry?.rootSpan,
       fn: async span => {
         const initialMessages = initialPrompt.messages;
         const responseMessages: Array<ResponseMessage> = [];

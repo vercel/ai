@@ -1057,6 +1057,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         },
       }),
       tracer,
+      root: telemetry?.rootSpan,
       endWhenDone: false,
       fn: async rootSpanArg => {
         rootSpan = rootSpanArg;

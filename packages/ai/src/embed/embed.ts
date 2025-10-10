@@ -104,6 +104,7 @@ Only applicable for HTTP-based providers.
       },
     }),
     tracer,
+    root: telemetry?.rootSpan,
     fn: async span => {
       const { embedding, usage, response, providerMetadata } = await retry(() =>
         // nested spans to align with the embedMany telemetry data:

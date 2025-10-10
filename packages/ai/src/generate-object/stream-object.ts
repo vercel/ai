@@ -491,6 +491,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         },
       }),
       tracer,
+      root: telemetry?.rootSpan,
       endWhenDone: false,
       fn: async rootSpan => {
         const standardizedPrompt = await standardizePrompt({

@@ -41,4 +41,9 @@ export type TelemetrySettings = {
    * A custom tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /**
+   * Whether to create a root span for the operation.
+   */
+  rootSpan?: boolean;
 };
