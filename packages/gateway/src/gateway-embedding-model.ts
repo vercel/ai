@@ -1,17 +1,29 @@
+<<<<<<< HEAD
 import type { EmbeddingModelV2 } from '@ai-sdk/provider';
+=======
+import type {
+  EmbeddingModelV3,
+  SharedV3ProviderMetadata,
+} from '@ai-sdk/provider';
+>>>>>>> 0e29b8b18 (chore(provider/gateway): lazy schema loading (#9357))
 import {
   combineHeaders,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  lazyValidator,
   postJsonToApi,
   resolve,
+  zodSchema,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
-import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+<<<<<<< HEAD
 import type { SharedV2ProviderMetadata } from '@ai-sdk/provider';
+=======
+import type { GatewayConfig } from './gateway-config';
+>>>>>>> 0e29b8b18 (chore(provider/gateway): lazy schema loading (#9357))
 
 export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';
@@ -75,7 +87,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
         response: { headers: responseHeaders, body: rawValue },
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
@@ -91,10 +103,14 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
   }
 }
 
-const gatewayEmbeddingResponseSchema = z.object({
-  embeddings: z.array(z.array(z.number())),
-  usage: z.object({ tokens: z.number() }).nullish(),
-  providerMetadata: z
-    .record(z.string(), z.record(z.string(), z.unknown()))
-    .optional(),
-});
+const gatewayEmbeddingResponseSchema = lazyValidator(() =>
+  zodSchema(
+    z.object({
+      embeddings: z.array(z.array(z.number())),
+      usage: z.object({ tokens: z.number() }).nullish(),
+      providerMetadata: z
+        .record(z.string(), z.record(z.string(), z.unknown()))
+        .optional(),
+    }),
+  ),
+);
