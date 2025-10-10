@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- 3b1d015: feat(ai): Effect schema support
+
 ## 4.0.0-beta.13
 
 ### Patch Changes

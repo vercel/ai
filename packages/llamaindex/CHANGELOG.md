@@ -1,5 +1,11 @@
 # @ai-sdk/llamaindex
 
+## 2.0.0-beta.40
+
+### Patch Changes
+
+- ai@6.0.0-beta.40
+
 ## 2.0.0-beta.39
 
 ### Patch Changes
