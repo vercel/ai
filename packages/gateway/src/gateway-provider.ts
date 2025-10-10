@@ -178,7 +178,7 @@ export function createGatewayProvider(
           return metadata;
         })
         .catch(async (error: unknown) => {
-          throw asGatewayError(
+          throw await asGatewayError(
             error,
             await parseAuthMethod(await getHeaders()),
           );
