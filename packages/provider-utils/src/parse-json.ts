@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { secureJsonParse } from './secure-json-parse';
 import { safeValidateTypes, validateTypes } from './validate-types';
-import { FlexibleValidator, Validator } from './validator';
+import { FlexibleSchema } from './schema';
 
 /**
  * Parses a JSON string into an unknown object.
@@ -27,14 +27,14 @@ export async function parseJSON(options: {
  */
 export async function parseJSON<T>(options: {
   text: string;
-  schema: FlexibleValidator<T>;
+  schema: FlexibleSchema<T>;
 }): Promise<T>;
 export async function parseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: FlexibleValidator<T>;
+  schema?: FlexibleSchema<T>;
 }): Promise<T> {
   try {
     const value = secureJsonParse(text);
@@ -84,14 +84,14 @@ export async function safeParseJSON(options: {
  */
 export async function safeParseJSON<T>(options: {
   text: string;
-  schema: FlexibleValidator<T>;
+  schema: FlexibleSchema<T>;
 }): Promise<ParseResult<T>>;
 export async function safeParseJSON<T>({
   text,
   schema,
 }: {
   text: string;
-  schema?: FlexibleValidator<T>;
+  schema?: FlexibleSchema<T>;
 }): Promise<ParseResult<T>> {
   try {
     const value = secureJsonParse(text);
