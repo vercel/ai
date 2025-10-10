@@ -178,7 +178,10 @@ export function createGatewayProvider(
           return metadata;
         })
         .catch(async (error: unknown) => {
-          throw asGatewayError(error, parseAuthMethod(await getHeaders()));
+          throw asGatewayError(
+            error,
+            await parseAuthMethod(await getHeaders()),
+          );
         });
     }
 
@@ -193,7 +196,7 @@ export function createGatewayProvider(
     })
       .getCredits()
       .catch(async (error: unknown) => {
-        throw asGatewayError(error, parseAuthMethod(await getHeaders()));
+        throw asGatewayError(error, await parseAuthMethod(await getHeaders()));
       });
   };
 
