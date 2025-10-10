@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/component/chat-input';
-import { OpenAIWebSearchMessage } from '@/app/api/chat-openai-web-search/route';
+import { OpenAIWebSearchMessage } from '@/agent/openai-web-search-agent';
 
 export default function TestOpenAIWebSearch() {
   const { error, status, sendMessage, messages, regenerate, stop } =
