@@ -1,5 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, experimental_createMCPClient, auth } from 'ai';
+import {
+  generateText,
+  stepCountIs,
+  experimental_createMCPClient,
+  auth,
+} from 'ai';
 import 'dotenv/config';
 import type {
   OAuthClientProvider,
