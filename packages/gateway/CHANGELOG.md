@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.24
+
+### Patch Changes
+
+- 0e29b8b: chore(provider/gateway): lazy schema loading
+
 ## 2.0.0-beta.23
 
 ### Patch Changes

@@ -11,13 +11,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 import {
-  OpenAIResponsesInput,
-  OpenAIResponsesReasoning,
-} from './openai-responses-api';
-import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
+import {
+  OpenAIResponsesFunctionCallOutput,
+  OpenAIResponsesInput,
+  OpenAIResponsesReasoning,
+} from './openai-responses-api';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -296,7 +297,7 @@ export async function convertToOpenAIResponsesInput({
             break;
           }
 
-          let contentValue: string;
+          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -305,10 +306,30 @@ export async function convertToOpenAIResponsesInput({
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool execution denied.';
               break;
-            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
+              break;
+            case 'content':
+              contentValue = output.value.map(item => {
+                switch (item.type) {
+                  case 'text': {
+                    return { type: 'input_text' as const, text: item.text };
+                  }
+                  case 'media': {
+                    return item.mediaType.startsWith('image/')
+                      ? {
+                          type: 'input_image' as const,
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        }
+                      : {
+                          type: 'input_file' as const,
+                          filename: 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                  }
+                }
+              });
               break;
           }
 
