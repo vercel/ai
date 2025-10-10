@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV3Embedding,
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createAzure } from './azure-openai-provider';
@@ -10,7 +10,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -22,7 +22,7 @@ const provider = createAzure({
 const providerApiVersionChanged = createAzure({
   resourceName: 'test-resource',
   apiKey: 'test-api-key',
-  apiVersion: '2024-08-01-preview',
+  apiVersion: '2025-04-01-preview',
 });
 
 const server = createTestServer({
@@ -78,7 +78,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should set the correct modified api version', async () => {
@@ -90,7 +90,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2024-08-01-preview');
+      ).toStrictEqual('2025-04-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -134,7 +134,7 @@ describe('chat', () => {
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1',
       );
     });
   });
@@ -188,7 +188,7 @@ describe('completion', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -243,7 +243,7 @@ describe('transcription', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=v1',
       );
     });
 
@@ -272,7 +272,7 @@ describe('transcription', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=v1',
       );
     });
   });
@@ -293,7 +293,7 @@ describe('speech', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=v1',
       );
     });
   });
@@ -339,7 +339,7 @@ describe('embedding', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -412,7 +412,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should set the correct modified api version', async () => {
@@ -431,7 +431,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2024-08-01-preview');
+      ).toStrictEqual('2025-04-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -486,7 +486,7 @@ describe('image', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=v1',
       );
     });
 
@@ -589,7 +589,7 @@ describe('responses', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -634,14 +634,14 @@ describe('responses', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1',
       );
     });
 
     it('should handle Azure file IDs with assistant- prefix', async () => {
       prepareJsonResponse({ content: 'I can see the image.' });
 
-      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -674,7 +674,7 @@ describe('responses', () => {
     it('should handle PDF files with assistant- prefix', async () => {
       prepareJsonResponse({ content: 'I can analyze the PDF.' });
 
-      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -707,7 +707,7 @@ describe('responses', () => {
     it('should fall back to base64 for non-assistant file IDs', async () => {
       prepareJsonResponse({ content: 'I can see the image.' });
 
-      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -738,6 +738,87 @@ describe('responses', () => {
           ],
         },
       ]);
+    });
+
+    it('should send include provider option for file search results', async () => {
+      prepareJsonResponse();
+
+      const { warnings } = await provider
+        .responses('test-deployment')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_123', 'vs_456'],
+                maxNumResults: 10,
+                ranking: {
+                  ranker: 'auto',
+                },
+              },
+            },
+          ],
+        });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "test-deployment",
+          "tools": [
+            {
+              "max_num_results": 10,
+              "ranking_options": {
+                "ranker": "auto",
+              },
+              "type": "file_search",
+              "vector_store_ids": [
+                "vs_123",
+                "vs_456",
+              ],
+            },
+          ],
+        }
+      `);
+
+      expect(warnings).toStrictEqual([]);
+    });
+
+    it('should forward include provider options to request body', async () => {
+      prepareJsonResponse();
+
+      const { warnings } = await provider
+        .responses('test-deployment')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
+            },
+          },
+        });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'test-deployment',
+        input: [
+          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+        ],
+        include: ['file_search_call.results'],
+      });
+
+      expect(warnings).toStrictEqual([]);
     });
   });
 });

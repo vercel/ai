@@ -51,8 +51,9 @@ It supports:
 ### Convert LangChain Expression Language Stream
 
 ```tsx filename="app/api/completion/route.ts" highlight={"14"}
+import { toUIMessageStream } from '@ai-sdk/langchain';
 import { ChatOpenAI } from '@langchain/openai';
-import { toDataStreamResponse } from '@ai-sdk/langchain';
+import { createUIMessageStreamResponse } from 'ai';
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
@@ -64,16 +65,19 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  return toDataStreamResponse(stream);
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream(stream),
+  });
 }
 ```
 
 ### Convert StringOutputParser Stream
 
 ```tsx filename="app/api/completion/route.ts" highlight={"16"}
-import { ChatOpenAI } from '@langchain/openai';
-import { toDataStreamResponse } from '@ai-sdk/langchain';
+import { toUIMessageStream } from '@ai-sdk/langchain';
 import { StringOutputParser } from '@langchain/core/output_parsers';
+import { ChatOpenAI } from '@langchain/openai';
+import { createUIMessageStreamResponse } from 'ai';
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
@@ -84,8 +88,11 @@ export async function POST(req: Request) {
   });
 
   const parser = new StringOutputParser();
+
   const stream = await model.pipe(parser).stream(prompt);
 
-  return toDataStreamResponse(stream);
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream(stream),
+  });
 }
 ```

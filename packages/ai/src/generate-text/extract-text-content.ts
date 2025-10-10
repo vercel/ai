@@ -1,10 +1,10 @@
-import { LanguageModelV2Content, LanguageModelV2Text } from '@ai-sdk/provider';
+import { LanguageModelV3Content, LanguageModelV3Text } from '@ai-sdk/provider';
 
 export function extractTextContent(
-  content: LanguageModelV2Content[],
+  content: LanguageModelV3Content[],
 ): string | undefined {
   const parts = content.filter(
-    (content): content is LanguageModelV2Text => content.type === 'text',
+    (content): content is LanguageModelV3Text => content.type === 'text',
   );
 
   if (parts.length === 0) {

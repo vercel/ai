@@ -1,24 +1,27 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2Source,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3Source,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
+  InferSchema,
   ParseResult,
   Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -32,11 +35,6 @@ import {
 } from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
-import {
-  groundingChunkSchema,
-  groundingMetadataSchema,
-} from './tool/google-search';
-import { urlContextMetadataSchema } from './tool/url-context';
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -48,11 +46,11 @@ type GoogleGenerativeAIConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV2['supportedUrls'];
+  supportedUrls?: () => LanguageModelV3['supportedUrls'];
 };
 
-export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
+export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: GoogleGenerativeAIModelId;
 
@@ -90,8 +88,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const warnings: LanguageModelV2CallWarning[] = [];
+  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    const warnings: LanguageModelV3CallWarning[] = [];
 
     const googleOptions = await parseProviderOptions({
       provider: 'google',
@@ -162,6 +160,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
+          ...(googleOptions?.mediaResolution && {
+            mediaResolution: googleOptions.mediaResolution,
+          }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
@@ -176,8 +177,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: Parameters<LanguageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
     const body = JSON.stringify(args);
 
@@ -203,7 +204,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     });
 
     const candidate = response.candidates[0];
-    const content: Array<LanguageModelV2Content> = [];
+    const content: Array<LanguageModelV3Content> = [];
 
     // map ordered parts to content:
     const parts = candidate.content?.parts ?? [];
@@ -309,8 +310,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: Parameters<LanguageModelV3['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = JSON.stringify(args);
@@ -331,13 +332,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: LanguageModelV2Usage = {
+    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    const usage: LanguageModelV3Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -355,8 +356,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof chunkSchema>>,
-          LanguageModelV2StreamPart
+          ParseResult<ChunkSchema>,
+          LanguageModelV3StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -637,7 +638,7 @@ function getToolCallsFromParts({
   parts,
   generateId,
 }: {
-  parts: z.infer<typeof contentSchema>['parts'];
+  parts: ContentSchema['parts'];
   generateId: () => string;
 }) {
   const functionCallParts = parts?.filter(
@@ -662,7 +663,7 @@ function getToolCallsFromParts({
       }));
 }
 
-function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
+function getInlineDataParts(parts: ContentSchema['parts']) {
   return parts?.filter(
     (
       part,
@@ -676,14 +677,14 @@ function extractSources({
   groundingMetadata,
   generateId,
 }: {
-  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
+  groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
-}): undefined | LanguageModelV2Source[] {
+}): undefined | LanguageModelV3Source[] {
   return groundingMetadata?.groundingChunks
     ?.filter(
       (
         chunk,
-      ): chunk is z.infer<typeof groundingChunkSchema> & {
+      ): chunk is GroundingChunkSchema & {
         web: { uri: string; title?: string };
       } => chunk.web != null,
     )
@@ -696,55 +697,98 @@ function extractSources({
     }));
 }
 
-const contentSchema = z.object({
-  parts: z
-    .array(
-      z.union([
-        // note: order matters since text can be fully empty
+export const getGroundingMetadataSchema = () =>
+  z.object({
+    webSearchQueries: z.array(z.string()).nullish(),
+    retrievalQueries: z.array(z.string()).nullish(),
+    searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
+    groundingChunks: z
+      .array(
         z.object({
-          functionCall: z.object({
-            name: z.string(),
-            args: z.unknown(),
-          }),
-          thoughtSignature: z.string().nullish(),
-        }),
-        z.object({
-          inlineData: z.object({
-            mimeType: z.string(),
-            data: z.string(),
-          }),
-        }),
-        z.object({
-          executableCode: z
-            .object({
-              language: z.string(),
-              code: z.string(),
-            })
+          web: z.object({ uri: z.string(), title: z.string() }).nullish(),
+          retrievedContext: z
+            .object({ uri: z.string(), title: z.string() })
             .nullish(),
-          codeExecutionResult: z
-            .object({
-              outcome: z.string(),
-              output: z.string(),
-            })
-            .nullish(),
-          text: z.string().nullish(),
-          thought: z.boolean().nullish(),
-          thoughtSignature: z.string().nullish(),
         }),
-      ]),
-    )
-    .nullish(),
-});
+      )
+      .nullish(),
+    groundingSupports: z
+      .array(
+        z.object({
+          segment: z.object({
+            startIndex: z.number().nullish(),
+            endIndex: z.number().nullish(),
+            text: z.string().nullish(),
+          }),
+          segment_text: z.string().nullish(),
+          groundingChunkIndices: z.array(z.number()).nullish(),
+          supportChunkIndices: z.array(z.number()).nullish(),
+          confidenceScores: z.array(z.number()).nullish(),
+          confidenceScore: z.array(z.number()).nullish(),
+        }),
+      )
+      .nullish(),
+    retrievalMetadata: z
+      .union([
+        z.object({
+          webDynamicRetrievalScore: z.number(),
+        }),
+        z.object({}),
+      ])
+      .nullish(),
+  });
+
+const getContentSchema = () =>
+  z.object({
+    parts: z
+      .array(
+        z.union([
+          // note: order matters since text can be fully empty
+          z.object({
+            functionCall: z.object({
+              name: z.string(),
+              args: z.unknown(),
+            }),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            inlineData: z.object({
+              mimeType: z.string(),
+              data: z.string(),
+            }),
+          }),
+          z.object({
+            executableCode: z
+              .object({
+                language: z.string(),
+                code: z.string(),
+              })
+              .nullish(),
+            codeExecutionResult: z
+              .object({
+                outcome: z.string(),
+                output: z.string(),
+              })
+              .nullish(),
+            text: z.string().nullish(),
+            thought: z.boolean().nullish(),
+            thoughtSignature: z.string().nullish(),
+          }),
+        ]),
+      )
+      .nullish(),
+  });
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
-export const safetyRatingSchema = z.object({
-  category: z.string().nullish(),
-  probability: z.string().nullish(),
-  probabilityScore: z.number().nullish(),
-  severity: z.string().nullish(),
-  severityScore: z.number().nullish(),
-  blocked: z.boolean().nullish(),
-});
+const getSafetyRatingSchema = () =>
+  z.object({
+    category: z.string().nullish(),
+    probability: z.string().nullish(),
+    probabilityScore: z.number().nullish(),
+    severity: z.string().nullish(),
+    severityScore: z.number().nullish(),
+    blocked: z.boolean().nullish(),
+  });
 
 const usageSchema = z.object({
   cachedContentTokenCount: z.number().nullish(),
@@ -754,44 +798,84 @@ const usageSchema = z.object({
   totalTokenCount: z.number().nullish(),
 });
 
-const responseSchema = z.object({
-  candidates: z.array(
+// https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
+export const getUrlContextMetadataSchema = () =>
+  z.object({
+    urlMetadata: z.array(
+      z.object({
+        retrievedUrl: z.string(),
+        urlRetrievalStatus: z.string(),
+      }),
+    ),
+  });
+
+const responseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      content: contentSchema.nullish().or(z.object({}).strict()),
-      finishReason: z.string().nullish(),
-      safetyRatings: z.array(safetyRatingSchema).nullish(),
-      groundingMetadata: groundingMetadataSchema.nullish(),
-      urlContextMetadata: urlContextMetadataSchema.nullish(),
+      candidates: z.array(
+        z.object({
+          content: getContentSchema().nullish().or(z.object({}).strict()),
+          finishReason: z.string().nullish(),
+          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+          groundingMetadata: getGroundingMetadataSchema().nullish(),
+          urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+        }),
+      ),
+      usageMetadata: usageSchema.nullish(),
+      promptFeedback: z
+        .object({
+          blockReason: z.string().nullish(),
+          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+        })
+        .nullish(),
     }),
   ),
-  usageMetadata: usageSchema.nullish(),
-  promptFeedback: z
-    .object({
-      blockReason: z.string().nullish(),
-      safetyRatings: z.array(safetyRatingSchema).nullish(),
-    })
-    .nullish(),
-});
+);
+
+type ContentSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates'][number]['content']
+>;
+export type GroundingMetadataSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
+>;
+
+type GroundingChunkSchema = NonNullable<
+  GroundingMetadataSchema['groundingChunks']
+>[number];
+
+export type UrlContextMetadataSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
+>;
+
+export type SafetyRatingSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
+>[number];
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const chunkSchema = z.object({
-  candidates: z
-    .array(
-      z.object({
-        content: contentSchema.nullish(),
-        finishReason: z.string().nullish(),
-        safetyRatings: z.array(safetyRatingSchema).nullish(),
-        groundingMetadata: groundingMetadataSchema.nullish(),
-        urlContextMetadata: urlContextMetadataSchema.nullish(),
-      }),
-    )
-    .nullish(),
-  usageMetadata: usageSchema.nullish(),
-  promptFeedback: z
-    .object({
-      blockReason: z.string().nullish(),
-      safetyRatings: z.array(safetyRatingSchema).nullish(),
-    })
-    .nullish(),
-});
+const chunkSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish(),
+            finishReason: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
+      usageMetadata: usageSchema.nullish(),
+      promptFeedback: z
+        .object({
+          blockReason: z.string().nullish(),
+          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+type ChunkSchema = InferSchema<typeof chunkSchema>;

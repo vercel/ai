@@ -1,32 +1,33 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
+import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
 import { getCacheControl } from './get-cache-control';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
+import { validateTypes } from '@ai-sdk/provider-utils';
 
-export function prepareTools({
+export async function prepareTools({
   tools,
   toolChoice,
   disableParallelToolUse,
 }: {
-  tools: LanguageModelV2CallOptions['tools'];
-  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   disableParallelToolUse?: boolean;
-}): {
+}): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
-  toolWarnings: LanguageModelV2CallWarning[];
+  toolWarnings: LanguageModelV3CallWarning[];
   betas: Set<string>;
-} {
+}> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const toolWarnings: LanguageModelV3CallWarning[] = [];
   const betas = new Set<string>();
 
   if (tools == null) {
@@ -106,7 +107,10 @@ export function prepareTools({
             break;
           }
           case 'anthropic.text_editor_20250728': {
-            const args = textEditor_20250728ArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: textEditor_20250728ArgsSchema,
+            });
             anthropicTools.push({
               name: 'str_replace_based_edit_tool',
               type: 'text_editor_20250728',
@@ -132,7 +136,10 @@ export function prepareTools({
           }
           case 'anthropic.web_fetch_20250910': {
             betas.add('web-fetch-2025-09-10');
-            const args = webFetch_20250910ArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webFetch_20250910ArgsSchema,
+            });
             anthropicTools.push({
               type: 'web_fetch_20250910',
               name: 'web_fetch',
@@ -145,7 +152,10 @@ export function prepareTools({
             break;
           }
           case 'anthropic.web_search_20250305': {
-            const args = webSearch_20250305ArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webSearch_20250305ArgsSchema,
+            });
             anthropicTools.push({
               type: 'web_search_20250305',
               name: 'web_search',

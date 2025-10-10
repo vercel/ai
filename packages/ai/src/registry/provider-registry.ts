@@ -1,11 +1,11 @@
 import {
   EmbeddingModelV3,
   ImageModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
-  SpeechModelV2,
-  TranscriptionModelV2,
+  SpeechModelV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { LanguageModelMiddleware } from '../types';
@@ -25,10 +25,10 @@ export interface ProviderRegistryProvider<
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]>}`
       : never,
-  ): LanguageModelV2;
+  ): LanguageModelV3;
   languageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): LanguageModelV2;
+  ): LanguageModelV3;
 
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
@@ -52,19 +52,19 @@ export interface ProviderRegistryProvider<
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['transcriptionModel']>>[0]>}`
       : never,
-  ): TranscriptionModelV2;
+  ): TranscriptionModelV3;
   transcriptionModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): TranscriptionModelV2;
+  ): TranscriptionModelV3;
 
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['speechModel']>>[0]>}`
       : never,
-  ): SpeechModelV2;
+  ): SpeechModelV3;
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): SpeechModelV2;
+  ): SpeechModelV3;
 }
 
 /**
@@ -197,7 +197,7 @@ class DefaultProviderRegistry<
 
   languageModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): LanguageModelV2 {
+  ): LanguageModelV3 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
     let model = this.getProvider(providerId, 'languageModel').languageModel?.(
       modelId,
@@ -252,7 +252,7 @@ class DefaultProviderRegistry<
 
   transcriptionModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): TranscriptionModelV2 {
+  ): TranscriptionModelV3 {
     const [providerId, modelId] = this.splitId(id, 'transcriptionModel');
     const provider = this.getProvider(providerId, 'transcriptionModel');
 
@@ -270,7 +270,7 @@ class DefaultProviderRegistry<
 
   speechModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): SpeechModelV2 {
+  ): SpeechModelV3 {
     const [providerId, modelId] = this.splitId(id, 'speechModel');
     const provider = this.getProvider(providerId, 'speechModel');
 

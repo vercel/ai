@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -10,7 +10,7 @@ import {
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
   options?: { isGemmaModel?: boolean },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -189,7 +189,10 @@ export function convertToGoogleGenerativeAIMessages(
                 name: part.toolName,
                 response: {
                   name: part.toolName,
-                  content: output.value,
+                  content:
+                    output.type === 'execution-denied'
+                      ? (output.reason ?? 'Tool execution denied.')
+                      : output.value,
                 },
               },
             });

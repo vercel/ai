@@ -1586,7 +1586,7 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
-    it('should convert tool result parts', async () => {
+    it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -1608,13 +1608,244 @@ describe('convertToOpenAIResponsesInput', () => {
         store: true,
       });
 
-      expect(result.input).toEqual([
-        {
-          type: 'function_call_output',
-          call_id: 'call_123',
-          output: JSON.stringify({ temperature: '72°F', condition: 'Sunny' }),
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": "{"temperature":"72°F","condition":"Sunny"}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with text value', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'The weather in San Francisco is 72°F',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": "The weather in San Francisco is 72°F",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart that contains text', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'The weather in San Francisco is 72°F',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "The weather in San Francisco is 72°F",
+                "type": "input_text",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart that contains image', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'media',
+                      mediaType: 'image/png',
+                      data: 'base64_data',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart that contains file (PDF)', async () => {
+      const base64Data = 'AQIDBAU=';
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'media',
+                      mediaType: 'application/pdf',
+                      data: base64Data,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "file_data": "data:application/pdf;base64,AQIDBAU=",
+                "filename": "data",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart with mixed content (text, image, file)', async () => {
+      const base64Data = 'AQIDBAU=';
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'The weather in San Francisco is 72°F',
+                    },
+                    {
+                      type: 'media',
+                      mediaType: 'image/png',
+                      data: 'base64_data',
+                    },
+                    {
+                      type: 'media',
+                      mediaType: 'application/pdf',
+                      data: base64Data,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "The weather in San Francisco is 72°F",
+                "type": "input_text",
+              },
+              {
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+              {
+                "file_data": "data:application/pdf;base64,AQIDBAU=",
+                "filename": "data",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
     });
 
     it('should convert multiple tool result parts in a single message', async () => {
@@ -1660,7 +1891,7 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
-  describe('provider-executed tools', () => {
+  describe('provider-defined tools', () => {
     it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
@@ -1779,6 +2010,71 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
         }
       `);
+    });
+
+    describe('local shell', () => {
+      it('should convert local shell tool call and result into item reference with store: true', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  input: { action: { type: 'exec', command: ['ls'] } },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  output: { type: 'json', value: { output: 'example output' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: true,
+          hasLocalShellTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "action": {
+                "command": [
+                  "ls",
+                ],
+                "env": undefined,
+                "timeout_ms": undefined,
+                "type": "exec",
+                "user": undefined,
+                "working_directory": undefined,
+              },
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "id": "lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+              "type": "local_shell_call",
+            },
+            {
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "output": "example output",
+              "type": "local_shell_call_output",
+            },
+          ]
+        `);
+      });
     });
   });
 

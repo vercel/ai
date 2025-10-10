@@ -1,4 +1,4 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
+import { JSONValue, TranscriptionModelV3 } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
@@ -39,7 +39,7 @@ export async function transcribe({
   /**
 The transcription model to use.
      */
-  model: TranscriptionModelV2;
+  model: TranscriptionModelV3;
 
   /**
 The audio data to transcribe.
@@ -80,7 +80,7 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
-  if (model.specificationVersion !== 'v2') {
+  if (model.specificationVersion !== 'v3') {
     throw new UnsupportedModelVersionError({
       version: model.specificationVersion,
       provider: model.provider,

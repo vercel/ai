@@ -5,7 +5,7 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV2, EmbeddingModelV3 } from '@ai-sdk/provider';
+import { LanguageModelV3, EmbeddingModelV3 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 
@@ -33,14 +33,14 @@ vi.mock('./deepinfra-image-model', () => ({
 }));
 
 describe('DeepInfraProvider', () => {
-  let mockLanguageModel: LanguageModelV2;
+  let mockLanguageModel: LanguageModelV3;
   let mockEmbeddingModel: EmbeddingModelV3<string>;
 
   beforeEach(() => {
     // Mock implementations of models
     mockLanguageModel = {
-      // Add any required methods for LanguageModelV2
-    } as LanguageModelV2;
+      // Add any required methods for LanguageModelV3
+    } as LanguageModelV3;
     mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV3
     } as EmbeddingModelV3<string>;

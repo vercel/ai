@@ -5,12 +5,7 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "exclude": [
-    "dist",
-    "build",
-    "node_modules",
-    "tsup.config.ts"
-  ],
+  "exclude": ["dist", "build", "node_modules", "tsup.config.ts"],
   "references": [
     {
       "path": "../openai-compatible"

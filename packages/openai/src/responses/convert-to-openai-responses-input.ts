@@ -1,15 +1,24 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Prompt,
-  LanguageModelV2ToolCallPart,
+  LanguageModelV3CallWarning,
+  LanguageModelV3Prompt,
+  LanguageModelV3ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  parseProviderOptions,
+  validateTypes,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  localShellInputSchema,
+  localShellOutputSchema,
+} from '../tool/local-shell';
+import {
+  OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
-} from './openai-responses-api-types';
+} from './openai-responses-api';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -25,17 +34,19 @@ export async function convertToOpenAIResponsesInput({
   systemMessageMode,
   fileIdPrefixes,
   store,
+  hasLocalShellTool = false,
 }: {
-  prompt: LanguageModelV2Prompt;
+  prompt: LanguageModelV3Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
   store: boolean;
+  hasLocalShellTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
-  warnings: Array<LanguageModelV2CallWarning>;
+  warnings: Array<LanguageModelV3CallWarning>;
 }> {
   const input: OpenAIResponsesInput = [];
-  const warnings: Array<LanguageModelV2CallWarning> = [];
+  const warnings: Array<LanguageModelV3CallWarning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -125,7 +136,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
-        const toolCallParts: Record<string, LanguageModelV2ToolCallPart> = {};
+        const toolCallParts: Record<string, LanguageModelV3ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
@@ -142,6 +153,30 @@ export async function convertToOpenAIResponsesInput({
               toolCallParts[part.toolCallId] = part;
 
               if (part.providerExecuted) {
+                break;
+              }
+
+              if (hasLocalShellTool && part.toolName === 'local_shell') {
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: localShellInputSchema,
+                });
+                input.push({
+                  type: 'local_shell_call',
+                  call_id: part.toolCallId,
+                  id:
+                    (part.providerOptions?.openai?.itemId as string) ??
+                    undefined,
+                  action: {
+                    type: 'exec',
+                    command: parsedInput.action.command,
+                    timeout_ms: parsedInput.action.timeoutMs,
+                    user: parsedInput.action.user,
+                    working_directory: parsedInput.action.workingDirectory,
+                    env: parsedInput.action.env,
+                  },
+                });
+
                 break;
               }
 
@@ -244,16 +279,57 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           const output = part.output;
 
-          let contentValue: string;
+          if (
+            hasLocalShellTool &&
+            part.toolName === 'local_shell' &&
+            output.type === 'json'
+          ) {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: localShellOutputSchema,
+            });
+
+            input.push({
+              type: 'local_shell_call_output',
+              call_id: part.toolCallId,
+              output: parsedOutput.output,
+            });
+            break;
+          }
+
+          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
             case 'error-text':
               contentValue = output.value;
               break;
-            case 'content':
+            case 'execution-denied':
+              contentValue = output.reason ?? 'Tool execution denied.';
+              break;
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
+              break;
+            case 'content':
+              contentValue = output.value.map(item => {
+                switch (item.type) {
+                  case 'text': {
+                    return { type: 'input_text' as const, text: item.text };
+                  }
+                  case 'media': {
+                    return item.mediaType.startsWith('image/')
+                      ? {
+                          type: 'input_image' as const,
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        }
+                      : {
+                          type: 'input_file' as const,
+                          filename: 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                  }
+                }
+              });
               break;
           }
 

@@ -1,5 +1,6 @@
 // https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude
 export type GoogleVertexAnthropicMessagesModelId =
+  | 'claude-sonnet-4-5@20250929'
   | 'claude-opus-4-1@20250805'
   | 'claude-opus-4@20250514'
   | 'claude-sonnet-4@20250514'

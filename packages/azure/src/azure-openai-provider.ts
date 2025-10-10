@@ -9,11 +9,11 @@ import {
 } from '@ai-sdk/openai/internal';
 import {
   EmbeddingModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   ProviderV3,
   ImageModelV3,
-  SpeechModelV2,
-  TranscriptionModelV2,
+  SpeechModelV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -21,30 +21,31 @@ import {
   loadSetting,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';
 
 export interface AzureOpenAIProvider extends ProviderV3 {
-  (deploymentId: string): LanguageModelV2;
+  (deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  languageModel(deploymentId: string): LanguageModelV2;
+  languageModel(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string): LanguageModelV2;
+  chat(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI responses API model for text generation.
    */
-  responses(deploymentId: string): LanguageModelV2;
+  responses(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI completion model for text generation.
    */
-  completion(deploymentId: string): LanguageModelV2;
+  completion(deploymentId: string): LanguageModelV3;
 
   /**
 @deprecated Use `textEmbedding` instead.
@@ -71,12 +72,17 @@ Creates an Azure OpenAI model for text embeddings.
   /**
    * Creates an Azure OpenAI model for audio transcription.
    */
-  transcription(deploymentId: string): TranscriptionModelV2;
+  transcription(deploymentId: string): TranscriptionModelV3;
 
   /**
    * Creates an Azure OpenAI model for speech generation.
    */
-  speech(deploymentId: string): SpeechModelV2;
+  speech(deploymentId: string): SpeechModelV3;
+
+  /**
+   * AzureOpenAI-specific tools.
+   */
+  tools: typeof azureOpenaiTools;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -150,7 +156,7 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion ?? 'preview';
+  const apiVersion = options.apiVersion ?? 'v1';
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
     const baseUrlPrefix =
@@ -247,6 +253,7 @@ export function createAzure(
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
   provider.speech = createSpeechModel;
+  provider.tools = azureOpenaiTools;
   return provider;
 }
 

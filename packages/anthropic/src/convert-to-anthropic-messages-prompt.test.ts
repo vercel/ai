@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV3CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
 describe('system messages', () => {
@@ -637,7 +637,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -689,7 +689,7 @@ describe('assistant messages', () => {
   });
 
   it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -741,7 +741,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -792,7 +792,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -838,7 +838,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -919,7 +919,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1014,7 +1014,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic code_execution tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {

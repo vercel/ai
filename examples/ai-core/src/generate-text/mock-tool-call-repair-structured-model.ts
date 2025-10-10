@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
   const result = await generateText({
-    model: new MockLanguageModelV2({
+    model: new MockLanguageModelV3({
       doGenerate: async () => ({
         warnings: [],
         usage: {

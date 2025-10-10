@@ -17,10 +17,12 @@ The [`@ai-sdk/langchain` package](/docs/reference/stream-helpers/langchain-adapt
 `toDataStreamResponse()` is compatible with the LangChain Expression Language `.stream()` function response.
 
 ```tsx filename="app/api/completion/route.ts" highlight={"16"}
+import { toUIMessageStream } from '@ai-sdk/langchain';
 import { ChatOpenAI } from '@langchain/openai';
-import { toDataStreamResponse } from '@ai-sdk/langchain';
+import { createUIMessageStreamResponse } from 'ai';
 
-export const maxDuration = 60;
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
@@ -32,7 +34,9 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  return toDataStreamResponse(stream);
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream(stream),
+  });
 }
 ```
 

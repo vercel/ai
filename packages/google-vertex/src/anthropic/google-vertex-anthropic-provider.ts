@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -18,12 +18,12 @@ export interface GoogleVertexAnthropicProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV2;
+  (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV3;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV2;
+  languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV3;
 
   /**
 Anthropic-specific computer use tool.

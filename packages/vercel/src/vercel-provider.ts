@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -37,12 +37,12 @@ export interface VercelProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: VercelChatModelId): LanguageModelV2;
+  (modelId: VercelChatModelId): LanguageModelV3;
 
   /**
 Creates a language model for text generation.
 */
-  languageModel(modelId: VercelChatModelId): LanguageModelV2;
+  languageModel(modelId: VercelChatModelId): LanguageModelV3;
 }
 
 export function createVercel(

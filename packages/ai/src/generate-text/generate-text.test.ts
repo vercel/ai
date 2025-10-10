@@ -1,13 +1,17 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3FilePart,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
+  LanguageModelV3ProviderDefinedTool,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
   jsonSchema,
   ModelMessage,
   tool,
+  ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
@@ -24,9 +28,9 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
-import { generateText } from './generate-text';
+import { generateText, GenerateTextOnFinishCallback } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
@@ -37,19 +41,21 @@ vi.mock('../version', () => {
   };
 });
 
+const testUsage = {
+  inputTokens: 3,
+  outputTokens: 10,
+  totalTokens: 13,
+  reasoningTokens: undefined,
+  cachedInputTokens: undefined,
+};
+
 const dummyResponseValues = {
   finishReason: 'stop' as const,
-  usage: {
-    inputTokens: 3,
-    outputTokens: 10,
-    totalTokens: 13,
-    reasoningTokens: undefined,
-    cachedInputTokens: undefined,
-  },
+  usage: testUsage,
   warnings: [],
 };
 
-const modelWithSources = new MockLanguageModelV2({
+const modelWithSources = new MockLanguageModelV3({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -74,7 +80,7 @@ const modelWithSources = new MockLanguageModelV2({
   },
 });
 
-const modelWithFiles = new MockLanguageModelV2({
+const modelWithFiles = new MockLanguageModelV3({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -93,7 +99,7 @@ const modelWithFiles = new MockLanguageModelV2({
   },
 });
 
-const modelWithReasoning = new MockLanguageModelV2({
+const modelWithReasoning = new MockLanguageModelV3({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -136,7 +142,7 @@ describe('generateText', () => {
   describe('result.content', () => {
     it('should generate content', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: {
             ...dummyResponseValues,
             content: [
@@ -246,7 +252,7 @@ describe('generateText', () => {
   describe('result.text', () => {
     it('should generate text', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -339,7 +345,7 @@ describe('generateText', () => {
   describe('result.toolCalls', () => {
     it('should contain tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -435,7 +441,7 @@ describe('generateText', () => {
   describe('result.toolResults', () => {
     it('should contain tool results', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -517,7 +523,7 @@ describe('generateText', () => {
   describe('result.providerMetadata', () => {
     it('should contain provider metadata', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [],
@@ -544,7 +550,7 @@ describe('generateText', () => {
   describe('result.response.messages', () => {
     it('should contain assistant response message when there are no tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -558,7 +564,7 @@ describe('generateText', () => {
 
     it('should contain assistant response message and tool message when there are tool calls with results', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -604,7 +610,7 @@ describe('generateText', () => {
   describe('result.request', () => {
     it('should contain request body', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -625,7 +631,7 @@ describe('generateText', () => {
   describe('result.response', () => {
     it('should contain response body and headers', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -648,17 +654,301 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.onFinish', () => {
+    it('should send correct information', async () => {
+      let result!: Parameters<GenerateTextOnFinishCallback<any>>[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [
+              { type: 'text', text: 'Hello, World!' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+            finishReason: 'stop',
+            usage: testUsage,
+            response: {
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+              headers: { call: '2' },
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
+            },
+            warnings: [],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          },
+        },
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
+        prompt: 'irrelevant',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "Hello, World!",
+              "type": "text",
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "dynamicToolCalls": [],
+          "dynamicToolResults": [],
+          "files": [],
+          "finishReason": "stop",
+          "providerMetadata": undefined,
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {},
+          "response": {
+            "body": undefined,
+            "headers": {
+              "call": "2",
+            },
+            "id": "id-0",
+            "messages": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello, World!",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "value-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
+          "sources": [],
+          "staticToolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "staticToolResults": [
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "steps": [
+            DefaultStepResult {
+              "content": [
+                {
+                  "text": "Hello, World!",
+                  "type": "text",
+                },
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "value-result",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "body": undefined,
+                "headers": {
+                  "call": "2",
+                },
+                "id": "id-0",
+                "messages": [
+                  {
+                    "content": [
+                      {
+                        "providerOptions": undefined,
+                        "text": "Hello, World!",
+                        "type": "text",
+                      },
+                      {
+                        "input": {
+                          "value": "value",
+                        },
+                        "providerExecuted": undefined,
+                        "providerOptions": undefined,
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-call",
+                      },
+                    ],
+                    "role": "assistant",
+                  },
+                  {
+                    "content": [
+                      {
+                        "output": {
+                          "type": "text",
+                          "value": "value-result",
+                        },
+                        "toolCallId": "call-1",
+                        "toolName": "tool1",
+                        "type": "tool-result",
+                      },
+                    ],
+                    "role": "tool",
+                  },
+                ],
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 3,
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "warnings": [],
+            },
+          ],
+          "text": "Hello, World!",
+          "toolCalls": [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "toolResults": [
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value",
+              },
+              "output": "value-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "totalUsage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+          "warnings": [],
+        }
+      `);
+    });
+  });
+
   describe('options.stopWhen', () => {
+    let result: GenerateTextResult<any, any>;
+    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
+    let onStepFinishResults: StepResult<any>[];
+
+    beforeEach(() => {
+      result = undefined as any;
+      onFinishResult = undefined as any;
+      onStepFinishResults = [];
+    });
+
     describe('2 steps: initial, tool-result', () => {
-      let result: GenerateTextResult<any, any>;
-      let onStepFinishResults: StepResult<any>[];
-
       beforeEach(async () => {
-        onStepFinishResults = [];
-
         let responseCount = 0;
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0:
@@ -746,10 +1036,13 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
-          stopWhen: stepCountIs(3),
+          onFinish: async event => {
+            onFinishResult = event as unknown as typeof onFinishResult;
+          },
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
+          stopWhen: stepCountIs(3),
         });
       });
 
@@ -797,15 +1090,21 @@ describe('generateText', () => {
         expect(result.steps).toMatchSnapshot();
       });
 
-      it('onStepFinish should be called for each step', () => {
-        expect(onStepFinishResults).toMatchSnapshot();
+      describe('callbacks', () => {
+        it('onFinish should send correct information', async () => {
+          expect(onFinishResult).toMatchSnapshot();
+        });
+
+        it('onStepFinish should be called for each step', () => {
+          expect(onStepFinishResults).toMatchSnapshot();
+        });
       });
     });
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: GenerateTextResult<any, any>;
       let onStepFinishResults: StepResult<any>[];
-      let doGenerateCalls: Array<LanguageModelV2CallOptions>;
+      let doGenerateCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
         stepNumber: number;
         steps: Array<StepResult<any>>;
@@ -819,7 +1118,7 @@ describe('generateText', () => {
 
         let responseCount = 0;
 
-        const trueModel = new MockLanguageModelV2({
+        const trueModel = new MockLanguageModelV3({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             doGenerateCalls.push({ prompt, tools, toolChoice });
 
@@ -834,14 +1133,6 @@ describe('generateText', () => {
                       toolCallId: 'call-1',
                       toolName: 'tool1',
                       input: `{ "value": "value" }`,
-                    },
-                  ],
-                  toolResults: [
-                    {
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      input: { value: 'value' },
-                      output: 'result1',
                     },
                   ],
                   finishReason: 'tool-calls',
@@ -1447,7 +1738,7 @@ describe('generateText', () => {
 
         let responseCount = 0;
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => {
               switch (responseCount++) {
                 case 0:
@@ -1681,7 +1972,7 @@ describe('generateText', () => {
   describe('options.headers', () => {
     it('should pass headers to model', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ headers }) => {
             assert.equal(
               headers?.['custom-request-header'],
@@ -1705,7 +1996,7 @@ describe('generateText', () => {
   describe('options.providerOptions', () => {
     it('should pass provider options to model', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ providerOptions }) => {
             expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
@@ -1733,7 +2024,7 @@ describe('generateText', () => {
       const toolExecuteMock = vi.fn().mockResolvedValue('tool result');
 
       const generateTextPromise = generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1776,11 +2067,11 @@ describe('generateText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
         | undefined;
 
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ tools: toolsArg }) => {
             tools = toolsArg;
 
@@ -1840,7 +2131,7 @@ describe('generateText', () => {
 
     it('should not record any telemetry data when not explicitly enabled', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -1855,7 +2146,7 @@ describe('generateText', () => {
 
     it('should record telemetry data when enabled', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -1898,7 +2189,7 @@ describe('generateText', () => {
 
     it('should record successful tool call', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -1999,7 +2290,7 @@ describe('generateText', () => {
 
     it('should record error on tool call', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -2061,7 +2352,7 @@ describe('generateText', () => {
 
     it('should not record telemetry inputs / outputs when disabled', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -2103,7 +2394,7 @@ describe('generateText', () => {
       const recordedCalls: unknown[] = [];
 
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => {
             return {
               ...dummyResponseValues,
@@ -2169,7 +2460,7 @@ describe('generateText', () => {
   describe('tools with custom schema', () => {
     it('should contain tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -2280,7 +2571,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [
@@ -2433,7 +2724,7 @@ describe('generateText', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
         constructor() {
           super({
             supportedUrls() {
@@ -2475,7 +2766,7 @@ describe('generateText', () => {
     describe('no output', () => {
       it('should throw error when accessing output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `Hello, world!` }],
@@ -2493,7 +2784,7 @@ describe('generateText', () => {
     describe('text output', () => {
       it('should forward text as output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `Hello, world!` }],
@@ -2507,10 +2798,10 @@ describe('generateText', () => {
       });
 
       it('should set responseFormat to text and not change the prompt', async () => {
-        let callOptions: LanguageModelV2CallOptions;
+        let callOptions: LanguageModelV3CallOptions;
 
         await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async args => {
               callOptions = args;
               return {
@@ -2563,7 +2854,7 @@ describe('generateText', () => {
     describe('object output', () => {
       it('should parse the output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `{ "value": "test-value" }` }],
@@ -2579,10 +2870,10 @@ describe('generateText', () => {
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions: LanguageModelV2CallOptions;
+        let callOptions: LanguageModelV3CallOptions;
 
         await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async args => {
               callOptions = args;
               return {
@@ -2646,6 +2937,45 @@ describe('generateText', () => {
         `);
       });
     });
+
+    it('should not parse output when finish reason is tool-calls', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: 'tool-calls',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: `{ "value": "test" }`,
+              },
+            ],
+          }),
+        }),
+        prompt: 'prompt',
+        experimental_output: Output.object({
+          schema: z.object({ summary: z.string() }),
+        }),
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+      });
+
+      // experimental_output should be undefined when finish reason is tool-calls
+      expect(() => {
+        result.experimental_output;
+      }).toThrow('No output specified');
+
+      // But tool calls should work normally
+      expect(result.toolCalls).toHaveLength(1);
+      expect(result.toolResults).toHaveLength(1);
+    });
   });
 
   describe('tool execution errors', () => {
@@ -2653,7 +2983,7 @@ describe('generateText', () => {
 
     beforeEach(async () => {
       result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -2748,7 +3078,7 @@ describe('generateText', () => {
       let toolExecuted = false;
 
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -2841,7 +3171,7 @@ describe('generateText', () => {
       let toolExecuted = false;
 
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -2907,7 +3237,7 @@ describe('generateText', () => {
       let recordedContext: unknown | undefined;
 
       const result = await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -2950,7 +3280,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               warnings: [],
               usage: {
@@ -3082,7 +3412,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doGenerate: async () => ({
               warnings: [],
               usage: {
@@ -3261,7 +3591,7 @@ describe('generateText', () => {
       ];
 
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -3288,7 +3618,7 @@ describe('generateText', () => {
       let callCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: async () => {
             switch (callCount++) {
               case 0:
@@ -3334,7 +3664,7 @@ describe('generateText', () => {
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
       await generateText({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -3346,6 +3676,968 @@ describe('generateText', () => {
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
       expect(logWarningsSpy).toHaveBeenCalledWith([]);
+    });
+  });
+
+  describe('tool execution approval', () => {
+    describe('when a single tool needs approval', () => {
+      let result: GenerateTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+              finishReason: 'tool-calls',
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+        });
+      });
+
+      it('should only execute 1 step when the tool needs approval', async () => {
+        expect(result.steps.length).toBe(1);
+      });
+
+      it('should have tool-calls finish reason', async () => {
+        expect(result.finishReason).toBe('tool-calls');
+      });
+
+      it('should add a tool approval request to the content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "approvalId": "id-1",
+              "toolCall": {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              "type": "tool-approval-request",
+            },
+          ]
+        `);
+      });
+
+      it('should include tool approval request in response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('when a single tool has a needsApproval function', () => {
+      let result: GenerateTextResult<any, any>;
+      let needsApprovalCalls: Array<{ input: any; options: any }> = [];
+
+      beforeEach(async () => {
+        needsApprovalCalls = [];
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value-needs-approval" }`,
+                },
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-2',
+                  toolName: 'tool1',
+                  input: `{ "value": "value-no-approval" }`,
+                },
+              ],
+              finishReason: 'tool-calls',
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: input => `result for ${input.value}`,
+              needsApproval: (input, options) => {
+                needsApprovalCalls.push({ input, options });
+                return input.value === 'value-needs-approval';
+              },
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+        });
+      });
+
+      it('should only execute 1 step when the tool needs approval', async () => {
+        expect(result.steps.length).toBe(1);
+      });
+
+      it('should have tool-calls finish reason', async () => {
+        expect(result.finishReason).toBe('tool-calls');
+      });
+
+      it('should add a tool approval request to the content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value-needs-approval",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "input": {
+                "value": "value-no-approval",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": false,
+              "input": {
+                "value": "value-no-approval",
+              },
+              "output": "result for value-no-approval",
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "approvalId": "id-1",
+              "toolCall": {
+                "input": {
+                  "value": "value-needs-approval",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              "type": "tool-approval-request",
+            },
+          ]
+        `);
+      });
+
+      it('should include tool approval request in response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value-needs-approval",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "input": {
+                    "value": "value-no-approval",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-2",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result for value-no-approval",
+                  },
+                  "toolCallId": "call-2",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
+      });
+
+      it('should call the needsApproval function with the correct input and options', async () => {
+        expect(needsApprovalCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value-needs-approval",
+              },
+              "options": {
+                "experimental_context": undefined,
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-1",
+              },
+            },
+            {
+              "input": {
+                "value": "value-no-approval",
+              },
+              "options": {
+                "experimental_context": undefined,
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-2",
+              },
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('when a call from a single tool that needs approval is approved', () => {
+      let result: GenerateTextResult<any, any>;
+      let prompts: LanguageModelV3Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any>;
+
+      beforeEach(async () => {
+        prompts = [];
+        executeFunction = vi.fn().mockReturnValue('result1');
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Hello, world!',
+                  },
+                ],
+                finishReason: 'stop',
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: {
+                    value: 'value',
+                  },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should execute the tool', async () => {
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            abortSignal: undefined,
+            toolCallId: 'call-1',
+            messages: expect.any(Array),
+          }),
+        );
+      });
+
+      it('should call the model with a prompt that includes the tool result', async () => {
+        expect(prompts).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+          ]
+        `);
+      });
+
+      it('should include the tool result in the response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result1",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('when a call from a single tool that needs approval is denied', () => {
+      let result: GenerateTextResult<any, any>;
+      let prompts: LanguageModelV3Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any>;
+
+      beforeEach(async () => {
+        prompts = [];
+        executeFunction = vi.fn().mockReturnValue('result1');
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Hello, world!',
+                  },
+                ],
+                finishReason: 'tool-calls',
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: {
+                    value: 'value',
+                  },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: false,
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should not execute the tool', async () => {
+        expect(executeFunction).not.toHaveBeenCalled();
+      });
+
+      it('should call the model with a prompt that includes the tool error', async () => {
+        expect(prompts).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "value",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "reason": undefined,
+                      "type": "execution-denied",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+          ]
+        `);
+      });
+
+      it('should include the tool error in the response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "output": {
+                    "reason": undefined,
+                    "type": "execution-denied",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('when two calls from a single tool that needs approval are approved', () => {
+      let result: GenerateTextResult<any, any>;
+      let prompts: LanguageModelV3Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any>;
+
+      beforeEach(async () => {
+        prompts = [];
+        executeFunction = vi.fn().mockReturnValue('result1');
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Hello, world!',
+                  },
+                ],
+                finishReason: 'tool-calls',
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            currentDate: () => new Date(0),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: {
+                    value: 'value1',
+                  },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+                {
+                  input: {
+                    value: 'value2',
+                  },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-2',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-2',
+                  toolCallId: 'call-2',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+                {
+                  approvalId: 'id-2',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should call the model with a prompt that includes the tool results', async () => {
+        expect(prompts).toMatchInlineSnapshot(`
+          [
+            [
+              {
+                "content": [
+                  {
+                    "text": "test-input",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "value1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "value": "value2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-2",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "result1",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-2",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+          ]
+        `);
+      });
+
+      it('should include the tool results in the response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result1",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result1",
+                  },
+                  "toolCallId": "call-2",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+  });
+
+  describe('prepareStep with model switch and image URLs', () => {
+    it('should use the prepareStep model supportedUrls for download decision', async () => {
+      const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
+        [];
+      const languageModelCalls: Array<
+        Parameters<LanguageModelV3['doGenerate']>[0]
+      > = [];
+
+      const modelWithImageUrlSupport = new MockLanguageModelV3({
+        provider: 'with-image-url-support',
+        modelId: 'with-image-url-support',
+        supportedUrls: {
+          'image/*': [/^https?:\/\/.*$/],
+        },
+        doGenerate: async options => {
+          languageModelCalls.push(options);
+          return {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'response from with-image-url-support' },
+            ],
+          };
+        },
+      });
+
+      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
+        provider: 'without-image-url-support',
+        modelId: 'without-image-url-support',
+        supportedUrls: {},
+        doGenerate: async options => {
+          languageModelCalls.push(options);
+          return {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'response from without-image-url-support' },
+            ],
+          };
+        },
+      });
+
+      const customDownload = async (
+        requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>,
+      ) => {
+        downloadCalls.push(...requestedDownloads);
+        return requestedDownloads.map(download =>
+          download.isUrlSupportedByModel
+            ? null
+            : {
+                data: new Uint8Array([1, 2, 3, 4]),
+                mediaType: 'image/png',
+              },
+        );
+      };
+
+      const result = await generateText({
+        model: modelWithImageUrlSupport,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image' },
+              { type: 'image', image: 'https://example.com/test.jpg' },
+            ],
+          },
+        ],
+        prepareStep: async () => {
+          return { model: modelWithoutImageUrlSupport }; // model switch
+        },
+        experimental_download: customDownload,
+      });
+
+      expect(downloadCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "isUrlSupportedByModel": false,
+            "url": "https://example.com/test.jpg",
+          },
+        ]
+      `);
+
+      expect(languageModelCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
+            },
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Describe this image",
+                    "type": "text",
+                  },
+                  {
+                    "data": Uint8Array [
+                      1,
+                      2,
+                      3,
+                      4,
+                    ],
+                    "filename": undefined,
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": undefined,
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          },
+        ]
+      `);
+
+      expect(result.text).toBe('response from without-image-url-support');
     });
   });
 });

@@ -96,7 +96,7 @@ export const customTool = dynamicTool({
             {
               name: 'toModelOutput',
               isOptional: true,
-              type: '(output: unknown) => LanguageModelV2ToolResultPart[\'output\']',
+              type: '(output: unknown) => LanguageModelV3ToolResultPart[\'output\']',
               description: 'Optional conversion function that maps the tool result to an output that can be used by the language model.'
             },
             {

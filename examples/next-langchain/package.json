@@ -15,7 +15,7 @@
     "@langchain/core": "0.1.63",
     "ai": "workspace:*",
     "langchain": "0.1.36",
-    "next": "latest",
+    "next": "^15.5.4",
     "react": "^18",
     "react-dom": "^18"
   },

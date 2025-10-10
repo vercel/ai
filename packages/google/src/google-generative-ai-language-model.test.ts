@@ -1,25 +1,27 @@
 import {
-  LanguageModelV2Prompt,
-  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV3Prompt,
+  LanguageModelV3ProviderDefinedTool,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+import {
+  GoogleGenerativeAILanguageModel,
+  getGroundingMetadataSchema,
+  getUrlContextMetadataSchema,
+} from './google-generative-ai-language-model';
 
 import {
   GoogleGenerativeAIGroundingMetadata,
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
-import { groundingMetadataSchema } from './tool/google-search';
-import { urlContextMetadataSchema } from './tool/url-context';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -47,6 +49,9 @@ const provider = createGoogleGenerativeAI({
   generateId: () => 'test-id',
 });
 const model = provider.chat('gemini-pro');
+
+const groundingMetadataSchema = getGroundingMetadataSchema();
+const urlContextMetadataSchema = getUrlContextMetadataSchema();
 
 describe('groundingMetadataSchema', () => {
   it('validates complete grounding metadata with web search results', () => {
@@ -1058,7 +1063,7 @@ describe('doGenerate', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { content } = await model.doGenerate({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV2ProviderDefinedTool,
+        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
       ],
       prompt: TEST_PROMPT,
     });
@@ -1360,6 +1365,25 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+  });
+
+  it('should pass mediaResolution in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          mediaResolution: 'MEDIA_RESOLUTION_LOW',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        mediaResolution: 'MEDIA_RESOLUTION_LOW',
       },
     });
   });
@@ -2081,7 +2105,7 @@ describe('doStream', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { stream } = await model.doStream({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV2ProviderDefinedTool,
+        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
       ],
       prompt: TEST_PROMPT,
     });
@@ -3011,7 +3035,7 @@ describe('doStream', () => {
 });
 
 describe('GEMMA Model System Instruction Fix', () => {
-  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV2Prompt = [
+  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV3Prompt = [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
@@ -3149,7 +3173,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       generateId: () => 'test-id',
     });
 
-    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV2Prompt = [
+    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV3Prompt = [
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ];
 

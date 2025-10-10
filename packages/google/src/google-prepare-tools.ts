@@ -1,6 +1,6 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -11,8 +11,8 @@ export function prepareTools({
   toolChoice,
   modelId,
 }: {
-  tools: LanguageModelV2CallOptions['tools'];
-  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: GoogleGenerativeAIModelId;
 }): {
   tools:
@@ -33,14 +33,21 @@ export function prepareTools({
           allowedFunctionNames?: string[];
         };
       };
-  toolWarnings: LanguageModelV2CallWarning[];
+  toolWarnings: LanguageModelV3CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const toolWarnings: LanguageModelV3CallWarning[] = [];
 
-  const isGemini2 = modelId.includes('gemini-2');
+  const isLatest = (
+    [
+      'gemini-flash-latest',
+      'gemini-flash-lite-latest',
+      'gemini-pro-latest',
+    ] as const satisfies GoogleGenerativeAIModelId[]
+  ).some(id => id === modelId);
+  const isGemini2 = modelId.includes('gemini-2') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
 
