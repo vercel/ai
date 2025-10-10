@@ -2395,6 +2395,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@5.8.3)
       zod:
         specifier: 3.25.76
         version: 3.25.76
