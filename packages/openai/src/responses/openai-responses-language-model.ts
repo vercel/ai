@@ -132,7 +132,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
     function addInclude(key: OpenAIResponsesIncludeValue) {
-      include = include != null ? [...include, key] : [key];
+      if (include == null) {
+        include = [key];
+      } else if (!include.includes(key)) {
+        include = [...include, key];
+      }
     }
 
     function hasOpenAITool(id: string) {
@@ -174,6 +178,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       addInclude('code_interpreter_call.outputs');
     }
 
+    const store = openaiOptions?.store;
+
+    // store defaults to true in the OpenAI responses API, so check for false exactly:
+    if (store === false && modelConfig.isReasoningModel) {
+      addInclude('reasoning.encrypted_content');
+    }
+
     const baseArgs = {
       model: this.modelId,
       input,
@@ -206,7 +217,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
       previous_response_id: openaiOptions?.previousResponseId,
-      store: openaiOptions?.store,
+      store,
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,

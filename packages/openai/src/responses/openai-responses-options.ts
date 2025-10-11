@@ -119,7 +119,7 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
       include: z
         .array(
           z.enum([
-            'reasoning.encrypted_content',
+            'reasoning.encrypted_content', // handled internally by default, only needed for unknown reasoning models
             'file_search_call.results',
             'message.output_text.logprobs',
           ]),
