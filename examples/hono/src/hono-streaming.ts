@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { Hono } from 'hono';
+import { Hono, streamSSE } from 'hono';
 import { serve } from '@hono/node-server';
 
 async function main() {
@@ -20,6 +20,7 @@ async function main() {
   });
 
   // Text stream endpoint
+  // Does not stream; sends full chunk back at once
   app.post('/text', async c => {
     const result = streamText({
       model: openai('gpt-4o'),
@@ -30,6 +31,21 @@ async function main() {
 
     return new Response(result.textStream, {
       headers: c.res.headers,
+    });
+  });
+
+  // Proper streaming with Hono primitives
+  // Equivalent to result.toUIMessageStreamResponse()
+  app.post('/text-stream', async c => {
+    const result = streamText({
+      model: openai('gpt-4o'),
+      prompt: 'Write a short poem about coding.',
+    });
+
+    return streamSSE(c, async (stream) => {
+      for await (const part of result.toUIMessageStream({})) {
+        await stream.writeSSE({ data: JSON.stringify(part) })
+      }
     });
   });
 
