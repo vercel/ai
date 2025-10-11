@@ -1,10 +1,10 @@
 import {
   createJsonErrorResponseHandler,
-  type InferValidator,
+  type InferSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 const googleErrorDataSchema = lazySchema(() =>
   zodSchema(
@@ -18,7 +18,7 @@ const googleErrorDataSchema = lazySchema(() =>
   ),
 );
 
-export type GoogleErrorData = InferValidator<typeof googleErrorDataSchema>;
+export type GoogleErrorData = InferSchema<typeof googleErrorDataSchema>;
 
 export const googleFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: googleErrorDataSchema,

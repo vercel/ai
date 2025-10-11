@@ -22,6 +22,6 @@ export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
   messages: ModelMessage[];
   toolCall: LanguageModelV3ToolCall;
   tools: TOOLS;
-  inputSchema: (options: { toolName: string }) => JSONSchema7;
+  inputSchema: (options: { toolName: string }) => PromiseLike<JSONSchema7>;
   error: NoSuchToolError | InvalidToolInputError;
 }) => Promise<LanguageModelV3ToolCall | null>;

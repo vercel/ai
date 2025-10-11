@@ -14,7 +14,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  InferValidator,
+  InferSchema,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -132,7 +132,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
     function addInclude(key: OpenAIResponsesIncludeValue) {
-      include = include != null ? [...include, key] : [key];
+      if (include == null) {
+        include = [key];
+      } else if (!include.includes(key)) {
+        include = [...include, key];
+      }
     }
 
     function hasOpenAITool(id: string) {
@@ -174,6 +178,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       addInclude('code_interpreter_call.outputs');
     }
 
+    const store = openaiOptions?.store;
+
+    // store defaults to true in the OpenAI responses API, so check for false exactly:
+    if (store === false && modelConfig.isReasoningModel) {
+      addInclude('reasoning.encrypted_content');
+    }
+
     const baseArgs = {
       model: this.modelId,
       input,
@@ -206,7 +217,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
       previous_response_id: openaiOptions?.previousResponseId,
-      store: openaiOptions?.store,
+      store,
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
@@ -408,7 +419,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: 'image_generation',
             result: {
               result: part.result,
-            } satisfies InferValidator<typeof imageGenerationOutputSchema>,
+            } satisfies InferSchema<typeof imageGenerationOutputSchema>,
             providerExecuted: true,
           });
 
@@ -422,7 +433,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: 'local_shell',
             input: JSON.stringify({
               action: part.action,
-            } satisfies InferValidator<typeof localShellInputSchema>),
+            } satisfies InferSchema<typeof localShellInputSchema>),
             providerMetadata: {
               openai: {
                 itemId: part.id,
@@ -559,7 +570,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   score: result.score,
                   text: result.text,
                 })) ?? null,
-            } satisfies InferValidator<typeof fileSearchOutputSchema>,
+            } satisfies InferSchema<typeof fileSearchOutputSchema>,
             providerExecuted: true,
           });
           break;
@@ -573,7 +584,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             input: JSON.stringify({
               code: part.code,
               containerId: part.container_id,
-            } satisfies InferValidator<typeof codeInterpreterInputSchema>),
+            } satisfies InferSchema<typeof codeInterpreterInputSchema>),
             providerExecuted: true,
           });
 
@@ -583,7 +594,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: 'code_interpreter',
             result: {
               outputs: part.outputs,
-            } satisfies InferValidator<typeof codeInterpreterOutputSchema>,
+            } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
             providerExecuted: true,
           });
           break;
@@ -905,7 +916,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         score: result.score,
                         text: result.text,
                       })) ?? null,
-                  } satisfies InferValidator<typeof fileSearchOutputSchema>,
+                  } satisfies InferSchema<typeof fileSearchOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
@@ -917,9 +928,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: 'code_interpreter',
                   result: {
                     outputs: value.item.outputs,
-                  } satisfies InferValidator<
-                    typeof codeInterpreterOutputSchema
-                  >,
+                  } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'image_generation_call') {
@@ -929,9 +938,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: 'image_generation',
                   result: {
                     result: value.item.result,
-                  } satisfies InferValidator<
-                    typeof imageGenerationOutputSchema
-                  >,
+                  } satisfies InferSchema<typeof imageGenerationOutputSchema>,
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'local_shell_call') {
@@ -950,7 +957,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       workingDirectory: value.item.action.working_directory,
                       env: value.item.action.env,
                     },
-                  } satisfies InferValidator<typeof localShellInputSchema>),
+                  } satisfies InferSchema<typeof localShellInputSchema>),
                   providerMetadata: {
                     openai: { itemId: value.item.id },
                   },
@@ -996,7 +1003,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 toolName: 'image_generation',
                 result: {
                   result: value.partial_image_b64,
-                } satisfies InferValidator<typeof imageGenerationOutputSchema>,
+                } satisfies InferSchema<typeof imageGenerationOutputSchema>,
                 providerExecuted: true,
                 preliminary: true,
               });
@@ -1035,9 +1042,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   input: JSON.stringify({
                     code: value.code,
                     containerId: toolCall.codeInterpreter!.containerId,
-                  } satisfies InferValidator<
-                    typeof codeInterpreterInputSchema
-                  >),
+                  } satisfies InferSchema<typeof codeInterpreterInputSchema>),
                   providerExecuted: true,
                 });
               }

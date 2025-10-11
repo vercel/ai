@@ -49,9 +49,9 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         repairedToolCall = await repairToolCall({
           toolCall,
           tools,
-          inputSchema: ({ toolName }) => {
+          inputSchema: async ({ toolName }) => {
             const { inputSchema } = tools[toolName];
-            return asSchema(inputSchema).jsonSchema;
+            return await asSchema(inputSchema).jsonSchema;
           },
           system,
           messages,

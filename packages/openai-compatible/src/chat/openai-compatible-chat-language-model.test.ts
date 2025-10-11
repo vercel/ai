@@ -744,6 +744,55 @@ describe('doGenerate', () => {
       expect(body.customOption).toBe('should-be-included');
     });
 
+    it('should pass textVerbosity setting from providerOptions', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { textVerbosity: 'low' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-5',
+        messages: [{ role: 'user', content: 'Hello' }],
+        verbosity: 'low',
+      });
+    });
+
+    it('should not duplicate textVerbosity in request body', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': {
+            textVerbosity: 'medium',
+            customOption: 'should-be-included',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body.verbosity).toBe('medium');
+      expect(body.textVerbosity).toBeUndefined();
+      expect(body.customOption).toBe('should-be-included');
+    });
+
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
@@ -2132,6 +2181,7 @@ describe('doStream', () => {
           "tools": undefined,
           "top_p": undefined,
           "user": undefined,
+          "verbosity": undefined,
         },
       }
     `);

@@ -5,7 +5,7 @@ import { JsonSchema7Type } from './parse-types';
 import { getRefs } from './refs';
 import { parseAnyDef } from './parsers/any';
 
-const zodToJsonSchema = (
+const zod3ToJsonSchema = (
   schema: ZodSchema<any>,
   options?: Partial<Options> | string,
 ): JsonSchema7Type & {
@@ -65,7 +65,7 @@ const zodToJsonSchema = (
     main.title = title;
   }
 
-  const combined: ReturnType<typeof zodToJsonSchema> =
+  const combined: ReturnType<typeof zod3ToJsonSchema> =
     name === undefined
       ? definitions
         ? {
@@ -90,4 +90,4 @@ const zodToJsonSchema = (
   return combined;
 };
 
-export { zodToJsonSchema };
+export { zod3ToJsonSchema };

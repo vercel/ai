@@ -9,7 +9,7 @@ import {
   resolve,
   parseProviderOptions,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   GoogleVertexEmbeddingModelId,

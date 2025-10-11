@@ -3,7 +3,7 @@ import {
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 // Args validation schema
 export const webSearchPreviewArgsSchema = lazySchema(() =>

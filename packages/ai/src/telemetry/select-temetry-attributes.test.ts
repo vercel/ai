@@ -1,32 +1,32 @@
 import { selectTelemetryAttributes } from './select-telemetry-attributes';
 import { it, expect } from 'vitest';
 
-it('should return an empty object when telemetry is disabled', () => {
-  const result = selectTelemetryAttributes({
+it('should return an empty object when telemetry is disabled', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: false },
     attributes: { key: 'value' },
   });
   expect(result).toEqual({});
 });
 
-it('should return an empty object when telemetry enablement is undefined', () => {
-  const result = selectTelemetryAttributes({
+it('should return an empty object when telemetry enablement is undefined', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: undefined },
     attributes: { key: 'value' },
   });
   expect(result).toEqual({});
 });
 
-it('should return attributes with simple values', () => {
-  const result = selectTelemetryAttributes({
+it('should return attributes with simple values', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: true },
     attributes: { string: 'value', number: 42, boolean: true },
   });
   expect(result).toEqual({ string: 'value', number: 42, boolean: true });
 });
 
-it('should handle input functions when recordInputs is true', () => {
-  const result = selectTelemetryAttributes({
+it('should handle input functions when recordInputs is true', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: true, recordInputs: true },
     attributes: {
       input: { input: () => 'input value' },
@@ -36,8 +36,8 @@ it('should handle input functions when recordInputs is true', () => {
   expect(result).toEqual({ input: 'input value', other: 'other value' });
 });
 
-it('should not include input functions when recordInputs is false', () => {
-  const result = selectTelemetryAttributes({
+it('should not include input functions when recordInputs is false', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: true, recordInputs: false },
     attributes: {
       input: { input: () => 'input value' },
@@ -47,8 +47,8 @@ it('should not include input functions when recordInputs is false', () => {
   expect(result).toEqual({ other: 'other value' });
 });
 
-it('should handle output functions when recordOutputs is true', () => {
-  const result = selectTelemetryAttributes({
+it('should handle output functions when recordOutputs is true', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: true, recordOutputs: true },
     attributes: {
       output: { output: () => 'output value' },
@@ -58,8 +58,8 @@ it('should handle output functions when recordOutputs is true', () => {
   expect(result).toEqual({ output: 'output value', other: 'other value' });
 });
 
-it('should not include output functions when recordOutputs is false', () => {
-  const result = selectTelemetryAttributes({
+it('should not include output functions when recordOutputs is false', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: true, recordOutputs: false },
     attributes: {
       output: { output: () => 'output value' },
@@ -69,8 +69,8 @@ it('should not include output functions when recordOutputs is false', () => {
   expect(result).toEqual({ other: 'other value' });
 });
 
-it('should ignore undefined values', () => {
-  const result = selectTelemetryAttributes({
+it('should ignore undefined values', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: true },
     attributes: {
       defined: 'value',
@@ -80,8 +80,8 @@ it('should ignore undefined values', () => {
   expect(result).toEqual({ defined: 'value' });
 });
 
-it('should ignore input and output functions that return undefined', () => {
-  const result = selectTelemetryAttributes({
+it('should ignore input and output functions that return undefined', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: true },
     attributes: {
       input: { input: () => undefined },
@@ -92,8 +92,8 @@ it('should ignore input and output functions that return undefined', () => {
   expect(result).toEqual({ other: 'value' });
 });
 
-it('should handle mixed attribute types correctly', () => {
-  const result = selectTelemetryAttributes({
+it('should handle mixed attribute types correctly', async () => {
+  const result = await selectTelemetryAttributes({
     telemetry: { isEnabled: true },
     attributes: {
       simple: 'value',
@@ -105,6 +105,7 @@ it('should handle mixed attribute types correctly', () => {
       input_null: { input: () => null as any },
     },
   });
+
   expect(result).toEqual({
     simple: 'value',
     input: 'input value',

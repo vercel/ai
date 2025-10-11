@@ -18,7 +18,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   generateId,
-  InferValidator,
+  InferSchema,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -685,7 +685,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<InferValidator<typeof anthropicMessagesChunkSchema>>,
+          ParseResult<InferSchema<typeof anthropicMessagesChunkSchema>>,
           LanguageModelV3StreamPart
         >({
           start(controller) {

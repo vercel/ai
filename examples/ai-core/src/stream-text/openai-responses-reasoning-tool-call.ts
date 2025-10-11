@@ -39,7 +39,6 @@ async function main() {
         store: false,
         reasoningEffort: 'medium',
         reasoningSummary: 'auto',
-        include: ['reasoning.encrypted_content'],
       } satisfies OpenAIResponsesProviderOptions,
     },
   });
