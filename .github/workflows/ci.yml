@@ -206,11 +206,25 @@ jobs:
           - module: '@ai-sdk/google'
             max-load-time: 100
     steps:
-      - name: Download built packages
-        uses: actions/download-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          name: built-packages
-          path: packages
+          version: 10.11.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
 
       - name: Measure and check load time for ${{ matrix.module }}
         id: load-time
