@@ -122,14 +122,27 @@ jobs:
 
   bundle-size:
     name: 'Bundle Size Check'
-    needs: load-time-setup
     runs-on: ubuntu-latest
     steps:
-      - name: Download built packages
-        uses: actions/download-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          name: built-packages
-          path: packages
+          version: 10.11.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build:packages
 
       - name: Check bundle size
         working-directory: packages/ai
@@ -145,7 +158,6 @@ jobs:
   load-time_matrix:
     name: 'Load Time Check'
     runs-on: ubuntu-latest
-    needs: load-time-setup
     strategy:
       fail-fast: false
       matrix:
