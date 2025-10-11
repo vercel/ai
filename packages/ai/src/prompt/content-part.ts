@@ -10,7 +10,7 @@ import {
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { jsonValueSchema } from '../types/json-value';
+import { jsonValueLooseSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import { dataContentSchema } from './data-content';
 
@@ -105,7 +105,7 @@ export const outputSchema: z.ZodType<LanguageModelV3ToolResultOutput> =
     }),
     z.object({
       type: z.literal('json'),
-      value: jsonValueSchema,
+      value: jsonValueLooseSchema,
     }),
     z.object({
       type: z.literal('error-text'),
@@ -113,7 +113,7 @@ export const outputSchema: z.ZodType<LanguageModelV3ToolResultOutput> =
     }),
     z.object({
       type: z.literal('error-json'),
-      value: jsonValueSchema,
+      value: jsonValueLooseSchema,
     }),
     z.object({
       type: z.literal('content'),
