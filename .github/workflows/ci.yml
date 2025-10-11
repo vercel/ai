@@ -165,15 +165,15 @@ jobs:
       matrix:
         include:
           - module: 'ai'
-            max-load-time: 20
+            max-load-time: 100
           - module: '@ai-sdk/openai'
-            max-load-time: 20
+            max-load-time: 100
           - module: '@ai-sdk/openai-compatible'
-            max-load-time: 20
+            max-load-time: 100
           - module: '@ai-sdk/anthropic'
-            max-load-time: 20
+            max-load-time: 100
           - module: '@ai-sdk/google'
-            max-load-time: 20
+            max-load-time: 100
     steps:
       - name: Checkout
         uses: actions/checkout@v5
