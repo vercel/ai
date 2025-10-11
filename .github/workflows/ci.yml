@@ -2,19 +2,11 @@ name: CI
 
 on:
   push:
-<<<<<<< HEAD
-    branches: 
-      - main
-      - release-v*
-  pull_request:
-    branches: 
-=======
     branches:
       - main
       - release-v*
   pull_request:
     branches:
->>>>>>> 77db222ee (ci(bundle-size): initial version (#9411))
       - main
       - release-v*
 
