@@ -2,11 +2,11 @@ name: CI
 
 on:
   push:
-    branches: 
+    branches:
       - main
       - release-v*
   pull_request:
-    branches: 
+    branches:
       - main
       - release-v*
 
@@ -106,6 +106,40 @@ jobs:
 
       - name: Run TypeScript type check
         run: pnpm run type-check:full
+
+  bundle-size:
+    name: 'Bundle Size Check'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build:packages
+
+      - name: Check bundle size
+        run: cd packages/ai && pnpm run check-bundle-size
+
+      - name: Upload bundle size metafiles
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-size-metafiles
+          path: packages/ai/dist-bundle-check/*.json
 
   test_matrix:
     name: 'Test'
