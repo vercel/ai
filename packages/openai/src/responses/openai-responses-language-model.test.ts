@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
+  OpenAIResponsesProviderOptions,
   openaiResponsesReasoningModelIds,
 } from './openai-responses-options';
 
@@ -414,17 +415,27 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          text: {
-            format: {
-              type: 'json_object',
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "type": "json_object",
+              },
             },
-          },
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -435,38 +446,123 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               parallelToolCalls: false,
-            },
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          parallel_tool_calls: false,
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "parallel_tool_calls": false,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send store provider option', async () => {
+      it('should send store = false provider option and opt into reasoning.encrypted_content for reasoning models', async () => {
+        const { warnings } = await createModel('gpt-5-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "reasoning.encrypted_content",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-mini",
+            "store": false,
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send store = false provider option and not opt into reasoning.encrypted_content for non-reasoning models', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
               store: false,
-            },
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          store: false,
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "store": false,
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send store = true provider option without reasoning.encrypted_content', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: true,
+            } satisfies OpenAIResponsesProviderOptions,
+          },
         });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "store": true,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -476,18 +572,28 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
-              store: false,
-            },
+              user: 'user_123',
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          store: false,
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "user": "user_123",
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -543,7 +649,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               openai: {
                 reasoningEffort: 'low',
                 reasoningSummary: 'auto',
-              },
+              } satisfies OpenAIResponsesProviderOptions,
             },
           });
 
@@ -573,7 +679,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             providerOptions: {
               openai: {
                 reasoningEffort: 'low',
-              },
+              } satisfies OpenAIResponsesProviderOptions,
             },
           });
 
@@ -604,7 +710,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               instructions: 'You are a friendly assistant.',
-            },
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
