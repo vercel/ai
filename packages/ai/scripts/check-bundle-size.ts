@@ -2,15 +2,8 @@ import { build } from 'esbuild';
 import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
-// Bundle size limits in kilobytes
-const LIMIT = parseInt(process.argv[2]);
-
-if (!LIMIT || isNaN(Number(LIMIT))) {
-  console.error(
-    'Please provide a valid size limit in kilobytes as a command-line argument.',
-  );
-  process.exit(1);
-}
+// Bundle size limits in bytes
+const LIMIT =  510 * 1024;
 
 interface BundleResult {
   size: number;
@@ -93,8 +86,8 @@ async function main() {
     ]);
 
     console.log('Bundle sizes:');
-    const nodePass = checkSize(nodeResult, LIMIT * 1024);
-    const browserPass = checkSize(browserResult, LIMIT * 1024);
+    const nodePass = checkSize(nodeResult, LIMIT);
+    const browserPass = checkSize(browserResult, LIMIT);
 
     console.log('\n---');
 

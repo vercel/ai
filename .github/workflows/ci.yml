@@ -132,7 +132,7 @@ jobs:
         run: pnpm run build:packages
 
       - name: Check bundle size
-        run: cd packages/ai && pnpm run check-bundle-size ${{ vars.BUNDLE_SIZE_LIMIT_KB }}
+        run: cd packages/ai && pnpm run check-bundle-size
 
       - name: Upload bundle size metafiles
         if: ${{ always() }}
