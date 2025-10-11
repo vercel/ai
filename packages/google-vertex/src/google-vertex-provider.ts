@@ -166,13 +166,25 @@ export function createVertex(
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
     new GoogleVertexImageModel(modelId, createConfig('image'));
 
-  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) =>
-    new GoogleVertexSpeechModel(modelId, {
-      ...createConfig('speech'),
+  const createSpeechModel = (modelId: GoogleVertexSpeechModelId) => {
+    // Create a function that adds the user-agent suffix to headers
+    const getHeaders = async () => {
+      const originalHeaders = await resolve(options.headers ?? {});
+      return withUserAgentSuffix(
+        originalHeaders,
+        `ai-sdk/google-vertex/${VERSION}`,
+      );
+    };
+
+    return new GoogleVertexSpeechModel(modelId, {
+      provider: 'google.vertex.speech',
+      headers: getHeaders,
+      fetch: options.fetch,
       baseURL:
         withoutTrailingSlash(options.baseURL) ??
         'https://texttospeech.googleapis.com/v1',
     });
+  };
 
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
