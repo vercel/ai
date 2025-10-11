@@ -1,5 +1,25 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- ed537e1: Add support for pdf file in tool result in anthropic
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+
 ## 3.0.0-beta.19
 
 ### Patch Changes

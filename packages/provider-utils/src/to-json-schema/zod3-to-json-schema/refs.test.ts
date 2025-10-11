@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod/v3';
-import { zodToJsonSchema } from './zod-to-json-schema';
+import { zod3ToJsonSchema } from './zod3-to-json-schema';
 
 describe('paths', () => {
   it('should handle recurring properties with paths', () => {
@@ -16,7 +16,7 @@ describe('paths', () => {
       lotsOfAddresses: z.array(addressSchema),
     });
 
-    const parsedSchema = zodToJsonSchema(someAddresses);
+    const parsedSchema = zod3ToJsonSchema(someAddresses);
 
     expect(parsedSchema).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -51,7 +51,7 @@ describe('paths', () => {
       part: participant,
     });
 
-    const parsedSchema = zodToJsonSchema(schema);
+    const parsedSchema = zod3ToJsonSchema(schema);
 
     expect(parsedSchema).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -98,7 +98,7 @@ describe('paths', () => {
       }),
     );
 
-    const parsedSchema = zodToJsonSchema(categorySchema);
+    const parsedSchema = zod3ToJsonSchema(categorySchema);
 
     expect(parsedSchema).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -142,7 +142,7 @@ describe('paths', () => {
       category: categorySchema,
     });
 
-    const parsedSchema = zodToJsonSchema(inObjectSchema);
+    const parsedSchema = zod3ToJsonSchema(inObjectSchema);
 
     expect(parsedSchema).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -190,7 +190,7 @@ describe('paths', () => {
       bar: recurringSchema,
     });
 
-    const jsonSchema = zodToJsonSchema(objectSchema, {
+    const jsonSchema = zod3ToJsonSchema(objectSchema, {
       $refStrategy: 'relative',
     });
 
@@ -217,7 +217,7 @@ describe('paths', () => {
       bar: recurringSchema,
     });
 
-    const jsonSchema = zodToJsonSchema(objectSchema, {
+    const jsonSchema = zod3ToJsonSchema(objectSchema, {
       basePath: ['#', 'lol', 'xD'],
     });
 
@@ -244,7 +244,7 @@ describe('paths', () => {
       bar: recurringSchema,
     });
 
-    const jsonSchema = zodToJsonSchema(objectSchema, {
+    const jsonSchema = zod3ToJsonSchema(objectSchema, {
       basePath: ['#', 'lol', 'xD'],
       name: 'kex',
     });
@@ -277,7 +277,7 @@ describe('paths', () => {
       bar: recurringSchema,
     });
 
-    const jsonSchema = zodToJsonSchema(objectSchema, {
+    const jsonSchema = zod3ToJsonSchema(objectSchema, {
       $refStrategy: 'none',
     });
 
@@ -316,7 +316,7 @@ describe('paths', () => {
       }),
     );
 
-    const parsedSchema = zodToJsonSchema(categorySchema, {
+    const parsedSchema = zod3ToJsonSchema(categorySchema, {
       $refStrategy: 'none',
     });
 
@@ -350,7 +350,7 @@ describe('paths', () => {
       bar: recurringSchema,
     });
 
-    const jsonSchema = zodToJsonSchema(objectSchema, {
+    const jsonSchema = zod3ToJsonSchema(objectSchema, {
       name: 'hello',
       definitionPath: '$defs',
     });
@@ -383,7 +383,7 @@ describe('paths', () => {
       bar: recurringSchema,
     });
 
-    const jsonSchema = zodToJsonSchema(objectSchema, {
+    const jsonSchema = zod3ToJsonSchema(objectSchema, {
       name: 'hello',
       definitionPath: 'definitions',
     });
@@ -416,7 +416,7 @@ describe('paths', () => {
       bar: recurringSchema,
     });
 
-    const jsonSchema = zodToJsonSchema(objectSchema, 'hello');
+    const jsonSchema = zod3ToJsonSchema(objectSchema, 'hello');
 
     expect(jsonSchema).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -446,7 +446,7 @@ describe('paths', () => {
       bar: recurringSchema,
     });
 
-    const jsonSchema = zodToJsonSchema(objectSchema, { name: 'hello' });
+    const jsonSchema = zod3ToJsonSchema(objectSchema, { name: 'hello' });
 
     expect(jsonSchema).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -476,7 +476,7 @@ describe('paths', () => {
       b: myRecurringSchema,
     });
 
-    const myJsonSchema = zodToJsonSchema(myObjectSchema, {
+    const myJsonSchema = zod3ToJsonSchema(myObjectSchema, {
       definitions: { myRecurringSchema },
     });
 
@@ -512,7 +512,7 @@ describe('paths', () => {
       c: mySecondRecurringSchema,
     });
 
-    const myJsonSchema = zodToJsonSchema(myObjectSchema, {
+    const myJsonSchema = zod3ToJsonSchema(myObjectSchema, {
       definitions: { myRecurringSchema, mySecondRecurringSchema },
     });
 
@@ -561,7 +561,7 @@ describe('paths', () => {
       c: mySecondRecurringSchema,
     });
 
-    const myJsonSchema = zodToJsonSchema(myObjectSchema, {
+    const myJsonSchema = zod3ToJsonSchema(myObjectSchema, {
       definitions: { myRecurringSchema, mySecondRecurringSchema },
       name: 'mySchemaName',
     });
@@ -614,7 +614,7 @@ describe('paths', () => {
       c: mySecondRecurringSchema,
     });
 
-    const myJsonSchema = zodToJsonSchema(myObjectSchema, {
+    const myJsonSchema = zod3ToJsonSchema(myObjectSchema, {
       definitions: { myRecurringSchema, mySecondRecurringSchema },
       name: 'mySchemaName',
       definitionPath: '$defs',
@@ -664,7 +664,7 @@ describe('paths', () => {
       b: myRecurringSchema,
     });
 
-    const myJsonSchema = zodToJsonSchema(myObjectSchema, {
+    const myJsonSchema = zod3ToJsonSchema(myObjectSchema, {
       definitions: { myRecurringSchema },
       basePath: ['hello'],
     });
@@ -697,7 +697,7 @@ describe('paths', () => {
       b: myRecurringSchema,
     });
 
-    const myJsonSchema = zodToJsonSchema(myObjectSchema, {
+    const myJsonSchema = zod3ToJsonSchema(myObjectSchema, {
       definitions: { myRecurringSchema },
       basePath: ['hello'],
       name: 'kex',
@@ -737,7 +737,7 @@ describe('paths', () => {
       b: myRecurringSchema,
     });
 
-    const myJsonSchema = zodToJsonSchema(myObjectSchema, {
+    const myJsonSchema = zod3ToJsonSchema(myObjectSchema, {
       definitions: { myRecurringSchema },
       basePath: ['hello'],
       name: 'kex',
@@ -790,7 +790,7 @@ describe('paths', () => {
     const schema = z.object({ user: userSchema });
 
     expect(
-      zodToJsonSchema(schema, {
+      zod3ToJsonSchema(schema, {
         definitions: { userSchema },
       }),
     ).toStrictEqual({
@@ -839,7 +839,7 @@ describe('paths', () => {
     });
 
     expect(
-      zodToJsonSchema(treeSchema, {
+      zod3ToJsonSchema(treeSchema, {
         name: 'Tree',
         definitions: {
           Leaf: leafSchema,
@@ -903,7 +903,7 @@ describe('paths', () => {
 
     const lazyObject = z.lazy(() => z.object({ lazyProp: lazyString }));
 
-    const jsonSchema = zodToJsonSchema(lazyObject, {
+    const jsonSchema = zod3ToJsonSchema(lazyObject, {
       definitions: { lazyString },
     });
 

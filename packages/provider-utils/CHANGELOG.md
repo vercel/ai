@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 6306603: chore: replace Validator with Schema
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- f0b2157: fix: revert zod import change
+
 ## 4.0.0-beta.14
 
 ### Patch Changes

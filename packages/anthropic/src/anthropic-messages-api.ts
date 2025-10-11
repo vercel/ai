@@ -1,6 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { InferValidator, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
 export type AnthropicMessagesPrompt = {
   system: Array<AnthropicTextContent> | undefined;
@@ -106,7 +106,11 @@ export interface AnthropicServerToolUseContent {
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
-  content: string | Array<AnthropicTextContent | AnthropicImageContent>;
+  content:
+    | string
+    | Array<
+        AnthropicTextContent | AnthropicImageContent | AnthropicDocumentContent
+      >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -552,12 +556,12 @@ export const anthropicReasoningMetadataSchema = lazySchema(() =>
   ),
 );
 
-export type AnthropicReasoningMetadata = InferValidator<
+export type AnthropicReasoningMetadata = InferSchema<
   typeof anthropicReasoningMetadataSchema
 >;
 
 export type Citation = NonNullable<
-  (InferValidator<typeof anthropicMessagesResponseSchema>['content'][number] & {
+  (InferSchema<typeof anthropicMessagesResponseSchema>['content'][number] & {
     type: 'text';
   })['citations']
 >[number];

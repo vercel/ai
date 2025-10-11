@@ -5,15 +5,18 @@ import * as z4 from 'zod/v4';
 import { arktypeToJsonSchema } from './to-json-schema/arktype-to-json-schema';
 import { effectToJsonSchema } from './to-json-schema/effect-to-json-schema';
 import { valibotToJsonSchema } from './to-json-schema/valibot-to-json-schema';
-import { Validator, validatorSymbol, type ValidationResult } from './validator';
-import zodToJsonSchema from './zod-to-json-schema';
+import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
  */
 const schemaSymbol = Symbol.for('vercel.ai.schema');
 
-export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
+export type ValidationResult<OBJECT> =
+  | { success: true; value: OBJECT }
+  | { success: false; error: Error };
+
+export type Schema<OBJECT = unknown> = {
   /**
    * Used to mark schemas so we can support both Zod and custom schemas.
    */
@@ -23,6 +26,14 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
    * Schema type for inference.
    */
   _type: OBJECT;
+
+  /**
+   * Optional. Validates that the structure of a value matches this schema,
+   * and returns a typed version of the value if it does.
+   */
+  readonly validate?: (
+    value: unknown,
+  ) => ValidationResult<OBJECT> | PromiseLike<ValidationResult<OBJECT>>;
 
   /**
    * The JSON Schema for the schema. It is passed to the providers.
@@ -90,7 +101,6 @@ export function jsonSchema<OBJECT = unknown>(
   return {
     [schemaSymbol]: true,
     _type: undefined as OBJECT, // should never be used directly
-    [validatorSymbol]: true,
     get jsonSchema() {
       if (typeof jsonSchema === 'function') {
         jsonSchema = jsonSchema(); // cache the function results
@@ -163,7 +173,7 @@ export function standardSchema<OBJECT>(
     }
 
     default: {
-      return standardSchemaWithJsonSchemaResolver(standardSchema, () => {
+      return standardSchemaWithJsonSchemaResolver(standardSchema, () => () => {
         throw new Error(`Unsupported standard schema vendor: ${vendor}`);
       });
     }
@@ -174,7 +184,7 @@ function standardSchemaWithJsonSchemaResolver<OBJECT>(
   standardSchema: StandardSchemaV1<unknown, OBJECT>,
   jsonSchemaResolver: (
     schema: StandardSchemaV1<unknown, OBJECT>,
-  ) => JSONSchema7 | PromiseLike<JSONSchema7>,
+  ) => () => JSONSchema7 | PromiseLike<JSONSchema7>,
 ): Schema<OBJECT> {
   return jsonSchema(jsonSchemaResolver(standardSchema), {
     validate: async value => {
@@ -210,7 +220,7 @@ export function zod3Schema<OBJECT>(
   return jsonSchema(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
-      zodToJsonSchema(zodSchema, {
+      zod3ToJsonSchema(zodSchema, {
         $refStrategy: useReferences ? 'root' : 'none',
       }) as JSONSchema7,
     {

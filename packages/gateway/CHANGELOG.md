@@ -1,5 +1,20 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- f0b2157: fix: revert zod import change
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+
 ## 2.0.0-beta.27
 
 ### Patch Changes

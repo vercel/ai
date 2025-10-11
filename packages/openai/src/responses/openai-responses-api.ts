@@ -1,10 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
@@ -234,14 +230,14 @@ const openaiResponsesAnnotationSchema = z.discriminatedUnion('type', [
     type: z.literal('url_citation'),
     url: z.string(),
     title: z.string(),
+    start_index: z.number(),
+    end_index: z.number(),
   }),
   z.object({
     type: z.literal('file_citation'),
     file_id: z.string(),
-    filename: z.string().nullish(),
-    index: z.number().nullish(),
-    start_index: z.number().nullish(),
-    end_index: z.number().nullish(),
+    filename: z.string(),
+    index: z.number(),
     quote: z.string().nullish(),
   }),
   z.object({
@@ -257,7 +253,7 @@ export type OpenaiResponsesAnnotationSchema = z.infer<
   typeof openaiResponsesAnnotationSchema
 >;
 
-export const openaiResponsesChunkSchema = lazyValidator(() =>
+export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
       z.object({
@@ -521,7 +517,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
   ),
 );
 
-export type OpenAIResponsesChunk = InferValidator<
+export type OpenAIResponsesChunk = InferSchema<
   typeof openaiResponsesChunkSchema
 >;
 
@@ -531,7 +527,7 @@ export type OpenAIResponsesLogprobs = NonNullable<
   })['logprobs']
 > | null;
 
-export const openaiResponsesResponseSchema = lazyValidator(() =>
+export const openaiResponsesResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),

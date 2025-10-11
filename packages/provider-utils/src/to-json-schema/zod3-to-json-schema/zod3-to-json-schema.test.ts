@@ -6,13 +6,13 @@ import {
   jsonDescription,
   PostProcessCallback,
 } from './options';
-import { zodToJsonSchema } from './zod-to-json-schema';
+import { zod3ToJsonSchema } from './zod3-to-json-schema';
 
-describe('zod-to-json-schema', () => {
+describe('zod3-to-json-schema', () => {
   describe('override', () => {
     it('the readme example', () => {
       expect(
-        zodToJsonSchema(
+        zod3ToJsonSchema(
           z.object({
             ignoreThis: z.string(),
             overrideThis: z.string(),
@@ -101,7 +101,7 @@ describe('zod-to-json-schema', () => {
         return jsonSchema;
       };
 
-      const jsonSchemaResult = zodToJsonSchema(zodSchema, {
+      const jsonSchemaResult = zod3ToJsonSchema(zodSchema, {
         postProcess,
       });
 
@@ -137,7 +137,7 @@ describe('zod-to-json-schema', () => {
         }),
       );
 
-      const jsonSchemaResult = zodToJsonSchema(zodSchema, {
+      const jsonSchemaResult = zod3ToJsonSchema(zodSchema, {
         postProcess: jsonDescription,
       });
 
@@ -153,13 +153,13 @@ describe('zod-to-json-schema', () => {
   });
 
   it('should return the schema directly in the root if no name is passed', () => {
-    expect(zodToJsonSchema(z.any())).toStrictEqual({
+    expect(zod3ToJsonSchema(z.any())).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
     } satisfies JSONSchema7);
   });
 
   it('should return the schema inside a named property in "definitions" if a name is passed', () => {
-    expect(zodToJsonSchema(z.any(), 'MySchema')).toStrictEqual({
+    expect(zod3ToJsonSchema(z.any(), 'MySchema')).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
       $ref: `#/definitions/MySchema`,
       definitions: {
@@ -170,7 +170,7 @@ describe('zod-to-json-schema', () => {
 
   it('should return the schema inside a named property in "$defs" if a name and definitionPath is passed in options', () => {
     expect(
-      zodToJsonSchema(z.any(), { name: 'MySchema', definitionPath: '$defs' }),
+      zod3ToJsonSchema(z.any(), { name: 'MySchema', definitionPath: '$defs' }),
     ).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
       $ref: `#/$defs/MySchema`,
@@ -182,7 +182,7 @@ describe('zod-to-json-schema', () => {
 
   it("should not scrub 'any'-schemas from unions when strictUnions=false", () => {
     expect(
-      zodToJsonSchema(
+      zod3ToJsonSchema(
         z.union([z.any(), z.instanceof(String), z.string(), z.number()]),
         { strictUnions: false },
       ),
@@ -194,7 +194,7 @@ describe('zod-to-json-schema', () => {
 
   it("should scrub 'any'-schemas from unions when strictUnions=true", () => {
     expect(
-      zodToJsonSchema(
+      zod3ToJsonSchema(
         z.union([z.any(), z.instanceof(String), z.string(), z.number()]),
         { strictUnions: true },
       ),
@@ -206,7 +206,7 @@ describe('zod-to-json-schema', () => {
 
   it("should scrub 'any'-schemas from unions when strictUnions=true in objects", () => {
     expect(
-      zodToJsonSchema(
+      zod3ToJsonSchema(
         z.object({
           field: z.union([
             z.any(),
@@ -231,7 +231,7 @@ describe('zod-to-json-schema', () => {
     const MySpecialStringSchema = z.string();
     const MyArraySchema = z.array(MySpecialStringSchema);
 
-    const result = zodToJsonSchema(MyArraySchema, {
+    const result = zod3ToJsonSchema(MyArraySchema, {
       definitions: {
         MySpecialStringSchema,
         MyArraySchema,
@@ -255,7 +255,7 @@ describe('zod-to-json-schema', () => {
 
   it('should be possible to add name as title instead of as ref', () => {
     expect(
-      zodToJsonSchema(z.string(), { name: 'hello', nameStrategy: 'title' }),
+      zod3ToJsonSchema(z.string(), { name: 'hello', nameStrategy: 'title' }),
     ).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'string',
@@ -264,7 +264,9 @@ describe('zod-to-json-schema', () => {
   });
 
   it('should be possible to use description', () => {
-    const parsedSchema = zodToJsonSchema(z.string().describe('My neat string'));
+    const parsedSchema = zod3ToJsonSchema(
+      z.string().describe('My neat string'),
+    );
 
     expect(parsedSchema).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -283,7 +285,7 @@ describe('zod-to-json-schema', () => {
       })
       .describe('sssssssss');
 
-    const jsonSchema = zodToJsonSchema(zodSchema, {
+    const jsonSchema = zod3ToJsonSchema(zodSchema, {
       $refStrategy: 'none',
     });
 
@@ -331,7 +333,7 @@ describe('zod-to-json-schema', () => {
         }),
     });
 
-    const output = zodToJsonSchema(schema);
+    const output = zod3ToJsonSchema(schema);
 
     expect(output).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -352,7 +354,7 @@ describe('zod-to-json-schema', () => {
         .describe('An array of topics'),
     });
 
-    const res = zodToJsonSchema(topicSchema);
+    const res = zod3ToJsonSchema(topicSchema);
 
     expect(res).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -390,7 +392,7 @@ describe('zod-to-json-schema', () => {
       .regex(urlRegex, { message: 'Please enter a valid URL' })
       .brand('url');
 
-    const jsonSchemaJs = zodToJsonSchema(URLSchema, { errorMessages: true });
+    const jsonSchemaJs = zod3ToJsonSchema(URLSchema, { errorMessages: true });
     const jsonSchema = JSON.parse(JSON.stringify(jsonSchemaJs));
 
     expect(jsonSchema).toStrictEqual({
@@ -412,7 +414,7 @@ describe('zod-to-json-schema', () => {
       ref1: A,
     });
 
-    const result = zodToJsonSchema(A);
+    const result = zod3ToJsonSchema(A);
 
     expect(result).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
@@ -534,7 +536,7 @@ describe('zod-to-json-schema', () => {
       .default({ string: 'hello' })
       .describe('watup');
 
-    expect(zodToJsonSchema(allParsersSchema)).toStrictEqual({
+    expect(zod3ToJsonSchema(allParsersSchema)).toStrictEqual({
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
