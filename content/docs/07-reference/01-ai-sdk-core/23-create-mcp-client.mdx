@@ -79,11 +79,11 @@ This feature is experimental and may change or be removed in the future.
                   ],
                 },
                 {
-                  type: 'McpSSEServerConfig',
+                  type: 'MCPTransportConfig',
                   parameters: [
                     {
                       name: 'type',
-                      type: "'sse'",
+                      type: "'sse' | 'http",
                       description: 'Use Server-Sent Events for communication',
                     },
                     {
@@ -97,6 +97,13 @@ This feature is experimental and may change or be removed in the future.
                       isOptional: true,
                       description:
                         'Additional HTTP headers to be sent with requests.',
+                    },
+                    {
+                      name: 'authProvider',
+                      type: 'OAuthClientProvider',
+                      isOptional: true,
+                      description:
+                        'Optional OAuth provider for authorization to access protected remote MCP servers.',
                     },
                   ],
                 },

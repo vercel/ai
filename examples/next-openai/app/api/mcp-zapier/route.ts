@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_createMCPClient, stepCountIs, streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
+import { experimental_createMCPClient } from '@ai-sdk/mcp';
 
 export const maxDuration = 30;
 
