@@ -680,21 +680,12 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": [
-              {
-                "text": "I will search for that information.",
-                "type": "output_text",
-              },
-            ],
             "id": "id_123",
-            "role": "assistant",
+            "type": "item_reference",
           },
           {
-            "arguments": "{"query":"weather in San Francisco"}",
-            "call_id": "call_123",
             "id": "id_456",
-            "name": "search",
-            "type": "function_call",
+            "type": "item_reference",
           },
         ]
       `);
@@ -2047,6 +2038,58 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           store: true,
+          hasLocalShellTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+              "type": "item_reference",
+            },
+            {
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "output": "example output",
+              "type": "local_shell_call_output",
+            },
+          ]
+        `);
+      });
+
+      it('should convert local shell tool call and result into item reference with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  input: { action: { type: 'exec', command: ['ls'] } },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  output: { type: 'json', value: { output: 'example output' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: false,
           hasLocalShellTool: true,
         });
 
