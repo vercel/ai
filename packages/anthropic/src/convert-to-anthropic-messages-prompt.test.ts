@@ -490,6 +490,79 @@ describe('tool messages', () => {
       }
     `);
   });
+
+  it('should handle tool result with PDF content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'pdf-generator',
+              toolCallId: 'pdf-gen-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'PDF generated successfully',
+                  },
+                  {
+                    type: 'media',
+                    data: 'JVBERi0xLjQKJeLjz9MKNCAwIG9iago=', // Sample PDF base64
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "PDF generated successfully",
+                      "type": "text",
+                    },
+                    {
+                      "cache_control": undefined,
+                      "source": {
+                        "data": "JVBERi0xLjQKJeLjz9MKNCAwIG9iago=",
+                        "media_type": "application/pdf",
+                        "type": "base64",
+                      },
+                      "type": "document",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "pdf-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
 });
 
 describe('assistant messages', () => {

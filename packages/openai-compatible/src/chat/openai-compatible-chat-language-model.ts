@@ -195,6 +195,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         ),
 
         reasoning_effort: compatibleOptions.reasoningEffort,
+        verbosity: compatibleOptions.textVerbosity,
 
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt),

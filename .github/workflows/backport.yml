@@ -141,15 +141,18 @@ jobs:
               --body "$PR_BODY_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
               --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
+              --assignee ${{ github.event.pull_request.merged_by.login }} \
               --draft)
           else
             PR_URL=$(gh pr create \
               --title "$PR_TITLE" \
               --body "$PR_BODY_NO_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
-              --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }})
+              --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
+              --assignee ${{ github.event.pull_request.merged_by.login }})
           fi
           echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+          gh pr merge "$PR_URL" --auto --squash || echo "Auto-merge could not be enabled"
           echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
