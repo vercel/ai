@@ -98,6 +98,13 @@ async function main() {
 
     console.log('\n---');
 
+    console.log('📦 Bundle size check complete.');
+    console.log(
+      'Upload dist-bundle-check/*.json files to https://esbuild.github.io/analyze/ for detailed analysis.',
+    );
+
+    console.log('\n---');
+
     if (nodePass && browserPass) {
       console.log('✅ All bundle size checks passed!');
       process.exit(0);
@@ -110,11 +117,6 @@ async function main() {
       );
       process.exit(1);
     }
-
-    console.log('📦 Bundle size check complete.');
-    console.log(
-      'Upload dist-bundle-check/*.json files to https://esbuild.github.io/analyze/ for detailed analysis.',
-    );
   } catch (error) {
     console.error('Error during bundle size check:', error);
     process.exit(1);
