@@ -135,6 +135,7 @@ jobs:
         run: cd packages/ai && pnpm run check-bundle-size ${{ vars.BUNDLE_SIZE_LIMIT_KB }}
 
       - name: Upload bundle size metafiles
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: bundle-size-metafiles
