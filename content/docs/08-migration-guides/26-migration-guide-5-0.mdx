@@ -2095,6 +2095,21 @@ The `experimental_attachments` property has been replaced with the parts array.
 }
 ```
 
+<Note>
+  Some models do not support text files (text/plain, text/markdown, text/csv,
+  etc.) as file parts. For text files, we recommend to read the content and send as a text part
+  instead:
+
+```tsx
+// Instead of this:
+{ type: 'file', data: buffer, mediaType: 'text/plain' }
+
+// Do this:
+{ type: 'text', text: buffer.toString('utf-8') }
+```
+
+</Note>
+
 ### Embedding Changes
 
 #### Provider Options for Embeddings
