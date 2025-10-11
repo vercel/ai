@@ -112,6 +112,10 @@ jobs:
     needs: load-time-setup
     runs-on: ubuntu-latest
     steps:
+      - name: Check bundle size
+        working-directory: packages/ai
+        run: pnpm run check-bundle-size
+
       - name: Upload bundle size metafiles
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
