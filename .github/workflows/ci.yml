@@ -109,6 +109,18 @@ jobs:
 
   bundle-size:
     name: 'Bundle Size Check'
+    needs: load-time-setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload bundle size metafiles
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-size-metafiles
+          path: packages/ai/dist-bundle-check/*.json
+
+  load-time-setup:
+    name: 'Load Time Setup'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -131,19 +143,19 @@ jobs:
       - name: Build packages
         run: pnpm run build:packages
 
-      - name: Check bundle size
-        run: cd packages/ai && pnpm run check-bundle-size
-
-      - name: Upload bundle size metafiles
-        if: ${{ always() }}
+      - name: Upload built packages
         uses: actions/upload-artifact@v4
         with:
-          name: bundle-size-metafiles
-          path: packages/ai/dist-bundle-check/*.json
+          name: built-packages
+          path: |
+            packages/*/dist
+            !packages/*/dist/**/*.tsbuildinfo
+          retention-days: 1
 
   load-time_matrix:
     name: 'Load Time Check'
     runs-on: ubuntu-latest
+    needs: load-time-setup
     strategy:
       fail-fast: false
       matrix:
@@ -176,8 +188,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build packages
-        run: pnpm run build:packages
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          name: built-packages
+          path: packages
 
       - name: Measure and check load time for ${{ matrix.module }}
         id: load-time
