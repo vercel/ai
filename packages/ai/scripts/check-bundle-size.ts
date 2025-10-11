@@ -112,8 +112,9 @@ async function main() {
     }
 
     console.log('📦 Bundle size check complete.');
-    console.log('Upload dist-bundle-check/*.json files to https://esbuild.github.io/analyze/ for detailed analysis.');
-
+    console.log(
+      'Upload dist-bundle-check/*.json files to https://esbuild.github.io/analyze/ for detailed analysis.',
+    );
   } catch (error) {
     console.error('Error during bundle size check:', error);
     process.exit(1);
