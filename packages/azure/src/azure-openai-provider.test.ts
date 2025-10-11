@@ -1,15 +1,17 @@
 import {
   EmbeddingModelV3Embedding,
+  LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { createAzure } from './azure-openai-provider';
-import { describe, it, expect, vi } from 'vitest';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
+import { describe, it, expect, vi } from 'vitest';
 import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
+import { createAzure } from './azure-openai-provider';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -18,6 +20,44 @@ vi.mock('./version', () => ({
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
+
+const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
+  {
+    type: 'function',
+    name: 'weather',
+    inputSchema: {
+      type: 'object',
+      properties: { location: { type: 'string' } },
+      required: ['location'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'cityAttractions',
+    inputSchema: {
+      type: 'object',
+      properties: { city: { type: 'string' } },
+      required: ['city'],
+      additionalProperties: false,
+    },
+  },
+];
+
+function prepareChunksFixture(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls[
+    'https://test-resource.openai.azure.com/openai/v1/responses'
+  ].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
 
 function createModel(modelId: string) {
   return new OpenAIResponsesLanguageModel(modelId, {
@@ -840,6 +880,340 @@ describe('responses', () => {
   });
 
   describe('doStream', () => {
+    it('should stream text deltas', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/responses'
+      ].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[],"logprobs": []}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello,","logprobs": []}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":" World!","logprobs": []}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"text":"Hello, World!"}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello, World!","annotations":[],"logprobs": []}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[],"logprobs": []}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":123},"total_tokens":512},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "providerMetadata": {
+              "azure": {
+                "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello,",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "delta": " World!",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [],
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "azure": {
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 234,
+              "inputTokens": 543,
+              "outputTokens": 478,
+              "reasoningTokens": 123,
+              "totalTokens": 1021,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should send streaming tool calls', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/responses'
+      ].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_6KxSghkb4MVnunFH2TxPErLP","name":"currentLocation","arguments":"","status":"completed"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"delta":"{}"}\n\n`,
+          `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"arguments":"{}"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_pgjcAI4ZegMkP6bsAV7sfrJA","name":"currentLocation","arguments":"{}","status":"completed"}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_Dg6WUmFHNeR5JxX1s53s1G4b","name":"weather","arguments":"","status":"in_progress"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"{"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"location"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\":"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"Rome"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"}"}\n\n`,
+          `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"arguments":"{\\"location\\":\\"Rome\\"}"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_KsVqaVAf3alAtCCkQe4itE7W","name":"currentLocation","arguments":"{}","status":"completed"},{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('test-deployment').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67cb13a755c08190acbe3839a49632fc",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-07T15:41:27.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "toolName": "currentLocation",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{}",
+            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{}",
+            "providerMetadata": {
+              "azure": {
+                "itemId": "fc_67cb13a838088190be08eb3927c87501",
+              },
+            },
+            "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+            "toolName": "currentLocation",
+            "type": "tool-call",
+          },
+          {
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolName": "weather",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""location",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "":",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""Rome",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""}",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_X2PAkDJInno9VVnNkDrfhboW",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"location":"Rome"}",
+            "providerMetadata": {
+              "azure": {
+                "itemId": "fc_67cb13a858f081908a600343fa040f47",
+              },
+            },
+            "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "azure": {
+                "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should send web search tool calls', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/responses'
+      ].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+          `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search","query":"Vercel AI SDK next version features"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('test-deployment').doStream({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_test",
+            "modelId": "o3-2025-04-16",
+            "timestamp": 2025-03-10T18:10:55.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "ws_test",
+            "providerExecuted": true,
+            "toolName": "web_search",
+            "type": "tool-input-start",
+          },
+          {
+            "id": "ws_test",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
+            "providerExecuted": true,
+            "toolCallId": "ws_test",
+            "toolName": "web_search",
+            "type": "tool-call",
+          },
+          {
+            "providerExecuted": true,
+            "result": {
+              "status": "completed",
+            },
+            "toolCallId": "ws_test",
+            "toolName": "web_search",
+            "type": "tool-result",
+          },
+          {
+            "id": "msg_test",
+            "providerMetadata": {
+              "azure": {
+                "itemId": "msg_test",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "Based on the search results, here are the upcoming features.",
+            "id": "msg_test",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_test",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [],
+                "itemId": "msg_test",
+              },
+            },
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "azure": {
+                "responseId": "resp_test",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 50,
+              "outputTokens": 25,
+              "reasoningTokens": 0,
+              "totalTokens": 75,
+            },
+          },
+        ]
+      `);
+    });
+
     it('should handle file_citation annotations without optional fields in streaming', async () => {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/responses'
@@ -924,6 +1298,26 @@ describe('responses', () => {
           },
         ]
       `);
+    });
+
+    it('should send code interpreter calls', async () => {
+      prepareChunksFixture('openai-code-interpreter-tool.1');
+
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {},
+          },
+        ],
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
   });
 });
