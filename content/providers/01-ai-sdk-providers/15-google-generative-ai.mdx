@@ -728,6 +728,40 @@ const { text } = await generateText({
 
 The system instruction is automatically formatted and included in the conversation, so Gemma models can follow the guidance without any additional configuration.
 
+## Converting Messages to Google Format
+
+You can convert AI SDK messages to Google's native message format using the `convertToGoogleGenerativeAIMessages` function. This is useful when you want to use Google's native APIs directly while still using the AI SDK's message format.
+
+A common use case is leveraging Google's token counting API to estimate costs before making requests:
+
+```ts
+import { convertToGoogleGenerativeAIMessages } from '@ai-sdk/google';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+
+// Your AI SDK messages
+const messages = [
+  { role: 'system', content: 'You are a helpful assistant.' },
+  {
+    role: 'user',
+    content: [{ type: 'text', text: 'What is the capital of France?' }],
+  },
+];
+
+// Convert to Google format
+const googlePrompt = convertToGoogleGenerativeAIMessages(messages);
+
+// Use with Google's native token counting API
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const { totalTokens } = await model.countTokens({
+  contents: googlePrompt.contents,
+  systemInstruction: googlePrompt.systemInstruction,
+});
+
+console.log(`Estimated tokens: ${totalTokens}`);
+```
+
 ## Embedding Models
 
 You can create models that call the [Google Generative AI embeddings API](https://ai.google.dev/gemini-api/docs/embeddings)

@@ -4,4 +4,6 @@ export type {
   AnthropicProvider,
   AnthropicProviderSettings,
 } from './anthropic-provider';
+export { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+export type { AnthropicMessagesPrompt } from './anthropic-messages-api';
 export { VERSION } from './version';
