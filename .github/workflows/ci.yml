@@ -11,8 +11,8 @@ on:
       - release-v*
 
 jobs:
-  build-examples:
-    name: 'Build Examples'
+  load-time-setup:
+    name: 'Build Packages'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,6 +31,29 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build:packages
+
+      - name: Upload built packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-packages
+          path: |
+            packages/*/dist
+            !packages/*/dist/**/*.tsbuildinfo
+          retention-days: 1
+
+  build-examples:
+    name: 'Build Examples'
+    runs-on: ubuntu-latest
+    needs: load-time-setup
+    steps:
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          name: built-packages
+          path: packages
 
       - name: Build Examples
         run: pnpm run build:examples
@@ -86,23 +109,13 @@ jobs:
   types:
     name: 'TypeScript'
     runs-on: ubuntu-latest
+    needs: load-time-setup
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Download built packages
+        uses: actions/download-artifact@v4
         with:
-          version: 10.11.0
-
-      - name: Use Node.js 22
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          name: built-packages
+          path: packages
 
       - name: Run TypeScript type check
         run: pnpm run type-check:full
@@ -112,6 +125,12 @@ jobs:
     needs: load-time-setup
     runs-on: ubuntu-latest
     steps:
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          name: built-packages
+          path: packages
+
       - name: Check bundle size
         working-directory: packages/ai
         run: pnpm run check-bundle-size
@@ -122,39 +141,6 @@ jobs:
         with:
           name: bundle-size-metafiles
           path: packages/ai/dist-bundle-check/*.json
-
-  load-time-setup:
-    name: 'Load Time Setup'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.11.0
-
-      - name: Use Node.js 22
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm run build:packages
-
-      - name: Upload built packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: built-packages
-          path: |
-            packages/*/dist
-            !packages/*/dist/**/*.tsbuildinfo
-          retention-days: 1
 
   load-time_matrix:
     name: 'Load Time Check'
@@ -175,23 +161,6 @@ jobs:
           - module: '@ai-sdk/google'
             max-load-time: 100
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.11.0
-
-      - name: Use Node.js 22
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Download built packages
         uses: actions/download-artifact@v4
         with:
@@ -268,6 +237,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          name: built-packages
+          path: packages
 
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
