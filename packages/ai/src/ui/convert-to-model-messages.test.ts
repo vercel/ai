@@ -1184,4 +1184,475 @@ describe('convertToModelMessages', () => {
       `);
     });
   });
+
+  describe('when converting tool approval request responses', () => {
+    it('should convert an approved tool approval request', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                reason: undefined,
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert a denied tool approval request and follow up text', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: false,
+                id: 'approval-1',
+                reason: "I don't want to approve this",
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'I was not able to retrieve the weather.',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "reason": "I don't want to approve this",
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "I was not able to retrieve the weather.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool output denied', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: false,
+                id: 'approval-1',
+                reason: "I don't want to approve this",
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'output-denied',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "reason": "I don't want to approve this",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "I don't want to approve this",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool output result with approval and follow up text', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              output: {
+                weather: 'Sunny',
+                temperature: '20°C',
+              },
+              state: 'output-available',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'The weather in Tokyo is sunny.',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "temperature": "20°C",
+                    "weather": "Sunny",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "The weather in Tokyo is sunny.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool error result with approval and follow up text', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              errorText: 'Error: Fetching weather data failed',
+              state: 'output-error',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'The weather in Tokyo is sunny.',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Error: Fetching weather data failed",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "The weather in Tokyo is sunny.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
 });

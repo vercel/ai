@@ -137,14 +137,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
-    const { toolConfig, additionalTools, toolWarnings, betas } = prepareTools({
-      tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
-      toolChoice:
-        jsonResponseTool != null
-          ? { type: 'tool', toolName: jsonResponseTool.name }
-          : toolChoice,
-      modelId: this.modelId,
-    });
+    const { toolConfig, additionalTools, toolWarnings, betas } =
+      await prepareTools({
+        tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
+        toolChoice:
+          jsonResponseTool != null
+            ? { type: 'tool', toolName: jsonResponseTool.name }
+            : toolChoice,
+        modelId: this.modelId,
+      });
 
     warnings.push(...toolWarnings);
 

@@ -28,8 +28,8 @@ const mockToolsWithProviderDefined = {
 };
 
 describe('prepareToolsAndToolChoice', () => {
-  it('should return undefined for both tools and toolChoice when tools is not provided', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should return undefined for both tools and toolChoice when tools is not provided', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: undefined,
       toolChoice: undefined,
       activeTools: undefined,
@@ -43,8 +43,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should return all tools when activeTools is not provided', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should return all tools when activeTools is not provided', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,
       activeTools: undefined,
@@ -92,8 +92,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should filter tools based on activeTools', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should filter tools based on activeTools', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,
       activeTools: ['tool1'],
@@ -122,8 +122,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should handle string toolChoice', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should handle string toolChoice', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: 'none',
       activeTools: undefined,
@@ -171,8 +171,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should handle object toolChoice', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should handle object toolChoice', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: { type: 'tool', toolName: 'tool2' },
       activeTools: undefined,
@@ -221,8 +221,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should correctly map tool properties', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should correctly map tool properties', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,
       activeTools: undefined,
@@ -270,8 +270,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should handle provider-defined tool type', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should handle provider-defined tool type', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockToolsWithProviderDefined,
       toolChoice: undefined,
       activeTools: undefined,
@@ -327,8 +327,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should pass through provider options', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should pass through provider options', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: {
         tool1: tool({
           description: 'Tool 1 description',

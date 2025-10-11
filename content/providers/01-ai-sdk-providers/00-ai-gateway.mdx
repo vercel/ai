@@ -35,7 +35,7 @@ const { text } = await generateText({
 ```
 
 ```ts
-// use provider instance
+// use provider instance (requires version 5.0.36 or later)
 import { generateText, gateway } from 'ai';
 
 const { text } = await generateText({
@@ -47,6 +47,11 @@ const { text } = await generateText({
 The AI SDK automatically uses the AI Gateway when you pass a model string in the `creator/model-name` format.
 
 ## Provider Instance
+
+<Note>
+  The `gateway` provider instance is available from the `ai` package in version
+  5.0.36 and later.
+</Note>
 
 You can also import the default provider instance `gateway` from `ai`:
 
@@ -281,31 +286,72 @@ const { text } = await generateText({
 
 ## Provider Options
 
-When using provider-specific options, use the actual provider name (e.g. `anthropic` not `gateway`) as the key:
+The AI Gateway provider accepts provider options that control routing behavior and provider-specific configurations.
+
+### Gateway Provider Options
+
+You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
 
 ```ts
-// with model string
 import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: 'anthropic/claude-sonnet-4',
   prompt: 'Explain quantum computing',
   providerOptions: {
-    anthropic: {
-      thinking: { type: 'enabled', budgetTokens: 12000 },
+    gateway: {
+      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
+      only: ['vertex', 'anthropic'], // Only use these providers
     },
   },
 });
 ```
+
+The following gateway provider options are available:
+
+- **order** _string[]_
+
+  Specifies the sequence of providers to attempt when routing requests. The gateway will try providers in the order specified. If a provider fails or is unavailable, it will move to the next provider in the list.
+
+  Example: `order: ['bedrock', 'anthropic']` will attempt Amazon Bedrock first, then fall back to Anthropic.
+
+- **only** _string[]_
+
+  Restricts routing to only the specified providers. When set, the gateway will never route to providers not in this list, even if they would otherwise be available.
+
+  Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
+
+You can combine both options to have fine-grained control over routing:
 
 ```ts
-// with provider instance
-import { gateway, generateText } from 'ai';
+import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-sonnet-4'),
+  model: 'anthropic/claude-sonnet-4',
+  prompt: 'Write a haiku about programming',
+  providerOptions: {
+    gateway: {
+      order: ['vertex'], // Prefer Vertex AI
+      only: ['anthropic', 'vertex'], // Only allow these providers
+    },
+  },
+});
+```
+
+### Provider-Specific Options
+
+When using provider-specific options through AI Gateway, use the actual provider name (e.g. `anthropic`, `openai`, not `gateway`) as the key:
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4',
   prompt: 'Explain quantum computing',
   providerOptions: {
+    gateway: {
+      order: ['vertex', 'anthropic'],
+    },
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },
     },
@@ -313,7 +359,13 @@ const { text } = await generateText({
 });
 ```
 
-The AI Gateway provider also accepts its own set of options. Refer to the [AI Gateway provider options documentation](https://vercel.com/docs/ai-gateway/provider-options).
+This works with any provider supported by AI Gateway. Each provider has its own set of options - see the individual [provider documentation pages](/providers/ai-sdk-providers) for details on provider-specific options.
+
+### Available Providers
+
+AI Gateway supports routing to 20+ providers.
+
+For a complete list of available providers and their slugs, see the [AI Gateway documentation](https://vercel.com/docs/ai-gateway/provider-options#available-providers).
 
 ## Model Capabilities
 
