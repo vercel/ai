@@ -132,7 +132,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
     function addInclude(key: OpenAIResponsesIncludeValue) {
-      include = include != null ? [...include, key] : [key];
+      if (include == null) {
+        include = [key];
+      } else if (!include.includes(key)) {
+        include = [...include, key];
+      }
     }
 
     function hasOpenAITool(id: string) {
