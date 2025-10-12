@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- b689220: Add textVerbosity provider option support
+
 ## 2.0.0-beta.16
 
 ### Patch Changes
