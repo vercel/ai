@@ -418,6 +418,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         totalTokens: response.usage?.inputTokens + response.usage?.outputTokens,
         cachedInputTokens: response.usage?.cacheReadInputTokens ?? undefined,
       },
+      request: { body: args },
       response: {
         // TODO add id, timestamp, etc
         headers: responseHeaders,
@@ -764,7 +765,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           },
         }),
       ),
-      // TODO request?
+      request: { body: args },
       response: { headers: responseHeaders },
     };
   }
