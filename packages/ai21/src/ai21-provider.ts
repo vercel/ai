@@ -69,7 +69,7 @@ export function createAI21(options: AI21ProviderSettings = {}): AI21Provider {
 
   const createLanguageModel = (modelId: AI21ChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {
-      provider: `ai21.com`,
+      provider: `ai21.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
