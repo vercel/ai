@@ -40,7 +40,7 @@ const webSearchInputSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('open_page'),
-            url: z.string(),
+            url: z.string().nullish(),
           }),
           z.object({
             type: z.literal('find'),
