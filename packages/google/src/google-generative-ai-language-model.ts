@@ -110,6 +110,23 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           `(${this.config.provider}).`,
       });
     }
+    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
+    if (
+      tools?.some(
+        tool =>
+          tool.type === 'provider-defined' &&
+          tool.id === 'google.vertex_rag_store',
+      ) &&
+      !this.config.provider.startsWith('google.vertex.')
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          `(${this.config.provider}).`,
+      });
+    }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
 

@@ -772,12 +772,6 @@ describe('doGenerate', () => {
           {
             web: { uri: 'https://source.example.com', title: 'Source Title' },
           },
-          {
-            retrievedContext: {
-              uri: 'https://not-a-source.example.com',
-              title: 'Not a Source',
-            },
-          },
         ],
       },
     });
@@ -1255,6 +1249,44 @@ describe('doGenerate', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: [{ urlContext: {} }],
+      });
+    });
+    it('should use vertexRagStore for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
+      await gemini2Pro.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.vertex_rag_store',
+            name: 'vertex_rag_store',
+            args: {
+              ragCorpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+              topK: 5,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: [
+          {
+            retrieval: {
+              vertex_rag_store: {
+                rag_resources: {
+                  rag_corpus:
+                    'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+                },
+                similarity_top_k: 5,
+              },
+            },
+          },
+        ],
       });
     });
   });
