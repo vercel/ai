@@ -124,6 +124,20 @@ export function prepareTools({
             });
           }
           break;
+        case 'google.vertex_rag_store':
+          if (isGemini2) {
+            googleTools.retrieval = {
+              vertex_rag_store: {
+                rag_resources: {
+                  rag_corpus: tool.args.ragCorpus,
+                },
+                similarity_top_k: tool.args.topK as number | undefined,
+              },
+            };
+          } else {
+            toolWarnings.push({ type: 'unsupported-tool', tool });
+          }
+          break;
         default:
           toolWarnings.push({ type: 'unsupported-tool', tool });
           break;
