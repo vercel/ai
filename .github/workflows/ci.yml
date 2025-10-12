@@ -254,6 +254,9 @@ jobs:
             echo ""
             echo "✅ Load time check passed!"
             echo "${{ matrix.module }}: ${AVERAGE_TIME}ms is within ${{ matrix.max-load-time }}ms threshold"
+
+            # write result to summary
+            echo "- Load Time Check for ${{ matrix.module }}: ${AVERAGE_TIME}ms (Max: ${{ matrix.max-load-time }}ms)" >> $GITHUB_STEP_SUMMARY
           fi
 
   # separate "load-time" job to set as required in branch protections,
