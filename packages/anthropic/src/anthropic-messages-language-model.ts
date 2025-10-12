@@ -464,7 +464,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           if (
             part.name === 'web_search' ||
             part.name === 'code_execution' ||
-            part.name === 'web_fetch'
+            part.name === 'web_fetch' ||
+            part.name === 'text_editor_code_execution' ||
+            part.name === 'bash_code_execution'
           ) {
             content.push({
               type: 'tool-call',
@@ -589,6 +591,34 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           }
           break;
         }
+        case 'text_editor_code_execution_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'text_editor_code_execution',
+            result: {
+              type: part.content.type,
+              is_file_update: part.content.is_file_update,
+            },
+            providerExecuted: true,
+          });
+          break;
+        }
+        case 'bash_code_execution_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'bash_code_execution',
+            result: {
+              type: part.content.type,
+              stdout: part.content.stdout,
+              stderr: part.content.stderr,
+              return_code: part.content.return_code,
+            },
+            providerExecuted: true,
+          });
+          break;
+        }
       }
     }
 
@@ -678,6 +708,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | 'web_fetch_tool_result'
       | 'web_search_tool_result'
       | 'code_execution_tool_result'
+      | 'text_editor_code_execution_tool_result'
+      | 'bash_code_execution_tool_result'
       | undefined = undefined;
 
     const generateId = this.generateId;
@@ -773,7 +805,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     if (
                       value.content_block.name === 'web_fetch' ||
                       value.content_block.name === 'web_search' ||
-                      value.content_block.name === 'code_execution'
+                      value.content_block.name === 'code_execution' ||
+                      value.content_block.name ===
+                        'text_editor_code_execution' ||
+                      value.content_block.name === 'bash_code_execution'
                     ) {
                       contentBlocks[value.index] = {
                         type: 'tool-call',
@@ -916,6 +951,38 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       });
                     }
 
+                    return;
+                  }
+
+                  case 'text_editor_code_execution_tool_result': {
+                    const part = value.content_block;
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: 'text_editor_code_execution',
+                      result: {
+                        type: part.content.type,
+                        is_file_update: part.content.is_file_update,
+                      },
+                      providerExecuted: true,
+                    });
+                    return;
+                  }
+
+                  case 'bash_code_execution_tool_result': {
+                    const part = value.content_block;
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: 'bash_code_execution',
+                      result: {
+                        type: part.content.type,
+                        stdout: part.content.stdout,
+                        stderr: part.content.stderr,
+                        return_code: part.content.return_code,
+                      },
+                      providerExecuted: true,
+                    });
                     return;
                   }
 

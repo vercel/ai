@@ -60,6 +60,14 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.code_execution_20250825': {
+            betas.add('code-execution-2025-08-25');
+            anthropicTools.push({
+              type: 'code_execution_20250825',
+              name: 'code_execution',
+            });
+            break;
+          }
           case 'anthropic.computer_20250124': {
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({

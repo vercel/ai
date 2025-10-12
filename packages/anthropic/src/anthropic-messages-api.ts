@@ -140,6 +140,29 @@ export interface AnthropicCodeExecutionToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicTextEditorCodeExecutionToolResultContent {
+  type: 'text_editor_code_execution_tool_result';
+  tool_use_id: string;
+  content: {
+    type: 'text_editor_code_execution_create_result';
+    is_file_update: boolean;
+  };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicBashCodeExecutionToolResultContent {
+  type: 'bash_code_execution_tool_result';
+  tool_use_id: string;
+  content: {
+    type: 'bash_code_execution_result';
+    stdout: string;
+    stderr: string;
+    return_code: number;
+    content: unknown[];
+  };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export interface AnthropicWebFetchToolResultContent {
   type: 'web_fetch_tool_result';
   tool_use_id: string;
@@ -168,6 +191,10 @@ export type AnthropicTool =
     }
   | {
       type: 'code_execution_20250522';
+      name: string;
+    }
+  | {
+      type: 'code_execution_20250825';
       name: string;
     }
   | {
@@ -345,6 +372,25 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          z.object({
+            type: z.literal('text_editor_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.object({
+              type: z.literal('text_editor_code_execution_create_result'),
+              is_file_update: z.boolean(),
+            }),
+          }),
+          z.object({
+            type: z.literal('bash_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.object({
+              type: z.literal('bash_code_execution_result'),
+              stdout: z.string(),
+              stderr: z.string(),
+              return_code: z.number(),
+              content: z.array(z.unknown()),
+            }),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -462,6 +508,25 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 error_code: z.string(),
               }),
             ]),
+          }),
+          z.object({
+            type: z.literal('text_editor_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.object({
+              type: z.literal('text_editor_code_execution_create_result'),
+              is_file_update: z.boolean(),
+            }),
+          }),
+          z.object({
+            type: z.literal('bash_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.object({
+              type: z.literal('bash_code_execution_result'),
+              stdout: z.string(),
+              stderr: z.string(),
+              return_code: z.number(),
+              content: z.array(z.unknown()),
+            }),
           }),
         ]),
       }),
