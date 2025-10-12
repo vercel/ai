@@ -5,9 +5,9 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
-import ChatInput from '@/component/chat-input';
+import ChatInput from '@/components/chat-input';
 import { OpenAILocalShellMessage } from '@/agent/openai-local-shell-agent';
-import LocalShellView from '@/component/openai-local-shell-view';
+import LocalShellView from '@/components/tool/openai-local-shell-view';
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
