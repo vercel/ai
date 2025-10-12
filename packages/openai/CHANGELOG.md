@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.50
+
+### Patch Changes
+
+- c336b43: feat(provider/openai): send assistant text and tool call parts as reference ids when store: true
+
 ## 2.0.49
 
 ### Patch Changes
