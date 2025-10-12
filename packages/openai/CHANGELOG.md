@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- edc5548: feat(provider/openai): automatically add reasoning.encrypted_content include when store = false
+
 ## 3.0.0-beta.25
 
 ### Patch Changes
