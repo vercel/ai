@@ -11,7 +11,6 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { AI21ChatModelId } from './ai21-chat-options';
-import { ai21MetadataExtractor } from './ai21-metadata-extractor';
 import { VERSION } from './version';
 
 export interface AI21ProviderSettings {
@@ -74,7 +73,6 @@ export function createAI21(options: AI21ProviderSettings = {}): AI21Provider {
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      metadataExtractor: ai21MetadataExtractor,
     });
   };
 
