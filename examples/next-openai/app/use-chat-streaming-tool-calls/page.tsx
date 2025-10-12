@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import ChatInput from '@component/chat-input';
+import ChatInput from '@/components/chat-input';
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
