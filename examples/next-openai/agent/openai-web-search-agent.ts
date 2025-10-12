@@ -1,8 +1,8 @@
-import { openai } from '@ai-sdk/openai';
 import {
   Experimental_Agent as Agent,
   Experimental_InferAgentUIMessage as InferAgentUIMessage,
 } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export const openaiWebSearchAgent = new Agent({
   model: openai('gpt-5-mini'),
