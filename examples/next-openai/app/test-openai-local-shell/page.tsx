@@ -1,10 +1,20 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+<<<<<<< HEAD
 import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/component/chat-input';
 import { OpenAILocalShellMessage } from '@/app/api/chat-openai-local-shell/route';
 import LocalShellView from '@/component/openai-local-shell-view';
+=======
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+} from 'ai';
+import ChatInput from '@/components/chat-input';
+import { OpenAILocalShellMessage } from '@/agent/openai-local-shell-agent';
+import LocalShellView from '@/components/tool/openai-local-shell-view';
+>>>>>>> c2844e03f (chore(examples/next-openai): ai-elements, update web search example (#9423))
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } = useChat<OpenAILocalShellMessage>({
