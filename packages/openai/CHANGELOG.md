@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- 0b9fdd5: fix(provider/openai): end reasoning parts earlier
+
 ## 3.0.0-beta.28
 
 ### Patch Changes
