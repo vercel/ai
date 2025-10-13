@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- ai@6.0.0-beta.46
+
 ## 3.0.0-beta.45
 
 ### Patch Changes
