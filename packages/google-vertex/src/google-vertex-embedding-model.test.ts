@@ -18,7 +18,7 @@ const dummyEmbeddings = [
 const testValues = ['test text one', 'test text two'];
 
 const DEFAULT_URL =
-  'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google/models/textembedding-gecko@001:predict';
+  'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google/models/textembedding-gecko@001:predict';
 
 const CUSTOM_URL =
   'https://custom-endpoint.com/models/textembedding-gecko@001:predict';
@@ -43,7 +43,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     project: 'test-project',
     headers: () => ({}),
     baseURL:
-      'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
+      'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google',
   };
 
   const model = new GoogleVertexEmbeddingModel(mockModelId, mockConfig);

@@ -1071,7 +1071,7 @@ describe('doGenerate', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.tools).toEqual({ codeExecution: {} });
+    expect(requestBody.tools).toEqual([{ codeExecution: {} }]);
 
     expect(content).toEqual([
       {
@@ -1119,7 +1119,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -1142,7 +1142,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -1165,7 +1165,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearchRetrieval: {} },
+        tools: [{ googleSearchRetrieval: {} }],
       });
     });
 
@@ -1192,14 +1192,16 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: {
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+        tools: [
+          {
+            googleSearchRetrieval: {
+              dynamicRetrievalConfig: {
+                mode: 'MODE_DYNAMIC',
+                dynamicThreshold: 1,
+              },
             },
           },
-        },
+        ],
       });
     });
     it('should use urlContextTool for gemini-2.0-pro', async () => {
@@ -1221,7 +1223,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { urlContext: {} },
+        tools: [{ urlContext: {} }],
       });
     });
   });
@@ -2189,7 +2191,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -2215,7 +2217,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -2240,7 +2242,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearchRetrieval: {} },
+        tools: [{ googleSearchRetrieval: {} }],
       });
     });
 
@@ -2269,14 +2271,16 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: {
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+        tools: [
+          {
+            googleSearchRetrieval: {
+              dynamicRetrievalConfig: {
+                mode: 'MODE_DYNAMIC',
+                dynamicThreshold: 1,
+              },
             },
           },
-        },
+        ],
       });
     });
   });
