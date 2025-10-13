@@ -1,5 +1,6 @@
 import {
   EmbeddingModelV3Embedding,
+  LanguageModelV3,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
@@ -9,7 +10,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
 import { createAzure } from './azure-openai-provider';
 
@@ -43,6 +44,18 @@ const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
     },
   },
 ];
+
+function prepareJsonFixtureResponse(filename: string) {
+  server.urls[
+    'https://test-resource.openai.azure.com/openai/v1/responses'
+  ].response = {
+    type: 'json-value',
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+  return;
+}
 
 function prepareChunksFixture(filename: string) {
   const chunks = fs
@@ -877,6 +890,60 @@ describe('responses', () => {
 
       expect(warnings).toStrictEqual([]);
     });
+
+    describe('code interpreter tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "code_interpreter_call.outputs",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-nano",
+            "tools": [
+              {
+                "container": {
+                  "type": "auto",
+                },
+                "type": "code_interpreter",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include code interpreter tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -1270,7 +1337,7 @@ describe('responses', () => {
     });
 
     it('should send code interpreter calls', async () => {
-      prepareChunksFixture('azure-openai-code-interpreter-tool.1');
+      prepareChunksFixture('azure-code-interpreter-tool.1'); // it' acopy of openai's fixtures
 
       const result = await createModel('test-deployment').doStream({
         prompt: TEST_PROMPT,

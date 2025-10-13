@@ -1,5 +1,65 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`responses > doGenerate > code interpreter tool > should include code interpreter tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_02ffbc38ae6fca1a0068ec8762f61881979bf5191564930c23",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{"code":"import random\\n\\n# Generate five random numbers between 1 and 100 with two decimal places\\nnumbers = [round(random.uniform(1, 100), 2) for _ in range(5)]\\n\\n# Print the program and its execution results\\nprint(\\"Program: Generate five random numbers between 1 and 100 with two decimal places\\")\\nprint(\\"Generated numbers:\\")\\nfor i, num in enumerate(numbers, start=1):\\n    print(f\\"{i}: {num:.2f}\\")","containerId":"cntr_68ec87613e58819097ec47888dc686d8088a1d37157e7565"}",
+    "providerExecuted": true,
+    "toolCallId": "ci_02ffbc38ae6fca1a0068ec876654a08197af4d648fe8bba210",
+    "toolName": "code_interpreter",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "outputs": [
+        {
+          "logs": "Program: Generate five random numbers between 1 and 100 with two decimal places
+Generated numbers:
+1: 74.07
+2: 94.14
+3: 53.74
+4: 77.29
+5: 87.68
+",
+          "type": "logs",
+        },
+      ],
+    },
+    "toolCallId": "ci_02ffbc38ae6fca1a0068ec876654a08197af4d648fe8bba210",
+    "toolName": "code_interpreter",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_02ffbc38ae6fca1a0068ec8768f35c81979428e19fa11468f1",
+      },
+    },
+    "text": "I ran the program and produced five random numbers between 1 and 100 with two decimal places. Results shown above:
+
+1: 74.07
+2: 94.14
+3: 53.74
+4: 77.29
+5: 87.68
+
+If you want the code to be saved to a file, run multiple sets, or use a fixed seed for reproducible results, tell me and I can adjust.",
+    "type": "text",
+  },
+]
+`;
+
 exports[`responses > doStream > should send code interpreter calls 1`] = `
 [
   {
@@ -7,836 +67,570 @@ exports[`responses > doStream > should send code interpreter calls 1`] = `
     "warnings": [],
   },
   {
-    "id": "resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9",
-    "modelId": "gpt-5-nano-2025-08-07",
-    "timestamp": 2025-09-11T15:12:47.000Z,
+    "id": "resp_0ad69c3c5fcb01f60068eba78cacd08193bf9a57724aa55ab8",
+    "modelId": "gpt-5-mini",
+    "timestamp": 2025-10-12T13:05:16.000Z,
     "type": "response-metadata",
   },
   {
-    "id": "rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9:0",
+    "id": "rs_0ad69c3c5fcb01f60068eba78f12588193872253fcce2ef954:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9",
+        "itemId": "rs_0ad69c3c5fcb01f60068eba78f12588193872253fcce2ef954",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "id": "rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9:0",
+    "id": "rs_0ad69c3c5fcb01f60068eba78f12588193872253fcce2ef954:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9",
+        "itemId": "rs_0ad69c3c5fcb01f60068eba78f12588193872253fcce2ef954",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "providerExecuted": true,
     "toolName": "code_interpreter",
     "type": "tool-input-start",
   },
   {
-    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": "{"containerId":"cntr_68eba78d6dc081908116b7ad7a32f52d0050b146e60e47a9","code":"",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "import",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": "#",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Program",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " generate",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " five",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": " random",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": ",",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": " numbers",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " math",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": " between",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": " ",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "N",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": "1",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "=",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": " and",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": "100",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "00",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": " with",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": " two",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "s",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": " decimal",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "ums",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "=[]\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "s",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "=",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "0",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
+    "delta": " places",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": "\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "for",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " _",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " in",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " range",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(N",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "):\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "   ",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " a",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "=random",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ".randint",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "1",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ",",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "6",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ")\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "   ",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " b",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "=random",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ".randint",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "1",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ",",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "6",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ")\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "   ",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " sm",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "=a",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "+b",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "   ",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " sums",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ".append",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(sm",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ")\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "   ",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " s",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "+=",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "sm",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "min",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(s",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "ums",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "),",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " max",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(s",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "ums",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "),",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " sum",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(s",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "ums",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "),",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " sum",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(s",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "ums",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ")/",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "N",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "\\n",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ""}",
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{"code":"import random, math\\nN=10000\\nsums=[]\\ns=0\\nfor _ in range(N):\\n    a=random.randint(1,6)\\n    b=random.randint(1,6)\\n    sm=a+b\\n    sums.append(sm)\\n    s+=sm\\nmin(sums), max(sums), sum(sums), sum(sums)/N\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
-    "providerExecuted": true,
-    "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "toolName": "code_interpreter",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "outputs": [
-        {
-          "logs": "(2, 12, 69868, 6.9868)",
-          "type": "logs",
-        },
-      ],
-    },
-    "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "toolName": "code_interpreter",
-    "type": "tool-result",
-  },
-  {
-    "id": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-start",
-  },
-  {
-    "id": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-end",
-  },
-  {
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "providerExecuted": true,
-    "toolName": "code_interpreter",
-    "type": "tool-input-start",
-  },
-  {
-    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": "import",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " csv",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " random",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": ",",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "\\n\\n",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " pathlib",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "#",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Generate",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " five",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " random",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " and",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " round",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " to",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " two",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " decimals",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": "\\n",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "path",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "numbers",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": " =",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " pathlib",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " [",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": ".Path",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "round",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "('/",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "(random",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "mnt",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": ".uniform",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "/data",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "(",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "/",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "1",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "roll",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": ",",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "2",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "dice",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "_s",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "ums",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "_",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " ",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": "100",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "00",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "),",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": ".csv",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " ",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "')\\n",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "2",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "with",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " open",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(path",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ",",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " '",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "w",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "',",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " newline",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "='",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "')",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " as",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " f",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ":\\n",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "   ",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " writer",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " =",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " csv",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ".writer",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(f",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ")\\n",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "   ",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": " writer",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ".writerow",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "(['",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "sum",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "'])\\n",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "   ",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": ")",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": " for",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " val",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " _",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": " in",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " sums",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " range",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": ":\\n",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "(",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "       ",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "5",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " writer",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": ")]\\n\\n",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": ".writerow",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "#",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "([",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " Print",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "val",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " the",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "])\\n",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " list",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "path",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " and",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": ",",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " a",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " path",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " nicely",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": ".exists",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " formatted",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "(),",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": " string",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": " len",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "\\n",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "(s",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "print",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "delta": "ums",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "delta": "(\\"",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Generated",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " (",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "as",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " floats",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "):",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\",",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": ")\\n",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "print",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Generated",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " (",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "formatted",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " to",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " decimal",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " places",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "):",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\",",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " \\",",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " \\".",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "join",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\"{",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":.",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}\\"",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " for",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " n",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " in",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "))",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
     "delta": ""}",
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-delta",
   },
   {
-    "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "id": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "type": "tool-input-end",
   },
   {
-    "input": "{"code":"import csv, pathlib\\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\\nwith open(path, 'w', newline='') as f:\\n    writer = csv.writer(f)\\n    writer.writerow(['sum'])\\n    for val in sums:\\n        writer.writerow([val])\\npath, path.exists(), len(sums)\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
+    "input": "{"code":"# Program: generate five random numbers between 1 and 100 with two decimal places\\nimport random\\n\\n# Generate five random numbers and round to two decimals\\nnumbers = [round(random.uniform(1, 100), 2) for _ in range(5)]\\n\\n# Print the list and a nicely formatted string\\nprint(\\"Generated numbers (as floats):\\", numbers)\\nprint(\\"Generated numbers (formatted to 2 decimal places):\\", \\", \\".join(f\\"{n:.2f}\\" for n in numbers))","containerId":"cntr_68eba78d6dc081908116b7ad7a32f52d0050b146e60e47a9"}",
     "providerExecuted": true,
-    "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "toolCallId": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "toolName": "code_interpreter",
     "type": "tool-call",
   },
@@ -845,1206 +639,1178 @@ exports[`responses > doStream > should send code interpreter calls 1`] = `
     "result": {
       "outputs": [
         {
-          "logs": "(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)",
+          "logs": "Generated numbers (as floats): [88.99, 51.21, 89.85, 88.97, 7.73]
+Generated numbers (formatted to 2 decimal places): 88.99, 51.21, 89.85, 88.97, 7.73
+",
           "type": "logs",
         },
       ],
     },
-    "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
+    "toolCallId": "ci_0ad69c3c5fcb01f60068eba7939b2c8193b42d4d517ca5d25f",
     "toolName": "code_interpreter",
     "type": "tool-result",
   },
   {
-    "id": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9:0",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-start",
-  },
-  {
-    "id": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-end",
-  },
-  {
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "providerExecuted": true,
-    "toolName": "code_interpreter",
-    "type": "tool-input-start",
-  },
-  {
-    "delta": "{"containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","code":"",
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "s",
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "ums",
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "[:",
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "20",
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "]\\n",
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": ""}",
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "type": "tool-input-delta",
-  },
-  {
-    "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{"code":"sums[:20]\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
-    "providerExecuted": true,
-    "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "toolName": "code_interpreter",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "outputs": [
-        {
-          "logs": "[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]",
-          "type": "logs",
-        },
-      ],
-    },
-    "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "toolName": "code_interpreter",
-    "type": "tool-result",
-  },
-  {
-    "id": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-start",
-  },
-  {
-    "id": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-end",
-  },
-  {
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+        "itemId": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
       },
     },
     "type": "text-start",
   },
   {
-    "delta": "Here",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "’s",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "Here's",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": " a",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " simulation",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " simple",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " of",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " Python",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " rolling",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " program",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " two",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " that",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " fair",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " generates",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " six",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " five",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "-sided",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " random",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " dice",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " between",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "10",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "1",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " and",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "000",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " times",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "100",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": ".",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Each",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " trial",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sums",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " with",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": " two",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " dice",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " decimal",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " places",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " execution",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " result",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " running",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": ".
 
 ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "Results",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "Program",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "\`\`\`",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "python",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": "
 ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "import",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " Total",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sum",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " all",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "10",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "000",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " trials",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "69",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "868",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Average",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sum",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " per",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " trial",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "6",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "986",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "8",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Minimum",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sum",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " observed",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "2",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Maximum",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sum",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " observed",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "12",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "
-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Sample",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " first",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "20",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " trial",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sums",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "6",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "7",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "2",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "5",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "5",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "11",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "4",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "8",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "10",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "7",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "5",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "8",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "8",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "7",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "10",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "8",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "9",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "5",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "4",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "7",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " random",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": "
 
 ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "Full",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "#",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " data",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " Generate",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " five",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " random",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " round",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " two",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " decimals",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": "
 ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " You",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " can",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " download",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " all",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "10",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "000",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sums",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " as",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " CSV",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " file",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " here",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " =",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": " [",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "Download",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "round",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " the",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "(random",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " sums",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": ".uniform",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " CSV",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "(",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "](",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "1",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "sandbox",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": ":/",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "mnt",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "/data",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "/",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "roll",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "2",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "dice",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "_s",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ums",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": "_",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": "100",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "00",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "),",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": ".csv",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": ")
-
-",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "2",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "If",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": ")",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " you",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " for",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "’d",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " like",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " I",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " can",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " also",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " provide",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " frequency",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " distribution",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " histogram",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " or",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " export",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
-    "type": "text-delta",
-  },
-  {
-    "delta": " data",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " _",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": " in",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " another",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " range",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " format",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "(",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")]
+
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "#",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Print",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " list",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " nicely",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " formatted",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " string",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "print",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "("",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Generated",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": " (",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": "JSON",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "as",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " floats",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "print",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "("",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Generated",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "formatted",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " decimal",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " places",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "join",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "(f",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ""{",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "n",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":.",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "f",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "}"",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " n",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "))
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "\`\`",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "\`
+
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Execution",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " result",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "from",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " this",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " run",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Generated",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "as",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " floats",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " [",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "88",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "99",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " Excel",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "51",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "21",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
     "delta": ",",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": " etc",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "delta": ".).",
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": "89",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-delta",
   },
   {
-    "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "85",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "88",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "97",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "73",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "]
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Generated",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "formatted",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " decimal",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " places",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "88",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "99",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "51",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "21",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "89",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "85",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "88",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "97",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "73",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "If",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " want",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reproduc",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ible",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " result",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " add",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fixed",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " random",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " seed",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " save",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " program",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " file",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Want",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "?",
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "error": [AI_JSONParseError: JSON parsing failed: Text: .
+Error message: Unexpected end of JSON input],
+    "type": "error",
+  },
+  {
+    "finishReason": "error",
     "providerMetadata": {
       "openai": {
-        "responseId": "resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9",
+        "responseId": "resp_0ad69c3c5fcb01f60068eba78cacd08193bf9a57724aa55ab8",
         "serviceTier": "default",
       },
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2944,
-      "inputTokens": 6047,
-      "outputTokens": 1623,
-      "reasoningTokens": 1408,
-      "totalTokens": 7670,
+      "cachedInputTokens": 1280,
+      "inputTokens": 2143,
+      "outputTokens": 919,
+      "reasoningTokens": 576,
+      "totalTokens": 3062,
     },
   },
 ]
