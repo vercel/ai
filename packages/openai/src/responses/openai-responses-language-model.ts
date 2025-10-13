@@ -330,6 +330,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         tool_choice: openaiToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      store,
     };
   }
 
@@ -649,6 +650,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       args: body,
       warnings,
       webSearchToolName,
+      store,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -698,7 +700,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       string,
       {
         encryptedContent?: string | null;
-        summaryParts: number[];
+        // summary index as string to reasoning part state:
+        summaryParts: Record<string, 'active' | 'can-conclude' | 'concluded'>;
       }
     > = {};
 
@@ -817,7 +820,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               ) {
                 activeReasoning[value.item.id] = {
                   encryptedContent: value.item.encrypted_content,
-                  summaryParts: [0],
+                  summaryParts: { 0: 'active' },
                 };
 
                 controller.enqueue({
@@ -973,7 +976,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
 
-                for (const summaryIndex of activeReasoningPart.summaryParts) {
+                // get all active or can-conclude summary parts' ids
+                // to conclude ongoing reasoning parts:
+                const summaryPartIndices = Object.entries(
+                  activeReasoningPart.summaryParts,
+                )
+                  .filter(
+                    ([_, status]) =>
+                      status === 'active' || status === 'can-conclude',
+                  )
+                  .map(([summaryIndex]) => summaryIndex);
+
+                for (const summaryIndex of summaryPartIndices) {
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: `${value.item.id}:${summaryIndex}`,
@@ -1070,9 +1084,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             } else if (value.type === 'response.reasoning_summary_part.added') {
               // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
-                activeReasoning[value.item_id]?.summaryParts.push(
-                  value.summary_index,
-                );
+                const activeReasoningPart = activeReasoning[value.item_id]!;
+
+                activeReasoningPart.summaryParts[value.summary_index] =
+                  'active';
+
+                // since there is a new active summary part, we can conclude all can-conclude summary parts
+                for (const summaryIndex of Object.keys(
+                  activeReasoningPart.summaryParts,
+                )) {
+                  if (
+                    activeReasoningPart.summaryParts[summaryIndex] ===
+                    'can-conclude'
+                  ) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: `${value.item_id}:${summaryIndex}`,
+                      providerMetadata: { openai: { itemId: value.item_id } },
+                    });
+                    activeReasoningPart.summaryParts[summaryIndex] =
+                      'concluded';
+                  }
+                }
 
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -1098,6 +1131,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 },
               });
+            } else if (value.type === 'response.reasoning_summary_part.done') {
+              // when OpenAI stores the message data, we can immediately conclude the reasoning part
+              // since we do not need to send the encrypted content.
+              if (store) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: `${value.item_id}:${value.summary_index}`,
+                  providerMetadata: {
+                    openai: { itemId: value.item_id },
+                  },
+                });
+
+                // mark the summary part as concluded
+                activeReasoning[value.item_id]!.summaryParts[
+                  value.summary_index
+                ] = 'concluded';
+              } else {
+                // mark the summary part as can-conclude only
+                // because we need to have a final summary part with the encrypted content
+                activeReasoning[value.item_id]!.summaryParts[
+                  value.summary_index
+                ] = 'can-conclude';
+              }
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
