@@ -147,4 +147,77 @@ describe('pruneModelMessages', () => {
       });
     });
   });
+
+  describe('toolCalls', () => {
+    describe('all', () => {
+      it('should prune all tool calls, results, errors, and approvals', () => {
+        const result = pruneModelMessages({
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Weather in Tokyo?' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: '123',
+                  toolName: 'get-weather',
+                  input: '{"param1": "test", "param2": 42}',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: '123',
+                  toolName: 'get-weather',
+                  output: {
+                    type: 'text',
+                    value: 'sunny',
+                  },
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'The weather in Tokyo is sunny.',
+                },
+              ],
+            },
+          ],
+          toolCalls: 'all',
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Weather in Tokyo?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "text": "The weather in Tokyo is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+  });
 });
