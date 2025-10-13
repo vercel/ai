@@ -7,21 +7,21 @@ import { ToolSet } from '../generate-text/tool-set';
 import { CallSettings } from '../prompt/call-settings';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
-import { AgentOnFinishCallback } from './agent-on-finish-callback';
-import { AgentOnStepFinishCallback } from './agent-on-step-finish-callback';
+import { BasicAgentOnFinishCallback } from './basic-agent-on-finish-callback';
+import { BasicAgentOnStepFinishCallback } from './basic-agent-on-step-finish-callback';
 
 /**
  * Configuration options for an agent.
  */
-export type AgentSettings<
+export type BasicAgentSettings<
   TOOLS extends ToolSet,
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 > = CallSettings & {
   /**
-   * The name of the agent.
+   * The id of the agent.
    */
-  name?: string;
+  id?: string;
 
   /**
    * The system prompt to use.
@@ -87,12 +87,12 @@ A function that attempts to repair a tool call that failed to parse.
   /**
    * Callback that is called when each step (LLM call) is finished, including intermediate steps.
    */
-  onStepFinish?: AgentOnStepFinishCallback<NoInfer<TOOLS>>;
+  onStepFinish?: BasicAgentOnStepFinishCallback<NoInfer<TOOLS>>;
 
   /**
    * Callback that is called when all steps are finished and the response is complete.
    */
-  onFinish?: AgentOnFinishCallback<NoInfer<TOOLS>>;
+  onFinish?: BasicAgentOnFinishCallback<NoInfer<TOOLS>>;
 
   /**
 Additional provider-specific options. They are passed through

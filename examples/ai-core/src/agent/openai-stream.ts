@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
-import { Agent } from 'ai';
+import { BasicAgent } from 'ai';
 import { run } from '../lib/run';
 
-const agent = new Agent({
+const agent = new BasicAgent({
   model: openai('gpt-5'),
   system: 'You are a helpful assistant.',
 });
