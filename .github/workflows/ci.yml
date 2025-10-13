@@ -153,3 +153,88 @@ jobs:
       - name: Some matrix version failed
         if: ${{ contains(needs.*.result, 'failure') }}
         run: exit 1
+
+  load-time_matrix:
+    name: 'Load Time Check'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: 'ai'
+            max-load-time: 95
+          - module: '@ai-sdk/openai'
+            max-load-time: 60
+          - module: '@ai-sdk/openai-compatible'
+            max-load-time: 60
+          - module: '@ai-sdk/anthropic'
+            max-load-time: 60
+          - module: '@ai-sdk/google'
+            max-load-time: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build:packages
+
+      - name: Measure and check load time for ${{ matrix.module }}
+        id: load-time
+        working-directory: examples/ai-core
+        run: |
+          echo "📦 Measuring load time for ${{ matrix.module }}..."
+          pnpm tsx src/benchmark/load-time.ts "${{ matrix.module }}" | tee load-time-output.txt
+          
+          # Extract the average time from the output
+          AVERAGE_TIME=$(grep "Average:" load-time-output.txt | awk '{print $2}' | sed 's/ms//')
+          
+          echo ""
+          echo "🔍 Checking threshold..."
+          echo "Average load time: ${AVERAGE_TIME}ms"
+          echo "Maximum allowed: ${{ matrix.max-load-time }}ms"
+          
+          if (( $(echo "$AVERAGE_TIME > ${{ matrix.max-load-time }}" | bc -l) )); then
+            echo ""
+            echo "❌ Load time check failed!"
+            echo "${{ matrix.module }}: ${AVERAGE_TIME}ms exceeds ${{ matrix.max-load-time }}ms threshold"
+            echo ""
+            echo "To fix this:"
+            echo "1. Investigate and optimize slow module initialization"
+            echo "2. Update the max-load-time in .github/workflows/ci.yml if the increase is justified"
+            exit 1
+          else
+            echo ""
+            echo "✅ Load time check passed!"
+            echo "${{ matrix.module }}: ${AVERAGE_TIME}ms is within ${{ matrix.max-load-time }}ms threshold"
+
+            # write result to summary
+            echo "- Load Time Check for ${{ matrix.module }}: ${AVERAGE_TIME}ms (Max: ${{ matrix.max-load-time }}ms)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # separate "load-time" job to set as required in branch protections,
+  # as the matrix build names above change each time modules are added/removed
+  load-time:
+    runs-on: ubuntu-latest
+    needs: load-time_matrix
+    if: ${{ !cancelled() }}
+    steps:
+      - name: All matrix versions passed
+        if: ${{ !(contains(needs.*.result, 'failure')) }}
+        run: exit 0
+      - name: Some matrix version failed
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
