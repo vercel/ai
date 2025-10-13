@@ -300,12 +300,6 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .object({
-                type: z.literal('search'),
-                query: z.string().optional(),
-              })
-              .nullish(),
           }),
           z.object({
             type: z.literal('computer_call'),
@@ -381,23 +375,21 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('search'),
-                  query: z.string().nullish(),
-                }),
-                z.object({
-                  type: z.literal('open_page'),
-                  url: z.string(),
-                }),
-                z.object({
-                  type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
-                }),
-              ])
-              .nullish(),
+            action: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('search'),
+                query: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('open_page'),
+                url: z.string(),
+              }),
+              z.object({
+                type: z.literal('find'),
+                url: z.string(),
+                pattern: z.string(),
+              }),
+            ]),
           }),
           z.object({
             type: z.literal('file_search_call'),
@@ -517,7 +509,19 @@ export type OpenAIResponsesLogprobs = NonNullable<
   })['logprobs']
 > | null;
 
+<<<<<<< HEAD
 export const openaiResponsesResponseSchema = lazyValidator(() =>
+=======
+export type OpenAIResponsesWebSearchAction = NonNullable<
+  ((OpenAIResponsesChunk & {
+    type: 'response.output_item.done';
+  })['item'] & {
+    type: 'web_search_call';
+  })['action']
+>;
+
+export const openaiResponsesResponseSchema = lazySchema(() =>
+>>>>>>> 401f56185 (fix(provider/openai): add output to openai websearch tool (#9440))
   zodSchema(
     z.object({
       id: z.string(),
@@ -583,23 +587,21 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('search'),
-                  query: z.string().nullish(),
-                }),
-                z.object({
-                  type: z.literal('open_page'),
-                  url: z.string(),
-                }),
-                z.object({
-                  type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
-                }),
-              ])
-              .nullish(),
+            action: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('search'),
+                query: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('open_page'),
+                url: z.string(),
+              }),
+              z.object({
+                type: z.literal('find'),
+                url: z.string(),
+                pattern: z.string(),
+              }),
+            ]),
           }),
           z.object({
             type: z.literal('file_search_call'),
