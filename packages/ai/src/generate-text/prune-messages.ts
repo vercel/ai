@@ -4,6 +4,16 @@ import {
   ToolModelMessage,
 } from '@ai-sdk/provider-utils';
 
+/**
+ * Prunes messages from a list of messages.
+ *
+ * @param messages - The list of messages to prune.
+ * @param reasoning - The reasoning to prune.
+ * @param toolCalls - The tool calls to prune.
+ * @param emptyMessages - The empty messages to prune.
+ *
+ * @returns The pruned list of messages.
+ */
 export function pruneMessages({
   messages,
   reasoning = 'none',
