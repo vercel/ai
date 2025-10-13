@@ -1,3 +1,4 @@
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
@@ -9,7 +10,7 @@ async function main() {
       gateway: {
         user: 'user-123',
         tags: ['chat', 'v2'],
-      },
+      } satisfies GatewayProviderOptions,
     },
   });
 

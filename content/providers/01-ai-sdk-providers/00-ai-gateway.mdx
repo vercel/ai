@@ -289,6 +289,7 @@ const { text } = await generateText({
 Track usage per end-user and categorize requests with tags:
 
 ```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -298,7 +299,7 @@ const { text } = await generateText({
     gateway: {
       user: 'user-abc-123', // Track usage for this specific end-user
       tags: ['document-summary', 'premium-feature'], // Categorize for reporting
-    },
+    } satisfies GatewayProviderOptions,
   },
 });
 ```
@@ -318,6 +319,7 @@ The AI Gateway provider accepts provider options that control routing behavior a
 You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
 
 ```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -327,7 +329,7 @@ const { text } = await generateText({
     gateway: {
       order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
       only: ['vertex', 'anthropic'], // Only use these providers
-    },
+    } satisfies GatewayProviderOptions,
   },
 });
 ```
@@ -361,6 +363,7 @@ The following gateway provider options are available:
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -370,7 +373,7 @@ const { text } = await generateText({
     gateway: {
       order: ['vertex'], // Prefer Vertex AI
       only: ['anthropic', 'vertex'], // Only allow these providers
-    },
+    } satisfies GatewayProviderOptions,
   },
 });
 ```
@@ -380,6 +383,8 @@ const { text } = await generateText({
 When using provider-specific options through AI Gateway, use the actual provider name (e.g. `anthropic`, `openai`, not `gateway`) as the key:
 
 ```ts
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -388,10 +393,10 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       order: ['vertex', 'anthropic'],
-    },
+    } satisfies GatewayProviderOptions,
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },
-    },
+    } satisfies AnthropicProviderOptions,
   },
 });
 ```
