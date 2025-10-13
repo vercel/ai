@@ -21,6 +21,20 @@ const gatewayProviderOptions = lazyValidator(() =>
        * Example: `['bedrock', 'anthropic']` will try Amazon Bedrock first, then Anthropic as fallback.
        */
       order: z.array(z.string()).optional(),
+      /**
+       * The unique identifier for the end user on behalf of whom the request was made.
+       *
+       * Used for spend tracking and attribution purposes.
+       */
+      user: z.string().optional(),
+      /**
+       * User-specified tags for use in reporting and filtering usage.
+       *
+       * For example, spend tracking reporting by feature or prompt version.
+       *
+       * Example: `['chat', 'v2']`
+       */
+      tags: z.array(z.string()).optional(),
     }),
   ),
 );
