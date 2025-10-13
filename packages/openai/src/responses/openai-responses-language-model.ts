@@ -28,6 +28,7 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
+import { webSearchOutputSchema } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -37,6 +38,7 @@ import {
   OpenAIResponsesIncludeValue,
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
+  OpenAIResponsesWebSearchAction,
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
@@ -510,7 +512,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            input: JSON.stringify({ action: part.action }),
+            input: JSON.stringify({}),
             providerExecuted: true,
           });
 
@@ -518,7 +520,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            result: { status: part.status },
+            result: mapWebSearchOutput(part.action),
             providerExecuted: true,
           });
 
@@ -752,6 +754,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: webSearchToolName ?? 'web_search',
                   providerExecuted: true,
                 });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search',
+                  input: JSON.stringify({}),
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = {
                   toolName: 'computer_use',
@@ -854,23 +869,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = undefined;
 
                 controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'web_search',
-                  input: JSON.stringify({ action: value.item.action }),
-                  providerExecuted: true,
-                });
-
-                controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'web_search',
-                  result: { status: value.item.status },
+                  result: mapWebSearchOutput(value.item.action),
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
@@ -1351,4 +1353,19 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     ...defaults,
     isReasoningModel: false,
   };
+}
+
+function mapWebSearchOutput(
+  action: OpenAIResponsesWebSearchAction,
+): InferSchema<typeof webSearchOutputSchema> {
+  switch (action.type) {
+    case 'search':
+      return { action: { type: 'search', query: action.query ?? undefined } };
+    case 'open_page':
+      return { action: { type: 'openPage', url: action.url } };
+    case 'find':
+      return {
+        action: { type: 'find', url: action.url, pattern: action.pattern },
+      };
+  }
 }
