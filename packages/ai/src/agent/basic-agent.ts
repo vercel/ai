@@ -32,7 +32,7 @@ export class BasicAgent<
   }
 
   /**
-   * The name of the agent.
+   * The id of the agent.
    */
   get id(): string | undefined {
     return this.settings.id;
