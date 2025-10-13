@@ -160,13 +160,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
-<<<<<<< HEAD
           ...(googleOptions?.imageConfig && {
             imageConfig: googleOptions.imageConfig,
-=======
+          }),
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
->>>>>>> 7728ac507 (feat(google): add media resolution option (#8490))
           }),
         },
         contents,

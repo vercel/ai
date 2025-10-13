@@ -121,7 +121,6 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
        */
       labels: z.record(z.string(), z.string()).optional(),
 
-<<<<<<< HEAD
       /**
        * Optional. If specified, the media resolution specified will be used.
        *
@@ -135,29 +134,6 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
           'MEDIA_RESOLUTION_HIGH',
         ])
         .optional(),
-=======
-  /**
-   * Optional. Defines labels used in billing reports. Available on Vertex AI only.
-   *
-   * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls
-   */
-  labels: z.record(z.string(), z.string()).optional(),
-
-  /**
-   * Optional. If specified, the media resolution specified will be used.
-   *
-   * https://ai.google.dev/api/generate-content#MediaResolution
-   */
-  mediaResolution: z
-    .enum([
-      'MEDIA_RESOLUTION_UNSPECIFIED',
-      'MEDIA_RESOLUTION_LOW',
-      'MEDIA_RESOLUTION_MEDIUM',
-      'MEDIA_RESOLUTION_HIGH',
-    ])
-    .optional(),
-});
->>>>>>> 7728ac507 (feat(google): add media resolution option (#8490))
 
       /**
        * Optional. Configures the image generation aspect ratio for Gemini models.
