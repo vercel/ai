@@ -1,5 +1,5 @@
+import { Response } from '@/components/ai-elements/response';
 import { openaiResponsesTextUIPartProviderMetadataSchema } from '@ai-sdk/openai';
-import { Response } from './additional-dependencies';
 import { TextUIPart } from 'ai';
 
 export function MessageTextWithDownloadLink({ part }: { part: TextUIPart }) {
