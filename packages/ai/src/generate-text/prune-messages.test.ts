@@ -373,6 +373,96 @@ describe('pruneMessages', () => {
         `);
         });
       });
+
+      describe('before-last-3-messages', () => {
+        it('should prune all tool calls, results, errors, and approvals', () => {
+          const result = pruneMessages({
+            messages: messagesFixture1,
+            toolCalls: 'before-last-3-messages',
+          });
+
+          expect(result).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Weather in Tokyo and Busan?",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "text": "I need to get the weather in Tokyo and Busan.",
+                    "type": "reasoning",
+                  },
+                  {
+                    "input": "{"city": "Tokyo"}",
+                    "toolCallId": "call-1",
+                    "toolName": "get-weather-tool-1",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": "{"city": "Busan"}",
+                    "toolCallId": "call-2",
+                    "toolName": "get-weather-tool-2",
+                    "type": "tool-call",
+                  },
+                  {
+                    "approvalId": "approval-1",
+                    "toolCallId": "call-1",
+                    "type": "tool-approval-request",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "approvalId": "approval-1",
+                    "approved": true,
+                    "type": "tool-approval-response",
+                  },
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "sunny",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "get-weather-tool-1",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "error-text",
+                      "value": "Error: Fetching weather data failed",
+                    },
+                    "toolCallId": "call-2",
+                    "toolName": "get-weather-tool-2",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "text": "I have got the weather in Tokyo and Busan.",
+                    "type": "reasoning",
+                  },
+                  {
+                    "text": "The weather in Tokyo is sunny. I could not get the weather in Busan.",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ]
+          `);
+        });
+      });
     });
   });
 });

@@ -54,13 +54,24 @@ export function pruneMessages({
   }
 
   for (const toolCall of toolCalls) {
-    const limit = toolCall.type === 'before-last-message' ? 1 : undefined;
+    // determine how many trailing messages to keep:
+    const keepLastMessagesCount =
+      toolCall.type === 'all'
+        ? undefined
+        : toolCall.type === 'before-last-message'
+          ? 1
+          : Number(
+              toolCall.type
+                .slice('before-last-'.length)
+                .slice(0, -'-messages'.length),
+            );
 
     messages = messages.map((message, messageIndex) => {
       if (
         (message.role !== 'assistant' && message.role !== 'tool') ||
         typeof message.content === 'string' ||
-        (limit && messageIndex === messages.length - limit)
+        (keepLastMessagesCount &&
+          messageIndex >= messages.length - keepLastMessagesCount)
       ) {
         return message;
       }
