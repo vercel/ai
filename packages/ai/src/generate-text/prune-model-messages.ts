@@ -37,7 +37,7 @@ export function pruneModelMessages({
         content: message.content.filter(part => part.type !== 'reasoning'),
       };
     });
-  } else if (reasoning === 'before-trailing-message') {
+  } else if (reasoning === 'before-last-message') {
     messages = messages.map((message, messageIndex) => {
       if (message.role !== 'assistant' || typeof message.content === 'string') {
         return message;

@@ -95,7 +95,7 @@ describe('pruneModelMessages', () => {
               ],
             },
           ],
-          reasoning: 'before-trailing-message',
+          reasoning: 'before-last-message',
         });
 
         expect(result).toMatchInlineSnapshot(`
