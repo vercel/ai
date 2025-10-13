@@ -4,10 +4,11 @@ import {
   ToolModelMessage,
 } from '@ai-sdk/provider-utils';
 
-export function pruneModelMessages({
+export function pruneMessages({
   messages,
   reasoning = 'none',
   toolCalls = [],
+  emptyMessages = 'remove',
 }: {
   messages: ModelMessage[];
   reasoning?: 'all' | 'before-last-message' | 'none';
@@ -24,6 +25,7 @@ export function pruneModelMessages({
           | 'none';
         tools?: string[];
       }>;
+  emptyMessages?: 'keep' | 'remove';
 }): ModelMessage[] {
   // reasoning
   if (reasoning === 'all' || reasoning === 'before-last-message') {
@@ -46,24 +48,26 @@ export function pruneModelMessages({
 
   // tool calls
   if (toolCalls === 'all') {
-    messages = messages
-      .map(message => {
-        if (
-          message.role === 'user' ||
-          message.role === 'system' ||
-          typeof message.content === 'string'
-        ) {
-          return message;
-        }
+    messages = messages.map(message => {
+      if (
+        message.role === 'user' ||
+        message.role === 'system' ||
+        typeof message.content === 'string'
+      ) {
+        return message;
+      }
 
-        return {
-          ...message,
-          content: message.content.filter(
-            part => part.type !== 'tool-call' && part.type !== 'tool-result',
-          ),
-        } as AssistantModelMessage | ToolModelMessage;
-      })
-      .filter(message => message.content.length > 0);
+      return {
+        ...message,
+        content: message.content.filter(
+          part => part.type !== 'tool-call' && part.type !== 'tool-result',
+        ),
+      } as AssistantModelMessage | ToolModelMessage;
+    });
+  }
+
+  if (emptyMessages === 'remove') {
+    messages = messages.filter(message => message.content.length > 0);
   }
 
   return messages;
