@@ -5,14 +5,14 @@ import {
 } from '@ai-sdk/provider-utils';
 
 /**
- * Prunes messages from a list of messages.
+ * Prunes model messages from a list of model messages.
  *
- * @param messages - The list of messages to prune.
- * @param reasoning - The reasoning to prune.
- * @param toolCalls - The tool calls to prune.
- * @param emptyMessages - The empty messages to prune.
+ * @param messages - The list of model messages to prune.
+ * @param reasoning - How to remove reasoning content from assistant messages. Default is `'none'`.
+ * @param toolCalls - How to prune tool call/results/approval content. Default is `[]`.
+ * @param emptyMessages - Whether to keep or remove messages whose content is empty after pruning. Default is `'remove'`.
  *
- * @returns The pruned list of messages.
+ * @returns The pruned list of model messages.
  */
 export function pruneMessages({
   messages,
