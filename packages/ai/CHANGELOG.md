@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.45
+
+### Patch Changes
+
+- 48454ab: fix(ai): handle backpressure in `writeToServerResponse`
+
 ## 6.0.0-beta.44
 
 ### Patch Changes
