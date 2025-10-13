@@ -1155,7 +1155,7 @@ describe('responses', () => {
             "type": "tool-input-end",
           },
           {
-            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
+            "input": "{}",
             "providerExecuted": true,
             "toolCallId": "ws_test",
             "toolName": "web_search",
@@ -1164,7 +1164,10 @@ describe('responses', () => {
           {
             "providerExecuted": true,
             "result": {
-              "status": "completed",
+              "action": {
+                "query": "Vercel AI SDK next version features",
+                "type": "search",
+              },
             },
             "toolCallId": "ws_test",
             "toolName": "web_search",
