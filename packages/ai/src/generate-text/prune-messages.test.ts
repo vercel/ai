@@ -76,6 +76,39 @@ const messagesFixture1: ModelMessage[] = [
   },
 ];
 
+const messagesFixture2: ModelMessage[] = [
+  {
+    role: 'user',
+    content: [{ type: 'text', text: 'Weather in Tokyo and Busan?' }],
+  },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'reasoning',
+        text: 'I need to get the weather in Tokyo and Busan.',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'get-weather-tool-1',
+        input: '{"city": "Tokyo"}',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-2',
+        toolName: 'get-weather-tool-2',
+        input: '{"city": "Busan"}',
+      },
+      {
+        type: 'tool-approval-request',
+        toolCallId: 'call-1',
+        approvalId: 'approval-1',
+      },
+    ],
+  },
+];
+
 describe('pruneMessages', () => {
   describe('reasoning', () => {
     describe('all', () => {
@@ -292,13 +325,14 @@ describe('pruneMessages', () => {
         `);
       });
 
-      it('should prune tool calls before last message', () => {
-        const result = pruneMessages({
-          messages: messagesFixture1,
-          toolCalls: 'before-last-message',
-        });
+      describe('before-last-message', () => {
+        it('should prune tool calls before last message', () => {
+          const result = pruneMessages({
+            messages: messagesFixture2,
+            toolCalls: 'before-last-message',
+          });
 
-        expect(result).toMatchInlineSnapshot(`
+          expect(result).toMatchInlineSnapshot(`
           [
             {
               "content": [
@@ -335,49 +369,9 @@ describe('pruneMessages', () => {
               ],
               "role": "assistant",
             },
-            {
-              "content": [
-                {
-                  "approvalId": "approval-1",
-                  "approved": true,
-                  "type": "tool-approval-response",
-                },
-                {
-                  "output": {
-                    "type": "text",
-                    "value": "sunny",
-                  },
-                  "toolCallId": "call-1",
-                  "toolName": "get-weather-tool-1",
-                  "type": "tool-result",
-                },
-                {
-                  "output": {
-                    "type": "error-text",
-                    "value": "Error: Fetching weather data failed",
-                  },
-                  "toolCallId": "call-2",
-                  "toolName": "get-weather-tool-2",
-                  "type": "tool-result",
-                },
-              ],
-              "role": "tool",
-            },
-            {
-              "content": [
-                {
-                  "text": "I have got the weather in Tokyo and Busan.",
-                  "type": "reasoning",
-                },
-                {
-                  "text": "The weather in Tokyo is sunny. I could not get the weather in Busan.",
-                  "type": "text",
-                },
-              ],
-              "role": "assistant",
-            },
           ]
         `);
+        });
       });
     });
   });
