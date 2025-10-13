@@ -14,6 +14,7 @@ export type {
   ToolChoice,
 } from './language-model';
 export type { LanguageModelMiddleware } from './language-model-middleware';
+export type { EmbeddingModelMiddleware } from './embedding-model-middleware';
 export type { LanguageModelRequestMetadata } from './language-model-request-metadata';
 export type { LanguageModelResponseMetadata } from './language-model-response-metadata';
 export type { Provider } from './provider';
