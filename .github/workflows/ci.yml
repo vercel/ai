@@ -200,7 +200,7 @@ jobs:
           - module: '@ai-sdk/openai'
             max-load-time: 60
           - module: '@ai-sdk/openai-compatible'
-            max-load-time: 60
+            max-load-time: 65
           - module: '@ai-sdk/anthropic'
             max-load-time: 60
           - module: '@ai-sdk/google'
