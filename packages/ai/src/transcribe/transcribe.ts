@@ -11,7 +11,7 @@ import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../util/detect-media-type';
-import { download } from '../util/download/download';
+import { download, DEFAULT_MAX_DOWNLOAD_SIZE } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
@@ -25,6 +25,8 @@ as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+@param maxDownloadSizeInBytes - Maximum allowed download size in bytes when audio is a URL. Default: 100MB. 
+This prevents DoS attacks via unbounded memory consumption.
 
 @returns A result object that contains the generated transcript.
  */
@@ -35,6 +37,7 @@ export async function transcribe({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  maxDownloadSizeInBytes,
 }: {
   /**
 The transcription model to use.
@@ -79,6 +82,14 @@ Additional headers to include in the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
+
+  /**
+Maximum allowed download size in bytes when audio is a URL.
+Prevents DoS attacks via unbounded memory consumption.
+
+@default 100MB (104857600 bytes)
+   */
+  maxDownloadSizeInBytes?: number;
 }): Promise<TranscriptionResult> {
   if (model.specificationVersion !== 'v3') {
     throw new UnsupportedModelVersionError({
@@ -100,7 +111,13 @@ Only applicable for HTTP-based providers.
 
   const audioData =
     audio instanceof URL
-      ? (await download({ url: audio })).data
+      ? (
+          await download({
+            url: audio,
+            maxSizeInBytes: maxDownloadSizeInBytes ?? DEFAULT_MAX_DOWNLOAD_SIZE,
+            abortSignal,
+          })
+        ).data
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
