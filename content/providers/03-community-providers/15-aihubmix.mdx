@@ -210,8 +210,8 @@ for await (const objectPart of result.partialObjectStream) {
   console.log(objectPart);
 }
 
-console.log('Token usage:', result.usage);
-console.log('Final object:', result.object);
+console.log('Token usage:', await result.usage);
+console.log('Final object:', await result.object);
 ```
 
 ### Embed Many
