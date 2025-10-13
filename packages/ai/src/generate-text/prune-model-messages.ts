@@ -26,18 +26,7 @@ export function pruneModelMessages({
       }>;
 }): ModelMessage[] {
   // reasoning
-  if (reasoning === 'all') {
-    messages = messages.map(message => {
-      if (message.role !== 'assistant' || typeof message.content === 'string') {
-        return message;
-      }
-
-      return {
-        ...message,
-        content: message.content.filter(part => part.type !== 'reasoning'),
-      };
-    });
-  } else if (reasoning === 'before-last-message') {
+  if (reasoning === 'all' || reasoning === 'before-last-message') {
     messages = messages.map((message, messageIndex) => {
       if (message.role !== 'assistant' || typeof message.content === 'string') {
         return message;
@@ -47,7 +36,9 @@ export function pruneModelMessages({
         ...message,
         content: message.content.filter(
           part =>
-            part.type !== 'reasoning' || messageIndex === messages.length - 1,
+            part.type !== 'reasoning' ||
+            (reasoning === 'before-last-message' &&
+              messageIndex === messages.length - 1),
         ),
       };
     });
