@@ -65,6 +65,7 @@ const letta = createLetta({
   baseUrl: '<your-base-url>',
   token: '<your-access-token>',
 });
+gi;
 ```
 
 ## Quick Start
@@ -172,6 +173,8 @@ const result = streamText({
 
 ## Advanced Usage
 
+### Provider Options
+
 **Send Message:**
 Use `providerOptions.letta.agent` to configure non-streaming message creation with Letta agents.
 Documentation: https://docs.letta.com/api-reference/agents/messages/create
@@ -203,6 +206,54 @@ const result = streamText({
     },
   },
   prompt: 'Tell me a story about a robot learning to paint',
+});
+```
+
+### Message Roles (System vs User)
+
+Letta agents support different message roles. You can send messages as `user` or `system`:
+
+```typescript
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
+import { generateText } from 'ai';
+
+// Using prompt (defaults to user role)
+const promptResult = await generateText({
+  model: lettaCloud(),
+  providerOptions: {
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
+  },
+  prompt: 'What is the weather like today?', // Automatically sent as role: 'user'
+});
+
+// User message - using messages array (same as prompt above)
+const userResult = await generateText({
+  model: lettaCloud(),
+  providerOptions: {
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
+  },
+  messages: [{ role: 'user', content: 'What is the weather like today?' }],
+});
+
+// System message - for instructions or context
+const systemResult = await generateText({
+  model: lettaCloud(),
+  providerOptions: {
+    letta: {
+      agent: { id: 'your-agent-id' },
+    },
+  },
+  messages: [
+    {
+      role: 'system',
+      content:
+        'The user prefers metric units. Always provide temperature in Celsius.',
+    },
+  ],
 });
 ```
 
@@ -463,8 +514,6 @@ toolParts.forEach(part => {
 });
 ```
 
-````
-
 ## Using other Letta Client Functions
 
 The `vercel-ai-sdk-provider` extends the [@letta-ai/letta-client](https://www.npmjs.com/package/@letta-ai/letta-client), you can access the operations directly by using `lettaCloud.client` or `lettaLocal.client` or your custom generated `letta.client`
@@ -479,7 +528,7 @@ lettaCloud.client.agents.list();
 import { lettaLocal } from '@letta-ai/vercel-ai-sdk-provider';
 
 lettaLocal.client.agents.list();
-````
+```
 
 ### More Information
 
