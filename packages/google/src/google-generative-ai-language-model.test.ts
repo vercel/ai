@@ -1371,6 +1371,29 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass imageConfig.aspectRatio in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          aspectRatio: '16:9',
+        },
+      },
+    });
+  });
+
   it('should include non-image inlineData parts', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
