@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.22
+
+### Patch Changes
+
+- f8da995: The mediaResolution option has been added and is now passed to the Google API.
+
 ## 2.0.21
 
 ### Patch Changes
