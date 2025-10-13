@@ -3,6 +3,7 @@ export * from './errors/index';
 export * from './image-model/index';
 export * from './json-value/index';
 export * from './language-model-middleware/index';
+export * from './embedding-model-middleware/index';
 export * from './language-model/index';
 export * from './provider/index';
 export * from './shared/index';
