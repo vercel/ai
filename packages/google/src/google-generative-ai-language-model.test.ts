@@ -1241,17 +1241,19 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: {
-          retrieval: {
-            vertex_rag_store: {
-              rag_resources: {
-                rag_corpus:
-                  'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+        tools: [
+          {
+            retrieval: {
+              vertex_rag_store: {
+                rag_resources: {
+                  rag_corpus:
+                    'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+                },
+                similarity_top_k: 5,
               },
-              similarity_top_k: 5,
             },
           },
-        },
+        ],
       });
     });
   });
