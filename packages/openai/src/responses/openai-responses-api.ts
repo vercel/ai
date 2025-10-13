@@ -509,9 +509,6 @@ export type OpenAIResponsesLogprobs = NonNullable<
   })['logprobs']
 > | null;
 
-<<<<<<< HEAD
-export const openaiResponsesResponseSchema = lazyValidator(() =>
-=======
 export type OpenAIResponsesWebSearchAction = NonNullable<
   ((OpenAIResponsesChunk & {
     type: 'response.output_item.done';
@@ -520,8 +517,7 @@ export type OpenAIResponsesWebSearchAction = NonNullable<
   })['action']
 >;
 
-export const openaiResponsesResponseSchema = lazySchema(() =>
->>>>>>> 401f56185 (fix(provider/openai): add output to openai websearch tool (#9440))
+export const openaiResponsesResponseSchema = lazyValidator(() =>
   zodSchema(
     z.object({
       id: z.string(),
