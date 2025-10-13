@@ -28,6 +28,7 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
+import { WebSearchOutput } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -45,10 +46,6 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import {
-  webSearchInputSchema,
-  webSearchOutputSchema,
-} from '../tool/web-search';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -1359,12 +1356,8 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 }
 
 function mapWebSearchOutput(
-  action: OpenAIResponsesWebSearchAction | undefined | null,
-): InferSchema<typeof webSearchOutputSchema> {
-  if (action == null) {
-    return { action: undefined };
-  }
-
+  action: OpenAIResponsesWebSearchAction,
+): WebSearchOutput {
   switch (action.type) {
     case 'search':
       return { action: { type: 'search', query: action.query ?? undefined } };
@@ -1374,7 +1367,5 @@ function mapWebSearchOutput(
       return {
         action: { type: 'find', url: action.url, pattern: action.pattern },
       };
-    default:
-      return { action: undefined };
   }
 }

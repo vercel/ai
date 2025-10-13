@@ -29,23 +29,21 @@ export const webSearchPreviewInputSchema = lazySchema(() =>
 const webSearchPreviewOutputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      action: z
-        .discriminatedUnion('type', [
-          z.object({
-            type: z.literal('search'),
-            query: z.string().optional(),
-          }),
-          z.object({
-            type: z.literal('openPage'),
-            url: z.string().optional(),
-          }),
-          z.object({
-            type: z.literal('find'),
-            url: z.string(),
-            pattern: z.string(),
-          }),
-        ])
-        .optional(),
+      action: z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('search'),
+          query: z.string().optional(),
+        }),
+        z.object({
+          type: z.literal('openPage'),
+          url: z.string(),
+        }),
+        z.object({
+          type: z.literal('find'),
+          url: z.string(),
+          pattern: z.string(),
+        }),
+      ]),
     }),
   ),
 );
@@ -60,7 +58,7 @@ export const webSearchPreview =
        * An object describing the specific action taken in this web search call.
        * Includes details on how the model used the web (search, open_page, find).
        */
-      action?:
+      action:
         | {
             /**
              * Action type "search" - Performs a web search query.
@@ -81,7 +79,7 @@ export const webSearchPreview =
             /**
              * The URL opened by the model.
              */
-            url?: string;
+            url: string;
           }
         | {
             /**
