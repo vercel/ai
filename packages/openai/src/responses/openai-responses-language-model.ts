@@ -45,7 +45,10 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { webSearchInputSchema } from '../tool/web-search';
+import {
+  webSearchInputSchema,
+  webSearchOutputSchema,
+} from '../tool/web-search';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -512,7 +515,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            input: JSON.stringify(mapWebSearchInput(part.action)),
+            input: JSON.stringify({}),
             providerExecuted: true,
           });
 
@@ -520,7 +523,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            result: { status: part.status },
+            result: mapWebSearchOutput(part.action),
             providerExecuted: true,
           });
 
@@ -754,6 +757,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: webSearchToolName ?? 'web_search',
                   providerExecuted: true,
                 });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search',
+                  input: JSON.stringify({}),
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = {
                   toolName: 'computer_use',
@@ -856,23 +872,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = undefined;
 
                 controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'web_search',
-                  input: JSON.stringify(mapWebSearchInput(value.item.action)),
-                  providerExecuted: true,
-                });
-
-                controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'web_search',
-                  result: { status: value.item.status },
+                  result: mapWebSearchOutput(value.item.action),
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
@@ -1355,9 +1358,9 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
-function mapWebSearchInput(
+function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction | undefined | null,
-): InferSchema<typeof webSearchInputSchema> {
+): InferSchema<typeof webSearchOutputSchema> {
   if (action == null) {
     return { action: undefined };
   }
