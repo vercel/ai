@@ -18,16 +18,12 @@ export function pruneMessages({
     | `before-last-${number}-messages`
     | 'none'
     | Array<{
-        type:
-          | 'all'
-          | 'before-last-message'
-          | `before-last-${number}-messages`
-          | 'none';
+        type: 'all' | 'before-last-message' | `before-last-${number}-messages`;
         tools?: string[];
       }>;
   emptyMessages?: 'keep' | 'remove';
 }): ModelMessage[] {
-  // reasoning
+  // filter reasoning parts:
   if (reasoning === 'all' || reasoning === 'before-last-message') {
     messages = messages.map((message, messageIndex) => {
       if (message.role !== 'assistant' || typeof message.content === 'string') {
@@ -46,28 +42,40 @@ export function pruneMessages({
     });
   }
 
-  // tool calls
-  if (toolCalls === 'all') {
-    messages = messages.map(message => {
-      if (
-        message.role === 'user' ||
-        message.role === 'system' ||
-        typeof message.content === 'string'
-      ) {
-        return message;
-      }
+  // filter tool calls, results, errors, and approvals:
+  if (toolCalls === 'none') {
+    toolCalls = [];
+  } else if (toolCalls === 'all') {
+    toolCalls = [{ type: 'all' }];
+  } else if (toolCalls === 'before-last-message') {
+    toolCalls = [{ type: 'before-last-message' }];
+  } else if (typeof toolCalls === 'string') {
+    toolCalls = [{ type: toolCalls }];
+  }
 
-      return {
-        ...message,
-        content: message.content.filter(
-          part =>
-            part.type !== 'tool-call' &&
-            part.type !== 'tool-result' &&
-            part.type !== 'tool-approval-request' &&
-            part.type !== 'tool-approval-response',
-        ),
-      } as AssistantModelMessage | ToolModelMessage;
-    });
+  for (const toolCall of toolCalls) {
+    if (toolCall.type === 'all') {
+      messages = messages.map(message => {
+        if (
+          message.role === 'user' ||
+          message.role === 'system' ||
+          typeof message.content === 'string'
+        ) {
+          return message;
+        }
+
+        return {
+          ...message,
+          content: message.content.filter(
+            part =>
+              part.type !== 'tool-call' &&
+              part.type !== 'tool-result' &&
+              part.type !== 'tool-approval-request' &&
+              part.type !== 'tool-approval-response',
+          ),
+        } as AssistantModelMessage | ToolModelMessage;
+      });
+    }
   }
 
   if (emptyMessages === 'remove') {

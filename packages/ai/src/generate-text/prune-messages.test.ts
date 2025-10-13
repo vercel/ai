@@ -17,13 +17,13 @@ const messagesFixture1: ModelMessage[] = [
       {
         type: 'tool-call',
         toolCallId: 'call-1',
-        toolName: 'get-weather',
+        toolName: 'get-weather-tool-1',
         input: '{"city": "Tokyo"}',
       },
       {
         type: 'tool-call',
         toolCallId: 'call-2',
-        toolName: 'get-weather',
+        toolName: 'get-weather-tool-2',
         input: '{"city": "Busan"}',
       },
       {
@@ -44,7 +44,7 @@ const messagesFixture1: ModelMessage[] = [
       {
         type: 'tool-result',
         toolCallId: 'call-1',
-        toolName: 'get-weather',
+        toolName: 'get-weather-tool-1',
         output: {
           type: 'text',
           value: 'sunny',
@@ -53,7 +53,7 @@ const messagesFixture1: ModelMessage[] = [
       {
         type: 'tool-result',
         toolCallId: 'call-2',
-        toolName: 'get-weather',
+        toolName: 'get-weather-tool-2',
         output: {
           type: 'error-text',
           value: 'Error: Fetching weather data failed',
@@ -101,13 +101,13 @@ describe('pruneMessages', () => {
                 {
                   "input": "{"city": "Tokyo"}",
                   "toolCallId": "call-1",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-1",
                   "type": "tool-call",
                 },
                 {
                   "input": "{"city": "Busan"}",
                   "toolCallId": "call-2",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-2",
                   "type": "tool-call",
                 },
                 {
@@ -131,7 +131,7 @@ describe('pruneMessages', () => {
                     "value": "sunny",
                   },
                   "toolCallId": "call-1",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-1",
                   "type": "tool-result",
                 },
                 {
@@ -140,7 +140,7 @@ describe('pruneMessages', () => {
                     "value": "Error: Fetching weather data failed",
                   },
                   "toolCallId": "call-2",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-2",
                   "type": "tool-result",
                 },
               ],
@@ -183,13 +183,13 @@ describe('pruneMessages', () => {
                 {
                   "input": "{"city": "Tokyo"}",
                   "toolCallId": "call-1",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-1",
                   "type": "tool-call",
                 },
                 {
                   "input": "{"city": "Busan"}",
                   "toolCallId": "call-2",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-2",
                   "type": "tool-call",
                 },
                 {
@@ -213,7 +213,7 @@ describe('pruneMessages', () => {
                     "value": "sunny",
                   },
                   "toolCallId": "call-1",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-1",
                   "type": "tool-result",
                 },
                 {
@@ -222,7 +222,7 @@ describe('pruneMessages', () => {
                     "value": "Error: Fetching weather data failed",
                   },
                   "toolCallId": "call-2",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-2",
                   "type": "tool-result",
                 },
               ],
@@ -318,13 +318,13 @@ describe('pruneMessages', () => {
                 {
                   "input": "{"city": "Tokyo"}",
                   "toolCallId": "call-1",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-1",
                   "type": "tool-call",
                 },
                 {
                   "input": "{"city": "Busan"}",
                   "toolCallId": "call-2",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-2",
                   "type": "tool-call",
                 },
                 {
@@ -348,7 +348,7 @@ describe('pruneMessages', () => {
                     "value": "sunny",
                   },
                   "toolCallId": "call-1",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-1",
                   "type": "tool-result",
                 },
                 {
@@ -357,7 +357,7 @@ describe('pruneMessages', () => {
                     "value": "Error: Fetching weather data failed",
                   },
                   "toolCallId": "call-2",
-                  "toolName": "get-weather",
+                  "toolName": "get-weather-tool-2",
                   "type": "tool-result",
                 },
               ],
