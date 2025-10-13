@@ -1101,31 +1101,31 @@ describe('responses', () => {
   });
 
   describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
-      beforeEach(async () => {
-        prepareJsonFixtureResponse('openai-image-generation-tool.1');
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('openai-image-generation-tool.1');
 
-        result = await createModel('test-deployment').doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.image_generation',
-              name: 'image_generation',
-              args: {
-                outputFormat: 'webp',
-                quality: 'low',
-                size: '1024x1024',
-                partialImages: 2,
-              },
+      result = await createModel('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {
+              outputFormat: 'webp',
+              quality: 'low',
+              size: '1024x1024',
+              partialImages: 2,
             },
-          ],
-        });
+          },
+        ],
       });
+    });
 
-      it('should send request body with include and tool', async () => {
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+    it('should send request body with include and tool', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "input": [
               {
@@ -1150,12 +1150,12 @@ describe('responses', () => {
             ],
           }
         `);
-      });
-
-      it('should include generate image tool call and result in content', async () => {
-        expect(result.content).toMatchSnapshot();
-      });
     });
+
+    it('should include generate image tool call and result in content', async () => {
+      expect(result.content).toMatchSnapshot();
+    });
+  });
 
   describe('doStream', () => {
     it('should stream text deltas', async () => {
@@ -1369,7 +1369,6 @@ describe('responses', () => {
       `);
     });
 
-
     it('should handle file_citation annotations without optional fields in streaming', async () => {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/responses'
@@ -1458,55 +1457,53 @@ describe('responses', () => {
     });
   });
   describe('file search tool', () => {
-      it('should stream file search results without results include', async () => {
-        prepareChunksFixtureResponse('openai-file-search-tool.1');
+    it('should stream file search results without results include', async () => {
+      prepareChunksFixtureResponse('openai-file-search-tool.1');
 
-        const result = await createModel('test-deployment').doStream({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
-              },
-            },
-          ],
-        });
-
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
-      });
-
-      it('should stream file search results with results include', async () => {
-        prepareChunksFixtureResponse('openai-file-search-tool.2');
-
-        const result = await createModel('test-deployment').doStream({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
-              },
-            },
-          ],
-          providerOptions: {
-            openai: {
-              include: ['file_search_call.results'],
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
             },
           },
-        });
-
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
+        ],
       });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
 
+    it('should stream file search results with results include', async () => {
+      prepareChunksFixtureResponse('openai-file-search-tool.2');
 
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+            },
+          },
+        ],
+        providerOptions: {
+          openai: {
+            include: ['file_search_call.results'],
+          },
+        },
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
 });
