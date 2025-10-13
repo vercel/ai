@@ -160,15 +160,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
-<<<<<<< HEAD
-=======
-          ...(googleOptions?.mediaResolution && {
-            mediaResolution: googleOptions.mediaResolution,
-          }),
           ...(googleOptions?.imageConfig && {
             imageConfig: googleOptions.imageConfig,
           }),
->>>>>>> 09ba2dde8 (feat(google): add support for `aspectRatio` for Gemini models (#9350))
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
