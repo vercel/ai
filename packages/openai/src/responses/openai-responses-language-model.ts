@@ -811,7 +811,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     },
                   },
                 });
-              } else if (isResponseOutputItemAddedReasoningChunk(value)) {
+              } else if (
+                isResponseOutputItemAddedChunk(value) &&
+                value.item.type === 'reasoning'
+              ) {
                 activeReasoning[value.item.id] = {
                   encryptedContent: value.item.encrypted_content,
                   summaryParts: [0],
@@ -967,7 +970,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'text-end',
                   id: value.item.id,
                 });
-              } else if (isResponseOutputItemDoneReasoningChunk(value)) {
+              } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
 
                 for (const summaryIndex of activeReasoningPart.summaryParts) {
@@ -1064,8 +1067,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               if (options.providerOptions?.openai?.logprobs && value.logprobs) {
                 logprobs.push(value.logprobs);
               }
-            } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
-              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk.
+            } else if (value.type === 'response.reasoning_summary_part.added') {
+              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
                 activeReasoning[value.item_id]?.summaryParts.push(
                   value.summary_index,
@@ -1084,7 +1087,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
-            } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+            } else if (value.type === 'response.reasoning_summary_text.delta') {
               controller.enqueue({
                 type: 'reasoning-delta',
                 id: `${value.item_id}:${value.summary_index}`,
@@ -1184,16 +1187,6 @@ function isResponseOutputItemDoneChunk(
   return chunk.type === 'response.output_item.done';
 }
 
-function isResponseOutputItemDoneReasoningChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & { type: 'response.output_item.done' } & {
-  item: { type: 'reasoning' };
-} {
-  return (
-    isResponseOutputItemDoneChunk(chunk) && chunk.item.type === 'reasoning'
-  );
-}
-
 function isResponseFinishedChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
@@ -1247,39 +1240,12 @@ function isResponseOutputItemAddedChunk(
   return chunk.type === 'response.output_item.added';
 }
 
-function isResponseOutputItemAddedReasoningChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & {
-  type: 'response.output_item.added';
-  item: { type: 'reasoning' };
-} {
-  return (
-    isResponseOutputItemAddedChunk(chunk) && chunk.item.type === 'reasoning'
-  );
-}
-
 function isResponseAnnotationAddedChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
   type: 'response.output_text.annotation.added';
 } {
   return chunk.type === 'response.output_text.annotation.added';
-}
-
-function isResponseReasoningSummaryPartAddedChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & {
-  type: 'response.reasoning_summary_part.added';
-} {
-  return chunk.type === 'response.reasoning_summary_part.added';
-}
-
-function isResponseReasoningSummaryTextDeltaChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & {
-  type: 'response.reasoning_summary_text.delta';
-} {
-  return chunk.type === 'response.reasoning_summary_text.delta';
 }
 
 function isErrorChunk(
