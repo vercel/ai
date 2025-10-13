@@ -1371,6 +1371,51 @@ describe('doGenerate', () => {
     });
   });
 
+<<<<<<< HEAD
+=======
+  it('should pass mediaResolution in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          mediaResolution: 'MEDIA_RESOLUTION_LOW',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        mediaResolution: 'MEDIA_RESOLUTION_LOW',
+      },
+    });
+  });
+
+  it('should pass imageConfig.aspectRatio in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          aspectRatio: '16:9',
+        },
+      },
+    });
+  });
+
+>>>>>>> 09ba2dde8 (feat(google): add support for `aspectRatio` for Gemini models (#9350))
   it('should include non-image inlineData parts', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
