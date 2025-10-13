@@ -166,85 +166,8 @@ const result = streamText({
       agent: { id: 'your-agent-id' },
     },
   },
-  messages: [
-    {
-      role: 'user',
-      content: 'Tell me a story about a robot learning to paint.',
-    },
-  ],
+  prompt: 'Tell me a story about a robot learning to paint',
 });
-```
-
-### useChat
-
-```typescript
-'use client';
-
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, UIMessage } from 'ai';
-import { useState } from 'react';
-
-interface ChatProps {
-  agentId: string;
-  existingMessages?: UIMessage[];
-}
-
-export function StreamingChat({ agentId, existingMessages = [] }: ChatProps) {
-  const [input, setInput] = useState('');
-
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-      body: { agentId },
-    }),
-    messages: existingMessages,
-  });
-
-  const isLoading = status === 'streaming' || status === 'submitted';
-
-  return (
-    <div>
-      {/* Messages */}
-      <div>
-        {messages.map((message) => (
-          <div key={message.id}>
-            <strong>{message.role === 'user' ? 'You' : 'Assistant'}:</strong>
-            {/* Handle message parts (for reasoning, tools, etc.) */}
-            {message.parts?.map((part, index) => (
-              <div key={index}>
-                {part.type === 'text' && <div>{part.text}</div>}
-                {part.type === 'reasoning' && (
-                  <div style={{ color: 'blue', fontSize: '0.9em' }}>
-                    💭 {part.text}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-
-      {/* Input form */}
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        if (input.trim()) {
-          sendMessage({ text: input });
-          setInput('');
-        }
-      }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          disabled={isLoading}
-        />
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Sending...' : 'Send'}
-        </button>
-      </form>
-    </div>
-  );
-}
 ```
 
 ## Advanced Usage
@@ -279,12 +202,7 @@ const result = streamText({
       timeoutInSeconds: 300, // The maximum time to wait for a response in seconds (default: 1000)
     },
   },
-  messages: [
-    {
-      role: 'user',
-      content: 'Tell me a story about a robot learning to paint.',
-    },
-  ],
+  prompt: 'Tell me a story about a robot learning to paint',
 });
 ```
 
@@ -297,14 +215,17 @@ Both `streamText` and `generateText` support AI reasoning tokens:
 #### Streaming with Reasoning
 
 ```typescript
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
+import { streamText, convertToModelMessages } from 'ai';
+
 const result = streamText({
   model: lettaCloud(),
-  providerOptions: { 
+  providerOptions: {
     letta: {
       agent: { id: 'your-agent-id' },
     },
   },
-  messages: convertToModelMessages(messages),
+  prompt: 'Can you come up with a study plan for a student struggling with math?',
 });
 
 // Include reasoning in UI message stream
@@ -316,6 +237,10 @@ return result.toUIMessageStreamResponse({
 #### Non-Streaming with Reasoning
 
 ```typescript
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
+import { generateText, convertToModelMessages } from 'ai';
+
+
 const result = await generateText({
   model: lettaCloud(),
   providerOptions: {
@@ -323,7 +248,7 @@ const result = await generateText({
       agent: { id: 'your-agent-id' },
     },
   },
-  messages: convertToModelMessages(messages),
+  prompt: 'Can you come up with a study plan for a student struggling with math?',
 });
 
 // generateText inherently includes `reasoning`
@@ -396,10 +321,12 @@ message.parts?.forEach(part => {
 For streaming operations that may take longer to complete, you can use the `background` option:
 
 ```typescript
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
+
 // Streaming with background execution
 const stream = streamText({
   model: lettaCloud(),
-  messages: [{ role: 'user', content: 'Process this complex task...' }],
+  prompt: 'Process this complex task...',
   providerOptions: {
     letta: {
       agent: {
@@ -425,54 +352,60 @@ Once tools are configured on your agent, they work seamlessly with both streamin
 </Note>
 
 ```typescript
+import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
 import { z } from 'zod';
 
 // Use with streaming
 const streamResult = streamText({
   model: lettaCloud(),
-  // Provide placeholder tool configurations to prevent bad AI SDK tool message errors
   tools: {
-    web_search: {
-      description: 'Search the web',
-      inputSchema: z.any(),
-      execute: async () => 'Handled by Letta',
-    },
-    memory_replace: {
-      description: 'Replace memory content',
-      inputSchema: z.any(),
-      execute: async () => 'Handled by Letta',
-    },
+    web_search: lettaCloud.tool("web_search"),
+    memory_insert: lettaCloud.tool("memory_insert"),
+    memory_replace: lettaCloud.tool("memory_replace"),
+    core_memory_append: lettaCloud.tool("core_memory_append"),
+    my_custom_tool: lettaCloud.tool("my_custom_tool"),
+
+    // Optionally provide description and schema (placeholders only - execution handled by Letta)
+    typed_query: lettaCloud.tool("typed_query", {
+      description: "Query with typed parameters",
+      inputSchema: z.object({
+        query: z.string(),
+      }),
+    }),
   },
   providerOptions: {
     letta: {
-      agent: { id: 'your-agent-id' },
-    },
+      agent: { id: agentId },
+    }
   },
-  messages: messages,
+  prompt: 'Tell me a story about a robot learning to paint',
 });
 
 // Use with non-streaming
 const generateResult = await generateText({
-  model: lettaCloud(),
+  model: lettaCloud(), // replace with lettaLocal() if you're self-hosted, or letta() for custom configs
   tools: {
-    // Provide placeholder tool configurations to prevent bad AI SDK tool message errors
-    web_search: {
-      description: 'Search the web',
-      inputSchema: z.any(),
-      execute: async () => 'Handled by Letta',
-    },
-    memory_replace: {
-      description: 'Replace memory content',
-      inputSchema: z.any(),
-      execute: async () => 'Handled by Letta',
-    },
+    // Tools can be defined with just a name
+    web_search: lettaCloud.tool("web_search"),
+    memory_insert: lettaCloud.tool("memory_insert"),
+    memory_replace: lettaCloud.tool("memory_replace"),
+    core_memory_append: lettaCloud.tool("core_memory_append"),
+    my_custom_tool: lettaCloud.tool("my_custom_tool"),
+
+    // Optionally provide description and schema (placeholders only - execution handled by Letta)
+    typed_query: lettaCloud.tool("typed_query", {
+      description: "Query with typed parameters",
+      inputSchema: z.object({
+        query: z.string(),
+      }),
+    }),
   },
   providerOptions: {
     letta: {
-      agent: { id: 'your-agent-id' },
-    },
+      agent: { id: agentId },
+    }
   },
-  messages: messages,
+  prompt: 'Tell me a story about a robot learning to paint',
 });
 ```
 
@@ -494,24 +427,40 @@ See guide [here](https://docs.letta.com/guides/agents/filesystem).
 Tool calls appear in message parts and can be filtered by type:
 
 ```typescript
-const isNamedTool = (part: { type: string; [key: string]: unknown }): boolean =>
-  part.type.startsWith('tool-') && part.type !== 'tool-invocation';
+import { ToolUIPart } from 'ai';
+
+// Type guard for named tool parts (excludes generic tool-invocation type)
+const isNamedTool = (part: {
+  type: string;
+  [key: string]: unknown;
+}): part is ToolUIPart =>
+  part.type.startsWith("tool-") && part.type !== "tool-invocation";
 
 // Filter tool parts from message parts
 const toolParts = message.parts?.filter(isNamedTool) || [];
 
 toolParts.forEach(part => {
-  console.log('Tool Type:', part.type); // e.g., "tool-call", "tool-result"
-  console.log('State:', part.state);
-  console.log('Call ID:', part.toolCallId);
-  console.log('Input:', part.input);
-  console.log('Output:', part.output);
+  console.log('Tool Type:', part.type); // e.g., "tool-web_search", "tool-calculator"
 
+  // Safely access properties that may exist
+  if ("state" in part) {
+    console.log('State:', part.state); // e.g., "input-available", "output-available"
+  }
+  if ("toolCallId" in part) {
+    console.log('Call ID:', part.toolCallId);
+  }
+  if ("input" in part && part.input !== null && part.input !== undefined) {
+    console.log('Input:', part.input);
+  }
+  if ("output" in part && part.output !== null && part.output !== undefined) {
+    console.log('Output:', part.output);
+  }
   // Handle errors if present
-  if (part.errorText) {
+  if ("errorText" in part && part.errorText) {
     console.error('Tool Error:', part.errorText);
   }
 });
+```
 ```
 
 ## Using other Letta Client Functions
