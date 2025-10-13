@@ -37,6 +37,7 @@ import {
   OpenAIResponsesIncludeValue,
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
+  OpenAIResponsesWebSearchAction,
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
@@ -44,6 +45,7 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import { webSearchInputSchema } from '../tool/web-search';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -510,7 +512,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            input: JSON.stringify({ action: part.action }),
+            input: JSON.stringify(mapWebSearchInput(part.action)),
             providerExecuted: true,
           });
 
@@ -862,7 +864,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-call',
                   toolCallId: value.item.id,
                   toolName: 'web_search',
-                  input: JSON.stringify({ action: value.item.action }),
+                  input: JSON.stringify(mapWebSearchInput(value.item.action)),
                   providerExecuted: true,
                 });
 
@@ -1351,4 +1353,25 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     ...defaults,
     isReasoningModel: false,
   };
+}
+
+function mapWebSearchInput(
+  action: OpenAIResponsesWebSearchAction | undefined | null,
+): InferSchema<typeof webSearchInputSchema> {
+  if (action == null) {
+    return { action: undefined };
+  }
+
+  switch (action.type) {
+    case 'search':
+      return { action: { type: 'search', query: action.query ?? undefined } };
+    case 'open_page':
+      return { action: { type: 'openPage', url: action.url } };
+    case 'find':
+      return {
+        action: { type: 'find', url: action.url, pattern: action.pattern },
+      };
+    default:
+      return { action: undefined };
+  }
 }

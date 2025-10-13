@@ -298,10 +298,21 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             id: z.string(),
             status: z.string(),
             action: z
-              .object({
-                type: z.literal('search'),
-                query: z.string().optional(),
-              })
+              .discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('search'),
+                  query: z.string().nullish(),
+                }),
+                z.object({
+                  type: z.literal('open_page'),
+                  url: z.string(),
+                }),
+                z.object({
+                  type: z.literal('find'),
+                  url: z.string(),
+                  pattern: z.string(),
+                }),
+              ])
               .nullish(),
           }),
           z.object({
@@ -512,6 +523,14 @@ export type OpenAIResponsesLogprobs = NonNullable<
   (OpenAIResponsesChunk & {
     type: 'response.output_text.delta';
   })['logprobs']
+> | null;
+
+export type OpenAIResponsesWebSearchAction = NonNullable<
+  ((OpenAIResponsesChunk & {
+    type: 'response.output_item.added';
+  })['item'] & {
+    type: 'web_search_call';
+  })['action']
 > | null;
 
 export const openaiResponsesResponseSchema = lazySchema(() =>
