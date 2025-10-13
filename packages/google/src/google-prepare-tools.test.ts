@@ -281,8 +281,6 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
     },
   ]);
 });
-<<<<<<< HEAD
-=======
 
 it('should handle latest modelId for provider-defined tools correctly', () => {
   const result = prepareTools({
@@ -334,4 +332,3 @@ it('should handle url context tool alone', () => {
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
->>>>>>> f8c981f30 (fix: vertex google tool errors (#9451))
