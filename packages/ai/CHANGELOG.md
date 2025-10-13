@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.69
+
+### Patch Changes
+
+- 1bacc1f: fix(ai): handle backpressure in `writeToServerResponse`
+
 ## 5.0.68
 
 ### Patch Changes
