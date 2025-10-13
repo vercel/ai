@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.43
+
+### Patch Changes
+
+- 27e8c3a: chore(ai): rename Agent to BasicAgent, introduce Agent interface
+
 ## 6.0.0-beta.42
 
 ### Patch Changes
