@@ -163,6 +163,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           ...(googleOptions?.imageConfig && {
             imageConfig: googleOptions.imageConfig,
           }),
+          ...(googleOptions?.mediaResolution && {
+            mediaResolution: googleOptions.mediaResolution,
+          }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
