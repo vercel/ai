@@ -74,7 +74,7 @@ export function convertToParallelMessages(
         });
       }
       default: {
-        const _exhaustiveCheck = role;
+        const _exhaustiveCheck: never = role;
         throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
       }
     }
