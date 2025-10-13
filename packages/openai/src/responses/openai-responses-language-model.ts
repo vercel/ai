@@ -28,7 +28,7 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
-import { WebSearchOutput } from '../tool/web-search';
+import { webSearchOutputSchema } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -1357,7 +1357,7 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 
 function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction,
-): WebSearchOutput {
+): InferSchema<typeof webSearchOutputSchema> {
   switch (action.type) {
     case 'search':
       return { action: { type: 'search', query: action.query ?? undefined } };

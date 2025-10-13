@@ -7,7 +7,7 @@ import {
 } from './local-shell';
 
 describe('local-shell tool type', () => {
-  it('should work with inputSchema', () => {
+  it('should have Tool type', () => {
     const localShellTool = localShell({});
 
     expectTypeOf(localShellTool).toEqualTypeOf<
