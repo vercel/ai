@@ -1,7 +1,7 @@
 'use client';
 
-import ChatInput from '@/component/chat-input';
-import FetchPDFView from '@/component/fetch-pdf-view';
+import ChatInput from '@/components/chat-input';
+import FetchPDFView from '@/components/tool/fetch-pdf-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { OpenAIFetchPDFMessage } from '@/app/api/chat-openai-fetch-pdf-custom-tool/route';

@@ -390,7 +390,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should i
 exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should include web search tool call and result in content 1`] = `
 [
   {
-    "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
+    "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
     "toolName": "web_search",
@@ -399,14 +399,17 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
   {
     "providerExecuted": true,
     "result": {
-      "status": "completed",
+      "action": {
+        "query": "Vercel AI SDK next version features",
+        "type": "search",
+      },
     },
     "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
     "toolName": "web_search",
     "type": "tool-result",
   },
   {
-    "input": "{"action":{"type":"search"}}",
+    "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
     "toolName": "web_search",
@@ -415,7 +418,10 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
   {
     "providerExecuted": true,
     "result": {
-      "status": "completed",
+      "action": {
+        "query": undefined,
+        "type": "search",
+      },
     },
     "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
     "toolName": "web_search",
@@ -3855,7 +3861,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     "type": "tool-input-end",
   },
   {
-    "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
+    "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_test",
     "toolName": "web_search",
@@ -3864,17 +3870,9 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   {
     "providerExecuted": true,
     "result": {
-      "status": "completed",
-    },
-    "toolCallId": "ws_test",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "id": "msg_test",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_test",
+      "action": {
+        "query": "Vercel AI SDK next version features",
+        "type": "search",
       },
     },
     "type": "text-start",
@@ -4037,7 +4035,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-input-end",
   },
   {
-    "input": "{"action":{"type":"search","query":"Berlin news today"}}",
+    "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
     "toolName": "web_search",
@@ -4046,7 +4044,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "providerExecuted": true,
     "result": {
-      "status": "completed",
+      "action": {
+        "query": "Berlin news today",
+        "type": "search",
+      },
     },
     "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
     "toolName": "web_search",
@@ -4083,7 +4084,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-input-end",
   },
   {
-    "input": "{"action":{"type":"search"}}",
+    "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
     "toolName": "web_search",
@@ -4092,7 +4093,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "providerExecuted": true,
     "result": {
-      "status": "completed",
+      "action": {
+        "query": undefined,
+        "type": "search",
+      },
     },
     "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
     "toolName": "web_search",
@@ -4129,7 +4133,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-input-end",
   },
   {
-    "input": "{"action":{"type":"search"}}",
+    "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
     "toolName": "web_search",
@@ -4138,7 +4142,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "providerExecuted": true,
     "result": {
-      "status": "completed",
+      "action": {
+        "query": undefined,
+        "type": "search",
+      },
     },
     "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
     "toolName": "web_search",
@@ -4175,7 +4182,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-input-end",
   },
   {
-    "input": "{"action":{"type":"search"}}",
+    "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
     "toolName": "web_search",
@@ -4184,7 +4191,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "providerExecuted": true,
     "result": {
-      "status": "completed",
+      "action": {
+        "query": undefined,
+        "type": "search",
+      },
     },
     "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
     "toolName": "web_search",

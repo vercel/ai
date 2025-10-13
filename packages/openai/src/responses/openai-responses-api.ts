@@ -325,12 +325,6 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .object({
-                type: z.literal('search'),
-                query: z.string().optional(),
-              })
-              .nullish(),
           }),
           z.object({
             type: z.literal('computer_call'),
@@ -406,23 +400,21 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('search'),
-                  query: z.string().nullish(),
-                }),
-                z.object({
-                  type: z.literal('open_page'),
-                  url: z.string(),
-                }),
-                z.object({
-                  type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
-                }),
-              ])
-              .nullish(),
+            action: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('search'),
+                query: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('open_page'),
+                url: z.string(),
+              }),
+              z.object({
+                type: z.literal('find'),
+                url: z.string(),
+                pattern: z.string(),
+              }),
+            ]),
           }),
           z.object({
             type: z.literal('file_search_call'),
@@ -500,6 +492,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         delta: z.string(),
       }),
       z.object({
+        type: z.literal('response.reasoning_summary_part.done'),
+        item_id: z.string(),
+        summary_index: z.number(),
+      }),
+      z.object({
         type: z.literal('error'),
         code: z.string(),
         message: z.string(),
@@ -526,6 +523,14 @@ export type OpenAIResponsesLogprobs = NonNullable<
     type: 'response.output_text.delta';
   })['logprobs']
 > | null;
+
+export type OpenAIResponsesWebSearchAction = NonNullable<
+  ((OpenAIResponsesChunk & {
+    type: 'response.output_item.done';
+  })['item'] & {
+    type: 'web_search_call';
+  })['action']
+>;
 
 export const openaiResponsesResponseSchema = lazySchema(() =>
   zodSchema(
@@ -598,23 +603,21 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('search'),
-                  query: z.string().nullish(),
-                }),
-                z.object({
-                  type: z.literal('open_page'),
-                  url: z.string(),
-                }),
-                z.object({
-                  type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
-                }),
-              ])
-              .nullish(),
+            action: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('search'),
+                query: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('open_page'),
+                url: z.string(),
+              }),
+              z.object({
+                type: z.literal('find'),
+                url: z.string(),
+                pattern: z.string(),
+              }),
+            ]),
           }),
           z.object({
             type: z.literal('file_search_call'),
