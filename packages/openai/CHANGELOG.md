@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.51
+
+### Patch Changes
+
+- cad5c1d: fix(provider/openai): fix web search tool input types
+
 ## 2.0.50
 
 ### Patch Changes
