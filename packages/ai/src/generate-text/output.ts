@@ -1,23 +1,22 @@
-import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { JSONSchema7, LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import {
   asSchema,
+  FlexibleSchema,
+  resolve,
   safeParseJSON,
   safeValidateTypes,
-  Schema,
 } from '@ai-sdk/provider-utils';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import { DeepPartial } from '../util/deep-partial';
-import { parsePartialJson } from '../util/parse-partial-json';
 import { FinishReason } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { DeepPartial } from '../util/deep-partial';
+import { parsePartialJson } from '../util/parse-partial-json';
 
 export interface Output<OUTPUT, PARTIAL> {
   readonly type: 'object' | 'text';
 
-  responseFormat: LanguageModelV2CallOptions['responseFormat'];
+  responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
 
   parsePartial(options: {
     text: string;
@@ -36,7 +35,7 @@ export interface Output<OUTPUT, PARTIAL> {
 export const text = (): Output<string, string> => ({
   type: 'text',
 
-  responseFormat: { type: 'text' },
+  responseFormat: Promise.resolve({ type: 'text' }),
 
   async parsePartial({ text }: { text: string }) {
     return { partial: text };
@@ -50,20 +49,17 @@ export const text = (): Output<string, string> => ({
 export const object = <OUTPUT>({
   schema: inputSchema,
 }: {
-  schema:
-    | z4.core.$ZodType<OUTPUT, any>
-    | z3.Schema<OUTPUT, z3.ZodTypeDef, any>
-    | Schema<OUTPUT>;
+  schema: FlexibleSchema<OUTPUT>;
 }): Output<OUTPUT, DeepPartial<OUTPUT>> => {
   const schema = asSchema(inputSchema);
 
   return {
     type: 'object',
 
-    responseFormat: {
-      type: 'json',
-      schema: schema.jsonSchema,
-    },
+    responseFormat: resolve(schema.jsonSchema).then(jsonSchema => ({
+      type: 'json' as const,
+      schema: jsonSchema,
+    })),
 
     async parsePartial({ text }: { text: string }) {
       const result = await parsePartialJson(text);

@@ -48,11 +48,12 @@ export function createStitchableStream<T>(): {
         // Case 3: Current inner stream is done
         innerStreamReaders.shift(); // Remove the finished stream
 
-        // Continue pulling from the next stream if available
-        if (innerStreamReaders.length > 0) {
-          await processPull();
-        } else if (isClosed) {
+        if (innerStreamReaders.length === 0 && isClosed) {
+          // when closed and no more inner streams, stop pulling
           controller?.close();
+        } else {
+          // continue pulling from the next stream
+          await processPull();
         }
       } else {
         // Case 4: Current inner stream returns an item

@@ -1,8 +1,8 @@
 import {
   JSONValue,
-  LanguageModelV2,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -11,15 +11,15 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { type DocumentCitation } from './anthropic-messages-language-model';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
+import { Citation } from './anthropic-messages-api';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -73,7 +73,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         | {
             type: 'text';
             text: string;
-            citations?: Array<DocumentCitation>;
+            citations?: Array<Citation>;
           }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
@@ -408,6 +408,43 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should include stop_sequence in provider metadata', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_017TfcQ4AgGxKyBduUpqYPZn',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, World!' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'stop_sequence',
+          stop_sequence: 'STOP',
+          usage: {
+            input_tokens: 4,
+            output_tokens: 30,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        stopSequences: ['STOP'],
+      });
+
+      expect(result.providerMetadata).toMatchInlineSnapshot(`
+        {
+          "anthropic": {
+            "cacheCreationInputTokens": null,
+            "stopSequence": "STOP",
+            "usage": {
+              "input_tokens": 4,
+              "output_tokens": 30,
+            },
+          },
+        }
+      `);
+    });
+
     it('should expose the raw response headers', async () => {
       prepareJsonResponse({
         headers: {
@@ -623,6 +660,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
+              "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
                 "cache_read_input_tokens": 5,
@@ -756,6 +794,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
+              "stopSequence": null,
               "usage": {
                 "cache_creation": {
                   "ephemeral_1h_input_tokens": 10,
@@ -1024,7 +1063,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web search tool', () => {
       describe('with fixture', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-search-tool.1');
@@ -1512,8 +1551,8 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('web fetch tool', () => {
-      describe('txt response', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+      describe('text response', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.1');
@@ -1563,8 +1602,32 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
+      describe('text response without title', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-web-fetch-tool.2');
+
+          result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.web_fetch_20250910',
+                name: 'web_fetch',
+                args: { maxUses: 1 },
+              },
+            ],
+          });
+        });
+
+        it('should include web fetch tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
       describe('unavailable error', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.error');
@@ -1842,7 +1905,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
   describe('doStream', () => {
     describe('json schema response format', () => {
-      let result: Array<LanguageModelV2StreamPart>;
+      let result: Array<LanguageModelV3StreamPart>;
 
       beforeEach(async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -1994,6 +2057,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "stopSequence": null,
                   "usage": {
                     "input_tokens": 441,
                     "output_tokens": 65,
@@ -2071,6 +2135,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
                   "output_tokens": 227,
@@ -2168,6 +2233,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
                   "output_tokens": 227,
@@ -2247,6 +2313,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
                   "output_tokens": 227,
@@ -2312,6 +2379,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
                   "output_tokens": 227,
@@ -2449,6 +2517,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "stopSequence": null,
                 "usage": {
                   "input_tokens": 441,
                   "output_tokens": 65,
@@ -2656,6 +2725,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
+                "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
                   "cache_read_input_tokens": 5,
@@ -2728,6 +2798,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
+                "stopSequence": null,
                 "usage": {
                   "cache_creation": {
                     "ephemeral_1h_input_tokens": 10,
@@ -2830,6 +2901,54 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "stopSequence": null,
+                  "usage": {
+                    "input_tokens": 17,
+                    "output_tokens": 227,
+                  },
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": 17,
+                "outputTokens": 227,
+                "totalTokens": 244,
+              },
+            },
+          ]
+        `);
+    });
+
+    it('should include stop_sequence in provider metadata', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"stop_sequence","stop_sequence":"STOP"},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        stopSequences: ['STOP'],
+      });
+
+      const chunks = await convertReadableStreamToArray(result.stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'finish'))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": null,
+                  "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
                     "output_tokens": 227,
@@ -3063,6 +3182,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
                     "output_tokens": 227,
@@ -3083,7 +3203,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       describe('web fetch tool', () => {
         describe('txt response', () => {
-          let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+          let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
           beforeEach(async () => {
             prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
@@ -3110,7 +3230,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('web search tool', () => {
-        let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-web-search-tool.1');

@@ -1,14 +1,14 @@
 import {
-  LanguageModelV2Content,
-  LanguageModelV2Middleware,
+  LanguageModelV3Content,
+  LanguageModelV3Middleware,
 } from '@ai-sdk/provider';
 
-export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
+export const yourGuardrailMiddleware: LanguageModelV3Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
     const { content, ...rest } = await doGenerate();
 
     // filtering approach, e.g. for PII or other sensitive information:
-    const cleanedContent: Array<LanguageModelV2Content> = content.map(part => {
+    const cleanedContent: Array<LanguageModelV3Content> = content.map(part => {
       return part.type === 'text'
         ? {
             type: 'text',

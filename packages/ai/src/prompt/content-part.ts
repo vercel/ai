@@ -1,10 +1,12 @@
-import { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
+import { LanguageModelV3ToolResultOutput } from '@ai-sdk/provider';
 import {
   FilePart,
   ImagePart,
   ProviderOptions,
   ReasoningPart,
   TextPart,
+  ToolApprovalRequest,
+  ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -95,7 +97,7 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
 /**
 @internal
  */
-export const outputSchema: z.ZodType<LanguageModelV2ToolResultOutput> =
+export const outputSchema: z.ZodType<LanguageModelV3ToolResultOutput> =
   z.discriminatedUnion('type', [
     z.object({
       type: z.literal('text'),
@@ -141,3 +143,18 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   output: outputSchema,
   providerOptions: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
+
+export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
+  z.object({
+    type: z.literal('tool-approval-request'),
+    approvalId: z.string(),
+    toolCallId: z.string(),
+  });
+
+export const toolApprovalResponseSchema: z.ZodType<ToolApprovalResponse> =
+  z.object({
+    type: z.literal('tool-approval-response'),
+    approvalId: z.string(),
+    approved: z.boolean(),
+    reason: z.string().optional(),
+  });

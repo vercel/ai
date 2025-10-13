@@ -34,7 +34,7 @@ describe('GatewayFetchMetadata', () => {
       output: '0.000002',
     },
     specification: {
-      specificationVersion: 'v2' as const,
+      specificationVersion: 'v3' as const,
       provider: 'test-provider',
       modelId: 'model-1',
     },
@@ -44,7 +44,7 @@ describe('GatewayFetchMetadata', () => {
     id: 'model-2',
     name: 'Model Two',
     specification: {
-      specificationVersion: 'v2' as const,
+      specificationVersion: 'v3' as const,
       provider: 'test-provider',
       modelId: 'model-2',
     },
@@ -207,7 +207,7 @@ describe('GatewayFetchMetadata', () => {
               id: 'model-invalid-type',
               name: 'Invalid Type Model',
               specification: {
-                specificationVersion: 'v2' as const,
+                specificationVersion: 'v3' as const,
                 provider: 'test-provider',
                 modelId: 'model-invalid-type',
               },
@@ -335,7 +335,7 @@ describe('GatewayFetchMetadata', () => {
                 output: '0.000002',
               },
               specification: {
-                specificationVersion: 'v2',
+                specificationVersion: 'v3',
                 provider: 'test-provider',
                 modelId: 'model-1',
               },
@@ -456,7 +456,7 @@ describe('GatewayFetchMetadata', () => {
           output: '0.000010',
         },
         specification: {
-          specificationVersion: 'v2' as const,
+          specificationVersion: 'v3' as const,
           provider: 'custom-provider',
           modelId: 'custom-model-1',
         },

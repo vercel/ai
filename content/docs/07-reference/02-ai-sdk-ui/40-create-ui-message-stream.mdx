@@ -20,10 +20,25 @@ const existingMessages: UIMessage[] = [
 
 const stream = createUIMessageStream({
   async execute({ writer }) {
+    // Start a text message
+    // Note: The id must be consistent across text-start, text-delta, and text-end steps
+    // This allows the system to correctly identify they belong to the same text block
+    writer.write({
+      type: 'text-start',
+      id: 'example-text',
+    });
+
     // Write a message chunk
     writer.write({
       type: 'text-delta',
-      textDelta: 'Hello',
+      id: 'example-text',
+      delta: 'Hello',
+    });
+
+    // End the text message
+    writer.write({
+      type: 'text-end',
+      id: 'example-text',
     });
 
     // Merge another stream from streamText

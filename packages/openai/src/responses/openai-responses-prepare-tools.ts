@@ -1,6 +1,6 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
@@ -8,17 +8,18 @@ import { fileSearchArgsSchema } from '../tool/file-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
-import { OpenAIResponsesTool } from './openai-responses-api-types';
+import { OpenAIResponsesTool } from './openai-responses-api';
+import { validateTypes } from '@ai-sdk/provider-utils';
 
-export function prepareResponsesTools({
+export async function prepareResponsesTools({
   tools,
   toolChoice,
   strictJsonSchema,
 }: {
-  tools: LanguageModelV2CallOptions['tools'];
-  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   strictJsonSchema: boolean;
-}): {
+}): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
     | 'auto'
@@ -30,12 +31,12 @@ export function prepareResponsesTools({
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
     | { type: 'image_generation' };
-  toolWarnings: LanguageModelV2CallWarning[];
-} {
+  toolWarnings: LanguageModelV3CallWarning[];
+}> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const toolWarnings: LanguageModelV3CallWarning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -57,7 +58,10 @@ export function prepareResponsesTools({
       case 'provider-defined': {
         switch (tool.id) {
           case 'openai.file_search': {
-            const args = fileSearchArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: fileSearchArgsSchema,
+            });
 
             openaiTools.push({
               type: 'file_search',
@@ -74,8 +78,17 @@ export function prepareResponsesTools({
 
             break;
           }
+          case 'openai.local_shell': {
+            openaiTools.push({
+              type: 'local_shell',
+            });
+            break;
+          }
           case 'openai.web_search_preview': {
-            const args = webSearchPreviewArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webSearchPreviewArgsSchema,
+            });
             openaiTools.push({
               type: 'web_search_preview',
               search_context_size: args.searchContextSize,
@@ -84,7 +97,10 @@ export function prepareResponsesTools({
             break;
           }
           case 'openai.web_search': {
-            const args = webSearchArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webSearchArgsSchema,
+            });
             openaiTools.push({
               type: 'web_search',
               filters:
@@ -97,7 +113,11 @@ export function prepareResponsesTools({
             break;
           }
           case 'openai.code_interpreter': {
-            const args = codeInterpreterArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: codeInterpreterArgsSchema,
+            });
+
             openaiTools.push({
               type: 'code_interpreter',
               container:
@@ -110,7 +130,11 @@ export function prepareResponsesTools({
             break;
           }
           case 'openai.image_generation': {
-            const args = imageGenerationArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: imageGenerationArgsSchema,
+            });
+
             openaiTools.push({
               type: 'image_generation',
               background: args.background,
@@ -122,11 +146,12 @@ export function prepareResponsesTools({
                   }
                 : undefined,
               model: args.model,
-              size: args.size,
-              quality: args.quality,
               moderation: args.moderation,
-              output_format: args.outputFormat,
+              partial_images: args.partialImages,
+              quality: args.quality,
               output_compression: args.outputCompression,
+              output_format: args.outputFormat,
+              size: args.size,
             });
             break;
           }

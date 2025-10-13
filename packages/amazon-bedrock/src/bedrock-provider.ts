@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV3,
   ImageModelV3,
-  LanguageModelV2,
+  LanguageModelV3,
   ProviderV3,
 } from '@ai-sdk/provider';
 import {
@@ -105,9 +105,9 @@ and `sessionToken` settings.
 }
 
 export interface AmazonBedrockProvider extends ProviderV3 {
-  (modelId: BedrockChatModelId): LanguageModelV2;
+  (modelId: BedrockChatModelId): LanguageModelV3;
 
-  languageModel(modelId: BedrockChatModelId): LanguageModelV2;
+  languageModel(modelId: BedrockChatModelId): LanguageModelV3;
 
   embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3<string>;
 

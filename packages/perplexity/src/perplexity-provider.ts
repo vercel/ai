@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -18,12 +18,12 @@ export interface PerplexityProvider extends ProviderV3 {
   /**
 Creates an Perplexity chat model for text generation.
    */
-  (modelId: PerplexityLanguageModelId): LanguageModelV2;
+  (modelId: PerplexityLanguageModelId): LanguageModelV3;
 
   /**
 Creates an Perplexity language model for text generation.
    */
-  languageModel(modelId: PerplexityLanguageModelId): LanguageModelV2;
+  languageModel(modelId: PerplexityLanguageModelId): LanguageModelV3;
 }
 
 export interface PerplexityProviderSettings {

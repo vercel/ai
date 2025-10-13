@@ -1,0 +1,99 @@
+name: Prettier on Auto-merge
+
+on:
+  pull_request_target:
+    types: [auto_merge_enabled]
+  check_run:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  prettier:
+    name: Run Prettier
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only run if:
+    # 1. Triggered by auto_merge_enabled event, OR
+    # 2. Triggered by check_run completion where the check is "Prettier", failed, and PR has auto-merge enabled
+    if: |
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'check_run' && 
+       github.event.check_run.name == 'Prettier' && 
+       github.event.check_run.conclusion == 'failure' &&
+       github.event.check_run.pull_requests != null &&
+       github.event.check_run.pull_requests[0] != null &&
+       github.event.check_run.pull_requests[0].auto_merge != null)
+    
+    steps:
+      - name: Create access token for GitHub App
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
+          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
+
+      - name: Get GitHub App User ID
+        id: app-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git user for GitHub App
+        run: |
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+
+      - name: Normalize pull_request.head
+        id: pr-head
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
+            echo "ref=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
+            echo "repo_full_name=${{ github.event.pull_request.head.repo.full_name }}" >> "$GITHUB_OUTPUT"
+          else
+            # check_run event
+            echo "ref=${{ github.event.check_run.pull_requests[0].head.ref }}" >> "$GITHUB_OUTPUT"
+            echo "repo_full_name=${{ github.event.check_run.pull_requests[0].head.repo.full_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ steps.pr-head.outputs.ref }}
+          repository: ${{ steps.pr-head.outputs.repo_full_name }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run Prettier
+        run: pnpm prettier-fix
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git add -A
+          if git diff --staged --quiet; then
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected"
+          else
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected"
+          fi
+
+      - name: Commit and push changes
+        if: steps.git-check.outputs.has-changes == 'true'
+        run: |
+          git commit -m "style: prettier"
+          git push

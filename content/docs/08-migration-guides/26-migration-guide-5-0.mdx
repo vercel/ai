@@ -880,6 +880,74 @@ Tool UI parts now use more granular states that better represent the streaming l
 - `result` → `output-available` (tool execution successful)
 - New: `output-error` (tool execution failed)
 
+#### Rendering Tool Invocations (Catch-All Pattern)
+
+In v4, you typically rendered tool invocations using a catch-all `tool-invocation` type. In v5, the **recommended approach is to handle each tool specifically using its typed part name (e.g., `tool-getWeather`)**. However, if you need a catch-all pattern for rendering all tool invocations the same way, you can use the `isToolUIPart` and `getToolName` helper functions as a fallback.
+
+```tsx filename="AI SDK 4.0"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'text':
+        return <div key={index}>{part.text}</div>;
+      case 'tool-invocation':
+        const { toolInvocation } = part;
+        return (
+          <details key={`tool-${toolInvocation.toolCallId}`}>
+            <summary>
+              <span>{toolInvocation.toolName}</span>
+              {toolInvocation.state === 'result' ? (
+                <span>Click to expand</span>
+              ) : (
+                <span>calling...</span>
+              )}
+            </summary>
+            {toolInvocation.state === 'result' ? (
+              <div>
+                <pre>{JSON.stringify(toolInvocation.result, null, 2)}</pre>
+              </div>
+            ) : null}
+          </details>
+        );
+    }
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { isToolUIPart, getToolName } from 'ai';
+
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'text':
+        return <div key={index}>{part.text}</div>;
+      default:
+        if (isToolUIPart(part)) {
+          const toolInvocation = part;
+          return (
+            <details key={`tool-${toolInvocation.toolCallId}`}>
+              <summary>
+                <span>{getToolName(toolInvocation)}</span>
+                {toolInvocation.state === 'output-available' ? (
+                  <span>Click to expand</span>
+                ) : (
+                  <span>calling...</span>
+                )}
+              </summary>
+              {toolInvocation.state === 'output-available' ? (
+                <div>
+                  <pre>{JSON.stringify(toolInvocation.output, null, 2)}</pre>
+                </div>
+              ) : null}
+            </details>
+          );
+        }
+    }
+  });
+}
+```
+
 #### Media Type Standardization
 
 `mimeType` has been renamed to `mediaType` for consistency. Both image and file types are supported in model messages.
@@ -2554,14 +2622,14 @@ import { IdGenerator } from 'ai';
 
 #### Language Model V2 Import
 
-`LanguageModelV2` must now be imported from `@ai-sdk/provider`.
+`LanguageModelV3` must now be imported from `@ai-sdk/provider`.
 
 ```tsx filename="AI SDK 4.0"
-import { LanguageModelV2 } from 'ai';
+import { LanguageModelV3 } from 'ai';
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV3 } from '@ai-sdk/provider';
 ```
 
 #### Middleware Rename
@@ -2573,7 +2641,7 @@ import { LanguageModelV1Middleware } from 'ai';
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { LanguageModelV2Middleware } from '@ai-sdk/provider';
+import { LanguageModelV3Middleware } from '@ai-sdk/provider';
 ```
 
 #### Usage Token Properties
@@ -2603,11 +2671,11 @@ Token usage properties have been renamed for consistency.
 
 #### Stream Part Type Changes
 
-The `LanguageModelV2StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
+The `LanguageModelV3StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
 
 ```tsx filename="AI SDK 4.0"
 // V4: Simple stream parts
-type LanguageModelV2StreamPart =
+type LanguageModelV3StreamPart =
   | { type: 'text-delta'; textDelta: string }
   | { type: 'reasoning'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: string };
@@ -2615,7 +2683,7 @@ type LanguageModelV2StreamPart =
 
 ```tsx filename="AI SDK 5.0"
 // V5: Enhanced stream parts with IDs and lifecycle events
-type LanguageModelV2StreamPart =
+type LanguageModelV3StreamPart =
   // Text blocks with start/delta/end pattern
   | {
       type: 'text-start';
@@ -2681,11 +2749,11 @@ type LanguageModelV2StreamPart =
     }
 
   // Stream lifecycle events
-  | { type: 'stream-start'; warnings: Array<LanguageModelV2CallWarning> }
+  | { type: 'stream-start'; warnings: Array<LanguageModelV3CallWarning> }
   | {
       type: 'finish';
-      usage: LanguageModelV2Usage;
-      finishReason: LanguageModelV2FinishReason;
+      usage: LanguageModelV3Usage;
+      finishReason: LanguageModelV3FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
     };
 ```
@@ -2807,6 +2875,12 @@ await generateText({
 
 ## Message Persistence Changes
 
+<Note>
+  If you have persisted messages in a database, see the [Data Migration
+  Guide](/docs/migration-guides/migration-guide-5-0-data) for comprehensive
+  guidance on migrating your stored message data to the v5 format.
+</Note>
+
 In v4, you would typically use helper functions like `appendResponseMessages` or `appendClientMessage` to format messages in the `onFinish` callback of `streamText`:
 
 ```tsx filename="AI SDK 4.0"
@@ -2857,8 +2931,8 @@ const result = streamText({
 });
 
 return result.toUIMessageStreamResponse({
-  originalMessages: messages, // Pass original messages for context
-  generateMessageId: () => generateId(), // ID generation moved here for UI messages
+  originalMessages: messages, // IMPORTANT: Required to prevent duplicate messages
+  generateMessageId: () => generateId(), // IMPORTANT: Required for proper message ID generation
   onFinish: ({ messages, responseMessage }) => {
     // messages contains all messages (original + response) in UIMessage format
     saveChat({ chatId, messages });
@@ -2868,6 +2942,14 @@ return result.toUIMessageStreamResponse({
   },
 });
 ```
+
+<Note>
+  **Important:** When using `toUIMessageStreamResponse`, you should always
+  provide both `originalMessages` and `generateMessageId` parameters. Without
+  these, you may experience duplicate or repeated assistant messages in your UI.
+  For more details, see [Troubleshooting: Repeated Assistant
+  Messages](/docs/troubleshooting/repeated-assistant-messages).
+</Note>
 
 ### Message ID Generation
 
@@ -2911,6 +2993,7 @@ import { openai } from '@ai-sdk/openai';
 
 const stream = createUIMessageStream({
   originalMessages: messages,
+  generateId: generateId, // Required for proper message ID generation
   execute: ({ writer }) => {
     // Write custom data parts
     writer.write({
@@ -2939,26 +3022,36 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs Default
+#### Structured Outputs
 
-Structured outputs are now enabled by default for supported OpenAI models.
+The `structuredOutputs` parameter has been replaced with the `strictJsonSchema` provider option. It is now disabled by default.
 
 ```tsx filename="AI SDK 4.0"
-const result = await generateText({
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
+  schema: z.object({ name: z.string() }),
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
-const result = await generateText({
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
   model: openai('gpt-4.1-2024-08-06'),
-  // structuredOutputs: true is now the default
+  schema: z.object({ name: z.string() }),
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // renamed and opt-in via provider options
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
 #### Compatibility Option Removal
 
-The `compatibility` option has been removed; strict mode is now the default.
+The `compatibility` option has been removed; strict compatibility mode is now the default.
 
 ```tsx filename="AI SDK 4.0"
 const openai = createOpenAI({
@@ -3131,7 +3224,7 @@ For more information, see the [Codemods](#codemods) section.
 | Flatten streamText file properties               | `v5/flatten-streamtext-file-properties`               |
 | ID Generation Changes                            | `v5/require-createIdGenerator-size-argument`          |
 | IDGenerator → IdGenerator                        | `v5/rename-IDGenerator-to-IdGenerator`                |
-| Import LanguageModelV2 from provider package     | `v5/import-LanguageModelV2-from-provider-package`     |
+| Import LanguageModelV3 from provider package     | `v5/import-LanguageModelV3-from-provider-package`     |
 | Migrate to data stream protocol v2               | `v5/migrate-to-data-stream-protocol-v2`               |
 | Move image model maxImagesPerCall                | `v5/move-image-model-maxImagesPerCall`                |
 | Move LangChain adapter                           | `v5/move-langchain-adapter`                           |
