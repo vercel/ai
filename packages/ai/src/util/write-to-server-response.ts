@@ -24,11 +24,11 @@ export function writeToServerResponse({
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         // Respect backpressure: if write() returns false, wait for 'drain' event
         const canContinue = response.write(value);
         if (!canContinue) {
-          await new Promise<void>((resolve) => {
+          await new Promise<void>(resolve => {
             response.once('drain', resolve);
           });
         }
