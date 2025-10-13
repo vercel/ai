@@ -18,12 +18,12 @@ The language model must specify which language model interface version it implem
   readonly specificationVersion: 'v3';
 
   /**
-Name of the provider for logging purposes.
+Provider ID.
    */
   readonly provider: string;
 
   /**
-Provider-specific model ID for logging purposes.
+Provider-specific model ID.
    */
   readonly modelId: string;
 
