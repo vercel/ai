@@ -3875,76 +3875,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
         "type": "search",
       },
     },
-    "type": "text-start",
-  },
-  {
-    "delta": "Based on the search results, here are the upcoming features.",
-    "id": "msg_test",
-    "type": "text-delta",
-  },
-  {
-    "id": "msg_test",
-    "providerMetadata": {
-      "openai": {
-        "annotations": [],
-        "itemId": "msg_test",
-      },
-    },
-    "type": "text-end",
-  },
-  {
-    "finishReason": "stop",
-    "providerMetadata": {
-      "openai": {
-        "responseId": "resp_test",
-      },
-    },
-    "type": "finish",
-    "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 50,
-      "outputTokens": 25,
-      "reasoningTokens": 0,
-      "totalTokens": 75,
-    },
-  },
-]
-`;
-
-exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should handle streaming web search with missing action query field 1`] = `
-[
-  {
-    "type": "stream-start",
-    "warnings": [],
-  },
-  {
-    "id": "resp_test",
-    "modelId": "o3-2025-04-16",
-    "timestamp": 2025-03-10T18:10:55.000Z,
-    "type": "response-metadata",
-  },
-  {
-    "id": "ws_test",
-    "providerExecuted": true,
-    "toolName": "web_search",
-    "type": "tool-input-start",
-  },
-  {
-    "id": "ws_test",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{"action":{"type":"search"}}",
-    "providerExecuted": true,
-    "toolCallId": "ws_test",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "status": "completed",
-    },
     "toolCallId": "ws_test",
     "toolName": "web_search",
     "type": "tool-result",
@@ -4351,31 +4281,43 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
       "openai": {
         "annotations": [
           {
+            "end_index": 414,
+            "start_index": 327,
             "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
             "type": "url_citation",
             "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
           },
           {
+            "end_index": 697,
+            "start_index": 620,
             "title": "Berlin 2025 – the main events | visitBerlin.de",
             "type": "url_citation",
             "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
           },
           {
+            "end_index": 975,
+            "start_index": 898,
             "title": "Berlin 2025 – the main events | visitBerlin.de",
             "type": "url_citation",
             "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
           },
           {
+            "end_index": 1292,
+            "start_index": 1215,
             "title": "Berlin 2025 – the main events | visitBerlin.de",
             "type": "url_citation",
             "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
           },
           {
+            "end_index": 1602,
+            "start_index": 1525,
             "title": "Berlin 2025 – the main events | visitBerlin.de",
             "type": "url_citation",
             "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
           },
           {
+            "end_index": 2029,
+            "start_index": 1900,
             "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
             "type": "url_citation",
             "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",

@@ -4657,36 +4657,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "Example URL",
-            "type": "source",
-            "url": "https://example.com",
-          },
-          {
-            "filename": "file-abc123",
-            "id": "id-1",
-            "mediaType": "text/plain",
-            "sourceType": "document",
-            "title": "This is a quote from the file",
-            "type": "source",
-          },
-          {
             "id": "msg_123",
             "providerMetadata": {
               "openai": {
-                "annotations": [
-                  {
-                    "title": "Example URL",
-                    "type": "url_citation",
-                    "url": "https://example.com",
-                  },
-                  {
-                    "file_id": "file-abc123",
-                    "quote": "This is a quote from the file",
-                    "type": "file_citation",
-                  },
-                ],
+                "annotations": [],
                 "itemId": "msg_123",
               },
             },
