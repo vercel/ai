@@ -8,7 +8,6 @@ description: Prune ModelMessages for optimized AI generation (API Reference)
 The `pruneMessages` function is used to prune or filter an array of `ModelMessage` objects. This is useful for reducing message context (to save tokens), removing intermediate reasoning, or trimming tool calls and empty messages before sending to an LLM.
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { pruneMessages, streamText } from 'ai';
 
 export async function POST(req: Request) {
