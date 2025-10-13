@@ -9,13 +9,9 @@ export const webSearchArgsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       filters: z
-        .object({
-          allowedDomains: z.array(z.string()).optional(),
-        })
+        .object({ allowedDomains: z.array(z.string()).optional() })
         .optional(),
-
       searchContextSize: z.enum(['low', 'medium', 'high']).optional(),
-
       userLocation: z
         .object({
           type: z.literal('approximate'),
@@ -29,18 +25,18 @@ export const webSearchArgsSchema = lazySchema(() =>
   ),
 );
 
-const webSearchInputSchema = lazySchema(() =>
+export const webSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
       action: z
         .discriminatedUnion('type', [
           z.object({
             type: z.literal('search'),
-            query: z.string().nullish(),
+            query: z.string().optional(),
           }),
           z.object({
-            type: z.literal('open_page'),
-            url: z.string(),
+            type: z.literal('openPage'),
+            url: z.string().optional(),
           }),
           z.object({
             type: z.literal('find'),
@@ -48,14 +44,56 @@ const webSearchInputSchema = lazySchema(() =>
             pattern: z.string(),
           }),
         ])
-        .nullish(),
+        .optional(),
     }),
   ),
 );
 
 export const webSearchToolFactory = createProviderDefinedToolFactory<
   {
-    // Web search doesn't take input parameters - it's controlled by the prompt
+    /**
+     * An object describing the specific action taken in this web search call.
+     * Includes details on how the model used the web (search, open_page, find).
+     */
+    action?:
+      | {
+          /**
+           * Action type "search" - Performs a web search query.
+           */
+          type: 'search';
+
+          /**
+           * The search query.
+           */
+          query?: string;
+        }
+      | {
+          /**
+           * Action type "openPage" - Opens a specific URL from search results.
+           */
+          type: 'openPage';
+
+          /**
+           * The URL opened by the model.
+           */
+          url?: string;
+        }
+      | {
+          /**
+           * Action type "find": Searches for a pattern within a loaded page.
+           */
+          type: 'find';
+
+          /**
+           * The URL of the page searched for the pattern.
+           */
+          url: string;
+
+          /**
+           * The pattern or text to search for within the page.
+           */
+          pattern: string;
+        };
   },
   {
     /**
@@ -112,6 +150,6 @@ export const webSearchToolFactory = createProviderDefinedToolFactory<
 
 export const webSearch = (
   args: Parameters<typeof webSearchToolFactory>[0] = {}, // default
-) => {
+): ReturnType<typeof webSearchToolFactory> => {
   return webSearchToolFactory(args);
 };
