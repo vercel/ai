@@ -63,9 +63,7 @@ async function main() {
   const sorted = [...times].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const median =
-    sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
+    sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 
   console.log(`Median: ${median.toFixed(1)} ms`);
   console.log(`Average: ${average.toFixed(1)} ms`);
