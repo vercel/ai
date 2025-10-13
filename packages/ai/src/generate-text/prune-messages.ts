@@ -60,7 +60,11 @@ export function pruneMessages({
       return {
         ...message,
         content: message.content.filter(
-          part => part.type !== 'tool-call' && part.type !== 'tool-result',
+          part =>
+            part.type !== 'tool-call' &&
+            part.type !== 'tool-result' &&
+            part.type !== 'tool-approval-request' &&
+            part.type !== 'tool-approval-response',
         ),
       } as AssistantModelMessage | ToolModelMessage;
     });
