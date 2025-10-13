@@ -225,7 +225,8 @@ const result = streamText({
       agent: { id: 'your-agent-id' },
     },
   },
-  prompt: 'Can you come up with a study plan for a student struggling with math?',
+  prompt:
+    'Can you come up with a study plan for a student struggling with math?',
 });
 
 // Include reasoning in UI message stream
@@ -240,7 +241,6 @@ return result.toUIMessageStreamResponse({
 import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
 import { generateText, convertToModelMessages } from 'ai';
 
-
 const result = await generateText({
   model: lettaCloud(),
   providerOptions: {
@@ -248,7 +248,8 @@ const result = await generateText({
       agent: { id: 'your-agent-id' },
     },
   },
-  prompt: 'Can you come up with a study plan for a student struggling with math?',
+  prompt:
+    'Can you come up with a study plan for a student struggling with math?',
 });
 
 // generateText inherently includes `reasoning`
@@ -359,15 +360,15 @@ import { z } from 'zod';
 const streamResult = streamText({
   model: lettaCloud(),
   tools: {
-    web_search: lettaCloud.tool("web_search"),
-    memory_insert: lettaCloud.tool("memory_insert"),
-    memory_replace: lettaCloud.tool("memory_replace"),
-    core_memory_append: lettaCloud.tool("core_memory_append"),
-    my_custom_tool: lettaCloud.tool("my_custom_tool"),
+    web_search: lettaCloud.tool('web_search'),
+    memory_insert: lettaCloud.tool('memory_insert'),
+    memory_replace: lettaCloud.tool('memory_replace'),
+    core_memory_append: lettaCloud.tool('core_memory_append'),
+    my_custom_tool: lettaCloud.tool('my_custom_tool'),
 
     // Optionally provide description and schema (placeholders only - execution handled by Letta)
-    typed_query: lettaCloud.tool("typed_query", {
-      description: "Query with typed parameters",
+    typed_query: lettaCloud.tool('typed_query', {
+      description: 'Query with typed parameters',
       inputSchema: z.object({
         query: z.string(),
       }),
@@ -376,7 +377,7 @@ const streamResult = streamText({
   providerOptions: {
     letta: {
       agent: { id: agentId },
-    }
+    },
   },
   prompt: 'Tell me a story about a robot learning to paint',
 });
@@ -386,15 +387,15 @@ const generateResult = await generateText({
   model: lettaCloud(), // replace with lettaLocal() if you're self-hosted, or letta() for custom configs
   tools: {
     // Tools can be defined with just a name
-    web_search: lettaCloud.tool("web_search"),
-    memory_insert: lettaCloud.tool("memory_insert"),
-    memory_replace: lettaCloud.tool("memory_replace"),
-    core_memory_append: lettaCloud.tool("core_memory_append"),
-    my_custom_tool: lettaCloud.tool("my_custom_tool"),
+    web_search: lettaCloud.tool('web_search'),
+    memory_insert: lettaCloud.tool('memory_insert'),
+    memory_replace: lettaCloud.tool('memory_replace'),
+    core_memory_append: lettaCloud.tool('core_memory_append'),
+    my_custom_tool: lettaCloud.tool('my_custom_tool'),
 
     // Optionally provide description and schema (placeholders only - execution handled by Letta)
-    typed_query: lettaCloud.tool("typed_query", {
-      description: "Query with typed parameters",
+    typed_query: lettaCloud.tool('typed_query', {
+      description: 'Query with typed parameters',
       inputSchema: z.object({
         query: z.string(),
       }),
@@ -403,7 +404,7 @@ const generateResult = await generateText({
   providerOptions: {
     letta: {
       agent: { id: agentId },
-    }
+    },
   },
   prompt: 'Tell me a story about a robot learning to paint',
 });
@@ -434,7 +435,7 @@ const isNamedTool = (part: {
   type: string;
   [key: string]: unknown;
 }): part is ToolUIPart =>
-  part.type.startsWith("tool-") && part.type !== "tool-invocation";
+  part.type.startsWith('tool-') && part.type !== 'tool-invocation';
 
 // Filter tool parts from message parts
 const toolParts = message.parts?.filter(isNamedTool) || [];
@@ -443,25 +444,26 @@ toolParts.forEach(part => {
   console.log('Tool Type:', part.type); // e.g., "tool-web_search", "tool-calculator"
 
   // Safely access properties that may exist
-  if ("state" in part) {
+  if ('state' in part) {
     console.log('State:', part.state); // e.g., "input-available", "output-available"
   }
-  if ("toolCallId" in part) {
+  if ('toolCallId' in part) {
     console.log('Call ID:', part.toolCallId);
   }
-  if ("input" in part && part.input !== null && part.input !== undefined) {
+  if ('input' in part && part.input !== null && part.input !== undefined) {
     console.log('Input:', part.input);
   }
-  if ("output" in part && part.output !== null && part.output !== undefined) {
+  if ('output' in part && part.output !== null && part.output !== undefined) {
     console.log('Output:', part.output);
   }
   // Handle errors if present
-  if ("errorText" in part && part.errorText) {
+  if ('errorText' in part && part.errorText) {
     console.error('Tool Error:', part.errorText);
   }
 });
 ```
-```
+
+````
 
 ## Using other Letta Client Functions
 
@@ -477,7 +479,7 @@ lettaCloud.client.agents.list();
 import { lettaLocal } from '@letta-ai/vercel-ai-sdk-provider';
 
 lettaLocal.client.agents.list();
-```
+````
 
 ### More Information
 
