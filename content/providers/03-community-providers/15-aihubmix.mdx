@@ -25,6 +25,8 @@ The Aihubmix provider is available in the `@aihubmix/ai-sdk-provider` module. Yo
 
 ## Provider Instance
 
+### Method 1: Using createAihubmix
+
 To create an Aihubmix provider instance, use the `createAihubmix` function:
 
 ```typescript
@@ -37,25 +39,22 @@ const aihubmix = createAihubmix({
 
 You can obtain your Aihubmix API key from the [Aihubmix Keys](https://aihubmix.com/token).
 
-## Usage
+### Method 2: Using Environment Variables
 
-First, import the necessary functions:
+Alternatively, you can use the pre-configured `aihubmix` instance by setting the `AIHUBMIX_API_KEY` environment variable:
+
+```bash
+# .env
+AIHUBMIX_API_KEY=your_api_key_here
+```
+
+Then import and use the pre-configured instance:
 
 ```ts
-import { createAihubmix } from '@aihubmix/ai-sdk-provider';
-import {
-  generateText,
-  streamText,
-  generateImage,
-  embed,
-  embedMany,
-  generateObject,
-  streamObject,
-  generateSpeech,
-  transcribe,
-} from 'ai';
-import { z } from 'zod';
+import { aihubmix } from '@aihubmix/ai-sdk-provider';
 ```
+
+## Usage
 
 ### Chat Completion
 
