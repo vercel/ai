@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@5.0.70
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [1bacc1f]
   - ai@5.0.69
 

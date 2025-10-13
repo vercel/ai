@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.40
+
+### Patch Changes
+
+- f6a9bf3: feat (provider/gateway): add user and tags provider options
+
 ## 1.0.39
 
 ### Patch Changes
