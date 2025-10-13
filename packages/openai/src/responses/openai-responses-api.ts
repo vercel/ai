@@ -482,6 +482,11 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
         delta: z.string(),
       }),
       z.object({
+        type: z.literal('response.reasoning_summary_part.done'),
+        item_id: z.string(),
+        summary_index: z.number(),
+      }),
+      z.object({
         type: z.literal('error'),
         code: z.string(),
         message: z.string(),
