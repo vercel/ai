@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.52
+
+### Patch Changes
+
+- 8de8de5: fix(provider/openai): end reasoning parts earlier
+
 ## 2.0.51
 
 ### Patch Changes
