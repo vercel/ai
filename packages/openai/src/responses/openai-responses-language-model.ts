@@ -1345,7 +1345,7 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
 
 function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction,
-): InferSchema<typeof webSearchOutputSchema> {
+): InferValidator<typeof webSearchOutputSchema> {
   switch (action.type) {
     case 'search':
       return { action: { type: 'search', query: action.query ?? undefined } };
