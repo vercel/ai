@@ -236,8 +236,9 @@ export async function convertToOpenAIResponsesInput({
                 const reasoningMessage = reasoningMessages[reasoningId];
 
                 if (store) {
+                  // use item references to refer to reasoning (single reference)
+                  // when the first part is encountered
                   if (reasoningMessage === undefined) {
-                    // use item references to refer to reasoning (single reference)
                     input.push({ type: 'item_reference', id: reasoningId });
 
                     // store unused reasoning message to mark id as used
@@ -276,6 +277,12 @@ export async function convertToOpenAIResponsesInput({
                     input.push(reasoningMessages[reasoningId]);
                   } else {
                     reasoningMessage.summary.push(...summaryParts);
+
+                    // updated encrypted content to enable setting it in the last summary part:
+                    if (providerOptions?.reasoningEncryptedContent != null) {
+                      reasoningMessage.encrypted_content =
+                        providerOptions.reasoningEncryptedContent;
+                    }
                   }
                 }
               } else {
