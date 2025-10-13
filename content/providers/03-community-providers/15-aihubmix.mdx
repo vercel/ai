@@ -189,7 +189,7 @@ import { aihubmix } from '@aihubmix/ai-sdk-provider';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
-const result = await streamObject({
+const result = streamObject({
   model: aihubmix('gpt-4o-mini'),
   schema: z.object({
     recipe: z.object({
