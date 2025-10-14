@@ -298,7 +298,7 @@ export async function convertToAnthropicMessagesPrompt({
                                   type: 'url',
                                   url: contentPart.data,
                                 },
-                                cache_control: undefined
+                                cache_control: undefined,
                               };
                             }
 

@@ -564,7 +564,6 @@ describe('tool messages', () => {
     `);
   });
 
-
   it('should handle tool result with url-based PDF content', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
