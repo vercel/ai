@@ -1086,44 +1086,45 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
-  it('should convert anthropic code_execution tool call and result parts', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
-    const result = await convertToAnthropicMessagesPrompt({
-      prompt: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              input: {
-                code: 'print("Hello, world!")',
-              },
-              providerExecuted: true,
-              toolCallId: 'srvtoolu_01XyZ1234567890',
-              toolName: 'code_execution',
-              type: 'tool-call',
-            },
-            {
-              output: {
-                type: 'json',
-                value: {
-                  type: 'code_execution_result',
-                  stdout: 'Hello, world!',
-                  stderr: '',
-                  return_code: 0,
+  describe('code_execution 20250522', () => {
+    it('should convert anthropic code_execution tool call and result parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: {
+                  code: 'print("Hello, world!")',
                 },
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_01XyZ1234567890',
+                toolName: 'code_execution',
+                type: 'tool-call',
               },
-              toolCallId: 'srvtoolu_01XyZ1234567890',
-              toolName: 'code_execution',
-              type: 'tool-result',
-            },
-          ],
-        },
-      ],
-      sendReasoning: false,
-      warnings,
-    });
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'code_execution_result',
+                    stdout: 'Hello, world!',
+                    stderr: '',
+                    return_code: 0,
+                  },
+                },
+                toolCallId: 'srvtoolu_01XyZ1234567890',
+                toolName: 'code_execution',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
 
-    expect(result).toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
       {
         "betas": Set {},
         "prompt": {
@@ -1158,7 +1159,8 @@ describe('assistant messages', () => {
         },
       }
     `);
-    expect(warnings).toMatchInlineSnapshot(`[]`);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
   });
 });
 

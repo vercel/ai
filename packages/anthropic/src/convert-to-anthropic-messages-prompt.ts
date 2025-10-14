@@ -470,23 +470,46 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const codeExecutionOutput = await validateTypes({
-                    value: output.value,
-                    schema: codeExecution_20250522OutputSchema,
-                  });
+                  if (
+                    output.value == null ||
+                    typeof output.value !== 'object' ||
+                    !('type' in output.value) ||
+                    typeof output.value.type !== 'string'
+                  ) {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output value is not a valid code execution result for tool ${part.toolName}`,
+                    });
+                    break;
+                  }
 
-                  anthropicContent.push({
-                    type: 'code_execution_tool_result',
-                    tool_use_id: part.toolCallId,
-                    content: {
-                      type: codeExecutionOutput.type,
-                      stdout: codeExecutionOutput.stdout,
-                      stderr: codeExecutionOutput.stderr,
-                      return_code: codeExecutionOutput.return_code,
-                    },
-                    cache_control: cacheControl,
-                  });
+                  // to distinguish between code execution 20250522 and 20250825,
+                  // we check if a type property is present in the output.value
+                  if (output.value.type === 'code_execution_result') {
+                    // code execution 20250522
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20250522OutputSchema,
+                    });
 
+                    anthropicContent.push({
+                      type: 'code_execution_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: codeExecutionOutput.type,
+                        stdout: codeExecutionOutput.stdout,
+                        stderr: codeExecutionOutput.stderr,
+                        return_code: codeExecutionOutput.return_code,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else {
+                    // code execution 20250825
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20250825OutputSchema,
+                    });
+                  }
                   break;
                 }
 
