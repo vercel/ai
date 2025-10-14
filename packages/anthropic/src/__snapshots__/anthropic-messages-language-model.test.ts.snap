@@ -71,6 +71,17 @@ The script uses an iterative approach to calculate Fibonacci numbers efficiently
 ]
 `;
 
+exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should include memory tool call and result in content 1`] = `
+[
+  {
+    "input": "{"command":"view","path":"/memories"}",
+    "toolCallId": "toolu_01TvNvpwszD4hKeudmbfyWiV",
+    "toolName": "memory",
+    "type": "tool-call",
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
