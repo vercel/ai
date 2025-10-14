@@ -70,36 +70,77 @@ function InputView({
 }) {
   switch (input?.type) {
     case 'text_editor_code_execution': {
-      const command = input.command;
-      const path = input.path;
-      const file_text = input.file_text;
-
-      return (
-        <div className="mb-2 text-gray-100 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
-          <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
-            <span className="font-semibold">Text Editor</span>
-            <br />
-            {command && (
-              <>
-                <span className="font-semibold">Command:</span> {command}
-                <br />
-              </>
-            )}
-            {path && (
-              <>
-                <span className="font-semibold">File Path:</span> {path}
-                <br />
-              </>
-            )}
-            {file_text && (
-              <>
-                <span className="font-semibold">File Text:</span> {file_text}
-                <br />
-              </>
-            )}
-          </pre>
-        </div>
-      );
+      switch (input.command) {
+        case 'view': {
+          return (
+            <div className="mb-2 text-gray-100 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
+              <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+                <span className="font-semibold">Text Editor (View)</span>
+                {input.path && (
+                  <>
+                    <span className="font-semibold">File Path:</span>{' '}
+                    {input.path}
+                    <br />
+                  </>
+                )}
+              </pre>
+            </div>
+          );
+        }
+        case 'create': {
+          return (
+            <div className="mb-2 text-gray-100 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
+              <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+                <span className="font-semibold">Text Editor (Create)</span>
+                {input.path && (
+                  <>
+                    <span className="font-semibold">File Path:</span>{' '}
+                    {input.path}
+                    <br />
+                  </>
+                )}
+                {input.file_text && (
+                  <>
+                    <span className="font-semibold">File Text:</span>{' '}
+                    {input.file_text}
+                    <br />
+                  </>
+                )}
+              </pre>
+            </div>
+          );
+        }
+        case 'str_replace': {
+          return (
+            <div className="mb-2 text-gray-100 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
+              <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+                <span className="font-semibold">Text Editor (Replace)</span>
+                {input.path && (
+                  <>
+                    <span className="font-semibold">File Path:</span>{' '}
+                    {input.path}
+                    <br />
+                  </>
+                )}
+                {input.old_str && (
+                  <>
+                    <span className="font-semibold">Old String:</span>{' '}
+                    {input.old_str}
+                    <br />
+                  </>
+                )}
+                {input.new_str && (
+                  <>
+                    <span className="font-semibold">New String:</span>{' '}
+                    {input.new_str}
+                    <br />
+                  </>
+                )}
+              </pre>
+            </div>
+          );
+        }
+      }
     }
 
     case 'bash_code_execution': {
