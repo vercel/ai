@@ -3201,6 +3201,27 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
+      describe('code execution 20250825 tool', () => {
+        it('should stream code execution tool results', async () => {
+          prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+          });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+
       describe('web fetch tool', () => {
         describe('txt response', () => {
           let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
