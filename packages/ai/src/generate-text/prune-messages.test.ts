@@ -128,21 +128,11 @@ describe('pruneMessages', () => {
                   "toolName": "get-weather-tool-2",
                   "type": "tool-call",
                 },
-                {
-                  "approvalId": "approval-1",
-                  "toolCallId": "call-2",
-                  "type": "tool-approval-request",
-                },
               ],
               "role": "assistant",
             },
             {
               "content": [
-                {
-                  "approvalId": "approval-1",
-                  "approved": true,
-                  "type": "tool-approval-response",
-                },
                 {
                   "output": {
                     "type": "text",
@@ -210,21 +200,11 @@ describe('pruneMessages', () => {
                   "toolName": "get-weather-tool-2",
                   "type": "tool-call",
                 },
-                {
-                  "approvalId": "approval-1",
-                  "toolCallId": "call-2",
-                  "type": "tool-approval-request",
-                },
               ],
               "role": "assistant",
             },
             {
               "content": [
-                {
-                  "approvalId": "approval-1",
-                  "approved": true,
-                  "type": "tool-approval-response",
-                },
                 {
                   "output": {
                     "type": "text",
@@ -347,11 +327,6 @@ describe('pruneMessages', () => {
                   "toolName": "get-weather-tool-2",
                   "type": "tool-call",
                 },
-                {
-                  "approvalId": "approval-1",
-                  "toolCallId": "call-1",
-                  "type": "tool-approval-request",
-                },
               ],
               "role": "assistant",
             },
@@ -399,21 +374,11 @@ describe('pruneMessages', () => {
                   "toolName": "get-weather-tool-2",
                   "type": "tool-call",
                 },
-                {
-                  "approvalId": "approval-1",
-                  "toolCallId": "call-2",
-                  "type": "tool-approval-request",
-                },
               ],
               "role": "assistant",
             },
             {
               "content": [
-                {
-                  "approvalId": "approval-1",
-                  "approved": true,
-                  "type": "tool-approval-response",
-                },
                 {
                   "output": {
                     "type": "text",
@@ -486,21 +451,11 @@ describe('pruneMessages', () => {
                   "toolName": "get-weather-tool-2",
                   "type": "tool-call",
                 },
-                {
-                  "approvalId": "approval-1",
-                  "toolCallId": "call-2",
-                  "type": "tool-approval-request",
-                },
               ],
               "role": "assistant",
             },
             {
               "content": [
-                {
-                  "approvalId": "approval-1",
-                  "approved": true,
-                  "type": "tool-approval-response",
-                },
                 {
                   "output": {
                     "type": "error-text",
