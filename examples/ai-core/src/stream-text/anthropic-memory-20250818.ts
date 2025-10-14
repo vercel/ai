@@ -1,16 +1,19 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { streamText } from 'ai';
+import { streamText, stepCountIs } from 'ai';
 import { run } from '../lib/run';
+import { anthropicLocalFsMemoryTool } from '../lib/anthropic-local-fs-memory-tool';
 
 run(async () => {
   const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
-    prompt:
-      'Write a Python script to calculate fibonacci number' +
-      ' and then execute it to find the 10th fibonacci number',
+    prompt: `Please remember these [MEM] facts for future turns.
+Acknowledge by saying "stored".
+[MEM] Name: Alex Rivera
+[MEM] Role: PM at Nova Robotics`,
     tools: {
-      code_execution: anthropic.tools.codeExecution_20250825(),
+      memory: anthropicLocalFsMemoryTool({ basePath: './memory' }),
     },
+    stopWhen: stepCountIs(10),
   });
 
   for await (const part of result.fullStream) {
@@ -22,14 +25,14 @@ run(async () => {
 
       case 'tool-call': {
         process.stdout.write(
-          `\n\nTool call: '${part.toolName}'\nInput: ${JSON.stringify(part.input, null, 2)}\n`,
+          `\x1b[32m\n\nTool call: '${part.toolName}'\nInput: ${JSON.stringify(part.input, null, 2)}\n\x1b[0m`,
         );
         break;
       }
 
       case 'tool-result': {
         process.stdout.write(
-          `\nTool result: '${part.toolName}'\nOutput: ${JSON.stringify(part.output, null, 2)}\n`,
+          `\x1b[32m\nTool result: '${part.toolName}'\nOutput: ${JSON.stringify(part.output, null, 2)}\n\x1b[0m`,
         );
         break;
       }

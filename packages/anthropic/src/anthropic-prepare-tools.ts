@@ -142,6 +142,14 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.memory_20250818': {
+            betas.add('context-management-2025-06-27');
+            anthropicTools.push({
+              name: 'memory',
+              type: 'memory_20250818',
+            });
+            break;
+          }
           case 'anthropic.web_fetch_20250910': {
             betas.add('web-fetch-2025-09-10');
             const args = await validateTypes({

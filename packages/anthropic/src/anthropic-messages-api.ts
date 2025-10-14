@@ -262,6 +262,10 @@ export type AnthropicTool =
       type: 'bash_20250124' | 'bash_20241022';
     }
   | {
+      name: string;
+      type: 'memory_20250818';
+    }
+  | {
       type: 'web_fetch_20250910';
       name: string;
       max_uses?: number;
