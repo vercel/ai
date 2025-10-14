@@ -1,5 +1,8 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { BasicAgent, InferAgentUIMessage } from 'ai';
+import {
+  Experimental_Agent as BasicAgent,
+  Experimental_InferAgentUIMessage as InferAgentUIMessage,
+} from 'ai';
 
 export const anthropicCodeExecutionAgent = new BasicAgent({
   model: anthropic('claude-sonnet-4-5'),
