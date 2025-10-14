@@ -961,85 +961,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   case 'text_editor_code_execution_tool_result': {
                     const part = value.content_block;
-                    const content = part.content;
-
-                    switch (content.type) {
-                      case 'text_editor_code_execution_tool_result_error': {
-                        controller.enqueue({
-                          type: 'tool-result',
-                          toolCallId: part.tool_use_id,
-                          toolName: 'text_editor_code_execution',
-                          result: {
-                            type: 'text_editor_code_execution_tool_result_error',
-                            errorCode: content.error_code,
-                          } satisfies InferSchema<
-                            typeof codeExecution_20250825OutputSchema
-                          >,
-                          providerExecuted: true,
-                        });
-                        return;
-                      }
-
-                      case 'text_editor_code_execution_view_result': {
-                        controller.enqueue({
-                          type: 'tool-result',
-                          toolCallId: part.tool_use_id,
-                          toolName: 'text_editor_code_execution',
-                          result: {
-                            type: 'text_editor_code_execution_view_result',
-                            content: content.content,
-                            fileType: content.file_type,
-                            numLines: content.num_lines,
-                            startLine: content.start_line,
-                            totalLines: content.total_lines,
-                          } satisfies InferSchema<
-                            typeof codeExecution_20250825OutputSchema
-                          >,
-                          providerExecuted: true,
-                        });
-                        return;
-                      }
-
-                      case 'text_editor_code_execution_create_result': {
-                        controller.enqueue({
-                          type: 'tool-result',
-                          toolCallId: part.tool_use_id,
-                          toolName: 'text_editor_code_execution',
-                          result: {
-                            type: 'text_editor_code_execution_create_result',
-                            isFileUpdate: content.is_file_update,
-                          } satisfies InferSchema<
-                            typeof codeExecution_20250825OutputSchema
-                          >,
-                          providerExecuted: true,
-                        });
-                        return;
-                      }
-
-                      case 'text_editor_code_execution_str_replace_result': {
-                        controller.enqueue({
-                          type: 'tool-result',
-                          toolCallId: part.tool_use_id,
-                          toolName: 'text_editor_code_execution',
-                          result: {
-                            type: 'text_editor_code_execution_str_replace_result',
-                            lines: content.lines,
-                            newLines: content.new_lines,
-                            newStart: content.new_start,
-                            oldLines: content.old_lines,
-                            oldStart: content.old_start,
-                          } satisfies InferSchema<
-                            typeof codeExecution_20250825OutputSchema
-                          >,
-                          providerExecuted: true,
-                        });
-                        return;
-                      }
-
-                      default: {
-                        return;
-                      }
-                    }
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: 'text_editor_code_execution',
+                      result: mapTextEditorCodeExecutionToolResult(
+                        part.content,
+                      ),
+                      providerExecuted: true,
+                    });
+                    return;
                   }
 
                   case 'bash_code_execution_tool_result': {
@@ -1317,5 +1248,71 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapTextEditorCodeExecutionToolResult(
+  content:
+    | {
+        type: 'text_editor_code_execution_tool_result_error';
+        error_code: string;
+      }
+    | {
+        type: 'text_editor_code_execution_view_result';
+        content: string;
+        file_type: string;
+        num_lines: number | null;
+        start_line: number | null;
+        total_lines: number | null;
+      }
+    | {
+        type: 'text_editor_code_execution_create_result';
+        is_file_update: boolean;
+      }
+    | {
+        type: 'text_editor_code_execution_str_replace_result';
+        lines: string[] | null;
+        new_lines: number | null;
+        new_start: number | null;
+        old_lines: number | null;
+        old_start: number | null;
+      },
+): InferSchema<typeof codeExecution_20250825OutputSchema> {
+  switch (content.type) {
+    case 'text_editor_code_execution_tool_result_error': {
+      return {
+        type: 'text_editor_code_execution_tool_result_error',
+        errorCode: content.error_code,
+      };
+    }
+
+    case 'text_editor_code_execution_view_result': {
+      return {
+        type: 'text_editor_code_execution_view_result',
+        content: content.content,
+        fileType: content.file_type,
+        numLines: content.num_lines,
+        startLine: content.start_line,
+        totalLines: content.total_lines,
+      };
+    }
+
+    case 'text_editor_code_execution_create_result': {
+      return {
+        type: 'text_editor_code_execution_create_result',
+        isFileUpdate: content.is_file_update,
+      };
+    }
+
+    case 'text_editor_code_execution_str_replace_result': {
+      return {
+        type: 'text_editor_code_execution_str_replace_result',
+        lines: content.lines,
+        newLines: content.new_lines,
+        newStart: content.new_start,
+        oldLines: content.old_lines,
+        oldStart: content.old_start,
+      };
+    }
   }
 }
