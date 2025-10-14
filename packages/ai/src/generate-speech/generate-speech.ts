@@ -1,7 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
 import { SpeechWarning, SpeechModel } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
