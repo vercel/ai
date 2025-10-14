@@ -9,11 +9,40 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0.
 
 1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
 1. Upgrade to AI SDK 5.0.
-1. Automatically migrate your code using [codemods](#codemods).
-   > If you don't want to use codemods, we recommend resolving all deprecation warnings before upgrading to AI SDK 5.0.
+1. Automatically migrate your code using one of these approaches:
+   - Use the [AI SDK 5 Migration MCP Server](#ai-sdk-5-migration-mcp-server) for AI-assisted migration in Cursor or other MCP-compatible coding agents
+   - Use [codemods](#codemods) to automatically transform your code
 1. Follow the breaking changes guide below.
 1. Verify your project is working as expected.
 1. Commit your changes.
+
+## AI SDK 5 Migration MCP Server
+
+The [AI SDK 5 Migration Model Context Protocol (MCP) Server](https://github.com/vercel-labs/ai-sdk-5-migration-mcp-server) provides an automated way to migrate your project using a coding agent. This server has been designed for Cursor, but should work with any coding agent that supports MCP.
+
+### Quick Start
+
+Create or edit `.cursor/mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "ai-sdk-5-migration": {
+      "url": "https://ai-sdk-5-migration-mcp-server.vercel.app/api/mcp"
+    }
+  }
+}
+```
+
+After saving, open the command palette (Cmd+Shift+P on macOS, Ctrl+Shift+P on Windows/Linux) and search for "View: Open MCP Settings". Verify the new server appears and is toggled on.
+
+Then use this prompt:
+
+```
+Please migrate this project to AI SDK 5 using the ai-sdk-5-migration mcp server. Start by creating a checklist.
+```
+
+For more information, see the [AI SDK 5 Migration MCP Server repository](https://github.com/vercel-labs/ai-sdk-5-migration-mcp-server).
 
 ## AI SDK 5.0 Package Versions
 
