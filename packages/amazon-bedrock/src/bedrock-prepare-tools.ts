@@ -119,8 +119,8 @@ export async function prepareTools({
           toolSpec: {
             name: tool.name,
             inputSchema: {
-              json: asSchema(fullToolDefinition.inputSchema)
-                .jsonSchema as JSONObject,
+              json: (await asSchema(fullToolDefinition.inputSchema)
+                .jsonSchema) as JSONObject,
             },
           },
         });

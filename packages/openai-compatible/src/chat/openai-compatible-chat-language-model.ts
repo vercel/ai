@@ -21,7 +21,7 @@ import {
   postJsonToApi,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
@@ -195,6 +195,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         ),
 
         reasoning_effort: compatibleOptions.reasoningEffort,
+        verbosity: compatibleOptions.textVerbosity,
 
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt),

@@ -1,13 +1,13 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import {
-  lazyValidator,
+  FlexibleSchema,
+  lazySchema,
   StandardSchemaV1,
   Tool,
   validateTypes,
-  Validator,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import {
@@ -18,7 +18,7 @@ import {
   UIMessage,
 } from './ui-messages';
 
-const uiMessagesSchema = lazyValidator(() =>
+const uiMessagesSchema = lazySchema(() =>
   zodSchema(
     z.array(
       z.object({
@@ -239,13 +239,11 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
   tools,
 }: {
   messages: unknown;
-  metadataSchema?:
-    | Validator<UIMessage['metadata']>
-    | StandardSchemaV1<unknown, UI_MESSAGE['metadata']>;
+  metadataSchema?: FlexibleSchema<UIMessage['metadata']>;
   dataSchemas?: {
-    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?:
-      | Validator<InferUIMessageData<UI_MESSAGE>[NAME]>
-      | StandardSchemaV1<unknown, InferUIMessageData<UI_MESSAGE>[NAME]>;
+    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?: FlexibleSchema<
+      InferUIMessageData<UI_MESSAGE>[NAME]
+    >;
   };
   tools?: {
     [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
@@ -377,13 +375,11 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
   tools,
 }: {
   messages: unknown;
-  metadataSchema?:
-    | Validator<UIMessage['metadata']>
-    | StandardSchemaV1<unknown, UI_MESSAGE['metadata']>;
+  metadataSchema?: FlexibleSchema<UIMessage['metadata']>;
   dataSchemas?: {
-    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?:
-      | Validator<InferUIMessageData<UI_MESSAGE>[NAME]>
-      | StandardSchemaV1<unknown, InferUIMessageData<UI_MESSAGE>[NAME]>;
+    [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?: FlexibleSchema<
+      InferUIMessageData<UI_MESSAGE>[NAME]
+    >;
   };
   tools?: {
     [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<

@@ -1,4 +1,4 @@
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 export type OpenAICompatibleChatModelId = string;
 
@@ -13,6 +13,11 @@ export const openaiCompatibleProviderOptions = z.object({
    * Reasoning effort for reasoning models. Defaults to `medium`.
    */
   reasoningEffort: z.string().optional(),
+
+  /**
+   * Controls the verbosity of the generated text. Defaults to `medium`.
+   */
+  textVerbosity: z.string().optional(),
 });
 
 export type OpenAICompatibleProviderOptions = z.infer<

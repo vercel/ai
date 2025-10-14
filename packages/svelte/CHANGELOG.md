@@ -1,5 +1,99 @@
 # @ai-sdk/svelte
 
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- ai@6.0.0-beta.46
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [48454ab]
+  - ai@6.0.0-beta.45
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [2b1bf9d]
+  - ai@6.0.0-beta.44
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [27e8c3a]
+  - ai@6.0.0-beta.43
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+  - ai@6.0.0-beta.42
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+  - ai@6.0.0-beta.41
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - ai@6.0.0-beta.40
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- f6f0c5a: chore: remove zod from ui packages
+- Updated dependencies [f6f0c5a]
+  - ai@6.0.0-beta.39
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - ai@6.0.0-beta.38
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - ai@6.0.0-beta.37
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- ai@6.0.0-beta.36
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- ai@6.0.0-beta.35
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [bb10a89]
+  - ai@6.0.0-beta.34
+
 ## 4.0.0-beta.33
 
 ### Patch Changes

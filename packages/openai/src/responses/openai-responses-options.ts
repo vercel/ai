@@ -1,9 +1,5 @@
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
 /**
  * `top_logprobs` request body argument can be set to an integer between
@@ -113,13 +109,13 @@ export type OpenAIResponsesModelId =
   | (string & {});
 
 // TODO AI SDK 6: use optional here instead of nullish
-export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
+export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       include: z
         .array(
           z.enum([
-            'reasoning.encrypted_content',
+            'reasoning.encrypted_content', // handled internally by default, only needed for unknown reasoning models
             'file_search_call.results',
             'message.output_text.logprobs',
           ]),
@@ -166,6 +162,6 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
   ),
 );
 
-export type OpenAIResponsesProviderOptions = InferValidator<
+export type OpenAIResponsesProviderOptions = InferSchema<
   typeof openaiResponsesProviderOptionsSchema
 >;

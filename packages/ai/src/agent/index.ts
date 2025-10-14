@@ -1,21 +1,22 @@
+export { type Agent } from './agent';
+export { type BasicAgentOnFinishCallback } from './basic-agent-on-finish-callback';
+export { type BasicAgentOnStepFinishCallback } from './basic-agent-on-step-finish-callback';
 export {
-  Agent,
+  type BasicAgentSettings,
 
   /**
-   * @deprecated Use `Agent` instead.
+   * @deprecated Use `BasicAgentSettings` instead.
    */
-  Agent as Experimental_Agent,
-} from './agent';
-export { type AgentOnFinishCallback } from './agent-on-finish-callback';
-export { type AgentOnStepFinishCallback } from './agent-on-step-finish-callback';
+  type BasicAgentSettings as Experimental_AgentSettings,
+} from './basic-agent-settings';
 export {
-  type AgentSettings,
+  BasicAgent,
 
   /**
-   * @deprecated Use `AgentSettings` instead.
+   * @deprecated Use `BasicAgent` instead.
    */
-  type AgentSettings as Experimental_AgentSettings,
-} from './agent-settings';
+  BasicAgent as Experimental_Agent,
+} from './basic-agent';
 export {
   /**
    * @deprecated Use `InferAgentUIMessage` instead.

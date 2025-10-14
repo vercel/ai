@@ -1,14 +1,10 @@
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { openaiErrorDataSchema } from '../openai-error';
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiCompletionResponseSchema = lazyValidator(() =>
+export const openaiCompletionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string().nullish(),
@@ -40,7 +36,7 @@ export const openaiCompletionResponseSchema = lazyValidator(() =>
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-export const openaiCompletionChunkSchema = lazyValidator(() =>
+export const openaiCompletionChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
       z.object({
@@ -76,10 +72,10 @@ export const openaiCompletionChunkSchema = lazyValidator(() =>
   ),
 );
 
-export type OpenAICompletionChunk = InferValidator<
+export type OpenAICompletionChunk = InferSchema<
   typeof openaiCompletionChunkSchema
 >;
 
-export type OpenAICompletionResponse = InferValidator<
+export type OpenAICompletionResponse = InferSchema<
   typeof openaiCompletionResponseSchema
 >;

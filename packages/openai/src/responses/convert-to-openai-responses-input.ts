@@ -9,15 +9,16 @@ import {
   parseProviderOptions,
   validateTypes,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
-import {
-  OpenAIResponsesInput,
-  OpenAIResponsesReasoning,
-} from './openai-responses-api';
+import { z } from 'zod/v4';
 import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
+import {
+  OpenAIResponsesFunctionCallOutput,
+  OpenAIResponsesInput,
+  OpenAIResponsesReasoning,
+} from './openai-responses-api';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -140,18 +141,38 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
+              const id = part.providerOptions?.openai?.itemId as
+                | string
+                | undefined;
+
+              // item references reduce the payload size
+              if (store && id != null) {
+                input.push({ type: 'item_reference', id });
+                break;
+              }
+
               input.push({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
-                id:
-                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
+                id,
               });
+
               break;
             }
             case 'tool-call': {
               toolCallParts[part.toolCallId] = part;
 
               if (part.providerExecuted) {
+                break;
+              }
+
+              const id = part.providerOptions?.openai?.itemId as
+                | string
+                | undefined;
+
+              // item references reduce the payload size
+              if (store && id != null) {
+                input.push({ type: 'item_reference', id });
                 break;
               }
 
@@ -163,9 +184,7 @@ export async function convertToOpenAIResponsesInput({
                 input.push({
                   type: 'local_shell_call',
                   call_id: part.toolCallId,
-                  id:
-                    (part.providerOptions?.openai?.itemId as string) ??
-                    undefined,
+                  id: id!,
                   action: {
                     type: 'exec',
                     command: parsedInput.action.command,
@@ -184,8 +203,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
-                id:
-                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
+                id,
               });
               break;
             }
@@ -218,8 +236,9 @@ export async function convertToOpenAIResponsesInput({
                 const reasoningMessage = reasoningMessages[reasoningId];
 
                 if (store) {
+                  // use item references to refer to reasoning (single reference)
+                  // when the first part is encountered
                   if (reasoningMessage === undefined) {
-                    // use item references to refer to reasoning (single reference)
                     input.push({ type: 'item_reference', id: reasoningId });
 
                     // store unused reasoning message to mark id as used
@@ -258,6 +277,12 @@ export async function convertToOpenAIResponsesInput({
                     input.push(reasoningMessages[reasoningId]);
                   } else {
                     reasoningMessage.summary.push(...summaryParts);
+
+                    // updated encrypted content to enable setting it in the last summary part:
+                    if (providerOptions?.reasoningEncryptedContent != null) {
+                      reasoningMessage.encrypted_content =
+                        providerOptions.reasoningEncryptedContent;
+                    }
                   }
                 }
               } else {
@@ -296,7 +321,7 @@ export async function convertToOpenAIResponsesInput({
             break;
           }
 
-          let contentValue: string;
+          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -305,10 +330,30 @@ export async function convertToOpenAIResponsesInput({
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool execution denied.';
               break;
-            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
+              break;
+            case 'content':
+              contentValue = output.value.map(item => {
+                switch (item.type) {
+                  case 'text': {
+                    return { type: 'input_text' as const, text: item.text };
+                  }
+                  case 'media': {
+                    return item.mediaType.startsWith('image/')
+                      ? {
+                          type: 'input_image' as const,
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        }
+                      : {
+                          type: 'input_file' as const,
+                          filename: 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                  }
+                }
+              });
               break;
           }
 

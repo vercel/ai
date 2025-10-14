@@ -31,29 +31,18 @@ export {
   asSchema,
   jsonSchema,
   lazySchema,
+  zodSchema,
   type FlexibleSchema,
   type InferSchema,
   type LazySchema,
   type Schema,
+  type ValidationResult,
 } from './schema';
 export * from './uint8-utils';
 export * from './validate-types';
-export {
-  asValidator,
-  isValidator,
-  lazyValidator,
-  standardSchemaValidator,
-  validator,
-  type FlexibleValidator,
-  type InferValidator,
-  type LazyValidator,
-  type ValidationResult,
-  type Validator,
-} from './validator';
 export { VERSION } from './version';
 export { withUserAgentSuffix } from './with-user-agent-suffix';
 export * from './without-trailing-slash';
-export { zodSchema } from './zod-schema';
 
 // folder re-exports
 export * from './types';

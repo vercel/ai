@@ -1,6 +1,6 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import { safeValidateTypes } from './validate-types';
-import { FlexibleValidator } from './validator';
+import { FlexibleSchema } from './schema';
 
 export async function parseProviderOptions<OPTIONS>({
   provider,
@@ -9,7 +9,7 @@ export async function parseProviderOptions<OPTIONS>({
 }: {
   provider: string;
   providerOptions: Record<string, unknown> | undefined;
-  schema: FlexibleValidator<OPTIONS>;
+  schema: FlexibleSchema<OPTIONS>;
 }): Promise<OPTIONS | undefined> {
   if (providerOptions?.[provider] == null) {
     return undefined;

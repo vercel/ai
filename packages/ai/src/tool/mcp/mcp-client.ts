@@ -6,7 +6,7 @@ import {
   tool,
   ToolCallOptions,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { MCPClientError } from '../../error/mcp-client-error';
 import {
   JSONRPCError,
@@ -409,6 +409,8 @@ class DefaultMCPClient implements MCPClient {
         ? response
         : new MCPClientError({
             message: response.error.message,
+            code: response.error.code,
+            data: response.error.data,
             cause: response.error,
           }),
     );
