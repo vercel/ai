@@ -600,7 +600,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.tool_use_id,
-            toolName: 'text_editor_code_execution',
+            toolName: 'code_execution',
             result: mapTextEditorCodeExecutionToolResult(part.content),
             providerExecuted: true,
           });
@@ -612,7 +612,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.tool_use_id,
-            toolName: 'bash_code_execution',
+            toolName: 'code_execution',
             result: mapBashCodeExecutionToolResult(part.content),
             providerExecuted: true,
           });
@@ -964,7 +964,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'text_editor_code_execution',
+                      toolName: 'code_execution',
                       result: mapTextEditorCodeExecutionToolResult(
                         part.content,
                       ),
@@ -979,7 +979,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'bash_code_execution',
+                      toolName: 'code_execution',
                       result: mapBashCodeExecutionToolResult(part.content),
                       providerExecuted: true,
                     });

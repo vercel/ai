@@ -20,7 +20,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "type": "text_editor_code_execution_create_result",
     },
     "toolCallId": "srvtoolu_012LCpyzxGBy44bCW4zCxmH2",
-    "toolName": "text_editor_code_execution",
+    "toolName": "code_execution",
     "type": "tool-result",
   },
   {
@@ -57,7 +57,7 @@ F(10) = 55
       "type": "bash_code_execution_tool_result",
     },
     "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
-    "toolName": "bash_code_execution",
+    "toolName": "code_execution",
     "type": "tool-result",
   },
   {
@@ -1581,7 +1581,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
       "type": "text_editor_code_execution_create_result",
     },
     "toolCallId": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
-    "toolName": "text_editor_code_execution",
+    "toolName": "code_execution",
     "type": "tool-result",
   },
   {
@@ -1682,7 +1682,7 @@ F(10) = 34
       "type": "bash_code_execution_tool_result",
     },
     "toolCallId": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
-    "toolName": "bash_code_execution",
+    "toolName": "code_execution",
     "type": "tool-result",
   },
   {
