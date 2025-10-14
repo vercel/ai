@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.47
+
+### Patch Changes
+
+- c62ecf0: feat(ai): add support for v2 specs in transcription and speech models
+
 ## 6.0.0-beta.46
 
 ### Patch Changes
