@@ -544,7 +544,7 @@ Anthropic provides a provider-defined code execution tool that gives Claude dire
 
 You can enable code execution using the provider-defined code execution tool:
 
-```ts
+````ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -559,11 +559,6 @@ const result = await generateText({
   },
 });
 ```
-
-### Available Versions
-
-- **`codeExecution_20250825()`** - Latest version with enhanced Bash command support and file operations (recommended)
-- **`codeExecution_20250522()`** - Previous version
 
 #### Error Handling
 
@@ -592,7 +587,7 @@ toolErrors?.forEach(error => {
     error: error.error,
   });
 });
-```
+````
 
 **Streaming (`streamText`, `streamObject`):**
 Code execution errors are delivered as error parts in the stream:
