@@ -128,6 +128,7 @@ export interface AnthropicWebSearchToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+// code execution results for code_execution_20250522 tool:
 export interface AnthropicCodeExecutionToolResultContent {
   type: 'code_execution_tool_result';
   tool_use_id: string;
@@ -140,26 +141,57 @@ export interface AnthropicCodeExecutionToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+// text editor code execution results for code_execution_20250825 tool:
 export interface AnthropicTextEditorCodeExecutionToolResultContent {
   type: 'text_editor_code_execution_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'text_editor_code_execution_create_result';
-    is_file_update: boolean;
-  };
+  content:
+    | {
+        type: 'text_editor_code_execution_tool_result_error';
+        error_code: string;
+      }
+    | {
+        type: 'text_editor_code_execution_create_result';
+        is_file_update: boolean;
+      }
+    | {
+        type: 'text_editor_code_execution_view_result';
+        content: string;
+        file_type: string;
+        num_lines: number | null;
+        start_line: number | null;
+        total_lines: number | null;
+      }
+    | {
+        type: 'text_editor_code_execution_str_replace_result';
+        lines: string[] | null;
+        new_lines: number | null;
+        new_start: number | null;
+        old_lines: number | null;
+        old_start: number | null;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
+// bash code execution results for code_execution_20250825 tool:
 export interface AnthropicBashCodeExecutionToolResultContent {
   type: 'bash_code_execution_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'bash_code_execution_result';
-    stdout: string;
-    stderr: string;
-    return_code: number;
-    content: unknown[];
-  };
+  content:
+    | {
+        type: 'bash_code_execution_result';
+        stdout: string;
+        stderr: string;
+        return_code: number;
+        content: {
+          type: 'bash_code_execution_output';
+          file_id: string;
+        }[];
+      }
+    | {
+        type: 'bash_code_execution_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
