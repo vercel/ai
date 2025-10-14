@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.29
+
+### Patch Changes
+
+- 4dd53dd: feat(provider/anthropic): memory tool
+
 ## 2.0.28
 
 ### Patch Changes
