@@ -356,6 +356,7 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // code execution results for code_execution_20250522 tool:
           z.object({
             type: z.literal('code_execution_tool_result'),
             tool_use_id: z.string(),
@@ -372,24 +373,59 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
-          z.object({
-            type: z.literal('text_editor_code_execution_tool_result'),
-            tool_use_id: z.string(),
-            content: z.object({
-              type: z.literal('text_editor_code_execution_create_result'),
-              is_file_update: z.boolean(),
-            }),
-          }),
+          // bash code execution results for code_execution_20250825 tool:
           z.object({
             type: z.literal('bash_code_execution_tool_result'),
             tool_use_id: z.string(),
-            content: z.object({
-              type: z.literal('bash_code_execution_result'),
-              stdout: z.string(),
-              stderr: z.string(),
-              return_code: z.number(),
-              content: z.array(z.unknown()),
-            }),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('bash_code_execution_result'),
+                content: z.object({
+                  type: z.literal('bash_code_execution_output'),
+                  file_id: z.string(),
+                }),
+                stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+              }),
+              z.object({
+                type: z.literal('bash_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
+          // text editor code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('text_editor_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('text_editor_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_view_result'),
+                content: z.string(),
+                file_type: z.string(),
+                num_lines: z.number().nullable(),
+                start_line: z.number().nullable(),
+                total_lines: z.number().nullable(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_create_result'),
+                is_file_update: z.boolean(),
+              }),
+              z.object({
+                type: z.literal(
+                  'text_editor_code_execution_str_replace_result',
+                ),
+                lines: z.array(z.string()).nullable(),
+                new_lines: z.number().nullable(),
+                new_start: z.number().nullable(),
+                old_lines: z.number().nullable(),
+                old_start: z.number().nullable(),
+              }),
+            ]),
           }),
         ]),
       ),
