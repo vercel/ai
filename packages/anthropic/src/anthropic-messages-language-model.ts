@@ -804,12 +804,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   case 'server_tool_use': {
                     if (
-                      value.content_block.name === 'web_fetch' ||
-                      value.content_block.name === 'web_search' ||
-                      value.content_block.name === 'code_execution' ||
-                      value.content_block.name ===
-                        'text_editor_code_execution' ||
-                      value.content_block.name === 'bash_code_execution'
+                      [
+                        'web_fetch',
+                        'web_search',
+                        // code execution 20250825:
+                        'code_execution',
+                        // code execution 20250825 text editor:
+                        'text_editor_code_execution',
+                        // code execution 20250825 bash:
+                        'bash_code_execution',
+                      ].includes(value.content_block.name)
                     ) {
                       contentBlocks[value.index] = {
                         type: 'tool-call',
