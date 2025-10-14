@@ -924,6 +924,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     return;
                   }
 
+                  // code execution 20250522:
                   case 'code_execution_tool_result': {
                     const part = value.content_block;
 
@@ -959,6 +960,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     return;
                   }
 
+                  // code execution 20250825 text editor:
                   case 'text_editor_code_execution_tool_result': {
                     const part = value.content_block;
                     controller.enqueue({
@@ -973,52 +975,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     return;
                   }
 
+                  // code execution 20250825 bash:
                   case 'bash_code_execution_tool_result': {
                     const part = value.content_block;
-                    const content = part.content;
-
-                    switch (content.type) {
-                      case 'bash_code_execution_tool_result_error': {
-                        controller.enqueue({
-                          type: 'tool-result',
-                          toolCallId: part.tool_use_id,
-                          toolName: 'bash_code_execution',
-                          result: {
-                            type: 'bash_code_execution_tool_result_error',
-                            errorCode: content.error_code,
-                          } satisfies InferSchema<
-                            typeof codeExecution_20250825OutputSchema
-                          >,
-                          providerExecuted: true,
-                        });
-                        return;
-                      }
-                      case 'bash_code_execution_result': {
-                        controller.enqueue({
-                          type: 'tool-result',
-                          toolCallId: part.tool_use_id,
-                          toolName: 'bash_code_execution',
-                          result: {
-                            type: 'bash_code_execution_tool_result',
-                            stdout: content.stdout,
-                            stderr: content.stderr,
-                            returnCode: content.return_code,
-                            content: content.content.map(content => ({
-                              type: content.type,
-                              fileId: content.file_id,
-                            })),
-                          } satisfies InferSchema<
-                            typeof codeExecution_20250825OutputSchema
-                          >,
-                          providerExecuted: true,
-                        });
-                        return;
-                      }
-
-                      default: {
-                        return;
-                      }
-                    }
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: 'bash_code_execution',
+                      result: mapBashCodeExecutionToolResult(part.content),
+                      providerExecuted: true,
+                    });
+                    return;
                   }
 
                   default: {
@@ -1248,6 +1215,42 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapBashCodeExecutionToolResult(
+  content:
+    | {
+        type: 'bash_code_execution_tool_result_error';
+        error_code: string;
+      }
+    | {
+        type: 'bash_code_execution_result';
+        content: { type: 'bash_code_execution_output'; file_id: string }[];
+        stdout: string;
+        stderr: string;
+        return_code: number;
+      },
+): InferSchema<typeof codeExecution_20250825OutputSchema> {
+  switch (content.type) {
+    case 'bash_code_execution_tool_result_error': {
+      return {
+        type: 'bash_code_execution_tool_result_error',
+        errorCode: content.error_code,
+      };
+    }
+    case 'bash_code_execution_result': {
+      return {
+        type: 'bash_code_execution_tool_result',
+        stdout: content.stdout,
+        stderr: content.stderr,
+        returnCode: content.return_code,
+        content: content.content.map(content => ({
+          type: content.type,
+          fileId: content.file_id,
+        })),
+      };
+    }
   }
 }
 
