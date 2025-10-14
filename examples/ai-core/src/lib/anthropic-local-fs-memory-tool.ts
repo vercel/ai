@@ -106,7 +106,6 @@ export const anthropicLocalFsMemoryTool = ({
 
           if (!(await exists(dir))) {
             await fs.mkdir(dir, { recursive: true });
-            throw new Error(`Path not found: ${action.path}`);
           }
 
           await fs.writeFile(fullPath, action.file_text, 'utf-8');
