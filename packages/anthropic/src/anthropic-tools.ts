@@ -4,6 +4,7 @@ import { codeExecution_20250522 } from './tool/code-execution_20250522';
 import { codeExecution_20250825 } from './tool/code-execution_20250825';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
+import { memory_20250818 } from './tool/memory_20250818';
 import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
@@ -85,6 +86,18 @@ export const anthropicTools = {
    * @param displayNumber - The display number to control (only relevant for X11 environments). If specified, the tool will be provided a display number in the tool definition.
    */
   computer_20250124,
+
+  /**
+   * The memory tool enables Claude to store and retrieve information across conversations through a memory file directory.
+   * Claude can create, read, update, and delete files that persist between sessions,
+   * allowing it to build knowledge over time without keeping everything in the context window.
+   * The memory tool operates client-side—you control where and how the data is stored through your own infrastructure.
+   *
+   * Supported models: Claude Sonnet 4.5, Claude Sonnet 4, Claude Opus 4.1, Claude Opus 4.
+   *
+   * Tool name must be `memory`.
+   */
+  memory_20250818,
 
   /**
    * Claude can use an Anthropic-defined text editor tool to view and modify text files,
