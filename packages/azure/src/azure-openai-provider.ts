@@ -91,7 +91,10 @@ Creates an Azure OpenAI completion model for text generation.
     settings?: AzureOpenAIModelSettings,
   ): ImageModelV3;
 
-  textEmbedding(deploymentId: string): EmbeddingModelV3<string>;
+  textEmbedding(
+    deploymentId: string,
+    settings?: AzureOpenAIModelSettings,
+  ): EmbeddingModelV3<string>;
 
   /**
 Creates an Azure OpenAI model for text embeddings.
