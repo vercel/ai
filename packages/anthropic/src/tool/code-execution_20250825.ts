@@ -23,8 +23,28 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
         errorCode: z.string(),
       }),
       z.object({
-        type: z.literal('text_editor_code_execution_result'),
-        // TODO additional fields
+        type: z.literal('text_editor_code_execution_tool_result_error'),
+        errorCode: z.string(),
+      }),
+      z.object({
+        type: z.literal('text_editor_code_execution_view_result'),
+        content: z.string(),
+        fileType: z.string(),
+        numLines: z.number().nullable(),
+        startLine: z.number().nullable(),
+        totalLines: z.number().nullable(),
+      }),
+      z.object({
+        type: z.literal('text_editor_code_execution_create_result'),
+        isFileUpdate: z.boolean(),
+      }),
+      z.object({
+        type: z.literal('text_editor_code_execution_str_replace_result'),
+        lines: z.array(z.string()).nullable(),
+        newLines: z.number().nullable(),
+        newStart: z.number().nullable(),
+        oldLines: z.number().nullable(),
+        oldStart: z.number().nullable(),
       }),
     ]),
   ),
@@ -79,13 +99,47 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
       type: 'bash_code_execution_tool_result_error';
 
       /**
-       * Error code
+       * Available options: invalid_tool_input, unavailable, too_many_requests,
+       * execution_time_exceeded, output_file_too_large.
        */
       errorCode: string;
     }
   | {
-      type: 'text_editor_code_execution_result';
-      // TODO
+      type: 'text_editor_code_execution_tool_result_error';
+
+      /**
+       * Available options: invalid_tool_input, unavailable, too_many_requests,
+       * execution_time_exceeded, file_not_found.
+       */
+      errorCode: string;
+    }
+  | {
+      type: 'text_editor_code_execution_view_result';
+
+      content: string;
+
+      /**
+       * The type of the file. Available options: text, image, pdf.
+       */
+      fileType: string;
+
+      numLines: number | null;
+      startLine: number | null;
+      totalLines: number | null;
+    }
+  | {
+      type: 'text_editor_code_execution_create_result';
+
+      isFileUpdate: boolean;
+    }
+  | {
+      type: 'text_editor_code_execution_str_replace_result';
+
+      lines: string[] | null;
+      newLines: number | null;
+      newStart: number | null;
+      oldLines: number | null;
+      oldStart: number | null;
     },
   {
     // no arguments
