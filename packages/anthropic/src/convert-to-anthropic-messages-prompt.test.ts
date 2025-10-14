@@ -1086,35 +1086,9 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
-<<<<<<< HEAD
-  it('should convert anthropic code_execution tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
-    const result = await convertToAnthropicMessagesPrompt({
-      prompt: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              input: {
-                code: 'print("Hello, world!")',
-              },
-              providerExecuted: true,
-              toolCallId: 'srvtoolu_01XyZ1234567890',
-              toolName: 'code_execution',
-              type: 'tool-call',
-            },
-            {
-              output: {
-                type: 'json',
-                value: {
-                  type: 'code_execution_result',
-                  stdout: 'Hello, world!',
-                  stderr: '',
-                  return_code: 0,
-=======
   describe('code_execution 20250522', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: LanguageModelV2CallWarning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1123,7 +1097,6 @@ describe('assistant messages', () => {
               {
                 input: {
                   code: 'print("Hello, world!")',
->>>>>>> 6f845b473 (feat(provider/anthropic): add code_execution_20250825 tool (#9435))
                 },
                 providerExecuted: true,
                 toolCallId: 'srvtoolu_01XyZ1234567890',
@@ -1192,7 +1165,7 @@ describe('assistant messages', () => {
 
   describe('code_execution 20250825', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: LanguageModelV2CallWarning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
