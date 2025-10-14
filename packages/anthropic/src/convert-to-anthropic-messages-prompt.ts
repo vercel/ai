@@ -425,13 +425,28 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
+                  // code execution 20250825:
                   if (
-                    part.toolName === 'code_execution' ||
+                    part.toolName === 'code_execution' &&
+                    part.input != null &&
+                    typeof part.input === 'object' &&
+                    'type' in part.input &&
+                    typeof part.input.type === 'string' &&
+                    (part.input.type === 'bash_code_execution' ||
+                      part.input.type === 'text_editor_code_execution')
+                  ) {
+                    anthropicContent.push({
+                      type: 'server_tool_use',
+                      id: part.toolCallId,
+                      name: part.input.type, // map back to subtool name
+                      input: part.input,
+                      cache_control: cacheControl,
+                    });
+                  } else if (
+                    part.toolName === 'code_execution' || // code execution 20250522
                     part.toolName === 'web_fetch' ||
                     part.toolName === 'web_search'
                   ) {
-                    // TODO invert mapping for code execution 20250825
-
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,

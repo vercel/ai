@@ -100,7 +100,14 @@ export interface AnthropicToolCallContent {
 export interface AnthropicServerToolUseContent {
   type: 'server_tool_use';
   id: string;
-  name: 'code_execution' | 'web_fetch' | 'web_search';
+  name:
+    | 'web_fetch'
+    | 'web_search'
+    // code execution 20250522:
+    | 'code_execution'
+    // code execution 20250825:
+    | 'bash_code_execution'
+    | 'text_editor_code_execution';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }

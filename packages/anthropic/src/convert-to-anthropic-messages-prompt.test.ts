@@ -1243,7 +1243,7 @@ describe('assistant messages', () => {
                       "path": "/tmp/fibonacci.py",
                       "type": "text_editor_code_execution",
                     },
-                    "name": "code_execution",
+                    "name": "text_editor_code_execution",
                     "type": "server_tool_use",
                   },
                   {
@@ -1262,7 +1262,7 @@ describe('assistant messages', () => {
                       "command": "python /tmp/fibonacci.py",
                       "type": "bash_code_execution",
                     },
-                    "name": "code_execution",
+                    "name": "bash_code_execution",
                     "type": "server_tool_use",
                   },
                   {
