@@ -16,7 +16,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
   {
     "providerExecuted": true,
     "result": {
-      "isFileUpdate": false,
+      "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
     },
     "toolCallId": "srvtoolu_012LCpyzxGBy44bCW4zCxmH2",
@@ -38,7 +38,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "providerExecuted": true,
     "result": {
       "content": [],
-      "returnCode": 0,
+      "return_code": 0,
       "stderr": "",
       "stdout": "The 10th Fibonacci number is: 55
 
@@ -54,7 +54,7 @@ F(8) = 21
 F(9) = 34
 F(10) = 55
 ",
-      "type": "bash_code_execution_tool_result",
+      "type": "bash_code_execution_result",
     },
     "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
     "toolName": "code_execution",
@@ -1572,7 +1572,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
   {
     "providerExecuted": true,
     "result": {
-      "isFileUpdate": false,
+      "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
     },
     "toolCallId": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
@@ -1653,7 +1653,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "providerExecuted": true,
     "result": {
       "content": [],
-      "returnCode": 0,
+      "return_code": 0,
       "stderr": "",
       "stdout": "The 10th Fibonacci number is: 34
 
@@ -1669,7 +1669,7 @@ F(8) = 13
 F(9) = 21
 F(10) = 34
 ",
-      "type": "bash_code_execution_tool_result",
+      "type": "bash_code_execution_result",
     },
     "toolCallId": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
     "toolName": "code_execution",

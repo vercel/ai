@@ -605,25 +605,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           break;
         }
 
-        // code execution 20250825 text editor:
+        // code execution 20250825:
+        case 'bash_code_execution_tool_result':
         case 'text_editor_code_execution_tool_result': {
           content.push({
             type: 'tool-result',
             toolCallId: part.tool_use_id,
             toolName: 'code_execution',
-            result: mapTextEditorCodeExecutionToolResult(part.content),
-            providerExecuted: true,
-          });
-          break;
-        }
-
-        // code execution 20250825 bash:
-        case 'bash_code_execution_tool_result': {
-          content.push({
-            type: 'tool-result',
-            toolCallId: part.tool_use_id,
-            toolName: 'code_execution',
-            result: mapBashCodeExecutionToolResult(part.content),
+            result: part.content,
             providerExecuted: true,
           });
           break;
@@ -980,29 +969,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     return;
                   }
 
-                  // code execution 20250825 text editor:
+                  // code execution 20250825:
+                  case 'bash_code_execution_tool_result':
                   case 'text_editor_code_execution_tool_result': {
                     const part = value.content_block;
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: 'code_execution',
-                      result: mapTextEditorCodeExecutionToolResult(
-                        part.content,
-                      ),
-                      providerExecuted: true,
-                    });
-                    return;
-                  }
-
-                  // code execution 20250825 bash:
-                  case 'bash_code_execution_tool_result': {
-                    const part = value.content_block;
-                    controller.enqueue({
-                      type: 'tool-result',
-                      toolCallId: part.tool_use_id,
-                      toolName: 'code_execution',
-                      result: mapBashCodeExecutionToolResult(part.content),
+                      result: part.content,
                       providerExecuted: true,
                     });
                     return;
@@ -1268,107 +1243,5 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       request: { body },
       response: { headers: responseHeaders },
     };
-  }
-}
-
-function mapBashCodeExecutionToolResult(
-  content:
-    | {
-        type: 'bash_code_execution_tool_result_error';
-        error_code: string;
-      }
-    | {
-        type: 'bash_code_execution_result';
-        content: { type: 'bash_code_execution_output'; file_id: string }[];
-        stdout: string;
-        stderr: string;
-        return_code: number;
-      },
-): InferSchema<typeof codeExecution_20250825OutputSchema> {
-  switch (content.type) {
-    case 'bash_code_execution_tool_result_error': {
-      return {
-        type: 'bash_code_execution_tool_result_error',
-        errorCode: content.error_code,
-      };
-    }
-    case 'bash_code_execution_result': {
-      return {
-        type: 'bash_code_execution_tool_result',
-        stdout: content.stdout,
-        stderr: content.stderr,
-        returnCode: content.return_code,
-        content: content.content.map(content => ({
-          type: content.type,
-          fileId: content.file_id,
-        })),
-      };
-    }
-  }
-}
-
-function mapTextEditorCodeExecutionToolResult(
-  content:
-    | {
-        type: 'text_editor_code_execution_tool_result_error';
-        error_code: string;
-      }
-    | {
-        type: 'text_editor_code_execution_view_result';
-        content: string;
-        file_type: string;
-        num_lines: number | null;
-        start_line: number | null;
-        total_lines: number | null;
-      }
-    | {
-        type: 'text_editor_code_execution_create_result';
-        is_file_update: boolean;
-      }
-    | {
-        type: 'text_editor_code_execution_str_replace_result';
-        lines: string[] | null;
-        new_lines: number | null;
-        new_start: number | null;
-        old_lines: number | null;
-        old_start: number | null;
-      },
-): InferSchema<typeof codeExecution_20250825OutputSchema> {
-  switch (content.type) {
-    case 'text_editor_code_execution_tool_result_error': {
-      return {
-        type: 'text_editor_code_execution_tool_result_error',
-        errorCode: content.error_code,
-      };
-    }
-
-    case 'text_editor_code_execution_view_result': {
-      return {
-        type: 'text_editor_code_execution_view_result',
-        content: content.content,
-        fileType: content.file_type,
-        numLines: content.num_lines,
-        startLine: content.start_line,
-        totalLines: content.total_lines,
-      };
-    }
-
-    case 'text_editor_code_execution_create_result': {
-      return {
-        type: 'text_editor_code_execution_create_result',
-        isFileUpdate: content.is_file_update,
-      };
-    }
-
-    case 'text_editor_code_execution_str_replace_result': {
-      return {
-        type: 'text_editor_code_execution_str_replace_result',
-        lines: content.lines,
-        newLines: content.new_lines,
-        newStart: content.new_start,
-        oldLines: content.old_lines,
-        oldStart: content.old_start,
-      };
-    }
   }
 }

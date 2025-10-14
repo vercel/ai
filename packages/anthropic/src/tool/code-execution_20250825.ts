@@ -9,44 +9,44 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
       z.object({
-        type: z.literal('bash_code_execution_tool_result'),
+        type: z.literal('bash_code_execution_result'),
         content: z.array(
           z.object({
             type: z.literal('bash_code_execution_output'),
-            fileId: z.string(),
+            file_id: z.string(),
           }),
         ),
         stdout: z.string(),
         stderr: z.string(),
-        returnCode: z.number(),
+        return_code: z.number(),
       }),
       z.object({
         type: z.literal('bash_code_execution_tool_result_error'),
-        errorCode: z.string(),
+        error_code: z.string(),
       }),
       z.object({
         type: z.literal('text_editor_code_execution_tool_result_error'),
-        errorCode: z.string(),
+        error_code: z.string(),
       }),
       z.object({
         type: z.literal('text_editor_code_execution_view_result'),
         content: z.string(),
-        fileType: z.string(),
-        numLines: z.number().nullable(),
-        startLine: z.number().nullable(),
-        totalLines: z.number().nullable(),
+        file_type: z.string(),
+        num_lines: z.number().nullable(),
+        start_line: z.number().nullable(),
+        total_lines: z.number().nullable(),
       }),
       z.object({
         type: z.literal('text_editor_code_execution_create_result'),
-        isFileUpdate: z.boolean(),
+        is_file_update: z.boolean(),
       }),
       z.object({
         type: z.literal('text_editor_code_execution_str_replace_result'),
         lines: z.array(z.string()).nullable(),
-        newLines: z.number().nullable(),
-        newStart: z.number().nullable(),
-        oldLines: z.number().nullable(),
-        oldStart: z.number().nullable(),
+        new_lines: z.number().nullable(),
+        new_start: z.number().nullable(),
+        old_lines: z.number().nullable(),
+        old_start: z.number().nullable(),
       }),
     ]),
   ),
@@ -97,7 +97,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
       file_text?: string | null;
     },
   | {
-      type: 'bash_code_execution_tool_result';
+      type: 'bash_code_execution_result';
 
       /**
        * Output from successful execution
@@ -112,7 +112,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
       /**
        * 0 for success, non-zero for failure
        */
-      returnCode: number;
+      return_code: number;
     }
   | {
       type: 'bash_code_execution_tool_result_error';
@@ -121,7 +121,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
        * Available options: invalid_tool_input, unavailable, too_many_requests,
        * execution_time_exceeded, output_file_too_large.
        */
-      errorCode: string;
+      error_code: string;
     }
   | {
       type: 'text_editor_code_execution_tool_result_error';
@@ -130,7 +130,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
        * Available options: invalid_tool_input, unavailable, too_many_requests,
        * execution_time_exceeded, file_not_found.
        */
-      errorCode: string;
+      error_code: string;
     }
   | {
       type: 'text_editor_code_execution_view_result';
@@ -140,25 +140,25 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
       /**
        * The type of the file. Available options: text, image, pdf.
        */
-      fileType: string;
+      file_type: string;
 
-      numLines: number | null;
-      startLine: number | null;
-      totalLines: number | null;
+      num_lines: number | null;
+      start_line: number | null;
+      total_lines: number | null;
     }
   | {
       type: 'text_editor_code_execution_create_result';
 
-      isFileUpdate: boolean;
+      is_file_update: boolean;
     }
   | {
       type: 'text_editor_code_execution_str_replace_result';
 
       lines: string[] | null;
-      newLines: number | null;
-      newStart: number | null;
-      oldLines: number | null;
-      oldStart: number | null;
+      new_lines: number | null;
+      new_start: number | null;
+      old_lines: number | null;
+      old_start: number | null;
     },
   {
     // no arguments
