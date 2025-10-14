@@ -1,6 +1,7 @@
 import { bash_20241022 } from './tool/bash_20241022';
 import { bash_20250124 } from './tool/bash_20250124';
 import { codeExecution_20250522 } from './tool/code-execution_20250522';
+import { codeExecution_20250825 } from './tool/code-execution_20250825';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
 import { textEditor_20241022 } from './tool/text-editor_20241022';
@@ -42,6 +43,20 @@ export const anthropicTools = {
    * Tool name must be `code_execution`.
    */
   codeExecution_20250522,
+
+  /**
+   * Claude can analyze data, create visualizations, perform complex calculations,
+   * run system commands, create and edit files, and process uploaded files directly within
+   * the API conversation.
+   *
+   * The code execution tool allows Claude to run both Python and Bash commands and manipulate files,
+   * including writing code, in a secure, sandboxed environment.
+   *
+   * This is the latest version with enhanced Bash support and file operations.
+   *
+   * Tool name must be `code_execution`.
+   */
+  codeExecution_20250825,
 
   /**
    * Claude can interact with computer environments through the computer use tool, which

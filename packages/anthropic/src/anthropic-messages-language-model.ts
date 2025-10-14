@@ -39,6 +39,7 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 
 function createCitationSource(
   citation: Citation,
@@ -461,7 +462,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           break;
         }
         case 'server_tool_use': {
+          // code execution 20250825 needs mapping:
           if (
+            part.name === 'text_editor_code_execution' ||
+            part.name === 'bash_code_execution'
+          ) {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: 'code_execution',
+              input: JSON.stringify({ type: part.name, ...part.input }),
+              providerExecuted: true,
+            });
+          } else if (
             part.name === 'web_search' ||
             part.name === 'code_execution' ||
             part.name === 'web_fetch'
@@ -560,6 +573,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           }
           break;
         }
+
+        // code execution 20250522:
         case 'code_execution_tool_result': {
           if (part.content.type === 'code_execution_result') {
             content.push({
@@ -587,6 +602,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               providerExecuted: true,
             });
           }
+          break;
+        }
+
+        // code execution 20250825:
+        case 'bash_code_execution_tool_result':
+        case 'text_editor_code_execution_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'code_execution',
+            result: part.content,
+            providerExecuted: true,
+          });
           break;
         }
       }
@@ -661,6 +689,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           toolName: string;
           input: string;
           providerExecuted?: boolean;
+          firstDelta: boolean;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -678,6 +707,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'web_fetch_tool_result'
       | 'web_search_tool_result'
       | 'code_execution_tool_result'
+      | 'text_editor_code_execution_tool_result'
+      | 'bash_code_execution_tool_result'
       | undefined = undefined;
 
     const generateId = this.generateId;
@@ -755,6 +786,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           toolCallId: value.content_block.id,
                           toolName: value.content_block.name,
                           input: '',
+                          firstDelta: true,
                         };
 
                     controller.enqueue(
@@ -771,9 +803,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                   case 'server_tool_use': {
                     if (
-                      value.content_block.name === 'web_fetch' ||
-                      value.content_block.name === 'web_search' ||
-                      value.content_block.name === 'code_execution'
+                      [
+                        'web_fetch',
+                        'web_search',
+                        // code execution 20250825:
+                        'code_execution',
+                        // code execution 20250825 text editor:
+                        'text_editor_code_execution',
+                        // code execution 20250825 bash:
+                        'bash_code_execution',
+                      ].includes(value.content_block.name)
                     ) {
                       contentBlocks[value.index] = {
                         type: 'tool-call',
@@ -781,11 +820,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         toolName: value.content_block.name,
                         input: '',
                         providerExecuted: true,
+                        firstDelta: true,
                       };
+
+                      // map tool names for the code execution 20250825 tool:
+                      const mappedToolName =
+                        value.content_block.name ===
+                          'text_editor_code_execution' ||
+                        value.content_block.name === 'bash_code_execution'
+                          ? 'code_execution'
+                          : value.content_block.name;
+
                       controller.enqueue({
                         type: 'tool-input-start',
                         id: value.content_block.id,
-                        toolName: value.content_block.name,
+                        toolName: mappedToolName,
                         providerExecuted: true,
                       });
                     }
@@ -884,6 +933,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     return;
                   }
 
+                  // code execution 20250522:
                   case 'code_execution_tool_result': {
                     const part = value.content_block;
 
@@ -916,6 +966,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       });
                     }
 
+                    return;
+                  }
+
+                  // code execution 20250825:
+                  case 'bash_code_execution_tool_result':
+                  case 'text_editor_code_execution_tool_result': {
+                    const part = value.content_block;
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: 'code_execution',
+                      result: part.content,
+                      providerExecuted: true,
+                    });
                     return;
                   }
 
@@ -958,7 +1022,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           type: 'tool-input-end',
                           id: contentBlock.toolCallId,
                         });
-                        controller.enqueue(contentBlock);
+
+                        // map tool names for the code execution 20250825 tool:
+                        const toolName =
+                          contentBlock.toolName ===
+                            'text_editor_code_execution' ||
+                          contentBlock.toolName === 'bash_code_execution'
+                            ? 'code_execution'
+                            : contentBlock.toolName;
+
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: contentBlock.toolCallId,
+                          toolName,
+                          input: contentBlock.input,
+                          providerExecuted: contentBlock.providerExecuted,
+                        });
                       }
                       break;
                   }
@@ -1020,7 +1099,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                   case 'input_json_delta': {
                     const contentBlock = contentBlocks[value.index];
-                    const delta = value.delta.partial_json;
+                    let delta = value.delta.partial_json;
+
+                    // skip empty deltas to enable replacing the first character
+                    // in the code execution 20250825 tool.
+                    if (delta.length === 0) {
+                      return;
+                    }
 
                     if (usesJsonResponseTool) {
                       if (contentBlock?.type !== 'text') {
@@ -1037,6 +1122,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         return;
                       }
 
+                      // for the code execution 20250825, we need to add
+                      // the type to the delta and change the tool name.
+                      if (
+                        contentBlock.firstDelta &&
+                        (contentBlock.toolName === 'bash_code_execution' ||
+                          contentBlock.toolName ===
+                            'text_editor_code_execution')
+                      ) {
+                        delta = `{"type": "${contentBlock.toolName}",${delta.substring(1)}`;
+                      }
+
                       controller.enqueue({
                         type: 'tool-input-delta',
                         id: contentBlock.toolCallId,
@@ -1044,6 +1140,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       });
 
                       contentBlock.input += delta;
+                      contentBlock.firstDelta = false;
                     }
 
                     return;

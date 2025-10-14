@@ -1,5 +1,76 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 > should include code execution tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll create a Python script to calculate Fibonacci numbers and then execute it to find the 10th Fibonacci number.",
+    "type": "text",
+  },
+  {
+    "input": "{"type":"text_editor_code_execution","command":"create","path":"/tmp/fibonacci.py","file_text":"def fibonacci(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n    \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        raise ValueError(\\"n must be a positive integer\\")\\n    elif n == 1 or n == 2:\\n        return 1\\n    \\n    # Using iterative approach for efficiency\\n    fib_prev = 1  # F(1)\\n    fib_curr = 1  # F(2)\\n    \\n    for i in range(3, n + 1):\\n        fib_next = fib_prev + fib_curr\\n        fib_prev = fib_curr\\n        fib_curr = fib_next\\n    \\n    return fib_curr\\n\\n\\nif __name__ == \\"__main__\\":\\n    # Calculate the 10th Fibonacci number\\n    n = 10\\n    result = fibonacci(n)\\n    print(f\\"The {n}th Fibonacci number is: {result}\\")\\n    \\n    # Display the first 10 Fibonacci numbers for reference\\n    print(f\\"\\\\nFirst {n} Fibonacci numbers:\\")\\n    for i in range(1, n + 1):\\n        print(f\\"F({i}) = {fibonacci(i)}\\")\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_012LCpyzxGBy44bCW4zCxmH2",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "is_file_update": false,
+      "type": "text_editor_code_execution_create_result",
+    },
+    "toolCallId": "srvtoolu_012LCpyzxGBy44bCW4zCxmH2",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "text": "Now let me execute the script:",
+    "type": "text",
+  },
+  {
+    "input": "{"type":"bash_code_execution","command":"python /tmp/fibonacci.py"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "The 10th Fibonacci number is: 55
+
+First 10 Fibonacci numbers:
+F(1) = 1
+F(2) = 1
+F(3) = 2
+F(4) = 3
+F(5) = 5
+F(6) = 8
+F(7) = 13
+F(8) = 21
+F(9) = 34
+F(10) = 55
+",
+      "type": "bash_code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "text": "Perfect! The script has been created and executed successfully. 
+
+**Result: The 10th Fibonacci number is 55**
+
+The script uses an iterative approach to calculate Fibonacci numbers efficiently, which is better than a recursive approach for larger values of n (avoiding exponential time complexity). The Fibonacci sequence shown is: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55...",
+    "type": "text",
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
@@ -462,6 +533,1295 @@ For the most current breaking tech news today, I'd recommend checking major tech
 ]
 `;
 
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should stream code execution tool results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01LEsrXVCLpf7xHaFdFTZNEJ",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "I'll create a Python script to calculate",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Fibonacci numbers and then execute it to fin",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d the 10th Fibonacci number.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "providerExecuted": true,
+    "toolName": "code_execution",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"type": "text_editor_code_execution","",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "comma",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "nd": "c",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "reate"",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ", "",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "path": ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""/",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "tmp/fi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "bonacci.",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "py"",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ", "file_",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "text":",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " "def fib",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "onacci(n):",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    \\"\\"\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""\\n    Calc",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ulate th",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "e nth Fibo",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "nacc",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "i ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er.\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    \\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n    Ar",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "gs:",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n      ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "  n: T",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "he ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "positio",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n i",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n the Fibon",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "acci s",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "eq",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "uence (1-",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "indexe",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d)\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       \\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Returns:\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n    ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    The n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "th ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Fibonac",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ci num",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "be",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "r\\n    \\"\\"\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   if",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " n <= 0",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\n       ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " return \\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""Pleas",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "e enter a ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "positive int",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "eg",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\"\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " elif n ==",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 1:\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "        retu",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "rn ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "0\\n    el",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "if n == 2:\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " return ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1\\n  ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "  else:\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       # Usi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ng",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " itera",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "tive ap",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "proa",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ch ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "for effi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ciency\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "        a,",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " b",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " = 0",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ", 1",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "for _ in ra",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "nge(2, n):\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n          ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "  a",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ", b = b, ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "a + b\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "     ret",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "urn ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "b\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\ndef fi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "bonacci_rec",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ursive(n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "):\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " \\"\\"\\"\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    Ca",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "lcula",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "te the nth",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Fibonacci",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er using r",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ecursion.\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    \\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    Arg",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "s:\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "      ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " n:",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " The po",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "si",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "tion in ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "the Fibona",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "cci sequen",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ce (1-index",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ed)\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "     \\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Returns:\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " The nth F",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ibonacci n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "umber\\n    \\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""\\"\\"\\n    ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "if n <",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "= 0:\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       retu",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "rn \\"Plea",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "se enter a",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " positive in",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "teger\\"\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " elif n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "== 1",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\n        r",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "et",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ur",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n 0\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    elif n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " == 2:\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "     ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   return",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 1\\n    els",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "e:\\n        ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "return fib",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "onacci_recur",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "sive(n-1) +",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " fib",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "onacci_re",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "cursive(n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "-2)\\n\\nif ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "__name__ ==",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " \\"_",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_main_",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_\\":\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " # ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Calcula",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "te ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "the 1",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "0th Fibonacc",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "i numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er\\n    n = ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "10\\n    ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "result = fi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "bonacc",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "i(n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n    \\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    print(",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f\\"The",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " {n}t",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "h Fibonac",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ci numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " is: {resul",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "t}",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\")\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n    \\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   # Sho",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "w the ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "first 10 ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Fibona",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "cci numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ers\\n    p",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ri",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "nt(f\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""\\\\nFirst ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{n}",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Fibon",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "acci numbe",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "rs:\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "")",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    fo",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "r i in range",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(1, n + ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1):\\n      ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "  pr",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "int(f\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""F({i",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}) = {",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "fibonacci",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(i)}\\")",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n"}",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"type": "text_editor_code_execution","command": "create", "path": "/tmp/fibonacci.py", "file_text": "def fibonacci(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n        \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        return \\"Please enter a positive integer\\"\\n    elif n == 1:\\n        return 0\\n    elif n == 2:\\n        return 1\\n    else:\\n        # Using iterative approach for efficiency\\n        a, b = 0, 1\\n        for _ in range(2, n):\\n            a, b = b, a + b\\n        return b\\n\\ndef fibonacci_recursive(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number using recursion.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n        \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        return \\"Please enter a positive integer\\"\\n    elif n == 1:\\n        return 0\\n    elif n == 2:\\n        return 1\\n    else:\\n        return fibonacci_recursive(n-1) + fibonacci_recursive(n-2)\\n\\nif __name__ == \\"__main__\\":\\n    # Calculate the 10th Fibonacci number\\n    n = 10\\n    result = fibonacci(n)\\n    \\n    print(f\\"The {n}th Fibonacci number is: {result}\\")\\n    \\n    # Show the first 10 Fibonacci numbers\\n    print(f\\"\\\\nFirst {n} Fibonacci numbers:\\")\\n    for i in range(1, n + 1):\\n        print(f\\"F({i}) = {fibonacci(i)}\\")\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "is_file_update": false,
+      "type": "text_editor_code_execution_create_result",
+    },
+    "toolCallId": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "id": "3",
+    "type": "text-start",
+  },
+  {
+    "delta": "Now let's",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " execute the script to find the 10th Fibonacci",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " number:",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "id": "3",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "providerExecuted": true,
+    "toolName": "code_execution",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"type": "bash_code_execution","command",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "": "python",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " /tmp/fibon",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ac",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ci.py",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"type": "bash_code_execution","command": "python /tmp/fibonacci.py"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "The 10th Fibonacci number is: 34
+
+First 10 Fibonacci numbers:
+F(1) = 0
+F(2) = 1
+F(3) = 1
+F(4) = 2
+F(5) = 3
+F(6) = 5
+F(7) = 8
+F(8) = 13
+F(9) = 21
+F(10) = 34
+",
+      "type": "bash_code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "id": "6",
+    "type": "text-start",
+  },
+  {
+    "delta": "Perfect",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! The script has been created an",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d executed successfully. 
+
+**Result",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ": The 10th Fibonacci number is",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 34**
+
+The script includes:
+1",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". An **iterative function** (\`",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "fibonacci\`) - efficient and fast, suitable for larger numbers",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+2. A **recursive function** (\`fibonacci_recursive\`) - sim",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "pler but less efficient for large values
+3. The main execution",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " block that calculates and displays the 10th Fibonacci number",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+4. A bonus display showing all",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Fibonacci numbers from F(1) to F(10)",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+The Fibonacci sequence starts with 0, ",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1, and each subsequent number is the sum of the",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " previous two numbers: ",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "0, 1, 1,",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2, 3, 5",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ", 8, 13, ",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "21, 34, ...",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "id": "6",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 8050,
+          "output_tokens": 771,
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 2263,
+      "outputTokens": 771,
+      "totalTokens": 3034,
+    },
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool > txt response > should stream web search tool results 1`] = `
 [
   {
@@ -496,11 +1856,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool
     "providerExecuted": true,
     "toolName": "web_fetch",
     "type": "tool-input-start",
-  },
-  {
-    "delta": "",
-    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
-    "type": "tool-input-delta",
   },
   {
     "delta": "{"url": ",
@@ -881,11 +2236,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "providerExecuted": true,
     "toolName": "web_search",
     "type": "tool-input-start",
-  },
-  {
-    "delta": "",
-    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
-    "type": "tool-input-delta",
   },
   {
     "delta": "{"query": "t",
