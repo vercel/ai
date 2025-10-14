@@ -570,16 +570,11 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
   {
     "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
     "providerExecuted": true,
-    "toolName": "text_editor_code_execution",
+    "toolName": "code_execution",
     "type": "tool-input-start",
   },
   {
-    "delta": "",
-    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "{"",
+    "delta": "{"type": "text_editor_code_execution","",
     "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
     "type": "tool-input-delta",
   },
@@ -1568,10 +1563,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "type": "tool-input-end",
   },
   {
-    "input": "{"command": "create", "path": "/tmp/fibonacci.py", "file_text": "def fibonacci(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n        \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        return \\"Please enter a positive integer\\"\\n    elif n == 1:\\n        return 0\\n    elif n == 2:\\n        return 1\\n    else:\\n        # Using iterative approach for efficiency\\n        a, b = 0, 1\\n        for _ in range(2, n):\\n            a, b = b, a + b\\n        return b\\n\\ndef fibonacci_recursive(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number using recursion.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n        \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        return \\"Please enter a positive integer\\"\\n    elif n == 1:\\n        return 0\\n    elif n == 2:\\n        return 1\\n    else:\\n        return fibonacci_recursive(n-1) + fibonacci_recursive(n-2)\\n\\nif __name__ == \\"__main__\\":\\n    # Calculate the 10th Fibonacci number\\n    n = 10\\n    result = fibonacci(n)\\n    \\n    print(f\\"The {n}th Fibonacci number is: {result}\\")\\n    \\n    # Show the first 10 Fibonacci numbers\\n    print(f\\"\\\\nFirst {n} Fibonacci numbers:\\")\\n    for i in range(1, n + 1):\\n        print(f\\"F({i}) = {fibonacci(i)}\\")\\n"}",
+    "input": "{"type": "text_editor_code_execution","command": "create", "path": "/tmp/fibonacci.py", "file_text": "def fibonacci(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n        \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        return \\"Please enter a positive integer\\"\\n    elif n == 1:\\n        return 0\\n    elif n == 2:\\n        return 1\\n    else:\\n        # Using iterative approach for efficiency\\n        a, b = 0, 1\\n        for _ in range(2, n):\\n            a, b = b, a + b\\n        return b\\n\\ndef fibonacci_recursive(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number using recursion.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n        \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        return \\"Please enter a positive integer\\"\\n    elif n == 1:\\n        return 0\\n    elif n == 2:\\n        return 1\\n    else:\\n        return fibonacci_recursive(n-1) + fibonacci_recursive(n-2)\\n\\nif __name__ == \\"__main__\\":\\n    # Calculate the 10th Fibonacci number\\n    n = 10\\n    result = fibonacci(n)\\n    \\n    print(f\\"The {n}th Fibonacci number is: {result}\\")\\n    \\n    # Show the first 10 Fibonacci numbers\\n    print(f\\"\\\\nFirst {n} Fibonacci numbers:\\")\\n    for i in range(1, n + 1):\\n        print(f\\"F({i}) = {fibonacci(i)}\\")\\n"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
-    "toolName": "text_editor_code_execution",
+    "toolName": "code_execution",
     "type": "tool-call",
   },
   {
@@ -1610,16 +1605,11 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
   {
     "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
     "providerExecuted": true,
-    "toolName": "bash_code_execution",
+    "toolName": "code_execution",
     "type": "tool-input-start",
   },
   {
-    "delta": "",
-    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "{"command",
+    "delta": "{"type": "bash_code_execution","command",
     "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
     "type": "tool-input-delta",
   },
@@ -1653,10 +1643,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "type": "tool-input-end",
   },
   {
-    "input": "{"command": "python /tmp/fibonacci.py"}",
+    "input": "{"type": "bash_code_execution","command": "python /tmp/fibonacci.py"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
-    "toolName": "bash_code_execution",
+    "toolName": "code_execution",
     "type": "tool-call",
   },
   {
@@ -1866,11 +1856,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool
     "providerExecuted": true,
     "toolName": "web_fetch",
     "type": "tool-input-start",
-  },
-  {
-    "delta": "",
-    "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
-    "type": "tool-input-delta",
   },
   {
     "delta": "{"url": ",
@@ -2251,11 +2236,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "providerExecuted": true,
     "toolName": "web_search",
     "type": "tool-input-start",
-  },
-  {
-    "delta": "",
-    "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
-    "type": "tool-input-delta",
   },
   {
     "delta": "{"query": "t",

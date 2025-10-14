@@ -2079,11 +2079,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text-start",
             },
             {
-              "delta": "",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
               "delta": "{"value",
               "id": "1",
               "type": "text-delta",
@@ -2533,11 +2528,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "tool-input-start",
           },
           {
-            "delta": "",
-            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-            "type": "tool-input-delta",
-          },
-          {
             "delta": "{"value",
             "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "type": "tool-input-delta",
@@ -2568,6 +2558,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           {
             "input": "{"value":"Sparkle Day"}",
+            "providerExecuted": undefined,
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolName": "test-tool",
             "type": "tool-call",

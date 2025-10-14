@@ -700,6 +700,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           toolName: string;
           input: string;
           providerExecuted?: boolean;
+          firstDelta: boolean;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -796,6 +797,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           toolCallId: value.content_block.id,
                           toolName: value.content_block.name,
                           input: '',
+                          firstDelta: true,
                         };
 
                     controller.enqueue(
@@ -829,11 +831,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         toolName: value.content_block.name,
                         input: '',
                         providerExecuted: true,
+                        firstDelta: true,
                       };
+
+                      // map tool names for the code execution 20250825 tool:
+                      const mappedToolName =
+                        value.content_block.name ===
+                          'text_editor_code_execution' ||
+                        value.content_block.name === 'bash_code_execution'
+                          ? 'code_execution'
+                          : value.content_block.name;
+
                       controller.enqueue({
                         type: 'tool-input-start',
                         id: value.content_block.id,
-                        toolName: value.content_block.name,
+                        toolName: mappedToolName,
                         providerExecuted: true,
                       });
                     }
@@ -1035,7 +1047,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           type: 'tool-input-end',
                           id: contentBlock.toolCallId,
                         });
-                        controller.enqueue(contentBlock);
+
+                        // map tool names for the code execution 20250825 tool:
+                        const toolName =
+                          contentBlock.toolName ===
+                            'text_editor_code_execution' ||
+                          contentBlock.toolName === 'bash_code_execution'
+                            ? 'code_execution'
+                            : contentBlock.toolName;
+
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: contentBlock.toolCallId,
+                          toolName,
+                          input: contentBlock.input,
+                          providerExecuted: contentBlock.providerExecuted,
+                        });
                       }
                       break;
                   }
@@ -1097,7 +1124,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   case 'input_json_delta': {
                     const contentBlock = contentBlocks[value.index];
-                    const delta = value.delta.partial_json;
+                    let delta = value.delta.partial_json;
+
+                    // skip empty deltas to enable replacing the first character
+                    // in the code execution 20250825 tool.
+                    if (delta.length === 0) {
+                      return;
+                    }
 
                     if (usesJsonResponseTool) {
                       if (contentBlock?.type !== 'text') {
@@ -1114,6 +1147,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         return;
                       }
 
+                      // for the code execution 20250825, we need to add
+                      // the type to the delta and change the tool name.
+                      if (
+                        contentBlock.firstDelta &&
+                        (contentBlock.toolName === 'bash_code_execution' ||
+                          contentBlock.toolName ===
+                            'text_editor_code_execution')
+                      ) {
+                        delta = `{"type": "${contentBlock.toolName}",${delta.substring(1)}`;
+                      }
+
                       controller.enqueue({
                         type: 'tool-input-delta',
                         id: contentBlock.toolCallId,
@@ -1121,6 +1165,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       });
 
                       contentBlock.input += delta;
+                      contentBlock.firstDelta = false;
                     }
 
                     return;
