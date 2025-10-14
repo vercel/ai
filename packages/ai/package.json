@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "6.0.0-beta.42",
+  "version": "6.0.0-beta.46",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -25,7 +25,8 @@
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run"
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "check-bundle-size": "tsx scripts/check-bundle-size.ts"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -61,9 +62,11 @@
     "@types/json-schema": "7.0.15",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
+    "esbuild": "^0.24.2",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^7.2.0",
+    "tsx": "^4.19.2",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

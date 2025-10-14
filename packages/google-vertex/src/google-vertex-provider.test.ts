@@ -45,7 +45,7 @@ describe('google-vertex-provider', () => {
       expect.objectContaining({
         provider: 'google.vertex.chat',
         baseURL:
-          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
         headers: expect.any(Function),
         generateId: expect.any(Function),
       }),
@@ -73,7 +73,7 @@ describe('google-vertex-provider', () => {
         provider: 'google.vertex.embedding',
         headers: expect.any(Function),
         baseURL:
-          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
       }),
     );
   });
@@ -154,7 +154,7 @@ describe('google-vertex-provider', () => {
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
-          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
         headers: expect.any(Function),
       }),
     );
@@ -172,7 +172,7 @@ describe('google-vertex-provider', () => {
       expect.objectContaining({
         provider: 'google.vertex.chat',
         baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+          'https://aiplatform.googleapis.com/v1beta1/projects/test-project/locations/global/publishers/google',
         headers: expect.any(Function),
         generateId: expect.any(Function),
       }),
@@ -192,7 +192,7 @@ describe('google-vertex-provider', () => {
         provider: 'google.vertex.embedding',
         headers: expect.any(Function),
         baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+          'https://aiplatform.googleapis.com/v1beta1/projects/test-project/locations/global/publishers/google',
       }),
     );
   });
@@ -209,7 +209,7 @@ describe('google-vertex-provider', () => {
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
-          'https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/publishers/google',
+          'https://aiplatform.googleapis.com/v1beta1/projects/test-project/locations/global/publishers/google',
         headers: expect.any(Function),
       }),
     );
@@ -239,7 +239,7 @@ describe('google-vertex-provider', () => {
       expect.objectContaining({
         provider: 'google.vertex.chat',
         baseURL:
-          'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
+          'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google',
         headers: expect.any(Function),
         generateId: expect.any(Function),
       }),

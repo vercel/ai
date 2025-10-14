@@ -1,8 +1,8 @@
 import { weatherTool } from '@/tool/weather-tool';
 import { openai } from '@ai-sdk/openai';
-import { Agent, InferAgentUIMessage } from 'ai';
+import { BasicAgent, InferAgentUIMessage } from 'ai';
 
-export const weatherAgent = new Agent({
+export const weatherAgent = new BasicAgent({
   model: openai('gpt-4o'),
   system: 'You are a helpful assistant.',
   tools: {

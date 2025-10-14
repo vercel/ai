@@ -22,6 +22,7 @@ import {
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { getCacheControl } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
+import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
@@ -278,6 +279,20 @@ export async function convertToAnthropicMessagesPrompt({
                             };
                           }
 
+                          if (contentPart.mediaType === 'application/pdf') {
+                            betas.add('pdfs-2024-09-25');
+
+                            return {
+                              type: 'document',
+                              source: {
+                                type: 'base64',
+                                media_type: contentPart.mediaType,
+                                data: contentPart.data,
+                              },
+                              cache_control: undefined,
+                            };
+                          }
+
                           throw new UnsupportedFunctionalityError({
                             functionality: `media type: ${contentPart.mediaType}`,
                           });
@@ -410,8 +425,25 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
+                  // code execution 20250825:
                   if (
-                    part.toolName === 'code_execution' ||
+                    part.toolName === 'code_execution' &&
+                    part.input != null &&
+                    typeof part.input === 'object' &&
+                    'type' in part.input &&
+                    typeof part.input.type === 'string' &&
+                    (part.input.type === 'bash_code_execution' ||
+                      part.input.type === 'text_editor_code_execution')
+                  ) {
+                    anthropicContent.push({
+                      type: 'server_tool_use',
+                      id: part.toolCallId,
+                      name: part.input.type, // map back to subtool name
+                      input: part.input,
+                      cache_control: cacheControl,
+                    });
+                  } else if (
+                    part.toolName === 'code_execution' || // code execution 20250522
                     part.toolName === 'web_fetch' ||
                     part.toolName === 'web_search'
                   ) {
@@ -455,23 +487,65 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const codeExecutionOutput = await validateTypes({
-                    value: output.value,
-                    schema: codeExecution_20250522OutputSchema,
-                  });
+                  if (
+                    output.value == null ||
+                    typeof output.value !== 'object' ||
+                    !('type' in output.value) ||
+                    typeof output.value.type !== 'string'
+                  ) {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output value is not a valid code execution result for tool ${part.toolName}`,
+                    });
+                    break;
+                  }
 
-                  anthropicContent.push({
-                    type: 'code_execution_tool_result',
-                    tool_use_id: part.toolCallId,
-                    content: {
-                      type: codeExecutionOutput.type,
-                      stdout: codeExecutionOutput.stdout,
-                      stderr: codeExecutionOutput.stderr,
-                      return_code: codeExecutionOutput.return_code,
-                    },
-                    cache_control: cacheControl,
-                  });
+                  // to distinguish between code execution 20250522 and 20250825,
+                  // we check if a type property is present in the output.value
+                  if (output.value.type === 'code_execution_result') {
+                    // code execution 20250522
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20250522OutputSchema,
+                    });
 
+                    anthropicContent.push({
+                      type: 'code_execution_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: codeExecutionOutput.type,
+                        stdout: codeExecutionOutput.stdout,
+                        stderr: codeExecutionOutput.stderr,
+                        return_code: codeExecutionOutput.return_code,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else {
+                    // code execution 20250825
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20250825OutputSchema,
+                    });
+
+                    anthropicContent.push(
+                      codeExecutionOutput.type ===
+                        'bash_code_execution_result' ||
+                        codeExecutionOutput.type ===
+                          'bash_code_execution_tool_result_error'
+                        ? {
+                            type: 'bash_code_execution_tool_result',
+                            tool_use_id: part.toolCallId,
+                            cache_control: cacheControl,
+                            content: codeExecutionOutput,
+                          }
+                        : {
+                            type: 'text_editor_code_execution_tool_result',
+                            tool_use_id: part.toolCallId,
+                            cache_control: cacheControl,
+                            content: codeExecutionOutput,
+                          },
+                    );
+                  }
                   break;
                 }
 
