@@ -70,7 +70,6 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'client_secret_post',
-      scope: 'read',
     };
   }
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
@@ -183,7 +182,7 @@ function waitForAuthorizationCode(port: number): Promise<string> {
 
 async function main() {
   const authProvider = new InMemoryOAuthClientProvider();
-  const serverUrl = 'https://mcp.jam.dev/mcp';
+  const serverUrl = 'https://mcp.vercel.com/';
 
   await authorizeWithPkceOnce(authProvider, serverUrl, () =>
     waitForAuthorizationCode(Number(8090)),
