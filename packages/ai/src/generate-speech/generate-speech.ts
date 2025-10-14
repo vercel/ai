@@ -119,13 +119,6 @@ Only applicable for HTTP-based providers.
   if (!resolvedModel) {
     throw new Error('Model could not be resolved');
   }
-  if (resolvedModel.specificationVersion !== 'v3') {
-    throw new UnsupportedModelVersionError({
-      version: resolvedModel.specificationVersion,
-      provider: resolvedModel.provider,
-      modelId: resolvedModel.modelId,
-    });
-  }
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
