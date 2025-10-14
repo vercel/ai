@@ -1,7 +1,6 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
-import { saveRawChunks } from '../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
@@ -15,8 +14,33 @@ run(async () => {
     includeRawChunks: true,
   });
 
-  await saveRawChunks({
-    result,
-    filename: 'anthropic-code-execution-20250825',
-  });
+  for await (const part of result.fullStream) {
+    switch (part.type) {
+      case 'text-delta': {
+        process.stdout.write(part.text);
+        break;
+      }
+
+      case 'tool-call': {
+        process.stdout.write(
+          `\n\nTool call: '${part.toolName}'\nInput: ${JSON.stringify(part.input, null, 2)}\n`,
+        );
+        break;
+      }
+
+      case 'tool-result': {
+        process.stdout.write(
+          `\nTool result: '${part.toolName}'\nOutput: ${JSON.stringify(part.output, null, 2)}\n`,
+        );
+        break;
+      }
+
+      case 'error': {
+        console.error('\n\nCode execution error:', part.error);
+        break;
+      }
+    }
+  }
+
+  process.stdout.write('\n\n');
 });
