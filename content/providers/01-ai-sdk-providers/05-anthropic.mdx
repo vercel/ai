@@ -548,11 +548,7 @@ You can enable code execution using the provider-defined code execution tool:
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-// Latest version with enhanced Bash support and file operations
 const codeExecutionTool = anthropic.tools.codeExecution_20250825();
-
-// Or use the previous version if needed
-// const codeExecutionTool = anthropic.tools.codeExecution_20250522();
 
 const result = await generateText({
   model: anthropic('claude-opus-4-20250514'),
