@@ -1,21 +1,17 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
-  // Using the latest code execution tool with enhanced Bash and file operation support
-  const codeExecutionTool = anthropic.tools.codeExecution_20250825();
-
+run(async () => {
   const result = streamText({
-    model: anthropic('claude-opus-4-20250514'),
+    model: anthropic('claude-sonnet-4-5'),
     prompt:
-      'Write a Python script to calculate fibonacci numbers and then execute it to find the 10th fibonacci number',
+      'Write a Python script to calculate fibonacci number' +
+      ' and then execute it to find the 10th fibonacci number',
     tools: {
-      code_execution: codeExecutionTool,
+      code_execution: anthropic.tools.codeExecution_20250825(),
     },
   });
-
-  process.stdout.write('\nAssistant: ');
 
   for await (const part of result.fullStream) {
     switch (part.type) {
@@ -46,8 +42,4 @@ async function main() {
   }
 
   process.stdout.write('\n\n');
-  console.log('Finish reason:', await result.finishReason);
-  console.log('Usage:', await result.usage);
-}
-
-main().catch(console.error);
+});
