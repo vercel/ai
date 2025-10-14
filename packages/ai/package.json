@@ -46,14 +46,12 @@
       "import": "./dist/test/index.mjs",
       "module": "./dist/test/index.mjs",
       "require": "./dist/test/index.js"
-    },
-    "./mcp-stdio": "@ai-sdk/mcp/mcp-stdio"
+    }
   },
   "dependencies": {
     "@ai-sdk/gateway": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@ai-sdk/mcp": "workspace:*",
     "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
