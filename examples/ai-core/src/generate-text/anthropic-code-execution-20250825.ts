@@ -1,6 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import { saveRawJson } from '../lib/save-raw-json';
 import { run } from '../lib/run';
 
 run(async () => {
