@@ -14,7 +14,6 @@ export default function AnthropicCodeExecutionView({
       return <InputView input={invocation.input} />;
     }
     case 'output-available':
-      console.log(invocation.output);
       return (
         <>
           <InputView input={invocation.input} />
