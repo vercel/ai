@@ -236,7 +236,7 @@ console.log('Usage:', usage);
 
 ```ts
 import { aihubmix } from '@aihubmix/ai-sdk-provider';
-import { generateSpeech } from 'ai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
   model: aihubmix.speech('tts-1'),
