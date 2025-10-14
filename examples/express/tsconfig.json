@@ -9,7 +9,7 @@
     "types": ["node"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "moduleResolution": "Bundler",
+    "moduleResolution": "nodenext",
     "rootDir": "./src",
     "outDir": "./build",
     "skipLibCheck": true,
