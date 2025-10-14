@@ -34,6 +34,8 @@ export interface AnthropicAssistantMessage {
     | AnthropicCodeExecutionToolResultContent
     | AnthropicWebFetchToolResultContent
     | AnthropicWebSearchToolResultContent
+    | AnthropicBashCodeExecutionToolResultContent
+    | AnthropicTextEditorCodeExecutionToolResultContent
   >;
 }
 

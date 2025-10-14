@@ -430,6 +430,8 @@ export async function convertToAnthropicMessagesPrompt({
                     part.toolName === 'web_fetch' ||
                     part.toolName === 'web_search'
                   ) {
+                    // TODO invert mapping for code execution 20250825
+
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
@@ -509,6 +511,25 @@ export async function convertToAnthropicMessagesPrompt({
                       value: output.value,
                       schema: codeExecution_20250825OutputSchema,
                     });
+
+                    anthropicContent.push(
+                      codeExecutionOutput.type ===
+                        'bash_code_execution_result' ||
+                        codeExecutionOutput.type ===
+                          'bash_code_execution_tool_result_error'
+                        ? {
+                            type: 'bash_code_execution_tool_result',
+                            tool_use_id: part.toolCallId,
+                            cache_control: cacheControl,
+                            content: codeExecutionOutput,
+                          }
+                        : {
+                            type: 'text_editor_code_execution_tool_result',
+                            tool_use_id: part.toolCallId,
+                            cache_control: cacheControl,
+                            content: codeExecutionOutput,
+                          },
+                    );
                   }
                   break;
                 }

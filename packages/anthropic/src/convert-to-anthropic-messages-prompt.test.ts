@@ -1162,6 +1162,133 @@ describe('assistant messages', () => {
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });
+
+  describe('code_execution 20250825', () => {
+    it('should convert anthropic code_execution tool call and result parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                input: {
+                  type: 'text_editor_code_execution',
+                  command: 'create',
+                  path: '/tmp/fibonacci.py',
+                  file_text: 'def..',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'text_editor_code_execution_create_result',
+                    is_file_update: false,
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                input: {
+                  type: 'bash_code_execution',
+                  command: 'python /tmp/fibonacci.py',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'bash_code_execution_result',
+                    content: [],
+                    stdout: 'The 10th Fibonacci number is: 34\n',
+                    stderr: '',
+                    return_code: 0,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "input": {
+                      "command": "create",
+                      "file_text": "def..",
+                      "path": "/tmp/fibonacci.py",
+                      "type": "text_editor_code_execution",
+                    },
+                    "name": "code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "is_file_update": false,
+                      "type": "text_editor_code_execution_create_result",
+                    },
+                    "tool_use_id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "type": "text_editor_code_execution_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "input": {
+                      "command": "python /tmp/fibonacci.py",
+                      "type": "bash_code_execution",
+                    },
+                    "name": "code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "The 10th Fibonacci number is: 34
+        ",
+                      "type": "bash_code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "type": "bash_code_execution_tool_result",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
 });
 
 describe('cache control', () => {
