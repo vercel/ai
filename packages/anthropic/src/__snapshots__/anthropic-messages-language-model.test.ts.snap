@@ -14,6 +14,16 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
+    "result": {
+      "isFileUpdate": false,
+      "type": "text_editor_code_execution_create_result",
+    },
+    "toolCallId": "srvtoolu_012LCpyzxGBy44bCW4zCxmH2",
+    "toolName": "text_editor_code_execution",
+    "type": "tool-result",
+  },
+  {
     "text": "Now let me execute the script:",
     "type": "text",
   },
@@ -23,6 +33,32 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
     "toolName": "bash_code_execution",
     "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "content": [],
+      "returnCode": 0,
+      "stderr": "",
+      "stdout": "The 10th Fibonacci number is: 55
+
+First 10 Fibonacci numbers:
+F(1) = 1
+F(2) = 1
+F(3) = 2
+F(4) = 3
+F(5) = 5
+F(6) = 8
+F(7) = 13
+F(8) = 21
+F(9) = 34
+F(10) = 55
+",
+      "type": "bash_code_execution_tool_result",
+    },
+    "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
+    "toolName": "bash_code_execution",
+    "type": "tool-result",
   },
   {
     "text": "Perfect! The script has been created and executed successfully. 

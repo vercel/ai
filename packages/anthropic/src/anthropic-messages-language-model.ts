@@ -563,6 +563,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           }
           break;
         }
+
+        // code execution 20250522:
         case 'code_execution_tool_result': {
           if (part.content.type === 'code_execution_result') {
             content.push({
@@ -592,34 +594,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           }
           break;
         }
-        // case 'text_editor_code_execution_tool_result': {
-        //   content.push({
-        //     type: 'tool-result',
-        //     toolCallId: part.tool_use_id,
-        //     toolName: 'text_editor_code_execution',
-        //     result: {
-        //       type: part.content.type,
-        //       isFileUpdate: part.content.is_file_update,
-        //     },
-        //     providerExecuted: true,
-        //   });
-        //   break;
-        // }
-        // case 'bash_code_execution_tool_result': {
-        //   content.push({
-        //     type: 'tool-result',
-        //     toolCallId: part.tool_use_id,
-        //     toolName: 'bash_code_execution',
-        //     result: {
-        //       type: part.content.type,
-        //       stdout: part.content.stdout,
-        //       stderr: part.content.stderr,
-        //       return_code: part.content.return_code,
-        //     },
-        //     providerExecuted: true,
-        //   });
-        //   break;
-        // }
+
+        // code execution 20250825 text editor:
+        case 'text_editor_code_execution_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'text_editor_code_execution',
+            result: mapTextEditorCodeExecutionToolResult(part.content),
+            providerExecuted: true,
+          });
+          break;
+        }
+
+        // code execution 20250825 bash:
+        case 'bash_code_execution_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'bash_code_execution',
+            result: mapBashCodeExecutionToolResult(part.content),
+            providerExecuted: true,
+          });
+          break;
+        }
       }
     }
 
