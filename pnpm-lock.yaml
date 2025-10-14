@@ -305,10 +305,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: workspace:*
+        specifier: 3.0.0-beta.29
         version: link:../../packages/openai
       ai:
-        specifier: workspace:*
+        specifier: 6.0.0-beta.46
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
