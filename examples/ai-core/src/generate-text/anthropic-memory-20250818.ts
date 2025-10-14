@@ -16,8 +16,5 @@ Acknowledge by saying "stored".
     stopWhen: stepCountIs(10),
   });
 
-  console.dir(
-    result.steps.flatMap(step => step.content),
-    { depth: Infinity },
-  );
+  console.log(JSON.stringify(result.steps[0].response.body));
 });
