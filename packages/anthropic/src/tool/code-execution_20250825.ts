@@ -10,10 +10,12 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
     z.discriminatedUnion('type', [
       z.object({
         type: z.literal('bash_code_execution_tool_result'),
-        content: z.object({
-          type: z.literal('bash_code_execution_output'),
-          fileId: z.string(),
-        }),
+        content: z.array(
+          z.object({
+            type: z.literal('bash_code_execution_output'),
+            fileId: z.string(),
+          }),
+        ),
         stdout: z.string(),
         stderr: z.string(),
         returnCode: z.number(),
@@ -50,7 +52,7 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
   ),
 );
 
-const codeExecution_20250825InputSchema = lazySchema(() =>
+export const codeExecution_20250825InputSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
       z.object({

@@ -585,10 +585,12 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             content: z.discriminatedUnion('type', [
               z.object({
                 type: z.literal('bash_code_execution_result'),
-                content: z.object({
-                  type: z.literal('bash_code_execution_output'),
-                  file_id: z.string(),
-                }),
+                content: z.array(
+                  z.object({
+                    type: z.literal('bash_code_execution_output'),
+                    file_id: z.string(),
+                  }),
+                ),
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),

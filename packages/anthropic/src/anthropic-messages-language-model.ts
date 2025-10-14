@@ -39,6 +39,7 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 
 function createCitationSource(
   citation: Citation,
@@ -591,34 +592,34 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           }
           break;
         }
-        case 'text_editor_code_execution_tool_result': {
-          content.push({
-            type: 'tool-result',
-            toolCallId: part.tool_use_id,
-            toolName: 'text_editor_code_execution',
-            result: {
-              type: part.content.type,
-              is_file_update: part.content.is_file_update,
-            },
-            providerExecuted: true,
-          });
-          break;
-        }
-        case 'bash_code_execution_tool_result': {
-          content.push({
-            type: 'tool-result',
-            toolCallId: part.tool_use_id,
-            toolName: 'bash_code_execution',
-            result: {
-              type: part.content.type,
-              stdout: part.content.stdout,
-              stderr: part.content.stderr,
-              return_code: part.content.return_code,
-            },
-            providerExecuted: true,
-          });
-          break;
-        }
+        // case 'text_editor_code_execution_tool_result': {
+        //   content.push({
+        //     type: 'tool-result',
+        //     toolCallId: part.tool_use_id,
+        //     toolName: 'text_editor_code_execution',
+        //     result: {
+        //       type: part.content.type,
+        //       isFileUpdate: part.content.is_file_update,
+        //     },
+        //     providerExecuted: true,
+        //   });
+        //   break;
+        // }
+        // case 'bash_code_execution_tool_result': {
+        //   content.push({
+        //     type: 'tool-result',
+        //     toolCallId: part.tool_use_id,
+        //     toolName: 'bash_code_execution',
+        //     result: {
+        //       type: part.content.type,
+        //       stdout: part.content.stdout,
+        //       stderr: part.content.stderr,
+        //       return_code: part.content.return_code,
+        //     },
+        //     providerExecuted: true,
+        //   });
+        //   break;
+        // }
       }
     }
 
@@ -956,34 +957,133 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   case 'text_editor_code_execution_tool_result': {
                     const part = value.content_block;
-                    controller.enqueue({
-                      type: 'tool-result',
-                      toolCallId: part.tool_use_id,
-                      toolName: 'text_editor_code_execution',
-                      result: {
-                        type: part.content.type,
-                        is_file_update: part.content.is_file_update,
-                      },
-                      providerExecuted: true,
-                    });
-                    return;
+                    const content = part.content;
+
+                    switch (content.type) {
+                      case 'text_editor_code_execution_tool_result_error': {
+                        controller.enqueue({
+                          type: 'tool-result',
+                          toolCallId: part.tool_use_id,
+                          toolName: 'text_editor_code_execution',
+                          result: {
+                            type: 'text_editor_code_execution_tool_result_error',
+                            errorCode: content.error_code,
+                          } satisfies InferSchema<
+                            typeof codeExecution_20250825OutputSchema
+                          >,
+                          providerExecuted: true,
+                        });
+                        return;
+                      }
+
+                      case 'text_editor_code_execution_view_result': {
+                        controller.enqueue({
+                          type: 'tool-result',
+                          toolCallId: part.tool_use_id,
+                          toolName: 'text_editor_code_execution',
+                          result: {
+                            type: 'text_editor_code_execution_view_result',
+                            content: content.content,
+                            fileType: content.file_type,
+                            numLines: content.num_lines,
+                            startLine: content.start_line,
+                            totalLines: content.total_lines,
+                          } satisfies InferSchema<
+                            typeof codeExecution_20250825OutputSchema
+                          >,
+                          providerExecuted: true,
+                        });
+                        return;
+                      }
+
+                      case 'text_editor_code_execution_create_result': {
+                        controller.enqueue({
+                          type: 'tool-result',
+                          toolCallId: part.tool_use_id,
+                          toolName: 'text_editor_code_execution',
+                          result: {
+                            type: 'text_editor_code_execution_create_result',
+                            isFileUpdate: content.is_file_update,
+                          } satisfies InferSchema<
+                            typeof codeExecution_20250825OutputSchema
+                          >,
+                          providerExecuted: true,
+                        });
+                        return;
+                      }
+
+                      case 'text_editor_code_execution_str_replace_result': {
+                        controller.enqueue({
+                          type: 'tool-result',
+                          toolCallId: part.tool_use_id,
+                          toolName: 'text_editor_code_execution',
+                          result: {
+                            type: 'text_editor_code_execution_str_replace_result',
+                            lines: content.lines,
+                            newLines: content.new_lines,
+                            newStart: content.new_start,
+                            oldLines: content.old_lines,
+                            oldStart: content.old_start,
+                          } satisfies InferSchema<
+                            typeof codeExecution_20250825OutputSchema
+                          >,
+                          providerExecuted: true,
+                        });
+                        return;
+                      }
+
+                      default: {
+                        return;
+                      }
+                    }
                   }
 
                   case 'bash_code_execution_tool_result': {
                     const part = value.content_block;
-                    controller.enqueue({
-                      type: 'tool-result',
-                      toolCallId: part.tool_use_id,
-                      toolName: 'bash_code_execution',
-                      result: {
-                        type: part.content.type,
-                        stdout: part.content.stdout,
-                        stderr: part.content.stderr,
-                        return_code: part.content.return_code,
-                      },
-                      providerExecuted: true,
-                    });
-                    return;
+                    const content = part.content;
+
+                    switch (content.type) {
+                      case 'bash_code_execution_tool_result_error': {
+                        controller.enqueue({
+                          type: 'tool-result',
+                          toolCallId: part.tool_use_id,
+                          toolName: 'bash_code_execution',
+                          result: {
+                            type: 'bash_code_execution_tool_result_error',
+                            errorCode: content.error_code,
+                          } satisfies InferSchema<
+                            typeof codeExecution_20250825OutputSchema
+                          >,
+                          providerExecuted: true,
+                        });
+                        return;
+                      }
+                      case 'bash_code_execution_result': {
+                        controller.enqueue({
+                          type: 'tool-result',
+                          toolCallId: part.tool_use_id,
+                          toolName: 'bash_code_execution',
+                          result: {
+                            type: 'bash_code_execution_tool_result',
+                            stdout: content.stdout,
+                            stderr: content.stderr,
+                            returnCode: content.return_code,
+                            content: content.content.map(content => ({
+                              type: content.type,
+                              fileId: content.file_id,
+                            })),
+                          } satisfies InferSchema<
+                            typeof codeExecution_20250825OutputSchema
+                          >,
+                          providerExecuted: true,
+                        });
+                        return;
+                      }
+
+                      default: {
+                        return;
+                      }
+                    }
                   }
 
                   default: {
