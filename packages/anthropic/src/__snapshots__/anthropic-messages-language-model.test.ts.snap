@@ -7,10 +7,10 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "type": "text",
   },
   {
-    "input": "{"command":"create","path":"/tmp/fibonacci.py","file_text":"def fibonacci(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n    \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        raise ValueError(\\"n must be a positive integer\\")\\n    elif n == 1 or n == 2:\\n        return 1\\n    \\n    # Using iterative approach for efficiency\\n    fib_prev = 1  # F(1)\\n    fib_curr = 1  # F(2)\\n    \\n    for i in range(3, n + 1):\\n        fib_next = fib_prev + fib_curr\\n        fib_prev = fib_curr\\n        fib_curr = fib_next\\n    \\n    return fib_curr\\n\\n\\nif __name__ == \\"__main__\\":\\n    # Calculate the 10th Fibonacci number\\n    n = 10\\n    result = fibonacci(n)\\n    print(f\\"The {n}th Fibonacci number is: {result}\\")\\n    \\n    # Display the first 10 Fibonacci numbers for reference\\n    print(f\\"\\\\nFirst {n} Fibonacci numbers:\\")\\n    for i in range(1, n + 1):\\n        print(f\\"F({i}) = {fibonacci(i)}\\")\\n"}",
+    "input": "{"type":"text_editor_code_execution","command":"create","path":"/tmp/fibonacci.py","file_text":"def fibonacci(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n    \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        raise ValueError(\\"n must be a positive integer\\")\\n    elif n == 1 or n == 2:\\n        return 1\\n    \\n    # Using iterative approach for efficiency\\n    fib_prev = 1  # F(1)\\n    fib_curr = 1  # F(2)\\n    \\n    for i in range(3, n + 1):\\n        fib_next = fib_prev + fib_curr\\n        fib_prev = fib_curr\\n        fib_curr = fib_next\\n    \\n    return fib_curr\\n\\n\\nif __name__ == \\"__main__\\":\\n    # Calculate the 10th Fibonacci number\\n    n = 10\\n    result = fibonacci(n)\\n    print(f\\"The {n}th Fibonacci number is: {result}\\")\\n    \\n    # Display the first 10 Fibonacci numbers for reference\\n    print(f\\"\\\\nFirst {n} Fibonacci numbers:\\")\\n    for i in range(1, n + 1):\\n        print(f\\"F({i}) = {fibonacci(i)}\\")\\n"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_012LCpyzxGBy44bCW4zCxmH2",
-    "toolName": "text_editor_code_execution",
+    "toolName": "code_execution",
     "type": "tool-call",
   },
   {
@@ -28,10 +28,10 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "type": "text",
   },
   {
-    "input": "{"command":"python /tmp/fibonacci.py"}",
+    "input": "{"type":"bash_code_execution","command":"python /tmp/fibonacci.py"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
-    "toolName": "bash_code_execution",
+    "toolName": "code_execution",
     "type": "tool-call",
   },
   {

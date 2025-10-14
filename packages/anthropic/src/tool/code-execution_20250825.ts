@@ -61,7 +61,9 @@ export const codeExecution_20250825InputSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('text_editor_code_execution'),
-        // TODO what is supported here?
+        command: z.string(),
+        path: z.string(),
+        file_text: z.string().nullish(),
       }),
     ]),
   ),
@@ -78,6 +80,21 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
     }
   | {
       type: 'text_editor_code_execution';
+
+      /**
+       * The command to run.
+       */
+      command: string;
+
+      /**
+       * The path to the file to edit.
+       */
+      path: string;
+
+      /**
+       * The text of the file to edit.
+       */
+      file_text?: string | null;
     },
   | {
       type: 'bash_code_execution_tool_result';

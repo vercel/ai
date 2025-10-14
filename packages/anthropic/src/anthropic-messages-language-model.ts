@@ -462,12 +462,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           break;
         }
         case 'server_tool_use': {
+          // code execution 20250825 needs mapping:
           if (
-            part.name === 'web_search' ||
-            part.name === 'code_execution' ||
-            part.name === 'web_fetch' ||
             part.name === 'text_editor_code_execution' ||
             part.name === 'bash_code_execution'
+          ) {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: 'code_execution',
+              input: JSON.stringify({ type: part.name, ...part.input }),
+              providerExecuted: true,
+            });
+          } else if (
+            part.name === 'web_search' ||
+            part.name === 'code_execution' ||
+            part.name === 'web_fetch'
           ) {
             content.push({
               type: 'tool-call',
