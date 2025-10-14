@@ -5,7 +5,7 @@
     "sourceMap": true,
     "target": "es2022",
     "lib": ["es2022", "dom"],
-    "module": "esnext",
+    "module": "nodenext",
     "types": ["node"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
