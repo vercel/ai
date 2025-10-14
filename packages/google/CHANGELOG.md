@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.23
+
+### Patch Changes
+
+- 8a1d648: Fix adding google search along with url context in vertex ai
+
 ## 2.0.22
 
 ### Patch Changes
