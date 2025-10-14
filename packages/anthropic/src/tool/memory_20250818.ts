@@ -7,7 +7,7 @@ import { z } from 'zod/v4';
 
 const memory_20250818InputSchema = lazySchema(() =>
   zodSchema(
-    z.discriminatedUnion('type', [
+    z.discriminatedUnion('command', [
       z.object({
         command: z.literal('view'),
         path: z.string(),
