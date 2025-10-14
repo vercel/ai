@@ -201,9 +201,6 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       tsx:
         specifier: 4.19.2
         version: 4.19.2
@@ -240,9 +237,6 @@ importers:
       '@angular/router':
         specifier: ^20.3.2
         version: 20.3.2(@angular/common@20.3.2(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.2(@angular/common@20.3.2(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
@@ -311,9 +305,6 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       tsx:
         specifier: 4.19.2
         version: 4.19.2
@@ -339,9 +330,6 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       tsx:
         specifier: 4.19.2
         version: 4.19.2
@@ -370,9 +358,6 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       tsx:
         specifier: 4.19.2
         version: 4.19.2
@@ -407,9 +392,6 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       tsx:
         specifier: 4.19.2
         version: 4.19.2
@@ -467,10 +449,14 @@ importers:
         version: 8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.1)(typescript@5.5.4))(eslint@8.57.1)(typescript@5.5.4)
       '@typescript-eslint/parser':
         specifier: ^8.0.0
+<<<<<<< HEAD
         version: 8.6.0(eslint@8.57.1)(typescript@5.5.4)
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+=======
+        version: 8.26.0(eslint@8.57.1)(typescript@5.8.3)
+>>>>>>> 5176e398e (docs: remove `"@vercel/ai-tsconfig": "workspace:*"` from dev dependencies (#9507))
       eslint:
         specifier: 8.57.1
         version: 8.57.1
@@ -547,9 +533,6 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.0
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -611,9 +594,6 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.0
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -662,10 +642,14 @@ importers:
         version: 18.3.3
       '@types/react-dom':
         specifier: ^18
+<<<<<<< HEAD
         version: 18.2.4
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+=======
+        version: 18.3.0
+>>>>>>> 5176e398e (docs: remove `"@vercel/ai-tsconfig": "workspace:*"` from dev dependencies (#9507))
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -718,9 +702,6 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.0
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       eslint-config-vercel-ai:
         specifier: workspace:*
         version: link:../../tools/eslint-config
@@ -772,10 +753,14 @@ importers:
         version: 18.3.3
       '@types/react-dom':
         specifier: ^18
+<<<<<<< HEAD
         version: 18.2.4
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+=======
+        version: 18.3.0
+>>>>>>> 5176e398e (docs: remove `"@vercel/ai-tsconfig": "workspace:*"` from dev dependencies (#9507))
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -909,9 +894,6 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.0
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -967,9 +949,6 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.0
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -1021,10 +1000,14 @@ importers:
         version: 18.3.3
       '@types/react-dom':
         specifier: ^18
+<<<<<<< HEAD
         version: 18.2.4
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+=======
+        version: 18.3.0
+>>>>>>> 5176e398e (docs: remove `"@vercel/ai-tsconfig": "workspace:*"` from dev dependencies (#9507))
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -1158,10 +1141,14 @@ importers:
         version: 18.3.3
       '@types/react-dom':
         specifier: ^18
+<<<<<<< HEAD
         version: 18.2.4
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+=======
+        version: 18.3.0
+>>>>>>> 5176e398e (docs: remove `"@vercel/ai-tsconfig": "workspace:*"` from dev dependencies (#9507))
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -1220,9 +1207,6 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.0
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.6)
@@ -1260,9 +1244,6 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       tsx:
         specifier: 4.19.2
         version: 4.19.2
@@ -1297,9 +1278,6 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       '@vue/reactivity':
         specifier: 3.5.13
         version: 3.5.13
@@ -1354,9 +1332,6 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^5.0.0
         version: 5.0.3(svelte@5.32.1)(vite@6.2.7(@types/node@22.7.4)(jiti@2.4.0)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.7.0))
-      '@vercel/ai-tsconfig':
-        specifier: workspace:*
-        version: link:../../tools/tsconfig
       ai:
         specifier: workspace:*
         version: link:../../packages/ai
