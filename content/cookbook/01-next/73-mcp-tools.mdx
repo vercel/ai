@@ -17,8 +17,8 @@ If you prefer to use the official transports (optional), install the official Ty
 <Snippet text="pnpm install @modelcontextprotocol/sdk" />
 
 ```ts filename="app/api/completion/route.ts"
-import { experimental_createMCPClient, streamText } from 'ai';
-import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+import { experimental_createMCPClient, streamText } from '@ai-sdk/mcp';
+import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 // Optional: Official transports if you prefer them
 // import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';

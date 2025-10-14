@@ -150,7 +150,6 @@ export class HttpMCPTransport implements MCPTransport {
             });
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
-              this.onerror?.(error);
               throw error;
             }
           } catch (error) {
