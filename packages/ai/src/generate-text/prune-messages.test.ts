@@ -26,21 +26,11 @@ const messagesFixture1: ModelMessage[] = [
         toolName: 'get-weather-tool-2',
         input: '{"city": "Busan"}',
       },
-      {
-        type: 'tool-approval-request',
-        toolCallId: 'call-2',
-        approvalId: 'approval-1',
-      },
     ],
   },
   {
     role: 'tool',
     content: [
-      {
-        type: 'tool-approval-response',
-        approvalId: 'approval-1',
-        approved: true,
-      },
       {
         type: 'tool-result',
         toolCallId: 'call-1',
@@ -99,11 +89,6 @@ const messagesFixture2: ModelMessage[] = [
         toolCallId: 'call-2',
         toolName: 'get-weather-tool-2',
         input: '{"city": "Busan"}',
-      },
-      {
-        type: 'tool-approval-request',
-        toolCallId: 'call-1',
-        approvalId: 'approval-1',
       },
     ],
   },

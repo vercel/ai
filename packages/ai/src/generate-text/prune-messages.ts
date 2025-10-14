@@ -89,11 +89,6 @@ export function pruneMessages({
           for (const part of message.content) {
             if (part.type === 'tool-call' || part.type === 'tool-result') {
               keptToolCallIds.add(part.toolCallId);
-            } else if (
-              part.type === 'tool-approval-request' ||
-              part.type === 'tool-approval-response'
-            ) {
-              keptApprovalIds.add(part.approvalId);
             }
           }
         }
@@ -111,48 +106,31 @@ export function pruneMessages({
       }
 
       const toolCallIdToToolName: Record<string, string> = {};
-      const approvalIdToToolName: Record<string, string> = {};
 
       return {
         ...message,
         content: message.content.filter(part => {
           // keep non-tool parts:
-          if (
-            part.type !== 'tool-call' &&
-            part.type !== 'tool-result' &&
-            part.type !== 'tool-approval-request' &&
-            part.type !== 'tool-approval-response'
-          ) {
+          if (part.type !== 'tool-call' && part.type !== 'tool-result') {
             return true;
           }
 
           // track tool calls and approvals:
           if (part.type === 'tool-call') {
             toolCallIdToToolName[part.toolCallId] = part.toolName;
-          } else if (part.type === 'tool-approval-request') {
-            approvalIdToToolName[part.approvalId] =
-              toolCallIdToToolName[part.toolCallId];
           }
 
           // keep parts that are associated with a tool call or approval that needs to be kept:
           if (
-            ((part.type === 'tool-call' || part.type === 'tool-result') &&
-              keptToolCallIds.has(part.toolCallId)) ||
-            ((part.type === 'tool-approval-request' ||
-              part.type === 'tool-approval-response') &&
-              keptApprovalIds.has(part.approvalId))
+            (part.type === 'tool-call' || part.type === 'tool-result') &&
+            keptToolCallIds.has(part.toolCallId)
           ) {
             return true;
           }
 
           // keep parts that are not associated with a tool that should be removed:
           return (
-            toolCall.tools != null &&
-            !toolCall.tools.includes(
-              part.type === 'tool-call' || part.type === 'tool-result'
-                ? part.toolName
-                : approvalIdToToolName[part.approvalId],
-            )
+            toolCall.tools != null && !toolCall.tools.includes(part.toolName)
           );
         }),
       } as AssistantModelMessage | ToolModelMessage;
