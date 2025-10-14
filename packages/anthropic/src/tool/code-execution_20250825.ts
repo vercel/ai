@@ -59,12 +59,26 @@ export const codeExecution_20250825InputSchema = lazySchema(() =>
         type: z.literal('bash_code_execution'),
         command: z.string(),
       }),
-      z.object({
-        type: z.literal('text_editor_code_execution'),
-        command: z.string(),
-        path: z.string(),
-        file_text: z.string().nullish(),
-      }),
+      z.discriminatedUnion('command', [
+        z.object({
+          type: z.literal('text_editor_code_execution'),
+          command: z.literal('view'),
+          path: z.string(),
+        }),
+        z.object({
+          type: z.literal('text_editor_code_execution'),
+          command: z.literal('create'),
+          path: z.string(),
+          file_text: z.string().nullish(),
+        }),
+        z.object({
+          type: z.literal('text_editor_code_execution'),
+          command: z.literal('str_replace'),
+          path: z.string(),
+          old_str: z.string(),
+          new_str: z.string(),
+        }),
+      ]),
     ]),
   ),
 );
@@ -80,11 +94,16 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
     }
   | {
       type: 'text_editor_code_execution';
+      command: 'view';
 
       /**
-       * The command to run.
+       * The path to the file to view.
        */
-      command: string;
+      path: string;
+    }
+  | {
+      type: 'text_editor_code_execution';
+      command: 'create';
 
       /**
        * The path to the file to edit.
@@ -95,6 +114,25 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
        * The text of the file to edit.
        */
       file_text?: string | null;
+    }
+  | {
+      type: 'text_editor_code_execution';
+      command: 'str_replace';
+
+      /**
+       * The path to the file to edit.
+       */
+      path: string;
+
+      /**
+       * The string to replace.
+       */
+      old_str: string;
+
+      /**
+       * The new string to replace the old string with.
+       */
+      new_str: string;
     },
   | {
       type: 'bash_code_execution_result';
