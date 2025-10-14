@@ -1651,7 +1651,67 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('code execution', () => {
+    describe('code execution 20250825', () => {
+      it('should send request body with include and tool', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include code execution tool call and result in content', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('code execution 20250522', () => {
       const TEST_PROMPT = [
         {
           role: 'user' as const,
@@ -2017,11 +2077,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               "id": "1",
               "type": "text-start",
-            },
-            {
-              "delta": "",
-              "id": "1",
-              "type": "text-delta",
             },
             {
               "delta": "{"value",
@@ -2473,11 +2528,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "tool-input-start",
           },
           {
-            "delta": "",
-            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-            "type": "tool-input-delta",
-          },
-          {
             "delta": "{"value",
             "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "type": "tool-input-delta",
@@ -2508,6 +2558,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           {
             "input": "{"value":"Sparkle Day"}",
+            "providerExecuted": undefined,
             "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
             "toolName": "test-tool",
             "type": "tool-call",
@@ -3199,6 +3250,27 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ]
         `);
+      });
+
+      describe('code execution 20250825 tool', () => {
+        it('should stream code execution tool results', async () => {
+          prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+          });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
       });
 
       describe('web fetch tool', () => {
