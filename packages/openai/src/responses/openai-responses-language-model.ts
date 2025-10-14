@@ -28,6 +28,7 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
+import { webSearchOutputSchema } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -37,6 +38,7 @@ import {
   OpenAIResponsesIncludeValue,
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
+  OpenAIResponsesWebSearchAction,
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
@@ -330,6 +332,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         tool_choice: openaiToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      store,
     };
   }
 
@@ -510,7 +513,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            input: JSON.stringify({ action: part.action }),
+            input: JSON.stringify({}),
             providerExecuted: true,
           });
 
@@ -518,7 +521,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            result: { status: part.status },
+            result: mapWebSearchOutput(part.action),
             providerExecuted: true,
           });
 
@@ -649,6 +652,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       args: body,
       warnings,
       webSearchToolName,
+      store,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -698,7 +702,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       string,
       {
         encryptedContent?: string | null;
-        summaryParts: number[];
+        // summary index as string to reasoning part state:
+        summaryParts: Record<string, 'active' | 'can-conclude' | 'concluded'>;
       }
     > = {};
 
@@ -750,6 +755,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: webSearchToolName ?? 'web_search',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search',
+                  input: JSON.stringify({}),
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
@@ -811,10 +829,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     },
                   },
                 });
-              } else if (isResponseOutputItemAddedReasoningChunk(value)) {
+              } else if (
+                isResponseOutputItemAddedChunk(value) &&
+                value.item.type === 'reasoning'
+              ) {
                 activeReasoning[value.item.id] = {
                   encryptedContent: value.item.encrypted_content,
-                  summaryParts: [0],
+                  summaryParts: { 0: 'active' },
                 };
 
                 controller.enqueue({
@@ -854,23 +875,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = undefined;
 
                 controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'web_search',
-                  input: JSON.stringify({ action: value.item.action }),
-                  providerExecuted: true,
-                });
-
-                controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'web_search',
-                  result: { status: value.item.status },
+                  result: mapWebSearchOutput(value.item.action),
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
@@ -967,10 +975,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'text-end',
                   id: value.item.id,
                 });
-              } else if (isResponseOutputItemDoneReasoningChunk(value)) {
+              } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
 
-                for (const summaryIndex of activeReasoningPart.summaryParts) {
+                // get all active or can-conclude summary parts' ids
+                // to conclude ongoing reasoning parts:
+                const summaryPartIndices = Object.entries(
+                  activeReasoningPart.summaryParts,
+                )
+                  .filter(
+                    ([_, status]) =>
+                      status === 'active' || status === 'can-conclude',
+                  )
+                  .map(([summaryIndex]) => summaryIndex);
+
+                for (const summaryIndex of summaryPartIndices) {
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: `${value.item.id}:${summaryIndex}`,
@@ -1064,12 +1083,31 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               if (options.providerOptions?.openai?.logprobs && value.logprobs) {
                 logprobs.push(value.logprobs);
               }
-            } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
-              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk.
+            } else if (value.type === 'response.reasoning_summary_part.added') {
+              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
-                activeReasoning[value.item_id]?.summaryParts.push(
-                  value.summary_index,
-                );
+                const activeReasoningPart = activeReasoning[value.item_id]!;
+
+                activeReasoningPart.summaryParts[value.summary_index] =
+                  'active';
+
+                // since there is a new active summary part, we can conclude all can-conclude summary parts
+                for (const summaryIndex of Object.keys(
+                  activeReasoningPart.summaryParts,
+                )) {
+                  if (
+                    activeReasoningPart.summaryParts[summaryIndex] ===
+                    'can-conclude'
+                  ) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: `${value.item_id}:${summaryIndex}`,
+                      providerMetadata: { openai: { itemId: value.item_id } },
+                    });
+                    activeReasoningPart.summaryParts[summaryIndex] =
+                      'concluded';
+                  }
+                }
 
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -1084,7 +1122,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
-            } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+            } else if (value.type === 'response.reasoning_summary_text.delta') {
               controller.enqueue({
                 type: 'reasoning-delta',
                 id: `${value.item_id}:${value.summary_index}`,
@@ -1095,6 +1133,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 },
               });
+            } else if (value.type === 'response.reasoning_summary_part.done') {
+              // when OpenAI stores the message data, we can immediately conclude the reasoning part
+              // since we do not need to send the encrypted content.
+              if (store) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: `${value.item_id}:${value.summary_index}`,
+                  providerMetadata: {
+                    openai: { itemId: value.item_id },
+                  },
+                });
+
+                // mark the summary part as concluded
+                activeReasoning[value.item_id]!.summaryParts[
+                  value.summary_index
+                ] = 'concluded';
+              } else {
+                // mark the summary part as can-conclude only
+                // because we need to have a final summary part with the encrypted content
+                activeReasoning[value.item_id]!.summaryParts[
+                  value.summary_index
+                ] = 'can-conclude';
+              }
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
@@ -1184,16 +1245,6 @@ function isResponseOutputItemDoneChunk(
   return chunk.type === 'response.output_item.done';
 }
 
-function isResponseOutputItemDoneReasoningChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & { type: 'response.output_item.done' } & {
-  item: { type: 'reasoning' };
-} {
-  return (
-    isResponseOutputItemDoneChunk(chunk) && chunk.item.type === 'reasoning'
-  );
-}
-
 function isResponseFinishedChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
@@ -1247,39 +1298,12 @@ function isResponseOutputItemAddedChunk(
   return chunk.type === 'response.output_item.added';
 }
 
-function isResponseOutputItemAddedReasoningChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & {
-  type: 'response.output_item.added';
-  item: { type: 'reasoning' };
-} {
-  return (
-    isResponseOutputItemAddedChunk(chunk) && chunk.item.type === 'reasoning'
-  );
-}
-
 function isResponseAnnotationAddedChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
   type: 'response.output_text.annotation.added';
 } {
   return chunk.type === 'response.output_text.annotation.added';
-}
-
-function isResponseReasoningSummaryPartAddedChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & {
-  type: 'response.reasoning_summary_part.added';
-} {
-  return chunk.type === 'response.reasoning_summary_part.added';
-}
-
-function isResponseReasoningSummaryTextDeltaChunk(
-  chunk: OpenAIResponsesChunk,
-): chunk is OpenAIResponsesChunk & {
-  type: 'response.reasoning_summary_text.delta';
-} {
-  return chunk.type === 'response.reasoning_summary_text.delta';
 }
 
 function isErrorChunk(
@@ -1351,4 +1375,19 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     ...defaults,
     isReasoningModel: false,
   };
+}
+
+function mapWebSearchOutput(
+  action: OpenAIResponsesWebSearchAction,
+): InferSchema<typeof webSearchOutputSchema> {
+  switch (action.type) {
+    case 'search':
+      return { action: { type: 'search', query: action.query ?? undefined } };
+    case 'open_page':
+      return { action: { type: 'openPage', url: action.url } };
+    case 'find':
+      return {
+        action: { type: 'find', url: action.url, pattern: action.pattern },
+      };
+  }
 }

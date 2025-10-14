@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- cc24427: Fix reasoning with Bedrock when additionalModelRequestFields is used
+
 ## 4.0.0-beta.25
 
 ### Patch Changes

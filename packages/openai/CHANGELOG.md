@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- 0b9fdd5: fix(provider/openai): end reasoning parts earlier
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 401f561: fix(provider/openai): fix web search tool input types
+
 ## 3.0.0-beta.27
 
 ### Patch Changes
