@@ -187,7 +187,7 @@ export const anthropicLocalFsMemoryTool = ({
             await fs.unlink(fullPath);
             return `File deleted: ${action.path}`;
           } else if (stat.isDirectory()) {
-            fs.rmdir(fullPath, { recursive: true });
+            await fs.rmdir(fullPath, { recursive: true });
             return `Directory deleted: ${action.path}`;
           } else {
             throw new Error(`Path not found: ${action.path}`);
