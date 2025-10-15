@@ -994,10 +994,13 @@ async function authInternal(
       return 'AUTHORIZED';
     } catch (error) {
       if (
-        error instanceof MCPClientOAuthError ||
+        // If this is a ServerError, or an unknown type, log it out and try to continue. Otherwise, escalate so we can fix things and retry.
+        !(error instanceof MCPClientOAuthError) ||
         error instanceof ServerError
       ) {
+        // Could not refresh OAuth tokens
       } else {
+        // Refresh failed for another reason, re-throw
         throw error;
       }
     }
