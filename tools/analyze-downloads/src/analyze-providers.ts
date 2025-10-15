@@ -1,13 +1,13 @@
 #!/usr/bin/env tsx
 
 /**
- * Extracts weekly downloads from the npm package page
+ * Extracts past week from the npm package page
  * using a regex-based search on the HTML.
  */
 function parseWeeklyDownloads(html: string): number {
-  // Look for the weekly downloads number in the new HTML structure
+  // Look for the past week number in the new HTML structure
   const weeklyDownloadsRegex =
-    /Weekly Downloads<\/h3>.*?<p[^>]*>([0-9,]+)<\/p>/s;
+    /past week<\/h3>.*?<p[^>]*>([0-9,]+)<\/p>/s;
   const match = html.match(weeklyDownloadsRegex);
 
   if (!match) {
@@ -61,8 +61,12 @@ async function main() {
   ];
   const results: Array<{
     package: string;
-    'weekly downloads': number;
-    percentage: string;
+    'past week': number;
+    'previous': number;
+    diff: number;
+    '%': string;
+    'previous %': string;
+    'diff %': string;
   }> = [];
 
   // timestamps
@@ -71,36 +75,58 @@ async function main() {
   const yesterdayTimestamp = d.toISOString().split('T')[0];
   d.setDate(d.getDate() - 7);
   const sevenDaysAgoTimestamp = d.toISOString().split('T')[0];
+  d.setDate(d.getDate() - 1);
+  const eightDaysAgoTimestamp = d.toISOString().split('T')[0];
+  d.setDate(d.getDate() - 7);
+  const fourteenDaysAgoTimestamp = d.toISOString().split('T')[0];
+
+  console.log(`Fetching download stats from ${sevenDaysAgoTimestamp} to ${yesterdayTimestamp} and ${fourteenDaysAgoTimestamp} to ${eightDaysAgoTimestamp}...`);
+
 
   try {
     for (const pkg of packages) {
-      const response = await fetch(
+      const responseLastWeek = await fetch(
         `https://api.npmjs.org/downloads/point/${sevenDaysAgoTimestamp}:${yesterdayTimestamp}/${pkg}`,
       );
-      const data = await response.json();
-      const weeklyDownloads = data.downloads || 0;
+      const dataLastWeek = await responseLastWeek.json();
+      const responsePrevWeek = await fetch(
+        `https://api.npmjs.org/downloads/point/${fourteenDaysAgoTimestamp}:${eightDaysAgoTimestamp}/${pkg}`,
+      );
+      const dataPrevWeek = await responsePrevWeek.json();
 
       results.push({
         package: pkg,
-        'weekly downloads': weeklyDownloads,
-        percentage: '0%', // Initial placeholder
+        'past week': dataLastWeek.downloads || 0,
+        '%': '0%', // Initial placeholder
+        'previous': dataPrevWeek.downloads || 0,
+        'previous %': '0%', // Initial placeholder
+        diff: (dataLastWeek.downloads || 0) - (dataPrevWeek.downloads || 0),
+        'diff %': '0%', // Initial placeholder
       });
     }
 
     // Calculate total downloads
-    const totalDownloads = results.reduce(
-      (sum, item) => sum + item['weekly downloads'],
+    const pastWeektotalDownloads = results.reduce(
+      (sum, item) => sum + item['past week'],
+      0,
+    );
+    const previousTotalDownloads = results.reduce(
+      (sum, item) => sum + item['previous'],
       0,
     );
 
     // Update percentages
     results.forEach(item => {
-      const percentage = (item['weekly downloads'] / totalDownloads) * 100;
-      item['percentage'] = `${percentage.toFixed(1)}%`;
+      const pastWeekPercentage = (item['past week'] / pastWeektotalDownloads) * 100;
+      item['%'] = `${pastWeekPercentage.toFixed(1)}%`;
+      const previousPercentage = (item['previous'] / previousTotalDownloads) * 100;
+      item['previous %'] = `${previousPercentage.toFixed(1)}%`;
+      const diffPercentage = pastWeekPercentage - previousPercentage;
+      item['diff %'] = `${diffPercentage >= 0 ? '+' : ''}${diffPercentage.toFixed(1)}%`;
     });
 
-    // Sort results by weekly downloads in descending order
-    results.sort((a, b) => b['weekly downloads'] - a['weekly downloads']);
+    // Sort results by past week in descending order
+    results.sort((a, b) => b['past week'] - a['past week']);
 
     console.table(results);
   } catch (err) {
