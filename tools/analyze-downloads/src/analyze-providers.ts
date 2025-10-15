@@ -1,23 +1,6 @@
 #!/usr/bin/env tsx
 
 /**
- * Extracts past week from the npm package page
- * using a regex-based search on the HTML.
- */
-function parseWeeklyDownloads(html: string): number {
-  // Look for the past week number in the new HTML structure
-  const weeklyDownloadsRegex = /past week<\/h3>.*?<p[^>]*>([0-9,]+)<\/p>/s;
-  const match = html.match(weeklyDownloadsRegex);
-
-  if (!match) {
-    return 0;
-  }
-
-  const downloadsStr = match[1].replace(/[^\d]/g, ''); // remove commas
-  return parseInt(downloadsStr, 10) || 0;
-}
-
-/**
  * Main execution function.
  */
 async function main() {
