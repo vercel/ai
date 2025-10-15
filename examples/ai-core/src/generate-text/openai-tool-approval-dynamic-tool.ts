@@ -63,11 +63,10 @@ run(async () => {
       }
 
       if (part.type === 'tool-approval-request') {
-        if (part.toolCall.toolName === 'weather') {
-          const input = part.toolCall.input as { location: string };
-
+        if (part.toolCall.dynamic) {
           const answer = await terminal.question(
-            `\nCan I retrieve the weather for ${input.location} (y/n)?`,
+            `\nCan I retrieve execute the tool "${part.toolCall.toolName}" ` +
+              `with input ${JSON.stringify(part.toolCall.input)} (y/n)?`,
           );
 
           approvals.push({
