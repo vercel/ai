@@ -1710,14 +1710,17 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'anthropic.memory_20250818',
-              name: 'memory',
-              args: {},
-            },
-          ],
+          providerOptions: {
+            anthropic: {
+              mcpServers: [
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.mcp.inevitable.fyi/mcp',
+                },
+              ],
+            } satisfies AnthropicProviderOptions,
+          },
         });
 
         expect(result.content).toMatchSnapshot();
