@@ -1,4 +1,4 @@
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 import { LanguageModelV3CallWarning } from './language-model-v3-call-warning';
 import { LanguageModelV3File } from './language-model-v3-file';
 import { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
@@ -12,37 +12,37 @@ export type LanguageModelV3StreamPart =
   // Text blocks:
   | {
       type: 'text-start';
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       id: string;
     }
   | {
       type: 'text-delta';
       id: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       delta: string;
     }
   | {
       type: 'text-end';
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       id: string;
     }
 
   // Reasoning blocks:
   | {
       type: 'reasoning-start';
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       id: string;
     }
   | {
       type: 'reasoning-delta';
       id: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       delta: string;
     }
   | {
       type: 'reasoning-end';
       id: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
 
   // Tool calls and results:
@@ -50,19 +50,19 @@ export type LanguageModelV3StreamPart =
       type: 'tool-input-start';
       id: string;
       toolName: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       providerExecuted?: boolean;
     }
   | {
       type: 'tool-input-delta';
       id: string;
       delta: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
   | {
       type: 'tool-input-end';
       id: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
   | LanguageModelV3ToolCall
   | LanguageModelV3ToolResult
@@ -86,7 +86,7 @@ export type LanguageModelV3StreamPart =
       type: 'finish';
       usage: LanguageModelV3Usage;
       finishReason: LanguageModelV3FinishReason;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
 
   // raw chunks if enabled

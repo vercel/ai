@@ -1,10 +1,10 @@
 'use client';
 
+import { AnthropicWebSearchMessage } from '@/app/api/anthropic-web-search/route';
+import ChatInput from '@/components/chat-input';
+import AnthropicWebSearchView from '@/components/tool/anthropic-web-search-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import ChatInput from '@/component/chat-input';
-import { AnthropicWebSearchMessage } from '@/app/api/anthropic-web-search/route';
-import AnthropicWebSearchView from '@/component/anthropic-web-search-view';
 
 export default function TestAnthropicWebSearch() {
   const { status, sendMessage, messages } = useChat<AnthropicWebSearchMessage>({

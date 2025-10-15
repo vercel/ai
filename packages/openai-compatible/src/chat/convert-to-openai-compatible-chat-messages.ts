@@ -1,13 +1,13 @@
 import {
   LanguageModelV3Prompt,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
-  providerOptions?: SharedV2ProviderMetadata;
+  providerOptions?: SharedV3ProviderMetadata;
 }) {
   return message?.providerOptions?.openaiCompatible ?? {};
 }
@@ -122,6 +122,9 @@ export function convertToOpenAICompatibleChatMessages(
             case 'text':
             case 'error-text':
               contentValue = output.value;
+              break;
+            case 'execution-denied':
+              contentValue = output.reason ?? 'Tool execution denied.';
               break;
             case 'content':
             case 'json':

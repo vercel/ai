@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
-import { convertBase64ToUint8Array } from '../lib/convertBase64ToUint8Array';
+import { convertBase64ToUint8Array } from '../lib/convert-base64';
 
 run(async () => {
   const result = await generateText({

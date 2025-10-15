@@ -156,6 +156,7 @@ Name of the tool that generated this result.
   /**
 Result of the tool call. This is a JSON-serializable object.
    */
+  // TODO AI SDK 6: independent from LanguageModelV3ToolResultOutput
   output: LanguageModelV3ToolResultOutput;
 
   /**

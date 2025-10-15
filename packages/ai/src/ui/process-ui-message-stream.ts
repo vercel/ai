@@ -1,7 +1,7 @@
 import {
   StandardSchemaV1,
   validateTypes,
-  Validator,
+  FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import {
@@ -77,9 +77,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
-  messageMetadataSchema?:
-    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
-    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
@@ -520,6 +518,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 });
               }
 
+              write();
+              break;
+            }
+
+            case 'tool-approval-request': {
+              const toolInvocation = getToolInvocation(chunk.toolCallId);
+
+              toolInvocation.state = 'approval-requested';
+              toolInvocation.approval = {
+                id: chunk.approvalId,
+              };
+
+              write();
+              break;
+            }
+
+            case 'tool-output-denied': {
+              const toolInvocation = getToolInvocation(chunk.toolCallId);
+              toolInvocation.state = 'output-denied';
               write();
               break;
             }

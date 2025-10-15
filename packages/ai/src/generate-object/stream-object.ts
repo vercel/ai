@@ -4,17 +4,15 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  FlexibleSchema,
   ProviderOptions,
   type InferSchema,
-  type Schema,
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
@@ -169,10 +167,7 @@ functionality that can be fully encapsulated in the provider.
 A result object for accessing the partial object stream and additional information.
  */
 export function streamObject<
-  SCHEMA extends
-    | z3.Schema
-    | z4.core.$ZodType
-    | Schema = z4.core.$ZodType<JSONValue>,
+  SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
   OUTPUT extends
     | 'object'
     | 'array'
@@ -486,10 +481,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           'ai.prompt': {
             input: () => JSON.stringify({ system, prompt, messages }),
           },
-          'ai.schema':
-            outputStrategy.jsonSchema != null
-              ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
-              : undefined,
+          'ai.schema': {
+            input: async () =>
+              JSON.stringify(await outputStrategy.jsonSchema()),
+          },
           'ai.schema.name': schemaName,
           'ai.schema.description': schemaDescription,
           'ai.settings.output': outputStrategy.type,
@@ -507,7 +502,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         const callOptions = {
           responseFormat: {
             type: 'json' as const,
-            schema: outputStrategy.jsonSchema,
+            schema: await outputStrategy.jsonSchema(),
             name: schemaName,
             description: schemaDescription,
           },
@@ -776,7 +771,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   };
 
                   doStreamSpan.setAttributes(
-                    selectTelemetryAttributes({
+                    await selectTelemetryAttributes({
                       telemetry,
                       attributes: {
                         'ai.response.finishReason': finishReason,
@@ -812,7 +807,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                   // Add response information to the root span:
                   rootSpan.setAttributes(
-                    selectTelemetryAttributes({
+                    await selectTelemetryAttributes({
                       telemetry,
                       attributes: {
                         'ai.usage.inputTokens': finalUsage.inputTokens,
@@ -996,5 +991,5 @@ export type ObjectStreamInputPart =
       type: 'finish';
       finishReason: LanguageModelV3FinishReason;
       usage: LanguageModelV3Usage;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     };

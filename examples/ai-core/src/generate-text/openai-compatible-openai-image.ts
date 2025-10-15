@@ -8,7 +8,7 @@ async function main() {
     baseURL: 'https://api.openai.com/v1',
     name: 'openai',
     headers: {
-      Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
   });
   const model = openai.chatModel('gpt-4o-mini');
