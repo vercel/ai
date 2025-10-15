@@ -77,6 +77,7 @@ const uiMessagesSchema = lazySchema(() =>
               input: z.unknown().optional(),
               output: z.never().optional(),
               errorText: z.never().optional(),
+              approval: z.never().optional(),
             }),
             z.object({
               type: z.literal('dynamic-tool'),
@@ -87,6 +88,37 @@ const uiMessagesSchema = lazySchema(() =>
               output: z.never().optional(),
               errorText: z.never().optional(),
               callProviderMetadata: providerMetadataSchema.optional(),
+              approval: z.never().optional(),
+            }),
+            z.object({
+              type: z.literal('dynamic-tool'),
+              toolName: z.string(),
+              toolCallId: z.string(),
+              state: z.literal('approval-requested'),
+              input: z.unknown(),
+              output: z.never().optional(),
+              errorText: z.never().optional(),
+              callProviderMetadata: providerMetadataSchema.optional(),
+              approval: z.object({
+                id: z.string(),
+                approved: z.never().optional(),
+                reason: z.never().optional(),
+              }),
+            }),
+            z.object({
+              type: z.literal('dynamic-tool'),
+              toolName: z.string(),
+              toolCallId: z.string(),
+              state: z.literal('approval-responded'),
+              input: z.unknown(),
+              output: z.never().optional(),
+              errorText: z.never().optional(),
+              callProviderMetadata: providerMetadataSchema.optional(),
+              approval: z.object({
+                id: z.string(),
+                approved: z.boolean(),
+                reason: z.string().optional(),
+              }),
             }),
             z.object({
               type: z.literal('dynamic-tool'),
@@ -98,6 +130,13 @@ const uiMessagesSchema = lazySchema(() =>
               errorText: z.never().optional(),
               callProviderMetadata: providerMetadataSchema.optional(),
               preliminary: z.boolean().optional(),
+              approval: z
+                .object({
+                  id: z.string(),
+                  approved: z.literal(true),
+                  reason: z.string().optional(),
+                })
+                .optional(),
             }),
             z.object({
               type: z.literal('dynamic-tool'),
@@ -108,6 +147,28 @@ const uiMessagesSchema = lazySchema(() =>
               output: z.never().optional(),
               errorText: z.string(),
               callProviderMetadata: providerMetadataSchema.optional(),
+              approval: z
+                .object({
+                  id: z.string(),
+                  approved: z.literal(true),
+                  reason: z.string().optional(),
+                })
+                .optional(),
+            }),
+            z.object({
+              type: z.literal('dynamic-tool'),
+              toolName: z.string(),
+              toolCallId: z.string(),
+              state: z.literal('output-denied'),
+              input: z.unknown(),
+              output: z.never().optional(),
+              errorText: z.never().optional(),
+              callProviderMetadata: providerMetadataSchema.optional(),
+              approval: z.object({
+                id: z.string(),
+                approved: z.literal(false),
+                reason: z.string().optional(),
+              }),
             }),
             z.object({
               type: z.string().startsWith('tool-'),

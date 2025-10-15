@@ -694,7 +694,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (this.sendAutomaticallyWhen?.({ messages: this.state.messages })) {
+    if (
+      this.sendAutomaticallyWhen?.({ messages: this.state.messages }) &&
+      !isError
+    ) {
       await this.makeRequest({
         trigger: 'submit-message',
         messageId: this.lastMessage?.id,
