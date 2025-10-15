@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+
 ## 4.0.0-beta.16
 
 ### Patch Changes

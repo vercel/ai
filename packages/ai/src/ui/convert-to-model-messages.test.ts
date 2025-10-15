@@ -1186,7 +1186,7 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when converting tool approval request responses', () => {
-    it('should convert an approved tool approval request', () => {
+    it('should convert an approved tool approval request (static tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -1265,7 +1265,86 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert a denied tool approval request and follow up text', () => {
+    it('should convert an approved tool approval request (dynamic tool)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                reason: undefined,
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert a denied tool approval request and follow up text (static tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -1359,7 +1438,101 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert tool output denied', () => {
+    it('should convert a denied tool approval request and follow up text (dynamic tool)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: false,
+                id: 'approval-1',
+                reason: "I don't want to approve this",
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'weather',
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'I was not able to retrieve the weather.',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "reason": "I don't want to approve this",
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "I was not able to retrieve the weather.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool output denied (static tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -1447,7 +1620,95 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert tool output result with approval and follow up text', () => {
+    it('should convert tool output denied (dynamic tool)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: false,
+                id: 'approval-1',
+                reason: "I don't want to approve this",
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'output-denied',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "reason": "I don't want to approve this",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "I don't want to approve this",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool output result with approval and follow up text (static tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -1554,7 +1815,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert tool error result with approval and follow up text', () => {
+    it('should convert tool error result with approval and follow up text (static tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [

@@ -312,6 +312,7 @@ export type DynamicToolUIPart = {
       input: unknown | undefined;
       output?: never;
       errorText?: never;
+      approval?: never;
     }
   | {
       state: 'input-available';
@@ -319,6 +320,31 @@ export type DynamicToolUIPart = {
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      approval?: never;
+    }
+  | {
+      state: 'approval-requested';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved?: never;
+        reason?: never;
+      };
+    }
+  | {
+      state: 'approval-responded';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved: boolean;
+        reason?: string;
+      };
     }
   | {
       state: 'output-available';
@@ -327,6 +353,11 @@ export type DynamicToolUIPart = {
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
+      approval?: {
+        id: string;
+        approved: true;
+        reason?: string;
+      };
     }
   | {
       state: 'output-error'; // TODO AI SDK 6: change to 'error' state
@@ -334,9 +365,27 @@ export type DynamicToolUIPart = {
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
+      approval?: {
+        id: string;
+        approved: true;
+        reason?: string;
+      };
+    }
+  | {
+      state: 'output-denied';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved: false;
+        reason?: string;
+      };
     }
 );
 
+// TODO AI SDK 6: rename to isStaticToolUIPart
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> {
@@ -349,18 +398,21 @@ export function isDynamicToolUIPart(
   return part.type === 'dynamic-tool';
 }
 
+// TODO AI SDK 6: rename to isToolUIPart
 export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isToolUIPart(part) || isDynamicToolUIPart(part);
 }
 
+// TODO AI SDK 6: rename to getStaticToolName
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
 
+// TODO AI SDK 6: rename to getToolName
 export function getToolOrDynamicToolName(
   part: ToolUIPart<UITools> | DynamicToolUIPart,
 ): string {

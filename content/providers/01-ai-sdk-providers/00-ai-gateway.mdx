@@ -284,6 +284,32 @@ const { text } = await generateText({
 });
 ```
 
+### Usage Tracking with User and Tags
+
+Track usage per end-user and categorize requests with tags:
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5',
+  prompt: 'Summarize this document...',
+  providerOptions: {
+    gateway: {
+      user: 'user-abc-123', // Track usage for this specific end-user
+      tags: ['document-summary', 'premium-feature'], // Categorize for reporting
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+This allows you to:
+
+- View usage and costs broken down by end-user in your analytics
+- Filter and analyze spending by feature or use case using tags
+- Track which users or features are driving the most AI usage
+
 ## Provider Options
 
 The AI Gateway provider accepts provider options that control routing behavior and provider-specific configurations.
@@ -293,6 +319,7 @@ The AI Gateway provider accepts provider options that control routing behavior a
 You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
 
 ```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -302,7 +329,7 @@ const { text } = await generateText({
     gateway: {
       order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
       only: ['vertex', 'anthropic'], // Only use these providers
-    },
+    } satisfies GatewayProviderOptions,
   },
 });
 ```
@@ -321,9 +348,22 @@ The following gateway provider options are available:
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
-You can combine both options to have fine-grained control over routing:
+- **user** _string_
+
+  Optional identifier for the end user on whose behalf the request is being made. This is used for spend tracking and attribution purposes, allowing you to track usage per end-user in your application.
+
+  Example: `user: 'user-123'` will associate this request with end-user ID "user-123" in usage reports.
+
+- **tags** _string[]_
+
+  Optional array of tags for categorizing and filtering usage in reports. Useful for tracking spend by feature, prompt version, or any other dimension relevant to your application.
+
+  Example: `tags: ['chat', 'v2']` will tag this request with "chat" and "v2" for filtering in usage analytics.
+
+You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -333,7 +373,7 @@ const { text } = await generateText({
     gateway: {
       order: ['vertex'], // Prefer Vertex AI
       only: ['anthropic', 'vertex'], // Only allow these providers
-    },
+    } satisfies GatewayProviderOptions,
   },
 });
 ```
@@ -343,6 +383,8 @@ const { text } = await generateText({
 When using provider-specific options through AI Gateway, use the actual provider name (e.g. `anthropic`, `openai`, not `gateway`) as the key:
 
 ```ts
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -351,10 +393,10 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       order: ['vertex', 'anthropic'],
-    },
+    } satisfies GatewayProviderOptions,
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },
-    },
+    } satisfies AnthropicProviderOptions,
   },
 });
 ```

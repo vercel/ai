@@ -26,7 +26,6 @@
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "typescript": "5.4.5",
-    "@vercel/ai-tsconfig": "workspace:*"
+    "typescript": "5.4.5"
   }
 }

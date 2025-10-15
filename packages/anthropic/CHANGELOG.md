@@ -1,5 +1,24 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- d08308b: feat(provider/anthropic): memory tool
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- 6f845b4: Add support for 2025-08-25 code execution tool
+
 ## 3.0.0-beta.22
 
 ### Patch Changes

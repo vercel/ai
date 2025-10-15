@@ -20,7 +20,6 @@
     "@nuxt/ui-templates": "1.3.4",
     "@nuxtjs/tailwindcss": "6.12.2",
     "@types/node": "20.17.24",
-    "@vercel/ai-tsconfig": "workspace:*",
     "@vue/reactivity": "3.5.13",
     "@vue/runtime-core": "3.5.12",
     "@vue/runtime-dom": "3.5.13",

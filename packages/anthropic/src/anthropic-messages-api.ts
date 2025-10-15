@@ -34,6 +34,8 @@ export interface AnthropicAssistantMessage {
     | AnthropicCodeExecutionToolResultContent
     | AnthropicWebFetchToolResultContent
     | AnthropicWebSearchToolResultContent
+    | AnthropicBashCodeExecutionToolResultContent
+    | AnthropicTextEditorCodeExecutionToolResultContent
   >;
 }
 
@@ -98,7 +100,14 @@ export interface AnthropicToolCallContent {
 export interface AnthropicServerToolUseContent {
   type: 'server_tool_use';
   id: string;
-  name: 'code_execution' | 'web_fetch' | 'web_search';
+  name:
+    | 'web_fetch'
+    | 'web_search'
+    // code execution 20250522:
+    | 'code_execution'
+    // code execution 20250825:
+    | 'bash_code_execution'
+    | 'text_editor_code_execution';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -128,6 +137,7 @@ export interface AnthropicWebSearchToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+// code execution results for code_execution_20250522 tool:
 export interface AnthropicCodeExecutionToolResultContent {
   type: 'code_execution_tool_result';
   tool_use_id: string;
@@ -137,6 +147,60 @@ export interface AnthropicCodeExecutionToolResultContent {
     stderr: string;
     return_code: number;
   };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+// text editor code execution results for code_execution_20250825 tool:
+export interface AnthropicTextEditorCodeExecutionToolResultContent {
+  type: 'text_editor_code_execution_tool_result';
+  tool_use_id: string;
+  content:
+    | {
+        type: 'text_editor_code_execution_tool_result_error';
+        error_code: string;
+      }
+    | {
+        type: 'text_editor_code_execution_create_result';
+        is_file_update: boolean;
+      }
+    | {
+        type: 'text_editor_code_execution_view_result';
+        content: string;
+        file_type: string;
+        num_lines: number | null;
+        start_line: number | null;
+        total_lines: number | null;
+      }
+    | {
+        type: 'text_editor_code_execution_str_replace_result';
+        lines: string[] | null;
+        new_lines: number | null;
+        new_start: number | null;
+        old_lines: number | null;
+        old_start: number | null;
+      };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+// bash code execution results for code_execution_20250825 tool:
+export interface AnthropicBashCodeExecutionToolResultContent {
+  type: 'bash_code_execution_tool_result';
+  tool_use_id: string;
+  content:
+    | {
+        type: 'bash_code_execution_result';
+        stdout: string;
+        stderr: string;
+        return_code: number;
+        content: {
+          type: 'bash_code_execution_output';
+          file_id: string;
+        }[];
+      }
+    | {
+        type: 'bash_code_execution_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -171,6 +235,10 @@ export type AnthropicTool =
       name: string;
     }
   | {
+      type: 'code_execution_20250825';
+      name: string;
+    }
+  | {
       name: string;
       type: 'computer_20250124' | 'computer_20241022';
       display_width_px: number;
@@ -192,6 +260,10 @@ export type AnthropicTool =
   | {
       name: string;
       type: 'bash_20250124' | 'bash_20241022';
+    }
+  | {
+      name: string;
+      type: 'memory_20250818';
     }
   | {
       type: 'web_fetch_20250910';
@@ -329,6 +401,7 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // code execution results for code_execution_20250522 tool:
           z.object({
             type: z.literal('code_execution_tool_result'),
             tool_use_id: z.string(),
@@ -342,6 +415,62 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_tool_result_error'),
                 error_code: z.string(),
+              }),
+            ]),
+          }),
+          // bash code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('bash_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('bash_code_execution_result'),
+                content: z.array(
+                  z.object({
+                    type: z.literal('bash_code_execution_output'),
+                    file_id: z.string(),
+                  }),
+                ),
+                stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+              }),
+              z.object({
+                type: z.literal('bash_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
+          // text editor code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('text_editor_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('text_editor_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_view_result'),
+                content: z.string(),
+                file_type: z.string(),
+                num_lines: z.number().nullable(),
+                start_line: z.number().nullable(),
+                total_lines: z.number().nullable(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_create_result'),
+                is_file_update: z.boolean(),
+              }),
+              z.object({
+                type: z.literal(
+                  'text_editor_code_execution_str_replace_result',
+                ),
+                lines: z.array(z.string()).nullable(),
+                new_lines: z.number().nullable(),
+                new_start: z.number().nullable(),
+                old_lines: z.number().nullable(),
+                old_start: z.number().nullable(),
               }),
             ]),
           }),
@@ -447,6 +576,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // code execution results for code_execution_20250522 tool:
           z.object({
             type: z.literal('code_execution_tool_result'),
             tool_use_id: z.string(),
@@ -460,6 +590,62 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_tool_result_error'),
                 error_code: z.string(),
+              }),
+            ]),
+          }),
+          // bash code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('bash_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('bash_code_execution_result'),
+                content: z.array(
+                  z.object({
+                    type: z.literal('bash_code_execution_output'),
+                    file_id: z.string(),
+                  }),
+                ),
+                stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+              }),
+              z.object({
+                type: z.literal('bash_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
+          // text editor code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('text_editor_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('text_editor_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_view_result'),
+                content: z.string(),
+                file_type: z.string(),
+                num_lines: z.number().nullable(),
+                start_line: z.number().nullable(),
+                total_lines: z.number().nullable(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_create_result'),
+                is_file_update: z.boolean(),
+              }),
+              z.object({
+                type: z.literal(
+                  'text_editor_code_execution_str_replace_result',
+                ),
+                lines: z.array(z.string()).nullable(),
+                new_lines: z.number().nullable(),
+                new_start: z.number().nullable(),
+                old_lines: z.number().nullable(),
+                old_start: z.number().nullable(),
               }),
             ]),
           }),

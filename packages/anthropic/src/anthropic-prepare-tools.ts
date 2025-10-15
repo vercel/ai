@@ -60,6 +60,14 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.code_execution_20250825': {
+            betas.add('code-execution-2025-08-25');
+            anthropicTools.push({
+              type: 'code_execution_20250825',
+              name: 'code_execution',
+            });
+            break;
+          }
           case 'anthropic.computer_20250124': {
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
@@ -131,6 +139,14 @@ export async function prepareTools({
             anthropicTools.push({
               name: 'bash',
               type: 'bash_20241022',
+            });
+            break;
+          }
+          case 'anthropic.memory_20250818': {
+            betas.add('context-management-2025-06-27');
+            anthropicTools.push({
+              name: 'memory',
+              type: 'memory_20250818',
             });
             break;
           }
