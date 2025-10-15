@@ -1653,7 +1653,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('mcp server', () => {
       it('should send request body with include and tool', async () => {
-        prepareJsonFixtureResponse('anthropic-memory-20250818.1');
+        prepareJsonFixtureResponse('anthropic-mcp.1');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
