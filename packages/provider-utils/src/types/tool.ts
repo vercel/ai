@@ -229,7 +229,7 @@ export function tool(tool: any): any {
 }
 
 /**
-Helper function for defining a dynamic tool.
+ * Defines a dynamic tool.
  */
 export function dynamicTool(tool: {
   description?: string;
@@ -239,7 +239,7 @@ export function dynamicTool(tool: {
   toModelOutput?: (output: unknown) => LanguageModelV3ToolResultPart['output'];
 
   /**
-Whether the tool needs approval before it can be executed.
+   * Whether the tool needs approval before it can be executed.
    */
   needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
 }): Tool<unknown, unknown> & {
