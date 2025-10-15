@@ -45,7 +45,7 @@ const NON_PROVIDER_LABELS = [
   'ai/core',
   'provider/community',
   'expo',
-]
+];
 
 const octokit = new Octokit({
   authStrategy: createOAuthDeviceAuth,

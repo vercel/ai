@@ -1,6 +1,6 @@
 import { Octokit } from 'octokit';
 import { createOAuthDeviceAuth } from '@octokit/auth-oauth-device';
-import GitHubProject from "github-project";
+import GitHubProject from 'github-project';
 
 const octokit = new Octokit({
   authStrategy: createOAuthDeviceAuth,
@@ -15,12 +15,12 @@ const octokit = new Octokit({
 });
 
 const project = new GitHubProject({
-    octokit,
-    owner: 'vercel',
-    number: 184,
-    fields: {
-        createdAt: 'Created At'
-    }
+  octokit,
+  owner: 'vercel',
+  number: 184,
+  fields: {
+    createdAt: 'Created At',
+  },
 });
 
 const iterator = octokit.paginate.iterator(octokit.rest.issues.listForRepo, {
@@ -31,7 +31,7 @@ const iterator = octokit.paginate.iterator(octokit.rest.issues.listForRepo, {
   per_page: 100,
 });
 
-const stats = {}
+const stats = {};
 
 for await (const response of iterator) {
   for (const issue of response.data) {
@@ -42,17 +42,21 @@ for await (const response of iterator) {
     //     createdAt: issue.created_at
     // });
 
-    const providerLabels = issue.labels.filter(label => label.name.startsWith('provider/'));
+    const providerLabels = issue.labels.filter(label =>
+      label.name.startsWith('provider/'),
+    );
     for (const label of providerLabels) {
-        const provider = label.name.replace('provider/', '');
-        if (!stats[provider]) {
-            stats[provider] = 0;
-        }
-        stats[provider]++;
+      const provider = label.name.replace('provider/', '');
+      if (!stats[provider]) {
+        stats[provider] = 0;
+      }
+      stats[provider]++;
     }
   }
 }
 
-const sortedStats = Object.entries(stats).sort((a, b) => b[1] - a[1]).map(([provider, issues]) => ({ provider, issues }));
+const sortedStats = Object.entries(stats)
+  .sort((a, b) => b[1] - a[1])
+  .map(([provider, issues]) => ({ provider, issues }));
 
 console.table(sortedStats);
