@@ -23,15 +23,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      - name: Fetch existing provider labels
+      - name: Fetch existing labels
         id: fetch-labels
         run: |
-          labels=$(gh api /repos/${{ github.repository }}/labels | jq -r '.[] | select(.name | startswith("provider/")) | .name' | jq -R -s -c 'split("\n")[:-1]')
+          labels=$(gh api /repos/vercel/ai/labels | jq -r '.[] |  .name')
           echo "labels=$labels" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
-      - name: Determine appropriate provider labels
+      - name: Determine appropriate labels
         id: classify-issue
         uses: vercel/ai-action@v2
         with:
@@ -47,16 +47,20 @@ jobs:
                     "type": "string",
                     "enum": ${{ steps.fetch-labels.outputs.labels }}
                   },
-                  "description": "Array of provider labels that are most relevant to this issue. Choose one or more labels that best match the AI provider mentioned in the issue."
+                  "description": "Array of labels that are most relevant to this issue. Choose one or more labels that best match the issue."
                 },
                 "confidence": {
                   "type": "number",
                   "minimum": 0,
                   "maximum": 1,
                   "description": "Confidence score for the label classification (0-1)"
+                },
+                "reasoning": {
+                  "type": "string",
+                  "description": "A brief explanation of why these labels were chosen based on the issue content"
                 }
               },
-              "required": ["labels", "confidence"]
+              "required": ["labels", "confidence", "reasoning"]
             }
           system: You are an expert software engineer working on classifying GitHub issues for the Vercel AI SDK repository. Your task is to analyze the content of each issue and determine which labels should be assigned.
           prompt: |
@@ -101,7 +105,7 @@ jobs:
             
               Issue Body: ${{ github.event.issue.body }}
 
-      - name: Apply provider labels to issue
+      - name: Apply labels to issue
         if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
         run: |
           labels='${{ toJSON(fromJSON(steps.classify-issue.outputs.json).labels) }}'
@@ -113,16 +117,7 @@ jobs:
           else
             echo "No labels to apply"
           fi
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
-      - name: Add comment if no provider detected
-        if: fromJSON(steps.classify-issue.outputs.json).confidence <= 0.6 && github.event.issue.author_association != 'MEMBER'
-        run: |
-          gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
-            --method POST \
-            --input - <<< '{
-              "body": "👋 Thanks for opening this issue! I was unable to automatically detect which AI provider this issue relates to. A maintainer will review and apply the appropriate `provider/*` labels manually."
-            }'
+          echo "Reasoning: $(fromJSON(steps.classify-issue.outputs.json).reasoning)"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
