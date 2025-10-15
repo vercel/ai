@@ -22,11 +22,8 @@ export type GatewayModelId =
   | 'anthropic/claude-opus-4'
   | 'anthropic/claude-opus-4.1'
   | 'anthropic/claude-sonnet-4'
-<<<<<<< HEAD
-=======
   | 'anthropic/claude-sonnet-4.5'
   | 'anthropic/claude-haiku-4.5'
->>>>>>> f33a01886 (chore (ai): add model ID for Haiku 4.5 (#9531))
   | 'cohere/command-a'
   | 'cohere/command-r'
   | 'cohere/command-r-plus'
