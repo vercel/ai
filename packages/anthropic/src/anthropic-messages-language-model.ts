@@ -8,6 +8,7 @@ import {
   LanguageModelV3Prompt,
   LanguageModelV3Source,
   LanguageModelV3StreamPart,
+  LanguageModelV3ToolCall,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
@@ -416,6 +417,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     });
 
     const content: Array<LanguageModelV3Content> = [];
+    const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
 
     // map response content to content array
     for (const part of response.content) {
@@ -512,6 +514,36 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             });
           }
 
+          break;
+        }
+        case 'mcp_tool_use': {
+          mcpToolCalls[part.id] = {
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: part.name,
+            input: JSON.stringify(part.input),
+            providerExecuted: true,
+            dynamic: true,
+            providerMetadata: {
+              anthropic: {
+                serverName: part.server_name,
+              },
+            },
+          };
+          content.push(mcpToolCalls[part.id]);
+          break;
+        }
+        case 'mcp_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: mcpToolCalls[part.tool_use_id].toolName,
+            isError: part.is_error,
+            result: part.content,
+            providerExecuted: true,
+            dynamic: true,
+            providerMetadata: mcpToolCalls[part.tool_use_id].providerMetadata,
+          });
           break;
         }
         case 'web_fetch_tool_result': {

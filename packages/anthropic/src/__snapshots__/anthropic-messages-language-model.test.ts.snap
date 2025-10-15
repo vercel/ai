@@ -74,6 +74,38 @@ The script uses an iterative approach to calculate Fibonacci numbers efficiently
 exports[`AnthropicMessagesLanguageModel > doGenerate > mcp server > should include mcp tool call and result in content 1`] = `
 [
   {
+    "dynamic": true,
+    "input": "{"message":"hello world"}",
+    "providerExecuted": true,
+    "providerMetadata": {
+      "anthropic": {
+        "serverName": "echo",
+      },
+    },
+    "toolCallId": "mcptoolu_015oTj2fXVKLrDohFetJd5UL",
+    "toolName": "echo",
+    "type": "tool-call",
+  },
+  {
+    "dynamic": true,
+    "isError": false,
+    "providerExecuted": true,
+    "providerMetadata": {
+      "anthropic": {
+        "serverName": "echo",
+      },
+    },
+    "result": [
+      {
+        "text": "Tool echo: hello world",
+        "type": "text",
+      },
+    ],
+    "toolCallId": "mcptoolu_015oTj2fXVKLrDohFetJd5UL",
+    "toolName": "echo",
+    "type": "tool-result",
+  },
+  {
     "text": "The echo tool responded back with: **"hello world"**
 
 As expected, it simply echoes back the exact message that was sent to it!",
