@@ -1,41 +1,5 @@
 #!/usr/bin/env tsx
 
-import * as https from 'https';
-
-/**
- * Fetches the raw HTML text from the given URL using https.
- */
-function fetchPage(url: string, retries = 10, delay = 4000): Promise<string> {
-  return new Promise((resolve, reject) => {
-    https
-      .get(url, res => {
-        if (res.statusCode === 429 && retries > 0) {
-          // Handle rate limiting with exponential backoff
-          const retryDelay = delay * 2;
-          console.log(`Rate limited, retrying in ${delay}ms...`);
-          setTimeout(() => {
-            fetchPage(url, retries - 1, retryDelay)
-              .then(resolve)
-              .catch(reject);
-          }, delay);
-          return;
-        }
-
-        if (res.statusCode !== 200) {
-          reject(
-            new Error(`Failed to fetch page. Status code: ${res.statusCode}`),
-          );
-          return;
-        }
-
-        let rawData = '';
-        res.on('data', chunk => (rawData += chunk));
-        res.on('end', () => resolve(rawData));
-      })
-      .on('error', err => reject(err));
-  });
-}
-
 /**
  * Extracts weekly downloads from the npm package page
  * using a regex-based search on the HTML.
@@ -59,44 +23,41 @@ function parseWeeklyDownloads(html: string): number {
  */
 async function main() {
   const packages = [
-    '@ai-sdk/openai',
-    '@ai-sdk/openai-compatible',
-    '@ai-sdk/azure',
-    '@ai-sdk/anthropic',
     '@ai-sdk/amazon-bedrock',
-    '@ai-sdk/google',
-    '@ai-sdk/google-vertex',
-    '@ai-sdk/mistral',
-    '@ai-sdk/xai',
-    '@ai-sdk/togetherai',
+    '@ai-sdk/anthropic',
+    '@ai-sdk/assemblyai',
+    '@ai-sdk/azure',
+    '@ai-sdk/baseten',
+    '@ai-sdk/cerebras',
     '@ai-sdk/cohere',
-    '@ai-sdk/fireworks',
+    '@ai-sdk/deepgram',
     '@ai-sdk/deepinfra',
     '@ai-sdk/deepseek',
-    '@ai-sdk/cerebras',
-    '@ai-sdk/groq',
-    '@ai-sdk/replicate',
-    '@ai-sdk/perplexity',
-    '@ai-sdk/vercel',
-    '@ai-sdk/assemblyai',
-    '@ai-sdk/deepgram',
     '@ai-sdk/elevenlabs',
     '@ai-sdk/fal',
-    '@ai-sdk/gateway',
+    '@ai-sdk/fireworks',
     '@ai-sdk/gladia',
+    '@ai-sdk/google',
+    '@ai-sdk/google-vertex',
+    '@ai-sdk/groq',
+    '@ai-sdk/huggingface',
     '@ai-sdk/hume',
-    '@ai-sdk/langchain',
-    '@ai-sdk/llamaindex',
     '@ai-sdk/lmnt',
     '@ai-sdk/luma',
+    '@ai-sdk/mistral',
+    '@ai-sdk/openai',
+    '@ai-sdk/openai-compatible',
+    '@ai-sdk/perplexity',
+    '@ai-sdk/replicate',
     '@ai-sdk/revai',
-    '@ai-sdk/valibot',
+    '@ai-sdk/togetherai',
+    '@ai-sdk/vercel',
+    '@ai-sdk/xai',
 
     'ollama-ai-provider',
     '@portkey-ai/vercel-provider',
     'workers-ai-provider',
     '@openrouter/ai-sdk-provider',
-    '@langdb/vercel-provider',
   ];
   const results: Array<{
     package: string;
@@ -104,11 +65,20 @@ async function main() {
     percentage: string;
   }> = [];
 
+  // timestamps
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yesterdayTimestamp = d.toISOString().split('T')[0];
+  d.setDate(d.getDate() - 7);
+  const sevenDaysAgoTimestamp = d.toISOString().split('T')[0];
+
   try {
     for (const pkg of packages) {
-      const url = `https://www.npmjs.com/package/${pkg}`;
-      const html = await fetchPage(url);
-      const weeklyDownloads = parseWeeklyDownloads(html);
+      const response = await fetch(
+        `https://api.npmjs.org/downloads/point/${sevenDaysAgoTimestamp}:${yesterdayTimestamp}/${pkg}`,
+      );
+      const data = await response.json();
+      const weeklyDownloads = data.downloads || 0;
 
       results.push({
         package: pkg,
