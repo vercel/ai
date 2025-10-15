@@ -439,7 +439,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
       ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolUIPart(part) &&
+        isToolOrDynamicToolUIPart(part) &&
         part.state === 'approval-requested' &&
         part.approval.id === id
           ? {

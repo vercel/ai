@@ -108,6 +108,10 @@ export const outputSchema: z.ZodType<LanguageModelV3ToolResultOutput> =
       value: jsonValueSchema,
     }),
     z.object({
+      type: z.literal('execution-denied'),
+      reason: z.string().optional(),
+    }),
+    z.object({
       type: z.literal('error-text'),
       value: z.string(),
     }),
