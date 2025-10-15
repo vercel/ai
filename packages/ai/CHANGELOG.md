@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.72
+
+### Patch Changes
+
+- 1b94257: fix(ui): do not submit automatically when server return with error
+
 ## 5.0.71
 
 ### Patch Changes
