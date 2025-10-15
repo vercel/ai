@@ -20,12 +20,14 @@ import {
 } from './ui-messages';
 
 /**
-Converts an array of messages from useChat into an array of CoreMessages that can be used
-with the AI core functions (e.g. `streamText`).
+Converts an array of UI messages from useChat into an array of ModelMessages that can be used
+with the AI functions (e.g. `streamText`, `generateText`).
 
-@param messages - The messages to convert.
+@param messages - The UI messages to convert.
 @param options.tools - The tools to use.
 @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
+
+@returns An array of ModelMessages.
  */
 export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
