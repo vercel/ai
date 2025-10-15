@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.40
+
+### Patch Changes
+
+- b53d8fc: chore: add model ID for Haiku 4.5
+
 ## 3.0.39
 
 ### Patch Changes
