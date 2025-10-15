@@ -30,7 +30,7 @@ const weatherTool = dynamicTool({
 });
 
 // type as generic ToolSet (tools are not known at development time)
-const tools: ToolSet = { weather: weatherTool };
+const tools: {} = { weather: weatherTool } satisfies ToolSet;
 
 run(async () => {
   const messages: ModelMessage[] = [];
