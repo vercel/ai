@@ -994,8 +994,8 @@ async function authInternal(
       return 'AUTHORIZED';
     } catch (error) {
       if (
-        !(error instanceof MCPClientOAuthError) &&
-        !(error instanceof ServerError)
+        error instanceof MCPClientOAuthError ||
+        error instanceof ServerError
       ) {
       } else {
         throw error;
