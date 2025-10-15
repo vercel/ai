@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.71
+
+### Patch Changes
+
+- bc90c3c: feat(ai): add pruneMessages helper function
+
 ## 5.0.70
 
 ### Patch Changes

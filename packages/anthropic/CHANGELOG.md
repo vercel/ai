@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 2.0.29
+
+### Patch Changes
+
+- 4dd53dd: feat(provider/anthropic): memory tool
+
+## 2.0.28
+
+### Patch Changes
+
+- 07274ad: Add support for 2025-08-25 code execution tool
+
 ## 2.0.27
 
 ### Patch Changes
