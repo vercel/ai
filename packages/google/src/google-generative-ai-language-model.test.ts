@@ -798,6 +798,69 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract sources from RAG retrievedContext chunks', async () => {
+    prepareJsonResponse({
+      content: 'test response with RAG',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: { uri: 'https://web.example.com', title: 'Web Source' },
+          },
+          {
+            retrievedContext: {
+              uri: 'gs://rag-corpus/document.pdf',
+              title: 'RAG Document',
+              text: 'Retrieved context...',
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://external-rag-source.com/page',
+              title: 'External RAG Source',
+              text: 'External retrieved context...',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with RAG",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": "Web Source",
+              "type": "source",
+              "url": "https://web.example.com",
+            },
+            {
+              "filename": "document.pdf",
+              "id": "test-id",
+              "mediaType": "application/pdf",
+              "sourceType": "document",
+              "title": "RAG Document",
+              "type": "source",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": "External RAG Source",
+              "type": "source",
+              "url": "https://external-rag-source.com/page",
+            },
+          ]
+        `);
+  });
+
   describe('async headers handling', () => {
     it('merges async config headers with sync request headers', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
