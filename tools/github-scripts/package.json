@@ -1,0 +1,11 @@
+{
+  "name": "github-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@octokit/auth-oauth-device": "^8.0.2",
+    "ai": "file:../../packages/ai",
+    "github-project": "^5.4.3",
+    "octokit": "^5.0.3"
+  }
+}
