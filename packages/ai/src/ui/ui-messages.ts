@@ -385,6 +385,7 @@ export type DynamicToolUIPart = {
     }
 );
 
+// TODO AI SDK 6: rename to isStaticToolUIPart
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> {
@@ -397,18 +398,21 @@ export function isDynamicToolUIPart(
   return part.type === 'dynamic-tool';
 }
 
+// TODO AI SDK 6: rename to isToolUIPart
 export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isToolUIPart(part) || isDynamicToolUIPart(part);
 }
 
+// TODO AI SDK 6: rename to getStaticToolName
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
 
+// TODO AI SDK 6: rename to getToolName
 export function getToolOrDynamicToolName(
   part: ToolUIPart<UITools> | DynamicToolUIPart,
 ): string {

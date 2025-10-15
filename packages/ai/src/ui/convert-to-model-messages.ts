@@ -11,6 +11,7 @@ import {
   DynamicToolUIPart,
   FileUIPart,
   getToolName,
+  getToolOrDynamicToolName,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -254,7 +255,7 @@ export function convertToModelMessages(
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
-                          toolName: getToolName(toolPart),
+                          toolName: getToolOrDynamicToolName(toolPart),
                           output: {
                             type: 'error-text' as const,
                             value:
@@ -268,11 +269,7 @@ export function convertToModelMessages(
 
                       case 'output-error':
                       case 'output-available': {
-                        const toolName =
-                          toolPart.type === 'dynamic-tool'
-                            ? toolPart.toolName
-                            : getToolName(toolPart);
-
+                        const toolName = getToolOrDynamicToolName(toolPart);
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
