@@ -822,3 +822,22 @@ describe('responses', () => {
     });
   });
 });
+
+it('should return modelId from the deployment name exactly.', async () => {
+  const modelId = provider('test-deployment').modelId;
+  expect(modelId).toStrictEqual('test-deployment');
+});
+
+it('should return modelId from the deployment name when modelName is undefined.', async () => {
+  const modelId = provider('test-deployment', {
+    modelName: undefined,
+  }).modelId;
+  expect(modelId).toStrictEqual('test-deployment');
+});
+
+it('should return modelId from modelName when it is set.', async () => {
+  const modelId = provider('test-deployment', {
+    modelName: 'gpt-4.1-mini',
+  }).modelId;
+  expect(modelId).toStrictEqual('gpt-4.1-mini');
+});
