@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.30
+
+### Patch Changes
+
+- 650287f: chore: add model ID for Haiku 4.5
+
 ## 2.0.29
 
 ### Patch Changes
