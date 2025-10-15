@@ -728,7 +728,7 @@ function extractSources({
         });
       } else {
         // It's a document (gs://, file path, etc.)
-        const title = chunk.retrievedContext.title || 'Unknown Document';
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
         let mediaType = 'application/octet-stream'; // Default
         let filename: string | undefined = undefined;
 
