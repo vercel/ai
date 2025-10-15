@@ -71,6 +71,17 @@ The script uses an iterative approach to calculate Fibonacci numbers efficiently
 ]
 `;
 
+exports[`AnthropicMessagesLanguageModel > doGenerate > mcp server > should include mcp tool call and result in content 1`] = `
+[
+  {
+    "text": "The echo tool responded back with: **"hello world"**
+
+As expected, it simply echoes back the exact message that was sent to it!",
+    "type": "text",
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should include memory tool call and result in content 1`] = `
 [
   {

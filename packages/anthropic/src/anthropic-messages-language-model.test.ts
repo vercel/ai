@@ -1704,6 +1704,24 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
       });
+
+      it('should include mcp tool call and result in content', async () => {
+        prepareJsonFixtureResponse('anthropic-mcp.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.memory_20250818',
+              name: 'memory',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
     });
 
     describe('memory 20250818', () => {
