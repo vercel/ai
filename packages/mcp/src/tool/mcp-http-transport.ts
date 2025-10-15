@@ -154,9 +154,6 @@ export class HttpMCPTransport implements MCPTransport {
             }
           } catch (error) {
             this.onerror?.(error);
-            if (error instanceof UnauthorizedError) {
-              throw error;
-            }
             return;
           }
           return attempt(true);
