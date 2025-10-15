@@ -2,6 +2,8 @@ import { z } from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
 export type AnthropicMessagesModelId =
+  | 'claude-haiku-4-5'
+  | 'claude-haiku-4-5-20251001'
   | 'claude-sonnet-4-5'
   | 'claude-sonnet-4-5-20250929'
   | 'claude-opus-4-1'
