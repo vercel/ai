@@ -117,9 +117,13 @@ async function main() {
 
     // Update percentages
     results.forEach(item => {
-      const pastWeekPercentage = (item['past week'] / pastWeektotalDownloads) * 100;
+      const pastWeekPercentage = pastWeektotalDownloads > 0 
+        ? (item['past week'] / pastWeektotalDownloads) * 100 
+        : 0;
       item['%'] = `${pastWeekPercentage.toFixed(1)}%`;
-      const previousPercentage = (item['previous'] / previousTotalDownloads) * 100;
+      const previousPercentage = previousTotalDownloads > 0 
+        ? (item['previous'] / previousTotalDownloads) * 100 
+        : 0;
       item['previous %'] = `${previousPercentage.toFixed(1)}%`;
       const diffPercentage = pastWeekPercentage - previousPercentage;
       item['diff %'] = `${diffPercentage >= 0 ? '+' : ''}${diffPercentage.toFixed(1)}%`;
