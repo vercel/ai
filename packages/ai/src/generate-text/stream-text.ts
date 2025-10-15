@@ -406,6 +406,8 @@ Internal. For test use only. May change without notice.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
+  "use workflow";
+
   return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -1169,6 +1171,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
         }) {
+          "use step";
+
           const includeRawChunks = self.includeRawChunks;
 
           stepFinish = new DelayedPromise<void>();
