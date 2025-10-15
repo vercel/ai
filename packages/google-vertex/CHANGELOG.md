@@ -1,5 +1,43 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/anthropic@3.0.0-beta.25
+  - @ai-sdk/google@3.0.0-beta.24
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [d08308b]
+  - @ai-sdk/anthropic@3.0.0-beta.24
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [6f845b4]
+  - @ai-sdk/anthropic@3.0.0-beta.23
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- f8c981f: Fix adding google search along with url context in vertex ai
+- Updated dependencies [f8c981f]
+  - @ai-sdk/google@3.0.0-beta.23
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [09ba2dd]
+  - @ai-sdk/google@3.0.0-beta.22
+
 ## 4.0.0-beta.28
 
 ### Patch Changes

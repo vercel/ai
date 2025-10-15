@@ -297,6 +297,30 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
+<Note>
+  The bash tool must have the name `bash`. Only certain Claude versions are
+  supported.
+</Note>
+
+### Memory Tool
+
+The [Memory Tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) allows Claude to use a local memory, e.g. in the filesystem.
+Here's how to create it:
+
+```ts
+const memory = anthropic.tools.memory_20250818({
+  execute: async action => {
+    // Implement your memory command execution logic here
+    // Return the result of the command execution
+  },
+});
+```
+
+<Note>
+  The memory tool must have the name `memory`. Only certain Claude versions are
+  supported.
+</Note>
+
 ### Text Editor Tool
 
 The Text Editor Tool provides functionality for viewing and editing text files.
@@ -547,7 +571,9 @@ You can enable code execution using the provider-defined code execution tool:
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-const codeExecutionTool = anthropic.tools.codeExecution_20250522();
+
+const codeExecutionTool = anthropic.tools.codeExecution_20250825();
+
 const result = await generateText({
   model: anthropic('claude-opus-4-20250514'),
   prompt:

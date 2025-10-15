@@ -1,5 +1,51 @@
 # ai
 
+## 6.0.0-beta.49
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/gateway@2.0.0-beta.31
+
+## 6.0.0-beta.48
+
+### Patch Changes
+
+- 7f2c9b6: fix(ui): do not submit automatically when server return with error
+
+## 6.0.0-beta.47
+
+### Patch Changes
+
+- c62ecf0: feat(ai): add support for v2 specs in transcription and speech models
+
+## 6.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [0a2ff8a]
+  - @ai-sdk/gateway@2.0.0-beta.30
+
+## 6.0.0-beta.45
+
+### Patch Changes
+
+- 48454ab: fix(ai): handle backpressure in `writeToServerResponse`
+
+## 6.0.0-beta.44
+
+### Patch Changes
+
+- 2b1bf9d: feat(ai): add pruneMessages helper function
+
+## 6.0.0-beta.43
+
+### Patch Changes
+
+- 27e8c3a: chore(ai): rename Agent to BasicAgent, introduce Agent interface
+
 ## 6.0.0-beta.42
 
 ### Patch Changes

@@ -106,7 +106,7 @@ export function createVertex(
 
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${baseHost}/v1/projects/${project}/locations/${region}/publishers/google`
+      `https://${baseHost}/v1beta1/projects/${project}/locations/${region}/publishers/google`
     );
   };
 

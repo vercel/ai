@@ -1,5 +1,36 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- 0b9fdd5: fix(provider/openai): end reasoning parts earlier
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 401f561: fix(provider/openai): fix web search tool input types
+
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- f1277fe: feat(provider/openai): send assistant text and tool call parts as reference ids when store: true
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- edc5548: feat(provider/openai): automatically add reasoning.encrypted_content include when store = false
+
 ## 3.0.0-beta.25
 
 ### Patch Changes

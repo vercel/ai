@@ -5,9 +5,9 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
-import ChatInput from '@/component/chat-input';
+import ChatInput from '@/components/chat-input';
 import { WeatherValibotAgentUIMessage } from '@/agent/weather-valibot-agent';
-import WeatherValibotView from '@/component/weather-valibot-view';
+import WeatherValibotView from '@/components/tool/weather-valibot-view';
 
 export default function TestWeatherValibot() {
   const { status, sendMessage, messages } =

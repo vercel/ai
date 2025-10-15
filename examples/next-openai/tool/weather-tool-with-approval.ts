@@ -13,7 +13,7 @@ export const weatherToolWithApproval = tool({
   async *execute() {
     yield { state: 'loading' as const };
 
-    // Add artificial delay of 5 seconds
+    // Add artificial delay of 2 seconds
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     yield {

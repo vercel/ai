@@ -1,5 +1,33 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/anthropic@3.0.0-beta.25
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [d08308b]
+  - @ai-sdk/anthropic@3.0.0-beta.24
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [6f845b4]
+  - @ai-sdk/anthropic@3.0.0-beta.23
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- cc24427: Fix reasoning with Bedrock when additionalModelRequestFields is used
+
 ## 4.0.0-beta.25
 
 ### Patch Changes

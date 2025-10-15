@@ -1,5 +1,24 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- f8c981f: Fix adding google search along with url context in vertex ai
+
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- 09ba2dd: Support `imageConfig.aspectRatio` configuration for Gemini models
+
 ## 3.0.0-beta.21
 
 ### Patch Changes
