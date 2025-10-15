@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.48
+
+### Patch Changes
+
+- 7f2c9b6: fix(ui): do not submit automatically when server return with error
+
 ## 6.0.0-beta.47
 
 ### Patch Changes
