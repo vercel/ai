@@ -11,8 +11,14 @@ export default function WeatherWithApprovalView({
     case 'approval-requested':
       return (
         <div className="text-gray-500">
-          Can I execute the tool &quot;{invocation.toolName}&quot; with input{' '}
-          {JSON.stringify(invocation.input)}?
+          <div className="mb-2 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
+            <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+              <div className="pb-2 font-semibold">
+                Execute tool &quot;{invocation.toolName}&quot;
+              </div>
+              {JSON.stringify(invocation.input, null, 2)}
+            </pre>
+          </div>
           <div>
             <button
               className="px-4 py-2 mr-2 text-white bg-blue-500 rounded transition-colors hover:bg-blue-600"
@@ -42,18 +48,35 @@ export default function WeatherWithApprovalView({
     case 'approval-responded':
       return (
         <div className="text-gray-500">
-          Can I execute the tool &quot;{invocation.toolName}&quot; with input{' '}
-          {JSON.stringify(invocation.input)}?
-          <div>{invocation.approval.approved ? 'Approved' : 'Denied'}</div>
+          <div className="mb-2 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
+            <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+              <div className="pb-2 font-semibold">
+                Execute tool &quot;{invocation.toolName}&quot;
+              </div>
+              {JSON.stringify(invocation.input, null, 2)}
+              <div className="font-semibold">
+                {invocation.approval.approved ? 'Approved' : 'Denied'}
+              </div>
+            </pre>
+          </div>
         </div>
       );
 
     case 'output-available':
+      const isPreliminary = invocation.preliminary ?? false;
       return (
         <div className="text-gray-500">
-          Tool {invocation.toolName} with input{' '}
-          {JSON.stringify(invocation.input)} executed. Output:{' '}
-          {JSON.stringify(invocation.output)}
+          <div className="mb-2 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
+            <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+              <div className="pb-2 font-semibold">
+                {isPreliminary ? 'Executing' : 'Executed'} tool &quot;
+                {invocation.toolName}&quot;
+              </div>
+              {JSON.stringify(invocation.input, null, 2)}
+              <div className="pt-2 pb-2 font-semibold">Output:</div>
+              {JSON.stringify(invocation.output, null, 2)}
+            </pre>
+          </div>
         </div>
       );
     case 'output-denied':
