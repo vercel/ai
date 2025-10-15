@@ -1,8 +1,4 @@
-import {
-  StandardSchemaV1,
-  validateTypes,
-  FlexibleSchema,
-} from '@ai-sdk/provider-utils';
+import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import {
   DataUIMessageChunk,
