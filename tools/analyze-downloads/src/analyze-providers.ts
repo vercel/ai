@@ -73,11 +73,11 @@ async function main() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
   const yesterdayTimestamp = d.toISOString().split('T')[0];
-  d.setDate(d.getDate() - 7);
+  d.setDate(d.getDate() - 6);
   const sevenDaysAgoTimestamp = d.toISOString().split('T')[0];
   d.setDate(d.getDate() - 1);
   const eightDaysAgoTimestamp = d.toISOString().split('T')[0];
-  d.setDate(d.getDate() - 7);
+  d.setDate(d.getDate() - 6);
   const fourteenDaysAgoTimestamp = d.toISOString().split('T')[0];
 
   console.log(`Fetching download stats from ${sevenDaysAgoTimestamp} to ${yesterdayTimestamp} and ${fourteenDaysAgoTimestamp} to ${eightDaysAgoTimestamp}...`);
