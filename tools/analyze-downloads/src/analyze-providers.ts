@@ -6,8 +6,7 @@
  */
 function parseWeeklyDownloads(html: string): number {
   // Look for the past week number in the new HTML structure
-  const weeklyDownloadsRegex =
-    /past week<\/h3>.*?<p[^>]*>([0-9,]+)<\/p>/s;
+  const weeklyDownloadsRegex = /past week<\/h3>.*?<p[^>]*>([0-9,]+)<\/p>/s;
   const match = html.match(weeklyDownloadsRegex);
 
   if (!match) {
@@ -62,7 +61,7 @@ async function main() {
   const results: Array<{
     package: string;
     'past week': number;
-    'previous': number;
+    previous: number;
     diff: number;
     '%': string;
     'previous %': string;
@@ -80,8 +79,9 @@ async function main() {
   d.setDate(d.getDate() - 6);
   const fourteenDaysAgoTimestamp = d.toISOString().split('T')[0];
 
-  console.log(`Fetching download stats from ${sevenDaysAgoTimestamp} to ${yesterdayTimestamp} and ${fourteenDaysAgoTimestamp} to ${eightDaysAgoTimestamp}...`);
-
+  console.log(
+    `Fetching download stats from ${sevenDaysAgoTimestamp} to ${yesterdayTimestamp} and ${fourteenDaysAgoTimestamp} to ${eightDaysAgoTimestamp}...`,
+  );
 
   try {
     for (const pkg of packages) {
@@ -98,7 +98,7 @@ async function main() {
         package: pkg,
         'past week': dataLastWeek.downloads || 0,
         '%': '0%', // Initial placeholder
-        'previous': dataPrevWeek.downloads || 0,
+        previous: dataPrevWeek.downloads || 0,
         'previous %': '0%', // Initial placeholder
         diff: (dataLastWeek.downloads || 0) - (dataPrevWeek.downloads || 0),
         'diff %': '0%', // Initial placeholder
@@ -117,16 +117,19 @@ async function main() {
 
     // Update percentages
     results.forEach(item => {
-      const pastWeekPercentage = pastWeektotalDownloads > 0 
-        ? (item['past week'] / pastWeektotalDownloads) * 100 
-        : 0;
+      const pastWeekPercentage =
+        pastWeektotalDownloads > 0
+          ? (item['past week'] / pastWeektotalDownloads) * 100
+          : 0;
       item['%'] = `${pastWeekPercentage.toFixed(1)}%`;
-      const previousPercentage = previousTotalDownloads > 0 
-        ? (item['previous'] / previousTotalDownloads) * 100 
-        : 0;
+      const previousPercentage =
+        previousTotalDownloads > 0
+          ? (item['previous'] / previousTotalDownloads) * 100
+          : 0;
       item['previous %'] = `${previousPercentage.toFixed(1)}%`;
       const diffPercentage = pastWeekPercentage - previousPercentage;
-      item['diff %'] = `${diffPercentage >= 0 ? '+' : ''}${diffPercentage.toFixed(1)}%`;
+      item['diff %'] =
+        `${diffPercentage >= 0 ? '+' : ''}${diffPercentage.toFixed(1)}%`;
     });
 
     // Sort results by past week in descending order
