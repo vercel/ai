@@ -4,8 +4,8 @@ import {
   generateText,
   ModelMessage,
   stepCountIs,
-  tool,
   ToolApprovalResponse,
+  ToolSet,
 } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod/v4';
@@ -28,6 +28,9 @@ const weatherTool = dynamicTool({
   needsApproval: true,
 });
 
+// type as generic ToolSet (tools are not known at development time)
+const tools: ToolSet = { weather: weatherTool };
+
 run(async () => {
   const messages: ModelMessage[] = [];
   let approvals: ToolApprovalResponse[] = [];
@@ -48,7 +51,7 @@ run(async () => {
       system:
         'When a tool execution is not approved by the user, do not retry it.' +
         'Just say that the tool execution was not approved.',
-      tools: { weather: weatherTool },
+      tools,
       messages,
       stopWhen: stepCountIs(5),
     });
