@@ -198,7 +198,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       schema: anthropicProviderOptions,
     });
 
-    const { prompt: messagesPrompt, betas: messagesBetas } =
+    const { prompt: messagesPrompt, betas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
@@ -223,6 +223,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(isThinking && {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
+
+      // mcp servers:
+      ...(anthropicOptions?.mcpServers &&
+        anthropicOptions.mcpServers.length > 0 && {
+          mcp_servers: anthropicOptions.mcpServers.map(server => ({
+            type: server.type,
+            name: server.name,
+            url: server.url,
+            authorization_token: server.authorizationToken,
+            tool_configuration: server.toolConfiguration
+              ? {
+                  allowed_tools: server.toolConfiguration.allowedTools,
+                  enabled: server.toolConfiguration.enabled,
+                }
+              : undefined,
+          })),
+        }),
 
       // prompt:
       system: messagesPrompt.system,
@@ -267,6 +284,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
     }
 
+    if (
+      anthropicOptions?.mcpServers &&
+      anthropicOptions.mcpServers.length > 0
+    ) {
+      betas.add('mcp-client-2025-04-04');
+    }
+
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -293,7 +317,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         tool_choice: anthropicToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
-      betas: new Set([...messagesBetas, ...toolsBetas]),
+      betas: new Set([...betas, ...toolsBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
     };
   }
