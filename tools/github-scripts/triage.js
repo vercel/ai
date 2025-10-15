@@ -36,6 +36,17 @@ const PROVIDERS = [
   'xai',
 ];
 
+const NON_PROVIDER_LABELS = [
+  'ai/ui',
+  'ai/gateway',
+  'ai/mcp',
+  'ai/rsc',
+  'ai/telemetry',
+  'ai/core',
+  'provider/community',
+  'expo',
+]
+
 const octokit = new Octokit({
   authStrategy: createOAuthDeviceAuth,
   auth: {
@@ -116,7 +127,7 @@ Issue Body: ${issue.body}`,
             type: 'array',
             items: {
               type: 'string',
-              enum: labels,
+              enum: labels.concat(NON_PROVIDER_LABELS),
             },
             description:
               'Array of provider labels that are most relevant to this issue. Choose one or more labels that best match the AI provider mentioned in the issue.',
