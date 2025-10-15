@@ -6179,7 +6179,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('initial tool execution after approval', () => {
+  describe('initial tool execution after approval (static tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start' },
@@ -6415,7 +6415,244 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('initial tool execution with preliminary results after approval', () => {
+  describe('initial tool execution after approval (dynamic tool)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        // initial tool execution:
+        {
+          output: 'result1',
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+          dynamic: true,
+        },
+        // rest of the step:
+        { type: 'start-step' },
+        { id: '1', type: 'text-start' },
+        {
+          delta: 'Hello, world!',
+          id: '1',
+          type: 'text-delta',
+        },
+        { id: '1', type: 'text-end' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          role: 'assistant',
+          id: 'original-id',
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: { id: 'id-1', approved: true },
+              input: { value: 'value' },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'tool1',
+            },
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "approval": {
+              "approved": true,
+              "id": "id-1",
+            },
+            "errorText": undefined,
+            "input": {
+              "value": "value",
+            },
+            "output": "result1",
+            "preliminary": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
+          },
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('initial tool execution with preliminary results after approval (static tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start' },
@@ -6719,7 +6956,7 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('tool execution denial', () => {
+  describe('tool execution denial (static tool)', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start' },
@@ -6915,6 +7152,223 @@ describe('processUIMessageStream', () => {
             "state": "output-denied",
             "toolCallId": "call-1",
             "type": "tool-tool1",
+          },
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "I did not execute the tool.",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('tool execution denial (dynamic tool)', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        // tool execution denial:
+        {
+          toolCallId: 'call-1',
+          type: 'tool-output-denied',
+        },
+        // rest of the step:
+        { type: 'start-step' },
+        { id: '1', type: 'text-start' },
+        { id: '1', type: 'text-delta', delta: 'I did not execute the tool.' },
+        { id: '1', type: 'text-end' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: {
+          role: 'assistant',
+          id: 'original-id',
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: { id: 'id-1', approved: false },
+              input: { value: 'value' },
+              rawInput: undefined,
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'tool1',
+            },
+          ],
+        },
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "id-1",
+                  },
+                  "input": {
+                    "value": "value",
+                  },
+                  "rawInput": undefined,
+                  "state": "output-denied",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "id-1",
+                  },
+                  "input": {
+                    "value": "value",
+                  },
+                  "rawInput": undefined,
+                  "state": "output-denied",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "id-1",
+                  },
+                  "input": {
+                    "value": "value",
+                  },
+                  "rawInput": undefined,
+                  "state": "output-denied",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "I did not execute the tool.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "id-1",
+                  },
+                  "input": {
+                    "value": "value",
+                  },
+                  "rawInput": undefined,
+                  "state": "output-denied",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "I did not execute the tool.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "approval": {
+              "approved": false,
+              "id": "id-1",
+            },
+            "input": {
+              "value": "value",
+            },
+            "rawInput": undefined,
+            "state": "output-denied",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "dynamic-tool",
           },
           {
             "type": "step-start",
