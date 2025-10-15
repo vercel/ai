@@ -1,5 +1,20 @@
 # ai
 
+## 6.0.0-beta.49
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/gateway@2.0.0-beta.31
+
+## 6.0.0-beta.48
+
+### Patch Changes
+
+- 7f2c9b6: fix(ui): do not submit automatically when server return with error
+
 ## 6.0.0-beta.47
 
 ### Patch Changes
