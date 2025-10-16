@@ -1,5 +1,5 @@
 import { JSONValue } from '../../json-value/json-value';
-import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
+import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
 import { LanguageModelV3DataContent } from './language-model-v3-data-content';
 
 /**
@@ -46,7 +46,7 @@ export type LanguageModelV3Message =
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerOptions?: SharedV2ProviderOptions;
+    providerOptions?: SharedV3ProviderOptions;
   };
 
 /**
@@ -65,7 +65,7 @@ The text content.
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV2ProviderOptions;
+  providerOptions?: SharedV3ProviderOptions;
 }
 
 /**
@@ -84,7 +84,7 @@ The reasoning text.
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV2ProviderOptions;
+  providerOptions?: SharedV3ProviderOptions;
 }
 
 /**
@@ -117,7 +117,7 @@ Can support wildcards, e.g. `image/*` (in which case the provider needs to take 
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV2ProviderOptions;
+  providerOptions?: SharedV3ProviderOptions;
 }
 
 /**
@@ -152,7 +152,7 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV2ProviderOptions;
+  providerOptions?: SharedV3ProviderOptions;
 }
 
 /**
@@ -181,12 +181,26 @@ Result of the tool call.
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV2ProviderOptions;
+  providerOptions?: SharedV3ProviderOptions;
 }
 
+/**
+ * Result of a tool call.
+ */
 export type LanguageModelV3ToolResultOutput =
   | { type: 'text'; value: string }
   | { type: 'json'; value: JSONValue }
+  | {
+      /**
+       * Type when the user has denied the execution of the tool call.
+       */
+      type: 'execution-denied';
+
+      /**
+       * Optional reason for the execution denial.
+       */
+      reason?: string;
+    }
   | { type: 'error-text'; value: string }
   | { type: 'error-json'; value: JSONValue }
   | {

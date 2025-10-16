@@ -2,7 +2,7 @@ import {
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
-  TranscriptionModelV2,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -31,7 +31,7 @@ Creates an Groq chat model for text generation.
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV3;
 
   /**
    * Tools provided by Groq.

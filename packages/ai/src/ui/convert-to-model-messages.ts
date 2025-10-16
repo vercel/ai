@@ -1,6 +1,7 @@
 import {
   AssistantContent,
   ModelMessage,
+  ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text/tool-set';
@@ -9,7 +10,7 @@ import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
   DynamicToolUIPart,
   FileUIPart,
-  getToolName,
+  getToolOrDynamicToolName,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -20,12 +21,14 @@ import {
 } from './ui-messages';
 
 /**
-Converts an array of messages from useChat into an array of CoreMessages that can be used
-with the AI core functions (e.g. `streamText`).
+Converts an array of UI messages from useChat into an array of ModelMessages that can be used
+with the AI functions (e.g. `streamText`, `generateText`).
 
-@param messages - The messages to convert.
+@param messages - The UI messages to convert.
 @param options.tools - The tools to use.
 @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
+
+@returns An array of ModelMessages.
  */
 export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
@@ -146,22 +149,8 @@ export function convertToModelMessages(
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
-              } else if (part.type === 'dynamic-tool') {
-                const toolName = part.toolName;
-
-                if (part.state !== 'input-streaming') {
-                  content.push({
-                    type: 'tool-call' as const,
-                    toolCallId: part.toolCallId,
-                    toolName,
-                    input: part.input,
-                    ...(part.callProviderMetadata != null
-                      ? { providerOptions: part.callProviderMetadata }
-                      : {}),
-                  });
-                }
-              } else if (isToolUIPart(part)) {
-                const toolName = getToolName(part);
+              } else if (isToolOrDynamicToolUIPart(part)) {
+                const toolName = getToolOrDynamicToolName(part);
 
                 if (part.state !== 'input-streaming') {
                   content.push({
@@ -170,13 +159,22 @@ export function convertToModelMessages(
                     toolName,
                     input:
                       part.state === 'output-error'
-                        ? (part.input ?? part.rawInput)
+                        ? (part.input ??
+                          ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
                       ? { providerOptions: part.callProviderMetadata }
                       : {}),
                   });
+
+                  if (part.approval != null) {
+                    content.push({
+                      type: 'tool-approval-request' as const,
+                      approvalId: part.approval.id,
+                      toolCallId: part.toolCallId,
+                    });
+                  }
 
                   if (
                     part.providerExecuted === true &&
@@ -213,25 +211,51 @@ export function convertToModelMessages(
             // check if there are tool invocations with results in the block
             const toolParts = block.filter(
               part =>
-                (isToolUIPart(part) && part.providerExecuted !== true) ||
-                part.type === 'dynamic-tool',
+                isToolOrDynamicToolUIPart(part) &&
+                part.providerExecuted !== true,
             ) as (ToolUIPart<UITools> | DynamicToolUIPart)[];
 
             // tool message with tool results
             if (toolParts.length > 0) {
               modelMessages.push({
                 role: 'tool',
-                content: toolParts
-                  .map((toolPart): ToolResultPart | null => {
+                content: toolParts.flatMap(
+                  (toolPart): Array<ToolResultPart | ToolApprovalResponse> => {
+                    const outputs: Array<
+                      ToolResultPart | ToolApprovalResponse
+                    > = [];
+
+                    // add approval response for approved tool calls:
+                    if (toolPart.approval?.approved != null) {
+                      outputs.push({
+                        type: 'tool-approval-response' as const,
+                        approvalId: toolPart.approval.id,
+                        approved: toolPart.approval.approved,
+                        reason: toolPart.approval.reason,
+                      });
+                    }
+
                     switch (toolPart.state) {
+                      case 'output-denied': {
+                        outputs.push({
+                          type: 'tool-result',
+                          toolCallId: toolPart.toolCallId,
+                          toolName: getToolOrDynamicToolName(toolPart),
+                          output: {
+                            type: 'error-text' as const,
+                            value:
+                              toolPart.approval.reason ??
+                              'Tool execution denied.',
+                          },
+                        });
+
+                        break;
+                      }
+
                       case 'output-error':
                       case 'output-available': {
-                        const toolName =
-                          toolPart.type === 'dynamic-tool'
-                            ? toolPart.toolName
-                            : getToolName(toolPart);
-
-                        return {
+                        const toolName = getToolOrDynamicToolName(toolPart);
+                        outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
                           toolName,
@@ -246,17 +270,14 @@ export function convertToModelMessages(
                                 ? 'text'
                                 : 'none',
                           }),
-                        };
-                      }
-                      default: {
-                        return null;
+                        });
+                        break;
                       }
                     }
-                  })
-                  .filter(
-                    (output): output is NonNullable<typeof output> =>
-                      output != null,
-                  ),
+
+                    return outputs;
+                  },
+                ),
               });
             }
 
@@ -269,8 +290,7 @@ export function convertToModelMessages(
               part.type === 'text' ||
               part.type === 'reasoning' ||
               part.type === 'file' ||
-              part.type === 'dynamic-tool' ||
-              isToolUIPart(part)
+              isToolOrDynamicToolUIPart(part)
             ) {
               block.push(part);
             } else if (part.type === 'step-start') {

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "1.1.0-beta.14",
+  "version": "2.0.0-beta.49",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
   "main": "dist/index.cjs",
@@ -42,11 +42,11 @@
     "jsdom": "^24.0.0",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "@angular/core": ">=16.0.0",
-    "zod": "^3.25.76 || ^4.1.8"
+    "@angular/core": ">=16.0.0"
   },
   "engines": {
     "node": ">=18"

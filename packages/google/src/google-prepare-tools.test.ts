@@ -1,5 +1,5 @@
+import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
-import { it, expect } from 'vitest';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
   const result = prepareTools({
@@ -47,7 +47,7 @@ it('should correctly prepare function tools', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
-it('should correctly prepare provider-defined tools', () => {
+it('should correctly prepare provider-defined tools as array', () => {
   const result = prepareTools({
     tools: [
       {
@@ -65,10 +65,24 @@ it('should correctly prepare provider-defined tools', () => {
     ],
     modelId: 'gemini-2.5-flash',
   });
-  expect(result.tools).toEqual({
-    googleSearch: {},
-    urlContext: {},
+  expect(result.tools).toEqual([{ googleSearch: {} }, { urlContext: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should correctly prepare single provider-defined tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
   });
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
@@ -205,10 +219,8 @@ it('should warn when mixing function and provider-defined tools', () => {
     modelId: 'gemini-2.5-flash',
   });
 
-  // Should only include provider-defined tools
-  expect(result.tools).toEqual({
-    googleSearch: {},
-  });
+  // Should only include provider-defined tools as array
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
 
   // Should have warning about mixed tool types
   expect(result.toolWarnings).toEqual([
@@ -248,10 +260,8 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
     modelId: 'gemini-2.5-flash',
   });
 
-  // Should only include provider-defined tools
-  expect(result.tools).toEqual({
-    googleSearch: {},
-  });
+  // Should only include provider-defined tools as array
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
 
   // Should apply tool choice to provider-defined tools
   expect(result.toolConfig).toEqual(undefined);
@@ -270,4 +280,55 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
         'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
     },
   ]);
+});
+
+it('should handle latest modelId for provider-defined tools correctly', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-flash-latest',
+  });
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle code execution tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.code_execution',
+        name: 'code_execution',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([{ codeExecution: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle url context tool alone', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.url_context',
+        name: 'url_context',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([{ urlContext: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
 });

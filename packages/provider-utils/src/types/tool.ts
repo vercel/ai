@@ -32,6 +32,32 @@ export interface ToolCallOptions {
   experimental_context?: unknown;
 }
 
+/**
+ * Function that is called to determine if the tool needs approval before it can be executed.
+ */
+export type ToolNeedsApprovalFunction<INPUT> = (
+  input: INPUT,
+  options: {
+    /**
+     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+     */
+    toolCallId: string;
+
+    /**
+     * Messages that were sent to the language model to initiate the response that contained the tool call.
+     * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
+     */
+    messages: ModelMessage[];
+
+    /**
+     * Additional context.
+     *
+     * Experimental (can break in patch releases).
+     */
+    experimental_context?: unknown;
+  },
+) => boolean | PromiseLike<boolean>;
+
 export type ToolExecuteFunction<INPUT, OUTPUT> = (
   input: INPUT,
   options: ToolCallOptions,
@@ -98,6 +124,12 @@ Use descriptions to make the input understandable for the language model.
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
+Whether the tool needs approval before it can be executed.
+   */
+  needsApproval?:
+    | boolean
+    | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
+  /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */
@@ -117,7 +149,7 @@ Use descriptions to make the input understandable for the language model.
    */
   onInputAvailable?: (
     options: {
-      input: [INPUT] extends [never] ? undefined : INPUT;
+      input: [INPUT] extends [never] ? unknown : INPUT;
     } & ToolCallOptions,
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {
@@ -197,7 +229,7 @@ export function tool(tool: any): any {
 }
 
 /**
-Helper function for defining a dynamic tool.
+ * Defines a dynamic tool.
  */
 export function dynamicTool(tool: {
   description?: string;
@@ -205,6 +237,11 @@ export function dynamicTool(tool: {
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
   toModelOutput?: (output: unknown) => LanguageModelV3ToolResultPart['output'];
+
+  /**
+   * Whether the tool needs approval before it can be executed.
+   */
+  needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
 }): Tool<unknown, unknown> & {
   type: 'dynamic';
 } {

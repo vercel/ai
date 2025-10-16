@@ -1,4 +1,4 @@
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 
 /**
 Text that the model has generated.
@@ -11,5 +11,5 @@ The text content.
    */
   text: string;
 
-  providerMetadata?: SharedV2ProviderMetadata;
+  providerMetadata?: SharedV3ProviderMetadata;
 };

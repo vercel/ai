@@ -111,6 +111,47 @@ describe('user messages', () => {
     `);
   });
 
+  it('should be converted with actual filename when provided', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'file',
+            data: Buffer.from(fileData).toString('base64'),
+            mediaType: 'application/pdf',
+            filename: 'custom-filename',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+            },
+            {
+              "document": {
+                "format": "pdf",
+                "name": "custom-filename",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should use consistent document names for prompt cache effectiveness', async () => {
     const fileData1 = new Uint8Array([0, 1, 2, 3]);
     const fileData2 = new Uint8Array([4, 5, 6, 7]);
@@ -746,6 +787,167 @@ describe('tool messages', () => {
         },
       ],
     });
+  });
+});
+
+describe('citations', () => {
+  it('should handle citations enabled for PDF', async () => {
+    const pdfData = new Uint8Array([0, 1, 2, 3]);
+
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(pdfData).toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              bedrock: {
+                citations: {
+                  enabled: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0].content[0]).toEqual({
+      document: {
+        format: 'pdf',
+        name: 'document-1',
+        source: {
+          bytes: 'AAECAw==',
+        },
+        citations: {
+          enabled: true,
+        },
+      },
+    });
+  });
+
+  it('should handle citations disabled for PDF', async () => {
+    const pdfData = new Uint8Array([0, 1, 2, 3]);
+
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(pdfData).toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              bedrock: {
+                citations: {
+                  enabled: false,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0].content[0]).toEqual({
+      document: {
+        format: 'pdf',
+        name: 'document-1',
+        source: {
+          bytes: 'AAECAw==',
+        },
+      },
+    });
+  });
+
+  it('should handle no citations specified for PDF (default)', async () => {
+    const pdfData = new Uint8Array([0, 1, 2, 3]);
+
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(pdfData).toString('base64'),
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0].content[0]).toEqual({
+      document: {
+        format: 'pdf',
+        name: 'document-1',
+        source: {
+          bytes: 'AAECAw==',
+        },
+      },
+    });
+  });
+
+  it('should handle multiple PDFs with different citation settings', async () => {
+    const pdfData1 = new Uint8Array([0, 1, 2, 3]);
+    const pdfData2 = new Uint8Array([4, 5, 6, 7]);
+
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from(pdfData1).toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              bedrock: {
+                citations: {
+                  enabled: true,
+                },
+              },
+            },
+          },
+          {
+            type: 'file',
+            data: Buffer.from(pdfData2).toString('base64'),
+            mediaType: 'application/pdf',
+            providerOptions: {
+              bedrock: {
+                citations: {
+                  enabled: false,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0].content).toEqual([
+      {
+        document: {
+          format: 'pdf',
+          name: 'document-1',
+          source: {
+            bytes: 'AAECAw==',
+          },
+          citations: {
+            enabled: true,
+          },
+        },
+      },
+      {
+        document: {
+          format: 'pdf',
+          name: 'document-2',
+          source: {
+            bytes: 'BAUGBw==',
+          },
+        },
+      },
+    ]);
   });
 });
 

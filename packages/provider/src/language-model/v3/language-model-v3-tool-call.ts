@@ -1,4 +1,4 @@
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 
 /**
  * Tool calls that the model has generated.
@@ -29,7 +29,13 @@ export type LanguageModelV3ToolCall = {
   providerExecuted?: boolean;
 
   /**
+   * Whether the tool is dynamic, i.e. defined at runtime.
+   * For example, MCP (Model Context Protocol) tools that are executed by the provider.
+   */
+  dynamic?: boolean;
+
+  /**
    * Additional provider-specific metadata for the tool call.
    */
-  providerMetadata?: SharedV2ProviderMetadata;
+  providerMetadata?: SharedV3ProviderMetadata;
 };

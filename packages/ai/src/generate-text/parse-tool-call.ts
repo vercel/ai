@@ -8,7 +8,7 @@ import {
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
-import { TypedToolCall } from './tool-call';
+import { DynamicToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
 
@@ -27,6 +27,11 @@ export async function parseToolCall<TOOLS extends ToolSet>({
 }): Promise<TypedToolCall<TOOLS>> {
   try {
     if (tools == null) {
+      // provider-executed dynamic tools are not part of our list of tools:
+      if (toolCall.providerExecuted && toolCall.dynamic) {
+        return await parseProviderExecutedDynamicToolCall(toolCall);
+      }
+
       throw new NoSuchToolError({ toolName: toolCall.toolName });
     }
 
@@ -49,9 +54,9 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         repairedToolCall = await repairToolCall({
           toolCall,
           tools,
-          inputSchema: ({ toolName }) => {
+          inputSchema: async ({ toolName }) => {
             const { inputSchema } = tools[toolName];
-            return asSchema(inputSchema).jsonSchema;
+            return await asSchema(inputSchema).jsonSchema;
           },
           system,
           messages,
@@ -89,6 +94,33 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   }
 }
 
+async function parseProviderExecutedDynamicToolCall(
+  toolCall: LanguageModelV3ToolCall,
+): Promise<DynamicToolCall> {
+  const parseResult =
+    toolCall.input.trim() === ''
+      ? { success: true as const, value: {} }
+      : await safeParseJSON({ text: toolCall.input });
+
+  if (parseResult.success === false) {
+    throw new InvalidToolInputError({
+      toolName: toolCall.toolName,
+      toolInput: toolCall.input,
+      cause: parseResult.error,
+    });
+  }
+
+  return {
+    type: 'tool-call',
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    input: parseResult.value,
+    providerExecuted: true,
+    dynamic: true,
+    providerMetadata: toolCall.providerMetadata,
+  };
+}
+
 async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
@@ -101,6 +133,11 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   const tool = tools[toolName];
 
   if (tool == null) {
+    // provider-executed dynamic tools are not part of our list of tools:
+    if (toolCall.providerExecuted && toolCall.dynamic) {
+      return await parseProviderExecutedDynamicToolCall(toolCall);
+    }
+
     throw new NoSuchToolError({
       toolName: toolCall.toolName,
       availableTools: Object.keys(tools),

@@ -58,7 +58,7 @@ You can use the following optional settings to customize the Baseten provider in
 - **modelURL** _string_
 
   Custom model URL for specific models (chat or embeddings). If not provided,
-  the default Models API will be used.
+  the default Model APIs will be used.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -68,10 +68,10 @@ You can use the following optional settings to customize the Baseten provider in
 
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
 
-## Models API
+## Model APIs
 
 You can select [Baseten models](https://www.baseten.co/products/model-apis/) using a provider instance.
-The first argument is the model id, e.g. `'moonshotai/Kimi-K2-Instruct-0905'`: The complete supported models under models API can be found [here](https://docs.baseten.co/development/model-apis/overview#supported-models).
+The first argument is the model id, e.g. `'moonshotai/Kimi-K2-Instruct-0905'`: The complete supported models under Model APIs can be found [here](https://docs.baseten.co/development/model-apis/overview#supported-models).
 
 ```ts
 const model = baseten('moonshotai/Kimi-K2-Instruct-0905');
@@ -126,8 +126,8 @@ You can create models that call the Baseten embeddings API using the `.textEmbed
 
 <Note>
   **Important:** Embedding models require a dedicated deployment with a custom
-  `modelURL`. Unlike chat models, embeddings cannot use Baseten's default Models
-  API and must specify a dedicated model endpoint.
+  `modelURL`. Unlike chat models, embeddings cannot use Baseten's default Model
+  APIs and must specify a dedicated model endpoint.
 </Note>
 
 ```ts

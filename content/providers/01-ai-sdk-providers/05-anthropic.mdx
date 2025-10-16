@@ -119,7 +119,7 @@ Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-2
 You can enable it using the `thinking` provider option
 and specifying a thinking budget in tokens.
 
-```ts
+```ts highlight="4,8-10"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -297,6 +297,30 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
+<Note>
+  The bash tool must have the name `bash`. Only certain Claude versions are
+  supported.
+</Note>
+
+### Memory Tool
+
+The [Memory Tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) allows Claude to use a local memory, e.g. in the filesystem.
+Here's how to create it:
+
+```ts
+const memory = anthropic.tools.memory_20250818({
+  execute: async action => {
+    // Implement your memory command execution logic here
+    // Return the result of the command execution
+  },
+});
+```
+
+<Note>
+  The memory tool must have the name `memory`. Only certain Claude versions are
+  supported.
+</Note>
+
 ### Text Editor Tool
 
 The Text Editor Tool provides functionality for viewing and editing text files.
@@ -470,6 +494,42 @@ const result = await generateText({
 });
 ```
 
+### MCP Connectors
+
+Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/agents-and-tools/mcp-connector) as part of their execution.
+
+You can enable this feature with the `mcpServers` provider option:
+
+```ts
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: `Call the echo tool with "hello world". what does it respond with back?`,
+  providerOptions: {
+    anthropic: {
+      mcpServers: [
+        {
+          type: 'url',
+          name: 'echo',
+          url: 'https://echo.mcp.inevitable.fyi/mcp',
+          // optional: authorization token
+          authorizationToken: mcpAuthToken,
+          // optional: tool configuration
+          toolConfiguration: {
+            enabled: true,
+            allowedTools: ['echo'],
+          },
+        },
+      ],
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+The tool calls and results are dynamic, i.e. the input and output schemas are not known.
+
 #### Configuration Options
 
 The web fetch tool supports several configuration options:
@@ -488,7 +548,7 @@ The web fetch tool supports several configuration options:
 
 - **citations** _object_
 
-  Unlike web search where citations are always enabled, citations are optional for web fetch. Set "citations": {"enabled": true} to enable Claude to cite specific passages from fetched documents.
+  Unlike web search where citations are always enabled, citations are optional for web fetch. Set `"citations": {"enabled": true}` to enable Claude to cite specific passages from fetched documents.
 
 - **maxContentTokens** _number_
 
@@ -547,7 +607,9 @@ You can enable code execution using the provider-defined code execution tool:
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-const codeExecutionTool = anthropic.tools.codeExecution_20250522();
+
+const codeExecutionTool = anthropic.tools.codeExecution_20250825();
+
 const result = await generateText({
   model: anthropic('claude-opus-4-20250514'),
   prompt:
@@ -670,6 +732,8 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
