@@ -13611,8 +13611,8 @@ describe('streamText', () => {
     });
   });
 
-  describe('dynamic, provider-executed tools', () => {
-    describe('single dynamic, provider-executed tool with input streaming', () => {
+  describe('provider-executed dynamic tools', () => {
+    describe('single provider-executed dynamic tool with input streaming', () => {
       let result: StreamTextResult<any, any>;
 
       beforeEach(async () => {
