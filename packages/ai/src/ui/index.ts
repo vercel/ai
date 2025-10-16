@@ -31,6 +31,12 @@ export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assi
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
+  WebSocketChatTransport,
+  type WebSocketChatTransportInitOptions,
+  type PrepareReconnectToStreamRequest as WebSocketPrepareReconnectToStreamRequest,
+  type PrepareSendMessagesRequest as WebSocketPrepareSendMessagesRequest,
+} from './websocket-chat-transport';
+export {
   getToolName,
   getToolOrDynamicToolName,
   isToolOrDynamicToolUIPart,
