@@ -80,6 +80,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should incl
     "providerMetadata": {
       "anthropic": {
         "serverName": "echo",
+        "type": "mcp-tool-use",
       },
     },
     "toolCallId": "mcptoolu_015oTj2fXVKLrDohFetJd5UL",
@@ -93,6 +94,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should incl
     "providerMetadata": {
       "anthropic": {
         "serverName": "echo",
+        "type": "mcp-tool-use",
       },
     },
     "result": [
@@ -1894,6 +1896,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > 
     "providerMetadata": {
       "anthropic": {
         "serverName": "echo",
+        "type": "mcp-tool-use",
       },
     },
     "toolCallId": "mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT",
@@ -1907,6 +1910,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > 
     "providerMetadata": {
       "anthropic": {
         "serverName": "echo",
+        "type": "mcp-tool-use",
       },
     },
     "result": [

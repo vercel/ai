@@ -543,6 +543,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             dynamic: true,
             providerMetadata: {
               anthropic: {
+                type: 'mcp-tool-use',
                 serverName: part.server_name,
               },
             },
@@ -1062,6 +1063,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       dynamic: true,
                       providerMetadata: {
                         anthropic: {
+                          type: 'mcp-tool-use',
                           serverName: part.server_name,
                         },
                       },
