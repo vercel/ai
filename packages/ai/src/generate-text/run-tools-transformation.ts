@@ -320,6 +320,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               providerExecuted: chunk.providerExecuted,
               error: chunk.result,
+              dynamic: chunk.dynamic,
             } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
@@ -329,6 +330,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
               providerExecuted: chunk.providerExecuted,
+              dynamic: chunk.dynamic,
             } as TypedToolResult<TOOLS>);
           }
           break;
