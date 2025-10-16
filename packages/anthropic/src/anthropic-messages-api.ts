@@ -36,6 +36,8 @@ export interface AnthropicAssistantMessage {
     | AnthropicWebSearchToolResultContent
     | AnthropicBashCodeExecutionToolResultContent
     | AnthropicTextEditorCodeExecutionToolResultContent
+    | AnthropicMcpToolUseContent
+    | AnthropicMcpToolResultContent
   >;
 }
 
@@ -223,6 +225,23 @@ export interface AnthropicWebFetchToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicMcpToolUseContent {
+  type: 'mcp_tool_use';
+  id: string;
+  name: string;
+  server_name: string;
+  input: unknown;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicMcpToolResultContent {
+  type: 'mcp_tool_result';
+  tool_use_id: string;
+  is_error: boolean;
+  content: string | Array<{ type: 'text'; text: string }>;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export type AnthropicTool =
   | {
       name: string;
@@ -356,6 +375,24 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+          }),
+          z.object({
+            type: z.literal('mcp_tool_use'),
+            id: z.string(),
+            name: z.string(),
+            input: z.unknown(),
+            server_name: z.string(),
+          }),
+          z.object({
+            type: z.literal('mcp_tool_result'),
+            tool_use_id: z.string(),
+            is_error: z.boolean(),
+            content: z.array(
+              z.union([
+                z.string(),
+                z.object({ type: z.literal('text'), text: z.string() }),
+              ]),
+            ),
           }),
           z.object({
             type: z.literal('web_fetch_tool_result'),
@@ -531,6 +568,24 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+          }),
+          z.object({
+            type: z.literal('mcp_tool_use'),
+            id: z.string(),
+            name: z.string(),
+            input: z.unknown(),
+            server_name: z.string(),
+          }),
+          z.object({
+            type: z.literal('mcp_tool_result'),
+            tool_use_id: z.string(),
+            is_error: z.boolean(),
+            content: z.array(
+              z.union([
+                z.string(),
+                z.object({ type: z.literal('text'), text: z.string() }),
+              ]),
+            ),
           }),
           z.object({
             type: z.literal('web_fetch_tool_result'),

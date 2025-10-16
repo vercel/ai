@@ -1723,6 +1723,82 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('mcp servers', () => {
+      it('should send request body with include and tool', async () => {
+        prepareJsonFixtureResponse('anthropic-mcp.1');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              mcpServers: [
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.mcp.inevitable.fyi/mcp',
+                },
+              ],
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "mcp_servers": [
+              {
+                "name": "echo",
+                "type": "url",
+                "url": "https://echo.mcp.inevitable.fyi/mcp",
+              },
+            ],
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "mcp-client-2025-04-04",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include mcp tool call and result in content', async () => {
+        prepareJsonFixtureResponse('anthropic-mcp.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              mcpServers: [
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.mcp.inevitable.fyi/mcp',
+                },
+              ],
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
     describe('memory 20250818', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-memory-20250818.1');
@@ -3400,6 +3476,30 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ]
         `);
+      });
+
+      describe('mcp servers', () => {
+        it('should stream code execution tool results', async () => {
+          prepareChunksFixtureResponse('anthropic-mcp.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              anthropic: {
+                mcpServers: [
+                  {
+                    type: 'url',
+                    name: 'echo',
+                    url: 'https://echo.mcp.inevitable.fyi/mcp',
+                  },
+                ],
+              } satisfies AnthropicProviderOptions,
+            },
+          });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
       });
 
       describe('code execution 20250825 tool', () => {

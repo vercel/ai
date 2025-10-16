@@ -494,6 +494,42 @@ const result = await generateText({
 });
 ```
 
+### MCP Connectors
+
+Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/agents-and-tools/mcp-connector) as part of their execution.
+
+You can enable this feature with the `mcpServers` provider option:
+
+```ts
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: `Call the echo tool with "hello world". what does it respond with back?`,
+  providerOptions: {
+    anthropic: {
+      mcpServers: [
+        {
+          type: 'url',
+          name: 'echo',
+          url: 'https://echo.mcp.inevitable.fyi/mcp',
+          // optional: authorization token
+          authorizationToken: mcpAuthToken,
+          // optional: tool configuration
+          toolConfiguration: {
+            enabled: true,
+            allowedTools: ['echo'],
+          },
+        },
+      ],
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+The tool calls and results are dynamic, i.e. the input and output schemas are not known.
+
 #### Configuration Options
 
 The web fetch tool supports several configuration options:

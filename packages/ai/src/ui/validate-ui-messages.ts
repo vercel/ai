@@ -75,6 +75,7 @@ const uiMessagesSchema = lazySchema(() =>
               toolCallId: z.string(),
               state: z.literal('input-streaming'),
               input: z.unknown().optional(),
+              providerExecuted: z.boolean().optional(),
               output: z.never().optional(),
               errorText: z.never().optional(),
               approval: z.never().optional(),
@@ -85,6 +86,7 @@ const uiMessagesSchema = lazySchema(() =>
               toolCallId: z.string(),
               state: z.literal('input-available'),
               input: z.unknown(),
+              providerExecuted: z.boolean().optional(),
               output: z.never().optional(),
               errorText: z.never().optional(),
               callProviderMetadata: providerMetadataSchema.optional(),
@@ -96,6 +98,7 @@ const uiMessagesSchema = lazySchema(() =>
               toolCallId: z.string(),
               state: z.literal('approval-requested'),
               input: z.unknown(),
+              providerExecuted: z.boolean().optional(),
               output: z.never().optional(),
               errorText: z.never().optional(),
               callProviderMetadata: providerMetadataSchema.optional(),
@@ -111,6 +114,7 @@ const uiMessagesSchema = lazySchema(() =>
               toolCallId: z.string(),
               state: z.literal('approval-responded'),
               input: z.unknown(),
+              providerExecuted: z.boolean().optional(),
               output: z.never().optional(),
               errorText: z.never().optional(),
               callProviderMetadata: providerMetadataSchema.optional(),
@@ -126,6 +130,7 @@ const uiMessagesSchema = lazySchema(() =>
               toolCallId: z.string(),
               state: z.literal('output-available'),
               input: z.unknown(),
+              providerExecuted: z.boolean().optional(),
               output: z.unknown(),
               errorText: z.never().optional(),
               callProviderMetadata: providerMetadataSchema.optional(),
@@ -144,6 +149,7 @@ const uiMessagesSchema = lazySchema(() =>
               toolCallId: z.string(),
               state: z.literal('output-error'),
               input: z.unknown(),
+              providerExecuted: z.boolean().optional(),
               output: z.never().optional(),
               errorText: z.string(),
               callProviderMetadata: providerMetadataSchema.optional(),
@@ -161,6 +167,7 @@ const uiMessagesSchema = lazySchema(() =>
               toolCallId: z.string(),
               state: z.literal('output-denied'),
               input: z.unknown(),
+              providerExecuted: z.boolean().optional(),
               output: z.never().optional(),
               errorText: z.never().optional(),
               callProviderMetadata: providerMetadataSchema.optional(),
@@ -377,6 +384,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
           const toolName = toolPart.type.slice(5);
           const tool = tools[toolName];
 
+          // TODO support dynamic tools
           if (!tool) {
             return {
               success: false,

@@ -1289,6 +1289,98 @@ describe('assistant messages', () => {
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });
+
+  describe('mcp tool use', () => {
+    it('should convert anthropic mcp tool use parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'mcptoolu_01HXPYHs79HH36fBbKHysCrp',
+                toolName: 'echo',
+                input: {},
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: { type: 'mcp-tool-use', serverName: 'echo' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'mcptoolu_01HXPYHs79HH36fBbKHysCrp',
+                toolName: 'echo',
+                output: {
+                  type: 'json',
+                  value: [{ type: 'text', text: 'Tool echo: hello world' }],
+                },
+                providerOptions: undefined,
+              },
+              {
+                type: 'text',
+                text: 'The echo tool responded back with "hello world" - it simply echoed the message I sent to it!',
+                providerOptions: undefined,
+              },
+            ],
+            providerOptions: undefined,
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "mcptoolu_01HXPYHs79HH36fBbKHysCrp",
+                    "input": {},
+                    "name": "echo",
+                    "server_name": "echo",
+                    "type": "mcp_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": [
+                      {
+                        "text": "Tool echo: hello world",
+                        "type": "text",
+                      },
+                    ],
+                    "is_error": false,
+                    "tool_use_id": "mcptoolu_01HXPYHs79HH36fBbKHysCrp",
+                    "type": "mcp_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "text": "The echo tool responded back with "hello world" - it simply echoed the message I sent to it!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "provider executed tool result for tool echo is not supported",
+            "type": "other",
+          },
+        ]
+      `);
+    });
+  });
 });
 
 describe('cache control', () => {

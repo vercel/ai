@@ -65,6 +65,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       id: string;
       toolName: string;
       providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-input-delta';
@@ -241,7 +242,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               break;
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              break;
+            }
 
             if (tool.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -314,6 +321,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               providerExecuted: chunk.providerExecuted,
               error: chunk.result,
+              dynamic: chunk.dynamic,
             } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
@@ -323,6 +331,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
               providerExecuted: chunk.providerExecuted,
+              dynamic: chunk.dynamic,
             } as TypedToolResult<TOOLS>);
           }
           break;
