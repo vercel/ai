@@ -263,10 +263,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         });
       }
 
-      // adjust max tokens to account for thinking if maxOutputTokens is provided:
+      // adjust max tokens to account for thinking if maxOutputTokens is provided
       if (maxOutputTokens != null) {
         baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
       }
+    }
 
     const {
       tools: anthropicTools,
