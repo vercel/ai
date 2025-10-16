@@ -13699,7 +13699,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
-                "dynamic": false,
+                "dynamic": true,
                 "id": "call-1",
                 "providerExecuted": true,
                 "providerMetadata": {
@@ -13790,7 +13790,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
-                "dynamic": false,
+                "dynamic": true,
                 "providerExecuted": true,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",

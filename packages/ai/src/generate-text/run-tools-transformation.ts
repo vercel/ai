@@ -65,6 +65,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       id: string;
       toolName: string;
       providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-input-delta';

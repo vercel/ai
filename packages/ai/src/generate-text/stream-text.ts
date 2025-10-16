@@ -1455,7 +1455,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                       controller.enqueue({
                         ...chunk,
-                        dynamic: tool?.type === 'dynamic',
+                        dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
                       });
                       break;
                     }
