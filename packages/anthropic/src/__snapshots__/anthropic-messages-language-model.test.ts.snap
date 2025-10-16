@@ -77,12 +77,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should incl
     "dynamic": true,
     "input": "{"message":"hello world"}",
     "providerExecuted": true,
-    "providerMetadata": {
-      "anthropic": {
-        "serverName": "echo",
-        "type": "mcp-tool-use",
-      },
-    },
     "toolCallId": "mcptoolu_015oTj2fXVKLrDohFetJd5UL",
     "toolName": "echo",
     "type": "tool-call",
@@ -91,12 +85,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should incl
     "dynamic": true,
     "isError": false,
     "providerExecuted": true,
-    "providerMetadata": {
-      "anthropic": {
-        "serverName": "echo",
-        "type": "mcp-tool-use",
-      },
-    },
+    "providerMetadata": undefined,
     "result": [
       {
         "text": "Tool echo: hello world",
@@ -1893,12 +1882,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > 
     "dynamic": true,
     "input": "{}",
     "providerExecuted": true,
-    "providerMetadata": {
-      "anthropic": {
-        "serverName": "echo",
-        "type": "mcp-tool-use",
-      },
-    },
     "toolCallId": "mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT",
     "toolName": "echo",
     "type": "tool-call",
@@ -1907,12 +1890,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > 
     "dynamic": true,
     "isError": false,
     "providerExecuted": true,
-    "providerMetadata": {
-      "anthropic": {
-        "serverName": "echo",
-        "type": "mcp-tool-use",
-      },
-    },
+    "providerMetadata": undefined,
     "result": [
       {
         "text": "Tool echo: hello world",
