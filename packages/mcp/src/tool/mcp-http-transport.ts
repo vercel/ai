@@ -154,7 +154,7 @@ export class HttpMCPTransport implements MCPTransport {
             }
           } catch (error) {
             this.onerror?.(error);
-            return;
+            throw error;
           }
           return attempt(true);
         }
@@ -171,11 +171,18 @@ export class HttpMCPTransport implements MCPTransport {
 
         if (!response.ok) {
           const text = await response.text().catch(() => null);
+          let errorMessage = `MCP HTTP Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`;
+          
+          // 404 since this is a GET request which the server does not support
+          if (response.status === 404) {
+            errorMessage += '. This server does not support HTTP transport. Try using `sse` transport instead';
+          }
+          
           const error = new MCPClientError({
-            message: `MCP HTTP Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
+            message: errorMessage,
           });
           this.onerror?.(error);
-          return;
+          throw error;
         }
 
         const contentType = response.headers.get('content-type') || '';
@@ -195,7 +202,7 @@ export class HttpMCPTransport implements MCPTransport {
                 'MCP HTTP Transport Error: text/event-stream response without body',
             });
             this.onerror?.(error);
-            return;
+            throw error;
           }
 
           const stream = response.body
@@ -239,11 +246,10 @@ export class HttpMCPTransport implements MCPTransport {
           message: `MCP HTTP Transport Error: Unexpected content type: ${contentType}`,
         });
         this.onerror?.(error);
+        throw error;
       } catch (error) {
         this.onerror?.(error);
-        if (error instanceof UnauthorizedError) {
-          throw error;
-        }
+        throw error;
       }
     };
 
