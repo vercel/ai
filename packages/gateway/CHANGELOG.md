@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0
+
+### Major Changes
+
+- 76678cd: fix(gateway): bump `@vercel/oidc` to latest
+
 ## 1.0.41
 
 ### Patch Changes
