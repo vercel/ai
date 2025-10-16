@@ -27,7 +27,6 @@ describe('getToolName', () => {
   });
 });
 
-
 describe('isDataUIPart', () => {
   it('should return true if the part is a data part', () => {
     expect(
