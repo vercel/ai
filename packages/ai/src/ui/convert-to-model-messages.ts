@@ -10,7 +10,6 @@ import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
   DynamicToolUIPart,
   FileUIPart,
-  getToolName,
   getToolOrDynamicToolName,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
