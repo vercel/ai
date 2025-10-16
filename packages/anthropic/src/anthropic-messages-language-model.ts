@@ -271,13 +271,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     // limit to max output tokens for model to enable model switching without breakages:
     if (baseArgs.max_tokens > maxOutputTokensForModel) {
-      // only warn if max output tokens is provided:
+      // only warn if max output tokens is provided as input:
       if (maxOutputTokens != null) {
         warnings.push({
           type: 'unsupported-setting',
           setting: 'maxOutputTokens',
           details:
-            "maxTokens (maxOutputTokens + thinkingBudget) is greater than the model's max output tokens",
+            `${maxTokens} (maxOutputTokens + thinkingBudget) is greater than ${this.modelId} ${maxOutputTokensForModel} max output tokens. ` +
+            `The max output tokens have been limited to ${maxOutputTokensForModel}.`,
         });
       }
       baseArgs.max_tokens = maxOutputTokensForModel;
