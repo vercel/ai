@@ -1,5 +1,16 @@
 # ai
 
+## 6.0.0-beta.50
+
+### Patch Changes
+
+- 4812235: fix(ai): add missing export for `LoadSettingError`
+- 81d4308: feat: provider-executed dynamic tools
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/gateway@2.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
 ## 6.0.0-beta.49
 
 ### Patch Changes
