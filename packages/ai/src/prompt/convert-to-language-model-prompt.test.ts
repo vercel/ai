@@ -1390,6 +1390,83 @@ describe('convertToLanguageModelMessage', () => {
       });
     });
 
+    describe('provider-executed tool calls and results', () => {
+      it('should include providerExecuted flag', () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolName: 'toolName',
+                toolCallId: 'toolCallId',
+                input: {},
+                providerExecuted: true,
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'toolCallId',
+                toolName: 'toolName',
+                output: { type: 'json', value: { some: 'result' } },
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": true,
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                    "key-b": "test-value-2",
+                  },
+                },
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "some": "result",
+                  },
+                },
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                    "key-b": "test-value-2",
+                  },
+                },
+                "toolCallId": "toolCallId",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
+      });
+    });
+
     describe('file parts', () => {
       it('should convert file data correctly', async () => {
         const result = convertToLanguageModelMessage({
