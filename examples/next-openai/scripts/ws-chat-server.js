@@ -29,7 +29,9 @@ wss.on('connection', ws => {
             const { streamText, convertToModelMessages } = await import('ai');
             const { openai } = await import('@ai-sdk/openai');
 
-            const uiMessages = Array.isArray(inbound.messages) ? inbound.messages : [];
+            const uiMessages = Array.isArray(inbound.messages)
+              ? inbound.messages
+              : [];
             const result = streamText({
               model: openai('gpt-4o-mini'),
               messages: convertToModelMessages(uiMessages),
@@ -49,7 +51,11 @@ wss.on('connection', ws => {
               reader.releaseLock?.();
             }
           } catch (err) {
-            send(ws, { type: 'error', requestId, errorText: String(err?.message || err) });
+            send(ws, {
+              type: 'error',
+              requestId,
+              errorText: String(err?.message || err),
+            });
           }
         })();
         break;

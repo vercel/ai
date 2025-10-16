@@ -11,9 +11,9 @@ class MockWebSocket {
   onmessage: ((evt: { data: string }) => void) | null = null;
   onclose: (() => void) | null = null;
   onerror: (() => void) | null = null;
-  
+
   constructor(public url: string) {}
-  
+
   // Auto-trigger onopen when assigned if already open
   set onopen(handler: (() => void) | null) {
     this._onopen = handler;
@@ -22,11 +22,11 @@ class MockWebSocket {
       setTimeout(() => handler(), 0);
     }
   }
-  
+
   get onopen() {
     return this._onopen;
   }
-  
+
   send(data: string) {
     this.sent.push(data);
   }
@@ -133,5 +133,3 @@ describe('WebSocketChatTransport', () => {
     expect(r2.done).toBe(true);
   });
 });
-
-

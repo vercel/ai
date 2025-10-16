@@ -53,5 +53,3 @@ export default function WsChatPage() {
     </div>
   );
 }
-
-

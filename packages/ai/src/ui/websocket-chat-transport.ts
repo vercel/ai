@@ -3,10 +3,7 @@ import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 
-export type WebSocketFactory = (
-  url: string,
-  protocols?: string[],
-) => WebSocket;
+export type WebSocketFactory = (url: string, protocols?: string[]) => WebSocket;
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
@@ -98,7 +95,8 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
 
   private ws: WebSocket | undefined;
   private connectionPromise: Promise<void> | undefined;
-  private messageHandlers: Map<string, (msg: InboundEnvelope) => void> = new Map();
+  private messageHandlers: Map<string, (msg: InboundEnvelope) => void> =
+    new Map();
 
   private static requestCounter = 0;
 
@@ -110,7 +108,8 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
     this.body = options.body;
     this.makeWebSocket = options.makeWebSocket;
     this.prepareSendMessagesRequest = options.prepareSendMessagesRequest;
-    this.prepareReconnectToStreamRequest = options.prepareReconnectToStreamRequest;
+    this.prepareReconnectToStreamRequest =
+      options.prepareReconnectToStreamRequest;
     this.autoReconnect = options.autoReconnect ?? false;
   }
 
@@ -123,64 +122,80 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
       return this.connectionPromise;
     }
 
-    this.connectionPromise = new Promise(async (resolvePromise, rejectPromise) => {
-      try {
-        const resolvedParams = await resolve(this.params);
-        const urlWithParams = this.buildUrlWithParams(resolvedParams);
-        const factory: WebSocketFactory =
-          this.makeWebSocket ?? ((u, p) => new WebSocket(u, p));
+    this.connectionPromise = new Promise(
+      async (resolvePromise, rejectPromise) => {
+        try {
+          const resolvedParams = await resolve(this.params);
+          const urlWithParams = this.buildUrlWithParams(resolvedParams);
+          const factory: WebSocketFactory =
+            this.makeWebSocket ?? ((u, p) => new WebSocket(u, p));
 
-        const ws = factory(urlWithParams, this.protocols);
-        this.ws = ws;
+          const ws = factory(urlWithParams, this.protocols);
+          this.ws = ws;
 
-        ws.onopen = () => {
-          resolvePromise();
-        };
+          ws.onopen = () => {
+            resolvePromise();
+          };
 
-        ws.onmessage = evt => {
-          try {
-            const data = typeof evt.data === 'string' ? evt.data : '' + evt.data;
-            const parsed = JSON.parse(data) as InboundEnvelope | UIMessageChunk;
+          ws.onmessage = evt => {
+            try {
+              const data =
+                typeof evt.data === 'string' ? evt.data : '' + evt.data;
+              const parsed = JSON.parse(data) as
+                | InboundEnvelope
+                | UIMessageChunk;
 
-            // Support both envelope and raw chunk (assumed single active request).
-            if ('type' in parsed && (parsed as any).requestId) {
-              const handler = this.messageHandlers.get(
-                (parsed as InboundEnvelope).requestId,
-              );
-              handler?.(parsed as InboundEnvelope);
-            } else if ('type' in parsed) {
-              // If raw chunk is received and only one handler exists, forward to it
-              const [[, handler]] = Array.from(this.messageHandlers.entries());
-              handler?.({ type: 'chunk', requestId: '', chunk: parsed as UIMessageChunk });
+              // Support both envelope and raw chunk (assumed single active request).
+              if ('type' in parsed && (parsed as any).requestId) {
+                const handler = this.messageHandlers.get(
+                  (parsed as InboundEnvelope).requestId,
+                );
+                handler?.(parsed as InboundEnvelope);
+              } else if ('type' in parsed) {
+                // If raw chunk is received and only one handler exists, forward to it
+                const [[, handler]] = Array.from(
+                  this.messageHandlers.entries(),
+                );
+                handler?.({
+                  type: 'chunk',
+                  requestId: '',
+                  chunk: parsed as UIMessageChunk,
+                });
+              }
+            } catch (err) {
+              // ignore malformed JSON to avoid breaking all streams
             }
-          } catch (err) {
-            // ignore malformed JSON to avoid breaking all streams
-          }
-        };
+          };
 
-        ws.onclose = () => {
-          this.connectionPromise = undefined;
-          this.ws = undefined;
-          if (this.autoReconnect) {
-            // best-effort reconnect; do not block
-            this.connect().catch(() => {});
-          }
-        };
+          ws.onclose = () => {
+            this.connectionPromise = undefined;
+            this.ws = undefined;
+            if (this.autoReconnect) {
+              // best-effort reconnect; do not block
+              this.connect().catch(() => {});
+            }
+          };
 
-        ws.onerror = (error) => {
-          rejectPromise(new Error(`WebSocket connection error: ${error}`));
-        };
-      } catch (err) {
-        rejectPromise(err as Error);
-      }
-    });
+          ws.onerror = error => {
+            rejectPromise(new Error(`WebSocket connection error: ${error}`));
+          };
+        } catch (err) {
+          rejectPromise(err as Error);
+        }
+      },
+    );
 
     return this.connectionPromise;
   }
 
-  private buildUrlWithParams(params: Record<string, string> | undefined): string {
+  private buildUrlWithParams(
+    params: Record<string, string> | undefined,
+  ): string {
     if (!params || Object.keys(params).length === 0) return this.url;
-    const u = new URL(this.url, typeof location !== 'undefined' ? location.href : undefined);
+    const u = new URL(
+      this.url,
+      typeof location !== 'undefined' ? location.href : undefined,
+    );
     for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
     return u.toString();
   }
@@ -189,7 +204,10 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
     return `ws_${Date.now().toString(36)}_${WebSocketChatTransport.requestCounter++}`;
   }
 
-  async sendMessages({ abortSignal, ...options }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]) {
+  async sendMessages({
+    abortSignal,
+    ...options
+  }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]) {
     const [resolvedHeaders, resolvedBody] = await Promise.all([
       resolve(this.headers),
       resolve(this.body),
@@ -245,7 +263,9 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
               this.messageHandlers.delete(requestId);
               break;
             case 'error':
-              controller.error(new Error(msg.errorText ?? 'WebSocket stream error'));
+              controller.error(
+                new Error(msg.errorText ?? 'WebSocket stream error'),
+              );
               this.messageHandlers.delete(requestId);
               break;
           }
@@ -261,7 +281,10 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
           trigger: options.trigger,
           messageId: options.messageId,
           messages: options.messages,
-          headers: headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers,
+          headers:
+            headers instanceof Headers
+              ? Object.fromEntries(headers.entries())
+              : headers,
           body,
           metadata: options.metadata,
         };
@@ -317,13 +340,17 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
 
     const requestId = this.nextRequestId();
 
-    let resolved: ((value: ReadableStream<UIMessageChunk> | null) => void) | undefined;
+    let resolved:
+      | ((value: ReadableStream<UIMessageChunk> | null) => void)
+      | undefined;
     let rejected: ((reason?: any) => void) | undefined;
 
-    const outerPromise = new Promise<ReadableStream<UIMessageChunk> | null>((res, rej) => {
-      resolved = res;
-      rejected = rej;
-    });
+    const outerPromise = new Promise<ReadableStream<UIMessageChunk> | null>(
+      (res, rej) => {
+        resolved = res;
+        rejected = rej;
+      },
+    );
 
     // We resolve to null on first no-active; otherwise we return a stream when first chunk arrives
     let streamResolved = false;
@@ -351,10 +378,14 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
               this.messageHandlers.delete(requestId);
               break;
             case 'error':
-              controller.error(new Error(msg.errorText ?? 'WebSocket stream error'));
+              controller.error(
+                new Error(msg.errorText ?? 'WebSocket stream error'),
+              );
               this.messageHandlers.delete(requestId);
               if (!streamResolved) {
-                rejected?.(new Error(msg.errorText ?? 'WebSocket stream error'));
+                rejected?.(
+                  new Error(msg.errorText ?? 'WebSocket stream error'),
+                );
               }
               break;
           }
@@ -367,7 +398,10 @@ export class WebSocketChatTransport<UI_MESSAGE extends UIMessage>
           requestId,
           url,
           id: options.chatId,
-          headers: headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers,
+          headers:
+            headers instanceof Headers
+              ? Object.fromEntries(headers.entries())
+              : headers,
           body: { ...resolvedBody, ...options.body },
           metadata: options.metadata,
         };
