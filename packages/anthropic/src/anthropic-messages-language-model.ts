@@ -541,6 +541,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             input: JSON.stringify(part.input),
             providerExecuted: true,
             dynamic: true,
+            providerMetadata: {
+              anthropic: {
+                type: 'mcp-tool-use',
+                serverName: part.server_name,
+              },
+            },
           };
           content.push(mcpToolCalls[part.id]);
           break;
@@ -1058,6 +1064,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       input: JSON.stringify(part.input),
                       providerExecuted: true,
                       dynamic: true,
+                      providerMetadata: {
+                        anthropic: {
+                          type: 'mcp-tool-use',
+                          serverName: part.server_name,
+                        },
+                      },
                     };
                     controller.enqueue(mcpToolCalls[part.id]);
                     return;
