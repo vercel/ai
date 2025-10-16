@@ -277,7 +277,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           type: 'unsupported-setting',
           setting: 'maxOutputTokens',
           details:
-            `${maxTokens} (maxOutputTokens + thinkingBudget) is greater than ${this.modelId} ${maxOutputTokensForModel} max output tokens. ` +
+            `${baseArgs.max_tokens} (maxOutputTokens + thinkingBudget) is greater than ${this.modelId} ${maxOutputTokensForModel} max output tokens. ` +
             `The max output tokens have been limited to ${maxOutputTokensForModel}.`,
         });
       }
