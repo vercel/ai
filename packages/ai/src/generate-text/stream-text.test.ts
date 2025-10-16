@@ -13686,7 +13686,7 @@ describe('streamText', () => {
         });
       });
 
-      it('should include preliminary tool results in full stream', async () => {
+      it('should set dynamic and providerExecuted in full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
             [
@@ -13779,7 +13779,7 @@ describe('streamText', () => {
           `);
       });
 
-      it('should include preliminary tool results in ui message stream', async () => {
+      it('should set dynamic and providerExecuted in ui message stream', async () => {
         expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
             [
@@ -13836,7 +13836,7 @@ describe('streamText', () => {
           `);
       });
 
-      it('should only include final tool result in content', async () => {
+      it('should set dynamic and providerExecuted in content', async () => {
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
@@ -13865,96 +13865,6 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-result",
-            },
-          ]
-        `);
-      });
-
-      it('should only include final tool result in step content', async () => {
-        expect(await result.steps).toMatchInlineSnapshot(`
-          [
-            DefaultStepResult {
-              "content": [
-                {
-                  "dynamic": true,
-                  "input": {
-                    "city": "San Francisco",
-                  },
-                  "providerExecuted": true,
-                  "providerMetadata": {
-                    "anthropic": {
-                      "serverName": "echo",
-                    },
-                  },
-                  "toolCallId": "call-1",
-                  "toolName": "cityAttractions",
-                  "type": "tool-call",
-                },
-                {
-                  "dynamic": true,
-                  "input": undefined,
-                  "output": {
-                    "status": "success",
-                    "text": "The weather in San Francisco is 72°F",
-                  },
-                  "providerExecuted": true,
-                  "toolCallId": "call-1",
-                  "toolName": "cityAttractions",
-                  "type": "tool-result",
-                },
-              ],
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "request": {},
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "messages": [
-                  {
-                    "content": [
-                      {
-                        "input": {
-                          "city": "San Francisco",
-                        },
-                        "providerExecuted": true,
-                        "providerOptions": {
-                          "anthropic": {
-                            "serverName": "echo",
-                          },
-                        },
-                        "toolCallId": "call-1",
-                        "toolName": "cityAttractions",
-                        "type": "tool-call",
-                      },
-                      {
-                        "output": {
-                          "type": "json",
-                          "value": {
-                            "status": "success",
-                            "text": "The weather in San Francisco is 72°F",
-                          },
-                        },
-                        "providerExecuted": true,
-                        "providerOptions": undefined,
-                        "toolCallId": "call-1",
-                        "toolName": "cityAttractions",
-                        "type": "tool-result",
-                      },
-                    ],
-                    "role": "assistant",
-                  },
-                ],
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:02.000Z,
-              },
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
-              "warnings": [],
             },
           ]
         `);
