@@ -26,8 +26,8 @@ jobs:
       - name: Fetch existing labels
         id: fetch-labels
         run: |
-          labels=$(gh api /repos/vercel/ai/labels | jq -r '.[] |  .name')
-          echo "labels=$labels" >> $GITHUB_OUTPUT
+          labels_json=$(gh api /repos/vercel/ai/labels | jq 'map(.name)')
+          echo "labels_json=$labels_json" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
@@ -45,7 +45,7 @@ jobs:
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": ${{ steps.fetch-labels.outputs.labels }}
+                    "enum": ${{ steps.fetch-labels.outputs.labels_json }}
                   },
                   "description": "Array of labels that are most relevant to this issue. Choose one or more labels that best match the issue."
                 },
@@ -77,7 +77,7 @@ jobs:
 
               Available provider labels:
 
-              ${{ steps.fetch-labels.outputs.labels }}
+              ${{ steps.fetch-labels.outputs.labels_json }}
 
               Here are the rules to follow when assigning labels:
 
