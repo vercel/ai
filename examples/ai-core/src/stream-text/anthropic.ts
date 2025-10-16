@@ -1,10 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-haiku-4-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -13,8 +13,10 @@ async function main() {
   }
 
   console.log();
-  console.log('Token usage:', await result.usage);
-  console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+  console.log();
+  console.log('Request body:');
+  console.dir((await result.request).body, { depth: Infinity });
+  console.log();
+  console.log('Warnings:');
+  console.dir(await result.warnings, { depth: Infinity });
+});
