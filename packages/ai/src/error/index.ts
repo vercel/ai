@@ -6,6 +6,7 @@ export {
   InvalidResponseDataError,
   JSONParseError,
   LoadAPIKeyError,
+  LoadSettingError,
   NoContentGeneratedError,
   NoSuchModelError,
   TooManyEmbeddingValuesForCallError,

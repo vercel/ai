@@ -9,7 +9,7 @@ import { InferUITools, UIMessage } from '../ui/ui-messages';
  * can generate or stream content.
  */
 export interface Agent<
-  TOOLS extends ToolSet,
+  TOOLS extends ToolSet = {},
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 > {

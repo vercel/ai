@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 81d4308: feat(provider/anthropic): mcp connector support
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
 ## 3.0.0-beta.27
 
 ### Patch Changes
