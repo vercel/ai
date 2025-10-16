@@ -96,4 +96,4 @@ jobs:
         if: steps.git-check.outputs.has-changes == 'true'
         run: |
           git commit -m "style: prettier"
-          git push
+          git push origin HEAD:${{ steps.pr-head.outputs.ref }}
