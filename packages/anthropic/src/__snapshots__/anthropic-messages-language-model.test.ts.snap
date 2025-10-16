@@ -71,7 +71,7 @@ The script uses an iterative approach to calculate Fibonacci numbers efficiently
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > mcp server > should include mcp tool call and result in content 1`] = `
+exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should include mcp tool call and result in content 1`] = `
 [
   {
     "dynamic": true,
@@ -1871,6 +1871,108 @@ The Fibonacci sequence starts with 0, ",
       "inputTokens": 2263,
       "outputTokens": 771,
       "totalTokens": 3034,
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > should stream code execution tool results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01RNdvgjHoLmx2THF9AVj3KK",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "error": [AI_TypeValidationError: Type validation failed: Value: {"type":"content_block_start","index":0,"content_block":{"type":"mcp_tool_use","id":"mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT","name":"echo","input":{},"server_name":"echo"}}.
+Error message: [
+  {
+    "code": "invalid_union",
+    "errors": [],
+    "note": "No matching discriminator",
+    "path": [
+      "content_block",
+      "type"
+    ],
+    "message": "Invalid input"
+  }
+]],
+    "type": "error",
+  },
+  {
+    "error": [AI_TypeValidationError: Type validation failed: Value: {"type":"content_block_start","index":1,"content_block":{"type":"mcp_tool_result","tool_use_id":"mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT","is_error":false,"content":[{"type":"text","text":"Tool echo: hello world"}]}}.
+Error message: [
+  {
+    "code": "invalid_union",
+    "errors": [],
+    "note": "No matching discriminator",
+    "path": [
+      "content_block",
+      "type"
+    ],
+    "message": "Invalid input"
+  }
+]],
+    "type": "error",
+  },
+  {
+    "id": "2",
+    "type": "text-start",
+  },
+  {
+    "delta": "The echo tool responde",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d back with: **hello world**
+
+It simply echoed back",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the exact message that was sent to it.",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "id": "2",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1250,
+          "output_tokens": 83,
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 589,
+      "outputTokens": 83,
+      "totalTokens": 672,
     },
   },
 ]

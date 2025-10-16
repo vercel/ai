@@ -1723,7 +1723,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('mcp server', () => {
+    describe('mcp servers', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-mcp.1');
 
@@ -3476,6 +3476,30 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ]
         `);
+      });
+
+      describe('mcp servers', () => {
+        it('should stream code execution tool results', async () => {
+          prepareChunksFixtureResponse('anthropic-mcp.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              anthropic: {
+                mcpServers: [
+                  {
+                    type: 'url',
+                    name: 'echo',
+                    url: 'https://echo.mcp.inevitable.fyi/mcp',
+                  },
+                ],
+              } satisfies AnthropicProviderOptions,
+            },
+          });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
       });
 
       describe('code execution 20250825 tool', () => {
