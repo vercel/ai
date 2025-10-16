@@ -5,6 +5,7 @@ on:
     types: [auto_merge_enabled]
   check_run:
     types: [completed]
+  workflow_dispatch: {}
 
 permissions:
   contents: write
