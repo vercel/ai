@@ -1,6 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
+import { print } from '../lib/print';
 
 run(async () => {
   const result = streamText({
@@ -13,10 +14,6 @@ run(async () => {
   }
 
   console.log();
-  console.log();
-  console.log('Request body:');
-  console.dir((await result.request).body, { depth: Infinity });
-  console.log();
-  console.log('Warnings:');
-  console.dir(await result.warnings, { depth: Infinity });
+  print('Request body:', (await result.request).body);
+  print('Warnings:', await result.warnings);
 });
