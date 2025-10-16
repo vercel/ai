@@ -14,6 +14,7 @@ export default function WeatherWithApprovalView({
             <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
               <div className="pb-2 font-semibold">
                 Tool call &quot;{invocation.toolName}&quot;
+                {invocation.providerExecuted ? ' (provider-executed)' : ''}
               </div>
               {JSON.stringify(invocation.input, null, 2)}
             </pre>
