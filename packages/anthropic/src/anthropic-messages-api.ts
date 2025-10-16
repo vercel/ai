@@ -36,6 +36,8 @@ export interface AnthropicAssistantMessage {
     | AnthropicWebSearchToolResultContent
     | AnthropicBashCodeExecutionToolResultContent
     | AnthropicTextEditorCodeExecutionToolResultContent
+    | AnthropicMcpToolUseContent
+    | AnthropicMcpToolResultContent
   >;
 }
 
@@ -220,6 +222,23 @@ export interface AnthropicWebFetchToolResultContent {
         | { type: 'text'; media_type: 'text/plain'; data: string };
     };
   };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicMcpToolUseContent {
+  type: 'mcp_tool_use';
+  id: string;
+  name: string;
+  server_name: string;
+  input: unknown;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicMcpToolResultContent {
+  type: 'mcp_tool_result';
+  tool_use_id: string;
+  is_error: boolean;
+  content: string | Array<{ type: 'text'; text: string }>;
   cache_control: AnthropicCacheControl | undefined;
 }
 
