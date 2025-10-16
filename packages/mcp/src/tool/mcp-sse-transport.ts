@@ -107,11 +107,12 @@ export class SseMCPTransport implements MCPTransport {
 
           if (!response.ok || !response.body) {
             let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}`;
-            
+
             if (response.status === 405) {
-              errorMessage += '. This server does not support SSE transport. Try using `http` transport instead';
+              errorMessage +=
+                '. This server does not support SSE transport. Try using `http` transport instead';
             }
-            
+
             const error = new MCPClientError({
               message: errorMessage,
             });

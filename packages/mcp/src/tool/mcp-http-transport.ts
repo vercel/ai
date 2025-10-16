@@ -172,12 +172,13 @@ export class HttpMCPTransport implements MCPTransport {
         if (!response.ok) {
           const text = await response.text().catch(() => null);
           let errorMessage = `MCP HTTP Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`;
-          
+
           // 404 since this is a GET request which the server does not support
           if (response.status === 404) {
-            errorMessage += '. This server does not support HTTP transport. Try using `sse` transport instead';
+            errorMessage +=
+              '. This server does not support HTTP transport. Try using `sse` transport instead';
           }
-          
+
           const error = new MCPClientError({
             message: errorMessage,
           });

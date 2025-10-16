@@ -56,10 +56,22 @@ describe('HttpMCPTransport', () => {
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
     const controller = new TestResponseController();
 
-    server.urls['http://localhost:4000/stream'].response = {
-      type: 'controlled-stream',
-      controller,
-      headers: { 'content-type': 'text/event-stream' },
+    // Avoid locking a single ReadableStream for both GET (start) and POST (send)
+    // GET from start -> 405 (no inbound SSE)
+    // POST send -> controlled stream with text/event-stream
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
     };
 
     await transport.start();
@@ -194,12 +206,15 @@ describe('HttpMCPTransport', () => {
       transport.onerror = e => resolve(e);
     });
 
-    await transport.send({
-      jsonrpc: '2.0' as const,
-      method: 'test',
-      id: 3,
-      params: {},
-    });
+    await expect(
+      transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'test',
+        id: 3,
+        params: {},
+      }),
+    ).rejects.toThrow('POSTing to endpoint');
+
     const error = await errorPromise;
     expect(error).toBeInstanceOf(MCPClientError);
     expect((error as Error).message).toContain('POSTing to endpoint');
@@ -241,10 +256,22 @@ describe('HttpMCPTransport', () => {
       headers: customHeaders as unknown as Record<string, string>,
     });
 
-    server.urls['http://localhost:4000/mcp'].response = {
-      type: 'controlled-stream',
-      controller,
-      headers: { 'content-type': 'text/event-stream' },
+    // Avoid reusing the same stream across GET (start) and POST (send)
+    // GET from start -> 405 (no inbound SSE)
+    // POST send -> JSON OK
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+            headers: { 'content-type': 'application/json' },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
     };
 
     await transport.start();
