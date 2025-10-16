@@ -12,5 +12,11 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
+  console.log();
+  console.log();
+  console.log('Request body:');
   console.dir((await result.request).body, { depth: Infinity });
+  console.log();
+  console.log('Warnings:');
+  console.dir(await result.warnings, { depth: Infinity });
 });
