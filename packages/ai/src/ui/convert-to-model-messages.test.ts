@@ -1241,20 +1241,6 @@ describe('convertToModelMessages', () => {
           {
             "content": [
               {
-                "output": {
-                  "type": "text",
-                  "value": "result-1",
-                },
-                "toolCallId": "call-1",
-                "toolName": "screenshot",
-                "type": "tool-result",
-              },
-            ],
-            "role": "tool",
-          },
-          {
-            "content": [
-              {
                 "text": "Thanks!",
                 "type": "text",
               },

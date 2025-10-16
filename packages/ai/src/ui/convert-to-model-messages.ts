@@ -211,8 +211,8 @@ export function convertToModelMessages(
             // check if there are tool invocations with results in the block
             const toolParts = block.filter(
               part =>
-                (isToolUIPart(part) && part.providerExecuted !== true) ||
-                part.type === 'dynamic-tool',
+                isToolOrDynamicToolUIPart(part) &&
+                part.providerExecuted !== true,
             ) as (ToolUIPart<UITools> | DynamicToolUIPart)[];
 
             // tool message with tool results
