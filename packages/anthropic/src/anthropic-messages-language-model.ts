@@ -39,7 +39,6 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 
 function createCitationSource(
   citation: Citation,
