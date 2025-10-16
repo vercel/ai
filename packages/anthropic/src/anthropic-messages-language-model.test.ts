@@ -113,6 +113,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const result = await provider('claude-sonnet-4-5').doGenerate({
           prompt: TEST_PROMPT,
+          maxOutputTokens: 20000,
           temperature: 0.5,
           topP: 0.7,
           topK: 0.1,
@@ -125,7 +126,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
-            "max_tokens": 64000,
+            "max_tokens": 21000,
             "messages": [
               {
                 "content": [
