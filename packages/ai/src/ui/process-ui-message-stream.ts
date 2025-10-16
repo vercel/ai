@@ -565,6 +565,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'output-error',
                   input: (toolInvocation as any).input,
                   errorText: chunk.errorText,
+                  providerExecuted: chunk.providerExecuted,
                 });
               } else {
                 updateToolPart({
@@ -574,6 +575,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: (toolInvocation as any).input,
                   rawInput: (toolInvocation as any).rawInput,
                   errorText: chunk.errorText,
+                  providerExecuted: chunk.providerExecuted,
                 });
               }
 
