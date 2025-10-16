@@ -14,7 +14,7 @@ import { BasicAgentOnStepFinishCallback } from './basic-agent-on-step-finish-cal
  * Configuration options for an agent.
  */
 export type BasicAgentSettings<
-  TOOLS extends ToolSet,
+  TOOLS extends ToolSet = {},
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 > = CallSettings & {
