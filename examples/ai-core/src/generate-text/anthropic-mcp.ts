@@ -1,6 +1,7 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
+import { print } from '../lib/print';
 
 run(async () => {
   const result = await generateText({
@@ -15,10 +16,10 @@ run(async () => {
             url: 'https://echo.mcp.inevitable.fyi/mcp',
           },
         ],
-      },
+      } satisfies AnthropicProviderOptions,
     },
   });
 
-  console.log(JSON.stringify(result.request.body, null, 2));
-  console.dir(result.content, { depth: Infinity });
+  print('Request body:', result.request.body);
+  print('Content:', result.content);
 });
