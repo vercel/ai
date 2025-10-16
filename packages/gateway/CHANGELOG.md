@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 1.0.41
+
+### Patch Changes
+
+- 11a8867: feat (provider/gateway): improve auth error messages
+
 ## 1.0.40
 
 ### Patch Changes
