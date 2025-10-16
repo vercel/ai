@@ -731,6 +731,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const { args, warnings, betas, usesJsonResponseTool } =
       await this.getArgs(options);
 
+    console.dir(options.prompt, { depth: Infinity });
+    console.dir(args, { depth: Infinity });
+
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
 

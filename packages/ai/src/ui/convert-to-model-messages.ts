@@ -150,30 +150,8 @@ export function convertToModelMessages(
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
-              } else if (part.type === 'dynamic-tool') {
-                const toolName = part.toolName;
-
-                if (part.state !== 'input-streaming') {
-                  content.push({
-                    type: 'tool-call' as const,
-                    toolCallId: part.toolCallId,
-                    toolName,
-                    input: part.input,
-                    ...(part.callProviderMetadata != null
-                      ? { providerOptions: part.callProviderMetadata }
-                      : {}),
-                  });
-                }
-
-                if (part.approval != null) {
-                  content.push({
-                    type: 'tool-approval-request' as const,
-                    approvalId: part.approval.id,
-                    toolCallId: part.toolCallId,
-                  });
-                }
-              } else if (isToolUIPart(part)) {
-                const toolName = getToolName(part);
+              } else if (isToolOrDynamicToolUIPart(part)) {
+                const toolName = getToolOrDynamicToolName(part);
 
                 if (part.state !== 'input-streaming') {
                   content.push({
@@ -182,7 +160,8 @@ export function convertToModelMessages(
                     toolName,
                     input:
                       part.state === 'output-error'
-                        ? (part.input ?? part.rawInput)
+                        ? (part.input ??
+                          ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
