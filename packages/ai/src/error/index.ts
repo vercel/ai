@@ -11,6 +11,7 @@ export {
   TooManyEmbeddingValuesForCallError,
   TypeValidationError,
   UnsupportedFunctionalityError,
+  LoadSettingError,
 } from '@ai-sdk/provider';
 
 export { InvalidArgumentError } from './invalid-argument-error';
