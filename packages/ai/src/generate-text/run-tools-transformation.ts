@@ -241,7 +241,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               break;
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              break;
+            }
 
             if (tool.onInputAvailable != null) {
               await tool.onInputAvailable({
