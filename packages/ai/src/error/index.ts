@@ -6,12 +6,12 @@ export {
   InvalidResponseDataError,
   JSONParseError,
   LoadAPIKeyError,
+  LoadSettingError,
   NoContentGeneratedError,
   NoSuchModelError,
   TooManyEmbeddingValuesForCallError,
   TypeValidationError,
   UnsupportedFunctionalityError,
-  LoadSettingError,
 } from '@ai-sdk/provider';
 
 export { InvalidArgumentError } from './invalid-argument-error';
