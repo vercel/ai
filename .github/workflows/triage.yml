@@ -26,7 +26,7 @@ jobs:
       - name: Fetch existing labels
         id: fetch-labels
         run: |
-          labels_json=$(gh api /repos/vercel/ai/labels | jq 'map(.name)')
+          labels_json=$(gh api /repos/vercel/ai/labels | jq -c 'map(.name)')
           echo "labels_json=$labels_json" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
