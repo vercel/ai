@@ -235,6 +235,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.rawInput = anyOptions.rawInput ?? anyPart.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
 
+              // once providerExecuted is set, it stays for streaming
+              anyPart.providerExecuted =
+                anyOptions.providerExecuted ?? part.providerExecuted;
+
               if (
                 anyOptions.providerMetadata != null &&
                 part.state === 'input-available'
@@ -251,6 +255,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 output: anyOptions.output,
                 errorText: anyOptions.errorText,
                 preliminary: anyOptions.preliminary,
+                providerExecuted: anyOptions.providerExecuted,
                 ...(anyOptions.providerMetadata != null
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
@@ -398,6 +403,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: chunk.toolName,
                   state: 'input-streaming',
                   input: undefined,
+                  providerExecuted: chunk.providerExecuted,
                 });
               } else {
                 updateToolPart({
@@ -449,6 +455,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: chunk.toolName,
                   state: 'input-available',
                   input: chunk.input,
+                  providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                 });
               } else {
@@ -484,6 +491,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'output-error',
                   input: chunk.input,
                   errorText: chunk.errorText,
+                  providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                 });
               } else {
@@ -529,6 +537,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: (toolInvocation as any).input,
                   output: chunk.output,
                   preliminary: chunk.preliminary,
+                  providerExecuted: chunk.providerExecuted,
                 });
               } else {
                 updateToolPart({
