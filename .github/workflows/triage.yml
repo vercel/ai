@@ -118,6 +118,6 @@ jobs:
             echo "No labels to apply"
           fi
 
-          echo "Reasoning: $(fromJSON(steps.classify-issue.outputs.json).reasoning)"
+          echo "Reasoning: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
