@@ -1888,36 +1888,36 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > 
     "type": "response-metadata",
   },
   {
-    "error": [AI_TypeValidationError: Type validation failed: Value: {"type":"content_block_start","index":0,"content_block":{"type":"mcp_tool_use","id":"mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT","name":"echo","input":{},"server_name":"echo"}}.
-Error message: [
-  {
-    "code": "invalid_union",
-    "errors": [],
-    "note": "No matching discriminator",
-    "path": [
-      "content_block",
-      "type"
-    ],
-    "message": "Invalid input"
-  }
-]],
-    "type": "error",
+    "dynamic": true,
+    "input": "{}",
+    "providerExecuted": true,
+    "providerMetadata": {
+      "anthropic": {
+        "serverName": "echo",
+      },
+    },
+    "toolCallId": "mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT",
+    "toolName": "echo",
+    "type": "tool-call",
   },
   {
-    "error": [AI_TypeValidationError: Type validation failed: Value: {"type":"content_block_start","index":1,"content_block":{"type":"mcp_tool_result","tool_use_id":"mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT","is_error":false,"content":[{"type":"text","text":"Tool echo: hello world"}]}}.
-Error message: [
-  {
-    "code": "invalid_union",
-    "errors": [],
-    "note": "No matching discriminator",
-    "path": [
-      "content_block",
-      "type"
+    "dynamic": true,
+    "isError": false,
+    "providerExecuted": true,
+    "providerMetadata": {
+      "anthropic": {
+        "serverName": "echo",
+      },
+    },
+    "result": [
+      {
+        "text": "Tool echo: hello world",
+        "type": "text",
+      },
     ],
-    "message": "Invalid input"
-  }
-]],
-    "type": "error",
+    "toolCallId": "mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT",
+    "toolName": "echo",
+    "type": "tool-result",
   },
   {
     "id": "2",

@@ -551,6 +551,24 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             input: z.record(z.string(), z.unknown()).nullish(),
           }),
           z.object({
+            type: z.literal('mcp_tool_use'),
+            id: z.string(),
+            name: z.string(),
+            input: z.unknown(),
+            server_name: z.string(),
+          }),
+          z.object({
+            type: z.literal('mcp_tool_result'),
+            tool_use_id: z.string(),
+            is_error: z.boolean(),
+            content: z.array(
+              z.union([
+                z.string(),
+                z.object({ type: z.literal('text'), text: z.string() }),
+              ]),
+            ),
+          }),
+          z.object({
             type: z.literal('web_fetch_tool_result'),
             tool_use_id: z.string(),
             content: z.union([

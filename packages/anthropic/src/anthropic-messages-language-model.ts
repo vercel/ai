@@ -766,6 +766,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         }
       | { type: 'text' | 'reasoning' }
     > = {};
+    const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
 
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
@@ -782,6 +783,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | 'code_execution_tool_result'
       | 'text_editor_code_execution_tool_result'
       | 'bash_code_execution_tool_result'
+      | 'mcp_tool_use'
+      | 'mcp_tool_result'
       | undefined = undefined;
 
     const generateId = this.generateId;
@@ -814,7 +817,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               }
 
               case 'content_block_start': {
-                const contentBlockType = value.content_block.type;
+                const part = value.content_block;
+                const contentBlockType = part.type;
 
                 blockType = contentBlockType;
 
@@ -844,7 +848,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       id: String(value.index),
                       providerMetadata: {
                         anthropic: {
-                          redactedData: value.content_block.data,
+                          redactedData: part.data,
                         } satisfies AnthropicReasoningMetadata,
                       },
                     });
@@ -856,8 +860,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       ? { type: 'text' }
                       : {
                           type: 'tool-call',
-                          toolCallId: value.content_block.id,
-                          toolName: value.content_block.name,
+                          toolCallId: part.id,
+                          toolName: part.name,
                           input: '',
                           firstDelta: true,
                         };
@@ -867,8 +871,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         ? { type: 'text-start', id: String(value.index) }
                         : {
                             type: 'tool-input-start',
-                            id: value.content_block.id,
-                            toolName: value.content_block.name,
+                            id: part.id,
+                            toolName: part.name,
                           },
                     );
                     return;
@@ -885,12 +889,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         'text_editor_code_execution',
                         // code execution 20250825 bash:
                         'bash_code_execution',
-                      ].includes(value.content_block.name)
+                      ].includes(part.name)
                     ) {
                       contentBlocks[value.index] = {
                         type: 'tool-call',
-                        toolCallId: value.content_block.id,
-                        toolName: value.content_block.name,
+                        toolCallId: part.id,
+                        toolName: part.name,
                         input: '',
                         providerExecuted: true,
                         firstDelta: true,
@@ -898,15 +902,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                       // map tool names for the code execution 20250825 tool:
                       const mappedToolName =
-                        value.content_block.name ===
-                          'text_editor_code_execution' ||
-                        value.content_block.name === 'bash_code_execution'
+                        part.name === 'text_editor_code_execution' ||
+                        part.name === 'bash_code_execution'
                           ? 'code_execution'
-                          : value.content_block.name;
+                          : part.name;
 
                       controller.enqueue({
                         type: 'tool-input-start',
-                        id: value.content_block.id,
+                        id: part.id,
                         toolName: mappedToolName,
                         providerExecuted: true,
                       });
@@ -916,8 +919,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   case 'web_fetch_tool_result': {
-                    const part = value.content_block;
-
                     if (part.content.type === 'web_fetch_result') {
                       controller.enqueue({
                         type: 'tool-result',
@@ -959,8 +960,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   case 'web_search_tool_result': {
-                    const part = value.content_block;
-
                     if (Array.isArray(part.content)) {
                       controller.enqueue({
                         type: 'tool-result',
@@ -1008,8 +1007,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   // code execution 20250522:
                   case 'code_execution_tool_result': {
-                    const part = value.content_block;
-
                     if (part.content.type === 'code_execution_result') {
                       controller.enqueue({
                         type: 'tool-result',
@@ -1045,13 +1042,45 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   // code execution 20250825:
                   case 'bash_code_execution_tool_result':
                   case 'text_editor_code_execution_tool_result': {
-                    const part = value.content_block;
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: 'code_execution',
                       result: part.content,
                       providerExecuted: true,
+                    });
+                    return;
+                  }
+
+                  case 'mcp_tool_use': {
+                    mcpToolCalls[part.id] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: part.name,
+                      input: JSON.stringify(part.input),
+                      providerExecuted: true,
+                      dynamic: true,
+                      providerMetadata: {
+                        anthropic: {
+                          serverName: part.server_name,
+                        },
+                      },
+                    };
+                    controller.enqueue(mcpToolCalls[part.id]);
+                    return;
+                  }
+
+                  case 'mcp_tool_result': {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: mcpToolCalls[part.tool_use_id].toolName,
+                      isError: part.is_error,
+                      result: part.content,
+                      providerExecuted: true,
+                      dynamic: true,
+                      providerMetadata:
+                        mcpToolCalls[part.tool_use_id].providerMetadata,
                     });
                     return;
                   }
