@@ -30,9 +30,6 @@
     },
     {
       "path": "../test-server"
-    },
-    {
-      "path": "../mcp"
     }
   ]
 }
