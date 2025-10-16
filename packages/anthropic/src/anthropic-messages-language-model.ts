@@ -39,7 +39,6 @@ import {
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 
 function createCitationSource(
   citation: Citation,
@@ -126,7 +125,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
   private async getArgs({
     prompt,
-    maxOutputTokens = 4096, // 4096: max model output tokens TODO update default in v5
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -208,12 +207,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
+    const maxOutputTokensForModel = getMaxOutputTokensForModel(this.modelId);
+    const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
+
     const baseArgs = {
       // model id:
       model: this.modelId,
 
       // standardized settings:
-      max_tokens: maxOutputTokens,
+      max_tokens: maxTokens,
       temperature,
       top_k: topK,
       top_p: topP,
@@ -264,7 +266,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
 
       // adjust max tokens to account for thinking:
-      baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
+      baseArgs.max_tokens = maxTokens + thinkingBudget;
+    }
+
+    // limit to max output tokens for model to enable model switching without breakages:
+    if (baseArgs.max_tokens > maxOutputTokensForModel) {
+      // only warn if max output tokens is provided as input:
+      if (maxOutputTokens != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'maxOutputTokens',
+          details:
+            `${maxTokens} (maxOutputTokens + thinkingBudget) is greater than ${this.modelId} ${maxOutputTokensForModel} max output tokens. ` +
+            `The max output tokens have been limited to ${maxOutputTokensForModel}.`,
+        });
+      }
+      baseArgs.max_tokens = maxOutputTokensForModel;
     }
 
     const {
@@ -1243,5 +1260,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+// see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
+function getMaxOutputTokensForModel(modelId: string) {
+  if (
+    modelId.includes('claude-sonnet-4-') ||
+    modelId.includes('claude-3-7-sonnet') ||
+    modelId.includes('claude-haiku-4-5')
+  ) {
+    return 64000;
+  } else if (modelId.includes('claude-opus-4-')) {
+    return 32000;
+  } else if (modelId.includes('claude-3-5-haiku')) {
+    return 8192;
+  } else {
+    return 4096; // old models, e.g. Claude Haiku 3
   }
 }
