@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.51
+
+### Patch Changes
+
+- 5e313e3: fix(agent): do not allow static tools when tools is empty
+
 ## 6.0.0-beta.50
 
 ### Patch Changes
