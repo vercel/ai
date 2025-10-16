@@ -208,12 +208,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
+    const maxOutputTokensForModel = getMaxOutputTokensForModel(this.modelId);
+    const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
+
     const baseArgs = {
       // model id:
       model: this.modelId,
 
       // standardized settings:
-      max_tokens: maxOutputTokens,
+      max_tokens: maxTokens,
       temperature,
       top_k: topK,
       top_p: topP,
@@ -263,10 +266,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         });
       }
 
-      // adjust max tokens to account for thinking if maxOutputTokens is provided
+      // adjust max tokens to account for thinking:
+      baseArgs.max_tokens = maxTokens + thinkingBudget;
+    }
+
+    // limit to max output tokens for model to enable model switching without breakages:
+    if (baseArgs.max_tokens > maxOutputTokensForModel) {
+      // only warn if max output tokens is provided:
       if (maxOutputTokens != null) {
-        baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'maxOutputTokens',
+          details:
+            "maxTokens (maxOutputTokens + thinkingBudget) is greater than the model's max output tokens",
+        });
       }
+      baseArgs.max_tokens = maxOutputTokensForModel;
     }
 
     const {
@@ -1245,5 +1260,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+// see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
+function getMaxOutputTokensForModel(modelId: string) {
+  if (
+    modelId.includes('claude-sonnet-4-') ||
+    modelId.includes('claude-3-7-sonnet') ||
+    modelId.includes('claude-haiku-4-5')
+  ) {
+    return 64000;
+  } else if (modelId.includes('claude-opus-4-')) {
+    return 32000;
+  } else if (modelId.includes('claude-3-5-haiku')) {
+    return 8192;
+  } else {
+    return 4096; // old models, e.g. Claude Haiku 3
   }
 }

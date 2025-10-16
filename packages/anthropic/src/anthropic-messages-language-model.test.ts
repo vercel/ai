@@ -111,7 +111,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           content: [{ type: 'text', text: 'Hello, World!' }],
         });
 
-        const result = await model.doGenerate({
+        const result = await provider('claude-sonnet-4-5').doGenerate({
           prompt: TEST_PROMPT,
           temperature: 0.5,
           topP: 0.7,
@@ -123,17 +123,27 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'claude-3-haiku-20240307',
-          messages: [
-            {
-              role: 'user',
-              content: [{ type: 'text', text: 'Hello' }],
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "thinking": {
+              "budget_tokens": 1000,
+              "type": "enabled",
             },
-          ],
-          max_tokens: 4096 + 1000,
-          thinking: { type: 'enabled', budget_tokens: 1000 },
-        });
+          }
+        `);
 
         expect(result.warnings).toStrictEqual([
           {
