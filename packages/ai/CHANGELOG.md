@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.73
+
+### Patch Changes
+
+- 734c4c3: fix(ai): add missing export for `LoadSettingError`
+
 ## 5.0.72
 
 ### Patch Changes
