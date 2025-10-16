@@ -1202,6 +1202,12 @@ describe('convertToModelMessages', () => {
                 input: { value: 'value-1' },
                 output: 'result-1',
                 providerExecuted: true,
+                callProviderMetadata: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
               },
             ],
           },
@@ -1222,6 +1228,12 @@ describe('convertToModelMessages', () => {
                   "value": "value-1",
                 },
                 "providerExecuted": true,
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                    "key-b": "test-value-2",
+                  },
+                },
                 "toolCallId": "call-1",
                 "toolName": "screenshot",
                 "type": "tool-call",
