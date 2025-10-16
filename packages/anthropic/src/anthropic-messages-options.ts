@@ -81,6 +81,23 @@ export const anthropicProviderOptions = z.object({
       ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
     })
     .optional(),
+
+  mcpServers: z
+    .array(
+      z.object({
+        type: z.literal('url'),
+        name: z.string(),
+        url: z.string(),
+        authorizationToken: z.string().nullish(),
+        toolConfiguration: z
+          .object({
+            enabled: z.boolean().nullish(),
+            allowedTools: z.array(z.string()).nullish(),
+          })
+          .nullish(),
+      }),
+    )
+    .optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

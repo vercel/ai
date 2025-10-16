@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- 4c5a6be: feat(provider/anthropic): default and limit maxTokens based on model
+
 ## 3.0.0-beta.26
 
 ### Patch Changes

@@ -1150,6 +1150,7 @@ describe('convertToModelMessages', () => {
                 "input": {
                   "value": "value-1",
                 },
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "toolName": "screenshot",
                 "type": "tool-call",
@@ -1170,6 +1171,84 @@ describe('convertToModelMessages', () => {
               },
             ],
             "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "Thanks!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('when converting provider-executed dynamic tool invocations', () => {
+    it('should convert a provider-executed dynamic tool invocation', () => {
+      const result = convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'screenshot',
+                state: 'output-available',
+                toolCallId: 'call-1',
+                input: { value: 'value-1' },
+                output: 'result-1',
+                providerExecuted: true,
+                callProviderMetadata: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Thanks!' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value-1",
+                },
+                "providerExecuted": true,
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                    "key-b": "test-value-2",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result-1",
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
           },
           {
             "content": [
@@ -1317,6 +1396,7 @@ describe('convertToModelMessages', () => {
                 "input": {
                   "city": "Tokyo",
                 },
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "toolName": "weather",
                 "type": "tool-call",
@@ -1496,6 +1576,7 @@ describe('convertToModelMessages', () => {
                 "input": {
                   "city": "Tokyo",
                 },
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "toolName": "weather",
                 "type": "tool-call",
@@ -1672,6 +1753,7 @@ describe('convertToModelMessages', () => {
                 "input": {
                   "city": "Tokyo",
                 },
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "toolName": "weather",
                 "type": "tool-call",

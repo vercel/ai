@@ -344,6 +344,8 @@ export async function convertToAnthropicMessagesPrompt({
         // combines multiple assistant messages in this block into a single message:
         const anthropicContent: AnthropicAssistantMessage['content'] = [];
 
+        const mcpToolUseIds = new Set<string>();
+
         for (let j = 0; j < block.messages.length; j++) {
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
@@ -425,8 +427,34 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
-                  // code execution 20250825:
-                  if (
+                  const isMcpToolUse =
+                    part.providerOptions?.anthropic?.type === 'mcp-tool-use';
+
+                  if (isMcpToolUse) {
+                    mcpToolUseIds.add(part.toolCallId);
+
+                    const serverName =
+                      part.providerOptions?.anthropic?.serverName;
+
+                    if (serverName == null || typeof serverName !== 'string') {
+                      warnings.push({
+                        type: 'other',
+                        message:
+                          'mcp tool use server name is required and must be a string',
+                      });
+                      break;
+                    }
+
+                    anthropicContent.push({
+                      type: 'mcp_tool_use',
+                      id: part.toolCallId,
+                      name: part.toolName,
+                      input: part.input,
+                      server_name: serverName,
+                      cache_control: cacheControl,
+                    });
+                  } else if (
+                    // code execution 20250825:
                     part.toolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
@@ -475,7 +503,28 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-result': {
-                if (part.toolName === 'code_execution') {
+                if (mcpToolUseIds.has(part.toolCallId)) {
+                  const output = part.output;
+
+                  if (output.type !== 'json' && output.type !== 'error-json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  anthropicContent.push({
+                    type: 'mcp_tool_result',
+                    tool_use_id: part.toolCallId,
+                    is_error: output.type === 'error-json',
+                    content: output.value as unknown as
+                      | string
+                      | Array<{ type: 'text'; text: string }>,
+                    cache_control: cacheControl,
+                  });
+                } else if (part.toolName === 'code_execution') {
                   const output = part.output;
 
                   if (output.type !== 'json') {

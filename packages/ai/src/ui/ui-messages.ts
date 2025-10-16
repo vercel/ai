@@ -208,12 +208,19 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
  * UI components for the tool.
  */
 export type UIToolInvocation<TOOL extends UITool | Tool> = {
+  /**
+   * ID of the tool call.
+   */
   toolCallId: string;
+
+  /**
+   * Whether the tool call was executed by the provider.
+   */
+  providerExecuted?: boolean;
 } & (
   | {
       state: 'input-streaming';
       input: DeepPartial<asUITool<TOOL>['input']> | undefined;
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       approval?: never;
@@ -221,7 +228,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'input-available';
       input: asUITool<TOOL>['input'];
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -230,7 +236,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'approval-requested';
       input: asUITool<TOOL>['input'];
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -243,7 +248,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'approval-responded';
       input: asUITool<TOOL>['input'];
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -258,7 +262,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       input: asUITool<TOOL>['input'];
       output: asUITool<TOOL>['output'];
       errorText?: never;
-      providerExecuted?: boolean;
       callProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
       approval?: {
@@ -273,7 +276,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
       output?: never;
       errorText: string;
-      providerExecuted?: boolean;
       callProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
@@ -284,7 +286,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'output-denied';
       input: asUITool<TOOL>['input'];
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -304,8 +305,21 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 
 export type DynamicToolUIPart = {
   type: 'dynamic-tool';
+
+  /**
+   * Name of the tool that is being called.
+   */
   toolName: string;
+
+  /**
+   * ID of the tool call.
+   */
   toolCallId: string;
+
+  /**
+   * Whether the tool call was executed by the provider.
+   */
+  providerExecuted?: boolean;
 } & (
   | {
       state: 'input-streaming';
