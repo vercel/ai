@@ -7,7 +7,7 @@ Callback that is set using the `onFinish` option.
 
 @param event - The event that is passed to the callback.
  */
-export type BasicAgentOnFinishCallback<TOOLS extends ToolSet> = (
+export type BasicAgentOnFinishCallback<TOOLS extends ToolSet = {}> = (
   event: StepResult<TOOLS> & {
     /**
 Details for all steps.

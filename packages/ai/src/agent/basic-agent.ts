@@ -20,7 +20,7 @@ import { Agent } from './agent';
  * Define agents once and use them across your application.
  */
 export class BasicAgent<
-  TOOLS extends ToolSet,
+  TOOLS extends ToolSet = {},
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 > implements Agent<TOOLS, OUTPUT, OUTPUT_PARTIAL>
