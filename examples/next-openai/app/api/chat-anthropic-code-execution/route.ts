@@ -1,4 +1,4 @@
-import { anthropicCodeExecutionAgent } from '@/agent/anthropic-code-execution';
+import { anthropicCodeExecutionAgent } from '@/agent/anthropic-code-execution-agent';
 import { validateUIMessages } from 'ai';
 
 export async function POST(request: Request) {
