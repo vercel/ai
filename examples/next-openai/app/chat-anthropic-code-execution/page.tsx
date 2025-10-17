@@ -1,6 +1,6 @@
 'use client';
 
-import { AnthropicCodeExecutionMessage } from '@/agent/anthropic-code-execution';
+import { AnthropicCodeExecutionMessage } from '@/agent/anthropic-code-execution-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import AnthropicCodeExecutionView from '@/components/tool/anthropic-code-execution-view';

@@ -10,6 +10,7 @@ import {
   convertToBase64,
   parseProviderOptions,
   validateTypes,
+  isNonNullable,
 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
@@ -258,47 +259,59 @@ export async function convertToAnthropicMessagesPrompt({
                 let contentValue: AnthropicToolResultContent['content'];
                 switch (output.type) {
                   case 'content':
-                    contentValue = output.value.map(contentPart => {
-                      switch (contentPart.type) {
-                        case 'text':
-                          return {
-                            type: 'text',
-                            text: contentPart.text,
-                            cache_control: undefined,
-                          };
-                        case 'media': {
-                          if (contentPart.mediaType.startsWith('image/')) {
+                    contentValue = output.value
+                      .map(contentPart => {
+                        switch (contentPart.type) {
+                          case 'text':
                             return {
-                              type: 'image',
+                              type: 'text' as const,
+                              text: contentPart.text,
+                              cache_control: cacheControl,
+                            };
+                          case 'image-data': {
+                            return {
+                              type: 'image' as const,
                               source: {
-                                type: 'base64',
+                                type: 'base64' as const,
                                 media_type: contentPart.mediaType,
                                 data: contentPart.data,
                               },
-                              cache_control: undefined,
+                              cache_control: cacheControl,
                             };
                           }
+                          case 'file-data': {
+                            if (contentPart.mediaType === 'application/pdf') {
+                              betas.add('pdfs-2024-09-25');
 
-                          if (contentPart.mediaType === 'application/pdf') {
-                            betas.add('pdfs-2024-09-25');
+                              return {
+                                type: 'document' as const,
+                                source: {
+                                  type: 'base64' as const,
+                                  media_type: contentPart.mediaType,
+                                  data: contentPart.data,
+                                },
+                                cache_control: cacheControl,
+                              };
+                            }
 
-                            return {
-                              type: 'document',
-                              source: {
-                                type: 'base64',
-                                media_type: contentPart.mediaType,
-                                data: contentPart.data,
-                              },
-                              cache_control: undefined,
-                            };
+                            warnings.push({
+                              type: 'other',
+                              message: `unsupported tool content part type: ${contentPart.type} with media type: ${contentPart.mediaType}`,
+                            });
+
+                            return undefined;
                           }
+                          default: {
+                            warnings.push({
+                              type: 'other',
+                              message: `unsupported tool content part type: ${contentPart.type}`,
+                            });
 
-                          throw new UnsupportedFunctionalityError({
-                            functionality: `media type: ${contentPart.mediaType}`,
-                          });
+                            return undefined;
+                          }
                         }
-                      }
-                    });
+                      })
+                      .filter(isNonNullable);
                     break;
                   case 'text':
                   case 'error-text':

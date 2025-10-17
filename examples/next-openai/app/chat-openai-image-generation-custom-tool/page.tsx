@@ -1,23 +1,22 @@
 'use client';
 
+import { OpenAIImageGenerationCustomToolMessage } from '@/agent/openai-image-generation-custom-tool-agent';
 import ChatInput from '@/components/chat-input';
-import FetchPDFView from '@/components/tool/fetch-pdf-view';
+import GenerateImageView from '@/components/tool/generate-image-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { OpenAIFetchPDFMessage } from '@/app/api/chat-openai-fetch-pdf-custom-tool/route';
 
-export default function TestOpenAIFileGenerationPDF() {
-  const { status, sendMessage, messages } = useChat<OpenAIFetchPDFMessage>({
-    transport: new DefaultChatTransport({
-      api: '/api/chat-openai-fetch-pdf-custom-tool',
-    }),
-  });
+export default function TestOpenAIWebSearch() {
+  const { status, sendMessage, messages } =
+    useChat<OpenAIImageGenerationCustomToolMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/chat-openai-image-generation-custom-tool',
+      }),
+    });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">
-        OpenAI Fetch PDF Custom Tool Test
-      </h1>
+      <h1 className="mb-4 text-xl font-bold">OpenAI Image Generation Test</h1>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
@@ -26,8 +25,8 @@ export default function TestOpenAIFileGenerationPDF() {
             switch (part.type) {
               case 'text':
                 return <div key={index}>{part.text}</div>;
-              case 'tool-fetchPdf':
-                return <FetchPDFView key={index} invocation={part} />;
+              case 'tool-imageGeneration':
+                return <GenerateImageView key={index} invocation={part} />;
             }
           })}
         </div>

@@ -1,5 +1,14 @@
 # @ai-sdk/togetherai
 
+## 2.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+  - @ai-sdk/openai-compatible@2.0.0-beta.20
+
 ## 2.0.0-beta.19
 
 ### Patch Changes
