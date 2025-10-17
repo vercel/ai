@@ -1,8 +1,8 @@
 import {
+  FlexibleSchema,
   generateId as generateIdFunc,
   IdGenerator,
-  StandardSchemaV1,
-  Validator,
+  InferSchema,
 } from '@ai-sdk/provider-utils';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
@@ -38,21 +38,14 @@ export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   role?: UI_MESSAGE['role'];
 };
 
-export type UIDataPartSchemas = Record<
-  string,
-  Validator<any> | StandardSchemaV1<any>
->;
+export type UIDataPartSchemas = Record<string, FlexibleSchema>;
 
 export type UIDataTypesToSchemas<T extends UIDataTypes> = {
-  [K in keyof T]: Validator<T[K]> | StandardSchemaV1<T[K]>;
+  [K in keyof T]: FlexibleSchema<T[K]>;
 };
 
 export type InferUIDataParts<T extends UIDataPartSchemas> = {
-  [K in keyof T]: T[K] extends Validator<infer U>
-    ? U
-    : T[K] extends StandardSchemaV1<infer U>
-      ? U
-      : unknown;
+  [K in keyof T]: InferSchema<T[K]>;
 };
 
 export type ChatRequestOptions = {
@@ -146,9 +139,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    */
   id?: string;
 
-  messageMetadataSchema?:
-    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
-    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
 
   messages?: UI_MESSAGE[];
@@ -203,8 +194,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   protected state: ChatState<UI_MESSAGE>;
 
   private messageMetadataSchema:
-    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
-    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>
+    | FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>
     | undefined;
   private dataPartSchemas:
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
@@ -449,7 +439,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
       ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolUIPart(part) &&
+        isToolOrDynamicToolUIPart(part) &&
         part.state === 'approval-requested' &&
         part.approval.id === id
           ? {
@@ -704,7 +694,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (this.sendAutomaticallyWhen?.({ messages: this.state.messages })) {
+    if (
+      this.sendAutomaticallyWhen?.({ messages: this.state.messages }) &&
+      !isError
+    ) {
       await this.makeRequest({
         trigger: 'submit-message',
         messageId: this.lastMessage?.id,

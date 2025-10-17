@@ -1,49 +1,12 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import {
-  convertToModelMessages,
-  InferUITools,
-  streamText,
-  ToolSet,
-  UIDataTypes,
-  UIMessage,
-  validateUIMessages,
-} from 'ai';
-
-const tools = {
-  web_search: openai.tools.webSearch({
-    searchContextSize: 'low',
-    userLocation: {
-      type: 'approximate',
-      city: 'San Francisco',
-      region: 'California',
-      country: 'US',
-    },
-  }),
-} satisfies ToolSet;
-
-export type OpenAIWebSearchMessage = UIMessage<
-  never,
-  UIDataTypes,
-  InferUITools<typeof tools>
->;
+import { openaiWebSearchAgent } from '@/agent/openai-web-search-agent';
+import { convertToModelMessages, validateUIMessages } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
   const uiMessages = await validateUIMessages({ messages });
 
-  const result = streamText({
-    model: openai('gpt-5-nano'),
-    tools,
+  const result = openaiWebSearchAgent.stream({
     messages: convertToModelMessages(uiMessages),
-    onStepFinish: ({ request }) => {
-      console.log(JSON.stringify(request.body, null, 2));
-    },
-    providerOptions: {
-      openai: {
-        store: false,
-        include: ['reasoning.encrypted_content'],
-      } satisfies OpenAIResponsesProviderOptions,
-    },
   });
 
   return result.toUIMessageStreamResponse({

@@ -216,13 +216,10 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
 @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
-@param onFinish - Callback that is called when the LLM response and all request tool executions
-(for tools that have an `execute` function) are finished.
+@param onFinish - Callback that is called when all steps are finished and the response is complete.
 
 @return
 A result object for accessing different stream types and additional information.
@@ -931,7 +928,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // Add response information to the root span:
           rootSpan.setAttributes(
-            selectTelemetryAttributes({
+            await selectTelemetryAttributes({
               telemetry,
               attributes: {
                 'ai.response.finishReason': finishReason,
@@ -1185,21 +1182,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
           });
 
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
-            supportedUrls: await model.supportedUrls,
+            supportedUrls: await stepModel.supportedUrls,
             download,
           });
 
-          const stepModel = resolveLanguageModel(
-            prepareStepResult?.model ?? model,
-          );
-
           const { toolChoice: stepToolChoice, tools: stepTools } =
-            prepareToolsAndToolChoice({
+            await prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: prepareStepResult?.activeTools ?? activeTools,
@@ -1261,7 +1258,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   ...callSettings,
                   tools: stepTools,
                   toolChoice: stepToolChoice,
-                  responseFormat: output?.responseFormat,
+                  responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
@@ -1458,7 +1455,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                       controller.enqueue({
                         ...chunk,
-                        dynamic: tool?.type === 'dynamic',
+                        dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
                       });
                       break;
                     }
@@ -1517,7 +1514,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   // record telemetry information first to ensure best effort timing
                   try {
                     doStreamSpan.setAttributes(
-                      selectTelemetryAttributes({
+                      await selectTelemetryAttributes({
                         telemetry,
                         attributes: {
                           'ai.response.finishReason': stepFinishReason,
@@ -1847,12 +1844,16 @@ However, the LLM results are expected to be small enough to not cause issues.
           })
         : undefined;
 
-    const toolNamesByCallId: Record<string, string> = {};
+    // TODO simplify once dynamic is no longer needed for invalid tool inputs
+    const isDynamic = (part: { toolName: string; dynamic?: boolean }) => {
+      const tool = this.tools?.[part.toolName];
 
-    const isDynamic = (toolCallId: string) => {
-      const toolName = toolNamesByCallId[toolCallId];
-      const dynamic = this.tools?.[toolName]?.type === 'dynamic';
-      return dynamic ? true : undefined; // only send when dynamic to reduce data transfer
+      // provider-executed, dynamic tools are not listed in the tools object
+      if (tool == null) {
+        return part.dynamic;
+      }
+
+      return tool?.type === 'dynamic' ? true : undefined;
     };
 
     const baseStream = this.fullStream.pipeThrough(
@@ -1976,8 +1977,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-input-start': {
-              toolNamesByCallId[part.id] = part.toolName;
-              const dynamic = isDynamic(part.id);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-input-start',
@@ -2001,8 +2001,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-call': {
-              toolNamesByCallId[part.toolCallId] = part.toolName;
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               if (part.invalid) {
                 controller.enqueue({
@@ -2048,7 +2047,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-result': {
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-output-available',
@@ -2066,7 +2065,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-error': {
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-output-error',

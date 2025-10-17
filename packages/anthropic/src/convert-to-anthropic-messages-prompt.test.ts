@@ -490,6 +490,79 @@ describe('tool messages', () => {
       }
     `);
   });
+
+  it('should handle tool result with PDF content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'pdf-generator',
+              toolCallId: 'pdf-gen-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'PDF generated successfully',
+                  },
+                  {
+                    type: 'media',
+                    data: 'JVBERi0xLjQKJeLjz9MKNCAwIG9iago=', // Sample PDF base64
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "PDF generated successfully",
+                      "type": "text",
+                    },
+                    {
+                      "cache_control": undefined,
+                      "source": {
+                        "data": "JVBERi0xLjQKJeLjz9MKNCAwIG9iago=",
+                        "media_type": "application/pdf",
+                        "type": "base64",
+                      },
+                      "type": "document",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "pdf-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
 });
 
 describe('assistant messages', () => {
@@ -1013,44 +1086,45 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
-  it('should convert anthropic code_execution tool call and result parts', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
-    const result = await convertToAnthropicMessagesPrompt({
-      prompt: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              input: {
-                code: 'print("Hello, world!")',
-              },
-              providerExecuted: true,
-              toolCallId: 'srvtoolu_01XyZ1234567890',
-              toolName: 'code_execution',
-              type: 'tool-call',
-            },
-            {
-              output: {
-                type: 'json',
-                value: {
-                  type: 'code_execution_result',
-                  stdout: 'Hello, world!',
-                  stderr: '',
-                  return_code: 0,
+  describe('code_execution 20250522', () => {
+    it('should convert anthropic code_execution tool call and result parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: {
+                  code: 'print("Hello, world!")',
                 },
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_01XyZ1234567890',
+                toolName: 'code_execution',
+                type: 'tool-call',
               },
-              toolCallId: 'srvtoolu_01XyZ1234567890',
-              toolName: 'code_execution',
-              type: 'tool-result',
-            },
-          ],
-        },
-      ],
-      sendReasoning: false,
-      warnings,
-    });
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'code_execution_result',
+                    stdout: 'Hello, world!',
+                    stderr: '',
+                    return_code: 0,
+                  },
+                },
+                toolCallId: 'srvtoolu_01XyZ1234567890',
+                toolName: 'code_execution',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
 
-    expect(result).toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
       {
         "betas": Set {},
         "prompt": {
@@ -1085,7 +1159,227 @@ describe('assistant messages', () => {
         },
       }
     `);
-    expect(warnings).toMatchInlineSnapshot(`[]`);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  describe('code_execution 20250825', () => {
+    it('should convert anthropic code_execution tool call and result parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                input: {
+                  type: 'text_editor_code_execution',
+                  command: 'create',
+                  path: '/tmp/fibonacci.py',
+                  file_text: 'def..',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'text_editor_code_execution_create_result',
+                    is_file_update: false,
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                input: {
+                  type: 'bash_code_execution',
+                  command: 'python /tmp/fibonacci.py',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'bash_code_execution_result',
+                    content: [],
+                    stdout: 'The 10th Fibonacci number is: 34\n',
+                    stderr: '',
+                    return_code: 0,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "input": {
+                      "command": "create",
+                      "file_text": "def..",
+                      "path": "/tmp/fibonacci.py",
+                      "type": "text_editor_code_execution",
+                    },
+                    "name": "text_editor_code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "is_file_update": false,
+                      "type": "text_editor_code_execution_create_result",
+                    },
+                    "tool_use_id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "type": "text_editor_code_execution_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "input": {
+                      "command": "python /tmp/fibonacci.py",
+                      "type": "bash_code_execution",
+                    },
+                    "name": "bash_code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "The 10th Fibonacci number is: 34
+        ",
+                      "type": "bash_code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "type": "bash_code_execution_tool_result",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  describe('mcp tool use', () => {
+    it('should convert anthropic mcp tool use parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'mcptoolu_01HXPYHs79HH36fBbKHysCrp',
+                toolName: 'echo',
+                input: {},
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: { type: 'mcp-tool-use', serverName: 'echo' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'mcptoolu_01HXPYHs79HH36fBbKHysCrp',
+                toolName: 'echo',
+                output: {
+                  type: 'json',
+                  value: [{ type: 'text', text: 'Tool echo: hello world' }],
+                },
+                providerOptions: undefined,
+              },
+              {
+                type: 'text',
+                text: 'The echo tool responded back with "hello world" - it simply echoed the message I sent to it!',
+                providerOptions: undefined,
+              },
+            ],
+            providerOptions: undefined,
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "mcptoolu_01HXPYHs79HH36fBbKHysCrp",
+                    "input": {},
+                    "name": "echo",
+                    "server_name": "echo",
+                    "type": "mcp_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": [
+                      {
+                        "text": "Tool echo: hello world",
+                        "type": "text",
+                      },
+                    ],
+                    "is_error": false,
+                    "tool_use_id": "mcptoolu_01HXPYHs79HH36fBbKHysCrp",
+                    "type": "mcp_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "text": "The echo tool responded back with "hello world" - it simply echoed the message I sent to it!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "provider executed tool result for tool echo is not supported",
+            "type": "other",
+          },
+        ]
+      `);
+    });
   });
 });
 

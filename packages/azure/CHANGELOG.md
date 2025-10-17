@@ -1,5 +1,149 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/openai@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/openai@3.0.0-beta.30
+
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [0b9fdd5]
+  - @ai-sdk/openai@3.0.0-beta.29
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [401f561]
+  - @ai-sdk/openai@3.0.0-beta.28
+
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [f1277fe]
+  - @ai-sdk/openai@3.0.0-beta.27
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [edc5548]
+  - @ai-sdk/openai@3.0.0-beta.26
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+  - @ai-sdk/openai@3.0.0-beta.25
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+  - @ai-sdk/openai@3.0.0-beta.24
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - @ai-sdk/openai@3.0.0-beta.23
+
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - @ai-sdk/openai@3.0.0-beta.22
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - @ai-sdk/openai@3.0.0-beta.21
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [68c6187]
+  - @ai-sdk/openai@3.0.0-beta.20
+
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [484aa93]
+  - @ai-sdk/openai@3.0.0-beta.19
+
+## 3.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+  - @ai-sdk/openai@3.0.0-beta.18
+
+## 3.0.0-beta.17
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/openai@3.0.0-beta.17
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 2.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/openai@2.1.0-beta.16
+
+## 2.1.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - @ai-sdk/openai@2.1.0-beta.15
+
+## 2.1.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [000e87b]
+  - @ai-sdk/openai@2.1.0-beta.14
+
 ## 2.1.0-beta.13
 
 ### Patch Changes

@@ -10,7 +10,7 @@ import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
   DynamicToolUIPart,
   FileUIPart,
-  getToolName,
+  getToolOrDynamicToolName,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -21,12 +21,14 @@ import {
 } from './ui-messages';
 
 /**
-Converts an array of messages from useChat into an array of CoreMessages that can be used
-with the AI core functions (e.g. `streamText`).
+Converts an array of UI messages from useChat into an array of ModelMessages that can be used
+with the AI functions (e.g. `streamText`, `generateText`).
 
-@param messages - The messages to convert.
+@param messages - The UI messages to convert.
 @param options.tools - The tools to use.
 @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
+
+@returns An array of ModelMessages.
  */
 export function convertToModelMessages(
   messages: Array<Omit<UIMessage, 'id'>>,
@@ -147,22 +149,8 @@ export function convertToModelMessages(
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
-              } else if (part.type === 'dynamic-tool') {
-                const toolName = part.toolName;
-
-                if (part.state !== 'input-streaming') {
-                  content.push({
-                    type: 'tool-call' as const,
-                    toolCallId: part.toolCallId,
-                    toolName,
-                    input: part.input,
-                    ...(part.callProviderMetadata != null
-                      ? { providerOptions: part.callProviderMetadata }
-                      : {}),
-                  });
-                }
-              } else if (isToolUIPart(part)) {
-                const toolName = getToolName(part);
+              } else if (isToolOrDynamicToolUIPart(part)) {
+                const toolName = getToolOrDynamicToolName(part);
 
                 if (part.state !== 'input-streaming') {
                   content.push({
@@ -171,7 +159,8 @@ export function convertToModelMessages(
                     toolName,
                     input:
                       part.state === 'output-error'
-                        ? (part.input ?? part.rawInput)
+                        ? (part.input ??
+                          ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
@@ -222,8 +211,8 @@ export function convertToModelMessages(
             // check if there are tool invocations with results in the block
             const toolParts = block.filter(
               part =>
-                (isToolUIPart(part) && part.providerExecuted !== true) ||
-                part.type === 'dynamic-tool',
+                isToolOrDynamicToolUIPart(part) &&
+                part.providerExecuted !== true,
             ) as (ToolUIPart<UITools> | DynamicToolUIPart)[];
 
             // tool message with tool results
@@ -237,10 +226,7 @@ export function convertToModelMessages(
                     > = [];
 
                     // add approval response for approved tool calls:
-                    if (
-                      toolPart.type !== 'dynamic-tool' &&
-                      toolPart.approval?.approved != null
-                    ) {
+                    if (toolPart.approval?.approved != null) {
                       outputs.push({
                         type: 'tool-approval-response' as const,
                         approvalId: toolPart.approval.id,
@@ -254,7 +240,7 @@ export function convertToModelMessages(
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
-                          toolName: getToolName(toolPart),
+                          toolName: getToolOrDynamicToolName(toolPart),
                           output: {
                             type: 'error-text' as const,
                             value:
@@ -268,11 +254,7 @@ export function convertToModelMessages(
 
                       case 'output-error':
                       case 'output-available': {
-                        const toolName =
-                          toolPart.type === 'dynamic-tool'
-                            ? toolPart.toolName
-                            : getToolName(toolPart);
-
+                        const toolName = getToolOrDynamicToolName(toolPart);
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
@@ -308,8 +290,7 @@ export function convertToModelMessages(
               part.type === 'text' ||
               part.type === 'reasoning' ||
               part.type === 'file' ||
-              part.type === 'dynamic-tool' ||
-              isToolUIPart(part)
+              isToolOrDynamicToolUIPart(part)
             ) {
               block.push(part);
             } else if (part.type === 'step-start') {
