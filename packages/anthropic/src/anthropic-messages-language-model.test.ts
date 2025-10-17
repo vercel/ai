@@ -1723,6 +1723,191 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('agent skills', () => {
+      it('should send request body with skills in container', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                id: 'test-container-id',
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                  {
+                    type: 'custom',
+                    skillId: 'my-custom-skill',
+                    version: '1.0',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": {
+              "id": "test-container-id",
+              "skills": [
+                {
+                  "skill_id": "pptx",
+                  "type": "anthropic",
+                  "version": "latest",
+                },
+                {
+                  "skill_id": "my-custom-skill",
+                  "type": "custom",
+                  "version": "1.0",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+
+        expect(result.warnings).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should add a warning when the code execution tool is not present', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              container: {
+                id: 'test-container-id',
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                  {
+                    type: 'custom',
+                    skillId: 'my-custom-skill',
+                    version: '1.0',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": {
+              "id": "test-container-id",
+              "skills": [
+                {
+                  "skill_id": "pptx",
+                  "type": "anthropic",
+                  "version": "latest",
+                },
+                {
+                  "skill_id": "my-custom-skill",
+                  "type": "custom",
+                  "version": "1.0",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+          }
+        `);
+
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "message": "code execution tool is required when using skills",
+              "type": "other",
+            },
+          ]
+        `);
+      });
+
+      it('should include beta headers when skills are configured', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "code-execution-2025-08-25,skills-2025-10-02,files-api-2025-04-14",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+    });
+
     describe('memory 20250818', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-memory-20250818.1');

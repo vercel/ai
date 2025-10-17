@@ -27,6 +27,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
+  AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
@@ -231,6 +232,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
 
+      // container with agent skills:
+      ...(anthropicOptions?.container && {
+        container: {
+          id: anthropicOptions.container.id,
+          skills: anthropicOptions.container.skills?.map(skill => ({
+            type: skill.type,
+            skill_id: skill.skillId,
+            version: skill.version,
+          })),
+        } satisfies AnthropicContainer,
+      }),
+
       // prompt:
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
@@ -287,6 +300,29 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         });
       }
       baseArgs.max_tokens = maxOutputTokensForModel;
+    }
+
+    if (
+      anthropicOptions?.container &&
+      anthropicOptions.container.skills &&
+      anthropicOptions.container.skills.length > 0
+    ) {
+      betas.add('code-execution-2025-08-25');
+      betas.add('skills-2025-10-02');
+      betas.add('files-api-2025-04-14');
+
+      if (
+        !tools?.some(
+          tool =>
+            tool.type === 'provider-defined' &&
+            tool.id === 'anthropic.code_execution_20250825',
+        )
+      ) {
+        warnings.push({
+          type: 'other',
+          message: 'code execution tool is required when using skills',
+        });
+      }
     }
 
     const {
