@@ -104,21 +104,20 @@ export const anthropicProviderOptions = z.object({
    * like document processing (PPTX, DOCX, PDF, XLSX) and data analysis.
    * Requires code execution tool to be enabled.
    */
-  skills: z
-    .array(
-      z.object({
-        type: z.union([z.literal('anthropic'), z.literal('custom')]),
-        skill_id: z.string(),
-        version: z.string().optional(),
-      }),
-    )
+  container: z
+    .object({
+      id: z.string().optional(),
+      skills: z
+        .array(
+          z.object({
+            type: z.union([z.literal('anthropic'), z.literal('custom')]),
+            skillId: z.string(),
+            version: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
     .optional(),
-
-  /**
-   * Beta feature headers to enable experimental Anthropic API features.
-   * For Skills, typically requires: 'code-execution-2025-08-25', 'skills-2025-10-02', 'files-api-2025-04-14'
-   */
-  betas: z.array(z.string()).optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

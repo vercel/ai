@@ -206,11 +206,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         warnings,
       });
 
-    // Add user-specified beta headers
-    if (anthropicOptions?.betas) {
-      anthropicOptions.betas.forEach(beta => betas.add(beta));
-    }
-
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
@@ -251,16 +246,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         }),
 
       // container with agent skills:
-      ...(anthropicOptions?.skills &&
-        anthropicOptions.skills.length > 0 && {
-          container: {
-            skills: anthropicOptions.skills.map(skill => ({
-              type: skill.type,
-              skill_id: skill.skill_id,
-              version: skill.version ?? 'latest',
-            })),
-          } satisfies AnthropicContainer,
-        }),
+      ...(anthropicOptions?.container && {
+        container: {
+          id: anthropicOptions.container.id,
+          skills: anthropicOptions.container.skills?.map(skill => ({
+            type: skill.type,
+            skill_id: skill.skillId,
+            version: skill.version,
+          })),
+        } satisfies AnthropicContainer,
+      }),
 
       // prompt:
       system: messagesPrompt.system,
@@ -325,6 +320,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       anthropicOptions.mcpServers.length > 0
     ) {
       betas.add('mcp-client-2025-04-04');
+    }
+
+    if (
+      anthropicOptions?.container &&
+      anthropicOptions.container.skills &&
+      anthropicOptions.container.skills.length > 0
+    ) {
+      betas.add('code-execution-2025-08-25');
+      betas.add('skills-2025-10-02');
+      betas.add('files-api-2025-04-14');
+
+      // TODO check for code execution tool
     }
 
     const {
