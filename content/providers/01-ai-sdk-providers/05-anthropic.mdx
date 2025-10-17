@@ -680,21 +680,18 @@ Anthropic provides several built-in skills:
 - **docx** - Create and edit Word documents
 - **pdf** - Process and analyze PDF files
 - **xlsx** - Work with Excel spreadsheets
-- **bigquery** - Query and analyze BigQuery data
-- **nda-review** - Review and analyze NDAs
 
 To use skills, you need to:
 
 1. Enable the code execution tool
 2. Specify the skills in `providerOptions`
-3. Include the required beta headers
 
 ```ts highlight="4,9-17,19-23"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5-20250929'),
+  model: anthropic('claude-sonnet-4-5'),
   tools: {
     code_execution: anthropic.tools.codeExecution_20250825(),
   },
@@ -702,11 +699,6 @@ const result = await generateText({
   providerOptions: {
     anthropic: {
       skills: [{ type: 'anthropic', skill_id: 'pptx', version: 'latest' }],
-      betas: [
-        'code-execution-2025-08-25',
-        'skills-2025-10-02',
-        'files-api-2025-04-14',
-      ],
     } satisfies AnthropicProviderOptions,
   },
 });
@@ -730,11 +722,6 @@ const result = await generateText({
         { type: 'anthropic', skill_id: 'pptx' },
         { type: 'anthropic', skill_id: 'xlsx' },
       ],
-      betas: [
-        'code-execution-2025-08-25',
-        'skills-2025-10-02',
-        'files-api-2025-04-14',
-      ],
     } satisfies AnthropicProviderOptions,
   },
 });
@@ -755,11 +742,6 @@ const result = await generateText({
     anthropic: {
       skills: [
         { type: 'custom', skill_id: 'my-custom-skill-id', version: '1.0' },
-      ],
-      betas: [
-        'code-execution-2025-08-25',
-        'skills-2025-10-02',
-        'files-api-2025-04-14',
       ],
     } satisfies AnthropicProviderOptions,
   },
