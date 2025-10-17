@@ -1,5 +1,26 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+
 ## 4.0.0-beta.16
 
 ### Patch Changes

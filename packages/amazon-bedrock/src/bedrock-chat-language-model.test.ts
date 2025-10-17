@@ -1441,6 +1441,39 @@ describe('doStream', () => {
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
+  it('merges user additionalModelRequestFields with derived thinking (stream)', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: { type: 'enabled', budgetTokens: 500 },
+          additionalModelRequestFields: { foo: 'bar', custom: 42 },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('reasoningConfig');
+    expect(body.additionalModelRequestFields).toMatchObject({
+      foo: 'bar',
+      custom: 42,
+      thinking: { type: 'enabled', budget_tokens: 500 },
+    });
+  });
+
   it('should handle JSON response format in streaming', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1794,7 +1827,9 @@ describe('doGenerate', () => {
   it('should handle Anthropic provider-defined tools', async () => {
     mockPrepareAnthropicTools.mockReturnValue(
       Promise.resolve({
-        tools: [{ name: 'bash', type: 'bash_20241022' }],
+        tools: [
+          { name: 'bash', type: 'bash_20241022', cache_control: undefined },
+        ],
         toolChoice: { type: 'auto' },
         toolWarnings: [],
         betas: new Set(['computer-use-2024-10-22']),
@@ -2050,6 +2085,28 @@ describe('doGenerate', () => {
 
     // Should NOT contain reasoningConfig at the top level
     expect(requestBody).not.toHaveProperty('reasoningConfig');
+  });
+
+  it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: { type: 'enabled', budgetTokens: 1234 },
+          additionalModelRequestFields: { foo: 'bar', custom: 42 },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('reasoningConfig');
+    expect(body.additionalModelRequestFields).toMatchObject({
+      foo: 'bar',
+      custom: 42,
+      thinking: { type: 'enabled', budget_tokens: 1234 },
+    });
   });
 
   it('should extract reasoning text with signature', async () => {

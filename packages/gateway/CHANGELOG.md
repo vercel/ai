@@ -1,5 +1,46 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 2.0.0-beta.34
+
+### Major Changes
+
+- 2f8b0c8: fix(gateway): bump `@vercel/oidc` to latest
+
+## 2.0.0-beta.33
+
+### Patch Changes
+
+- 1890317: feat (provider/gateway): improve auth error messages
+
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- 0a2ff8a: feat (provider/gateway): add user and tags provider options
+
 ## 2.0.0-beta.29
 
 ### Patch Changes
