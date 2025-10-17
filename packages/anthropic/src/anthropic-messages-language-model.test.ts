@@ -1805,35 +1805,73 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
           providerOptions: {
             anthropic: {
-              skills: [
-                {
-                  type: 'anthropic',
-                  skill_id: 'pptx',
-                  version: 'latest',
-                },
-              ],
-              betas: [
-                'code-execution-2025-08-25',
-                'skills-2025-10-02',
-                'files-api-2025-04-14',
-              ],
+              container: {
+                id: 'test-container-id',
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                  {
+                    type: 'custom',
+                    skillId: 'my-custom-skill',
+                    version: '1.0',
+                  },
+                ],
+              },
             } satisfies AnthropicProviderOptions,
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          container: {
-            skills: [
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": {
+              "id": "test-container-id",
+              "skills": [
+                {
+                  "skill_id": "pptx",
+                  "type": "anthropic",
+                  "version": "latest",
+                },
+                {
+                  "skill_id": "my-custom-skill",
+                  "type": "custom",
+                  "version": "1.0",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
               {
-                type: 'anthropic',
-                skill_id: 'pptx',
-                version: 'latest',
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
               },
             ],
-          },
-        });
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
       });
 
       it('should include beta headers when skills are configured', async () => {
@@ -1841,108 +1879,37 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
           providerOptions: {
             anthropic: {
-              skills: [{ type: 'anthropic', skill_id: 'docx' }],
-              betas: [
-                'code-execution-2025-08-25',
-                'skills-2025-10-02',
-                'files-api-2025-04-14',
-              ],
-            } satisfies AnthropicProviderOptions,
-          },
-        });
-
-        const betaHeader = server.calls[0].requestHeaders['anthropic-beta'];
-        expect(betaHeader).toContain('code-execution-2025-08-25');
-        expect(betaHeader).toContain('skills-2025-10-02');
-        expect(betaHeader).toContain('files-api-2025-04-14');
-      });
-
-      it('should support both anthropic and custom skill types', async () => {
-        prepareJsonResponse({});
-
-        await model.doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            anthropic: {
-              skills: [
-                { type: 'anthropic', skill_id: 'pptx', version: '1.0' },
-                { type: 'custom', skill_id: 'my-custom-skill' },
-              ],
-              betas: ['skills-2025-10-02'],
-            } satisfies AnthropicProviderOptions,
-          },
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          container: {
-            skills: [
-              {
-                type: 'anthropic',
-                skill_id: 'pptx',
-                version: '1.0',
+              container: {
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                ],
               },
-              {
-                type: 'custom',
-                skill_id: 'my-custom-skill',
-                version: 'latest',
-              },
-            ],
-          },
-        });
-      });
-
-      it('should default version to latest when not specified', async () => {
-        prepareJsonResponse({});
-
-        await model.doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            anthropic: {
-              skills: [{ type: 'anthropic', skill_id: 'xlsx' }],
-              betas: ['skills-2025-10-02'],
             } satisfies AnthropicProviderOptions,
           },
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.container.skills[0].version).toBe('latest');
-      });
-
-      it('should support multiple skills', async () => {
-        prepareJsonResponse({});
-
-        await model.doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            anthropic: {
-              skills: [
-                { type: 'anthropic', skill_id: 'pptx' },
-                { type: 'anthropic', skill_id: 'docx' },
-                { type: 'anthropic', skill_id: 'pdf' },
-              ],
-              betas: ['skills-2025-10-02'],
-            } satisfies AnthropicProviderOptions,
-          },
-        });
-
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.container.skills).toHaveLength(3);
-        expect(
-          requestBody.container.skills.map((s: any) => s.skill_id),
-        ).toEqual(['pptx', 'docx', 'pdf']);
-      });
-
-      it('should not include container when no skills are configured', async () => {
-        prepareJsonResponse({});
-
-        await model.doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.container).toBeUndefined();
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "code-execution-2025-08-25,skills-2025-10-02,files-api-2025-04-14",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
       });
     });
 
