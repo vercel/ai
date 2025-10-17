@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.33
+
+### Patch Changes
+
+- 28c9c6a: feat(anthropic): add prompt caching validation
+
 ## 2.0.32
 
 ### Patch Changes
