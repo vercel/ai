@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.55
+
+### Patch Changes
+
+- 42cf7ed: fix(agent): use tool.toModelOutput when available
+
 ## 6.0.0-beta.54
 
 ### Patch Changes
