@@ -491,7 +491,7 @@ describe('tool messages', () => {
     `);
   });
 
-  it('should handle tool result with PDF content', async () => {
+  it('should handle tool result with base64 PDF content', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -552,6 +552,78 @@ describe('tool messages', () => {
                   ],
                   "is_error": undefined,
                   "tool_use_id": "pdf-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should handle tool result with url-based PDF content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'media',
+                    data: 'https://example.com/document.pdf',
+                    mediaType: 'application/pdf',
+                  },
+                  {
+                    type: 'text',
+                    text: 'Document loaded successfully',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.com/document.pdf",
+                      },
+                      "type": "document",
+                    },
+                    {
+                      "cache_control": undefined,
+                      "text": "Document loaded successfully",
+                      "type": "text",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "image-gen-1",
                   "type": "tool_result",
                 },
               ],
