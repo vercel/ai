@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- 9354297: feat(provider/anthropic): add support for Agent Skills
+
 ## 3.0.0-beta.29
 
 ### Patch Changes
