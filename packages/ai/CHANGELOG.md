@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.54
+
+### Patch Changes
+
+- 9388ff1: feat(ui): add isDataUIPart helper
+
 ## 6.0.0-beta.53
 
 ### Patch Changes
