@@ -9,7 +9,7 @@ export const openaiImageResponseSchema = lazyValidator(() =>
       data: z.array(
         z.object({
           b64_json: z.string(),
-          revised_prompt: z.string().optional(),
+          revised_prompt: z.string().nullable().optional(),
         }),
       ),
     }),
