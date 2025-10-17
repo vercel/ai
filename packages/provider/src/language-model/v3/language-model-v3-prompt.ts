@@ -210,23 +210,31 @@ export type LanguageModelV3ToolResultOutput =
             type: 'text';
 
             /**
-Text content.
-*/
+             * Text content.
+             */
             text: string;
           }
         | {
             type: 'media';
 
             /**
-            Media data. Can be a base64 encoded string or a URL.
-            */
-            data: string | URL;
+             * Base-64 encoded media data. Can be a URL.
+             */
+            data: string;
 
             /**
-IANA media type.
-@see https://www.iana.org/assignments/media-types/media-types.xhtml
-*/
+             * IANA media type.
+             * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+             */
             mediaType: string;
+          }
+        | {
+            type: 'url';
+
+            /**
+             * URL of the media.
+             */
+            url: string;
           }
       >;
     };
