@@ -491,7 +491,7 @@ describe('tool messages', () => {
     `);
   });
 
-  it('should handle tool result with PDF content', async () => {
+  it('should handle tool result with document content parts', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -499,19 +499,19 @@ describe('tool messages', () => {
           content: [
             {
               type: 'tool-result',
-              toolName: 'pdf-generator',
-              toolCallId: 'pdf-gen-1',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
               output: {
                 type: 'content',
                 value: [
                   {
-                    type: 'text',
-                    text: 'PDF generated successfully',
+                    type: 'media',
+                    data: new URL('https://example.com/document.pdf'),
+                    mediaType: 'application/pdf',
                   },
                   {
-                    type: 'media',
-                    data: 'JVBERi0xLjQKJeLjz9MKNCAwIG9iago=', // Sample PDF base64
-                    mediaType: 'application/pdf',
+                    type: 'text',
+                    text: 'Document loaded successfully',
                   },
                 ],
               },
@@ -525,9 +525,7 @@ describe('tool messages', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "betas": Set {
-          "pdfs-2024-09-25",
-        },
+        "betas": Set {},
         "prompt": {
           "messages": [
             {
@@ -537,21 +535,20 @@ describe('tool messages', () => {
                   "content": [
                     {
                       "cache_control": undefined,
-                      "text": "PDF generated successfully",
-                      "type": "text",
-                    },
-                    {
-                      "cache_control": undefined,
                       "source": {
-                        "data": "JVBERi0xLjQKJeLjz9MKNCAwIG9iago=",
-                        "media_type": "application/pdf",
-                        "type": "base64",
+                        "type": "url",
+                        "url": "https://example.com/document.pdf",
                       },
                       "type": "document",
                     },
+                    {
+                      "cache_control": undefined,
+                      "text": "Document loaded successfully",
+                      "type": "text",
+                    },
                   ],
                   "is_error": undefined,
-                  "tool_use_id": "pdf-gen-1",
+                  "tool_use_id": "image-gen-1",
                   "type": "tool_result",
                 },
               ],
