@@ -198,7 +198,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       schema: anthropicProviderOptions,
     });
 
-    const { prompt: messagesPrompt, betas: messagesBetas } =
+    const { prompt: messagesPrompt, betas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
@@ -227,25 +227,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
 
-<<<<<<< HEAD
-=======
-      // mcp servers:
-      ...(anthropicOptions?.mcpServers &&
-        anthropicOptions.mcpServers.length > 0 && {
-          mcp_servers: anthropicOptions.mcpServers.map(server => ({
-            type: server.type,
-            name: server.name,
-            url: server.url,
-            authorization_token: server.authorizationToken,
-            tool_configuration: server.toolConfiguration
-              ? {
-                  allowed_tools: server.toolConfiguration.allowedTools,
-                  enabled: server.toolConfiguration.enabled,
-                }
-              : undefined,
-          })),
-        }),
-
       // container with agent skills:
       ...(anthropicOptions?.container && {
         container: {
@@ -258,7 +239,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         } satisfies AnthropicContainer,
       }),
 
->>>>>>> 93542976f (feat(provider/anthropic): implement support for Claude Agent Skills (#9597))
       // prompt:
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
@@ -317,15 +297,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       baseArgs.max_tokens = maxOutputTokensForModel;
     }
 
-<<<<<<< HEAD
-=======
-    if (
-      anthropicOptions?.mcpServers &&
-      anthropicOptions.mcpServers.length > 0
-    ) {
-      betas.add('mcp-client-2025-04-04');
-    }
-
     if (
       anthropicOptions?.container &&
       anthropicOptions.container.skills &&
@@ -349,7 +320,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
     }
 
->>>>>>> 93542976f (feat(provider/anthropic): implement support for Claude Agent Skills (#9597))
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -376,7 +346,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         tool_choice: anthropicToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
-      betas: new Set([...messagesBetas, ...toolsBetas]),
+      betas: new Set([...betas, ...toolsBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
     };
   }
