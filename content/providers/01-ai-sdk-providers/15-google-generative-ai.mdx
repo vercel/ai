@@ -172,6 +172,25 @@ The following optional provider options are available for Google Generative AI m
 
     Optional. If set to true, thought summaries are returned, which are synthisized versions of the model's raw thoughts and offer insights into the model's internal reasoning process.
 
+- **imageConfig** _\{ aspectRatio: string \}_
+
+  Optional. Configuration for the models image generation. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/image-generation).
+
+  - **aspectRatio** _string_
+
+  Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
+
+  - 1:1
+  - 2:3
+  - 3:2
+  - 3:4
+  - 4:3
+  - 4:5
+  - 5:4
+  - 9:16
+  - 16:9
+  - 21:9
+
 ### Thinking
 
 The Gemini 2.5 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).

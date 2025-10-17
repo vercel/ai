@@ -6,6 +6,6 @@ Callback that is set using the `onStepFinish` option.
 
 @param stepResult - The result of the step.
  */
-export type AgentOnStepFinishCallback<TOOLS extends ToolSet> = (
+export type BasicAgentOnStepFinishCallback<TOOLS extends ToolSet = {}> = (
   stepResult: StepResult<TOOLS>,
 ) => Promise<void> | void;
