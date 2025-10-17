@@ -332,7 +332,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('files-api-2025-04-14');
 
       if (
-        tools?.some(
+        !tools?.some(
           tool =>
             tool.type === 'provider-defined' &&
             tool.id === 'anthropic.code_execution_20250825',

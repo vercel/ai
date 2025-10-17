@@ -1873,14 +1873,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
 
-        expect(result.warnings).toMatchInlineSnapshot(`
-          [
-            {
-              "message": "code execution tool is required when using skills",
-              "type": "other",
-            },
-          ]
-        `);
+        expect(result.warnings).toMatchInlineSnapshot(`[]`);
       });
 
       it('should add a warning when the code execution tool is not present', async () => {
@@ -1942,7 +1935,14 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
 
-        expect(result.warnings).toMatchInlineSnapshot(`[]`);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "message": "code execution tool is required when using skills",
+              "type": "other",
+            },
+          ]
+        `);
       });
 
       it('should include beta headers when skills are configured', async () => {
