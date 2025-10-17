@@ -11,6 +11,7 @@ export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
 
 export type AnthropicCacheControl = {
   type: 'ephemeral';
+  ttl?: '5m' | '1h';
 };
 
 export interface AnthropicUserMessage {
@@ -49,13 +50,17 @@ export interface AnthropicThinkingContent {
   type: 'thinking';
   thinking: string;
   signature: string;
-  cache_control: AnthropicCacheControl | undefined;
+  // Note: thinking blocks cannot be directly cached with cache_control.
+  // They are cached implicitly when appearing in previous assistant turns.
+  cache_control?: never;
 }
 
 export interface AnthropicRedactedThinkingContent {
   type: 'redacted_thinking';
   data: string;
-  cache_control: AnthropicCacheControl | undefined;
+  // Note: redacted thinking blocks cannot be directly cached with cache_control.
+  // They are cached implicitly when appearing in previous assistant turns.
+  cache_control?: never;
 }
 
 type AnthropicContentSource =
@@ -112,13 +117,38 @@ export interface AnthropicServerToolUseContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+// Nested content types for tool results (without cache_control)
+// Sub-content blocks cannot be cached directly according to Anthropic docs
+type AnthropicNestedTextContent = Omit<
+  AnthropicTextContent,
+  'cache_control'
+> & {
+  cache_control?: never;
+};
+
+type AnthropicNestedImageContent = Omit<
+  AnthropicImageContent,
+  'cache_control'
+> & {
+  cache_control?: never;
+};
+
+type AnthropicNestedDocumentContent = Omit<
+  AnthropicDocumentContent,
+  'cache_control'
+> & {
+  cache_control?: never;
+};
+
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
   content:
     | string
     | Array<
-        AnthropicTextContent | AnthropicImageContent | AnthropicDocumentContent
+        | AnthropicNestedTextContent
+        | AnthropicNestedImageContent
+        | AnthropicNestedDocumentContent
       >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
@@ -233,6 +263,7 @@ export type AnthropicTool =
   | {
       type: 'code_execution_20250522';
       name: string;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       type: 'code_execution_20250825';
@@ -244,6 +275,7 @@ export type AnthropicTool =
       display_width_px: number;
       display_height_px: number;
       display_number: number;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
@@ -251,15 +283,18 @@ export type AnthropicTool =
         | 'text_editor_20250124'
         | 'text_editor_20241022'
         | 'text_editor_20250429';
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
       type: 'text_editor_20250728';
       max_characters?: number;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
       type: 'bash_20250124' | 'bash_20241022';
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
@@ -273,6 +308,7 @@ export type AnthropicTool =
       blocked_domains?: string[];
       citations?: { enabled: boolean };
       max_content_tokens?: number;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       type: 'web_search_20250305';
@@ -287,6 +323,7 @@ export type AnthropicTool =
         country?: string;
         timezone?: string;
       };
+      cache_control: AnthropicCacheControl | undefined;
     };
 
 export type AnthropicToolChoice =

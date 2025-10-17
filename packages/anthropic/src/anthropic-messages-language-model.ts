@@ -38,6 +38,7 @@ import {
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 function createCitationSource(
@@ -197,11 +198,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       schema: anthropicProviderOptions,
     });
 
+<<<<<<< HEAD
     const { prompt: messagesPrompt, betas: messagesBetas } =
+=======
+    // Create a shared cache control validator to track breakpoints across tools and messages
+    const cacheControlValidator = new CacheControlValidator();
+
+    const { prompt: messagesPrompt, betas } =
+>>>>>>> ca0728506 (feat(provider/anthropic): add prompt caching validation (#9330))
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
+        cacheControlValidator,
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
@@ -295,13 +304,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
             disableParallelToolUse: true,
+            cacheControlValidator,
           }
         : {
             tools: tools ?? [],
             toolChoice,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+            cacheControlValidator,
           },
     );
+
+    // Extract cache control warnings once at the end
+    const cacheWarnings = cacheControlValidator.getWarnings();
 
     return {
       args: {
@@ -309,8 +323,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         tools: anthropicTools,
         tool_choice: anthropicToolChoice,
       },
+<<<<<<< HEAD
       warnings: [...warnings, ...toolWarnings],
       betas: new Set([...messagesBetas, ...toolsBetas]),
+=======
+      warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
+      betas: new Set([...betas, ...toolsBetas]),
+>>>>>>> ca0728506 (feat(provider/anthropic): add prompt caching validation (#9330))
       usesJsonResponseTool: jsonResponseTool != null,
     };
   }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { prepareTools } from './anthropic-prepare-tools';
+import { CacheControlValidator } from './get-cache-control';
 
 describe('prepareTools', () => {
   it('should return undefined tools and tool_choice when tools are null', async () => {
@@ -71,6 +72,7 @@ describe('prepareTools', () => {
             "toolWarnings": [],
             "tools": [
               {
+                "cache_control": undefined,
                 "display_height_px": 600,
                 "display_number": 1,
                 "display_width_px": 800,
@@ -104,6 +106,7 @@ describe('prepareTools', () => {
             "toolWarnings": [],
             "tools": [
               {
+                "cache_control": undefined,
                 "name": "str_replace_editor",
                 "type": "text_editor_20241022",
               },
@@ -134,6 +137,7 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "cache_control": undefined,
               "name": "bash",
               "type": "bash_20241022",
             },
@@ -160,6 +164,7 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "cache_control": undefined,
               "max_characters": 10000,
               "name": "str_replace_based_edit_tool",
               "type": "text_editor_20250728",
@@ -187,6 +192,7 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "cache_control": undefined,
               "max_characters": undefined,
               "name": "str_replace_based_edit_tool",
               "type": "text_editor_20250728",
@@ -222,6 +228,7 @@ describe('prepareTools', () => {
                 "https://www.google.com",
               ],
               "blocked_domains": undefined,
+              "cache_control": undefined,
               "max_uses": 10,
               "name": "web_search",
               "type": "web_search_20250305",
@@ -265,6 +272,7 @@ describe('prepareTools', () => {
                 "https://www.google.com",
               ],
               "blocked_domains": undefined,
+              "cache_control": undefined,
               "citations": {
                 "enabled": true,
               },
@@ -397,5 +405,83 @@ describe('prepareTools', () => {
         },
       ]
     `);
+  });
+
+  it('should limit cache breakpoints to 4', async () => {
+    const cacheControlValidator = new CacheControlValidator();
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'tool1',
+          description: 'Test 1',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool2',
+          description: 'Test 2',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool3',
+          description: 'Test 3',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool4',
+          description: 'Test 4',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool5',
+          description: 'Test 5 (should be rejected)',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+      ],
+      cacheControlValidator,
+    });
+
+    // First 4 should have cache_control
+    expect(result.tools?.[0]).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+    expect(result.tools?.[1]).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+    expect(result.tools?.[2]).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+    expect(result.tools?.[3]).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+
+    // 5th should be rejected (cache_control should be undefined)
+    expect(result.tools?.[4]).toHaveProperty('cache_control', undefined);
+
+    // Should have warning
+    expect(cacheControlValidator.getWarnings()).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'cacheControl',
+      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
+    });
   });
 });
