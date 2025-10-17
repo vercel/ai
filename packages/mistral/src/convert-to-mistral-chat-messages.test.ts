@@ -257,7 +257,7 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "[{"type":"text","text":"Here is the result:"},{"type":"media","data":"base64data","mediaType":"image/png"}]",
+          "content": "[{"type":"text","text":"Here is the result:"},{"type":"image-data","data":"base64data","mediaType":"image/png"}]",
           "name": "image-tool",
           "role": "tool",
           "tool_call_id": "tool-call-id-3",
