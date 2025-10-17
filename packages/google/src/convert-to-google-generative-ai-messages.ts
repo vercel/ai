@@ -165,7 +165,7 @@ export function convertToGoogleGenerativeAIMessages(
                     },
                   });
                   break;
-                case 'media':
+                case 'image-data':
                   parts.push(
                     {
                       inlineData: {
@@ -179,6 +179,7 @@ export function convertToGoogleGenerativeAIMessages(
                   );
                   break;
                 default:
+                  // TODO replace with warning
                   parts.push({ text: JSON.stringify(contentPart) });
                   break;
               }

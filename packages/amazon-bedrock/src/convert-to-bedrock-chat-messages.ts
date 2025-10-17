@@ -155,7 +155,7 @@ export async function convertToBedrockChatMessages(
                       switch (contentPart.type) {
                         case 'text':
                           return { text: contentPart.text };
-                        case 'media':
+                        case 'image-data':
                           if (!contentPart.mediaType.startsWith('image/')) {
                             throw new UnsupportedFunctionalityError({
                               functionality: `media type: ${contentPart.mediaType}`,

@@ -227,7 +227,11 @@ describe('tool calls', () => {
               type: 'content',
               value: [
                 { type: 'text', text: 'Here is the result:' },
-                { type: 'media', data: 'base64data', mediaType: 'image/png' },
+                {
+                  type: 'image-data',
+                  data: 'base64data',
+                  mediaType: 'image/png',
+                },
               ],
             },
           },
