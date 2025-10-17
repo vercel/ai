@@ -179,7 +179,6 @@ export function convertToGoogleGenerativeAIMessages(
                   );
                   break;
                 default:
-                  // TODO replace with warning
                   parts.push({ text: JSON.stringify(contentPart) });
                   break;
               }
