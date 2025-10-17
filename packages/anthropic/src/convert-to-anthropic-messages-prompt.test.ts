@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { CacheControlValidator } from './get-cache-control';
 
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
@@ -463,12 +464,10 @@ describe('tool messages', () => {
                   "cache_control": undefined,
                   "content": [
                     {
-                      "cache_control": undefined,
                       "text": "Image generated successfully",
                       "type": "text",
                     },
                     {
-                      "cache_control": undefined,
                       "source": {
                         "data": "AAECAw==",
                         "media_type": "image/png",
@@ -536,12 +535,10 @@ describe('tool messages', () => {
                   "cache_control": undefined,
                   "content": [
                     {
-                      "cache_control": undefined,
                       "text": "PDF generated successfully",
                       "type": "text",
                     },
                     {
-                      "cache_control": undefined,
                       "source": {
                         "data": "JVBERi0xLjQKJeLjz9MKNCAwIG9iago=",
                         "media_type": "application/pdf",
@@ -1651,6 +1648,184 @@ describe('cache control', () => {
         },
         betas: new Set(),
       });
+    });
+  });
+
+  describe('cache control validation', () => {
+    it('should reject cache_control on thinking blocks', async () => {
+      const warnings: LanguageModelV2CallWarning[] = [];
+      const cacheControlValidator = new CacheControlValidator();
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'thinking content',
+                providerOptions: {
+                  anthropic: {
+                    signature: 'test-sig',
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        cacheControlValidator,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: 'thinking content',
+                  signature: 'test-sig',
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+
+      expect(cacheControlValidator.getWarnings()).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'cacheControl',
+        details:
+          'cache_control cannot be set on thinking block. It will be ignored.',
+      });
+    });
+
+    it('should reject cache_control on redacted thinking blocks', async () => {
+      const warnings: LanguageModelV2CallWarning[] = [];
+      const cacheControlValidator = new CacheControlValidator();
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'redacted',
+                providerOptions: {
+                  anthropic: {
+                    redactedData: 'abc123',
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        cacheControlValidator,
+      });
+
+      expect(result.prompt.messages[0].content[0]).not.toHaveProperty(
+        'cache_control',
+      );
+
+      expect(cacheControlValidator.getWarnings()).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'cacheControl',
+        details:
+          'cache_control cannot be set on redacted thinking block. It will be ignored.',
+      });
+    });
+  });
+
+  it('should limit cache breakpoints to 4', async () => {
+    const warnings: LanguageModelV2CallWarning[] = [];
+    const cacheControlValidator = new CacheControlValidator();
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'system 1',
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          role: 'system',
+          content: 'system 2',
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'user 1',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'assistant 1',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'user 2 (should be rejected)',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      cacheControlValidator,
+    });
+
+    // First 4 should have cache_control
+    expect(result.prompt.system?.[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.system?.[1].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.messages[0].content[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.messages[1].content[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+
+    // 5th should be rejected
+    expect(result.prompt.messages[2].content[0].cache_control).toBeUndefined();
+
+    // Should have warning about exceeding limit
+    expect(cacheControlValidator.getWarnings()).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'cacheControl',
+      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
     });
   });
 });
