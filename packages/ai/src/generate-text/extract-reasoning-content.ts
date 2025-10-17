@@ -1,13 +1,13 @@
 import {
-  LanguageModelV2Content,
-  LanguageModelV2Reasoning,
+  LanguageModelV3Content,
+  LanguageModelV3Reasoning,
 } from '@ai-sdk/provider';
 
 export function extractReasoningContent(
-  content: LanguageModelV2Content[],
+  content: LanguageModelV3Content[],
 ): string | undefined {
   const parts = content.filter(
-    (content): content is LanguageModelV2Reasoning =>
+    (content): content is LanguageModelV3Reasoning =>
       content.type === 'reasoning',
   );
 

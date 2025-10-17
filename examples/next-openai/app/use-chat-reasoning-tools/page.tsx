@@ -1,6 +1,6 @@
 'use client';
 
-import ChatInput from '@/component/chat-input';
+import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { ReasoningToolsMessage } from '../api/use-chat-reasoning-tools/route';
@@ -43,7 +43,7 @@ export default function Chat() {
               );
             }
 
-            if (part.type === 'tool-web_search_preview') {
+            if (part.type === 'tool-web_search') {
               switch (part.state) {
                 // example of pre-rendering streaming tool calls:
                 case 'input-streaming':

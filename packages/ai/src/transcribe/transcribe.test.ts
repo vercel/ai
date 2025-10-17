@@ -1,11 +1,26 @@
 import {
   JSONValue,
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV3,
+  TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
-import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vitest,
+  vi,
+} from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
+import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { transcribe } from './transcribe';
-import { describe, it, expect } from 'vitest';
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
@@ -37,7 +52,7 @@ const createMockResponse = (options: {
   }>;
   language?: string;
   durationInSeconds?: number;
-  warnings?: TranscriptionModelV2CallWarning[];
+  warnings?: TranscriptionModelV3CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
@@ -57,14 +72,26 @@ const createMockResponse = (options: {
 });
 
 describe('transcribe', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<TranscriptionModelV2['doGenerate']>[0];
+    let capturedArgs!: Parameters<TranscriptionModelV3['doGenerate']>[0];
 
     await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -73,14 +100,19 @@ describe('transcribe', () => {
         },
       }),
       audio: audioData,
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+      },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
       audio: audioData,
       mediaType: 'audio/wav',
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': 'ai/0.0.0-test',
+      },
       abortSignal,
       providerOptions: {},
     });
@@ -88,7 +120,7 @@ describe('transcribe', () => {
 
   it('should return warnings', async () => {
     const result = await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async () =>
           createMockResponse({
             ...sampleTranscript,
@@ -116,9 +148,53 @@ describe('transcribe', () => {
     ]);
   });
 
+  it('should call logWarnings with the correct warnings', async () => {
+    const expectedWarnings: TranscriptionModelV3CallWarning[] = [
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+      {
+        type: 'unsupported-setting',
+        setting: 'mediaType',
+        details: 'MediaType parameter not supported',
+      },
+    ];
+
+    await transcribe({
+      model: new MockTranscriptionModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            ...sampleTranscript,
+            warnings: expectedWarnings,
+          }),
+      }),
+      audio: audioData,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+  });
+
+  it('should call logWarnings with empty array when no warnings are present', async () => {
+    await transcribe({
+      model: new MockTranscriptionModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            ...sampleTranscript,
+            warnings: [], // no warnings
+          }),
+      }),
+      audio: audioData,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith([]);
+  });
+
   it('should return the transcript', async () => {
     const result = await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async () =>
           createMockResponse({
             ...sampleTranscript,
@@ -145,7 +221,7 @@ describe('transcribe', () => {
     it('should throw NoTranscriptGeneratedError when no transcript is returned', async () => {
       await expect(
         transcribe({
-          model: new MockTranscriptionModelV2({
+          model: new MockTranscriptionModelV3({
             doGenerate: async () =>
               createMockResponse({
                 text: '',
@@ -172,7 +248,7 @@ describe('transcribe', () => {
     it('should include response headers in error when no transcript generated', async () => {
       await expect(
         transcribe({
-          model: new MockTranscriptionModelV2({
+          model: new MockTranscriptionModelV3({
             doGenerate: async () =>
               createMockResponse({
                 text: '',
@@ -182,6 +258,7 @@ describe('transcribe', () => {
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
+                  'user-agent': 'ai/0.0.0-test',
                 },
               }),
           }),
@@ -196,6 +273,7 @@ describe('transcribe', () => {
             modelId: expect.any(String),
             headers: {
               'custom-response-header': 'response-header-value',
+              'user-agent': 'ai/0.0.0-test',
             },
           },
         ],
@@ -207,7 +285,7 @@ describe('transcribe', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await transcribe({
-      model: new MockTranscriptionModelV2({
+      model: new MockTranscriptionModelV3({
         doGenerate: async () =>
           createMockResponse({
             ...sampleTranscript,

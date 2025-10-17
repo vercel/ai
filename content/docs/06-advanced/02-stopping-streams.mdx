@@ -44,6 +44,13 @@ export async function POST(req: Request) {
 The hooks, e.g. `useChat` or `useCompletion`, provide a `stop` helper function that can be used to cancel a stream.
 This will cancel the stream from the client side to the server.
 
+<Note type="warning">
+  Stream abort functionality is not compatible with stream resumption. If you're
+  using `resume: true` in `useChat`, the abort functionality will break the
+  resumption mechanism. Choose either abort or resume functionality, but not
+  both.
+</Note>
+
 ```tsx file="app/page.tsx" highlight="9,18-20"
 'use client';
 

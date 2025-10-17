@@ -8,7 +8,7 @@ import {
 } from 'ai';
 
 const tools = {
-  web_search_preview: openai.tools.webSearchPreview({
+  web_search: openai.tools.webSearch({
     searchContextSize: 'high',
     userLocation: {
       type: 'approximate',

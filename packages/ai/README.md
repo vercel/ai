@@ -2,65 +2,175 @@
 
 # AI SDK
 
-The [AI SDK](https://ai-sdk.dev/docs) is a TypeScript toolkit designed to help you build AI-powered applications using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
+The [AI SDK](https://ai-sdk.dev/docs) is a TypeScript toolkit designed to help you build AI-powered applications and agents using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
 
 To learn more about how to use the AI SDK, check out our [API Reference](https://ai-sdk.dev/docs/reference) and [Documentation](https://ai-sdk.dev/docs).
 
 ## Installation
 
-You will need Node.js 18+ and pnpm installed on your local development machine.
+You will need Node.js 18+ and npm (or another package manager) installed on your local development machine.
 
 ```shell
 npm install ai
 ```
 
-## Usage
+## Unified Provider Architecture
 
-### AI SDK Core
-
-The [AI SDK Core](https://ai-sdk.dev/docs/ai-sdk-core/overview) module provides a unified API to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai), and more.
-
-You will then install the model provider of your choice.
+The AI SDK provides a [unified API](https://ai-sdk.dev/docs/foundations/providers-and-models) to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai), and [more](https://ai-sdk.dev/providers/ai-sdk-providers).
 
 ```shell
-npm install @ai-sdk/openai
+npm install @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
 ```
 
-###### @/index.ts (Node.js Runtime)
+Alternatively you can use the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway).
+
+## Usage
+
+### Generating Text
 
 ```ts
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai'; // Ensure OPENAI_API_KEY environment variable is set
 
 const { text } = await generateText({
-  model: openai('gpt-4o'),
-  system: 'You are a friendly assistant!',
-  prompt: 'Why is the sky blue?',
+  model: 'openai/gpt-5', // use Vercel AI Gateway
+  prompt: 'What is an agent?',
 });
-
-console.log(text);
 ```
 
-### AI SDK UI
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-5'), // use OpenAI Responses API
+  prompt: 'What is an agent?',
+});
+```
+
+### Generating Structured Data
+
+```ts
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: 'openai/gpt-4.1',
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
+### Agents
+
+```ts
+import { Agent } from 'ai';
+
+const sandboxAgent = new Agent({
+  model: 'openai/gpt-5-codex',
+  system: 'You are an agent with access to a shell environment.',
+  tools: {
+    local_shell: openai.tools.localShell({
+      execute: async ({ action }) => {
+        const [cmd, ...args] = action.command;
+        const sandbox = await getSandbox(); // Vercel Sandbox
+        const command = await sandbox.runCommand({ cmd, args });
+        return { output: await command.stdout() };
+      },
+    }),
+  },
+});
+```
+
+### UI Integration
 
 The [AI SDK UI](https://ai-sdk.dev/docs/ai-sdk-ui/overview) module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, and Vue.
 
-You need to install the package for your framework:
+You need to install the package for your framework, e.g.:
 
 ```shell
 npm install @ai-sdk/react
 ```
 
-###### @/app/page.tsx (Next.js App Router)
+#### Agent @/agent/image-generation-agent.ts
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { Agent, InferAgentUIMessage } from 'ai';
+
+export const imageGenerationAgent = new Agent({
+  model: openai('gpt-5'),
+  tools: {
+    image_generation: openai.tools.imageGeneration({
+      partialImages: 3,
+    }),
+  },
+});
+
+export type ImageGenerationAgentMessage = InferAgentUIMessage<
+  typeof imageGenerationAgent
+>;
+```
+
+#### Route (Next.js App Router) @/app/api/chat/route.ts
+
+```tsx
+import { imageGenerationAgent } from '@/agent/image-generation-agent';
+import { validateUIMessages } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  return imageGenerationAgent.respond({
+    messages: await validateUIMessages({ messages }),
+  });
+}
+```
+
+#### UI Component for Tool @/component/image-generation-view.tsx
+
+```tsx
+import { openai } from '@ai-sdk/openai';
+import { UIToolInvocation } from 'ai';
+
+export default function ImageGenerationView({
+  invocation,
+}: {
+  invocation: UIToolInvocation<ReturnType<typeof openai.tools.imageGeneration>>;
+}) {
+  switch (invocation.state) {
+    case 'input-available':
+      return <div>Generating image...</div>;
+    case 'output-available':
+      return <img src={`data:image/png;base64,${invocation.output.result}`} />;
+  }
+}
+```
+
+#### Page @/app/page.tsx
 
 ```tsx
 'use client';
 
+import { ImageGenerationAgentMessage } from '@/agent/image-generation-agent';
+import ImageGenerationView from '@/component/image-generation-view';
 import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, status } =
-    useChat();
+  const { messages, status, sendMessage } =
+    useChat<ImageGenerationAgentMessage>();
+
+  const [input, setInput] = useState('');
+  const handleSubmit = e => {
+    e.preventDefault();
+    sendMessage({ text: input });
+    setInput('');
+  };
 
   return (
     <div>
@@ -70,9 +180,9 @@ export default function Page() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <span key={index}>{part.text}</span>;
-
-              // other cases can handle images, tool calls, etc
+                return <div key={index}>{part.text}</div>;
+              case 'tool-image_generation':
+                return <ImageGenerationView key={index} invocation={part} />;
             }
           })}
         </div>
@@ -81,8 +191,7 @@ export default function Page() {
       <form onSubmit={handleSubmit}>
         <input
           value={input}
-          placeholder="Send a message..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           disabled={status !== 'ready'}
         />
       </form>
@@ -91,28 +200,9 @@ export default function Page() {
 }
 ```
 
-###### @/app/api/chat/route.ts (Next.js App Router)
-
-```ts
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-export async function POST(req: Request) {
-  const { messages } = await req.json();
-
-  const result = streamText({
-    model: openai('gpt-4o'),
-    system: 'You are a helpful assistant.',
-    messages,
-  });
-
-  return result.toUIMessageStreamResponse();
-}
-```
-
 ## Templates
 
-We've built [templates](https://vercel.com/templates?type=ai) that include AI SDK integrations for different use cases, providers, and frameworks. You can use these templates to get started with your AI-powered application.
+We've built [templates](https://ai-sdk.dev/docs/introduction#templates) that include AI SDK integrations for different use cases, providers, and frameworks. You can use these templates to get started with your AI-powered application.
 
 ## Community
 

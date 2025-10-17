@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText, tool } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {

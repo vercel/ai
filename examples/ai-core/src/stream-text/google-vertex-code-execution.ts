@@ -1,5 +1,4 @@
 import { vertex } from '@ai-sdk/google-vertex';
-import { googleTools } from '@ai-sdk/google/internal';
 import { ModelMessage, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import * as process from 'process';
@@ -10,7 +9,7 @@ async function main() {
 
   const result = streamText({
     model: vertex('gemini-2.5-pro'),
-    tools: { code_execution: googleTools.codeExecution({}) },
+    tools: { code_execution: vertex.tools.codeExecution({}) },
     maxOutputTokens: 10000,
     prompt:
       'Calculate 20th fibonacci number. Then find the nearest palindrome to it.',

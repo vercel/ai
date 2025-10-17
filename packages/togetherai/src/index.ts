@@ -4,3 +4,4 @@ export type {
   TogetherAIProviderSettings,
 } from './togetherai-provider';
 export type { OpenAICompatibleErrorData as TogetherAIErrorData } from '@ai-sdk/openai-compatible';
+export { VERSION } from './version';

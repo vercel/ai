@@ -1,6 +1,6 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -11,8 +11,8 @@ export function prepareTools({
   toolChoice,
   modelId,
 }: {
-  tools: LanguageModelV2CallOptions['tools'];
-  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: GoogleGenerativeAIModelId;
 }): {
   tools:
@@ -33,14 +33,21 @@ export function prepareTools({
           allowedFunctionNames?: string[];
         };
       };
-  toolWarnings: LanguageModelV2CallWarning[];
+  toolWarnings: LanguageModelV3CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const toolWarnings: LanguageModelV3CallWarning[] = [];
 
-  const isGemini2 = modelId.includes('gemini-2');
+  const isLatest = (
+    [
+      'gemini-flash-latest',
+      'gemini-flash-lite-latest',
+      'gemini-pro-latest',
+    ] as const satisfies GoogleGenerativeAIModelId[]
+  ).some(id => id === modelId);
+  const isGemini2 = modelId.includes('gemini-2') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
 
@@ -64,7 +71,7 @@ export function prepareTools({
   }
 
   if (hasProviderDefinedTools) {
-    const googleTools: Record<string, any> = {};
+    const googleTools: any[] = [];
 
     const providerDefinedTools = tools.filter(
       tool => tool.type === 'provider-defined',
@@ -73,27 +80,29 @@ export function prepareTools({
       switch (tool.id) {
         case 'google.google_search':
           if (isGemini2) {
-            googleTools.googleSearch = {};
+            googleTools.push({ googleSearch: {} });
           } else if (supportsDynamicRetrieval) {
             // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
-            googleTools.googleSearchRetrieval = {
-              dynamicRetrievalConfig: {
-                mode: tool.args.mode as
-                  | 'MODE_DYNAMIC'
-                  | 'MODE_UNSPECIFIED'
-                  | undefined,
-                dynamicThreshold: tool.args.dynamicThreshold as
-                  | number
-                  | undefined,
+            googleTools.push({
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: tool.args.mode as
+                    | 'MODE_DYNAMIC'
+                    | 'MODE_UNSPECIFIED'
+                    | undefined,
+                  dynamicThreshold: tool.args.dynamicThreshold as
+                    | number
+                    | undefined,
+                },
               },
-            };
+            });
           } else {
-            googleTools.googleSearchRetrieval = {};
+            googleTools.push({ googleSearchRetrieval: {} });
           }
           break;
         case 'google.url_context':
           if (isGemini2) {
-            googleTools.urlContext = {};
+            googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported-tool',
@@ -105,7 +114,7 @@ export function prepareTools({
           break;
         case 'google.code_execution':
           if (isGemini2) {
-            googleTools.codeExecution = {};
+            googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported-tool',
@@ -122,7 +131,7 @@ export function prepareTools({
     });
 
     return {
-      tools: Object.keys(googleTools).length > 0 ? googleTools : undefined,
+      tools: googleTools.length > 0 ? googleTools : undefined,
       toolConfig: undefined,
       toolWarnings,
     };

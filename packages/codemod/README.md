@@ -114,8 +114,8 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/rename-tool-parameters-to-inputschema`                            | Transforms v5/rename tool parameters to inputschema                            |
 | `v5/replace-bedrock-snake-case`                                       | Transforms v5/replace bedrock snake case                                       |
 | `v5/replace-content-with-parts`                                       | Transforms v5/replace content with parts                                       |
+| `v5/replace-datastream-to-uimessagestream`                            | Transforms v5/replace datastream to uimessagestream                            |
 | `v5/replace-experimental-provider-metadata`                           | Transforms v5/replace experimental provider metadata                           |
-| `v5/replace-generatetext-text-property`                               | Transforms v5/replace generatetext text property                               |
 | `v5/replace-image-type-with-file-type`                                | Transforms v5/replace image type with file type                                |
 | `v5/replace-llamaindex-adapter`                                       | Transforms v5/replace llamaindex adapter                                       |
 | `v5/replace-oncompletion-with-onfinal`                                | Transforms v5/replace oncompletion with onfinal                                |
@@ -125,6 +125,8 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/replace-simulate-streaming`                                       | Transforms v5/replace simulate streaming                                       |
 | `v5/replace-textdelta-with-text`                                      | Transforms v5/replace textdelta with text                                      |
 | `v5/replace-usage-token-properties`                                   | Transforms v5/replace usage token properties                                   |
+| `v5/replace-usechat-api-with-transport`                               | Transforms v5/replace usechat api with transport                               |
+| `v5/replace-usechat-input-with-state`                                 | Transforms v5/replace usechat input with state                                 |
 | `v5/replace-zod-import-with-v3`                                       | Transforms v5/replace zod import with v3                                       |
 | `v5/require-createIdGenerator-size-argument`                          | Transforms v5/require createIdGenerator size argument                          |
 | `v5/restructure-file-stream-parts`                                    | Transforms v5/restructure file stream parts                                    |

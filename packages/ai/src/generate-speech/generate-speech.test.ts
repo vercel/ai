@@ -1,15 +1,24 @@
 import {
   JSONValue,
-  SpeechModelV2,
-  SpeechModelV2CallWarning,
+  SpeechModelV3,
+  SpeechModelV3CallWarning,
 } from '@ai-sdk/provider';
-import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vitest,
+  vi,
+} from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
+import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { generateSpeech } from './generate-speech';
 import {
-  GeneratedAudioFile,
   DefaultGeneratedAudioFile,
+  GeneratedAudioFile,
 } from './generated-audio-file';
-import { describe, it, expect } from 'vitest';
 
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
@@ -20,9 +29,15 @@ const mockFile = new DefaultGeneratedAudioFile({
 
 const sampleText = 'This is a sample text to convert to speech.';
 
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
+
 const createMockResponse = (options: {
   audio: GeneratedAudioFile;
-  warnings?: SpeechModelV2CallWarning[];
+  warnings?: SpeechModelV3CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
@@ -39,14 +54,26 @@ const createMockResponse = (options: {
 });
 
 describe('generateSpeech', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<SpeechModelV2['doGenerate']>[0];
+    let capturedArgs!: Parameters<SpeechModelV3['doGenerate']>[0];
 
     await generateSpeech({
-      model: new MockSpeechModelV2({
+      model: new MockSpeechModelV3({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -56,14 +83,19 @@ describe('generateSpeech', () => {
       }),
       text: sampleText,
       voice: 'test-voice',
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+      },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
       text: sampleText,
       voice: 'test-voice',
-      headers: { 'custom-request-header': 'request-header-value' },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': 'ai/0.0.0-test',
+      },
       abortSignal,
       providerOptions: {},
       outputFormat: undefined,
@@ -75,7 +107,7 @@ describe('generateSpeech', () => {
 
   it('should return warnings', async () => {
     const result = await generateSpeech({
-      model: new MockSpeechModelV2({
+      model: new MockSpeechModelV3({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -103,9 +135,53 @@ describe('generateSpeech', () => {
     ]);
   });
 
+  it('should call logWarnings with the correct warnings', async () => {
+    const expectedWarnings: SpeechModelV3CallWarning[] = [
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+      {
+        type: 'unsupported-setting',
+        setting: 'voice',
+        details: 'Voice parameter not supported',
+      },
+    ];
+
+    await generateSpeech({
+      model: new MockSpeechModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            audio: mockFile,
+            warnings: expectedWarnings,
+          }),
+      }),
+      text: sampleText,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+  });
+
+  it('should call logWarnings with empty array when no warnings are present', async () => {
+    await generateSpeech({
+      model: new MockSpeechModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            audio: mockFile,
+            warnings: [], // no warnings
+          }),
+      }),
+      text: sampleText,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith([]);
+  });
+
   it('should return the audio data', async () => {
     const result = await generateSpeech({
-      model: new MockSpeechModelV2({
+      model: new MockSpeechModelV3({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,
@@ -132,7 +208,7 @@ describe('generateSpeech', () => {
     it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(
         generateSpeech({
-          model: new MockSpeechModelV2({
+          model: new MockSpeechModelV3({
             doGenerate: async () =>
               createMockResponse({
                 audio: new DefaultGeneratedAudioFile({
@@ -159,7 +235,7 @@ describe('generateSpeech', () => {
     it('should include response headers in error when no audio generated', async () => {
       await expect(
         generateSpeech({
-          model: new MockSpeechModelV2({
+          model: new MockSpeechModelV3({
             doGenerate: async () =>
               createMockResponse({
                 audio: new DefaultGeneratedAudioFile({
@@ -169,6 +245,7 @@ describe('generateSpeech', () => {
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
+                  'user-agent': 'ai/0.0.0-test',
                 },
               }),
           }),
@@ -183,6 +260,7 @@ describe('generateSpeech', () => {
             modelId: expect.any(String),
             headers: {
               'custom-response-header': 'response-header-value',
+              'user-agent': 'ai/0.0.0-test',
             },
           },
         ],
@@ -194,7 +272,7 @@ describe('generateSpeech', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await generateSpeech({
-      model: new MockSpeechModelV2({
+      model: new MockSpeechModelV3({
         doGenerate: async () =>
           createMockResponse({
             audio: mockFile,

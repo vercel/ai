@@ -1,25 +1,32 @@
 import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2DataContent,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  SharedV2ProviderMetadata,
+  LanguageModelV3CallWarning,
+  LanguageModelV3DataContent,
+  LanguageModelV3Message,
+  LanguageModelV3Prompt,
+  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  parseProviderOptions,
+  validateTypes,
+} from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
   AnthropicMessagesPrompt,
+  anthropicReasoningMetadataSchema,
   AnthropicToolResultContent,
   AnthropicUserMessage,
-} from './anthropic-api-types';
-import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
+  AnthropicWebFetchToolResultContent,
+} from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { getCacheControl } from './get-cache-control';
-import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
+import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
+import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
+import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
-function convertToString(data: LanguageModelV2DataContent): string {
+function convertToString(data: LanguageModelV3DataContent): string {
   if (typeof data === 'string') {
     return Buffer.from(data, 'base64').toString('utf-8');
   }
@@ -44,9 +51,9 @@ export async function convertToAnthropicMessagesPrompt({
   sendReasoning,
   warnings,
 }: {
-  prompt: LanguageModelV2Prompt;
+  prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
-  warnings: LanguageModelV2CallWarning[];
+  warnings: LanguageModelV3CallWarning[];
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -58,7 +65,7 @@ export async function convertToAnthropicMessagesPrompt({
   const messages: AnthropicMessagesPrompt['messages'] = [];
 
   async function shouldEnableCitations(
-    providerMetadata: SharedV2ProviderMetadata | undefined,
+    providerMetadata: SharedV3ProviderMetadata | undefined,
   ): Promise<boolean> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -70,7 +77,7 @@ export async function convertToAnthropicMessagesPrompt({
   }
 
   async function getDocumentMetadata(
-    providerMetadata: SharedV2ProviderMetadata | undefined,
+    providerMetadata: SharedV3ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -272,6 +279,20 @@ export async function convertToAnthropicMessagesPrompt({
                             };
                           }
 
+                          if (contentPart.mediaType === 'application/pdf') {
+                            betas.add('pdfs-2024-09-25');
+
+                            return {
+                              type: 'document',
+                              source: {
+                                type: 'base64',
+                                media_type: contentPart.mediaType,
+                                data: contentPart.data,
+                              },
+                              cache_control: undefined,
+                            };
+                          }
+
                           throw new UnsupportedFunctionalityError({
                             functionality: `media type: ${contentPart.mediaType}`,
                           });
@@ -282,6 +303,9 @@ export async function convertToAnthropicMessagesPrompt({
                   case 'text':
                   case 'error-text':
                     contentValue = output.value;
+                    break;
+                  case 'execution-denied':
+                    contentValue = output.reason ?? 'Tool execution denied.';
                     break;
                   case 'json':
                   case 'error-json':
@@ -319,6 +343,8 @@ export async function convertToAnthropicMessagesPrompt({
       case 'assistant': {
         // combines multiple assistant messages in this block into a single message:
         const anthropicContent: AnthropicAssistantMessage['content'] = [];
+
+        const mcpToolUseIds = new Set<string>();
 
         for (let j = 0; j < block.messages.length; j++) {
           const message = block.messages[j];
@@ -401,34 +427,67 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
-                  if (part.toolName === 'web_search') {
+                  const isMcpToolUse =
+                    part.providerOptions?.anthropic?.type === 'mcp-tool-use';
+
+                  if (isMcpToolUse) {
+                    mcpToolUseIds.add(part.toolCallId);
+
+                    const serverName =
+                      part.providerOptions?.anthropic?.serverName;
+
+                    if (serverName == null || typeof serverName !== 'string') {
+                      warnings.push({
+                        type: 'other',
+                        message:
+                          'mcp tool use server name is required and must be a string',
+                      });
+                      break;
+                    }
+
+                    anthropicContent.push({
+                      type: 'mcp_tool_use',
+                      id: part.toolCallId,
+                      name: part.toolName,
+                      input: part.input,
+                      server_name: serverName,
+                      cache_control: cacheControl,
+                    });
+                  } else if (
+                    // code execution 20250825:
+                    part.toolName === 'code_execution' &&
+                    part.input != null &&
+                    typeof part.input === 'object' &&
+                    'type' in part.input &&
+                    typeof part.input.type === 'string' &&
+                    (part.input.type === 'bash_code_execution' ||
+                      part.input.type === 'text_editor_code_execution')
+                  ) {
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: 'web_search',
+                      name: part.input.type, // map back to subtool name
                       input: part.input,
                       cache_control: cacheControl,
                     });
-
-                    break;
-                  }
-
-                  if (part.toolName === 'code_execution') {
+                  } else if (
+                    part.toolName === 'code_execution' || // code execution 20250522
+                    part.toolName === 'web_fetch' ||
+                    part.toolName === 'web_search'
+                  ) {
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: 'code_execution',
+                      name: part.toolName,
                       input: part.input,
                       cache_control: cacheControl,
                     });
-
-                    break;
+                  } else {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool call for tool ${part.toolName} is not supported`,
+                    });
                   }
-
-                  warnings.push({
-                    type: 'other',
-                    message: `provider executed tool call for tool ${part.toolName} is not supported`,
-                  });
 
                   break;
                 }
@@ -444,6 +503,142 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-result': {
+                if (mcpToolUseIds.has(part.toolCallId)) {
+                  const output = part.output;
+
+                  if (output.type !== 'json' && output.type !== 'error-json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  anthropicContent.push({
+                    type: 'mcp_tool_result',
+                    tool_use_id: part.toolCallId,
+                    is_error: output.type === 'error-json',
+                    content: output.value as unknown as
+                      | string
+                      | Array<{ type: 'text'; text: string }>,
+                    cache_control: cacheControl,
+                  });
+                } else if (part.toolName === 'code_execution') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  if (
+                    output.value == null ||
+                    typeof output.value !== 'object' ||
+                    !('type' in output.value) ||
+                    typeof output.value.type !== 'string'
+                  ) {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output value is not a valid code execution result for tool ${part.toolName}`,
+                    });
+                    break;
+                  }
+
+                  // to distinguish between code execution 20250522 and 20250825,
+                  // we check if a type property is present in the output.value
+                  if (output.value.type === 'code_execution_result') {
+                    // code execution 20250522
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20250522OutputSchema,
+                    });
+
+                    anthropicContent.push({
+                      type: 'code_execution_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: codeExecutionOutput.type,
+                        stdout: codeExecutionOutput.stdout,
+                        stderr: codeExecutionOutput.stderr,
+                        return_code: codeExecutionOutput.return_code,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else {
+                    // code execution 20250825
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20250825OutputSchema,
+                    });
+
+                    anthropicContent.push(
+                      codeExecutionOutput.type ===
+                        'bash_code_execution_result' ||
+                        codeExecutionOutput.type ===
+                          'bash_code_execution_tool_result_error'
+                        ? {
+                            type: 'bash_code_execution_tool_result',
+                            tool_use_id: part.toolCallId,
+                            cache_control: cacheControl,
+                            content: codeExecutionOutput,
+                          }
+                        : {
+                            type: 'text_editor_code_execution_tool_result',
+                            tool_use_id: part.toolCallId,
+                            cache_control: cacheControl,
+                            content: codeExecutionOutput,
+                          },
+                    );
+                  }
+                  break;
+                }
+
+                if (part.toolName === 'web_fetch') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const webFetchOutput = await validateTypes({
+                    value: output.value,
+                    schema: webFetch_20250910OutputSchema,
+                  });
+
+                  anthropicContent.push({
+                    type: 'web_fetch_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: {
+                      type: 'web_fetch_result',
+                      url: webFetchOutput.url,
+                      retrieved_at: webFetchOutput.retrievedAt,
+                      content: {
+                        type: 'document',
+                        title: webFetchOutput.content.title,
+                        citations: webFetchOutput.content.citations,
+                        source: {
+                          type: webFetchOutput.content.source.type,
+                          media_type: webFetchOutput.content.source.mediaType,
+                          data: webFetchOutput.content.source.data,
+                        } as AnthropicWebFetchToolResultContent['content']['content']['source'],
+                      },
+                    },
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
                 if (part.toolName === 'web_search') {
                   const output = part.output;
 
@@ -456,9 +651,10 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const webSearchOutput = webSearch_20250305OutputSchema.parse(
-                    output.value,
-                  );
+                  const webSearchOutput = await validateTypes({
+                    value: output.value,
+                    schema: webSearch_20250305OutputSchema,
+                  });
 
                   anthropicContent.push({
                     type: 'web_search_tool_result',
@@ -470,36 +666,6 @@ export async function convertToAnthropicMessagesPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
-                    cache_control: cacheControl,
-                  });
-
-                  break;
-                }
-
-                if (part.toolName === 'code_execution') {
-                  const output = part.output;
-
-                  if (output.type !== 'json') {
-                    warnings.push({
-                      type: 'other',
-                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
-                    });
-
-                    break;
-                  }
-
-                  const codeExecutionOutput =
-                    codeExecution_20250522OutputSchema.parse(output.value);
-
-                  anthropicContent.push({
-                    type: 'code_execution_tool_result',
-                    tool_use_id: part.toolCallId,
-                    content: {
-                      type: codeExecutionOutput.type,
-                      stdout: codeExecutionOutput.stdout,
-                      stderr: codeExecutionOutput.stderr,
-                      return_code: codeExecutionOutput.return_code,
-                    },
                     cache_control: cacheControl,
                   });
 
@@ -537,19 +703,19 @@ export async function convertToAnthropicMessagesPrompt({
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV2Message & { role: 'system' }>;
+  messages: Array<LanguageModelV3Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV2Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV3Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV2Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV3Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

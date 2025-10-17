@@ -1,19 +1,23 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { JSONValue } from '@ai-sdk/provider';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
+import { logWarnings } from '../logger/log-warnings';
+import { DataContent } from '../prompt';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
+import {
+  TranscriptionWarning,
+  TranscriptionModel,
+} from '../types/transcription-model';
+import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../util/detect-media-type';
 import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import { DataContent } from '../prompt';
-import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { TranscriptionWarning } from '../types/transcription-model';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { TranscriptionResult } from './transcribe-result';
-
+import { VERSION } from '../version';
+import { resolveTranscriptionModel } from '../model/resolve-model';
 /**
 Generates transcripts using a transcription model.
 
@@ -38,7 +42,7 @@ export async function transcribe({
   /**
 The transcription model to use.
      */
-  model: TranscriptionModelV2;
+  model: TranscriptionModel;
 
   /**
 The audio data to transcribe.
@@ -79,12 +83,9 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
+  const resolvedModel = resolveTranscriptionModel(model);
+  if (!resolvedModel) {
+    throw new Error('Model could not be resolved');
   }
 
   const { retry } = prepareRetries({
@@ -92,16 +93,21 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const audioData =
     audio instanceof URL
       ? (await download({ url: audio })).data
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
-    model.doGenerate({
+    resolvedModel.doGenerate({
       audio: audioData,
       abortSignal,
-      headers,
+      headers: headersWithUserAgent,
       providerOptions,
       mediaType:
         detectMediaType({
@@ -110,6 +116,8 @@ Only applicable for HTTP-based providers.
         }) ?? 'audio/wav',
     }),
   );
+
+  logWarnings(result.warnings);
 
   if (!result.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });

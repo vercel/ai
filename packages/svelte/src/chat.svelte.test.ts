@@ -1,8 +1,8 @@
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   DefaultChatTransport,
   isToolUIPart,
@@ -178,6 +178,9 @@ describe('data protocol stream', () => {
     });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      isAbort: false,
+      isDisconnect: false,
+      isError: false,
       message: {
         id: 'id-2',
         metadata: {
@@ -374,6 +377,9 @@ describe('text stream', () => {
     });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      isAbort: false,
+      isDisconnect: false,
+      isError: false,
       message: {
         id: expect.any(String),
         role: 'assistant',

@@ -1,4 +1,4 @@
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -9,6 +9,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
 import { prepareRetries } from '../util/prepare-retries';
 import { EmbedResult } from './embed-result';
+import { VERSION } from '../version';
 
 /**
 Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -78,10 +79,15 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model: model,
     telemetry,
-    headers,
+    headers: headersWithUserAgent,
     settings: { maxRetries },
   });
 
@@ -120,7 +126,7 @@ Only applicable for HTTP-based providers.
             const modelResponse = await model.doEmbed({
               values: [value],
               abortSignal,
-              headers,
+              headers: headersWithUserAgent,
               providerOptions,
             });
 
@@ -128,7 +134,7 @@ Only applicable for HTTP-based providers.
             const usage = modelResponse.usage ?? { tokens: NaN };
 
             doEmbedSpan.setAttributes(
-              selectTelemetryAttributes({
+              await selectTelemetryAttributes({
                 telemetry,
                 attributes: {
                   'ai.embeddings': {
@@ -153,7 +159,7 @@ Only applicable for HTTP-based providers.
       );
 
       span.setAttributes(
-        selectTelemetryAttributes({
+        await selectTelemetryAttributes({
           telemetry,
           attributes: {
             'ai.embedding': { output: () => JSON.stringify(embedding) },

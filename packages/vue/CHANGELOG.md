@@ -1,5 +1,549 @@
 # @ai-sdk/vue
 
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [9388ff1]
+  - ai@6.0.0-beta.54
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- ai@6.0.0-beta.53
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- ai@6.0.0-beta.52
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [5e313e3]
+  - ai@6.0.0-beta.51
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [4812235]
+- Updated dependencies [81d4308]
+  - ai@6.0.0-beta.50
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - ai@6.0.0-beta.49
+
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [7f2c9b6]
+  - ai@6.0.0-beta.48
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [c62ecf0]
+  - ai@6.0.0-beta.47
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- ai@6.0.0-beta.46
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [48454ab]
+  - ai@6.0.0-beta.45
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [2b1bf9d]
+  - ai@6.0.0-beta.44
+
+## 3.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [27e8c3a]
+  - ai@6.0.0-beta.43
+
+## 3.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+  - ai@6.0.0-beta.42
+
+## 3.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+  - ai@6.0.0-beta.41
+
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - ai@6.0.0-beta.40
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- f6f0c5a: chore: remove zod from ui packages
+- Updated dependencies [f6f0c5a]
+  - ai@6.0.0-beta.39
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - ai@6.0.0-beta.38
+
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - ai@6.0.0-beta.37
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- ai@6.0.0-beta.36
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- ai@6.0.0-beta.35
+
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [bb10a89]
+  - ai@6.0.0-beta.34
+
+## 3.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [f733285]
+  - ai@6.0.0-beta.33
+
+## 3.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [7e4649f]
+  - ai@6.0.0-beta.32
+
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+  - ai@6.0.0-beta.31
+
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- ai@6.0.0-beta.30
+
+## 3.0.0-beta.29
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - ai@6.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 2.1.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - ai@5.1.0-beta.28
+
+## 2.1.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - ai@5.1.0-beta.27
+
+## 2.1.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [c99da05]
+  - ai@5.1.0-beta.26
+
+## 2.1.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [457f1c6]
+  - ai@5.1.0-beta.25
+
+## 2.1.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [90e5bdd]
+  - ai@5.1.0-beta.24
+
+## 2.1.0-beta.23
+
+### Patch Changes
+
+- ai@5.1.0-beta.23
+
+## 2.1.0-beta.22
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [a5e152d]
+- Updated dependencies [21e20c0]
+  - ai@5.1.0-beta.22
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 2.1.0-beta.21
+
+### Patch Changes
+
+- ai@5.1.0-beta.21
+
+## 2.1.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [846e80e]
+  - ai@5.1.0-beta.20
+
+## 2.1.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [aa0515c]
+- Updated dependencies [e7d9b00]
+- Updated dependencies [b1aeea7]
+  - ai@5.1.0-beta.19
+
+## 2.1.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [0adc679]
+- Updated dependencies [9b8d17e]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - ai@5.1.0-beta.18
+
+## 2.1.0-beta.17
+
+### Patch Changes
+
+- ai@5.1.0-beta.17
+
+## 2.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [14ca35d]
+  - ai@5.1.0-beta.16
+
+## 2.1.0-beta.15
+
+### Patch Changes
+
+- ai@5.1.0-beta.15
+
+## 2.1.0-beta.14
+
+### Patch Changes
+
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [7c3c216]
+- Updated dependencies [8dac895]
+- Updated dependencies [e0d1ea9]
+- Updated dependencies [10c1322]
+  - ai@5.1.0-beta.14
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+
+## 2.1.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [1c2a4c1]
+  - ai@5.1.0-beta.13
+
+## 2.1.0-beta.12
+
+### Patch Changes
+
+- ai@5.1.0-beta.12
+
+## 2.1.0-beta.11
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+  - ai@5.1.0-beta.11
+
+## 2.1.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [8c98371]
+  - ai@5.1.0-beta.10
+
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [ed329cb]
+- Updated dependencies [177b475]
+- Updated dependencies [522f6b8]
+  - ai@5.1.0-beta.9
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [7eca093]
+  - ai@5.1.0-beta.8
+
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [5a4e732]
+  - ai@5.1.0-beta.7
+
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [0c4822d]
+  - ai@5.1.0-beta.6
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- ai@5.1.0-beta.5
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- ai@5.1.0-beta.4
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- ai@5.1.0-beta.3
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+  - ai@5.1.0-beta.2
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [a7f6f81]
+  - ai@5.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - ai@5.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.45
+
+### Patch Changes
+
+- Updated dependencies [76024fc]
+- Updated dependencies [93d8b60]
+- Updated dependencies [d8eb31f]
+  - ai@5.0.45
+
+## 2.0.44
+
+### Patch Changes
+
+- ai@5.0.44
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - ai@5.0.43
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [de5c066]
+  - ai@5.0.42
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [cd91e4b]
+  - ai@5.0.41
+
+## 2.0.40
+
+### Patch Changes
+
+- b75beb0: Add useObject support to Vue
+  - ai@5.0.40
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [a0a725f]
+  - ai@5.0.39
+
+## 2.0.38
+
+### Patch Changes
+
+- ai@5.0.38
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [d6785d7]
+  - ai@5.0.37
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [ccc2ded]
+  - ai@5.0.36
+
+## 2.0.35
+
+### Patch Changes
+
+- Updated dependencies [99c946a]
+  - ai@5.0.35
+
+## 2.0.34
+
+### Patch Changes
+
+- ai@5.0.34
+
+## 2.0.33
+
+### Patch Changes
+
+- ai@5.0.33
+
+## 2.0.32
+
+### Patch Changes
+
+- ai@5.0.32
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - ai@5.0.31
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [7fcc6be]
+  - ai@5.0.30
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [e0e9449]
+  - ai@5.0.29
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [4b81e7d]
+- Updated dependencies [d68a4f2]
+  - ai@5.0.28
+
 ## 2.0.27
 
 ### Patch Changes

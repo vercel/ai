@@ -241,10 +241,43 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'onFinish',
-      type: '(options: {message: UIMessage, messages: UIMessage[]}) => void',
+      type: '(options: OnFinishOptions) => void',
       isOptional: true,
-      description:
-        'Optional callback function that is called when the assistant message has finished streaming completely.',
+      description: 'Called when the assistant response has finished streaming.',
+      properties: [
+        {
+          type: 'OnFinishOptions',
+          parameters: [
+            {
+              name: 'message',
+              type: 'UIMessage',
+              description: 'The response message.',
+            },
+            {
+              name: 'messages',
+              type: 'UIMessage[]',
+              description: 'All messages including the response message',
+            },
+            {
+              name: 'isAbort',
+              type: 'boolean',
+              description:
+                'True when the request has been aborted by the client.',
+            },
+            {
+              name: 'isDisconnect',
+              type: 'boolean',
+              description:
+                'True if the server has been disconnected, e.g. because of a network error.',
+            },
+            {
+              name: 'isError',
+              type: 'boolean',
+              description: `True if errors during streaming caused the response to stop early.`,
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'onError',
@@ -386,7 +419,7 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'addToolResult',
-      type: '(options: { tool: string; toolCallId: string; output: unknown }) => void',
+      type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
       description:
         'Function to add a tool result to the chat. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
     },

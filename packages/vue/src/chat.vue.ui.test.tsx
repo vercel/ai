@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/vue';
@@ -251,6 +251,9 @@ describe('data protocol stream', () => {
 
     expect(value).toStrictEqual([
       {
+        isAbort: false,
+        isDisconnect: false,
+        isError: false,
         message: {
           id: expect.any(String),
           role: 'assistant',
@@ -312,6 +315,9 @@ describe('text stream', () => {
 
     expect(value).toStrictEqual([
       {
+        isAbort: false,
+        isDisconnect: false,
+        isError: false,
         message: {
           id: expect.any(String),
           role: 'assistant',

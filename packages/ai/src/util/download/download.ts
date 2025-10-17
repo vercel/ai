@@ -1,4 +1,9 @@
 import { DownloadError } from './download-error';
+import {
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
+import { VERSION } from '../../version';
 
 /**
  * Download a file from a URL.
@@ -11,7 +16,13 @@ import { DownloadError } from './download-error';
 export const download = async ({ url }: { url: URL }) => {
   const urlText = url.toString();
   try {
-    const response = await fetch(urlText);
+    const response = await fetch(urlText, {
+      headers: withUserAgentSuffix(
+        {},
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
+    });
 
     if (!response.ok) {
       throw new DownloadError({

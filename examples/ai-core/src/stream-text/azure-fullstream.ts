@@ -1,12 +1,12 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = streamText({
-    model: azure('v0-gpt-35-turbo'), // use your own deployment
+    model: azure('gpt-4.1-mini'), // use your own deployment
     tools: {
       weather: weatherTool,
       cityAttractions: {

@@ -1,8 +1,8 @@
 import {
-  LanguageModelV2FilePart,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  LanguageModelV2TextPart,
+  LanguageModelV3FilePart,
+  LanguageModelV3Message,
+  LanguageModelV3Prompt,
+  LanguageModelV3TextPart,
 } from '@ai-sdk/provider';
 import {
   DataContent,
@@ -10,7 +10,10 @@ import {
   ImagePart,
   isUrlSupported,
   ModelMessage,
+  ReasoningPart,
   TextPart,
+  ToolCallPart,
+  ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import {
   detectMediaType,
@@ -20,7 +23,7 @@ import {
   createDefaultDownloadFunction,
   DownloadFunction,
 } from '../util/download/download-function';
-import { convertToLanguageModelV2DataContent } from './data-content';
+import { convertToLanguageModelV3DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
 
@@ -32,14 +35,14 @@ export async function convertToLanguageModelPrompt({
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
-}): Promise<LanguageModelV2Prompt> {
+}): Promise<LanguageModelV3Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
     download,
     supportedUrls,
   );
 
-  return [
+  const messages = [
     ...(prompt.system != null
       ? [{ role: 'system' as const, content: prompt.system }]
       : []),
@@ -47,10 +50,28 @@ export async function convertToLanguageModelPrompt({
       convertToLanguageModelMessage({ message, downloadedAssets }),
     ),
   ];
+
+  // combine consecutive tool messages into a single tool message
+  const combinedMessages = [];
+  for (const message of messages) {
+    if (message.role !== 'tool') {
+      combinedMessages.push(message);
+      continue;
+    }
+
+    const lastCombinedMessage = combinedMessages.at(-1);
+    if (lastCombinedMessage?.role === 'tool') {
+      lastCombinedMessage.content.push(...message.content);
+    } else {
+      combinedMessages.push(message);
+    }
+  }
+
+  return combinedMessages;
 }
 
 /**
- * Convert a ModelMessage to a LanguageModelV2Message.
+ * Convert a ModelMessage to a LanguageModelV3Message.
  *
  * @param message The ModelMessage to convert.
  * @param downloadedAssets A map of URLs to their downloaded data. Only
@@ -65,7 +86,7 @@ export function convertToLanguageModelMessage({
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >;
-}): LanguageModelV2Message {
+}): LanguageModelV3Message {
   const role = message.role;
   switch (role) {
     case 'system': {
@@ -108,15 +129,28 @@ export function convertToLanguageModelMessage({
         role: 'assistant',
         content: message.content
           .filter(
-            // remove empty text parts:
-            part => part.type !== 'text' || part.text !== '',
+            // remove empty text parts (no text, and no provider options):
+            part =>
+              part.type !== 'text' ||
+              part.text !== '' ||
+              part.providerOptions != null,
+          )
+          .filter(
+            (
+              part,
+            ): part is
+              | TextPart
+              | FilePart
+              | ReasoningPart
+              | ToolCallPart
+              | ToolResultPart => part.type !== 'tool-approval-request',
           )
           .map(part => {
             const providerOptions = part.providerOptions;
 
             switch (part.type) {
               case 'file': {
-                const { data, mediaType } = convertToLanguageModelV2DataContent(
+                const { data, mediaType } = convertToLanguageModelV3DataContent(
                   part.data,
                 );
                 return {
@@ -169,13 +203,15 @@ export function convertToLanguageModelMessage({
     case 'tool': {
       return {
         role: 'tool',
-        content: message.content.map(part => ({
-          type: 'tool-result' as const,
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output: part.output,
-          providerOptions: part.providerOptions,
-        })),
+        content: message.content
+          .filter(part => part.type !== 'tool-approval-response')
+          .map(part => ({
+            type: 'tool-result' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            output: part.output,
+            providerOptions: part.providerOptions,
+          })),
         providerOptions: message.providerOptions,
       };
     }
@@ -242,23 +278,20 @@ async function downloadAssets(
 
   return Object.fromEntries(
     downloadedFiles
-      .filter(
-        (
-          downloadedFile,
-        ): downloadedFile is {
-          mediaType: string | undefined;
-          data: Uint8Array;
-        } => downloadedFile?.data != null,
+      .map((file, index) =>
+        file == null
+          ? null
+          : [
+              plannedDownloads[index].url.toString(),
+              { data: file.data, mediaType: file.mediaType },
+            ],
       )
-      .map(({ data, mediaType }, index) => [
-        plannedDownloads[index].url.toString(),
-        { data, mediaType },
-      ]),
+      .filter(file => file != null),
   );
 }
 
 /**
- * Convert part of a message to a LanguageModelV2Part.
+ * Convert part of a message to a LanguageModelV3Part.
  * @param part The part to convert.
  * @param downloadedAssets A map of URLs to their downloaded data. Only
  *  available if the model does not support URLs, null otherwise.
@@ -271,7 +304,7 @@ function convertPartToLanguageModelPart(
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >,
-): LanguageModelV2TextPart | LanguageModelV2FilePart {
+): LanguageModelV3TextPart | LanguageModelV3FilePart {
   if (part.type === 'text') {
     return {
       type: 'text',
@@ -295,7 +328,7 @@ function convertPartToLanguageModelPart(
   }
 
   const { data: convertedData, mediaType: convertedMediaType } =
-    convertToLanguageModelV2DataContent(originalData);
+    convertToLanguageModelV3DataContent(originalData);
 
   let mediaType: string | undefined = convertedMediaType ?? part.mediaType;
   let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
@@ -310,7 +343,7 @@ function convertPartToLanguageModelPart(
   }
 
   // Now that we have the normalized data either as a URL or a Uint8Array,
-  // we can create the LanguageModelV2Part.
+  // we can create the LanguageModelV3Part.
   switch (type) {
     case 'image': {
       // When possible, try to detect the media type automatically

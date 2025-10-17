@@ -1,4 +1,10 @@
-import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
+import {
+  loadOptionalSetting,
+  loadSetting,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
+import { VERSION } from '../version';
 
 export interface GoogleCredentials {
   /**
@@ -132,7 +138,11 @@ export async function generateAuthToken(credentials?: GoogleCredentials) {
 
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: withUserAgentSuffix(
+        { 'Content-Type': 'application/x-www-form-urlencoded' },
+        `ai-sdk/google-vertex/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       body: new URLSearchParams({
         grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
         assertion: jwt,

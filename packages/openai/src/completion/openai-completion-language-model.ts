@@ -1,10 +1,10 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -15,14 +15,15 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import {
-  openaiErrorDataSchema,
-  openaiFailedResponseHandler,
-} from '../openai-error';
+import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
+import {
+  OpenAICompletionChunk,
+  openaiCompletionChunkSchema,
+  openaiCompletionResponseSchema,
+} from './openai-completion-api';
 import {
   OpenAICompletionModelId,
   openaiCompletionProviderOptions,
@@ -35,8 +36,8 @@ type OpenAICompletionConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAICompletionLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
+export class OpenAICompletionLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
 
   readonly modelId: OpenAICompletionModelId;
 
@@ -76,8 +77,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     toolChoice,
     seed,
     providerOptions,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const warnings: LanguageModelV2CallWarning[] = [];
+  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    const warnings: LanguageModelV3CallWarning[] = [];
 
     // Parse provider options
     const openaiOptions = {
@@ -154,8 +155,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: Parameters<LanguageModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -179,7 +180,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
 
     const choice = response.choices[0];
 
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
 
     if (choice.logprobs != null) {
       providerMetadata.openai.logprobs = choice.logprobs;
@@ -205,8 +206,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: Parameters<LanguageModelV3['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -233,9 +234,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
-    const usage: LanguageModelV2Usage = {
+    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const usage: LanguageModelV3Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
@@ -245,8 +246,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiCompletionChunkSchema>>,
-          LanguageModelV2StreamPart
+          ParseResult<OpenAICompletionChunk>,
+          LanguageModelV3StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -328,57 +329,3 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     };
   }
 }
-
-const usageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiCompletionResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      text: z.string(),
-      finish_reason: z.string(),
-      logprobs: z
-        .object({
-          tokens: z.array(z.string()),
-          token_logprobs: z.array(z.number()),
-          top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
-        })
-        .nullish(),
-    }),
-  ),
-  usage: usageSchema.nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiCompletionChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        text: z.string(),
-        finish_reason: z.string().nullish(),
-        index: z.number(),
-        logprobs: z
-          .object({
-            tokens: z.array(z.string()),
-            token_logprobs: z.array(z.number()),
-            top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
-          })
-          .nullish(),
-      }),
-    ),
-    usage: usageSchema.nullish(),
-  }),
-  openaiErrorDataSchema,
-]);

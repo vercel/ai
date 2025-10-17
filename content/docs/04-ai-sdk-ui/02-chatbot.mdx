@@ -331,7 +331,7 @@ const { messages, ... } = useChat({
 
 `useChat` provides optional event callbacks that you can use to handle different stages of the chatbot lifecycle:
 
-- `onFinish`: Called when the assistant message is completed
+- `onFinish`: Called when the assistant response is completed. The event includes the response message, all messages, and flags for abort, disconnect, and errors.
 - `onError`: Called when an error occurs during the fetch request.
 - `onData`: Called whenever a data part is received.
 
@@ -343,10 +343,8 @@ import { UIMessage } from 'ai';
 const {
   /* ... */
 } = useChat({
-  onFinish: (message, { usage, finishReason }) => {
-    console.log('Finished streaming message:', message);
-    console.log('Token usage:', usage);
-    console.log('Finish reason:', finishReason);
+  onFinish: ({ message, messages, isAbort, isDisconnect, isError }) => {
+    // use information to e.g. update other UI states
   },
   onError: error => {
     console.error('An error occurred:', error);
@@ -768,7 +766,7 @@ Then, on the client, you can access the message-level metadata.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
@@ -806,7 +804,7 @@ You can also access your metadata from the `onFinish` callback of `useChat`:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from './api/chat/route';
+import type { MyUIMessage } from './api/chat/route';
 import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
@@ -962,7 +960,7 @@ messages.map(message => (
 
 ## Image Generation
 
-Some models such as Google `gemini-2.0-flash-exp` support image generation.
+Some models such as Google `gemini-2.5-flash-image-preview` support image generation.
 When images are generated, they are exposed as files to the client.
 On the client side, you can access file parts of the message object
 and render them as images.
@@ -1255,7 +1253,7 @@ Pass the custom type to `useChat` or `createUIMessageStream`:
 ```tsx
 import { useChat } from '@ai-sdk/react';
 import { createUIMessageStream } from 'ai';
-import { MyUIMessage } from './types';
+import type { MyUIMessage } from './types';
 
 // With useChat
 const { messages } = useChat<MyUIMessage>();

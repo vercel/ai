@@ -1,5 +1,5 @@
 import { DeepPartial } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 export const expenseSchema = z.object({
   expense: z.object({

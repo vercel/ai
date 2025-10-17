@@ -1,9 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamObject } from 'ai';
-import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
-async function main() {
+import { run } from '../lib/run';
+
+run(async () => {
   const result = streamObject({
     model: anthropic('claude-sonnet-4-20250514'),
     maxOutputTokens: 5000,
@@ -20,16 +21,13 @@ async function main() {
     }),
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
-    onError: err => {
-      console.error(err);
+    headers: {
+      'anthropic-beta': 'fine-grained-tool-streaming-2025-05-14',
     },
-    temperature: 0,
   });
 
   for await (const partialObject of result.partialObjectStream) {
     console.clear();
     console.log(partialObject);
   }
-}
-
-main().catch(console.error);
+});
