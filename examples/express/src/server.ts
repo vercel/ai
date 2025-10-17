@@ -9,10 +9,22 @@ import express, { Request, Response } from 'express';
 
 const app = express();
 
+const prompt = 'Invent a new holiday and describe its traditions.';
+
+app.get('/', (_req: Request, res: Response) => {
+  res.send(
+    `<html><body>
+      <form method="POST">
+        <button type="submit">${prompt}</button>
+      </form>
+    </body></html>`,
+  );
+});
+
 app.post('/', async (req: Request, res: Response) => {
   const result = streamText({
     model: openai('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    prompt,
   });
 
   result.pipeUIMessageStreamToResponse(res);

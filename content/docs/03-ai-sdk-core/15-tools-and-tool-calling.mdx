@@ -752,7 +752,8 @@ const { text } = await generateText({
 ## Multi-modal Tool Results
 
 <Note type="warning">
-  Multi-modal tool results are experimental and only supported by Anthropic.
+  Multi-modal tool results are experimental and only supported by Anthropic and
+  OpenAI.
 </Note>
 
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
@@ -792,7 +793,7 @@ const result = await generateText({
           value:
             typeof result === 'string'
               ? [{ type: 'text', text: result }]
-              : [{ type: 'image', data: result.data, mediaType: 'image/png' }],
+              : [{ type: 'media', data: result.data, mediaType: 'image/png' }],
         };
       },
     }),

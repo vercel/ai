@@ -203,17 +203,33 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
   : TOOL;
 
 /**
+ * Check if a message part is a data part.
+ */
+export function isDataUIPart<DATA_TYPES extends UIDataTypes>(
+  part: UIMessagePart<DATA_TYPES, UITools>,
+): part is DataUIPart<DATA_TYPES> {
+  return part.type.startsWith('data-');
+}
+
+/**
  * A UI tool invocation contains all the information needed to render a tool invocation in the UI.
  * It can be derived from a tool without knowing the tool name, and can be used to define
  * UI components for the tool.
  */
 export type UIToolInvocation<TOOL extends UITool | Tool> = {
+  /**
+   * ID of the tool call.
+   */
   toolCallId: string;
+
+  /**
+   * Whether the tool call was executed by the provider.
+   */
+  providerExecuted?: boolean;
 } & (
   | {
       state: 'input-streaming';
       input: DeepPartial<asUITool<TOOL>['input']> | undefined;
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       approval?: never;
@@ -221,7 +237,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'input-available';
       input: asUITool<TOOL>['input'];
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -230,7 +245,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'approval-requested';
       input: asUITool<TOOL>['input'];
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -243,7 +257,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'approval-responded';
       input: asUITool<TOOL>['input'];
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -258,7 +271,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       input: asUITool<TOOL>['input'];
       output: asUITool<TOOL>['output'];
       errorText?: never;
-      providerExecuted?: boolean;
       callProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
       approval?: {
@@ -273,7 +285,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
       output?: never;
       errorText: string;
-      providerExecuted?: boolean;
       callProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
@@ -284,7 +295,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'output-denied';
       input: asUITool<TOOL>['input'];
-      providerExecuted?: boolean;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -304,14 +314,28 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 
 export type DynamicToolUIPart = {
   type: 'dynamic-tool';
+
+  /**
+   * Name of the tool that is being called.
+   */
   toolName: string;
+
+  /**
+   * ID of the tool call.
+   */
   toolCallId: string;
+
+  /**
+   * Whether the tool call was executed by the provider.
+   */
+  providerExecuted?: boolean;
 } & (
   | {
       state: 'input-streaming';
       input: unknown | undefined;
       output?: never;
       errorText?: never;
+      approval?: never;
     }
   | {
       state: 'input-available';
@@ -319,6 +343,31 @@ export type DynamicToolUIPart = {
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      approval?: never;
+    }
+  | {
+      state: 'approval-requested';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved?: never;
+        reason?: never;
+      };
+    }
+  | {
+      state: 'approval-responded';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved: boolean;
+        reason?: string;
+      };
     }
   | {
       state: 'output-available';
@@ -327,6 +376,11 @@ export type DynamicToolUIPart = {
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
+      approval?: {
+        id: string;
+        approved: true;
+        reason?: string;
+      };
     }
   | {
       state: 'output-error'; // TODO AI SDK 6: change to 'error' state
@@ -334,9 +388,27 @@ export type DynamicToolUIPart = {
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
+      approval?: {
+        id: string;
+        approved: true;
+        reason?: string;
+      };
+    }
+  | {
+      state: 'output-denied';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval: {
+        id: string;
+        approved: false;
+        reason?: string;
+      };
     }
 );
 
+// TODO AI SDK 6: rename to isStaticToolUIPart
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> {
@@ -349,18 +421,21 @@ export function isDynamicToolUIPart(
   return part.type === 'dynamic-tool';
 }
 
+// TODO AI SDK 6: rename to isToolUIPart
 export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isToolUIPart(part) || isDynamicToolUIPart(part);
 }
 
+// TODO AI SDK 6: rename to getStaticToolName
 export function getToolName<TOOLS extends UITools>(
   part: ToolUIPart<TOOLS>,
 ): keyof TOOLS {
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
 
+// TODO AI SDK 6: rename to getToolName
 export function getToolOrDynamicToolName(
   part: ToolUIPart<UITools> | DynamicToolUIPart,
 ): string {

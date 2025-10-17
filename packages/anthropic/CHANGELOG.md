@@ -1,5 +1,66 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- ca07285: feat(anthropic): add prompt caching validation
+
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- 9354297: feat(provider/anthropic): add support for Agent Skills
+
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 81d4308: feat(provider/anthropic): mcp connector support
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- 4c5a6be: feat(provider/anthropic): default and limit maxTokens based on model
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- f33a018: chore: add model ID for Haiku 4.5
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- d08308b: feat(provider/anthropic): memory tool
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- 6f845b4: Add support for 2025-08-25 code execution tool
+
 ## 3.0.0-beta.22
 
 ### Patch Changes

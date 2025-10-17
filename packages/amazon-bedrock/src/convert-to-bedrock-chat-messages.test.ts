@@ -672,7 +672,7 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'media',
+                  type: 'image-data',
                   data: 'base64data',
                   mediaType: 'image/jpeg',
                 },
@@ -717,7 +717,7 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'media',
+                    type: 'image-data',
                     data: 'base64data',
                     mediaType: 'image/avif', // unsupported format
                   },
@@ -746,7 +746,7 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'media',
+                    type: 'image-data',
                     data: 'base64data',
                     mediaType: 'unsupported/mime-type',
                   },

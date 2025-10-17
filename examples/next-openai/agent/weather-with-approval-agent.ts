@@ -1,8 +1,8 @@
 import { weatherToolWithApproval } from '@/tool/weather-tool-with-approval';
 import { anthropic } from '@ai-sdk/anthropic';
-import { Agent, InferAgentUIMessage } from 'ai';
+import { BasicAgent, InferAgentUIMessage } from 'ai';
 
-export const weatherWithApprovalAgent = new Agent({
+export const weatherWithApprovalAgent = new BasicAgent({
   model: anthropic('claude-sonnet-4-5'),
   // context engineering required to make sure the model does not retry
   // the tool execution if it is not approved:
