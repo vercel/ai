@@ -8,7 +8,7 @@ export const openaiImageGenerationCustomToolAgent = new BasicAgent({
     imageGeneration: generateImageTool,
   },
   onStepFinish: ({ request }) => {
-    console.dir(request.body, { depth: Infinity });
+    console.dir(request.body, { depth: 3 });
   },
 });
 

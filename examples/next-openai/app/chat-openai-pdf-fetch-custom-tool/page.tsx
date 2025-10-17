@@ -4,14 +4,15 @@ import ChatInput from '@/components/chat-input';
 import FetchPDFView from '@/components/tool/fetch-pdf-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { OpenAIFetchPDFMessage } from '@/app/api/chat-openai-fetch-pdf-custom-tool/route';
+import { OpenAIFetchPdfCustomToolMessage } from '@/agent/openai-fetch-pdf-custom-tool-agent';
 
 export default function TestOpenAIFileGenerationPDF() {
-  const { status, sendMessage, messages } = useChat<OpenAIFetchPDFMessage>({
-    transport: new DefaultChatTransport({
-      api: '/api/chat-openai-fetch-pdf-custom-tool',
-    }),
-  });
+  const { status, sendMessage, messages } =
+    useChat<OpenAIFetchPdfCustomToolMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/chat-openai-fetch-pdf-custom-tool',
+      }),
+    });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
