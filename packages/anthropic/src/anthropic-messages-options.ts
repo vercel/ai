@@ -81,6 +81,46 @@ export const anthropicProviderOptions = z.object({
       ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
     })
     .optional(),
+<<<<<<< HEAD
+=======
+
+  mcpServers: z
+    .array(
+      z.object({
+        type: z.literal('url'),
+        name: z.string(),
+        url: z.string(),
+        authorizationToken: z.string().nullish(),
+        toolConfiguration: z
+          .object({
+            enabled: z.boolean().nullish(),
+            allowedTools: z.array(z.string()).nullish(),
+          })
+          .nullish(),
+      }),
+    )
+    .optional(),
+
+  /**
+   * Agent Skills configuration. Skills enable Claude to perform specialized tasks
+   * like document processing (PPTX, DOCX, PDF, XLSX) and data analysis.
+   * Requires code execution tool to be enabled.
+   */
+  container: z
+    .object({
+      id: z.string().optional(),
+      skills: z
+        .array(
+          z.object({
+            type: z.union([z.literal('anthropic'), z.literal('custom')]),
+            skillId: z.string(),
+            version: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+>>>>>>> 93542976f (feat(provider/anthropic): implement support for Claude Agent Skills (#9597))
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
