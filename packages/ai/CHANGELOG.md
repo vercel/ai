@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.0-beta.56
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+  - @ai-sdk/gateway@2.0.0-beta.35
+
 ## 6.0.0-beta.55
 
 ### Patch Changes
