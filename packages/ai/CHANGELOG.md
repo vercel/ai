@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.76
+
+### Patch Changes
+
+- 87b03d5: feat(ui): add isDataUIPart helper
+
 ## 5.0.75
 
 ### Patch Changes
