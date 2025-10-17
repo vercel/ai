@@ -1771,7 +1771,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "output": [
               {
                 "file_data": "data:application/pdf;base64,AQIDBAU=",
-                "filename": "data",
+                "filename": "document.pdf",
                 "type": "input_file",
               },
             ],
