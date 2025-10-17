@@ -348,6 +348,16 @@ export type AnthropicTool =
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
+
+export type AnthropicContainer = {
+  id?: string | null;
+  skills?: Array<{
+    type: 'anthropic' | 'custom';
+    skill_id: string;
+    version?: string;
+  }> | null;
+};
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicMessagesResponseSchema = lazySchema(() =>
