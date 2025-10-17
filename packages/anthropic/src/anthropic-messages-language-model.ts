@@ -331,7 +331,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('skills-2025-10-02');
       betas.add('files-api-2025-04-14');
 
-      // TODO check for code execution tool
+      if (
+        tools?.some(
+          tool =>
+            tool.type === 'provider-defined' &&
+            tool.id === 'anthropic.code_execution_20250825',
+        )
+      ) {
+        warnings.push({
+          type: 'other',
+          message: 'code execution tool is required when using skills',
+        });
+      }
     }
 
     const {

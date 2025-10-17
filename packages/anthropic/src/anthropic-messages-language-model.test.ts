@@ -1803,7 +1803,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       it('should send request body with skills in container', async () => {
         prepareJsonResponse({});
 
-        await model.doGenerate({
+        const result = await model.doGenerate({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -1872,6 +1872,77 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
           }
         `);
+
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "message": "code execution tool is required when using skills",
+              "type": "other",
+            },
+          ]
+        `);
+      });
+
+      it('should add a warning when the code execution tool is not present', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              container: {
+                id: 'test-container-id',
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                  {
+                    type: 'custom',
+                    skillId: 'my-custom-skill',
+                    version: '1.0',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": {
+              "id": "test-container-id",
+              "skills": [
+                {
+                  "skill_id": "pptx",
+                  "type": "anthropic",
+                  "version": "latest",
+                },
+                {
+                  "skill_id": "my-custom-skill",
+                  "type": "custom",
+                  "version": "1.0",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+          }
+        `);
+
+        expect(result.warnings).toMatchInlineSnapshot(`[]`);
       });
 
       it('should include beta headers when skills are configured', async () => {
