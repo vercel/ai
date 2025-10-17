@@ -438,7 +438,7 @@ describe('tool messages', () => {
                     text: 'Image generated successfully',
                   },
                   {
-                    type: 'media',
+                    type: 'image-data',
                     data: 'AAECAw==',
                     mediaType: 'image/png',
                   },
@@ -509,7 +509,7 @@ describe('tool messages', () => {
                     text: 'PDF generated successfully',
                   },
                   {
-                    type: 'media',
+                    type: 'file-data',
                     data: 'JVBERi0xLjQKJeLjz9MKNCAwIG9iago=', // Sample PDF base64
                     mediaType: 'application/pdf',
                   },
