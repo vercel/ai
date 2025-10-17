@@ -203,6 +203,15 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
   : TOOL;
 
 /**
+ * Check if a message part is a data part.
+ */
+export function isDataUIPart<DATA_TYPES extends UIDataTypes>(
+  part: UIMessagePart<DATA_TYPES, UITools>,
+): part is DataUIPart<DATA_TYPES> {
+  return part.type.startsWith('data-');
+}
+
+/**
  * A UI tool invocation contains all the information needed to render a tool invocation in the UI.
  * It can be derived from a tool without knowing the tool name, and can be used to define
  * UI components for the tool.
