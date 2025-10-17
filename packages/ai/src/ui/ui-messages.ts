@@ -202,6 +202,9 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
   ? InferUITool<TOOL>
   : TOOL;
 
+/**
+ * Check if a message part is a data part.
+ */
 export function isDataUIPart<DATA_TYPES extends UIDataTypes>(
   part: UIMessagePart<DATA_TYPES, UITools>,
 ): part is DataUIPart<DATA_TYPES> {
