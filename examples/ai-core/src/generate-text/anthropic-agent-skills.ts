@@ -14,11 +14,6 @@ run(async () => {
     providerOptions: {
       anthropic: {
         skills: [{ type: 'anthropic', skill_id: 'pptx' }],
-        betas: [
-          'code-execution-2025-08-25',
-          'skills-2025-10-02',
-          'files-api-2025-04-14',
-        ],
       },
     },
   });

@@ -21,11 +21,6 @@ run(async () => {
           { type: 'anthropic', skill_id: 'pptx' },
           { type: 'anthropic', skill_id: 'xlsx' },
         ],
-        betas: [
-          'code-execution-2025-08-25',
-          'skills-2025-10-02',
-          'files-api-2025-04-14',
-        ],
       },
     },
   });
