@@ -205,6 +205,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         warnings,
       });
 
+    // Add user-specified beta headers
+    if (anthropicOptions?.betas) {
+      anthropicOptions.betas.forEach(beta => betas.add(beta));
+    }
+
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
@@ -242,6 +247,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 }
               : undefined,
           })),
+        }),
+
+      // container with agent skills:
+      ...(anthropicOptions?.skills &&
+        anthropicOptions.skills.length > 0 && {
+          container: {
+            skills: anthropicOptions.skills.map(skill => ({
+              type: skill.type,
+              skill_id: skill.skill_id,
+              version: skill.version ?? 'latest',
+            })),
+          },
         }),
 
       // prompt:

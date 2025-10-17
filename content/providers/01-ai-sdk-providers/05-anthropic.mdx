@@ -668,6 +668,115 @@ for await (const part of result.textStream) {
 }
 ```
 
+## Agent Skills
+
+Agent Skills enable Claude to perform specialized tasks like document processing (PPTX, DOCX, PDF, XLSX) and data analysis. Skills run in a sandboxed container and require the code execution tool to be enabled.
+
+### Using Built-in Skills
+
+Anthropic provides several built-in skills:
+
+- **pptx** - Create and edit PowerPoint presentations
+- **docx** - Create and edit Word documents
+- **pdf** - Process and analyze PDF files
+- **xlsx** - Work with Excel spreadsheets
+- **bigquery** - Query and analyze BigQuery data
+- **nda-review** - Review and analyze NDAs
+
+To use skills, you need to:
+
+1. Enable the code execution tool
+2. Specify the skills in `providerOptions`
+3. Include the required beta headers
+
+```ts highlight="4,9-17,19-23"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+  },
+  prompt: 'Create a presentation about renewable energy with 5 slides',
+  providerOptions: {
+    anthropic: {
+      skills: [{ type: 'anthropic', skill_id: 'pptx', version: 'latest' }],
+      betas: [
+        'code-execution-2025-08-25',
+        'skills-2025-10-02',
+        'files-api-2025-04-14',
+      ],
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+### Using Multiple Skills
+
+You can enable multiple skills in a single request:
+
+```ts highlight="9-13"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+  },
+  prompt: 'Create a quarterly business report with documents and spreadsheets',
+  providerOptions: {
+    anthropic: {
+      skills: [
+        { type: 'anthropic', skill_id: 'docx' },
+        { type: 'anthropic', skill_id: 'pptx' },
+        { type: 'anthropic', skill_id: 'xlsx' },
+      ],
+      betas: [
+        'code-execution-2025-08-25',
+        'skills-2025-10-02',
+        'files-api-2025-04-14',
+      ],
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+### Custom Skills
+
+You can also use custom skills by specifying `type: 'custom'`:
+
+```ts highlight="9-11"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+  },
+  prompt: 'Use my custom skill to process this data',
+  providerOptions: {
+    anthropic: {
+      skills: [
+        { type: 'custom', skill_id: 'my-custom-skill-id', version: '1.0' },
+      ],
+      betas: [
+        'code-execution-2025-08-25',
+        'skills-2025-10-02',
+        'files-api-2025-04-14',
+      ],
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+<Note>
+  Skills use progressive context loading and execute within a sandboxed
+  container with code execution capabilities. If no version is specified,
+  `'latest'` is used by default.
+</Note>
+
+<Note>
+  For more information about Agent Skills, see [Anthropic's Agent Skills
+  documentation](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview).
+</Note>
+
 ### PDF support
 
 Anthropic Sonnet `claude-3-5-sonnet-20241022` supports reading PDF files.
