@@ -1,6 +1,6 @@
 'use client';
 
-import { OpenAIImageGenerationMessage } from '@/app/api/chat-openai-image-generation-custom-tool/route';
+import { OpenAIImageGenerationCustomToolMessage } from '@/agent/openai-image-generation-custom-tool-agent';
 import ChatInput from '@/components/chat-input';
 import GenerateImageView from '@/components/tool/generate-image-view';
 import { useChat } from '@ai-sdk/react';
@@ -8,7 +8,7 @@ import { DefaultChatTransport } from 'ai';
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } =
-    useChat<OpenAIImageGenerationMessage>({
+    useChat<OpenAIImageGenerationCustomToolMessage>({
       transport: new DefaultChatTransport({
         api: '/api/chat-openai-image-generation-custom-tool',
       }),
