@@ -8,6 +8,7 @@ export type {
   ReasoningPart,
   TextPart,
   ToolCallPart,
+  ToolResultOutput,
   ToolResultPart,
 } from './content-part';
 export type { DataContent } from './data-content';

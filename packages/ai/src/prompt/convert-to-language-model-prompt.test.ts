@@ -1703,6 +1703,122 @@ describe('convertToLanguageModelMessage', () => {
               output: {
                 type: 'content',
                 value: [
+                  { type: 'file-url', url: 'https://example.com/image.png' },
+                  {
+                    type: 'file-data',
+                    data: 'dGVzdA==',
+                    mediaType: 'image/png',
+                  },
+                  { type: 'file-id', fileId: 'fileId' },
+                  { type: 'file-id', fileId: { 'test-provider': 'fileId' } },
+                  {
+                    type: 'image-data',
+                    data: 'dGVzdA==',
+                    mediaType: 'image/png',
+                  },
+                  { type: 'image-url', url: 'https://example.com/image.png' },
+                  { type: 'image-file-id', fileId: 'fileId' },
+                  {
+                    type: 'image-file-id',
+                    fileId: { 'test-provider': 'fileId' },
+                  },
+                  {
+                    type: 'custom',
+                    providerOptions: {
+                      'test-provider': {
+                        'key-a': 'test-value-1',
+                        'key-b': 'test-value-2',
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        downloadedAssets: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "content",
+                "value": [
+                  {
+                    "type": "file-url",
+                    "url": "https://example.com/image.png",
+                  },
+                  {
+                    "data": "dGVzdA==",
+                    "mediaType": "image/png",
+                    "type": "file-data",
+                  },
+                  {
+                    "fileId": "fileId",
+                    "type": "file-id",
+                  },
+                  {
+                    "fileId": {
+                      "test-provider": "fileId",
+                    },
+                    "type": "file-id",
+                  },
+                  {
+                    "data": "dGVzdA==",
+                    "mediaType": "image/png",
+                    "type": "image-data",
+                  },
+                  {
+                    "type": "image-url",
+                    "url": "https://example.com/image.png",
+                  },
+                  {
+                    "fileId": "fileId",
+                    "type": "image-file-id",
+                  },
+                  {
+                    "fileId": {
+                      "test-provider": "fileId",
+                    },
+                    "type": "image-file-id",
+                  },
+                  {
+                    "providerOptions": {
+                      "test-provider": {
+                        "key-a": "test-value-1",
+                        "key-b": "test-value-2",
+                      },
+                    },
+                    "type": "custom",
+                  },
+                ],
+              },
+              "providerOptions": undefined,
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
+    });
+
+    it('should map deprecated media type to image-data', () => {
+      const result = convertToLanguageModelMessage({
+        message: {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'toolName',
+              toolCallId: 'toolCallId',
+              output: {
+                type: 'content',
+                value: [
                   { type: 'media', data: 'dGVzdA==', mediaType: 'image/png' },
                 ],
               },
@@ -1722,7 +1838,58 @@ describe('convertToLanguageModelMessage', () => {
                   {
                     "data": "dGVzdA==",
                     "mediaType": "image/png",
-                    "type": "media",
+                    "type": "image-data",
+                  },
+                ],
+              },
+              "providerOptions": undefined,
+              "toolCallId": "toolCallId",
+              "toolName": "toolName",
+              "type": "tool-result",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "tool",
+        }
+      `);
+    });
+
+    it('should map deprecated media type to file-data', () => {
+      const result = convertToLanguageModelMessage({
+        message: {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'toolName',
+              toolCallId: 'toolCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'media',
+                    data: 'dGVzdA==',
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        downloadedAssets: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "output": {
+                "type": "content",
+                "value": [
+                  {
+                    "data": "dGVzdA==",
+                    "mediaType": "application/pdf",
+                    "type": "file-data",
                   },
                 ],
               },

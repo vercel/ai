@@ -1,4 +1,4 @@
-import { anthropicMcpAgent } from '@/agent/anthropic-mcp';
+import { anthropicMcpAgent } from '@/agent/anthropic-mcp-agent';
 import { validateUIMessages } from 'ai';
 
 export async function POST(request: Request) {

@@ -74,9 +74,7 @@ export class BasicAgent<
     messages: UIMessage<never, never, InferUITools<TOOLS>>[];
   }): Response {
     return this.stream({
-      prompt: convertToModelMessages(options.messages, {
-        tools: this.tools,
-      }),
+      prompt: convertToModelMessages(options.messages, { tools: this.tools }),
     }).toUIMessageStreamResponse<
       UIMessage<never, never, InferUITools<TOOLS>>
     >();

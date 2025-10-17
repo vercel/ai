@@ -12,7 +12,6 @@ import {
   FileUIPart,
   getToolOrDynamicToolName,
   isToolOrDynamicToolUIPart,
-  isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
