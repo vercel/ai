@@ -172,6 +172,11 @@ export async function convertToBedrockChatMessages(
                               source: { bytes: contentPart.data },
                             },
                           };
+                        default: {
+                          throw new UnsupportedFunctionalityError({
+                            functionality: `unsupported tool content part type: ${contentPart.type}`,
+                          });
+                        }
                       }
                     });
                     break;
