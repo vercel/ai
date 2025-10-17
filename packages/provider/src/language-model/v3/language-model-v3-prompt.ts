@@ -188,8 +188,27 @@ Result of the tool call.
  * Result of a tool call.
  */
 export type LanguageModelV3ToolResultOutput =
-  | { type: 'text'; value: string }
-  | { type: 'json'; value: JSONValue }
+  | {
+      /**
+       * Text tool output that should be directly sent to the API.
+       */
+      type: 'text';
+      value: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
+    }
+  | {
+      type: 'json';
+      value: JSONValue;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
+    }
   | {
       /**
        * Type when the user has denied the execution of the tool call.
@@ -200,9 +219,30 @@ export type LanguageModelV3ToolResultOutput =
        * Optional reason for the execution denial.
        */
       reason?: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
     }
-  | { type: 'error-text'; value: string }
-  | { type: 'error-json'; value: JSONValue }
+  | {
+      type: 'error-text';
+      value: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
+    }
+  | {
+      type: 'error-json';
+      value: JSONValue;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
+    }
   | {
       type: 'content';
       value: Array<
