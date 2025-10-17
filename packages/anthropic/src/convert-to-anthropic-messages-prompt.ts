@@ -284,7 +284,6 @@ export async function convertToAnthropicMessagesPrompt({
                             return {
                               type: 'text' as const,
                               text: contentPart.text,
-                              cache_control: cacheControl,
                             };
                           case 'image-data': {
                             return {
@@ -294,13 +293,11 @@ export async function convertToAnthropicMessagesPrompt({
                                 media_type: contentPart.mediaType,
                                 data: contentPart.data,
                               },
-                              cache_control: cacheControl,
                             };
                           }
                           case 'file-data': {
                             if (contentPart.mediaType === 'application/pdf') {
                               betas.add('pdfs-2024-09-25');
-
                               return {
                                 type: 'document' as const,
                                 source: {
@@ -308,7 +305,6 @@ export async function convertToAnthropicMessagesPrompt({
                                   media_type: contentPart.mediaType,
                                   data: contentPart.data,
                                 },
-                                cache_control: cacheControl,
                               };
                             }
 

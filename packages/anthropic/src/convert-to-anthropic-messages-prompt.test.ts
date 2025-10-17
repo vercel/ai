@@ -464,12 +464,10 @@ describe('tool messages', () => {
                   "cache_control": undefined,
                   "content": [
                     {
-                      "cache_control": undefined,
                       "text": "Image generated successfully",
                       "type": "text",
                     },
                     {
-                      "cache_control": undefined,
                       "source": {
                         "data": "AAECAw==",
                         "media_type": "image/png",
@@ -537,12 +535,10 @@ describe('tool messages', () => {
                   "cache_control": undefined,
                   "content": [
                     {
-                      "cache_control": undefined,
                       "text": "PDF generated successfully",
                       "type": "text",
                     },
                     {
-                      "cache_control": undefined,
                       "source": {
                         "data": "JVBERi0xLjQKJeLjz9MKNCAwIG9iago=",
                         "media_type": "application/pdf",
