@@ -159,6 +159,12 @@ Without this header, tool inputs and structured outputs may arrive all at once a
 
 The following optional provider options are available for Anthropic models:
 
+- `disableParallelToolUse` _boolean_
+
+  Optional. Disables the use of parallel tool calls. Defaults to `false`.
+
+  When set to `true`, the model will only call one tool at a time instead of potentially calling multiple tools in parallel.
+
 - `sendReasoning` _boolean_
 
   Optional. Include reasoning content in requests sent to the model. Defaults to `true`.
