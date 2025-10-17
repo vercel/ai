@@ -1,13 +1,6 @@
-<<<<<<< HEAD
-import { SharedV2ProviderMetadata } from '@ai-sdk/provider';
-import { AnthropicCacheControl } from './anthropic-messages-api';
-
-export function getCacheControl(
-  providerMetadata: SharedV2ProviderMetadata | undefined,
-=======
 import {
-  LanguageModelV3CallWarning,
-  SharedV3ProviderMetadata,
+  LanguageModelV2CallWarning,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import { AnthropicCacheControl } from './anthropic-messages-api';
 
@@ -17,8 +10,7 @@ const MAX_CACHE_BREAKPOINTS = 4;
 // Helper function to extract cache_control from provider metadata
 // Allows both cacheControl and cache_control for flexibility
 function getCacheControl(
-  providerMetadata: SharedV3ProviderMetadata | undefined,
->>>>>>> ca0728506 (feat(provider/anthropic): add prompt caching validation (#9330))
+  providerMetadata: SharedV2ProviderMetadata | undefined,
 ): AnthropicCacheControl | undefined {
   const anthropic = providerMetadata?.anthropic;
 
@@ -32,10 +24,10 @@ function getCacheControl(
 
 export class CacheControlValidator {
   private breakpointCount = 0;
-  private warnings: LanguageModelV3CallWarning[] = [];
+  private warnings: LanguageModelV2CallWarning[] = [];
 
   getCacheControl(
-    providerMetadata: SharedV3ProviderMetadata | undefined,
+    providerMetadata: SharedV2ProviderMetadata | undefined,
     context: { type: string; canCache: boolean },
   ): AnthropicCacheControl | undefined {
     const cacheControlValue = getCacheControl(providerMetadata);
@@ -68,7 +60,7 @@ export class CacheControlValidator {
     return cacheControlValue;
   }
 
-  getWarnings(): LanguageModelV3CallWarning[] {
+  getWarnings(): LanguageModelV2CallWarning[] {
     return this.warnings;
   }
 }

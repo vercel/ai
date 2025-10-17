@@ -54,12 +54,8 @@ export async function convertToAnthropicMessagesPrompt({
 }: {
   prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
-<<<<<<< HEAD
   warnings: LanguageModelV2CallWarning[];
-=======
-  warnings: LanguageModelV3CallWarning[];
   cacheControlValidator?: CacheControlValidator;
->>>>>>> ca0728506 (feat(provider/anthropic): add prompt caching validation (#9330))
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -286,49 +282,21 @@ export async function convertToAnthropicMessagesPrompt({
                           return {
                             type: 'text',
                             text: contentPart.text,
-                            cache_control: undefined,
                           };
                         case 'media': {
                           if (contentPart.mediaType.startsWith('image/')) {
                             return {
-<<<<<<< HEAD
                               type: 'image',
-=======
-                              type: 'text' as const,
-                              text: contentPart.text,
-                            };
-                          case 'image-data': {
-                            return {
-                              type: 'image' as const,
->>>>>>> ca0728506 (feat(provider/anthropic): add prompt caching validation (#9330))
                               source: {
                                 type: 'base64',
                                 media_type: contentPart.mediaType,
                                 data: contentPart.data,
                               },
-<<<<<<< HEAD
-                              cache_control: undefined,
                             };
                           }
 
                           if (contentPart.mediaType === 'application/pdf') {
                             betas.add('pdfs-2024-09-25');
-=======
-                            };
-                          }
-                          case 'file-data': {
-                            if (contentPart.mediaType === 'application/pdf') {
-                              betas.add('pdfs-2024-09-25');
-                              return {
-                                type: 'document' as const,
-                                source: {
-                                  type: 'base64' as const,
-                                  media_type: contentPart.mediaType,
-                                  data: contentPart.data,
-                                },
-                              };
-                            }
->>>>>>> ca0728506 (feat(provider/anthropic): add prompt caching validation (#9330))
 
                             return {
                               type: 'document',
@@ -337,7 +305,6 @@ export async function convertToAnthropicMessagesPrompt({
                                 media_type: contentPart.mediaType,
                                 data: contentPart.data,
                               },
-                              cache_control: undefined,
                             };
                           }
 

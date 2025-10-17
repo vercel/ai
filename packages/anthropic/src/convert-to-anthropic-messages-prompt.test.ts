@@ -1653,7 +1653,7 @@ describe('cache control', () => {
 
   describe('cache control validation', () => {
     it('should reject cache_control on thinking blocks', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: LanguageModelV2CallWarning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -1705,7 +1705,7 @@ describe('cache control', () => {
     });
 
     it('should reject cache_control on redacted thinking blocks', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: LanguageModelV2CallWarning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -1744,7 +1744,7 @@ describe('cache control', () => {
   });
 
   it('should limit cache breakpoints to 4', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
     const cacheControlValidator = new CacheControlValidator();
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
