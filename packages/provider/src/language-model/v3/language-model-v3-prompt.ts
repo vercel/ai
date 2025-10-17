@@ -213,9 +213,14 @@ export type LanguageModelV3ToolResultOutput =
 Text content.
 */
             text: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
           }
         | {
-            type: 'media';
+            type: 'file-data';
 
             /**
 Base-64 encoded media data.
@@ -227,6 +232,118 @@ IANA media type.
 @see https://www.iana.org/assignments/media-types/media-types.xhtml
 */
             mediaType: string;
+
+            /**
+             * Optional filename of the file.
+             */
+            filename?: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            type: 'file-url';
+
+            /**
+             * URL of the file.
+             */
+            url: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            type: 'file-id';
+
+            /**
+             * ID of the file.
+             *
+             * If you use multiple providers, you need to
+             * specify the provider specific ids using
+             * the Record option. The key is the provider
+             * name, e.g. 'openai' or 'anthropic'.
+             */
+            fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using base64 encoded data.
+             */
+            type: 'image-data';
+
+            /**
+Base-64 encoded image data.
+*/
+            data: string;
+
+            /**
+IANA media type.
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+*/
+            mediaType: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using a URL.
+             */
+            type: 'image-url';
+
+            /**
+             * URL of the image.
+             */
+            url: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using a provider file id.
+             */
+            type: 'image-file-id';
+
+            /**
+             * Image that is referenced using a provider file id.
+             *
+             * If you use multiple providers, you need to
+             * specify the provider specific ids using
+             * the Record option. The key is the provider
+             * name, e.g. 'openai' or 'anthropic'.
+             */
+            fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            /**
+             * Custom content part. This can be used to implement
+             * provider-specific content parts.
+             */
+            type: 'custom';
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
           }
       >;
     };
