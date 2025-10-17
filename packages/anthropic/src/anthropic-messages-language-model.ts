@@ -28,6 +28,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
+  AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
@@ -258,7 +259,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               skill_id: skill.skill_id,
               version: skill.version ?? 'latest',
             })),
-          },
+          } satisfies AnthropicContainer,
         }),
 
       // prompt:

@@ -312,21 +312,13 @@ export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
 
-/**
- * Agent Skill configuration for the container.
- * Skills enable Claude to perform specialized tasks like document processing.
- */
-export type AnthropicSkill = {
-  type: 'anthropic' | 'custom';
-  skill_id: string;
-  version?: string;
-};
-
-/**
- * Container configuration for Agent Skills and related features.
- */
 export type AnthropicContainer = {
-  skills?: AnthropicSkill[];
+  id?: string | null;
+  skills?: Array<{
+    type: 'anthropic' | 'custom';
+    skill_id: string;
+    version?: string;
+  }> | null;
 };
 
 // limited version of the schema, focussed on what is needed for the implementation
