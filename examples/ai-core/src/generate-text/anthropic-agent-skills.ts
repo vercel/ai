@@ -1,8 +1,8 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5-20250929'),
     tools: {
@@ -23,7 +23,5 @@ async function main() {
     },
   });
 
-  console.log(result.text);
-}
-
-main().catch(console.error);
+  console.dir(result.content, { depth: Infinity });
+});
