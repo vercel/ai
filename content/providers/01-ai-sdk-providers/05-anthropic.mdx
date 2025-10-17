@@ -670,7 +670,7 @@ for await (const part of result.textStream) {
 
 ## Agent Skills
 
-Agent Skills enable Claude to perform specialized tasks like document processing (PPTX, DOCX, PDF, XLSX) and data analysis. Skills run in a sandboxed container and require the code execution tool to be enabled.
+[Anthropic Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) enable Claude to perform specialized tasks like document processing (PPTX, DOCX, PDF, XLSX) and data analysis. Skills run in a sandboxed container and require the code execution tool to be enabled.
 
 ### Using Built-in Skills
 
@@ -684,7 +684,7 @@ Anthropic provides several built-in skills:
 To use skills, you need to:
 
 1. Enable the code execution tool
-2. Specify the skills in `providerOptions`
+2. Specify the container with skills in `providerOptions`
 
 ```ts highlight="4,9-17,19-23"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
@@ -698,30 +698,9 @@ const result = await generateText({
   prompt: 'Create a presentation about renewable energy with 5 slides',
   providerOptions: {
     anthropic: {
-      skills: [{ type: 'anthropic', skill_id: 'pptx', version: 'latest' }],
-    } satisfies AnthropicProviderOptions,
-  },
-});
-```
-
-### Using Multiple Skills
-
-You can enable multiple skills in a single request:
-
-```ts highlight="9-13"
-const result = await generateText({
-  model: anthropic('claude-sonnet-4-5-20250929'),
-  tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
-  },
-  prompt: 'Create a quarterly business report with documents and spreadsheets',
-  providerOptions: {
-    anthropic: {
-      skills: [
-        { type: 'anthropic', skill_id: 'docx' },
-        { type: 'anthropic', skill_id: 'pptx' },
-        { type: 'anthropic', skill_id: 'xlsx' },
-      ],
+      container: {
+        skills: [{ type: 'anthropic', skillId: 'pptx', version: 'latest' }],
+      },
     } satisfies AnthropicProviderOptions,
   },
 });
@@ -733,16 +712,18 @@ You can also use custom skills by specifying `type: 'custom'`:
 
 ```ts highlight="9-11"
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5-20250929'),
+  model: anthropic('claude-sonnet-4-5'),
   tools: {
     code_execution: anthropic.tools.codeExecution_20250825(),
   },
   prompt: 'Use my custom skill to process this data',
   providerOptions: {
     anthropic: {
-      skills: [
-        { type: 'custom', skill_id: 'my-custom-skill-id', version: '1.0' },
-      ],
+      container: {
+        skills: [
+          { type: 'custom', skillId: 'my-custom-skill-id', version: '1.0' },
+        ],
+      },
     } satisfies AnthropicProviderOptions,
   },
 });
@@ -750,13 +731,7 @@ const result = await generateText({
 
 <Note>
   Skills use progressive context loading and execute within a sandboxed
-  container with code execution capabilities. If no version is specified,
-  `'latest'` is used by default.
-</Note>
-
-<Note>
-  For more information about Agent Skills, see [Anthropic's Agent Skills
-  documentation](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview).
+  container with code execution capabilities.
 </Note>
 
 ### PDF support
