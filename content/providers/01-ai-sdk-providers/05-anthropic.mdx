@@ -699,7 +699,13 @@ const result = await generateText({
   providerOptions: {
     anthropic: {
       container: {
-        skills: [{ type: 'anthropic', skillId: 'pptx', version: 'latest' }],
+        skills: [
+          {
+            type: 'anthropic',
+            skillId: 'pptx',
+            version: 'latest', // optional
+          },
+        ],
       },
     } satisfies AnthropicProviderOptions,
   },
@@ -721,7 +727,11 @@ const result = await generateText({
     anthropic: {
       container: {
         skills: [
-          { type: 'custom', skillId: 'my-custom-skill-id', version: '1.0' },
+          {
+            type: 'custom',
+            skillId: 'my-custom-skill-id',
+            version: '1.0', // optional
+          },
         ],
       },
     } satisfies AnthropicProviderOptions,
