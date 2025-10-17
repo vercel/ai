@@ -1,4 +1,4 @@
-import { SharedV2ProviderOptions } from '../../shared';
+import { SharedV3ProviderOptions } from '../../shared';
 
 export type ImageModelV3CallOptions = {
   /**
@@ -45,7 +45,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
  */
-  providerOptions: SharedV2ProviderOptions;
+  providerOptions: SharedV3ProviderOptions;
 
   /**
 Abort signal for cancelling the operation.

@@ -1,4 +1,4 @@
-import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -54,8 +54,8 @@ interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
   };
 }
 
-export class ElevenLabsSpeechModel implements SpeechModelV2 {
-  readonly specificationVersion = 'v2';
+export class ElevenLabsSpeechModel implements SpeechModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
@@ -74,8 +74,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
     language,
     speed,
     providerOptions,
-  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
-    const warnings: SpeechModelV2CallWarning[] = [];
+  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
+    const warnings: SpeechModelV3CallWarning[] = [];
 
     // Parse provider options
     const elevenLabsOptions = await parseProviderOptions({
@@ -214,8 +214,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
+    options: Parameters<SpeechModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, queryParams, warnings, voiceId } =
       await this.getArgs(options);

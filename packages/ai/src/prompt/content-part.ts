@@ -5,6 +5,8 @@ import {
   ProviderOptions,
   ReasoningPart,
   TextPart,
+  ToolApprovalRequest,
+  ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -106,6 +108,10 @@ export const outputSchema: z.ZodType<LanguageModelV3ToolResultOutput> =
       value: jsonValueSchema,
     }),
     z.object({
+      type: z.literal('execution-denied'),
+      reason: z.string().optional(),
+    }),
+    z.object({
       type: z.literal('error-text'),
       value: z.string(),
     }),
@@ -141,3 +147,18 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   output: outputSchema,
   providerOptions: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
+
+export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
+  z.object({
+    type: z.literal('tool-approval-request'),
+    approvalId: z.string(),
+    toolCallId: z.string(),
+  });
+
+export const toolApprovalResponseSchema: z.ZodType<ToolApprovalResponse> =
+  z.object({
+    type: z.literal('tool-approval-response'),
+    approvalId: z.string(),
+    approved: z.boolean(),
+    reason: z.string().optional(),
+  });

@@ -1,7 +1,7 @@
 import {
-  TranscriptionModelV2,
-  TranscriptionModelV2CallOptions,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV3,
+  TranscriptionModelV3CallOptions,
+  TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -11,9 +11,9 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
   OpenAITranscriptionModelId,
   openAITranscriptionProviderOptions,
@@ -21,7 +21,7 @@ import {
 } from './openai-transcription-options';
 
 export type OpenAITranscriptionCallOptions = Omit<
-  TranscriptionModelV2CallOptions,
+  TranscriptionModelV3CallOptions,
   'providerOptions'
 > & {
   providerOptions?: {
@@ -96,8 +96,8 @@ const languageMap = {
   welsh: 'cy',
 };
 
-export class OpenAITranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class OpenAITranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
@@ -113,7 +113,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
     mediaType,
     providerOptions,
   }: OpenAITranscriptionCallOptions) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+    const warnings: TranscriptionModelV3CallWarning[] = [];
 
     // Parse provider options
     const openAIOptions = await parseProviderOptions({
@@ -176,7 +176,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
 
   async doGenerate(
     options: OpenAITranscriptionCallOptions,
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 
@@ -230,34 +230,3 @@ export class OpenAITranscriptionModel implements TranscriptionModelV2 {
     };
   }
 }
-
-const openaiTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-  segments: z
-    .array(
-      z.object({
-        id: z.number(),
-        seek: z.number(),
-        start: z.number(),
-        end: z.number(),
-        text: z.string(),
-        tokens: z.array(z.number()),
-        temperature: z.number(),
-        avg_logprob: z.number(),
-        compression_ratio: z.number(),
-        no_speech_prob: z.number(),
-      }),
-    )
-    .nullish(),
-});

@@ -1,7 +1,7 @@
 'use client';
 
-import AnthropicWebFetchView from '@/component/anthropic-web-fetch-view';
-import ChatInput from '@/component/chat-input';
+import ChatInput from '@/components/chat-input';
+import AnthropicWebFetchView from '@/components/tool/anthropic-web-fetch-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { AnthropicWebFetchMessage } from '../api/anthropic-web-fetch/route';
