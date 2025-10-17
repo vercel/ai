@@ -1,5 +1,25 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [b73ba90]
+  - @ai-sdk/anthropic@2.0.31
+
+## 3.0.40
+
+### Patch Changes
+
+- b53d8fc: chore: add model ID for Haiku 4.5
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [650287f]
+  - @ai-sdk/anthropic@2.0.30
+
 ## 3.0.38
 
 ### Patch Changes

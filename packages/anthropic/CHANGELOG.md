@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 2.0.31
+
+### Patch Changes
+
+- b73ba90: feat(provider/anthropic): default and limit maxTokens based on model
+
+## 2.0.30
+
+### Patch Changes
+
+- 650287f: chore: add model ID for Haiku 4.5
+
 ## 2.0.29
 
 ### Patch Changes

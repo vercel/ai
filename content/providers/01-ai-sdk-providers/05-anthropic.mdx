@@ -119,7 +119,7 @@ Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-2
 You can enable it using the `thinking` provider option
 and specifying a thinking budget in tokens.
 
-```ts
+```ts highlight="4,8-10"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -696,6 +696,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

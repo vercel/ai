@@ -1,5 +1,31 @@
 # ai
 
+## 5.0.75
+
+### Patch Changes
+
+- Updated dependencies [76678cd]
+  - @ai-sdk/gateway@2.0.0
+
+## 5.0.74
+
+### Patch Changes
+
+- Updated dependencies [11a8867]
+  - @ai-sdk/gateway@1.0.41
+
+## 5.0.73
+
+### Patch Changes
+
+- 734c4c3: fix(ai): add missing export for `LoadSettingError`
+
+## 5.0.72
+
+### Patch Changes
+
+- 1b94257: fix(ui): do not submit automatically when server return with error
+
 ## 5.0.71
 
 ### Patch Changes
