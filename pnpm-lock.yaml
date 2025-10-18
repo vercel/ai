@@ -382,6 +382,9 @@ importers:
       '@ai-sdk/openai':
         specifier: workspace:*
         version: link:../../packages/openai
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../../packages/provider-utils
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
         version: 1.17.3

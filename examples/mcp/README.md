@@ -59,3 +59,17 @@ Run example:
 ```sh
 pnpm sse:client
 ```
+
+## SSE Transport with custom fetch (Legacy)
+
+Start server
+
+```sh
+pnpm sse:server
+```
+
+Run example:
+
+```sh
+pnpm sse-custom-fetch:client
+```
