@@ -78,6 +78,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
           },
           "providerExecuted": undefined,
           "providerMetadata": undefined,
+          "title": "Tool One",
           "toolCallId": "call-1",
           "toolName": "tool1",
           "type": "tool-call",
