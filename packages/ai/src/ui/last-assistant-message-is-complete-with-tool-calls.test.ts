@@ -337,4 +337,64 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
       }),
     ).toBe(false);
   });
+
+  it('should return true when regular tool call has an error', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_regular_123',
+                state: 'output-error',
+                input: {
+                  city: 'New York',
+                },
+                errorText: 'API request failed',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true when mixing tool calls with both success and error states', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_regular_123',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: 'windy',
+              },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_123',
+                state: 'output-error',
+                input: {
+                  location: 'San Francisco',
+                },
+                errorText: 'Failed to fetch weather data',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
 });

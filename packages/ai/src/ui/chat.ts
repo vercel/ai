@@ -26,6 +26,7 @@ import {
   type InferUIMessageData,
   type InferUIMessageMetadata,
   type InferUIMessageTools,
+  type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
 } from './ui-messages';
@@ -427,6 +428,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
+  addToolOutput = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
   addToolApprovalResponse: ChatAddToolApproveResponseFunction = async ({
     id,
     approved,
@@ -532,6 +534,27 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         });
       }
     });
+
+  /**
+   * @deprecated Use `addToolOutput` instead. This method will be removed in a future version.
+   */
+  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>(
+    params:
+      | {
+          tool: TOOL;
+          toolCallId: string;
+          output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+          state?: never;
+          errorText?: never;
+        }
+      | {
+          tool: TOOL;
+          toolCallId: string;
+          state: 'output-error';
+          errorText: string;
+          output?: never;
+        },
+  ) => this.addToolOutput(params as any);
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
