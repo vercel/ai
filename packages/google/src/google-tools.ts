@@ -1,4 +1,5 @@
 import { codeExecution } from './tool/code-execution';
+import { googleMaps } from './tool/google-maps-grounding';
 import { googleSearch } from './tool/google-search';
 import { urlContext } from './tool/url-context';
 
@@ -8,6 +9,14 @@ export const googleTools = {
    * Must have name "google_search".
    */
   googleSearch,
+
+  /**
+   * Enables Grounding with Google Maps for location-aware responses.
+   * Must have name "google_maps".
+   *
+   * @see https://ai.google.dev/gemini-api/docs/google-maps-grounding
+   */
+  googleMaps,
 
   /**
    * Creates a URL context tool that gives Google direct access to real-time web content.
