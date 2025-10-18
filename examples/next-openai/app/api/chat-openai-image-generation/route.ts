@@ -4,7 +4,7 @@ import { openaiImageGenerationAgent } from '@/agent/openai-image-generation-agen
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  return await createAgentStreamResponse({
+  return createAgentStreamResponse({
     agent: openaiImageGenerationAgent,
     messages,
   });
