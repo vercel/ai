@@ -1,6 +1,7 @@
 export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
+  type ChatAddToolApproveResponseFunction,
   type ChatInit,
   type ChatOnDataCallback,
   type ChatOnErrorCallback,
@@ -26,11 +27,13 @@ export {
   type PrepareReconnectToStreamRequest,
   type PrepareSendMessagesRequest,
 } from './http-chat-transport';
+export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
   getToolName,
   getToolOrDynamicToolName,
+  isDataUIPart,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
   type DataUIPart,
@@ -56,7 +59,7 @@ export {
   type UseCompletionOptions,
 } from './use-completion';
 export {
-  validateUIMessages,
   safeValidateUIMessages,
+  validateUIMessages,
   type SafeValidateUIMessagesResult,
 } from './validate-ui-messages';

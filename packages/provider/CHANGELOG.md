@@ -1,5 +1,30 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- 81d4308: feat: provider-executed dynamic tools
+
+## 3.0.0-beta.6
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+
 ## 2.1.0-beta.4
 
 ### Patch Changes

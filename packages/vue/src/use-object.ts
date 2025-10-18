@@ -1,32 +1,30 @@
-import { ref, type Ref } from 'vue';
-import swrv from 'swrv';
 import {
   isAbortError,
   safeValidateTypes,
   type FetchFunction,
-  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import {
   asSchema,
-  type DeepPartial,
   isDeepEqualData,
   parsePartialJson,
-  type Schema,
+  type DeepPartial,
+  type FlexibleSchema,
+  type InferSchema,
 } from 'ai';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import swrv from 'swrv';
+import { ref, type Ref } from 'vue';
 
 // use function to allow for mocking in tests
 const getOriginalFetch = () => fetch;
 
 export type Experimental_UseObjectOptions<
-  SCHEMA extends z4.core.$ZodType | z3.Schema | Schema,
+  SCHEMA extends FlexibleSchema,
   RESULT,
 > = {
   /** API endpoint that streams JSON chunks matching the schema */
   api: string;
 
-  /** Zod or AI schema that defines the final object shape */
+  /** Schema that defines the final object shape */
   schema: SCHEMA;
 
   /** Shared state key. If omitted a random one is generated */
@@ -81,7 +79,7 @@ const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
 const store: Record<string, any> = {};
 
 export const experimental_useObject = function useObject<
-  SCHEMA extends z4.core.$ZodType | z3.Schema | Schema,
+  SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = any,
 >({

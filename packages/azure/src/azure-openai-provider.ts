@@ -156,7 +156,7 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion ?? 'preview';
+  const apiVersion = options.apiVersion ?? 'v1';
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
     const baseUrlPrefix =
