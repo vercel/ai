@@ -17,14 +17,20 @@ export interface Agent<
   OUTPUT_PARTIAL = never,
 > {
   /**
+   * The specification version of the agent interface. This will enable
+   * us to evolve the agent interface and retain backwards compatibility.
+   */
+  readonly version: 'agent-v1';
+
+  /**
    * The id of the agent.
    */
-  id: string | undefined;
+  readonly id: string | undefined;
 
   /**
    * The tools that the agent can use.
    */
-  tools: TOOLS;
+  readonly tools: TOOLS;
 
   /**
    * Generates an output from the agent (non-streaming).

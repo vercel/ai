@@ -27,6 +27,8 @@ export class ToolLoopAgent<
   OUTPUT_PARTIAL = never,
 > implements Agent<TOOLS, OUTPUT, OUTPUT_PARTIAL>
 {
+  readonly version = 'agent-v1';
+
   private readonly settings: ToolLoopAgentSettings<
     TOOLS,
     OUTPUT,
