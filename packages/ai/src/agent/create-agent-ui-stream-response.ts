@@ -15,7 +15,7 @@ import { Agent } from './agent';
  *
  * @returns The response object.
  */
-export async function createAgentStreamResponse<
+export async function createAgentUIStreamResponse<
   TOOLS extends ToolSet = {},
   OUTPUT = never,
   OUTPUT_PARTIAL = never,

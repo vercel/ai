@@ -7,10 +7,10 @@ import {
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { createAgentStreamResponse } from './create-agent-stream-response';
+import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import { ToolLoopAgent } from './tool-loop-agent';
 
-describe('createAgentStreamResponse', () => {
+describe('createAgentUIStreamResponse', () => {
   describe('when using tools toModelOutput', () => {
     let recordedInputs: LanguageModelV3CallOptions[];
     let response: Response;
@@ -74,7 +74,7 @@ describe('createAgentStreamResponse', () => {
         },
       });
 
-      response = await createAgentStreamResponse({
+      response = await createAgentUIStreamResponse({
         agent,
         messages: [
           {
