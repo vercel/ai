@@ -449,7 +449,7 @@ describe('parseToolCall', () => {
         tools: {
           weather: {
             type: 'dynamic',
-            title: '🌤️ Weather Information',
+            title: 'Weather Information',
             description: 'Get weather',
             inputSchema: jsonSchema({
               type: 'object',
@@ -464,7 +464,7 @@ describe('parseToolCall', () => {
         messages: [],
       });
 
-      expect(result.title).toBe('🌤️ Weather Information');
+      expect(result.title).toBe('Weather Information');
       expect(result.dynamic).toBe(true);
     });
 
@@ -478,7 +478,7 @@ describe('parseToolCall', () => {
         },
         tools: {
           calculator: {
-            title: '🔢 Calculator',
+            title: 'Calculator',
             description: 'Calculate',
             inputSchema: z.object({ a: z.number(), b: z.number() }),
             execute: async ({ a, b }) => a + b,
@@ -489,7 +489,7 @@ describe('parseToolCall', () => {
         messages: [],
       });
 
-      expect(result.title).toBe('🔢 Calculator');
+      expect(result.title).toBe('Calculator');
       expect(result.dynamic).toBeUndefined();
     });
 
@@ -503,7 +503,7 @@ describe('parseToolCall', () => {
         },
         tools: {
           invalidTool: {
-            title: '❌ Invalid Tool',
+            title: 'Invalid Tool',
             description: 'Tool that will fail',
             inputSchema: z.object({ required: z.string() }),
             execute: async () => 'result',
@@ -515,7 +515,7 @@ describe('parseToolCall', () => {
       });
 
       expect(result.invalid).toBe(true);
-      expect(result.title).toBe('❌ Invalid Tool');
+      expect(result.title).toBe('Invalid Tool');
     });
   });
 });

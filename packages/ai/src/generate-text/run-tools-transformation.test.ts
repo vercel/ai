@@ -95,6 +95,7 @@ describe('runToolsTransformation', () => {
     const transformedStream = runToolsTransformation({
       tools: {
         syncTool: {
+          title: 'Sync Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => `${value}-sync-result`,
         },
@@ -118,7 +119,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
-            "title": undefined,
+            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -130,7 +131,7 @@ describe('runToolsTransformation', () => {
             "output": "test-sync-result",
             "providerExecuted": undefined,
             "providerMetadata": undefined,
-            "title": undefined,
+            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-result",
@@ -170,6 +171,7 @@ describe('runToolsTransformation', () => {
     const transformedStream = runToolsTransformation({
       tools: {
         syncTool: {
+          title: 'Sync Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: ({ value }) => `${value}-sync-result`,
         },
@@ -193,7 +195,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
-            "title": undefined,
+            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -205,7 +207,7 @@ describe('runToolsTransformation', () => {
             "output": "test-sync-result",
             "providerExecuted": undefined,
             "providerMetadata": undefined,
-            "title": undefined,
+            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-result",
@@ -245,6 +247,7 @@ describe('runToolsTransformation', () => {
     const transformedStream = runToolsTransformation({
       tools: {
         delayedTool: {
+          title: 'Delayed Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => {
             await delay(0); // Simulate delayed execution
@@ -272,7 +275,7 @@ describe('runToolsTransformation', () => {
           },
           "providerExecuted": undefined,
           "providerMetadata": undefined,
-          "title": undefined,
+          "title": "Delayed Tool",
           "toolCallId": "call-1",
           "toolName": "delayedTool",
           "type": "tool-call",
@@ -284,7 +287,7 @@ describe('runToolsTransformation', () => {
           "output": "test-delayed-result",
           "providerExecuted": undefined,
           "providerMetadata": undefined,
-          "title": undefined,
+          "title": "Delayed Tool",
           "toolCallId": "call-1",
           "toolName": "delayedTool",
           "type": "tool-result",

@@ -6001,7 +6001,7 @@ describe('processUIMessageStream', () => {
             type: 'tool-input-start',
             toolCallId: 'tool-call-0',
             toolName: 'weatherTool',
-            title: '🌤️ Weather Information',
+            title: 'Weather Information',
           },
           {
             type: 'tool-input-delta',
@@ -6013,7 +6013,7 @@ describe('processUIMessageStream', () => {
             toolCallId: 'tool-call-0',
             toolName: 'weatherTool',
             input: { location: 'Paris' },
-            title: '🌤️ Weather Information',
+            title: 'Weather Information',
           },
           {
             type: 'tool-output-available',
@@ -6046,7 +6046,7 @@ describe('processUIMessageStream', () => {
         );
 
         expect(toolPart).toBeDefined();
-        expect((toolPart as any).title).toBe('🌤️ Weather Information');
+        expect((toolPart as any).title).toBe('Weather Information');
       });
 
       it('should preserve title through all states', () => {
@@ -6063,7 +6063,7 @@ describe('processUIMessageStream', () => {
               part => part.type === 'tool-weatherTool',
             ) as any
           ).title,
-        ).toBe('🌤️ Weather Information');
+        ).toBe('Weather Information');
 
         const inputAvailableWrite = writeCalls.find(call =>
           call.message.parts.some(
@@ -6078,7 +6078,7 @@ describe('processUIMessageStream', () => {
               part => part.type === 'tool-weatherTool',
             ) as any
           ).title,
-        ).toBe('🌤️ Weather Information');
+        ).toBe('Weather Information');
 
         const outputAvailableWrite = writeCalls.find(call =>
           call.message.parts.some(
@@ -6093,7 +6093,7 @@ describe('processUIMessageStream', () => {
               part => part.type === 'tool-weatherTool',
             ) as any
           ).title,
-        ).toBe('🌤️ Weather Information');
+        ).toBe('Weather Information');
       });
     });
 
@@ -6107,7 +6107,7 @@ describe('processUIMessageStream', () => {
             toolCallId: 'tool-call-1',
             toolName: 'calculate',
             dynamic: true,
-            title: '🔢 Calculator',
+            title: 'Calculator',
           },
           {
             type: 'tool-input-delta',
@@ -6120,7 +6120,7 @@ describe('processUIMessageStream', () => {
             toolName: 'calculate',
             input: { a: 5, b: 3 },
             dynamic: true,
-            title: '🔢 Calculator',
+            title: 'Calculator',
           },
           {
             type: 'tool-output-available',
@@ -6154,7 +6154,7 @@ describe('processUIMessageStream', () => {
         );
 
         expect(toolPart).toBeDefined();
-        expect((toolPart as any).title).toBe('🔢 Calculator');
+        expect((toolPart as any).title).toBe('Calculator');
         expect((toolPart as any).toolName).toBe('calculate');
       });
 
@@ -6164,7 +6164,7 @@ describe('processUIMessageStream', () => {
         ) as any;
 
         expect(finalToolPart.state).toBe('output-available');
-        expect(finalToolPart.title).toBe('🔢 Calculator');
+        expect(finalToolPart.title).toBe('Calculator');
         expect(finalToolPart.input).toEqual({ a: 5, b: 3 });
         expect(finalToolPart.output).toEqual({ result: 8 });
       });
@@ -6179,14 +6179,14 @@ describe('processUIMessageStream', () => {
             type: 'tool-input-start',
             toolCallId: 'tool-call-error',
             toolName: 'errorTool',
-            title: '⚠️ Error Tool',
+            title: 'Error Tool',
           },
           {
             type: 'tool-input-available',
             toolCallId: 'tool-call-error',
             toolName: 'errorTool',
             input: { invalid: 'data' },
-            title: '⚠️ Error Tool',
+            title: 'Error Tool',
           },
           {
             type: 'tool-output-error',
@@ -6219,7 +6219,7 @@ describe('processUIMessageStream', () => {
         );
 
         expect(toolPart).toBeDefined();
-        expect((toolPart as any).title).toBe('⚠️ Error Tool');
+        expect((toolPart as any).title).toBe('Error Tool');
         expect((toolPart as any).state).toBe('output-error');
         expect((toolPart as any).errorText).toBe('Tool execution failed');
       });

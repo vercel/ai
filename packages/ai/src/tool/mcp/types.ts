@@ -96,7 +96,6 @@ const PaginatedResultSchema = ResultSchema.extend({
 const ToolSchema = z
   .object({
     name: z.string(),
-    title: z.optional(z.string()),
     description: z.optional(z.string()),
     inputSchema: z
       .object({

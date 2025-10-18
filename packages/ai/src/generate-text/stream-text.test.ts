@@ -1069,6 +1069,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
           }),
         },
@@ -1283,6 +1284,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
             execute: async (input, options) => {
               expect(input).toStrictEqual({ value: 'value' });
@@ -1326,6 +1328,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => {
               await delay(50); // delay to show bug where step finish is sent before tool result
@@ -9799,6 +9802,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
+            title: 'Tool 1',
             inputSchema: jsonSchema<{ value: string }>({
               type: 'object',
               properties: { value: { type: 'string' } },

@@ -737,6 +737,7 @@ describe('generateText', () => {
           }),
           tools: {
             tool1: tool({
+              title: 'Tool One',
               inputSchema: z.object({ value: z.string() }),
               execute: async (args, options) => {
                 expect(args).toStrictEqual({ value: 'value' });
