@@ -263,35 +263,6 @@ for await (const chunk of stream.textStream) {
 
 The `stream()` method returns a `StreamTextResult` object with the same properties as [`streamText`](/docs/reference/ai-sdk-core/stream-text#returns).
 
-### `respond()`
-
-Creates a Response object that streams UI messages to the client. This method is particularly useful for building chat interfaces in web applications.
-
-```ts
-export async function POST(request: Request) {
-  const { messages } = await request.json();
-
-  return agent.respond({
-    messages,
-  });
-}
-```
-
-<PropertiesTable
-  content={[
-    {
-      name: 'messages',
-      type: 'UIMessage[]',
-      isRequired: true,
-      description: 'Array of UI messages to process.',
-    },
-  ]}
-/>
-
-#### Returns
-
-Returns a `Response` object that streams UI messages to the client in the format expected by the `useChat` hook and other UI integrations.
-
 ## Types
 
 ### `InferAgentUIMessage`
@@ -380,29 +351,4 @@ const result = await analysisAgent.generate({
 });
 
 console.log(result.experimental_output); // Typed as { sentiment: 'positive' | 'negative' | 'neutral', score: number, summary: string }
-```
-
-### Next.js Route Handler
-
-Use an agent in a Next.js API route:
-
-```ts
-// app/api/chat/route.ts
-import { Agent } from 'ai';
-
-const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system: 'You are a helpful assistant.',
-  tools: {
-    // your tools here
-  },
-});
-
-export async function POST(request: Request) {
-  const { messages } = await request.json();
-
-  return agent.respond({
-    messages,
-  });
-}
 ```
