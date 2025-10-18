@@ -55,6 +55,11 @@ const uiMessagesSchema = lazySchema(() =>
               providerMetadata: providerMetadataSchema.optional(),
             }),
             z.object({
+              type: z.literal('source-execution-file'),
+              sourceId: z.string(),
+              providerMetadata: providerMetadataSchema.optional(),
+            }),
+            z.object({
               type: z.literal('file'),
               mediaType: z.string(),
               filename: z.string().optional(),

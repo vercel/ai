@@ -168,6 +168,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1320,6 +1321,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1430,6 +1432,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1564,6 +1567,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1677,6 +1681,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1833,6 +1838,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
                 },
               },
@@ -1852,6 +1858,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
                 },
               },
@@ -2461,6 +2468,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "openai": {
+                  "annotations": [],
                   "itemId": "msg_computer_test",
                 },
               },
@@ -2603,6 +2611,22 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "end_index": 10,
+                    "start_index": 0,
+                    "title": "Example URL",
+                    "type": "url_citation",
+                    "url": "https://example.com",
+                  },
+                  {
+                    "end_index": 30,
+                    "file_id": "file-abc123",
+                    "quote": "This is a quote from the file",
+                    "start_index": 20,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_123",
               },
             },
@@ -2693,6 +2717,15 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "end_index": 20,
+                    "file_id": "file-xyz789",
+                    "quote": "Important information from document",
+                    "start_index": 0,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_456",
               },
             },
@@ -2781,6 +2814,20 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_789",
               },
             },
@@ -2864,6 +2911,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -2935,6 +2988,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3162,6 +3221,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3238,6 +3303,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3673,6 +3744,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -3784,6 +3861,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -3966,6 +4049,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4079,6 +4168,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4275,6 +4370,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4338,6 +4439,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "providerMetadata": {
+                  "openai": {
+                    "annotations": [],
+                    "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4550,22 +4657,13 @@ describe('OpenAIResponsesLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "Example URL",
-            "type": "source",
-            "url": "https://example.com",
-          },
-          {
-            "filename": "file-abc123",
-            "id": "id-1",
-            "mediaType": "text/plain",
-            "sourceType": "document",
-            "title": "This is a quote from the file",
-            "type": "source",
-          },
-          {
             "id": "msg_123",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_123",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -4630,6 +4728,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {

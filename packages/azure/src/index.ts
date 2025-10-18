@@ -4,3 +4,7 @@ export type {
   AzureOpenAIProviderSettings,
 } from './azure-openai-provider';
 export { VERSION } from './version';
+export {
+  azureResponsesTextUIPartProviderMetadataSchema,
+  azureSourceExecutionFileProviderMetadataSchema,
+} from './azure-openai-provider-metadata';

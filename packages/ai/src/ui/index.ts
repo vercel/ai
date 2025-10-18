@@ -44,6 +44,7 @@ export {
   type ReasoningUIPart,
   type SourceDocumentUIPart,
   type SourceUrlUIPart,
+  type SourceExecutionFileUIPart,
   type StepStartUIPart,
   type TextUIPart,
   type ToolUIPart,

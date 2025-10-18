@@ -4,4 +4,5 @@ export type {
   AnthropicProvider,
   AnthropicProviderSettings,
 } from './anthropic-provider';
+export { anthropicSourceExecutionFileProviderMetadataSchema } from './anthropic-provider-metadata';
 export { VERSION } from './version';
