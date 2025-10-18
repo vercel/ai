@@ -42,6 +42,7 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import type { AnthropicSourceExecutionFileProviderMetadataSchema } from './anthropic-provider-metadata';
 
 function createCitationSource(
   citation: Citation,
@@ -726,7 +727,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         }
 
         // code execution 20250825:
-        case 'bash_code_execution_tool_result':
+        case 'bash_code_execution_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'code_execution',
+            result: part.content,
+            providerExecuted: true,
+          });
+          if (part.content.type === 'bash_code_execution_result')
+            content.push({
+              type: 'source',
+              sourceType: 'execution-file',
+              id: this.generateId(),
+              providerMetadata: {
+                anthropic: {
+                  tool_use_id: part.tool_use_id,
+                  content: part.content,
+                },
+              },
+            });
+          break;
+        }
         case 'text_editor_code_execution_tool_result': {
           content.push({
             type: 'tool-result',
@@ -1087,7 +1109,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   // code execution 20250825:
-                  case 'bash_code_execution_tool_result':
+                  case 'bash_code_execution_tool_result': {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: 'code_execution',
+                      result: part.content,
+                      providerExecuted: true,
+                    });
+                    controller.enqueue({
+                      type: 'source',
+                      sourceType: 'execution-file',
+                      id: generateId(),
+                      providerMetadata: {
+                        anthropic: {
+                          tool_use_id: part.tool_use_id,
+                          content: part.content,
+                        },
+                      } satisfies AnthropicSourceExecutionFileProviderMetadataSchema,
+                    });
+                    return;
+                  }
+
                   case 'text_editor_code_execution_tool_result': {
                     controller.enqueue({
                       type: 'tool-result',

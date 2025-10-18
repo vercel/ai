@@ -61,6 +61,36 @@ F(10) = 55
     "type": "tool-result",
   },
   {
+    "id": "id-22",
+    "providerMetadata": {
+      "anthropic": {
+        "content": {
+          "content": [],
+          "return_code": 0,
+          "stderr": "",
+          "stdout": "The 10th Fibonacci number is: 55
+
+First 10 Fibonacci numbers:
+F(1) = 1
+F(2) = 1
+F(3) = 2
+F(4) = 3
+F(5) = 5
+F(6) = 8
+F(7) = 13
+F(8) = 21
+F(9) = 34
+F(10) = 55
+",
+          "type": "bash_code_execution_result",
+        },
+        "tool_use_id": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
+      },
+    },
+    "sourceType": "execution-file",
+    "type": "source",
+  },
+  {
     "text": "Perfect! The script has been created and executed successfully. 
 
 **Result: The 10th Fibonacci number is 55**
@@ -1732,6 +1762,36 @@ F(10) = 34
     "type": "tool-result",
   },
   {
+    "id": "id-23",
+    "providerMetadata": {
+      "anthropic": {
+        "content": {
+          "content": [],
+          "return_code": 0,
+          "stderr": "",
+          "stdout": "The 10th Fibonacci number is: 34
+
+First 10 Fibonacci numbers:
+F(1) = 0
+F(2) = 1
+F(3) = 1
+F(4) = 2
+F(5) = 3
+F(6) = 5
+F(7) = 8
+F(8) = 13
+F(9) = 21
+F(10) = 34
+",
+          "type": "bash_code_execution_result",
+        },
+        "tool_use_id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+      },
+    },
+    "sourceType": "execution-file",
+    "type": "source",
+  },
+  {
     "id": "6",
     "type": "text-start",
   },
@@ -2507,7 +2567,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "type": "tool-result",
   },
   {
-    "id": "id-21",
+    "id": "id-24",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -2519,7 +2579,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
   },
   {
-    "id": "id-22",
+    "id": "id-25",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "3 hours ago",
@@ -2531,7 +2591,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
   },
   {
-    "id": "id-23",
+    "id": "id-26",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "1 day ago",
@@ -2543,7 +2603,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
   },
   {
-    "id": "id-24",
+    "id": "id-27",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -2555,7 +2615,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://www.techradar.com/news/archive",
   },
   {
-    "id": "id-25",
+    "id": "id-28",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "4 days ago",
@@ -2567,7 +2627,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
   },
   {
-    "id": "id-26",
+    "id": "id-29",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "2 weeks ago",
@@ -2579,7 +2639,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://www.cnbc.com/2025/09/09/live-updates-apple-event-iphone17-airpods-ios26.html",
   },
   {
-    "id": "id-27",
+    "id": "id-30",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "15 hours ago",
@@ -2591,7 +2651,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
   },
   {
-    "id": "id-28",
+    "id": "id-31",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "1 week ago",
@@ -2603,7 +2663,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://9to5mac.com/2025/09/16/ios-26-1-beta-is-coming-when-to-expect-the-next-update/",
   },
   {
-    "id": "id-29",
+    "id": "id-32",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -2615,7 +2675,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://scitechdaily.com/",
   },
   {
-    "id": "id-30",
+    "id": "id-33",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "December 21, 2015",
