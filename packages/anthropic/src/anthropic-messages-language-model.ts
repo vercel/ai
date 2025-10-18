@@ -1109,29 +1109,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   // code execution 20250825:
-                  case 'bash_code_execution_tool_result': {
-                    controller.enqueue({
-                      type: 'tool-result',
-                      toolCallId: part.tool_use_id,
-                      toolName: 'code_execution',
-                      result: part.content,
-                      providerExecuted: true,
-                    });
-                    controller.enqueue({
-                      type: 'source',
-                      sourceType: 'execution-file',
-                      id: generateId(),
-                      providerMetadata: {
-                        anthropic: {
-                          tool_use_id: part.tool_use_id,
-                          content: part.content,
-                        },
-                      } satisfies AnthropicSourceExecutionFileProviderMetadataSchema,
-                    });
-                    return;
-                  }
-
+                  case 'bash_code_execution_tool_result':
                   case 'text_editor_code_execution_tool_result': {
+                    if (part.type ==="bash_code_execution_tool_result"){
+                      controller.enqueue({
+                        type: 'source',
+                        sourceType: 'execution-file',
+                        id: generateId(),
+                        providerMetadata: {
+                          anthropic: {
+                            tool_use_id: part.tool_use_id,
+                            content: part.content,
+                          },
+                        } satisfies AnthropicSourceExecutionFileProviderMetadataSchema,
+                      });
+                    }
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
