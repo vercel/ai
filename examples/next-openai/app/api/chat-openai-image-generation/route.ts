@@ -1,28 +1,11 @@
-import { openai } from '@ai-sdk/openai';
-import { ToolLoopAgent, InferAgentUIMessage, validateUIMessages } from 'ai';
-
-const imageGenerationAgent = new ToolLoopAgent({
-  model: openai('gpt-5-nano'),
-  tools: {
-    image_generation: openai.tools.imageGeneration({
-      partialImages: 3,
-      quality: 'low',
-      size: '1024x1024',
-    }),
-  },
-  onStepFinish: ({ request }) => {
-    console.log(JSON.stringify(request.body, null, 2));
-  },
-});
-
-export type OpenAIImageGenerationMessage = InferAgentUIMessage<
-  typeof imageGenerationAgent
->;
+import { createAgentStreamResponse } from 'ai';
+import { openaiImageGenerationAgent } from '@/agent/openai-image-generation-agent';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  return imageGenerationAgent.respond({
-    messages: await validateUIMessages({ messages }),
+  return await createAgentStreamResponse({
+    agent: openaiImageGenerationAgent,
+    messages,
   });
 }
