@@ -87,9 +87,7 @@ it('should handle google maps tool with retrieval config', () => {
     ],
     modelId: 'gemini-2.5-flash',
   });
-  expect(result.tools).toEqual([
-    { googleMaps: { enableWidget: true } },
-  ]);
+  expect(result.tools).toEqual([{ googleMaps: { enableWidget: true } }]);
   expect(result.toolConfig).toEqual({
     retrievalConfig: {
       latLng: { latitude: 37.78193, longitude: -122.40476 },
@@ -120,10 +118,7 @@ it('should include google maps alongside other provider-defined tools', () => {
     ],
     modelId: 'gemini-2.5-flash',
   });
-  expect(result.tools).toEqual([
-    { googleMaps: {} },
-    { googleSearch: {} },
-  ]);
+  expect(result.tools).toEqual([{ googleMaps: {} }, { googleSearch: {} }]);
   expect(result.toolConfig).toEqual({
     retrievalConfig: {
       latLng: { latitude: 40.758896, longitude: -73.98513 },
