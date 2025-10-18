@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.60
+
+### Patch Changes
+
+- 2b49dae: feat(agent): support UIMessageStreamOptions in createAgentStreamResponse
+
 ## 6.0.0-beta.59
 
 ### Patch Changes
