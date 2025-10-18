@@ -1,55 +1,61 @@
 'use client';
 
+import { AnthropicWebFetchMessage } from '@/agent/anthropic-web-fetch-agent';
+import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
+import { ReasoningView } from '@/components/reasoning-view';
+import SourcesView from '@/components/sources-view';
 import AnthropicWebFetchView from '@/components/tool/anthropic-web-fetch-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { AnthropicWebFetchMessage } from '../api/anthropic-web-fetch/route';
 
 export default function TestAnthropicWebFetch() {
-  const { status, sendMessage, messages } = useChat<AnthropicWebFetchMessage>({
-    transport: new DefaultChatTransport({
-      api: '/api/anthropic-web-fetch',
-    }),
-  });
+  const { error, status, sendMessage, messages, regenerate } =
+    useChat<AnthropicWebFetchMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/chat-anthropic-web-fetch',
+      }),
+    });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">Anthropic Web Fetch Test</h1>
+      <h1 className="mb-4 text-xl font-bold">Anthropic Web Search</h1>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
           {message.parts.map((part, index) => {
-            if (part.type === 'text') {
-              return <div key={index}>{part.text}</div>;
+            switch (part.type) {
+              case 'text': {
+                return <Response key={index}>{part.text}</Response>;
+              }
+              case 'reasoning': {
+                return <ReasoningView part={part} key={index} />;
+              }
+              case 'tool-web_fetch': {
+                return <AnthropicWebFetchView invocation={part} key={index} />;
+              }
             }
-
-            if (part.type === 'tool-web_fetch') {
-              return <AnthropicWebFetchView invocation={part} key={index} />;
-            }
-
-            if (part.type === 'source-url') {
-              return (
-                <span key={index}>
-                  [
-                  <a
-                    href={part.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-bold text-blue-500 hover:underline"
-                  >
-                    {part.title ?? new URL(part.url).hostname}
-                  </a>
-                  ]
-                </span>
-              );
-            }
-
-            return null;
           })}
+
+          <SourcesView
+            sources={message.parts.filter(part => part.type === 'source-url')}
+          />
         </div>
       ))}
+
+      {error && (
+        <div className="mt-4">
+          <div className="text-red-500">An error occurred.</div>
+          <button
+            type="button"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
+            onClick={() => regenerate()}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>

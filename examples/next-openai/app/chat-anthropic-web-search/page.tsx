@@ -1,13 +1,13 @@
 'use client';
 
 import { AnthropicWebSearchMessage } from '@/agent/anthropic-web-search-agent';
+import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
+import { ReasoningView } from '@/components/reasoning-view';
+import SourcesView from '@/components/sources-view';
 import AnthropicWebSearchView from '@/components/tool/anthropic-web-search-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { Response } from '@/components/ai-elements/response';
-import SourcesView from '@/components/sources-view';
-import { ReasoningView } from '@/components/reasoning-view';
 
 export default function TestAnthropicWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
