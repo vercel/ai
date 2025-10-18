@@ -121,12 +121,12 @@ export type ImageGenerationAgentMessage = InferAgentUIMessage<
 
 ```tsx
 import { imageGenerationAgent } from '@/agent/image-generation-agent';
-import { createAgentStreamUIResponse } from 'ai';
+import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  return createAgentStreamUIResponse({
+  return createAgentUIStreamResponse({
     agent: imageGenerationAgent,
     messages,
   });

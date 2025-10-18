@@ -1,10 +1,10 @@
 import { anthropicWebSearchAgent } from '@/agent/anthropic-web-search-agent';
-import { createAgentStreamUIResponse } from 'ai';
+import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {
   const { messages } = await request.json();
 
-  return createAgentStreamUIResponse({
+  return createAgentUIStreamResponse({
     agent: anthropicWebSearchAgent,
     messages,
     sendSources: true,
