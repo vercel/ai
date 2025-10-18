@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.61
+
+### Patch Changes
+
+- c98373a: chore(agent): rename createAgentStreamResponse to createAgentUIStreamResponse
+
 ## 6.0.0-beta.60
 
 ### Patch Changes
