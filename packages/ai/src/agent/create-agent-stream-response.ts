@@ -1,4 +1,5 @@
 import { ToolSet } from '../generate-text/tool-set';
+import { createUIMessageStreamResponse } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
@@ -35,7 +36,9 @@ export async function createAgentStreamResponse<
     tools: agent.tools,
   });
 
-  return agent
-    .stream({ prompt: modelMessages })
-    .toUIMessageStreamResponse<UIMessage<never, never, InferUITools<TOOLS>>>();
+  const result = agent.stream({ prompt: modelMessages });
+
+  return createUIMessageStreamResponse({
+    stream: result.toUIMessageStream(),
+  });
 }
