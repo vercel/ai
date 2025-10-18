@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.59
+
+### Patch Changes
+
+- e062079: chore(agent): move Agent.respond into createAgentStreamResponse function
+
 ## 6.0.0-beta.58
 
 ### Patch Changes
