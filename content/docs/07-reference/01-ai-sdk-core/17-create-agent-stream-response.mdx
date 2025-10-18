@@ -1,11 +1,11 @@
 ---
 title: createAgentStreamResponse
-description: API Reference for createAgentStreamResponse utility.
+description: API Reference for the createAgentStreamResponse utility.
 ---
 
 # `createAgentStreamResponse`
 
-The `createAgentStreamResponse` function runs an Agent and streams its output as a UI message stream in the response body. This utility is designed for building server endpoints that interface with agents, enabling real-time streaming of agent responses over HTTP.
+The `createAgentStreamResponse` function executes an [Agent](/docs/reference/ai-sdk-core/agent) and streams its output as a UI message stream in an HTTP [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) body. This is useful for creating API endpoints that deliver real-time streaming results from an agent (such as in chat or tool-using applications).
 
 ## Import
 
@@ -17,24 +17,22 @@ The `createAgentStreamResponse` function runs an Agent and streams its output as
 ## Usage
 
 ```ts
-import { createAgentStreamResponse, ToolLoopAgent } from 'ai';
+import { ToolLoopAgent, createAgentStreamResponse } from 'ai';
 
 const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: 'You are a helpful assistant.',
-  tools: {
-    weather: weatherTool,
-    calculator: calculatorTool,
-  },
+  tools: { weather: weatherTool, calculator: calculatorTool },
 });
 
-export async function POST(req: Request) {
-  const { messages } = await req.json();
+export async function POST(request: Request) {
+  const { messages } = await request.json();
 
-  // Return agent output as a UI message stream HTTP response
+  // Stream agent response as an HTTP Response with UI messages
   return createAgentStreamResponse({
     agent,
     messages,
+    // ...other optional streaming options
   });
 }
 ```
@@ -47,57 +45,64 @@ export async function POST(req: Request) {
       name: 'agent',
       type: 'Agent',
       isRequired: true,
-      description: 'The agent instance to use for streaming responses.',
+      description:
+        'The agent instance to use for streaming responses. Must implement `.stream({ prompt })` and define tools.',
     },
     {
       name: 'messages',
       type: 'unknown[]',
       isRequired: true,
-      description: 'An array of input UI messages for the agent.',
+      description:
+        'Array of input UI messages sent to the agent (typically user and assistant message objects).',
+    },
+    {
+      name: '...options',
+      type: 'UIMessageStreamOptions',
+      isRequired: false,
+      description:
+        'Additional options for customizing UI message streaming, such as including sources.',
     },
   ]}
 />
 
 ## Returns
 
-A `Promise<Response>` containing a stream of UI messages from the agent, suitable as a response body in HTTP APIs (for example, in Next.js API routes or serverless functions).
+A `Promise<Response>` whose body is a stream of UI messages from the agent—this is suitable as the HTTP response in server-side API routes (such as in Next.js, Express, serverless, or edge handlers).
 
-## Example: Next.js Route Handler
+## Example: Next.js API Route Handler
 
 ```ts
-import { ToolLoopAgent, createAgentStreamResponse } from 'ai';
+import { createAgentStreamResponse } from 'ai';
+import { MyCustomAgent } from '@/agent/my-custom-agent';
 
-const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system: 'You are a helpful assistant.',
-  tools: {
-    weather: weatherTool,
-  },
-});
+export async function POST(request: Request) {
+  const { messages } = await request.json();
 
-export async function POST(req: Request) {
-  const { messages } = await req.json();
-  return await createAgentStreamResponse({
-    agent,
+  return createAgentStreamResponse({
+    agent: MyCustomAgent,
     messages,
+    sendSources: true, // optionally include sources in the UI message stream
   });
 }
 ```
 
 ## How It Works
 
-- **Message Validation:** The input `messages` array is validated and normalized into UI message objects.
-- **Agent Streaming:** The agent’s `.stream` method is called using the validated messages and configuration.
-- **UI Message Stream:** The streamed results are returned as a readable HTTP response, ready to be consumed on the client (for example, to drive chat UIs).
+1. **Message Validation:** The function validates and normalizes the incoming `messages` according to the agent's tools. Invalid messages will cause an error.
+2. **Conversion:** Validated messages are converted to the internal model message format expected by the agent.
+3. **Streaming:** The agent's `.stream({ prompt })` method is invoked, returning a stream of UI messages based on the prompt and agent logic.
+4. **Response:** The message stream is returned as a readable HTTP `Response` that can be handled on the client (for example, to drive a chat UI or a real-time tool UI).
 
 ## Notes
 
-- The agent must use tools and be compatible with streaming responses.
-- This utility is typically used in backend/server handlers (e.g., API routes, edge/serverless functions).
-- The return value is a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object; to use streams on the frontend, client support is required.
+- The agent should define tools and conform to streaming requirements.
+- This function is intended for backend (API) code, not for use in the browser/client.
+- Additional options may be passed to control aspects of UI message streaming (see [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options)).
+- The returned `Response` uses readable streams, which require compatible client support for streaming consumption.
 
 ## See Also
 
+- [`Agent`](/docs/reference/ai-sdk-core/agent)
 - [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent)
 - [`UIMessage`](/docs/reference/ai-sdk-core/ui-message)
-- [`InferAgentUIMessage`](/docs/reference/ai-sdk-core/tool-loop-agent#inferagentuimessage)
+- [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options)

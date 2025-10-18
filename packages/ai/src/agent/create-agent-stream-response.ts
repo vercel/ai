@@ -1,3 +1,4 @@
+import { UIMessageStreamOptions } from '../generate-text';
 import { ToolSet } from '../generate-text/tool-set';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
@@ -21,10 +22,13 @@ export async function createAgentStreamResponse<
 >({
   agent,
   messages,
+  ...options
 }: {
   agent: Agent<TOOLS, OUTPUT, OUTPUT_PARTIAL>;
   messages: unknown[];
-}): Promise<Response> {
+} & UIMessageStreamOptions<
+  UIMessage<never, never, InferUITools<TOOLS>>
+>): Promise<Response> {
   const validatedMessages = await validateUIMessages<
     UIMessage<never, never, InferUITools<TOOLS>>
   >({
@@ -39,6 +43,6 @@ export async function createAgentStreamResponse<
   const result = agent.stream({ prompt: modelMessages });
 
   return createUIMessageStreamResponse({
-    stream: result.toUIMessageStream(),
+    stream: result.toUIMessageStream(options),
   });
 }
