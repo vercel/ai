@@ -7,7 +7,7 @@ description: Complete guide to creating agents with the Agent class.
 
 The Agent class provides a structured way to encapsulate LLM configuration, tools, and behavior into reusable components. It handles the agent loop for you, allowing the LLM to call tools multiple times in sequence to accomplish complex tasks. Define agents once and use them across your application.
 
-## Why Use the Agent Class?
+## Why Use the ToolLoopAgent Class?
 
 When building AI applications, you often need to:
 
@@ -16,16 +16,16 @@ When building AI applications, you often need to:
 - **Simplify API routes** - Reduce boilerplate in your endpoints
 - **Type safety** - Get full TypeScript support for your agent's tools and outputs
 
-The Agent class provides a single place to define your agent's behavior.
+The ToolLoopAgent class provides a single place to define your agent's behavior.
 
 ## Creating an Agent
 
-Define an agent by instantiating the Agent class with your desired configuration:
+Define an agent by instantiating the ToolLoopAgent class with your desired configuration:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const myAgent = new Agent({
+const myAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: 'You are a helpful assistant.',
   tools: {
@@ -41,9 +41,9 @@ The Agent class accepts all the same settings as `generateText` and `streamText`
 ### Model and System Prompt
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: 'You are an expert software engineer.',
 });
@@ -54,10 +54,10 @@ const agent = new Agent({
 Provide tools that the agent can use to accomplish tasks:
 
 ```ts
-import { Agent, tool } from 'ai';
+import { ToolLoopAgent, tool } from 'ai';
 import { z } from 'zod';
 
-const codeAgent = new Agent({
+const codeAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     runCode: tool({
@@ -81,9 +81,9 @@ By default, agents run for 20 steps (`stopWhen: stepCountIs(20)`). In each step,
 To let agents call multiple tools in sequence, configure `stopWhen` to allow more steps. After each tool execution, the agent triggers a new generation where the model can call another tool or generate text:
 
 ```ts
-import { Agent, stepCountIs } from 'ai';
+import { ToolLoopAgent, stepCountIs } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   stopWhen: stepCountIs(20), // Allow up to 20 steps
 });
@@ -99,9 +99,9 @@ Each step represents one generation (which results in either text or a tool call
 You can combine multiple conditions:
 
 ```ts
-import { Agent, stepCountIs } from 'ai';
+import { ToolLoopAgent, stepCountIs } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   stopWhen: [
     stepCountIs(20), // Maximum 20 steps
@@ -117,9 +117,9 @@ Learn more about [loop control and stop conditions](/docs/agents/loop-control).
 Control how the agent uses tools:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools here
@@ -133,9 +133,9 @@ const agent = new Agent({
 You can also force the use of a specific tool:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     weather: weatherTool,
@@ -153,10 +153,10 @@ const agent = new Agent({
 Define structured output schemas:
 
 ```ts
-import { Agent, Output, stepCountIs } from 'ai';
+import { ToolLoopAgent, Output, stepCountIs } from 'ai';
 import { z } from 'zod';
 
-const analysisAgent = new Agent({
+const analysisAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   experimental_output: Output.object({
     schema: z.object({
@@ -182,7 +182,7 @@ System prompts define your agent's behavior, personality, and constraints. They 
 Set the agent's role and expertise:
 
 ```ts
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system:
     'You are an expert data analyst. You provide clear insights from complex data.',
@@ -194,7 +194,7 @@ const agent = new Agent({
 Provide specific guidelines for agent behavior:
 
 ```ts
-const codeReviewAgent = new Agent({
+const codeReviewAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: `You are a senior software engineer conducting code reviews.
 
@@ -212,7 +212,7 @@ const codeReviewAgent = new Agent({
 Set boundaries and ensure consistent behavior:
 
 ```ts
-const customerSupportAgent = new Agent({
+const customerSupportAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: `You are a customer support specialist for an e-commerce platform.
 
@@ -235,7 +235,7 @@ const customerSupportAgent = new Agent({
 Guide how the agent should use available tools:
 
 ```ts
-const researchAgent = new Agent({
+const researchAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: `You are a research assistant with access to search and document tools.
 
@@ -258,7 +258,7 @@ const researchAgent = new Agent({
 Control the output format and communication style:
 
 ```ts
-const technicalWriterAgent = new Agent({
+const technicalWriterAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: `You are a technical documentation writer.
 
@@ -322,12 +322,12 @@ export async function POST(request: Request) {
 
 ## End-to-end Type Safety
 
-You can infer types for your Agent's `UIMessage`s:
+You can infer types for your agent's `UIMessage`s:
 
 ```ts
-import { Agent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-const myAgent = new Agent({
+const myAgent = new ToolLoopAgent({
   // ... configuration
 });
 

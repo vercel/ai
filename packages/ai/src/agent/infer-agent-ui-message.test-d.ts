@@ -10,12 +10,12 @@ import {
   TextUIPart,
   UIMessage,
 } from '../ui/ui-messages';
-import { BasicAgent } from './basic-agent';
+import { ToolLoopAgent } from './tool-loop-agent';
 import { InferAgentUIMessage } from './infer-agent-ui-message';
 
 describe('InferAgentUIMessage', () => {
   it('should not contain arbitrary static tools when no tools are provided', () => {
-    const baseAgent = new BasicAgent({
+    const baseAgent = new ToolLoopAgent({
       model: 'openai/gpt-4o',
       // no tools
     });
