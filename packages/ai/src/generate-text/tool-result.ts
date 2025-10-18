@@ -12,6 +12,7 @@ export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
     providerExecuted?: boolean;
     dynamic?: false | undefined;
     preliminary?: boolean;
+    title?: string;
   };
 }>;
 
@@ -24,6 +25,7 @@ export type DynamicToolResult = {
   providerExecuted?: boolean;
   dynamic: true;
   preliminary?: boolean;
+  title?: string;
 };
 
 export type TypedToolResult<TOOLS extends ToolSet> =

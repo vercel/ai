@@ -8,7 +8,8 @@ import {
 } from 'ai';
 
 export async function POST(req: Request) {
-  const url = new URL('http://localhost:3000/mcp/server');
+  const requestUrl = new URL(req.url);
+  const url = new URL('/mcp/server', requestUrl.origin);
   const transport = new StreamableHTTPClientTransport(url);
 
   const [client, { messages }] = await Promise.all([
