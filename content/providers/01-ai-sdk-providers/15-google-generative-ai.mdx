@@ -443,6 +443,42 @@ const safetyRatings = metadata?.safetyRatings;
 
 When Search Grounding is enabled, the model will include sources in the response.
 
+### Google Maps Grounding
+
+Use [Grounding with Google Maps](https://ai.google.dev/gemini-api/docs/google-maps-grounding)
+to provide location-aware answers and optional contextual widgets.
+
+```ts highlight="8-16"
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, providerMetadata } = await generateText({
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_maps: google.tools.googleMaps({
+      enableWidget: true,
+      retrievalConfig: {
+        latLng: { latitude: 37.78193, longitude: -122.40476 },
+      },
+    }),
+  },
+  prompt:
+    'Plan a day in San Francisco with bridge views, a museum visit, and a nice dinner.',
+});
+
+const metadata = providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
+const widgetToken = groundingMetadata?.googleMapsWidgetContextToken;
+```
+
+Provide `retrievalConfig.latLng` to hint the relevant location for the request.
+When `enableWidget` is `true`, the response may include a
+`googleMapsWidgetContextToken` that can be used with the Google Maps JavaScript
+API to render a contextual widget.
+
 Additionally, the grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
 
 - **`webSearchQueries`** (`string[] | null`)

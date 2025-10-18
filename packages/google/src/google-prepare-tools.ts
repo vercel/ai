@@ -28,10 +28,11 @@ export function prepareTools({
   toolConfig:
     | undefined
     | {
-        functionCallingConfig: {
+        functionCallingConfig?: {
           mode: 'AUTO' | 'NONE' | 'ANY';
           allowedFunctionNames?: string[];
         };
+        retrievalConfig?: Record<string, unknown>;
       };
   toolWarnings: LanguageModelV3CallWarning[];
 } {
@@ -72,6 +73,13 @@ export function prepareTools({
 
   if (hasProviderDefinedTools) {
     const googleTools: any[] = [];
+    let googleToolConfig: {
+      functionCallingConfig?: {
+        mode: 'AUTO' | 'NONE' | 'ANY';
+        allowedFunctionNames?: string[];
+      };
+      retrievalConfig?: Record<string, unknown>;
+    } | null = null;
 
     const providerDefinedTools = tools.filter(
       tool => tool.type === 'provider-defined',
@@ -98,6 +106,36 @@ export function prepareTools({
             });
           } else {
             googleTools.push({ googleSearchRetrieval: {} });
+          }
+          break;
+        case 'google.google_maps':
+          if (isGemini2) {
+            const { enableWidget, retrievalConfig } = tool.args as {
+              enableWidget?: boolean;
+              retrievalConfig?: Record<string, unknown>;
+            };
+            const googleMapsConfig: Record<string, unknown> = {};
+            if (enableWidget != null) {
+              googleMapsConfig.enableWidget = enableWidget;
+            }
+            googleTools.push({ googleMaps: googleMapsConfig });
+
+            if (retrievalConfig != null) {
+              googleToolConfig = {
+                ...(googleToolConfig ?? {}),
+                retrievalConfig: {
+                  ...(googleToolConfig?.retrievalConfig ?? {}),
+                  ...retrievalConfig,
+                },
+              };
+            }
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The Google Maps grounding tool is only supported with Gemini 2 models.',
+            });
           }
           break;
         case 'google.url_context':
@@ -132,7 +170,10 @@ export function prepareTools({
 
     return {
       tools: googleTools.length > 0 ? googleTools : undefined,
-      toolConfig: undefined,
+      toolConfig:
+        googleToolConfig != null && Object.keys(googleToolConfig).length > 0
+          ? googleToolConfig
+          : undefined,
       toolWarnings,
     };
   }

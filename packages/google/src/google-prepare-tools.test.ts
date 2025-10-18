@@ -70,6 +70,97 @@ it('should correctly prepare provider-defined tools as array', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should handle google maps tool with retrieval config', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {
+          enableWidget: true,
+          retrievalConfig: {
+            latLng: { latitude: 37.78193, longitude: -122.40476 },
+          },
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([
+    { googleMaps: { enableWidget: true } },
+  ]);
+  expect(result.toolConfig).toEqual({
+    retrievalConfig: {
+      latLng: { latitude: 37.78193, longitude: -122.40476 },
+    },
+  });
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should include google maps alongside other provider-defined tools', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {
+          retrievalConfig: {
+            latLng: { latitude: 40.758896, longitude: -73.98513 },
+          },
+        },
+      },
+      {
+        type: 'provider-defined',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([
+    { googleMaps: {} },
+    { googleSearch: {} },
+  ]);
+  expect(result.toolConfig).toEqual({
+    retrievalConfig: {
+      latLng: { latitude: 40.758896, longitude: -73.98513 },
+    },
+  });
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should warn when google maps tool is used with unsupported model', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-1.5-flash',
+  });
+  expect(result.tools).toBeUndefined();
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([
+    {
+      type: 'unsupported-tool',
+      tool: {
+        type: 'provider-defined',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+      details:
+        'The Google Maps grounding tool is only supported with Gemini 2 models.',
+    },
+  ]);
+});
+
 it('should correctly prepare single provider-defined tool', () => {
   const result = prepareTools({
     tools: [
