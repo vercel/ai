@@ -5,8 +5,8 @@ import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/components/chat-input';
 import { AzureCodeInterpreterMessage } from '@/app/api/chat-azure-code-interpreter-download-files/route';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
-import { MessageTextWithDownloadLink } from './message-text-with-download-link';
-import { ContainerFileCitationDownloadButton } from './container-file-citation-download-button';
+import { MessageTextWithAnnotations } from '@/components/tool/openai-message-text-with-annotations';
+import { SourceExecutionFileDownload } from '@/components/tool/source-execution-file-download';
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } =
@@ -28,18 +28,11 @@ export default function TestOpenAIWebSearch() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <MessageTextWithDownloadLink key={index} part={part} />;
+                return <MessageTextWithAnnotations key={index} part={part} />;
               case 'tool-code_interpreter':
                 return <CodeInterpreterView key={index} invocation={part} />;
               case 'source-execution-file':
-                return (
-                  <div key={index} className="py-4">
-                    <ContainerFileCitationDownloadButton
-                      key={index}
-                      part={part}
-                    />
-                  </div>
-                );
+                return <SourceExecutionFileDownload key={index}part={part} />;
             }
           })}
         </div>

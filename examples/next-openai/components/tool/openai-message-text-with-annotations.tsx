@@ -1,9 +1,9 @@
 'use client';
 
 import { TextUIPart } from 'ai';
+import { z } from 'zod/v4';
 import { openaiResponsesTextUIPartProviderMetadataSchema } from '@ai-sdk/openai';
 import { azureResponsesTextUIPartProviderMetadataSchema } from '@ai-sdk/azure';
-import { z } from 'zod/v4';
 import { Response } from '@/components/ai-elements/response';
 
 // union of each providers
@@ -12,7 +12,7 @@ const responsesTextUIPartProviderMetadataSchema = z.union([
   azureResponsesTextUIPartProviderMetadataSchema,
 ]);
 
-export function MessageTextWithDownloadLink({ part }: { part: TextUIPart }) {
+export function MessageTextWithAnnotations({ part }: { part: TextUIPart }) {
   if (!part.providerMetadata) return <Response>{part.text}</Response>;
 
   const providerMetadataParsed =
