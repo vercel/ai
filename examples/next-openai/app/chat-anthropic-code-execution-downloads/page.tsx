@@ -12,7 +12,7 @@ export default function TestAnthropicCodeExecution() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicCodeExecutionMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-anthropic-code-execution-downloads',
+        api: '/api/chat-anthropic-code-execution-download-files',
       }),
     });
 
