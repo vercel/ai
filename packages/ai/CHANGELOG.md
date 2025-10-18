@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.58
+
+### Patch Changes
+
+- a417a34: feat(agent): introduce version property
+
 ## 6.0.0-beta.57
 
 ### Patch Changes
