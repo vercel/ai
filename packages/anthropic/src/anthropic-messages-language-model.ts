@@ -1111,7 +1111,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   // code execution 20250825:
                   case 'bash_code_execution_tool_result':
                   case 'text_editor_code_execution_tool_result': {
-                    if (part.type ==="bash_code_execution_tool_result"){
+                    if (part.type === 'bash_code_execution_tool_result') {
                       controller.enqueue({
                         type: 'source',
                         sourceType: 'execution-file',
