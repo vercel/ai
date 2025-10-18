@@ -24,3 +24,4 @@ export {
   type InferAgentUIMessage as Experimental_InferAgentUIMessage,
   type InferAgentUIMessage,
 } from './infer-agent-ui-message';
+export { createAgentStreamResponse } from './create-agent-stream-response';

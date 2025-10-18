@@ -5,10 +5,8 @@ import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt/prompt';
-import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
-import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 import { Agent } from './agent';
+import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -73,18 +71,5 @@ export class ToolLoopAgent<
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
       ...options,
     });
-  }
-
-  /**
-   * Creates a response object that streams UI messages to the client.
-   */
-  respond(options: {
-    messages: UIMessage<never, never, InferUITools<TOOLS>>[];
-  }): Response {
-    return this.stream({
-      prompt: convertToModelMessages(options.messages, { tools: this.tools }),
-    }).toUIMessageStreamResponse<
-      UIMessage<never, never, InferUITools<TOOLS>>
-    >();
   }
 }

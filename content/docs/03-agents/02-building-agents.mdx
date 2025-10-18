@@ -305,17 +305,18 @@ for await (const chunk of stream.textStream) {
 
 ### Respond to UI Messages
 
-Use `respond()` to create API responses for client applications:
+Use `createAgentStreamResponse()` to create API responses for client applications:
 
 ```ts
 // In your API route (e.g., app/api/chat/route.ts)
-import { validateUIMessages } from 'ai';
+import { createAgentStreamResponse } from 'ai';
 
 export async function POST(request: Request) {
   const { messages } = await request.json();
 
-  return myAgent.respond({
-    messages: await validateUIMessages({ messages }),
+  return createAgentStreamResponse({
+    agent: myAgent,
+    messages,
   });
 }
 ```

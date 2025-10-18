@@ -1,10 +1,11 @@
 import { weatherAgent } from '@/agent/weather-agent';
-import { validateUIMessages } from 'ai';
+import { createAgentStreamResponse } from 'ai';
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  const { messages } = await request.json();
 
-  return weatherAgent.respond({
-    messages: await validateUIMessages({ messages: body.messages }),
+  return createAgentStreamResponse({
+    agent: weatherAgent,
+    messages,
   });
 }

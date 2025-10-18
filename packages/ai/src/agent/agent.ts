@@ -2,7 +2,6 @@ import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt/prompt';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
 
 /**
  * An Agent receives a prompt (text or messages) and generates or streams an output
@@ -41,11 +40,4 @@ export interface Agent<
    * Streams an output from the agent (streaming).
    */
   stream(options: Prompt): StreamTextResult<TOOLS, OUTPUT_PARTIAL>;
-
-  /**
-   * Creates a response object that streams UI messages to the client.
-   */
-  respond(options: {
-    messages: UIMessage<never, never, InferUITools<TOOLS>>[];
-  }): Response;
 }
