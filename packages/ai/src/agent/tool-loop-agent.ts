@@ -7,27 +7,33 @@ import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt/prompt';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
-import { BasicAgentSettings } from './basic-agent-settings';
+import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 import { Agent } from './agent';
 
 /**
- * The Agent class provides a structured way to encapsulate LLM configuration, tools,
- * and behavior into reusable components.
+ * A tool loop agent is an agent that runs tools in a loop. In each step,
+ * it calls the LLM, and if there are tool calls, it executes the tools
+ * and calls the LLM again in a new step with the tool results.
  *
- * It handles the agent loop for you, allowing the LLM to call tools multiple times in
- * sequence to accomplish complex tasks.
- *
- * Define agents once and use them across your application.
+ * The loop continues until:
+ * - A finish reasoning other than tool-calls is returned, or
+ * - A tool that is invoked does not have an execute function, or
+ * - A tool call needs approval, or
+ * - A stop condition is met (default stop condition is stepCountIs(20))
  */
-export class BasicAgent<
+export class ToolLoopAgent<
   TOOLS extends ToolSet = {},
   OUTPUT = never,
   OUTPUT_PARTIAL = never,
 > implements Agent<TOOLS, OUTPUT, OUTPUT_PARTIAL>
 {
-  private readonly settings: BasicAgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>;
+  private readonly settings: ToolLoopAgentSettings<
+    TOOLS,
+    OUTPUT,
+    OUTPUT_PARTIAL
+  >;
 
-  constructor(settings: BasicAgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>) {
+  constructor(settings: ToolLoopAgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>) {
     this.settings = settings;
   }
 

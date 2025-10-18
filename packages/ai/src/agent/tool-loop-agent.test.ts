@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { BasicAgent } from './basic-agent';
+import { ToolLoopAgent } from './tool-loop-agent';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import {
@@ -9,7 +9,7 @@ import {
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-describe('BasicAgent', () => {
+describe('ToolLoopAgent', () => {
   describe('respond', () => {
     describe('when using tools toModelOutput', () => {
       let recordedInputs: LanguageModelV3CallOptions[];
@@ -19,7 +19,7 @@ describe('BasicAgent', () => {
       beforeEach(async () => {
         recordedInputs = [];
 
-        const agent = new BasicAgent({
+        const agent = new ToolLoopAgent({
           model: new MockLanguageModelV3({
             doStream: async input => {
               recordedInputs.push(input);
