@@ -32,7 +32,7 @@ export default function TestOpenAIWebSearch() {
               case 'tool-code_interpreter':
                 return <CodeInterpreterView key={index} invocation={part} />;
               case 'source-execution-file':
-                return <SourceExecutionFileDownload key={index}part={part} />;
+                return <SourceExecutionFileDownload key={index} part={part} />;
             }
           })}
         </div>
