@@ -5,8 +5,11 @@ import { Prompt } from '../prompt/prompt';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 
 /**
- * An agent is a reusable component that that has tools and that
- * can generate or stream content.
+ * An Agent receives a prompt (text or messages) and generates or streams an output
+ * that consists of steps, tool calls, data parts, etc.
+ *
+ * You can implement your own Agent by implementing the `Agent` interface,
+ * or use the `ToolLoopAgent` class.
  */
 export interface Agent<
   TOOLS extends ToolSet = {},

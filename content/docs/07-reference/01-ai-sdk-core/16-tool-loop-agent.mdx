@@ -1,18 +1,18 @@
 ---
-title: Agent
+title: ToolLoopAgent
 description: API Reference for the Agent class.
 ---
 
-# `Agent`
+# `ToolLoopAgent`
 
 Creates a reusable AI agent that can generate text, stream responses, and use tools across multiple steps.
 
 It is ideal for building autonomous AI systems that need to perform complex, multi-step tasks with tool calling capabilities. Unlike single-step functions like `generateText`, agents can iteratively call tools and make decisions based on intermediate results.
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: 'You are a helpful assistant.',
   tools: {
@@ -299,9 +299,9 @@ Returns a `Response` object that streams UI messages to the client in the format
 Infers the UI message type of an agent, useful for type-safe message handling in TypeScript applications.
 
 ```ts
-import { Agent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-const weatherAgent = new Agent({
+const weatherAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: { weather: weatherTool },
 });
@@ -316,10 +316,10 @@ type WeatherAgentUIMessage = InferAgentUIMessage<typeof weatherAgent>;
 Create an agent that can use multiple tools to answer questions:
 
 ```ts
-import { Agent, stepCountIs } from 'ai';
+import { ToolLoopAgent, stepCountIs } from 'ai';
 import { weatherTool, calculatorTool } from './tools';
 
-const assistant = new Agent({
+const assistant = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: 'You are a helpful assistant.',
   tools: {
@@ -343,7 +343,7 @@ console.log(result.steps); // Array of all steps taken
 Stream responses for real-time interaction:
 
 ```ts
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: 'You are a creative storyteller.',
 });
@@ -364,7 +364,7 @@ Parse structured output from agent responses:
 ```ts
 import { z } from 'zod';
 
-const analysisAgent = new Agent({
+const analysisAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   experimental_output: {
     schema: z.object({
@@ -390,7 +390,7 @@ Use an agent in a Next.js API route:
 // app/api/chat/route.ts
 import { Agent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   system: 'You are a helpful assistant.',
   tools: {
