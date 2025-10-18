@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.57
+
+### Patch Changes
+
+- 61f7b0f: chore(agent): rename BasicAgent to ToolLoopAgent
+
 ## 6.0.0-beta.56
 
 ### Patch Changes
