@@ -1,6 +1,8 @@
-import { MCPClientError } from '../../error/mcp-client-error';
+import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage } from './json-rpc-message';
 import { SseMCPTransport } from './mcp-sse-transport';
+import { HttpMCPTransport } from './mcp-http-transport';
+import { OAuthClientProvider } from './oauth';
 
 /**
  * Transport interface for MCP (Model Context Protocol) communication.
@@ -40,7 +42,7 @@ export interface MCPTransport {
 }
 
 export type MCPTransportConfig = {
-  type: 'sse';
+  type: 'sse' | 'http';
 
   /**
    * The URL of the MCP server.
@@ -51,17 +53,25 @@ export type MCPTransportConfig = {
    * Additional HTTP headers to be sent with requests.
    */
   headers?: Record<string, string>;
+
+  /**
+   * An optional OAuth client provider to use for authentication for MCP servers.
+   */
+  authProvider?: OAuthClientProvider;
 };
 
 export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
-  if (config.type !== 'sse') {
-    throw new MCPClientError({
-      message:
-        'Unsupported or invalid transport configuration. If you are using a custom transport, make sure it implements the MCPTransport interface.',
-    });
+  switch (config.type) {
+    case 'sse':
+      return new SseMCPTransport(config);
+    case 'http':
+      return new HttpMCPTransport(config);
+    default:
+      throw new MCPClientError({
+        message:
+          'Unsupported or invalid transport configuration. If you are using a custom transport, make sure it implements the MCPTransport interface.',
+      });
   }
-
-  return new SseMCPTransport(config);
 }
 
 export function isCustomMcpTransport(

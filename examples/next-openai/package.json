@@ -24,6 +24,7 @@
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/rsc": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
+    "@ai-sdk/mcp": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",

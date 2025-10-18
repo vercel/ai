@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_createMCPClient, stepCountIs, streamText } from 'ai';
+import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import { experimental_createMCPClient } from '@ai-sdk/mcp';
 
 export const maxDuration = 30;
 
@@ -8,8 +9,8 @@ export async function POST(req: Request) {
 
   const mcpClient = await experimental_createMCPClient({
     transport: {
-      type: 'sse',
-      url: 'https://actions.zapier.com/mcp/[YOUR_KEY]/sse',
+      type: 'http',
+      url: 'https://mcp.zapier.com/api/mcp/s/[YOUR_SERVER_ID]/mcp',
     },
   });
 
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: openai('gpt-4o'),
-      messages,
+      messages: convertToModelMessages(messages),
       tools: zapierTools,
       onFinish: async () => {
         await mcpClient.close();
