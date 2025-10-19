@@ -1,8 +1,8 @@
 import { weatherToolValibot } from '@/tool/weather-tool-valibot';
 import { anthropic } from '@ai-sdk/anthropic';
-import { BasicAgent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-export const weatherValibotAgent = new BasicAgent({
+export const weatherValibotAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
     weather: weatherToolValibot,

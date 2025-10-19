@@ -1,25 +1,25 @@
 'use client';
 
-import { OpenAIWebSearchMessage } from '@/agent/openai-web-search-agent';
+import { AnthropicWebFetchMessage } from '@/agent/anthropic-web-fetch-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';
 import SourcesView from '@/components/sources-view';
-import OpenAIWebSearchView from '@/components/tool/openai-web-search-view';
+import AnthropicWebFetchView from '@/components/tool/anthropic-web-fetch-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
-export default function TestOpenAIWebSearch() {
+export default function TestAnthropicWebFetch() {
   const { error, status, sendMessage, messages, regenerate } =
-    useChat<OpenAIWebSearchMessage>({
+    useChat<AnthropicWebFetchMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-web-search',
+        api: '/api/chat-anthropic-web-fetch',
       }),
     });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">OpenAI Web Search</h1>
+      <h1 className="mb-4 text-xl font-bold">Anthropic Web Search</h1>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
@@ -32,8 +32,8 @@ export default function TestOpenAIWebSearch() {
               case 'reasoning': {
                 return <ReasoningView part={part} key={index} />;
               }
-              case 'tool-web_search': {
-                return <OpenAIWebSearchView invocation={part} key={index} />;
+              case 'tool-web_fetch': {
+                return <AnthropicWebFetchView invocation={part} key={index} />;
               }
             }
           })}

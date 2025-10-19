@@ -1,7 +1,7 @@
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { BasicAgent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-export const anthropicCodeExecutionAgent = new BasicAgent({
+export const anthropicCodeExecutionAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
     code_execution: anthropic.tools.codeExecution_20250825(),
