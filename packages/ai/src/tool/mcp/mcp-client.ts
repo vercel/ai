@@ -26,13 +26,21 @@ import {
   Configuration as ClientConfiguration,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
+  ListResourcesResult,
+  ListResourcesResultSchema,
+  ListResourceTemplatesResult,
+  ListResourceTemplatesResultSchema,
   ListToolsResult,
   ListToolsResultSchema,
   McpToolSet,
   Notification,
   PaginatedRequest,
+  ReadResourceResult,
+  ReadResourceResultSchema,
   Request,
   RequestOptions,
+  Resource,
+  ResourceTemplate,
   ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
   ToolSchemas,
@@ -60,7 +68,20 @@ export async function createMCPClient(
 export interface MCPClient {
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
+    includeResources?: boolean;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
+
+  listResources(params?: PaginatedRequest['params']): Promise<ListResourcesResult>;
+
+  listResourceTemplates(params?: PaginatedRequest['params']): Promise<ListResourceTemplatesResult>;
+
+  readResource(params: { uri: string } | string): Promise<ReadResourceResult>;
+
+  subscribeResource(uri: string): Promise<void>;
+
+  unsubscribeResource(uri: string): Promise<void>;
+
+  onResourceUpdated(handler: (notification: { uri: string }) => void | Promise<void>): void;
 
   close: () => Promise<void>;
 }
@@ -78,7 +99,6 @@ export interface MCPClient {
  *
  * Not supported:
  * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
- * - Accepting notifications
  * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
  * - Resumable SSE streams
  */
@@ -93,6 +113,7 @@ class DefaultMCPClient implements MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
+  private resourceUpdateHandlers: Array<(notification: { uri: string }) => void | Promise<void>> = [];
 
   constructor({
     transport: transportConfig,
@@ -111,12 +132,17 @@ class DefaultMCPClient implements MCPClient {
     this.transport.onerror = (error: Error) => this.onError(error);
     this.transport.onmessage = message => {
       if ('method' in message) {
-        // This lightweight client implementation does not support
-        // receiving notifications or requests from server.
-        // If we get an unsupported message, we can safely ignore it and pass to the onError handler:
+        // Handle notifications
+        if (message.method === 'notifications/resources/updated') {
+          // Fire and forget - errors are handled within onResourceNotification
+          void this.onResourceNotification(message as JSONRPCNotification);
+          return;
+        }
+
+        // Other notification/request types not supported
         this.onError(
           new MCPClientError({
-            message: 'Unsupported message type',
+            message: `Unsupported message type: ${message.method}`,
           }),
         );
         return;
@@ -189,6 +215,23 @@ class DefaultMCPClient implements MCPClient {
         if (!this.serverCapabilities.tools) {
           throw new MCPClientError({
             message: `Server does not support tools`,
+          });
+        }
+        break;
+      case 'resources/list':
+      case 'resources/templates/list':
+      case 'resources/read':
+        if (!this.serverCapabilities.resources) {
+          throw new MCPClientError({
+            message: `Server does not support resources`,
+          });
+        }
+        break;
+      case 'resources/subscribe':
+      case 'resources/unsubscribe':
+        if (!this.serverCapabilities.resources?.subscribe) {
+          throw new MCPClientError({
+            message: `Server does not support resource subscriptions`,
           });
         }
         break;
@@ -306,6 +349,60 @@ class DefaultMCPClient implements MCPClient {
     }
   }
 
+  private async listResourcesInternal({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListResourcesResult> {
+    try {
+      return this.request({
+        request: { method: 'resources/list', params },
+        resultSchema: ListResourcesResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async listResourceTemplatesInternal({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListResourceTemplatesResult> {
+    try {
+      return this.request({
+        request: { method: 'resources/templates/list', params },
+        resultSchema: ListResourceTemplatesResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async readResourceInternal({
+    uri,
+    options,
+  }: {
+    uri: string;
+    options?: RequestOptions;
+  }): Promise<ReadResourceResult> {
+    try {
+      return this.request({
+        request: { method: 'resources/read', params: { uri } },
+        resultSchema: ReadResourceResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   private async notification(notification: Notification): Promise<void> {
     const jsonrpcNotification: JSONRPCNotification = {
       ...notification,
@@ -320,12 +417,15 @@ class DefaultMCPClient implements MCPClient {
    */
   async tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>({
     schemas = 'automatic',
+    includeResources = false,
   }: {
     schemas?: TOOL_SCHEMAS;
+    includeResources?: boolean;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
     const tools: Record<string, Tool> = {};
 
     try {
+      // Add tools from tools/list
       const listToolsResult = await this.listTools();
 
       for (const { name, description, inputSchema } of listToolsResult.tools) {
@@ -363,9 +463,228 @@ class DefaultMCPClient implements MCPClient {
         tools[name] = toolWithExecute;
       }
 
+      // Optionally add resources as tools
+      if (includeResources && this.serverCapabilities.resources) {
+        const self = this;
+
+        // Add direct resources as tools
+        try {
+          // Fetch all pages of resources
+          let cursor: string | undefined;
+          const allResources: Resource[] = [];
+          do {
+            const result = await this.listResources(cursor ? { cursor } : undefined);
+            allResources.push(...result.resources);
+            cursor = result.nextCursor;
+          } while (cursor);
+
+          for (const resource of allResources) {
+            const toolName = `resource_${resource.name}`;
+
+            if (schemas !== 'automatic' && !(toolName in schemas)) {
+              continue;
+            }
+
+            const execute = async (
+              _args: any,
+              options: ToolCallOptions,
+            ): Promise<ReadResourceResult> => {
+              options?.abortSignal?.throwIfAborted();
+              return self.readResource(resource.uri);
+            };
+
+            const resourceTool =
+              schemas === 'automatic'
+                ? dynamicTool({
+                    description: resource.description || `Read resource: ${resource.name}`,
+                    inputSchema: jsonSchema({
+                      type: 'object',
+                      properties: {},
+                      additionalProperties: false,
+                    } as JSONSchema7),
+                    execute,
+                  })
+                : tool({
+                    description: resource.description || `Read resource: ${resource.name}`,
+                    inputSchema: schemas[toolName].inputSchema,
+                    execute,
+                  });
+
+            tools[toolName] = resourceTool;
+          }
+        } catch (error) {
+          // If resources fail, continue with tools only
+        }
+
+        // Add resource templates as tools
+        try {
+          // Fetch all pages of resource templates
+          let cursor: string | undefined;
+          const allTemplates: ResourceTemplate[] = [];
+          do {
+            const result = await this.listResourceTemplates(cursor ? { cursor } : undefined);
+            allTemplates.push(...result.resourceTemplates);
+            cursor = result.nextCursor;
+          } while (cursor);
+
+          for (const template of allTemplates) {
+            const toolName = `resource_template_${template.name}`;
+
+            if (schemas !== 'automatic' && !(toolName in schemas)) {
+              continue;
+            }
+
+            // Parse URI template to extract parameters
+            const params = this.extractTemplateParams(template.uriTemplate);
+            const properties: Record<string, any> = {};
+            const required: string[] = [];
+
+            for (const param of params) {
+              properties[param] = {
+                type: 'string',
+                description: `Value for ${param} in URI template`,
+              };
+              required.push(param);
+            }
+
+            const execute = async (
+              args: any,
+              options: ToolCallOptions,
+            ): Promise<ReadResourceResult> => {
+              options?.abortSignal?.throwIfAborted();
+              const uri = this.expandTemplate(template.uriTemplate, args);
+              return self.readResource(uri);
+            };
+
+            const templateTool =
+              schemas === 'automatic'
+                ? dynamicTool({
+                    description: template.description || `Read resource template: ${template.name}`,
+                    inputSchema: jsonSchema({
+                      type: 'object',
+                      properties,
+                      required,
+                      additionalProperties: false,
+                    } as JSONSchema7),
+                    execute,
+                  })
+                : tool({
+                    description: template.description || `Read resource template: ${template.name}`,
+                    inputSchema: schemas[toolName].inputSchema,
+                    execute,
+                  });
+
+            tools[toolName] = templateTool;
+          }
+        } catch (error) {
+          // If resource templates fail, continue with other tools
+        }
+      }
+
       return tools as McpToolSet<TOOL_SCHEMAS>;
     } catch (error) {
       throw error;
+    }
+  }
+
+  /**
+   * Extract parameters from URI template (RFC 6570 simple expansion)
+   */
+  private extractTemplateParams(template: string): string[] {
+    const matches = template.match(/{([^}]+)}/g);
+    if (!matches) return [];
+    return matches.map(match => match.slice(1, -1));
+  }
+
+  /**
+   * Expand URI template with provided values
+   */
+  private expandTemplate(template: string, values: Record<string, string>): string {
+    return template.replace(/{([^}]+)}/g, (match, key) => {
+      return values[key] || match;
+    });
+  }
+
+  /**
+   * List available resources from the MCP server
+   * @param params Optional pagination params (cursor)
+   * @returns Paginated list of resource descriptors
+   */
+  async listResources(params?: PaginatedRequest['params']): Promise<ListResourcesResult> {
+    try {
+      return this.listResourcesInternal({ params });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * List available resource templates from the MCP server
+   * @param params Optional pagination params (cursor)
+   * @returns Paginated list of resource template descriptors
+   */
+  async listResourceTemplates(params?: PaginatedRequest['params']): Promise<ListResourceTemplatesResult> {
+    try {
+      return this.listResourceTemplatesInternal({ params });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Read a resource from the MCP server
+   * @param params URI or object with uri property
+   * @returns The resource content
+   */
+  async readResource(params: { uri: string } | string): Promise<ReadResourceResult> {
+    try {
+      const uri = typeof params === 'string' ? params : params.uri;
+      return this.readResourceInternal({ uri });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async subscribeResource(uri: string): Promise<void> {
+    this.assertCapability('resources/subscribe');
+
+    await this.request({
+      request: {
+        method: 'resources/subscribe',
+        params: { uri },
+      },
+      resultSchema: z.object({}),
+    });
+  }
+
+  async unsubscribeResource(uri: string): Promise<void> {
+    this.assertCapability('resources/subscribe');
+
+    await this.request({
+      request: {
+        method: 'resources/unsubscribe',
+        params: { uri },
+      },
+      resultSchema: z.object({}),
+    });
+  }
+
+  onResourceUpdated(handler: (notification: { uri: string }) => void | Promise<void>): void {
+    this.resourceUpdateHandlers.push(handler);
+  }
+
+  private async onResourceNotification(notification: JSONRPCNotification): Promise<void> {
+    if (notification.method === 'notifications/resources/updated' && notification.params) {
+      const params = notification.params as { uri: string };
+
+      // Call all registered handlers
+      for (const handler of this.resourceUpdateHandlers) {
+        try {
+          await handler({ uri: params.uri });
+        } catch (error) {
+          this.onError(error);
+        }
+      }
     }
   }
 
