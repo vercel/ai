@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { BasicAgent, tool } from 'ai';
+import { ToolLoopAgent, tool } from 'ai';
 import { run } from '../lib/run';
 import { z } from 'zod';
 
-const agent = new BasicAgent({
+const agent = new ToolLoopAgent({
   model: openai('gpt-5'),
   system: 'You are a helpful that answers questions about the weather.',
   tools: {
