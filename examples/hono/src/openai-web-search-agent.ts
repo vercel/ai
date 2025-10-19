@@ -21,9 +21,6 @@ export const openaiWebSearchAgent = new ToolLoopAgent({
       // store: false,
     } satisfies OpenAIResponsesProviderOptions,
   },
-  onStepFinish: ({ request }) => {
-    console.dir(request.body, { depth: Infinity });
-  },
 });
 
 export type OpenAIWebSearchMessage = InferAgentUIMessage<
