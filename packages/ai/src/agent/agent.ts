@@ -1,4 +1,9 @@
 import { GenerateTextResult } from '../generate-text/generate-text-result';
+import {
+  InferGenerateOutput,
+  InferStreamOutput,
+  Output,
+} from '../generate-text/output';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt/prompt';
@@ -12,8 +17,7 @@ import { Prompt } from '../prompt/prompt';
  */
 export interface Agent<
   TOOLS extends ToolSet = {},
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  OUTPUT extends Output = never,
 > {
   /**
    * The specification version of the agent interface. This will enable
@@ -34,10 +38,12 @@ export interface Agent<
   /**
    * Generates an output from the agent (non-streaming).
    */
-  generate(options: Prompt): PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>;
+  generate(
+    options: Prompt,
+  ): PromiseLike<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>>;
 
   /**
    * Streams an output from the agent (streaming).
    */
-  stream(options: Prompt): StreamTextResult<TOOLS, OUTPUT_PARTIAL>;
+  stream(options: Prompt): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>;
 }

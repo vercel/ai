@@ -1,5 +1,6 @@
 import { ServerResponse } from 'node:http';
 import { UIMessageStreamOptions } from '../generate-text';
+import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
@@ -15,8 +16,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  */
 export async function pipeAgentUIStreamToResponse<
   TOOLS extends ToolSet = {},
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  OUTPUT extends Output = never,
 >({
   response,
   headers,
@@ -26,7 +26,7 @@ export async function pipeAgentUIStreamToResponse<
   ...options
 }: {
   response: ServerResponse;
-  agent: Agent<TOOLS, OUTPUT, OUTPUT_PARTIAL>;
+  agent: Agent<TOOLS, OUTPUT>;
   messages: unknown[];
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<

@@ -1,4 +1,5 @@
 import { UIMessageStreamOptions } from '../generate-text';
+import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
 import { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
@@ -17,14 +18,13 @@ import { Agent } from './agent';
  */
 export async function createAgentUIStream<
   TOOLS extends ToolSet = {},
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  OUTPUT extends Output = never,
 >({
   agent,
   messages,
   ...uiMessageStreamOptions
 }: {
-  agent: Agent<TOOLS, OUTPUT, OUTPUT_PARTIAL>;
+  agent: Agent<TOOLS, OUTPUT>;
   messages: unknown[];
 } & UIMessageStreamOptions<
   UIMessage<never, never, InferUITools<TOOLS>>

@@ -1,5 +1,10 @@
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
+import {
+  InferGenerateOutput,
+  InferStreamOutput,
+  Output,
+} from '../generate-text/output';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
@@ -21,19 +26,14 @@ import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
  */
 export class ToolLoopAgent<
   TOOLS extends ToolSet = {},
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
-> implements Agent<TOOLS, OUTPUT, OUTPUT_PARTIAL>
+  OUTPUT extends Output = never,
+> implements Agent<TOOLS, OUTPUT>
 {
   readonly version = 'agent-v1';
 
-  private readonly settings: ToolLoopAgentSettings<
-    TOOLS,
-    OUTPUT,
-    OUTPUT_PARTIAL
-  >;
+  private readonly settings: ToolLoopAgentSettings<TOOLS, OUTPUT>;
 
-  constructor(settings: ToolLoopAgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>) {
+  constructor(settings: ToolLoopAgentSettings<TOOLS, OUTPUT>) {
     this.settings = settings;
   }
 
@@ -54,7 +54,9 @@ export class ToolLoopAgent<
   /**
    * Generates an output from the agent (non-streaming).
    */
-  async generate(options: Prompt): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  async generate(
+    options: Prompt,
+  ): Promise<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>> {
     return generateText({
       ...this.settings,
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
@@ -65,7 +67,7 @@ export class ToolLoopAgent<
   /**
    * Streams an output from the agent (streaming).
    */
-  stream(options: Prompt): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
+  stream(options: Prompt): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>> {
     return streamText({
       ...this.settings,
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
