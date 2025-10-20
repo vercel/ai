@@ -4337,6 +4337,17 @@ The presentation has",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "container": {
+          "expiresAt": "2025-10-20T12:27:25.107823Z",
+          "id": "container_011CUJNGs88jcQ8KEiZguEUo",
+          "skills": [
+            {
+              "skillId": "pptx",
+              "type": "anthropic",
+              "version": "20251013",
+            },
+          ],
+        },
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -5626,6 +5637,11 @@ The Fibonacci sequence starts with 0, ",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "container": {
+          "expiresAt": "2025-10-14T10:02:00.044495Z",
+          "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
+          "skills": null,
+        },
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -5730,6 +5746,7 @@ It simply echoed back",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "container": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -6128,6 +6145,7 @@ The page also discusses",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "container": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -6862,6 +6880,7 @@ The main tech story today appears to be Apple's significant",
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
+        "container": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {

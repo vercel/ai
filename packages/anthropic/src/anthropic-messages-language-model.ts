@@ -831,6 +831,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
+    let container: AnthropicMessageMetadata['container'] | null = null;
 
     let blockType:
       | 'text'
@@ -1365,6 +1366,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 });
 
                 stopSequence = value.delta.stop_sequence ?? null;
+                container =
+                  value.delta.container != null
+                    ? {
+                        expiresAt: value.delta.container.expires_at,
+                        id: value.delta.container.id,
+                        skills:
+                          value.delta.container.skills?.map(skill => ({
+                            type: skill.type,
+                            skillId: skill.skill_id,
+                            version: skill.version,
+                          })) ?? null,
+                      }
+                    : null;
 
                 rawUsage = {
                   ...rawUsage,
@@ -1381,10 +1395,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   usage,
                   providerMetadata: {
                     anthropic: {
-                      usage: rawUsage ?? null,
+                      usage: (rawUsage as JSONObject) ?? null,
                       cacheCreationInputTokens,
                       stopSequence,
-                    },
+                      container,
+                    } satisfies AnthropicMessageMetadata,
                   },
                 });
                 return;

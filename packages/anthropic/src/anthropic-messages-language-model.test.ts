@@ -2583,6 +2583,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "container": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 441,
@@ -2661,6 +2662,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -2759,6 +2761,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -2839,6 +2842,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -2905,6 +2909,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3039,6 +3044,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 441,
@@ -3247,6 +3253,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -3320,6 +3327,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation": {
@@ -3423,6 +3431,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "container": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -3470,6 +3479,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "container": null,
                   "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
@@ -3704,6 +3714,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "container": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,

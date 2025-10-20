@@ -833,6 +833,24 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
         delta: z.object({
           stop_reason: z.string().nullish(),
           stop_sequence: z.string().nullish(),
+          container: z
+            .object({
+              expires_at: z.string(),
+              id: z.string(),
+              skills: z
+                .array(
+                  z.object({
+                    type: z.union([
+                      z.literal('anthropic'),
+                      z.literal('custom'),
+                    ]),
+                    skill_id: z.string(),
+                    version: z.string(),
+                  }),
+                )
+                .nullish(),
+            })
+            .nullish(),
         }),
         usage: z.looseObject({
           output_tokens: z.number(),
