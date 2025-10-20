@@ -136,7 +136,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
     },
   | {
       type: 'bash_code_execution_result';
-      
+
       /**
        * Output file Id list
        */
