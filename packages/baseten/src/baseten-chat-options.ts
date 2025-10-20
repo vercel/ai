@@ -9,4 +9,5 @@ export type BasetenChatModelId =
   | 'Qwen/Qwen3-235B-A22B-Instruct-2507'
   | 'Qwen/Qwen3-Coder-480B-A35B-Instruct'
   | 'openai/gpt-oss-120b'
+  | 'zai-org/GLM-4.6'
   | (string & {});
