@@ -2120,6 +2120,24 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should include file id list in code execution tool call result.', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.2');
+
+        const result2 = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result2.content).toMatchSnapshot();
+      });
     });
 
     describe('code execution 20250522', () => {
@@ -3702,6 +3720,26 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
           });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+
+        it('should include file id list in code execution tool call result.', async () => {
+          prepareChunksFixtureResponse('anthropic-code-execution-20250825.2');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+          });
+
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
