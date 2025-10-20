@@ -13,7 +13,7 @@ import { LanguageModelUsage } from '../types/usage';
 import { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
 
-export interface Output<OUTPUT = never, PARTIAL = never> {
+export interface Output<OUTPUT = any, PARTIAL = any> {
   readonly type: 'object' | 'text';
 
   responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
