@@ -8,37 +8,14 @@ import {
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 
-export type AgentCallParameters =
-  | {
-      /**
-       * A prompt. It can be either a text prompt or a list of messages.
-       *
-       * You can either use `prompt` or `messages` but not both.
-       */
-      prompt: string | Array<ModelMessage>;
-
-      /**
-       * A list of messages.
-       *
-       * You can either use `prompt` or `messages` but not both.
-       */
-      messages?: never;
-    }
-  | {
-      /**
-       * A list of messages.
-       *
-       * You can either use `prompt` or `messages` but not both.
-       */
-      messages: Array<ModelMessage>;
-
-      /**
-       * A prompt. It can be either a text prompt or a list of messages.
-       *
-       * You can either use `prompt` or `messages` but not both.
-       */
-      prompt?: never;
-    };
+export type AgentCallParameters = {
+  /**
+   * A prompt. It can be either a text prompt or a list of messages.
+   *
+   * You can either use `prompt` or `messages` but not both.
+   */
+  prompt: string | Array<ModelMessage>;
+};
 
 /**
  * An Agent receives a prompt (text or messages) and generates or streams an output
