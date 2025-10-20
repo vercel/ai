@@ -24,10 +24,10 @@ import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
  * - A stop condition is met (default stop condition is stepCountIs(20))
  */
 export class ToolLoopAgent<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-  CALL_OPTIONS = never,
-> implements Agent<TOOLS, OUTPUT, CALL_OPTIONS>
+> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT>
 {
   readonly version = 'agent-v1';
 

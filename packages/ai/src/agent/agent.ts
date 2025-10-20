@@ -51,9 +51,9 @@ export type AgentCallParameters<CALL_OPTIONS> = {
  * or use the `ToolLoopAgent` class.
  */
 export interface Agent<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-  CALL_OPTIONS = never,
 > {
   /**
    * The specification version of the agent interface. This will enable

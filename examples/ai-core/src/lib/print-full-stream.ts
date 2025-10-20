@@ -26,6 +26,18 @@ export async function printFullStream({
         break;
       }
 
+      case 'reasoning-start':
+        process.stdout.write('\n\n\x1b[34m\x1b[1mREASONING:\x1b[22m\n');
+        break;
+
+      case 'reasoning-delta':
+        process.stdout.write(chunk.text);
+        break;
+
+      case 'reasoning-end':
+        process.stdout.write('\x1b[0m\n');
+        break;
+
       case 'error':
         console.error('Error:', chunk.error);
         break;
