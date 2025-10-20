@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.64
+
+### Patch Changes
+
+- 2d28066: chore(agent): limit agent call parameters
+
 ## 6.0.0-beta.63
 
 ### Patch Changes
