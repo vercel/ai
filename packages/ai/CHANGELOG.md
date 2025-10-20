@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.65
+
+### Patch Changes
+
+- dce4e7b: chore(agent): rename system to instructions
+
 ## 6.0.0-beta.64
 
 ### Patch Changes
