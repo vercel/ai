@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.53
+
+### Patch Changes
+
+- 5464bf0: fix(provider/openai): add truncation parameter support for Responses API
+
 ## 2.0.52
 
 ### Patch Changes
