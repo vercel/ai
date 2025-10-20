@@ -8,6 +8,18 @@ import { DeepPartial } from '../util/deep-partial';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
+    it('should not allow system prompt', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3(),
+      });
+
+      await agent.generate({
+        // @ts-expect-error - system prompt is not allowed
+        system: '123',
+        prompt: 'Hello, world!',
+      });
+    });
+
     it('should infer output type', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV3(),
@@ -27,6 +39,18 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('stream', () => {
+    it('should not allow system prompt', () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3(),
+      });
+
+      agent.stream({
+        // @ts-expect-error - system prompt is not allowed
+        system: '123',
+        prompt: 'Hello, world!',
+      });
+    });
+
     it('should infer output type', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV3(),
