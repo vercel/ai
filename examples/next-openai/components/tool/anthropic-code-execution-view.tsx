@@ -36,9 +36,15 @@ export default function AnthropicCodeExecutionView({
                     </>
                   )}
                   <br />
-                  {invocation.output.content.length > 0 &&
+                  {invocation.output.content.length > 0 && (
                     <div className="bg-gray-200 py-2 px-2 rounded-lg flex flex-col gap-1">
-                      <div className='px-1'>{invocation.output.content.length>1?<p className='text-black'>downloads</p>:<p className='text-black'>download</p>}</div>
+                      <div className="px-1">
+                        {invocation.output.content.length > 1 ? (
+                          <p className="text-black">downloads</p>
+                        ) : (
+                          <p className="text-black">download</p>
+                        )}
+                      </div>
                       {invocation.output.content.map(file => (
                         <button
                           className="bg-cyan-800 hover:bg-cyan-700 text-white rounded-lg py-1 px-2 border border-white cursor-pointer"
@@ -50,11 +56,14 @@ export default function AnthropicCodeExecutionView({
                             )
                           }
                         >
-                          <div className='flex gap-1 items-center justify-center'><Download /><p>{file.file_id}</p></div>
+                          <div className="flex gap-1 items-center justify-center">
+                            <Download />
+                            <p>{file.file_id}</p>
+                          </div>
                         </button>
                       ))}
                     </div>
-                  }
+                  )}
                   {invocation.output.return_code != null && (
                     <>
                       <span className="font-semibold">Return Code:</span>
