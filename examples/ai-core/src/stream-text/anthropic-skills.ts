@@ -1,7 +1,12 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  AnthropicMessageMetadata,
+  AnthropicProviderOptions,
+} from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
+import { print } from '../lib/print';
+import { printFullStream } from '../lib/print-full-stream';
 import { run } from '../lib/run';
-import { saveRawChunks } from '../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
@@ -19,8 +24,14 @@ run(async () => {
         },
       } satisfies AnthropicProviderOptions,
     },
-    includeRawChunks: true,
   });
 
-  saveRawChunks({ result, filename: 'anthropic-skills' });
+  await printFullStream({ result });
+
+  const anthropicContainer = (
+    (await result.providerMetadata)
+      ?.anthropic as unknown as AnthropicMessageMetadata
+  )?.container;
+
+  print('container', anthropicContainer);
 });
