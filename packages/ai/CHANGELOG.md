@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.62
+
+### Patch Changes
+
+- 95b77e2: feat(agent): extract createAgentUIStream, add pipeAgentUIStreamToResponse
+
 ## 6.0.0-beta.61
 
 ### Patch Changes

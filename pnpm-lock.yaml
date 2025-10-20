@@ -302,7 +302,7 @@ importers:
         specifier: 3.0.0-beta.32
         version: link:../../packages/openai
       ai:
-        specifier: 6.0.0-beta.61
+        specifier: 6.0.0-beta.62
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
