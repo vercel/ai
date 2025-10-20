@@ -126,7 +126,7 @@ export const object = <OUTPUT>({
 };
 
 export type InferGenerateOutput<OUTPUT extends Output> =
-  OUTPUT extends Output<infer T, never> ? T : never;
+  OUTPUT extends Output<infer T, any> ? T : never;
 
 export type InferStreamOutput<OUTPUT extends Output> =
-  OUTPUT extends Output<never, infer P> ? P : never;
+  OUTPUT extends Output<any, infer P> ? P : never;

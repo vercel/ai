@@ -1,5 +1,9 @@
 import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { InferStreamOutput, Output } from '../generate-text/output';
+import {
+  InferGenerateOutput,
+  InferStreamOutput,
+  Output,
+} from '../generate-text/output';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt/prompt';
@@ -34,7 +38,9 @@ export interface Agent<
   /**
    * Generates an output from the agent (non-streaming).
    */
-  generate(options: Prompt): PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>;
+  generate(
+    options: Prompt,
+  ): PromiseLike<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>>;
 
   /**
    * Streams an output from the agent (streaming).

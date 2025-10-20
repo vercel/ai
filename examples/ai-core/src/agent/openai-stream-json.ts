@@ -27,7 +27,6 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  // types wrong
   const result = agent.stream({
     prompt: 'Generate a lasagna recipe.',
   });

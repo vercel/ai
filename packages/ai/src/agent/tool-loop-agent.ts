@@ -1,6 +1,10 @@
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { InferStreamOutput, Output } from '../generate-text/output';
+import {
+  InferGenerateOutput,
+  InferStreamOutput,
+  Output,
+} from '../generate-text/output';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
@@ -50,7 +54,9 @@ export class ToolLoopAgent<
   /**
    * Generates an output from the agent (non-streaming).
    */
-  async generate(options: Prompt): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  async generate(
+    options: Prompt,
+  ): Promise<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>> {
     return generateText({
       ...this.settings,
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
