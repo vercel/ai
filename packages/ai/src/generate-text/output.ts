@@ -1,4 +1,4 @@
-import { JSONSchema7, LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import {
   asSchema,
   FlexibleSchema,
@@ -13,7 +13,7 @@ import { LanguageModelUsage } from '../types/usage';
 import { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
 
-export interface Output<OUTPUT, PARTIAL> {
+export interface Output<OUTPUT = never, PARTIAL = never> {
   readonly type: 'object' | 'text';
 
   responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
@@ -124,3 +124,9 @@ export const object = <OUTPUT>({
     },
   };
 };
+
+export type InferGenerateOutput<OUTPUT extends Output> =
+  OUTPUT extends Output<infer T, never> ? T : never;
+
+export type InferStreamOutput<OUTPUT extends Output> =
+  OUTPUT extends Output<never, infer P> ? P : never;
