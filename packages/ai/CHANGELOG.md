@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.63
+
+### Patch Changes
+
+- a7da2b6: feat(agent): change output generics
+
 ## 6.0.0-beta.62
 
 ### Patch Changes
