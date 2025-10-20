@@ -3,9 +3,8 @@
   "version": "6.0.0-beta.64",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
+  "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -32,26 +31,19 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./internal": {
       "types": "./dist/internal/index.d.ts",
-      "import": "./dist/internal/index.mjs",
-      "module": "./dist/internal/index.mjs",
-      "require": "./dist/internal/index.js"
+      "default": "./dist/internal/index.js"
     },
     "./test": {
       "types": "./dist/test/index.d.ts",
-      "import": "./dist/test/index.mjs",
-      "module": "./dist/test/index.mjs",
-      "require": "./dist/test/index.js"
+      "default": "./dist/test/index.js"
     },
     "./mcp-stdio": {
       "types": "./dist/mcp-stdio/index.d.ts",
-      "import": "./dist/mcp-stdio/index.mjs",
-      "module": "./dist/mcp-stdio/index.mjs",
-      "require": "./dist/mcp-stdio/index.js"
+      "default": "./dist/mcp-stdio/index.js"
     }
   },
   "dependencies": {

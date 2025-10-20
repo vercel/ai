@@ -4,7 +4,7 @@ export default defineConfig([
   // Universal APIs
   {
     entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     external: ['react', 'svelte', 'vue', 'chai', 'chai/*'],
     dts: true,
     sourcemap: true,
@@ -21,7 +21,7 @@ export default defineConfig([
   {
     entry: ['internal/index.ts'],
     outDir: 'dist/internal',
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     external: ['chai', 'chai/*'],
     dts: true,
     sourcemap: true,
@@ -38,7 +38,7 @@ export default defineConfig([
   {
     entry: ['test/index.ts'],
     outDir: 'dist/test',
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     external: [
       'chai',
       'chai/*',
@@ -66,7 +66,7 @@ export default defineConfig([
   {
     entry: ['mcp-stdio/index.ts'],
     outDir: 'dist/mcp-stdio',
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     external: ['chai', 'chai/*'],
     dts: true,
     sourcemap: true,

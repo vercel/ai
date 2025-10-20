@@ -3,8 +3,7 @@
   "version": "2.0.0-beta.64",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
+  "type": "module",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -21,8 +20,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     }
   },
   "files": [

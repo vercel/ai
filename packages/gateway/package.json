@@ -3,9 +3,8 @@
   "private": false,
   "version": "2.0.0-beta.35",
   "license": "Apache-2.0",
+  "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -28,8 +27,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {

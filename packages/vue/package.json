@@ -2,9 +2,8 @@
   "name": "@ai-sdk/vue",
   "version": "3.0.0-beta.64",
   "license": "Apache-2.0",
+  "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -21,8 +20,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     }
   },
   "files": [

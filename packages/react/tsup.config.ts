@@ -5,7 +5,7 @@ export default defineConfig([
     entry: ['src/index.ts'],
     outDir: 'dist',
     banner: {},
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     external: ['vue'],
     dts: true,
     sourcemap: true,
