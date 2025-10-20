@@ -9,9 +9,9 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --tsconfig tsconfig.build.json --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
+    "lint": "eslint \"./**/*.{ts,tsx}\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
+    "prettier-check": "prettier --check \"./**/*.{ts,tsx}\"",
     "test": "vitest --config vitest.config.ts --run",
     "test:update": "vitest --config vitest.config.ts --run -u",
     "test:watch": "vitest --config vitest.config.ts"
