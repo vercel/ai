@@ -6,15 +6,42 @@ export interface AnthropicMessageMetadata {
   // (use value in usage object instead)
   cacheCreationInputTokens: number | null;
   stopSequence: string | null;
+
+  /**
+   * Information about the container used in this request.
+   *
+   * This will be non-null if a container tool (e.g., code execution) was used.
+   * Information about the container used in the request (for the code execution tool).
+   */
   container: {
+    /**
+     * The time at which the container will expire (RFC3339 timestamp).
+     */
     expiresAt: string;
+
+    /**
+     * Identifier for the container used in this request.
+     */
     id: string;
-    skills:
-      | {
-          type: 'anthropic' | 'custom';
-          skillId: string;
-          version: string;
-        }[]
-      | null;
+
+    /**
+     * Skills loaded in the container.
+     */
+    skills: Array<{
+      /**
+       * Type of skill: either 'anthropic' (built-in) or 'custom' (user-defined).
+       */
+      type: 'anthropic' | 'custom';
+
+      /**
+       * Skill ID (1-64 characters).
+       */
+      skillId: string;
+
+      /**
+       * Skill version or 'latest' for most recent version (1-64 characters).
+       */
+      version: string;
+    }> | null;
   } | null;
 }
