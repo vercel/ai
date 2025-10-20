@@ -42,6 +42,7 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 
 function createCitationSource(
   citation: Citation,
@@ -766,7 +767,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
-        },
+          container: response.container
+            ? {
+                expiresAt: response.container.expires_at,
+                id: response.container.id,
+                skills:
+                  response.container.skills?.map(skill => ({
+                    type: skill.type,
+                    skillId: skill.skill_id,
+                    version: skill.version,
+                  })) ?? null,
+              }
+            : null,
+        } satisfies AnthropicMessageMetadata,
       },
     };
   }

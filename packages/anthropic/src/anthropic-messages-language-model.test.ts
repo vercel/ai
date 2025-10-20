@@ -446,6 +446,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         {
           "anthropic": {
             "cacheCreationInputTokens": null,
+            "container": null,
             "stopSequence": "STOP",
             "usage": {
               "input_tokens": 4,
@@ -732,6 +733,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
+              "container": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
@@ -866,6 +868,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
+              "container": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation": {
@@ -2158,6 +2161,24 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
 
         expect(result.content).toMatchSnapshot();
+      });
+
+      it('should expose container information as provider metadata', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.providerMetadata).toMatchSnapshot();
       });
     });
 

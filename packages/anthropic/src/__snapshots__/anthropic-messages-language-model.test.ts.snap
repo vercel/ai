@@ -4,6 +4,17 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
 {
   "anthropic": {
     "cacheCreationInputTokens": 0,
+    "container": {
+      "expiresAt": "2025-10-20T11:48:47.798310Z",
+      "id": "container_011CUJKA7aVjWm5XJL9ozHGS",
+      "skills": [
+        {
+          "skillId": "pptx",
+          "type": "anthropic",
+          "version": "20251013",
+        },
+      ],
+    },
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -14,6 +25,35 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
       "cache_read_input_tokens": 0,
       "input_tokens": 950648,
       "output_tokens": 13856,
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0,
+      },
+      "service_tier": "standard",
+    },
+  },
+}
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 > should expose container information as provider metadata 1`] = `
+{
+  "anthropic": {
+    "cacheCreationInputTokens": 0,
+    "container": {
+      "expiresAt": "2025-10-14T10:28:40.590791Z",
+      "id": "container_011CU6rVteVhydYXRyNs6G1M",
+      "skills": null,
+    },
+    "stopSequence": null,
+    "usage": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0,
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 7881,
+      "output_tokens": 608,
       "server_tool_use": {
         "web_fetch_requests": 0,
         "web_search_requests": 0,
