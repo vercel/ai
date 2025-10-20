@@ -3658,32 +3658,6 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-<<<<<<< HEAD
-=======
-      describe('mcp servers', () => {
-        it('should stream code execution tool results', async () => {
-          prepareChunksFixtureResponse('anthropic-mcp.1');
-
-          const result = await model.doStream({
-            prompt: TEST_PROMPT,
-            providerOptions: {
-              anthropic: {
-                mcpServers: [
-                  {
-                    type: 'url',
-                    name: 'echo',
-                    url: 'https://echo.mcp.inevitable.fyi/mcp',
-                  },
-                ],
-              } satisfies AnthropicProviderOptions,
-            },
-          });
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
-        });
-      });
-
       describe('agent skills', () => {
         it('should stream code execution tool results', async () => {
           prepareChunksFixtureResponse(
@@ -3715,7 +3689,6 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
->>>>>>> f4db7b510 (feat(provider/anthropic): expose container from response in provider metadata (#9662))
       describe('code execution 20250825 tool', () => {
         it('should stream code execution tool results', async () => {
           prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
