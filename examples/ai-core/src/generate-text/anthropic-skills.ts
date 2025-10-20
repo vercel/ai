@@ -22,4 +22,6 @@ run(async () => {
   });
 
   print('content', result.content);
+
+  console.log(JSON.stringify(result.response.body));
 });

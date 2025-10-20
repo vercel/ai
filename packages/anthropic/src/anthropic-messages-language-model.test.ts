@@ -1801,7 +1801,9 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('agent skills', () => {
       it('should send request body with skills in container', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -1877,7 +1879,9 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should add a warning when the code execution tool is not present', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -1946,7 +1950,9 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should include beta headers when skills are configured', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -1981,6 +1987,39 @@ describe('AnthropicMessagesLanguageModel', () => {
             "x-api-key": "test-api-key",
           }
         `);
+      });
+
+      it('should expose container information as provider metadata', async () => {
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(result.providerMetadata).toMatchSnapshot();
       });
     });
 
