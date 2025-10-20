@@ -1,4 +1,8 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  AnthropicMessageMetadata,
+  AnthropicProviderOptions,
+} from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
@@ -21,7 +25,10 @@ run(async () => {
     },
   });
 
-  print('content', result.content);
+  const anthropicContainer = (
+    result.providerMetadata?.anthropic as unknown as AnthropicMessageMetadata
+  )?.container;
 
-  console.log(JSON.stringify(result.response.body));
+  print('content', result.content);
+  print('container', anthropicContainer);
 });
