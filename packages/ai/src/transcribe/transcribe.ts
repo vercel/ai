@@ -1,11 +1,13 @@
-import { JSONValue, TranscriptionModelV3 } from '@ai-sdk/provider';
+import { JSONValue } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { TranscriptionWarning } from '../types/transcription-model';
+import {
+  TranscriptionWarning,
+  TranscriptionModel,
+} from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
@@ -15,6 +17,7 @@ import { download, DEFAULT_MAX_DOWNLOAD_SIZE } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
+import { resolveTranscriptionModel } from '../model/resolve-model';
 /**
 Generates transcripts using a transcription model.
 
@@ -42,7 +45,7 @@ export async function transcribe({
   /**
 The transcription model to use.
      */
-  model: TranscriptionModelV3;
+  model: TranscriptionModel;
 
   /**
 The audio data to transcribe.
@@ -91,12 +94,9 @@ Prevents DoS attacks via unbounded memory consumption.
    */
   maxDownloadSizeInBytes?: number;
 }): Promise<TranscriptionResult> {
-  if (model.specificationVersion !== 'v3') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
+  const resolvedModel = resolveTranscriptionModel(model);
+  if (!resolvedModel) {
+    throw new Error('Model could not be resolved');
   }
 
   const { retry } = prepareRetries({
@@ -121,7 +121,7 @@ Prevents DoS attacks via unbounded memory consumption.
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
-    model.doGenerate({
+    resolvedModel.doGenerate({
       audio: audioData,
       abortSignal,
       headers: headersWithUserAgent,

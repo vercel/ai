@@ -41,6 +41,47 @@ describe('parseToolCall', () => {
     `);
   });
 
+  it('should successfully parse a valid provider-executed dynamic tool call', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+        providerExecuted: true,
+        dynamic: true,
+        providerMetadata: {
+          testProvider: {
+            signature: 'sig',
+          },
+        },
+      },
+      tools: {} as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": true,
+        "input": {
+          "param1": "test",
+          "param2": 42,
+        },
+        "providerExecuted": true,
+        "providerMetadata": {
+          "testProvider": {
+            "signature": "sig",
+          },
+        },
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('should successfully parse a valid tool call with provider metadata', async () => {
     const result = await parseToolCall({
       toolCall: {

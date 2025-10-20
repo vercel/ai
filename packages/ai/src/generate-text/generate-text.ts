@@ -557,7 +557,13 @@ A function that attempts to repair a tool call that failed to parse.
               continue; // ignore invalid tool calls
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              continue;
+            }
 
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({

@@ -1,5 +1,28 @@
 # @ai-sdk/revai
 
+## 2.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
 ## 2.0.0-beta.16
 
 ### Patch Changes

@@ -46,6 +46,12 @@ export type LanguageModelV3ToolResult = {
   preliminary?: boolean;
 
   /**
+   * Whether the tool is dynamic, i.e. defined at runtime.
+   * For example, MCP (Model Context Protocol) tools that are executed by the provider.
+   */
+  dynamic?: boolean;
+
+  /**
    * Additional provider-specific metadata for the tool result.
    */
   providerMetadata?: SharedV3ProviderMetadata;
