@@ -1,7 +1,7 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { Output, ToolLoopAgent } from 'ai';
-import { run } from '../lib/run';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-4o'),
@@ -27,9 +27,13 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const { experimental_output: output } = await agent.generate({
+  // types wrong
+  const result = agent.stream({
     prompt: 'Generate a lasagna recipe.',
   });
 
-  console.dir(output, { depth: Infinity });
+  for await (const partialObject of result.experimental_partialOutputStream) {
+    console.clear();
+    console.dir(partialObject, { depth: Infinity });
+  }
 });
