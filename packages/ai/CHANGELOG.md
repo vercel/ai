@@ -1,5 +1,63 @@
 # ai
 
+## 6.0.0-beta.62
+
+### Patch Changes
+
+- 95b77e2: feat(agent): extract createAgentUIStream, add pipeAgentUIStreamToResponse
+
+## 6.0.0-beta.61
+
+### Patch Changes
+
+- c98373a: chore(agent): rename createAgentStreamResponse to createAgentUIStreamResponse
+
+## 6.0.0-beta.60
+
+### Patch Changes
+
+- 2b49dae: feat(agent): support UIMessageStreamOptions in createAgentStreamResponse
+
+## 6.0.0-beta.59
+
+### Patch Changes
+
+- e062079: chore(agent): move Agent.respond into createAgentStreamResponse function
+
+## 6.0.0-beta.58
+
+### Patch Changes
+
+- a417a34: feat(agent): introduce version property
+
+## 6.0.0-beta.57
+
+### Patch Changes
+
+- 61f7b0f: chore(agent): rename BasicAgent to ToolLoopAgent
+
+## 6.0.0-beta.56
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+  - @ai-sdk/gateway@2.0.0-beta.35
+
+## 6.0.0-beta.55
+
+### Patch Changes
+
+- 42cf7ed: fix(agent): use tool.toModelOutput when available
+
+## 6.0.0-beta.54
+
+### Patch Changes
+
+- 9388ff1: feat(ui): add isDataUIPart helper
+
 ## 6.0.0-beta.53
 
 ### Patch Changes

@@ -69,9 +69,9 @@ const { object } = await generateObject({
 ### Agents
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const sandboxAgent = new Agent({
+const sandboxAgent = new ToolLoopAgent({
   model: 'openai/gpt-5-codex',
   system: 'You are an agent with access to a shell environment.',
   tools: {
@@ -101,9 +101,9 @@ npm install @ai-sdk/react
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { Agent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-export const imageGenerationAgent = new Agent({
+export const imageGenerationAgent = new ToolLoopAgent({
   model: openai('gpt-5'),
   tools: {
     image_generation: openai.tools.imageGeneration({
@@ -121,13 +121,14 @@ export type ImageGenerationAgentMessage = InferAgentUIMessage<
 
 ```tsx
 import { imageGenerationAgent } from '@/agent/image-generation-agent';
-import { validateUIMessages } from 'ai';
+import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  return imageGenerationAgent.respond({
-    messages: await validateUIMessages({ messages }),
+  return createAgentUIStreamResponse({
+    agent: imageGenerationAgent,
+    messages,
   });
 }
 ```

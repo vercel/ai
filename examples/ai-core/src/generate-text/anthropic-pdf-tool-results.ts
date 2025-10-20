@@ -36,9 +36,10 @@ run(async () => {
             text: result.description,
           },
           {
-            type: 'media',
+            type: 'file-data',
             data: result.pdfData,
             mediaType: 'application/pdf',
+            filename: 'ai.pdf',
           },
         ],
       };

@@ -28,6 +28,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
+  AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
@@ -39,6 +40,7 @@ import {
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 function createCitationSource(
@@ -198,11 +200,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       schema: anthropicProviderOptions,
     });
 
+    // Create a shared cache control validator to track breakpoints across tools and messages
+    const cacheControlValidator = new CacheControlValidator();
+
     const { prompt: messagesPrompt, betas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
+        cacheControlValidator,
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
@@ -243,6 +249,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               : undefined,
           })),
         }),
+
+      // container with agent skills:
+      ...(anthropicOptions?.container && {
+        container: {
+          id: anthropicOptions.container.id,
+          skills: anthropicOptions.container.skills?.map(skill => ({
+            type: skill.type,
+            skill_id: skill.skillId,
+            version: skill.version,
+          })),
+        } satisfies AnthropicContainer,
+      }),
 
       // prompt:
       system: messagesPrompt.system,
@@ -309,6 +327,29 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('mcp-client-2025-04-04');
     }
 
+    if (
+      anthropicOptions?.container &&
+      anthropicOptions.container.skills &&
+      anthropicOptions.container.skills.length > 0
+    ) {
+      betas.add('code-execution-2025-08-25');
+      betas.add('skills-2025-10-02');
+      betas.add('files-api-2025-04-14');
+
+      if (
+        !tools?.some(
+          tool =>
+            tool.type === 'provider-defined' &&
+            tool.id === 'anthropic.code_execution_20250825',
+        )
+      ) {
+        warnings.push({
+          type: 'other',
+          message: 'code execution tool is required when using skills',
+        });
+      }
+    }
+
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -320,13 +361,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             tools: [jsonResponseTool],
             toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
             disableParallelToolUse: true,
+            cacheControlValidator,
           }
         : {
             tools: tools ?? [],
             toolChoice,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+            cacheControlValidator,
           },
     );
+
+    // Extract cache control warnings once at the end
+    const cacheWarnings = cacheControlValidator.getWarnings();
 
     return {
       args: {
@@ -334,7 +380,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         tools: anthropicTools,
         tool_choice: anthropicToolChoice,
       },
-      warnings: [...warnings, ...toolWarnings],
+      warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
       betas: new Set([...betas, ...toolsBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
     };

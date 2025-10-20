@@ -1,5 +1,29 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [ca07285]
+  - @ai-sdk/anthropic@3.0.0-beta.31
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [9354297]
+  - @ai-sdk/anthropic@3.0.0-beta.30
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/anthropic@3.0.0-beta.29
+  - @ai-sdk/provider@3.0.0-beta.8
+
 ## 4.0.0-beta.32
 
 ### Patch Changes

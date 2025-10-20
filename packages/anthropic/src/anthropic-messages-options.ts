@@ -98,6 +98,26 @@ export const anthropicProviderOptions = z.object({
       }),
     )
     .optional(),
+
+  /**
+   * Agent Skills configuration. Skills enable Claude to perform specialized tasks
+   * like document processing (PPTX, DOCX, PDF, XLSX) and data analysis.
+   * Requires code execution tool to be enabled.
+   */
+  container: z
+    .object({
+      id: z.string().optional(),
+      skills: z
+        .array(
+          z.object({
+            type: z.union([z.literal('anthropic'), z.literal('custom')]),
+            skillId: z.string(),
+            version: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
