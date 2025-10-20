@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.34
+
+### Patch Changes
+
+- 65f2628: feat(provider/anthropic): expose container from response in provider metadata
+
 ## 2.0.33
 
 ### Patch Changes
