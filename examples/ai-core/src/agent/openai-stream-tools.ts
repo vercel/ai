@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-5'),
-  system: 'You are a helpful that answers questions about the weather.',
+  instructions: 'You are a helpful that answers questions about the weather.',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
