@@ -23,9 +23,9 @@ export type ToolLoopAgentSettings<
   id?: string;
 
   /**
-   * The system prompt to use.
+   * The instructions for the agent.
    */
-  system?: string;
+  instructions?: string;
 
   /**
 The language model to use.
@@ -67,11 +67,6 @@ changing the tool call and result types in the result.
 Optional specification for parsing structured outputs from the LLM response.
    */
   experimental_output?: OUTPUT;
-
-  /**
-   * @deprecated Use `prepareStep` instead.
-   */
-  experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
   /**
 Optional function that you can use to provide different settings for a step.
