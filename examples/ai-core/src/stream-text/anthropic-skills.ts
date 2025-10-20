@@ -3,12 +3,13 @@ import {
   AnthropicMessageMetadata,
   AnthropicProviderOptions,
 } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import { print } from '../lib/print';
+import { printFullStream } from '../lib/print-full-stream';
 import { run } from '../lib/run';
 
 run(async () => {
-  const result = await generateText({
+  const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
     tools: {
       code_execution: anthropic.tools.codeExecution_20250825(),
@@ -25,10 +26,12 @@ run(async () => {
     },
   });
 
+  await printFullStream({ result });
+
   const anthropicContainer = (
-    result.providerMetadata?.anthropic as unknown as AnthropicMessageMetadata
+    (await result.providerMetadata)
+      ?.anthropic as unknown as AnthropicMessageMetadata
   )?.container;
 
-  print('content', result.content);
   print('container', anthropicContainer);
 });
