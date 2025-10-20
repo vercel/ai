@@ -4,16 +4,22 @@ import {
   LanguageModelV3ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import {
-  OpenAIResponsesInput,
-  OpenAIResponsesReasoning,
-} from './openai-responses-api-types';
+  convertToBase64,
+  isNonNullable,
+  parseProviderOptions,
+  validateTypes,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
+import {
+  OpenAIResponsesFunctionCallOutput,
+  OpenAIResponsesInput,
+  OpenAIResponsesReasoning,
+} from './openai-responses-api';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -136,12 +142,22 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
+              const id = part.providerOptions?.openai?.itemId as
+                | string
+                | undefined;
+
+              // item references reduce the payload size
+              if (store && id != null) {
+                input.push({ type: 'item_reference', id });
+                break;
+              }
+
               input.push({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
-                id:
-                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
+                id,
               });
+
               break;
             }
             case 'tool-call': {
@@ -151,14 +167,25 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              const id = part.providerOptions?.openai?.itemId as
+                | string
+                | undefined;
+
+              // item references reduce the payload size
+              if (store && id != null) {
+                input.push({ type: 'item_reference', id });
+                break;
+              }
+
               if (hasLocalShellTool && part.toolName === 'local_shell') {
-                const parsedInput = localShellInputSchema.parse(part.input);
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: localShellInputSchema,
+                });
                 input.push({
                   type: 'local_shell_call',
                   call_id: part.toolCallId,
-                  id:
-                    (part.providerOptions?.openai?.itemId as string) ??
-                    undefined,
+                  id: id!,
                   action: {
                     type: 'exec',
                     command: parsedInput.action.command,
@@ -177,8 +204,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
-                id:
-                  (part.providerOptions?.openai?.itemId as string) ?? undefined,
+                id,
               });
               break;
             }
@@ -211,8 +237,9 @@ export async function convertToOpenAIResponsesInput({
                 const reasoningMessage = reasoningMessages[reasoningId];
 
                 if (store) {
+                  // use item references to refer to reasoning (single reference)
+                  // when the first part is encountered
                   if (reasoningMessage === undefined) {
-                    // use item references to refer to reasoning (single reference)
                     input.push({ type: 'item_reference', id: reasoningId });
 
                     // store unused reasoning message to mark id as used
@@ -251,6 +278,12 @@ export async function convertToOpenAIResponsesInput({
                     input.push(reasoningMessages[reasoningId]);
                   } else {
                     reasoningMessage.summary.push(...summaryParts);
+
+                    // updated encrypted content to enable setting it in the last summary part:
+                    if (providerOptions?.reasoningEncryptedContent != null) {
+                      reasoningMessage.encrypted_content =
+                        providerOptions.reasoningEncryptedContent;
+                    }
                   }
                 }
               } else {
@@ -276,15 +309,20 @@ export async function convertToOpenAIResponsesInput({
             part.toolName === 'local_shell' &&
             output.type === 'json'
           ) {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: localShellOutputSchema,
+            });
+
             input.push({
               type: 'local_shell_call_output',
               call_id: part.toolCallId,
-              output: localShellOutputSchema.parse(output.value).output,
+              output: parsedOutput.output,
             });
             break;
           }
 
-          let contentValue: string;
+          let contentValue: OpenAIResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -293,10 +331,43 @@ export async function convertToOpenAIResponsesInput({
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool execution denied.';
               break;
-            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
+              break;
+            case 'content':
+              contentValue = output.value
+                .map(item => {
+                  switch (item.type) {
+                    case 'text': {
+                      return { type: 'input_text' as const, text: item.text };
+                    }
+
+                    case 'image-data': {
+                      return {
+                        type: 'input_image' as const,
+                        image_url: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    case 'file-data': {
+                      return {
+                        type: 'input_file' as const,
+                        filename: item.filename ?? 'data',
+                        file_data: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    default: {
+                      warnings.push({
+                        type: 'other',
+                        message: `unsupported tool content part type: ${item.type}`,
+                      });
+                      return undefined;
+                    }
+                  }
+                })
+                .filter(isNonNullable);
               break;
           }
 

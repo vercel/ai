@@ -1,5 +1,144 @@
 # @ai-sdk/cerebras
 
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+  - @ai-sdk/openai-compatible@2.0.0-beta.20
+
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/openai-compatible@2.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/openai-compatible@2.0.0-beta.18
+
+## 2.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [b689220]
+  - @ai-sdk/openai-compatible@2.0.0-beta.17
+
+## 2.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+  - @ai-sdk/openai-compatible@2.0.0-beta.16
+
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+  - @ai-sdk/openai-compatible@2.0.0-beta.15
+
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - @ai-sdk/openai-compatible@2.0.0-beta.14
+
+## 2.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - @ai-sdk/openai-compatible@2.0.0-beta.13
+
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - @ai-sdk/openai-compatible@2.0.0-beta.12
+
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/openai-compatible@2.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- 42e9f64: Add support for 5 new Cerebras models:
+
+  - gpt-oss-120b (120B parameters)
+  - qwen-3-235b-a22b-instruct-2507 (235B instruction-tuned)
+  - qwen-3-235b-a22b-thinking-2507 (235B enhanced reasoning)
+  - qwen-3-32b (32B multilingual)
+  - qwen-3-coder-480b (480B code generation)
+
+  Remove deprecated llama3.1-70b model.
+
+## 2.0.0-beta.12
+
+### Minor Changes
+
+- Added support for new Cerebras models:
+  - `gpt-oss-120b` - 120 billion parameter high-performance model
+  - `qwen-3-235b-a22b-instruct-2507` - 235 billion parameter instruction-tuned model
+  - `qwen-3-235b-a22b-thinking-2507` - 235 billion parameter model with enhanced reasoning
+  - `qwen-3-32b` - 32 billion parameter multilingual model
+  - `qwen-3-coder-480b` - 480 billion parameter model specialized for code generation
+- Removed deprecated `llama3.1-70b` model
+- Updated documentation with comprehensive model information
+
+## 2.0.0-beta.11
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/openai-compatible@2.0.0-beta.10
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 1.1.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/openai-compatible@1.1.0-beta.9
+
+## 1.1.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - @ai-sdk/openai-compatible@1.1.0-beta.8
+
 ## 1.1.0-beta.8
 
 ### Patch Changes

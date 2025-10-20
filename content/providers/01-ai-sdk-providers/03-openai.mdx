@@ -164,10 +164,6 @@ The following provider options are available:
 
   Whether to store the generation. Defaults to `true`.
 
-  When using reasoning models (o1, o3, o4-mini) with multi-step tool calls and `store: false`,
-  include `['reasoning.encrypted_content']` in the `include` option to ensure reasoning
-  content is available across conversation steps.
-
 - **maxToolCalls** _integer_
   The maximum number of total calls to built-in tools that can be processed in a response.
   This maximum number applies across all built-in tool calls, not per individual tool.
@@ -202,10 +198,11 @@ The following provider options are available:
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `false`.
 
-- **serviceTier** _'auto' | 'flex' | 'priority'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+
   Defaults to 'auto'.
 
 - **textVerbosity** _'low' | 'medium' | 'high'_
@@ -214,9 +211,15 @@ The following provider options are available:
 
 - **include** _Array&lt;string&gt;_
   Specifies additional content to include in the response. Supported values:
-  `['reasoning.encrypted_content']` for accessing reasoning content across conversation steps,
-  and `['file_search_call.results']` for including file search results in responses.
+  `['file_search_call.results']` for including file search results in responses.
+  `['message.output_text.logprobs']` for logprobs.
   Defaults to `undefined`.
+
+- **truncation** _string_
+  The truncation strategy to use for the model response.
+
+  - Auto: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation.
+  - disabled (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error.
 
 - **promptCacheKey** _string_
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
@@ -744,10 +747,12 @@ The following optional provider options are available for OpenAI chat models:
 
   Parameters for prediction mode.
 
-- **serviceTier** _'auto' | 'flex'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3, o4-mini, and gpt-5 models.
+  at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
+  Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+
   Defaults to 'auto'.
 
 - **strictJsonSchema** _boolean_
@@ -1256,6 +1261,7 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model               | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -1338,11 +1344,12 @@ const model = openai.image('dall-e-3');
 
 ### Model Capabilities
 
-| Model         | Sizes                           |
-| ------------- | ------------------------------- |
-| `gpt-image-1` | 1024x1024, 1536x1024, 1024x1536 |
-| `dall-e-3`    | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2`    | 256x256, 512x512, 1024x1024     |
+| Model              | Sizes                           |
+| ------------------ | ------------------------------- |
+| `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
+| `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
+| `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
+| `dall-e-2`         | 256x256, 512x512, 1024x1024     |
 
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 

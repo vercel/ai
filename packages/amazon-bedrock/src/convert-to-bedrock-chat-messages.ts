@@ -128,7 +128,7 @@ export async function convertToBedrockChatMessages(
                       bedrockContent.push({
                         document: {
                           format: getBedrockDocumentFormat(part.mediaType),
-                          name: generateDocumentName(),
+                          name: part.filename ?? generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                           ...(enableCitations && {
                             citations: { enabled: true },
@@ -155,7 +155,7 @@ export async function convertToBedrockChatMessages(
                       switch (contentPart.type) {
                         case 'text':
                           return { text: contentPart.text };
-                        case 'media':
+                        case 'image-data':
                           if (!contentPart.mediaType.startsWith('image/')) {
                             throw new UnsupportedFunctionalityError({
                               functionality: `media type: ${contentPart.mediaType}`,
@@ -172,6 +172,11 @@ export async function convertToBedrockChatMessages(
                               source: { bytes: contentPart.data },
                             },
                           };
+                        default: {
+                          throw new UnsupportedFunctionalityError({
+                            functionality: `unsupported tool content part type: ${contentPart.type}`,
+                          });
+                        }
                       }
                     });
                     break;

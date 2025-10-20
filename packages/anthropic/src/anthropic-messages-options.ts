@@ -2,6 +2,8 @@ import { z } from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
 export type AnthropicMessagesModelId =
+  | 'claude-haiku-4-5'
+  | 'claude-haiku-4-5-20251001'
   | 'claude-sonnet-4-5'
   | 'claude-sonnet-4-5-20250929'
   | 'claude-opus-4-1'
@@ -77,6 +79,43 @@ export const anthropicProviderOptions = z.object({
     .object({
       type: z.literal('ephemeral'),
       ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
+    })
+    .optional(),
+
+  mcpServers: z
+    .array(
+      z.object({
+        type: z.literal('url'),
+        name: z.string(),
+        url: z.string(),
+        authorizationToken: z.string().nullish(),
+        toolConfiguration: z
+          .object({
+            enabled: z.boolean().nullish(),
+            allowedTools: z.array(z.string()).nullish(),
+          })
+          .nullish(),
+      }),
+    )
+    .optional(),
+
+  /**
+   * Agent Skills configuration. Skills enable Claude to perform specialized tasks
+   * like document processing (PPTX, DOCX, PDF, XLSX) and data analysis.
+   * Requires code execution tool to be enabled.
+   */
+  container: z
+    .object({
+      id: z.string().optional(),
+      skills: z
+        .array(
+          z.object({
+            type: z.union([z.literal('anthropic'), z.literal('custom')]),
+            skillId: z.string(),
+            version: z.string().optional(),
+          }),
+        )
+        .optional(),
     })
     .optional(),
 });

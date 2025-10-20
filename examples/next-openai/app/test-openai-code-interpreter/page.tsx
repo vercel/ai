@@ -2,9 +2,9 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import ChatInput from '@/component/chat-input';
+import ChatInput from '@/components/chat-input';
 import { OpenAICodeInterpreterMessage } from '@/app/api/chat-openai-code-interpreter/route';
-import CodeInterpreterView from '@/component/openai-code-interpreter-view';
+import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } =
