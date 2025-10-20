@@ -9,6 +9,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
+import { AgentCallParameters } from './agent';
 
 /**
  * Configuration options for an agent.
@@ -16,6 +17,7 @@ import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-fin
 export type ToolLoopAgentSettings<
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  CALL_OPTIONS = never,
 > = CallSettings & {
   /**
    * The id of the agent.
@@ -103,4 +105,33 @@ functionality that can be fully encapsulated in the provider.
    * @default undefined
    */
   experimental_context?: unknown;
+
+  /**
+   * Prepare the parameters for the generateText or streamText call.
+   *
+   * You can use this to have templates based on call options.
+   */
+  prepareCall?: (
+    options: AgentCallParameters<CALL_OPTIONS> &
+      ToolLoopAgentSettings<TOOLS, OUTPUT, CALL_OPTIONS>,
+  ) => Pick<
+    ToolLoopAgentSettings<TOOLS, OUTPUT, CALL_OPTIONS>,
+    | 'model'
+    | 'maxOutputTokens'
+    | 'temperature'
+    | 'topP'
+    | 'topK'
+    | 'presencePenalty'
+    | 'frequencyPenalty'
+    | 'stopSequences'
+    | 'seed'
+    | 'headers'
+    | 'instructions'
+    | 'stopWhen'
+    | 'experimental_telemetry'
+    | 'activeTools'
+    | 'providerOptions'
+    | 'experimental_context'
+  > &
+    AgentCallParameters<CALL_OPTIONS>;
 };

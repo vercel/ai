@@ -9,7 +9,6 @@ import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
-import { Prompt } from '../prompt/prompt';
 import { Agent, AgentCallParameters } from './agent';
 import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
@@ -28,13 +27,13 @@ export class ToolLoopAgent<
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
   CALL_OPTIONS = never,
-> implements Agent<TOOLS, OUTPUT>
+> implements Agent<TOOLS, OUTPUT, CALL_OPTIONS>
 {
   readonly version = 'agent-v1';
 
-  private readonly settings: ToolLoopAgentSettings<TOOLS, OUTPUT>;
+  private readonly settings: ToolLoopAgentSettings<TOOLS, OUTPUT, CALL_OPTIONS>;
 
-  constructor(settings: ToolLoopAgentSettings<TOOLS, OUTPUT>) {
+  constructor(settings: ToolLoopAgentSettings<TOOLS, OUTPUT, CALL_OPTIONS>) {
     this.settings = settings;
   }
 
@@ -53,13 +52,20 @@ export class ToolLoopAgent<
   }
 
   private prepareCall(options: AgentCallParameters<CALL_OPTIONS>) {
-    const { instructions, stopWhen, ...settings } = this.settings;
+    const baseCallArgs = {
+      ...this.settings,
+      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...options,
+    };
+
+    const preparedCallArgs =
+      this.settings.prepareCall?.(baseCallArgs) ?? baseCallArgs;
+
+    const { instructions, ...callArgs } = preparedCallArgs;
 
     return {
-      ...settings,
-      system: instructions,
-      stopWhen: stopWhen ?? stepCountIs(20),
-      ...options,
+      ...callArgs,
+      system: preparedCallArgs.instructions,
     };
   }
 
