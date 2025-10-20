@@ -2180,6 +2180,24 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(result.providerMetadata).toMatchSnapshot();
       });
+
+      it('should include file id list in code execution tool generate call result.', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.2');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.providerMetadata).toMatchSnapshot();
+      });
     });
 
     describe('code execution 20250522', () => {
