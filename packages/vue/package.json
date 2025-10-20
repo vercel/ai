@@ -42,7 +42,7 @@
     "@vitejs/plugin-vue": "5.2.0",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
-    "jsdom": "^24.0.0",
+    "jsdom": "^27.0.0",
     "msw": "2.6.4",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",

@@ -37,10 +37,10 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
-    "jsdom": "^24.0.0",
+    "jsdom": "^27.0.0",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "^3.0.0",
+    "vitest": "^3.2.4",
     "zod": "3.25.76"
   },
   "peerDependencies": {
