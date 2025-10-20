@@ -1,7 +1,4 @@
-import {
-  anthropic,
-  anthropicSourceExecutionFileProviderMetadataSchema,
-} from '@ai-sdk/anthropic';
+import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 import * as fs from 'fs';
@@ -9,44 +6,28 @@ import * as fs from 'fs';
 run(async () => {
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5'),
-    prompt: 'パワーポイントに歴史の人物１０人書いて。',
+    prompt:
+      'Write a Python script to calculate fibonacci number' +
+      ' and then execute it to find the 10th fibonacci number' +
+      ' finally output data to excel file and python code.',
     tools: {
       code_execution: anthropic.tools.codeExecution_20250825(),
     },
   });
 
-  const sourceList = result.content.filter(
-    c => c.type === 'source' && c.sourceType === 'execution-file',
-  );
-
   console.dir(result.content, { depth: Infinity });
 
-  const fileIdList = sourceList.flatMap(source => {
-    const executeFileParsed =
-      anthropicSourceExecutionFileProviderMetadataSchema.safeParse(
-        source.providerMetadata,
-      );
-    if (!executeFileParsed.success) return [];
-    switch (executeFileParsed.data.anthropic.content.type) {
-      case 'bash_code_execution_result': {
-        const fileIdMap = executeFileParsed.data.anthropic.content.content.map(
-          c => c.file_id,
-        );
-        return fileIdMap;
-      }
-      case 'bash_code_execution_tool_result_error': {
-        return [];
-      }
-      default: {
-        return [];
-      }
+  const fileIdList = result.staticToolResults.flatMap(t => {
+    if (
+      t.toolName === 'code_execution' &&
+      t.output.type === 'bash_code_execution_result'
+    ) {
+      return t.output.content.map(o => o.file_id);
     }
+    return [];
   });
-  await Promise.all(
-    fileIdList.map(async fileId => {
-      await downloadFile(fileId);
-    }),
-  );
+
+  await Promise.all(fileIdList.map(fileId => downloadFile(fileId)));
 });
 
 async function downloadFile(file: string) {
@@ -57,7 +38,7 @@ async function downloadFile(file: string) {
       throw new Error('ANTHROPIC_API_KEY is not set');
     }
     const infoUrl = `https://api.anthropic.com/v1/files/${file}`;
-    const infoResponse = await fetch(infoUrl, {
+    const infoPromise = fetch(infoUrl, {
       method: 'GET',
       headers: {
         'x-api-key': apiKey,
@@ -65,13 +46,28 @@ async function downloadFile(file: string) {
         'anthropic-beta': 'files-api-2025-04-14',
       },
     });
+
+    const downloadUrl = `https://api.anthropic.com/v1/files/${file}/content`;
+    const downloadPromise = fetch(downloadUrl, {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'files-api-2025-04-14',
+      },
+    });
+
+    const [infoResponse, downloadResponse] = await Promise.all([
+      infoPromise,
+      downloadPromise,
+    ]);
+
     if (!infoResponse.ok) {
       throw new Error(
         `HTTP Error: ${infoResponse.status} ${infoResponse.statusText}`,
       );
     }
 
-    // https://github.com/anthropics/anthropic-sdk-typescript/blob/main/src/resources/beta/files.ts
     const {
       filename,
     }: {
@@ -83,16 +79,6 @@ async function downloadFile(file: string) {
       mime_type: string;
       downloadable?: boolean;
     } = await infoResponse.json();
-
-    const downloadUrl = `https://api.anthropic.com/v1/files/${file}/content`;
-    const downloadResponse = await fetch(downloadUrl, {
-      method: 'GET',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'files-api-2025-04-14',
-      },
-    });
 
     if (!downloadResponse.ok) {
       throw new Error(
