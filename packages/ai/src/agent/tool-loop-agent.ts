@@ -57,9 +57,12 @@ export class ToolLoopAgent<
   async generate(
     options: AgentCallParameters,
   ): Promise<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>> {
+    const { instructions, stopWhen, ...settings } = this.settings;
+
     return generateText({
-      ...this.settings,
-      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...settings,
+      system: instructions,
+      stopWhen: stopWhen ?? stepCountIs(20),
       ...options,
     });
   }
@@ -70,9 +73,12 @@ export class ToolLoopAgent<
   stream(
     options: AgentCallParameters,
   ): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>> {
+    const { instructions, stopWhen, ...settings } = this.settings;
+
     return streamText({
-      ...this.settings,
-      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...settings,
+      system: instructions,
+      stopWhen: stopWhen ?? stepCountIs(20),
       ...options,
     });
   }

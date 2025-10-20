@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-4o'),
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
 });
 
 run(async () => {
