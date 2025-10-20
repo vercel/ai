@@ -2196,7 +2196,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
 
-        expect(result.providerMetadata).toMatchSnapshot();
+        expect(result).toMatchSnapshot();
       });
     });
 
