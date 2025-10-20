@@ -34,7 +34,7 @@ export function MessageTextWithAnnotations({ part }: { part: TextUIPart }) {
           if (cur.start_index === 0 && cur.end_index === 0) return acc;
           return (
             acc.slice(0, cur.start_index) +
-            `${baseUrl}/api/chat-${provider}-code-interpreter-download-files/${cur.container_id}/${cur.file_id}` +
+            `${baseUrl}/api/code-execution-files/${provider}/${cur.container_id}/${cur.file_id}` +
             acc.slice(cur.end_index)
           );
         default:

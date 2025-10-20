@@ -63,7 +63,7 @@ function OpenaiLikeSourceExecutionFile({
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
     window.open(
-      `${baseUrl}/api/execution-files/${provider}/${containerId}/${fileId}`,
+      `${baseUrl}/api/code-execution-files/${provider}/${containerId}/${fileId}`,
       '_blank',
     );
   };
@@ -104,7 +104,7 @@ function AnthropicLikeSourceExecutionFile({
                   className="bg-blue-500 text-white border rounded py-1 px-2"
                   onClick={() =>
                     window.open(
-                      `${baseUrl}/api/execution-files/${provider}/${fileId}`,
+                      `${baseUrl}/api/code-execution-files/${provider}/${fileId}`,
                       '_blank',
                     )
                   }

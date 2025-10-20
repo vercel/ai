@@ -34,6 +34,22 @@ export default function AnthropicCodeExecutionView({
                       <br />
                     </>
                   )}
+                  <br />
+                  {invocation.output.content.length > 0 &&
+                    invocation.output.content.map(file => (
+                      <button
+                        className="bg-red-800 text-white  rounded-lg py-1 px-2 border border-white cursor-pointer"
+                        key={file.file_id}
+                        onClick={() =>
+                          window.open(
+                            `/api/code-execution-files/anthropic/${file.file_id}`,
+                            '_blank',
+                          )
+                        }
+                      >
+                        download file
+                      </button>
+                    ))}
                   {invocation.output.return_code != null && (
                     <>
                       <span className="font-semibold">Return Code:</span>
