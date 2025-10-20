@@ -27,6 +27,7 @@ import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 export class ToolLoopAgent<
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  CALL_OPTIONS = never,
 > implements Agent<TOOLS, OUTPUT>
 {
   readonly version = 'agent-v1';
@@ -51,35 +52,32 @@ export class ToolLoopAgent<
     return this.settings.tools as TOOLS;
   }
 
-  /**
-   * Generates an output from the agent (non-streaming).
-   */
-  async generate(
-    options: AgentCallParameters,
-  ): Promise<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>> {
+  private prepareCall(options: AgentCallParameters<CALL_OPTIONS>) {
     const { instructions, stopWhen, ...settings } = this.settings;
 
-    return generateText({
+    return {
       ...settings,
       system: instructions,
       stopWhen: stopWhen ?? stepCountIs(20),
       ...options,
-    });
+    };
+  }
+
+  /**
+   * Generates an output from the agent (non-streaming).
+   */
+  async generate(
+    options: AgentCallParameters<CALL_OPTIONS>,
+  ): Promise<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>> {
+    return generateText(this.prepareCall(options));
   }
 
   /**
    * Streams an output from the agent (streaming).
    */
   stream(
-    options: AgentCallParameters,
+    options: AgentCallParameters<CALL_OPTIONS>,
   ): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>> {
-    const { instructions, stopWhen, ...settings } = this.settings;
-
-    return streamText({
-      ...settings,
-      system: instructions,
-      stopWhen: stopWhen ?? stepCountIs(20),
-      ...options,
-    });
+    return streamText(this.prepareCall(options));
   }
 }

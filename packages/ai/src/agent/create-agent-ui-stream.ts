@@ -19,13 +19,16 @@ import { Agent } from './agent';
 export async function createAgentUIStream<
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  CALL_OPTIONS = never,
 >({
   agent,
   messages,
+  options,
   ...uiMessageStreamOptions
 }: {
-  agent: Agent<TOOLS, OUTPUT>;
+  agent: Agent<TOOLS, OUTPUT, CALL_OPTIONS>;
   messages: unknown[];
+  options?: CALL_OPTIONS;
 } & UIMessageStreamOptions<
   UIMessage<never, never, InferUITools<TOOLS>>
 >): Promise<
@@ -44,7 +47,7 @@ export async function createAgentUIStream<
     tools: agent.tools,
   });
 
-  const result = agent.stream({ prompt: modelMessages });
+  const result = agent.stream({ prompt: modelMessages, options });
 
   return result.toUIMessageStream(uiMessageStreamOptions);
 }

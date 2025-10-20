@@ -8,7 +8,9 @@ import {
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 
-export type AgentCallParameters =
+export type AgentCallParameters<CALL_OPTIONS> = {
+  options?: CALL_OPTIONS;
+} & (
   | {
       /**
        * A prompt. It can be either a text prompt or a list of messages.
@@ -38,7 +40,8 @@ export type AgentCallParameters =
        * You can either use `prompt` or `messages` but not both.
        */
       prompt?: never;
-    };
+    }
+);
 
 /**
  * An Agent receives a prompt (text or messages) and generates or streams an output
@@ -50,6 +53,7 @@ export type AgentCallParameters =
 export interface Agent<
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  CALL_OPTIONS = never,
 > {
   /**
    * The specification version of the agent interface. This will enable
@@ -71,13 +75,13 @@ export interface Agent<
    * Generates an output from the agent (non-streaming).
    */
   generate(
-    options: AgentCallParameters,
+    options: AgentCallParameters<CALL_OPTIONS>,
   ): PromiseLike<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>>;
 
   /**
    * Streams an output from the agent (streaming).
    */
   stream(
-    options: AgentCallParameters,
+    options: AgentCallParameters<CALL_OPTIONS>,
   ): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>;
 }

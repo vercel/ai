@@ -17,6 +17,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
 export async function pipeAgentUIStreamToResponse<
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  CALL_OPTIONS = never,
 >({
   response,
   headers,
@@ -26,8 +27,9 @@ export async function pipeAgentUIStreamToResponse<
   ...options
 }: {
   response: ServerResponse;
-  agent: Agent<TOOLS, OUTPUT>;
+  agent: Agent<TOOLS, OUTPUT, CALL_OPTIONS>;
   messages: unknown[];
+  options?: CALL_OPTIONS;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
     UIMessage<never, never, InferUITools<TOOLS>>
