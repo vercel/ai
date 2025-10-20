@@ -3747,6 +3747,37 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
+      describe('agent skills', () => {
+        it('should stream code execution tool results', async () => {
+          prepareChunksFixtureResponse(
+            'anthropic-code-execution-20250825.pptx-skill',
+          );
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+            providerOptions: {
+              anthropic: {
+                container: {
+                  skills: [{ type: 'anthropic', skillId: 'pptx' }],
+                },
+              } satisfies AnthropicProviderOptions,
+            },
+          });
+
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+
       describe('code execution 20250825 tool', () => {
         it('should stream code execution tool results', async () => {
           prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
