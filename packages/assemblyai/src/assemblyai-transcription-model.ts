@@ -84,11 +84,24 @@ const assemblyaiProviderOptionsSchema = z.object({
   /**
    * Confidence threshold for language detection.
    */
+  /**
+   * An array of language codes for code switching. One of the values must be 'en'.
+   */
+  languageCodes: z.array(z.union([z.literal('en'), z.string()])).nullish(),
+
   languageConfidenceThreshold: z.number().nullish(),
   /**
-   * Whether to enable language detection.
+   * Whether to enable language detection, or configure code switching detection.
    */
-  languageDetection: z.boolean().nullish(),
+  languageDetection: z
+    .union([
+      z.boolean(),
+      z.object({
+        codeSwitching: z.boolean().nullish(),
+        codeSwitchingConfidenceThreshold: z.number().min(0).max(1).nullish(),
+      }),
+    ])
+    .nullish(),
   /**
    * Whether to process audio as multichannel.
    */
@@ -220,10 +233,24 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
       body.iab_categories = assemblyaiOptions.iabCategories ?? undefined;
       body.language_code =
         (assemblyaiOptions.languageCode as never) ?? undefined;
+      body.language_codes =
+        (assemblyaiOptions.languageCodes as never) ?? undefined;
       body.language_confidence_threshold =
         assemblyaiOptions.languageConfidenceThreshold ?? undefined;
       body.language_detection =
-        assemblyaiOptions.languageDetection ?? undefined;
+        typeof assemblyaiOptions.languageDetection === 'boolean'
+          ? assemblyaiOptions.languageDetection
+          : assemblyaiOptions.languageDetection
+            ? {
+                code_switching:
+                  assemblyaiOptions.languageDetection.codeSwitching ??
+                  undefined,
+                code_switching_confidence_threshold:
+                  assemblyaiOptions.languageDetection
+                    .codeSwitchingConfidenceThreshold ?? undefined,
+              }
+            : undefined;
+
       body.multichannel = assemblyaiOptions.multichannel ?? undefined;
       body.punctuate = assemblyaiOptions.punctuate ?? undefined;
       body.redact_pii = assemblyaiOptions.redactPii ?? undefined;

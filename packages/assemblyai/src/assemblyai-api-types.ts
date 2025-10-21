@@ -196,17 +196,137 @@ export type AssemblyAITranscriptionAPITypes = {
     | 'yo';
 
   /**
+   * An array of language codes for code switching. One of the values must be 'en'.
+   */
+  language_codes?: Array<
+    | 'en'
+    | 'en_au'
+    | 'en_uk'
+    | 'en_us'
+    | 'es'
+    | 'fr'
+    | 'de'
+    | 'it'
+    | 'pt'
+    | 'nl'
+    | 'af'
+    | 'sq'
+    | 'am'
+    | 'ar'
+    | 'hy'
+    | 'as'
+    | 'az'
+    | 'ba'
+    | 'eu'
+    | 'be'
+    | 'bn'
+    | 'bs'
+    | 'br'
+    | 'bg'
+    | 'my'
+    | 'ca'
+    | 'zh'
+    | 'hr'
+    | 'cs'
+    | 'da'
+    | 'et'
+    | 'fo'
+    | 'fi'
+    | 'gl'
+    | 'ka'
+    | 'el'
+    | 'gu'
+    | 'ht'
+    | 'ha'
+    | 'haw'
+    | 'he'
+    | 'hi'
+    | 'hu'
+    | 'is'
+    | 'id'
+    | 'ja'
+    | 'jw'
+    | 'kn'
+    | 'kk'
+    | 'km'
+    | 'ko'
+    | 'lo'
+    | 'la'
+    | 'lv'
+    | 'ln'
+    | 'lt'
+    | 'lb'
+    | 'mk'
+    | 'mg'
+    | 'ms'
+    | 'ml'
+    | 'mt'
+    | 'mi'
+    | 'mr'
+    | 'mn'
+    | 'ne'
+    | 'no'
+    | 'nn'
+    | 'oc'
+    | 'pa'
+    | 'ps'
+    | 'fa'
+    | 'pl'
+    | 'ro'
+    | 'ru'
+    | 'sa'
+    | 'sr'
+    | 'sn'
+    | 'sd'
+    | 'si'
+    | 'sk'
+    | 'sl'
+    | 'so'
+    | 'su'
+    | 'sw'
+    | 'sv'
+    | 'tl'
+    | 'tg'
+    | 'ta'
+    | 'tt'
+    | 'te'
+    | 'th'
+    | 'bo'
+    | 'tr'
+    | 'tk'
+    | 'uk'
+    | 'ur'
+    | 'uz'
+    | 'vi'
+    | 'cy'
+    | 'yi'
+    | 'yo'
+  >;
+
+  /**
    * The confidence threshold for the automatically detected language. An error will be returned if the language confidence is below this threshold.
    * @default 0
    */
   language_confidence_threshold?: number;
 
   /**
-   * Enable Automatic language detection, either true or false.
+   * Enable Automatic language detection, either true or false, or configure code switching detection.
    * @default false
    */
-  language_detection?: boolean;
-
+  language_detection?:
+    | boolean
+    | {
+        /**
+         * Enable code switching detection.
+         * @default false
+         */
+        code_switching?: boolean;
+        /**
+         * Confidence threshold for code switching detection. Values must be between 0 and 1.
+         * @default 0.3
+         */
+        code_switching_confidence_threshold?: number;
+      };
   /**
    * Enable Multichannel transcription, can be true or false.
    * @default false
