@@ -13,7 +13,7 @@ export default function TestOpenAIWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<OpenAIWebSearchMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-web-search',
+        api: 'http://localhost:8080/chat',
       }),
     });
 

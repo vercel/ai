@@ -1,5 +1,29 @@
 # ai
 
+## 6.0.0-beta.65
+
+### Patch Changes
+
+- dce4e7b: chore(agent): rename system to instructions
+
+## 6.0.0-beta.64
+
+### Patch Changes
+
+- 2d28066: chore(agent): limit agent call parameters
+
+## 6.0.0-beta.63
+
+### Patch Changes
+
+- a7da2b6: feat(agent): change output generics
+
+## 6.0.0-beta.62
+
+### Patch Changes
+
+- 95b77e2: feat(agent): extract createAgentUIStream, add pipeAgentUIStreamToResponse
+
 ## 6.0.0-beta.61
 
 ### Patch Changes

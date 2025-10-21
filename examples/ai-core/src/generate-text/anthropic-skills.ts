@@ -1,7 +1,11 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  AnthropicMessageMetadata,
+  AnthropicProviderOptions,
+} from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import { run } from '../lib/run';
 import { print } from '../lib/print';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
@@ -21,5 +25,10 @@ run(async () => {
     },
   });
 
+  const anthropicContainer = (
+    result.providerMetadata?.anthropic as unknown as AnthropicMessageMetadata
+  )?.container;
+
   print('content', result.content);
+  print('container', anthropicContainer);
 });
