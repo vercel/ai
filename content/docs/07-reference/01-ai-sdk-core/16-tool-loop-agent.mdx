@@ -1,38 +1,38 @@
 ---
 title: ToolLoopAgent
-description: API Reference for the Agent class.
+description: API Reference for the ToolLoopAgent class.
 ---
 
 # `ToolLoopAgent`
 
-Creates a reusable AI agent that can generate text, stream responses, and use tools across multiple steps.
+Creates a reusable AI agent capable of generating text, streaming responses, and using tools over multiple steps (a reasoning-and-acting loop). `ToolLoopAgent` is ideal for building autonomous, multi-step agents that can take actions, call tools, and reason over the results until a stop condition is reached.
 
-It is ideal for building autonomous AI systems that need to perform complex, multi-step tasks with tool calling capabilities. Unlike single-step functions like `generateText`, agents can iteratively call tools and make decisions based on intermediate results.
+Unlike single-step calls like `generateText()`, an agent can iteratively invoke tools, collect tool results, and decide next actions until completion or user approval is required.
 
 ```ts
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
     calculator: calculatorTool,
   },
 });
 
-const { text } = await agent.generate({
+const result = await agent.generate({
   prompt: 'What is the weather in NYC?',
 });
 
-console.log(text);
+console.log(result.text);
 ```
 
-To see `Agent` in action, check out [these examples](#examples).
+To see `ToolLoopAgent` in action, check out [these examples](#examples).
 
 ## Import
 
-<Snippet text={`import { Agent } from "ai"`} prompt={false} />
+<Snippet text={`import { ToolLoopAgent } from "ai"`} prompt={false} />
 
 ## Constructor
 
@@ -44,143 +44,159 @@ To see `Agent` in action, check out [these examples](#examples).
       name: 'model',
       type: 'LanguageModel',
       isRequired: true,
-      description: 'The language model to use.',
+      description:
+        'The language model instance to use (e.g., from a provider).',
     },
     {
-      name: 'system',
+      name: 'instructions',
       type: 'string',
+      isOptional: true,
       description:
-        'The system prompt to use that specifies the behavior of the model.',
+        'Instructions for the agent, usually used for system prompt/context.',
     },
     {
       name: 'tools',
       type: 'Record<string, Tool>',
+      isOptional: true,
       description:
-        'The tools that the model can call. The model needs to support calling tools.',
+        'A set of tools the agent can call. Keys are tool names. Tools require the underlying model to support tool calling.',
     },
     {
       name: 'toolChoice',
       type: 'ToolChoice',
+      isOptional: true,
       description:
-        "The tool choice strategy. Options: 'auto' | 'none' | 'required' | { type: 'tool', toolName: string }. Default: 'auto'",
+        "Tool call selection strategy. Options: 'auto' | 'none' | 'required' | { type: 'tool', toolName: string }. Default: 'auto'.",
     },
     {
       name: 'stopWhen',
       type: 'StopCondition | StopCondition[]',
+      isOptional: true,
       description:
-        'Condition for stopping the generation when there are tool results in the last step. Default: stepCountIs(20)',
+        'Condition(s) for ending the agent loop. Default: stepCountIs(20).',
     },
     {
       name: 'activeTools',
       type: 'Array<string>',
+      isOptional: true,
       description:
-        'Limits the tools that are available for the model to call without changing the tool call and result types.',
+        'Limits the subset of tools that are available in a specific call.',
     },
     {
       name: 'experimental_output',
       type: 'Output',
+      isOptional: true,
       description:
-        'Optional specification for parsing structured outputs from the LLM response.',
+        'Optional structured output specification, for parsing responses into typesafe data.',
     },
     {
       name: 'prepareStep',
       type: 'PrepareStepFunction',
+      isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step.',
+        'Optional function to mutate step settings or inject state for each agent step.',
     },
     {
       name: 'experimental_repairToolCall',
       type: 'ToolCallRepairFunction',
+      isOptional: true,
       description:
-        'A function that attempts to repair a tool call that failed to parse.',
+        'Optional callback to attempt automatic recovery when a tool call cannot be parsed.',
     },
     {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback',
+      isOptional: true,
       description:
-        'Callback that is called when each step (LLM call) is finished, including intermediate steps.',
+        'Callback invoked after each agent step (LLM/tool call) completes.',
     },
     {
       name: 'experimental_context',
       type: 'unknown',
+      isOptional: true,
       description:
-        'Context that is passed into tool calls. Experimental (can break in patch releases).',
+        'Experimental: Custom context object passed to each tool call.',
     },
     {
       name: 'experimental_telemetry',
       type: 'TelemetrySettings',
-      description: 'Optional telemetry configuration (experimental).',
+      isOptional: true,
+      description: 'Experimental: Optional telemetry configuration.',
     },
     {
       name: 'maxOutputTokens',
       type: 'number',
-      description: 'Maximum number of tokens to generate.',
+      isOptional: true,
+      description: 'Maximum number of tokens the model is allowed to generate.',
     },
     {
       name: 'temperature',
       type: 'number',
+      isOptional: true,
       description:
-        'Temperature setting. The value is passed through to the provider. The range depends on the provider and model.',
+        'Sampling temperature, controls randomness. Passed through to the model.',
     },
     {
       name: 'topP',
       type: 'number',
+      isOptional: true,
       description:
-        'Top-p sampling setting. The value is passed through to the provider. The range depends on the provider and model.',
+        'Top-p (nucleus) sampling parameter. Passed through to the model.',
     },
     {
       name: 'topK',
       type: 'number',
-      description:
-        'Top-k sampling setting. The value is passed through to the provider. The range depends on the provider and model.',
+      isOptional: true,
+      description: 'Top-k sampling parameter. Passed through to the model.',
     },
     {
       name: 'presencePenalty',
       type: 'number',
-      description:
-        'Presence penalty setting. The value is passed through to the provider. The range depends on the provider and model.',
+      isOptional: true,
+      description: 'Presence penalty parameter. Passed through to the model.',
     },
     {
       name: 'frequencyPenalty',
       type: 'number',
-      description:
-        'Frequency penalty setting. The value is passed through to the provider. The range depends on the provider and model.',
+      isOptional: true,
+      description: 'Frequency penalty parameter. Passed through to the model.',
     },
     {
       name: 'stopSequences',
       type: 'string[]',
+      isOptional: true,
       description:
-        'Stop sequences to use. The value is passed through to the provider.',
+        'Custom token sequences which stop the model output. Passed through to the model.',
     },
     {
       name: 'seed',
       type: 'number',
-      description:
-        'Seed for random number generation. The value is passed through to the provider.',
+      isOptional: true,
+      description: 'Seed for deterministic generation (if supported).',
     },
     {
       name: 'maxRetries',
       type: 'number',
-      description: 'Maximum number of retries. Default: 2.',
+      isOptional: true,
+      description: 'How many times to retry on failure. Default: 2.',
     },
     {
       name: 'abortSignal',
       type: 'AbortSignal',
-      description:
-        'An optional abort signal that can be used to cancel the call.',
+      isOptional: true,
+      description: 'Optional abort signal to cancel the ongoing request.',
     },
     {
       name: 'providerOptions',
       type: 'ProviderOptions',
       isOptional: true,
-      description:
-        'Additional provider-specific options. They are passed through to the provider from the AI SDK and enable provider-specific functionality that can be fully encapsulated in the provider.',
+      description: 'Additional provider-specific configuration.',
     },
     {
-      name: 'name',
+      name: 'id',
       type: 'string',
       isOptional: true,
-      description: 'The name of the agent.',
+      description: 'Custom agent identifier.',
     },
   ]}
 />
@@ -189,7 +205,7 @@ To see `Agent` in action, check out [these examples](#examples).
 
 ### `generate()`
 
-Generates text and calls tools for a given prompt. Returns a promise that resolves to a `GenerateTextResult`.
+Generates a response and triggers tool calls as needed, running the agent loop and returning the final result. Returns a promise resolving to a `GenerateTextResult`.
 
 ```ts
 const result = await agent.generate({
@@ -202,30 +218,23 @@ const result = await agent.generate({
     {
       name: 'prompt',
       type: 'string | Array<ModelMessage>',
-      description: 'A text prompt.',
+      description: 'A text prompt or message array.',
     },
     {
       name: 'messages',
-      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
-      description: 'A list of messages that represent a conversation.',
-    },
-    {
-      name: 'system',
-      type: 'string',
-      isOptional: true,
-      description:
-        'The system prompt to use that specifies the behavior of the model.',
+      type: 'Array<ModelMessage>',
+      description: 'A full conversation history as a list of model messages.',
     },
   ]}
 />
 
 #### Returns
 
-The `generate()` method returns a `GenerateTextResult` object with the same properties as [`generateText`](/docs/reference/ai-sdk-core/generate-text#returns).
+The `generate()` method returns a `GenerateTextResult` object (see [`generateText`](/docs/reference/ai-sdk-core/generate-text#returns) for details).
 
 ### `stream()`
 
-Streams text and calls tools for a given prompt. Returns a `StreamTextResult` that can be used to iterate over the stream.
+Streams a response from the agent, including agent reasoning and tool calls, as they occur. Returns a `StreamTextResult`.
 
 ```ts
 const stream = agent.stream({
@@ -242,32 +251,25 @@ for await (const chunk of stream.textStream) {
     {
       name: 'prompt',
       type: 'string | Array<ModelMessage>',
-      description: 'A text prompt.',
+      description: 'A text prompt or message array.',
     },
     {
       name: 'messages',
-      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage>',
-      description: 'A list of messages that represent a conversation.',
-    },
-    {
-      name: 'system',
-      type: 'string',
-      isOptional: true,
-      description:
-        'The system prompt to use that specifies the behavior of the model.',
+      type: 'Array<ModelMessage>',
+      description: 'A full conversation history as a list of model messages.',
     },
   ]}
 />
 
 #### Returns
 
-The `stream()` method returns a `StreamTextResult` object with the same properties as [`streamText`](/docs/reference/ai-sdk-core/stream-text#returns).
+The `stream()` method returns a `StreamTextResult` object (see [`streamText`](/docs/reference/ai-sdk-core/stream-text#returns) for details).
 
 ## Types
 
 ### `InferAgentUIMessage`
 
-Infers the UI message type of an agent, useful for type-safe message handling in TypeScript applications.
+Infers the UI message type for the given agent instance. Useful for type-safe UI and message exchanges.
 
 ```ts
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
@@ -284,15 +286,13 @@ type WeatherAgentUIMessage = InferAgentUIMessage<typeof weatherAgent>;
 
 ### Basic Agent with Tools
 
-Create an agent that can use multiple tools to answer questions:
-
 ```ts
 import { ToolLoopAgent, stepCountIs } from 'ai';
 import { weatherTool, calculatorTool } from './tools';
 
 const assistant = new ToolLoopAgent({
   model: 'openai/gpt-4o',
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
     calculator: calculatorTool,
@@ -300,23 +300,20 @@ const assistant = new ToolLoopAgent({
   stopWhen: stepCountIs(3),
 });
 
-// Generate a response
 const result = await assistant.generate({
   prompt: 'What is the weather in NYC and what is 100 * 25?',
 });
 
 console.log(result.text);
-console.log(result.steps); // Array of all steps taken
+console.log(result.steps); // Array of all steps taken by the agent
 ```
 
 ### Streaming Agent Response
 
-Stream responses for real-time interaction:
-
 ```ts
 const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
-  system: 'You are a creative storyteller.',
+  instructions: 'You are a creative storyteller.',
 });
 
 const stream = agent.stream({
@@ -329,8 +326,6 @@ for await (const chunk of stream.textStream) {
 ```
 
 ### Agent with Output Parsing
-
-Parse structured output from agent responses:
 
 ```ts
 import { z } from 'zod';
@@ -350,5 +345,29 @@ const result = await analysisAgent.generate({
   prompt: 'Analyze this review: "The product exceeded my expectations!"',
 });
 
-console.log(result.experimental_output); // Typed as { sentiment: 'positive' | 'negative' | 'neutral', score: number, summary: string }
+console.log(result.experimental_output);
+// Typed as { sentiment: 'positive' | 'negative' | 'neutral', score: number, summary: string }
+```
+
+### Example: Approved Tool Execution
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: openai('gpt-4o'),
+  instructions: 'You are an agent with access to a weather API.',
+  tools: {
+    weather: openai.tools.weather({
+      /* ... */
+    }),
+  },
+  // Optionally require approval, etc.
+});
+
+const result = await agent.generate({
+  prompt: 'Is it raining in Paris today?',
+});
+console.log(result.text);
 ```
