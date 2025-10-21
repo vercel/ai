@@ -385,6 +385,16 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
         "query": "Vercel AI SDK next version features",
         "type": "search",
       },
+      "sources": [
+        {
+          "type": "url",
+          "url": "https://vercel.com/blog",
+        },
+        {
+          "type": "url",
+          "url": "https://github.com/vercel/ai",
+        },
+      ],
     },
     "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
     "toolName": "web_search",
@@ -404,6 +414,12 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
         "query": undefined,
         "type": "search",
       },
+      "sources": [
+        {
+          "type": "url",
+          "url": "https://vercel.com/ai",
+        },
+      ],
     },
     "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
     "toolName": "web_search",
