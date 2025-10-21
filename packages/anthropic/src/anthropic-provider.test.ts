@@ -1,13 +1,13 @@
 /* eslint-disable turbo/no-undeclared-env-vars */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
