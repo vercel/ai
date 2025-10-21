@@ -26,5 +26,4 @@ run(async () => {
     stopWhen: stepCountIs(3), // Now accounts for: tool call + tool result + structured output
     prompt: 'Analyze the data and provide a summary',
   });
-
 });
