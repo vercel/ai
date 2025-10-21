@@ -215,10 +215,70 @@ export async function convertToOpenAIResponsesInput({
                 // use item references to refer to tool results from built-in tools
                 input.push({ type: 'item_reference', id: part.toolCallId });
               } else {
-                warnings.push({
-                  type: 'other',
-                  message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`,
-                });
+                if (part.toolName === 'web_search') {
+                  // Inline the web_search result (e.g. sources) as a tool output for the follow-up call
+                  const output = part.output;
+                  let contentValue: OpenAIResponsesFunctionCallOutput['output'];
+
+                  switch (output.type) {
+                    case 'text':
+                    case 'error-text':
+                      contentValue = output.value;
+                      break;
+                    case 'execution-denied':
+                      contentValue = output.reason ?? 'Tool execution denied.';
+                      break;
+                    case 'json':
+                    case 'error-json':
+                      contentValue = JSON.stringify(output.value);
+                      break;
+                    case 'content':
+                      contentValue = output.value
+                        .map(item => {
+                          switch (item.type) {
+                            case 'text': {
+                              return {
+                                type: 'input_text' as const,
+                                text: item.text,
+                              };
+                            }
+                            case 'image-data': {
+                              return {
+                                type: 'input_image' as const,
+                                image_url: `data:${item.mediaType};base64,${item.data}`,
+                              };
+                            }
+                            case 'file-data': {
+                              return {
+                                type: 'input_file' as const,
+                                filename: item.filename ?? 'data',
+                                file_data: `data:${item.mediaType};base64,${item.data}`,
+                              };
+                            }
+                            default: {
+                              warnings.push({
+                                type: 'other',
+                                message: `unsupported tool content part type: ${item.type}`,
+                              });
+                              return undefined;
+                            }
+                          }
+                        })
+                        .filter(isNonNullable);
+                      break;
+                  }
+
+                  input.push({
+                    type: 'function_call_output',
+                    call_id: part.toolCallId,
+                    output: contentValue,
+                  });
+                } else {
+                  warnings.push({
+                    type: 'other',
+                    message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`,
+                  });
+                }
               }
 
               break;

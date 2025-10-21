@@ -1988,6 +1988,11 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
             {
+              "call_id": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "output": "[{\"url\":\"https://patch.com/california/san-francisco/calendar\"}]",
+              "type": "function_call_output",
+            },
+            {
               "content": [
                 {
                   "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
@@ -1998,12 +2003,7 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
           ],
-          "warnings": [
-            {
-              "message": "Results for OpenAI tool web_search are not sent to the API when store is false",
-              "type": "other",
-            },
-          ],
+          "warnings": [],
         }
       `);
     });
