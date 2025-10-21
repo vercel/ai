@@ -8,9 +8,7 @@ import {
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 
-export type AgentCallParameters<CALL_OPTIONS> = {
-  options?: CALL_OPTIONS;
-} & (
+export type AgentCallParameters<CALL_OPTIONS> = { options?: CALL_OPTIONS } & (
   | {
       /**
        * A prompt. It can be either a text prompt or a list of messages.

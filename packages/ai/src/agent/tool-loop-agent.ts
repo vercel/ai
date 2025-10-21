@@ -31,9 +31,9 @@ export class ToolLoopAgent<
 {
   readonly version = 'agent-v1';
 
-  private readonly settings: ToolLoopAgentSettings<TOOLS, OUTPUT, CALL_OPTIONS>;
+  private readonly settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>;
 
-  constructor(settings: ToolLoopAgentSettings<TOOLS, OUTPUT, CALL_OPTIONS>) {
+  constructor(settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>) {
     this.settings = settings;
   }
 

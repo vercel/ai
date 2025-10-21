@@ -15,9 +15,9 @@ import { AgentCallParameters } from './agent';
  * Configuration options for an agent.
  */
 export type ToolLoopAgentSettings<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-  CALL_OPTIONS = never,
 > = CallSettings & {
   /**
    * The id of the agent.
@@ -113,9 +113,27 @@ functionality that can be fully encapsulated in the provider.
    */
   prepareCall?: (
     options: AgentCallParameters<CALL_OPTIONS> &
-      ToolLoopAgentSettings<TOOLS, OUTPUT, CALL_OPTIONS>,
+      Pick<
+        ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+        | 'model'
+        | 'maxOutputTokens'
+        | 'temperature'
+        | 'topP'
+        | 'topK'
+        | 'presencePenalty'
+        | 'frequencyPenalty'
+        | 'stopSequences'
+        | 'seed'
+        | 'headers'
+        | 'instructions'
+        | 'stopWhen'
+        | 'experimental_telemetry'
+        | 'activeTools'
+        | 'providerOptions'
+        | 'experimental_context'
+      >,
   ) => Pick<
-    ToolLoopAgentSettings<TOOLS, OUTPUT, CALL_OPTIONS>,
+    ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
     | 'model'
     | 'maxOutputTokens'
     | 'temperature'
