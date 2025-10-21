@@ -14,6 +14,7 @@ export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
+export { type MaybePromiseLike } from './maybe-promise-like';
 export { mediaTypeToExtension } from './media-type-to-extension';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';

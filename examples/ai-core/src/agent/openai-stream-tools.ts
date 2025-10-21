@@ -21,7 +21,7 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const result = agent.stream({
+  const result = await agent.stream({
     prompt: 'What is the weather in Tokyo?',
   });
 
