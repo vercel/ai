@@ -84,5 +84,5 @@ export interface Agent<
    */
   stream(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>;
+  ): PromiseLike<StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>>;
 }

@@ -112,7 +112,7 @@ describe('ToolLoopAgent', () => {
         }),
       });
 
-      const streamResult = agent.stream({
+      const streamResult = await agent.stream({
         prompt: 'Hello, world!',
       });
 

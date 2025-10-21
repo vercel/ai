@@ -1,3 +1,4 @@
+import { resolve } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import {
@@ -52,13 +53,15 @@ export class ToolLoopAgent<
     return this.settings.tools as TOOLS;
   }
 
-  private prepareCall(
+  private async prepareCall(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): Omit<
-    ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
-    'prepareCall' | 'instructions'
-  > &
-    Prompt {
+  ): Promise<
+    Omit<
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+      'prepareCall' | 'instructions'
+    > &
+      Prompt
+  > {
     const baseCallArgs = {
       ...this.settings,
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
@@ -66,7 +69,8 @@ export class ToolLoopAgent<
     };
 
     const preparedCallArgs =
-      this.settings.prepareCall?.(baseCallArgs) ?? baseCallArgs;
+      (await resolve(this.settings.prepareCall?.(baseCallArgs))) ??
+      baseCallArgs;
 
     const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
 
@@ -84,15 +88,15 @@ export class ToolLoopAgent<
   async generate(
     options: AgentCallParameters<CALL_OPTIONS>,
   ): Promise<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>> {
-    return generateText(this.prepareCall(options));
+    return generateText(await this.prepareCall(options));
   }
 
   /**
    * Streams an output from the agent (streaming).
    */
-  stream(
+  async stream(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>> {
-    return streamText(this.prepareCall(options));
+  ): Promise<StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>> {
+    return streamText(await this.prepareCall(options));
   }
 }

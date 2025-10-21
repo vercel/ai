@@ -1,4 +1,8 @@
-import { FlexibleSchema, ProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  FlexibleSchema,
+  ProviderOptions,
+  Resolvable,
+} from '@ai-sdk/provider-utils';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
@@ -139,25 +143,27 @@ functionality that can be fully encapsulated in the provider.
         | 'providerOptions'
         | 'experimental_context'
       >,
-  ) => Pick<
-    ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
-    | 'model'
-    | 'tools'
-    | 'maxOutputTokens'
-    | 'temperature'
-    | 'topP'
-    | 'topK'
-    | 'presencePenalty'
-    | 'frequencyPenalty'
-    | 'stopSequences'
-    | 'seed'
-    | 'headers'
-    | 'instructions'
-    | 'stopWhen'
-    | 'experimental_telemetry'
-    | 'activeTools'
-    | 'providerOptions'
-    | 'experimental_context'
-  > &
-    Omit<Prompt, 'system'>;
+  ) => Resolvable<
+    Pick<
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+      | 'model'
+      | 'tools'
+      | 'maxOutputTokens'
+      | 'temperature'
+      | 'topP'
+      | 'topK'
+      | 'presencePenalty'
+      | 'frequencyPenalty'
+      | 'stopSequences'
+      | 'seed'
+      | 'headers'
+      | 'instructions'
+      | 'stopWhen'
+      | 'experimental_telemetry'
+      | 'activeTools'
+      | 'providerOptions'
+      | 'experimental_context'
+    > &
+      Omit<Prompt, 'system'>
+  >;
 };

@@ -48,7 +48,7 @@ export async function createAgentUIStream<
     tools: agent.tools,
   });
 
-  const result = agent.stream({
+  const result = await agent.stream({
     prompt: modelMessages,
     options: options as CALL_OPTIONS,
   });

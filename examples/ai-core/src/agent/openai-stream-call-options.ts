@@ -44,7 +44,7 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const result = agent.stream({
+  const result = await agent.stream({
     prompt: 'What news did happen here yesterday?',
     options: {
       model: openai('gpt-5-nano'),
