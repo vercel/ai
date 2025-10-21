@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.0-beta.66
+
+### Patch Changes
+
+- fca786b: feat(agent): configurable call options
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/gateway@2.0.0-beta.36
+
 ## 6.0.0-beta.65
 
 ### Patch Changes

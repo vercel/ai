@@ -8,37 +8,41 @@ import {
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 
-export type AgentCallParameters =
-  | {
-      /**
-       * A prompt. It can be either a text prompt or a list of messages.
-       *
-       * You can either use `prompt` or `messages` but not both.
-       */
-      prompt: string | Array<ModelMessage>;
+export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
+  ? { options?: never }
+  : { options: CALL_OPTIONS }) &
+  (
+    | {
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt: string | Array<ModelMessage>;
 
-      /**
-       * A list of messages.
-       *
-       * You can either use `prompt` or `messages` but not both.
-       */
-      messages?: never;
-    }
-  | {
-      /**
-       * A list of messages.
-       *
-       * You can either use `prompt` or `messages` but not both.
-       */
-      messages: Array<ModelMessage>;
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages?: never;
+      }
+    | {
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages: Array<ModelMessage>;
 
-      /**
-       * A prompt. It can be either a text prompt or a list of messages.
-       *
-       * You can either use `prompt` or `messages` but not both.
-       */
-      prompt?: never;
-    };
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt?: never;
+      }
+  );
 
 /**
  * An Agent receives a prompt (text or messages) and generates or streams an output
@@ -48,6 +52,7 @@ export type AgentCallParameters =
  * or use the `ToolLoopAgent` class.
  */
 export interface Agent<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
 > {
@@ -71,13 +76,13 @@ export interface Agent<
    * Generates an output from the agent (non-streaming).
    */
   generate(
-    options: AgentCallParameters,
+    options: AgentCallParameters<CALL_OPTIONS>,
   ): PromiseLike<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>>;
 
   /**
    * Streams an output from the agent (streaming).
    */
   stream(
-    options: AgentCallParameters,
-  ): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>;
+    options: AgentCallParameters<CALL_OPTIONS>,
+  ): PromiseLike<StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>>;
 }

@@ -27,7 +27,7 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const result = agent.stream({
+  const result = await agent.stream({
     prompt: 'Generate a lasagna recipe.',
   });
 
