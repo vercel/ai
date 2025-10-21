@@ -1,4 +1,3 @@
-import { resolve } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import {
@@ -69,8 +68,7 @@ export class ToolLoopAgent<
     };
 
     const preparedCallArgs =
-      (await resolve(this.settings.prepareCall?.(baseCallArgs))) ??
-      baseCallArgs;
+      (await this.settings.prepareCall?.(baseCallArgs)) ?? baseCallArgs;
 
     const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
 

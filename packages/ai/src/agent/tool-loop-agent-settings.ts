@@ -1,7 +1,7 @@
 import {
   FlexibleSchema,
+  MaybePromiseLike,
   ProviderOptions,
-  Resolvable,
 } from '@ai-sdk/provider-utils';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
@@ -143,7 +143,7 @@ functionality that can be fully encapsulated in the provider.
         | 'providerOptions'
         | 'experimental_context'
       >,
-  ) => Resolvable<
+  ) => MaybePromiseLike<
     Pick<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
       | 'model'
