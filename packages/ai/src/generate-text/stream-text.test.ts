@@ -13159,6 +13159,7 @@ describe('streamText', () => {
               "input": {
                 "cities": "San Francisco",
               },
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-error",
@@ -13233,6 +13234,7 @@ describe('streamText', () => {
                 "input": {
                   "cities": "San Francisco",
                 },
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-error",

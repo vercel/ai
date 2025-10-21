@@ -559,7 +559,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   output: chunk.output,
                   preliminary: chunk.preliminary,
                   providerExecuted: chunk.providerExecuted,
-                  title: chunk.title,
+                  title: toolInvocation.title,
                 });
               } else {
                 updateToolPart({
@@ -570,7 +570,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   output: chunk.output,
                   providerExecuted: chunk.providerExecuted,
                   preliminary: chunk.preliminary,
-                  title: chunk.title,
+                  title: toolInvocation.title,
                 });
               }
 
@@ -589,7 +589,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: (toolInvocation as any).input,
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
-                  title: chunk.title,
+                  title: toolInvocation.title,
                 });
               } else {
                 updateToolPart({
@@ -600,7 +600,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   rawInput: (toolInvocation as any).rawInput,
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
-                  title: chunk.title,
+                  title: toolInvocation.title,
                 });
               }
 

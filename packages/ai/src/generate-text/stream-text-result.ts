@@ -384,7 +384,6 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       id: string;
       delta: string;
       providerMetadata?: ProviderMetadata;
-      title?: string;
     }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object

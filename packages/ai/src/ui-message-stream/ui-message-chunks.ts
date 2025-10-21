@@ -47,7 +47,6 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-input-delta'),
         toolCallId: z.string(),
         inputTextDelta: z.string(),
-        title: z.string().optional(),
       }),
       z.strictObject({
         type: z.literal('tool-input-available'),
@@ -82,7 +81,6 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerExecuted: z.boolean().optional(),
         dynamic: z.boolean().optional(),
         preliminary: z.boolean().optional(),
-        title: z.string().optional(),
       }),
       z.strictObject({
         type: z.literal('tool-output-error'),
@@ -90,7 +88,6 @@ export const uiMessageChunkSchema = lazySchema(() =>
         errorText: z.string(),
         providerExecuted: z.boolean().optional(),
         dynamic: z.boolean().optional(),
-        title: z.string().optional(),
       }),
       z.strictObject({
         type: z.literal('tool-output-denied'),
@@ -251,7 +248,6 @@ export type UIMessageChunk<
       providerExecuted?: boolean;
       dynamic?: boolean;
       preliminary?: boolean;
-      title?: string;
     }
   | {
       type: 'tool-output-error';
@@ -259,7 +255,6 @@ export type UIMessageChunk<
       errorText: string;
       providerExecuted?: boolean;
       dynamic?: boolean;
-      title?: string;
     }
   | {
       type: 'tool-output-denied';
@@ -277,7 +272,6 @@ export type UIMessageChunk<
       type: 'tool-input-delta';
       toolCallId: string;
       inputTextDelta: string;
-      title?: string;
     }
   | {
       type: 'source-url';

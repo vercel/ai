@@ -1998,7 +1998,6 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-input-delta',
                 toolCallId: part.id,
                 inputTextDelta: part.delta,
-                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
@@ -2065,7 +2064,6 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ? { preliminary: part.preliminary }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
-                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
