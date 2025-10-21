@@ -10,6 +10,7 @@ import { LanguageModel, ToolChoice } from '../types/language-model';
 import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 import { AgentCallParameters } from './agent';
+import { Prompt } from '../prompt/prompt';
 
 /**
  * Configuration options for an agent.
@@ -151,5 +152,5 @@ functionality that can be fully encapsulated in the provider.
     | 'providerOptions'
     | 'experimental_context'
   > &
-    AgentCallParameters<CALL_OPTIONS>;
+    Omit<Prompt, 'system'>;
 };

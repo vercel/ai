@@ -9,6 +9,7 @@ import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
+import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters } from './agent';
 import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
@@ -51,7 +52,13 @@ export class ToolLoopAgent<
     return this.settings.tools as TOOLS;
   }
 
-  private prepareCall(options: AgentCallParameters<CALL_OPTIONS>) {
+  private prepareCall(
+    options: AgentCallParameters<CALL_OPTIONS>,
+  ): Omit<
+    ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+    'prepareCall' | 'instructions'
+  > &
+    Prompt {
     const baseCallArgs = {
       ...this.settings,
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
@@ -61,11 +68,13 @@ export class ToolLoopAgent<
     const preparedCallArgs =
       this.settings.prepareCall?.(baseCallArgs) ?? baseCallArgs;
 
-    const { instructions, ...callArgs } = preparedCallArgs;
+    const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
 
     return {
       ...callArgs,
-      system: preparedCallArgs.instructions,
+
+      // restore prompt types
+      ...({ system: instructions, messages, prompt } as Prompt),
     };
   }
 
