@@ -305,11 +305,10 @@ You need to specify the MIME type of the file you are sending.
 ##### Example: PDF file from Buffer
 
 ```ts highlight="12-15"
-import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-1.5-flash'),
+  model: 'google/gemini-2.5-flash',
   messages: [
     {
       role: 'user',
@@ -329,12 +328,17 @@ const result = await generateText({
 
 ##### Example: mp3 audio file from Buffer
 
+<Note>
+  Audio input does not work with OpenAI's Responses API. You must use the Chat
+  Completions API.
+</Note>
+
 ```ts highlight="12-14"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai('gpt-4o-audio-preview'),
+  model: openai.chat('gpt-4o-audio-preview'),
   messages: [
     {
       role: 'user',
@@ -361,7 +365,7 @@ Custom download function can be passed via the `experimental_download` property:
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-4o',
   experimental_download: async (
     requestedDownloads: Array<{
       url: URL;

@@ -1,16 +1,30 @@
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
+import { generateObject, generateText, Output, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
 
-async function main() {
-  const { text, usage } = await generateText({
-    model: openai('gpt-5-pro'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+run(async () => {
+  const result = await generateText({
+    model: 'openai/gpt-4o',
+    experimental_output: Output.object({
+      schema: z.object({
+        summary: z.string(),
+        sentiment: z.enum(['positive', 'neutral', 'negative']),
+      }),
+    }),
+    tools: {
+      analyze: tool({
+        description: 'Analyze data',
+        inputSchema: z.object({
+          data: z.string(),
+        }),
+        execute: async ({ data }) => {
+          return { result: 'analyzed' };
+        },
+      }),
+    },
+    // Add at least 1 to your intended step count to account for structured output
+    stopWhen: stepCountIs(3), // Now accounts for: tool call + tool result + structured output
+    prompt: 'Analyze the data and provide a summary',
   });
 
-  console.log(text);
-  console.log();
-  console.log('Usage:', usage);
-}
-
-main().catch(console.error);
+});

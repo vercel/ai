@@ -21,7 +21,7 @@ When using `experimental_output` with tool calling, adjust your `stopWhen` condi
 
 ```tsx
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-4o',
   experimental_output: Output.object({
     schema: z.object({
       summary: z.string(),
@@ -36,8 +36,8 @@ const result = await generateText({
       }),
       execute: async ({ data }) => {
         return { result: 'analyzed' };
-      }),
-    },
+      },
+    }),
   },
   // Add at least 1 to your intended step count to account for structured output
   stopWhen: stepCountIs(3), // Now accounts for: tool call + tool result + structured output

@@ -88,7 +88,6 @@ import {
 } from 'ai';
 import { z } from 'zod';
 import { loadChat, saveChat } from '@util/chat-store';
-import { openai } from '@ai-sdk/openai';
 import { dataPartsSchema, metadataSchema } from '@util/schemas';
 
 // Define your tools
@@ -125,7 +124,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-4o-mini',
     messages: convertToModelMessages(validatedMessages),
     tools,
   });
@@ -272,7 +271,6 @@ Storing messages is done in the `onFinish` callback of the `toUIMessageStreamRes
 `onFinish` receives the complete messages including the new AI response as `UIMessage[]`.
 
 ```tsx filename="app/api/chat/route.ts" highlight="6,11-17"
-import { openai } from '@ai-sdk/openai';
 import { saveChat } from '@util/chat-store';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
@@ -281,7 +279,7 @@ export async function POST(req: Request) {
     await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-4o-mini',
     messages: convertToModelMessages(messages),
   });
 
@@ -388,7 +386,7 @@ export async function POST(req: Request) {
       });
 
       const result = streamText({
-        model: openai('gpt-4o-mini'),
+        model: 'openai/gpt-4o-mini',
         messages: convertToModelMessages(messages),
       });
 

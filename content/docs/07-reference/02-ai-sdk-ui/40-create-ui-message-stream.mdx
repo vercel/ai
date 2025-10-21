@@ -43,7 +43,7 @@ const stream = createUIMessageStream({
 
     // Merge another stream from streamText
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: 'openai/gpt-4o',
       prompt: 'Write a haiku about AI',
     });
 

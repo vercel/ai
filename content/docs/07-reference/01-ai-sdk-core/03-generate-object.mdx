@@ -12,12 +12,11 @@ It can be used to force the language model to return structured data, e.g. for i
 #### Example: generate an object using a schema
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -36,12 +35,11 @@ console.log(JSON.stringify(object, null, 2));
 For arrays, you specify the schema of the array items.
 
 ```ts highlight="7"
-import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -76,13 +74,12 @@ const { object } = await generateObject({
 #### Example: generate JSON without a schema
 
 ```ts highlight="6"
-import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   output: 'no-schema',
-  prompt: 'Generate a lasagna recipe.',
+  prompt: 'Generate a lasagna recipe (JSON).',
 });
 ```
 
