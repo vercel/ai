@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.35
+
+### Patch Changes
+
+- 1091a20: support ANTHROPIC_BASE_URL
+
 ## 2.0.34
 
 ### Patch Changes
