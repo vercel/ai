@@ -103,7 +103,6 @@ Unlike the native web search examples where searching is built into the model, u
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import Exa from 'exa-js';
 
@@ -129,7 +128,7 @@ export const webSearch = tool({
 });
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'), // can be any model that supports tools
+  model: 'openai/gpt-4o-mini', // can be any model that supports tools
   prompt: 'What happened in San Francisco last week?',
   tools: {
     webSearch,
@@ -144,7 +143,6 @@ const { text } = await generateText({
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import FirecrawlApp from '@mendable/firecrawl-js';
 import 'dotenv/config';
@@ -177,7 +175,7 @@ export const webSearch = tool({
 
 const main = async () => {
   const { text } = await generateText({
-    model: openai('gpt-4o-mini'), // can be any model that supports tools
+    model: 'openai/gpt-4o-mini', // can be any model that supports tools
     prompt: 'Get the latest blog post from vercel.com/blog',
     tools: {
       webSearch,

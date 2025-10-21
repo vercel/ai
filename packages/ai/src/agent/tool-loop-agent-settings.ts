@@ -15,8 +15,7 @@ import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-fin
  */
 export type ToolLoopAgentSettings<
   TOOLS extends ToolSet = {},
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  OUTPUT extends Output = never,
 > = CallSettings & {
   /**
    * The id of the agent.
@@ -24,9 +23,9 @@ export type ToolLoopAgentSettings<
   id?: string;
 
   /**
-   * The system prompt to use.
+   * The instructions for the agent.
    */
-  system?: string;
+  instructions?: string;
 
   /**
 The language model to use.
@@ -67,12 +66,7 @@ changing the tool call and result types in the result.
   /**
 Optional specification for parsing structured outputs from the LLM response.
    */
-  experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
-
-  /**
-   * @deprecated Use `prepareStep` instead.
-   */
-  experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
+  experimental_output?: OUTPUT;
 
   /**
 Optional function that you can use to provide different settings for a step.
