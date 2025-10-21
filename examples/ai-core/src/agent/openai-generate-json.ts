@@ -5,6 +5,9 @@ import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-4o'),
+  callOptionsSchema: z.object({
+    strict: z.boolean(),
+  }),
   experimental_output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -19,16 +22,22 @@ const agent = new ToolLoopAgent({
       }),
     }),
   }),
-  providerOptions: {
-    openai: {
-      strictJsonSchema: true,
-    } satisfies OpenAIResponsesProviderOptions,
-  },
+  prepareCall: ({ options, ...rest }) => ({
+    ...rest,
+    providerOptions: {
+      openai: {
+        strictJsonSchema: options.strict,
+      } satisfies OpenAIResponsesProviderOptions,
+    },
+  }),
 });
 
 run(async () => {
   const { experimental_output: output } = await agent.generate({
     prompt: 'Generate a lasagna recipe.',
+    options: {
+      strict: true,
+    },
   });
 
   console.dir(output, { depth: Infinity });
