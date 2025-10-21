@@ -101,6 +101,11 @@ export const webSearchToolFactory =
              */
             pattern: string;
           };
+
+      /**
+       * Optional sources cited by the model for the web search call.
+       */
+      sources?: { type: 'url'; url: string }[];
     },
     {
       /**
