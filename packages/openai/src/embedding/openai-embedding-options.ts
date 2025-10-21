@@ -1,9 +1,5 @@
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
 export type OpenAIEmbeddingModelId =
   | 'text-embedding-3-small'
@@ -11,7 +7,7 @@ export type OpenAIEmbeddingModelId =
   | 'text-embedding-ada-002'
   | (string & {});
 
-export const openaiEmbeddingProviderOptions = lazyValidator(() =>
+export const openaiEmbeddingProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -29,6 +25,6 @@ monitor and detect abuse. Learn more.
   ),
 );
 
-export type OpenAIEmbeddingProviderOptions = InferValidator<
+export type OpenAIEmbeddingProviderOptions = InferSchema<
   typeof openaiEmbeddingProviderOptions
 >;

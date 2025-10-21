@@ -1,4 +1,3 @@
-import { LanguageModelV3ToolResultOutput } from '@ai-sdk/provider';
 import {
   FilePart,
   ImagePart,
@@ -7,9 +6,10 @@ import {
   TextPart,
   ToolApprovalRequest,
   ToolApprovalResponse,
+  ToolResultOutput,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import { dataContentSchema } from './data-content';
@@ -97,23 +97,33 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
 /**
 @internal
  */
-export const outputSchema: z.ZodType<LanguageModelV3ToolResultOutput> =
-  z.discriminatedUnion('type', [
+export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
+  'type',
+  [
     z.object({
       type: z.literal('text'),
       value: z.string(),
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('json'),
       value: jsonValueSchema,
+      providerOptions: providerMetadataSchema.optional(),
+    }),
+    z.object({
+      type: z.literal('execution-denied'),
+      reason: z.string().optional(),
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('error-text'),
       value: z.string(),
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('error-json'),
       value: jsonValueSchema,
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('content'),
@@ -122,16 +132,55 @@ export const outputSchema: z.ZodType<LanguageModelV3ToolResultOutput> =
           z.object({
             type: z.literal('text'),
             text: z.string(),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             type: z.literal('media'),
             data: z.string(),
             mediaType: z.string(),
           }),
+          z.object({
+            type: z.literal('file-data'),
+            data: z.string(),
+            mediaType: z.string(),
+            filename: z.string().optional(),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('file-url'),
+            url: z.string(),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('file-id'),
+            fileId: z.union([z.string(), z.record(z.string(), z.string())]),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('image-data'),
+            data: z.string(),
+            mediaType: z.string(),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('image-url'),
+            url: z.string(),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('image-file-id'),
+            fileId: z.union([z.string(), z.record(z.string(), z.string())]),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('custom'),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
         ]),
       ),
     }),
-  ]);
+  ],
+);
 
 /**
 @internal

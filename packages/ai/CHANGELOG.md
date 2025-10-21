@@ -1,5 +1,218 @@
 # ai
 
+## 6.0.0-beta.65
+
+### Patch Changes
+
+- dce4e7b: chore(agent): rename system to instructions
+
+## 6.0.0-beta.64
+
+### Patch Changes
+
+- 2d28066: chore(agent): limit agent call parameters
+
+## 6.0.0-beta.63
+
+### Patch Changes
+
+- a7da2b6: feat(agent): change output generics
+
+## 6.0.0-beta.62
+
+### Patch Changes
+
+- 95b77e2: feat(agent): extract createAgentUIStream, add pipeAgentUIStreamToResponse
+
+## 6.0.0-beta.61
+
+### Patch Changes
+
+- c98373a: chore(agent): rename createAgentStreamResponse to createAgentUIStreamResponse
+
+## 6.0.0-beta.60
+
+### Patch Changes
+
+- 2b49dae: feat(agent): support UIMessageStreamOptions in createAgentStreamResponse
+
+## 6.0.0-beta.59
+
+### Patch Changes
+
+- e062079: chore(agent): move Agent.respond into createAgentStreamResponse function
+
+## 6.0.0-beta.58
+
+### Patch Changes
+
+- a417a34: feat(agent): introduce version property
+
+## 6.0.0-beta.57
+
+### Patch Changes
+
+- 61f7b0f: chore(agent): rename BasicAgent to ToolLoopAgent
+
+## 6.0.0-beta.56
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+  - @ai-sdk/gateway@2.0.0-beta.35
+
+## 6.0.0-beta.55
+
+### Patch Changes
+
+- 42cf7ed: fix(agent): use tool.toModelOutput when available
+
+## 6.0.0-beta.54
+
+### Patch Changes
+
+- 9388ff1: feat(ui): add isDataUIPart helper
+
+## 6.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [2f8b0c8]
+  - @ai-sdk/gateway@2.0.0-beta.34
+
+## 6.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [1890317]
+  - @ai-sdk/gateway@2.0.0-beta.33
+
+## 6.0.0-beta.51
+
+### Patch Changes
+
+- 5e313e3: fix(agent): do not allow static tools when tools is empty
+
+## 6.0.0-beta.50
+
+### Patch Changes
+
+- 4812235: fix(ai): add missing export for `LoadSettingError`
+- 81d4308: feat: provider-executed dynamic tools
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/gateway@2.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 6.0.0-beta.49
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/gateway@2.0.0-beta.31
+
+## 6.0.0-beta.48
+
+### Patch Changes
+
+- 7f2c9b6: fix(ui): do not submit automatically when server return with error
+
+## 6.0.0-beta.47
+
+### Patch Changes
+
+- c62ecf0: feat(ai): add support for v2 specs in transcription and speech models
+
+## 6.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [0a2ff8a]
+  - @ai-sdk/gateway@2.0.0-beta.30
+
+## 6.0.0-beta.45
+
+### Patch Changes
+
+- 48454ab: fix(ai): handle backpressure in `writeToServerResponse`
+
+## 6.0.0-beta.44
+
+### Patch Changes
+
+- 2b1bf9d: feat(ai): add pruneMessages helper function
+
+## 6.0.0-beta.43
+
+### Patch Changes
+
+- 27e8c3a: chore(ai): rename Agent to BasicAgent, introduce Agent interface
+
+## 6.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+  - @ai-sdk/gateway@2.0.0-beta.29
+
+## 6.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/gateway@2.0.0-beta.28
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+
+## 6.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - @ai-sdk/gateway@2.0.0-beta.27
+
+## 6.0.0-beta.39
+
+### Patch Changes
+
+- f6f0c5a: chore: remove zod from ui packages
+
+## 6.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - @ai-sdk/gateway@2.0.0-beta.26
+
+## 6.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - @ai-sdk/gateway@2.0.0-beta.25
+
+## 6.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [0e29b8b]
+  - @ai-sdk/gateway@2.0.0-beta.24
+
+## 6.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [acc14d8]
+  - @ai-sdk/gateway@2.0.0-beta.23
+
 ## 6.0.0-beta.34
 
 ### Patch Changes

@@ -1,10 +1,8 @@
 import { dynamicTool, tool } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
-import { NoSuchToolError } from '../error/no-such-tool-error';
-import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { parseToolCall } from './parse-tool-call';
-import { describe, it, expect, vi } from 'vitest';
 
 describe('parseToolCall', () => {
   it('should successfully parse a valid tool call', async () => {
@@ -36,6 +34,47 @@ describe('parseToolCall', () => {
         },
         "providerExecuted": undefined,
         "providerMetadata": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
+  it('should successfully parse a valid provider-executed dynamic tool call', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+        providerExecuted: true,
+        dynamic: true,
+        providerMetadata: {
+          testProvider: {
+            signature: 'sig',
+          },
+        },
+      },
+      tools: {} as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": true,
+        "input": {
+          "param1": "test",
+          "param2": 42,
+        },
+        "providerExecuted": true,
+        "providerMetadata": {
+          "testProvider": {
+            "signature": "sig",
+          },
+        },
         "toolCallId": "123",
         "toolName": "testTool",
         "type": "tool-call",

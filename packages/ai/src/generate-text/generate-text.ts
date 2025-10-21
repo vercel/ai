@@ -415,7 +415,7 @@ A function that attempts to repair a tool call that failed to parse.
           });
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
-            prepareToolsAndToolChoice({
+            await prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: prepareStepResult?.activeTools ?? activeTools,
@@ -469,7 +469,7 @@ A function that attempts to repair a tool call that failed to parse.
                   ...callSettings,
                   tools: stepTools,
                   toolChoice: stepToolChoice,
-                  responseFormat: output?.responseFormat,
+                  responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
@@ -487,7 +487,7 @@ A function that attempts to repair a tool call that failed to parse.
 
                 // Add response information to the span:
                 span.setAttributes(
-                  selectTelemetryAttributes({
+                  await selectTelemetryAttributes({
                     telemetry,
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
@@ -557,7 +557,13 @@ A function that attempts to repair a tool call that failed to parse.
               continue; // ignore invalid tool calls
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              continue;
+            }
 
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -673,7 +679,7 @@ A function that attempts to repair a tool call that failed to parse.
 
         // Add response information to the span:
         span.setAttributes(
-          selectTelemetryAttributes({
+          await selectTelemetryAttributes({
             telemetry,
             attributes: {
               'ai.response.finishReason': currentModelResponse.finishReason,

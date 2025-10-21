@@ -1,9 +1,5 @@
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
 export type OpenAITranscriptionModelId =
   | 'whisper-1'
@@ -12,7 +8,7 @@ export type OpenAITranscriptionModelId =
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
-export const openAITranscriptionProviderOptions = lazyValidator(() =>
+export const openAITranscriptionProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -49,6 +45,6 @@ export const openAITranscriptionProviderOptions = lazyValidator(() =>
   ),
 );
 
-export type OpenAITranscriptionProviderOptions = InferValidator<
+export type OpenAITranscriptionProviderOptions = InferSchema<
   typeof openAITranscriptionProviderOptions
 >;

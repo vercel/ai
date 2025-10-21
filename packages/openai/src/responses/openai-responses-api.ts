@@ -1,10 +1,6 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import {
-  InferValidator,
-  lazyValidator,
-  zodSchema,
-} from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
@@ -68,7 +64,13 @@ export type OpenAIResponsesFunctionCall = {
 export type OpenAIResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
-  output: string;
+  output:
+    | string
+    | Array<
+        | { type: 'input_text'; text: string }
+        | { type: 'input_image'; image_url: string }
+        | { type: 'input_file'; filename: string; file_data: string }
+      >;
 };
 
 export type OpenAIResponsesComputerCall = {
@@ -223,7 +225,7 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
-export const openaiResponsesChunkSchema = lazyValidator(() =>
+export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
       z.object({
@@ -295,12 +297,6 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .object({
-                type: z.literal('search'),
-                query: z.string().optional(),
-              })
-              .nullish(),
           }),
           z.object({
             type: z.literal('computer_call'),
@@ -376,28 +372,21 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('search'),
-                  query: z.string().nullish(),
-                  sources: z
-                    .array(
-                      z.object({ type: z.literal('url'), url: z.string() }),
-                    )
-                    .nullish(),
-                }),
-                z.object({
-                  type: z.literal('open_page'),
-                  url: z.string(),
-                }),
-                z.object({
-                  type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
-                }),
-              ])
-              .nullish(),
+            action: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('search'),
+                query: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('open_page'),
+                url: z.string(),
+              }),
+              z.object({
+                type: z.literal('find'),
+                url: z.string(),
+                pattern: z.string(),
+              }),
+            ]),
           }),
           z.object({
             type: z.literal('file_search_call'),
@@ -490,6 +479,11 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
         delta: z.string(),
       }),
       z.object({
+        type: z.literal('response.reasoning_summary_part.done'),
+        item_id: z.string(),
+        summary_index: z.number(),
+      }),
+      z.object({
         type: z.literal('error'),
         code: z.string(),
         message: z.string(),
@@ -507,7 +501,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
   ),
 );
 
-export type OpenAIResponsesChunk = InferValidator<
+export type OpenAIResponsesChunk = InferSchema<
   typeof openaiResponsesChunkSchema
 >;
 
@@ -517,7 +511,15 @@ export type OpenAIResponsesLogprobs = NonNullable<
   })['logprobs']
 > | null;
 
-export const openaiResponsesResponseSchema = lazyValidator(() =>
+export type OpenAIResponsesWebSearchAction = NonNullable<
+  ((OpenAIResponsesChunk & {
+    type: 'response.output_item.done';
+  })['item'] & {
+    type: 'web_search_call';
+  })['action']
+>;
+
+export const openaiResponsesResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),
@@ -583,23 +585,21 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z
-              .discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('search'),
-                  query: z.string().nullish(),
-                }),
-                z.object({
-                  type: z.literal('open_page'),
-                  url: z.string(),
-                }),
-                z.object({
-                  type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
-                }),
-              ])
-              .nullish(),
+            action: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('search'),
+                query: z.string().nullish(),
+              }),
+              z.object({
+                type: z.literal('open_page'),
+                url: z.string(),
+              }),
+              z.object({
+                type: z.literal('find'),
+                url: z.string(),
+                pattern: z.string(),
+              }),
+            ]),
           }),
           z.object({
             type: z.literal('file_search_call'),

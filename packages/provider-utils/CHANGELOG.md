@@ -1,5 +1,56 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 6306603: chore: replace Validator with Schema
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- f0b2157: fix: revert zod import change
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- 3b1d015: feat(ai): Effect schema support
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- d116b4b: feat(ai): arktype support
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- 7e32fea: feat(ai): valibot support
+
 ## 4.0.0-beta.11
 
 ### Patch Changes

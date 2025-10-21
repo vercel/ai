@@ -1,9 +1,10 @@
 import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
 import { Tool, tool, ToolExecuteFunction } from './tool';
+import { ToolResultOutput } from './content-part';
 
 describe('tool type', () => {
   describe('input type', () => {
@@ -81,7 +82,7 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: any) => LanguageModelV3ToolResultPart['output']) | undefined
+        ((output: any) => ToolResultOutput) | undefined
       >();
     });
 
@@ -96,8 +97,7 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        | ((output: 'test') => LanguageModelV3ToolResultPart['output'])
-        | undefined
+        ((output: 'test') => ToolResultOutput) | undefined
       >();
     });
 
@@ -112,8 +112,7 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        | ((output: 'test') => LanguageModelV3ToolResultPart['output'])
-        | undefined
+        ((output: 'test') => ToolResultOutput) | undefined
       >();
     });
   });

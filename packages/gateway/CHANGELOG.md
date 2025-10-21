@@ -1,5 +1,94 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 2.0.0-beta.34
+
+### Major Changes
+
+- 2f8b0c8: fix(gateway): bump `@vercel/oidc` to latest
+
+## 2.0.0-beta.33
+
+### Patch Changes
+
+- 1890317: feat (provider/gateway): improve auth error messages
+
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- 0a2ff8a: feat (provider/gateway): add user and tags provider options
+
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- f0b2157: fix: revert zod import change
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+
+## 2.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+
+## 2.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+
+## 2.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+
+## 2.0.0-beta.24
+
+### Patch Changes
+
+- 0e29b8b: chore(provider/gateway): lazy schema loading
+
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- acc14d8: feat (provider/gateway): add 'only' to provider options
+
 ## 2.0.0-beta.22
 
 ### Patch Changes

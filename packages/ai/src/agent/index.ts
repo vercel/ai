@@ -1,21 +1,22 @@
+export { type Agent } from './agent';
+export { type ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
+export { type ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 export {
-  Agent,
+  type ToolLoopAgentSettings,
 
   /**
-   * @deprecated Use `Agent` instead.
+   * @deprecated Use `ToolLoopAgentSettings` instead.
    */
-  Agent as Experimental_Agent,
-} from './agent';
-export { type AgentOnFinishCallback } from './agent-on-finish-callback';
-export { type AgentOnStepFinishCallback } from './agent-on-step-finish-callback';
+  type ToolLoopAgentSettings as Experimental_AgentSettings,
+} from './tool-loop-agent-settings';
 export {
-  type AgentSettings,
+  ToolLoopAgent,
 
   /**
-   * @deprecated Use `AgentSettings` instead.
+   * @deprecated Use `ToolLoopAgent` instead.
    */
-  type AgentSettings as Experimental_AgentSettings,
-} from './agent-settings';
+  ToolLoopAgent as Experimental_Agent,
+} from './tool-loop-agent';
 export {
   /**
    * @deprecated Use `InferAgentUIMessage` instead.
@@ -23,3 +24,6 @@ export {
   type InferAgentUIMessage as Experimental_InferAgentUIMessage,
   type InferAgentUIMessage,
 } from './infer-agent-ui-message';
+export { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
+export { createAgentUIStream } from './create-agent-ui-stream';
+export { pipeAgentUIStreamToResponse } from './pipe-agent-ui-stream-to-response';

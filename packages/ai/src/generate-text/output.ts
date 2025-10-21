@@ -2,6 +2,7 @@ import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import {
   asSchema,
   FlexibleSchema,
+  resolve,
   safeParseJSON,
   safeValidateTypes,
 } from '@ai-sdk/provider-utils';
@@ -12,10 +13,10 @@ import { LanguageModelUsage } from '../types/usage';
 import { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
 
-export interface Output<OUTPUT, PARTIAL> {
+export interface Output<OUTPUT = any, PARTIAL = any> {
   readonly type: 'object' | 'text';
 
-  responseFormat: LanguageModelV3CallOptions['responseFormat'];
+  responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
 
   parsePartial(options: {
     text: string;
@@ -34,7 +35,7 @@ export interface Output<OUTPUT, PARTIAL> {
 export const text = (): Output<string, string> => ({
   type: 'text',
 
-  responseFormat: { type: 'text' },
+  responseFormat: Promise.resolve({ type: 'text' }),
 
   async parsePartial({ text }: { text: string }) {
     return { partial: text };
@@ -55,10 +56,10 @@ export const object = <OUTPUT>({
   return {
     type: 'object',
 
-    responseFormat: {
-      type: 'json',
-      schema: schema.jsonSchema,
-    },
+    responseFormat: resolve(schema.jsonSchema).then(jsonSchema => ({
+      type: 'json' as const,
+      schema: jsonSchema,
+    })),
 
     async parsePartial({ text }: { text: string }) {
       const result = await parsePartialJson(text);
@@ -123,3 +124,9 @@ export const object = <OUTPUT>({
     },
   };
 };
+
+export type InferGenerateOutput<OUTPUT extends Output> =
+  OUTPUT extends Output<infer T, any> ? T : never;
+
+export type InferStreamOutput<OUTPUT extends Output> =
+  OUTPUT extends Output<any, infer P> ? P : never;
