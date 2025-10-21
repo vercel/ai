@@ -18,6 +18,7 @@ export async function pipeAgentUIStreamToResponse<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  MESSAGE_METADATA = unknown,
 >({
   response,
   headers,
@@ -32,7 +33,7 @@ export async function pipeAgentUIStreamToResponse<
   options?: CALL_OPTIONS;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
-    UIMessage<never, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >): Promise<void> {
   pipeUIMessageStreamToResponse({
     response,

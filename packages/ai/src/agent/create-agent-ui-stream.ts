@@ -20,6 +20,7 @@ export async function createAgentUIStream<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  MESSAGE_METADATA = unknown,
 >({
   agent,
   messages,
@@ -30,14 +31,14 @@ export async function createAgentUIStream<
   messages: unknown[];
   options?: CALL_OPTIONS;
 } & UIMessageStreamOptions<
-  UIMessage<never, never, InferUITools<TOOLS>>
+  UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
 >): Promise<
   AsyncIterableStream<
-    InferUIMessageChunk<UIMessage<never, never, InferUITools<TOOLS>>>
+    InferUIMessageChunk<UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>>
   >
 > {
   const validatedMessages = await validateUIMessages<
-    UIMessage<never, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
     messages,
     tools: agent.tools,
