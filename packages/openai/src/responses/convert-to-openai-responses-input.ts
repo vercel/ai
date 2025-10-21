@@ -216,63 +216,51 @@ export async function convertToOpenAIResponsesInput({
                 input.push({ type: 'item_reference', id: part.toolCallId });
               } else {
                 if (part.toolName === 'web_search') {
-                  // Inline the web_search result (e.g. sources) as a tool output for the follow-up call
                   const output = part.output;
-                  let contentValue: OpenAIResponsesFunctionCallOutput['output'];
+                  let text: string | undefined;
 
                   switch (output.type) {
                     case 'text':
                     case 'error-text':
-                      contentValue = output.value;
+                      text = output.value;
                       break;
                     case 'execution-denied':
-                      contentValue = output.reason ?? 'Tool execution denied.';
+                      text = output.reason ?? 'Tool execution denied.';
                       break;
                     case 'json':
                     case 'error-json':
-                      contentValue = JSON.stringify(output.value);
+                      try {
+                        text = JSON.stringify(output.value);
+                      } catch {
+                        text = String(output.value);
+                      }
                       break;
                     case 'content':
-                      contentValue = output.value
+                      // Flatten content to a simple textual representation
+                      text = output.value
                         .map(item => {
                           switch (item.type) {
-                            case 'text': {
-                              return {
-                                type: 'input_text' as const,
-                                text: item.text,
-                              };
-                            }
-                            case 'image-data': {
-                              return {
-                                type: 'input_image' as const,
-                                image_url: `data:${item.mediaType};base64,${item.data}`,
-                              };
-                            }
-                            case 'file-data': {
-                              return {
-                                type: 'input_file' as const,
-                                filename: item.filename ?? 'data',
-                                file_data: `data:${item.mediaType};base64,${item.data}`,
-                              };
-                            }
-                            default: {
-                              warnings.push({
-                                type: 'other',
-                                message: `unsupported tool content part type: ${item.type}`,
-                              });
+                            case 'text':
+                              return item.text;
+                            case 'image-data':
+                              return '[image]';
+                            case 'file-data':
+                              return `[file:${item.filename ?? 'data'}]`;
+                            default:
                               return undefined;
-                            }
                           }
                         })
-                        .filter(isNonNullable);
+                        .filter(isNonNullable)
+                        .join('\n');
                       break;
                   }
 
-                  input.push({
-                    type: 'function_call_output',
-                    call_id: part.toolCallId,
-                    output: contentValue,
-                  });
+                  if (text != null && text.length > 0) {
+                    input.push({
+                      role: 'assistant',
+                      content: [{ type: 'output_text', text }],
+                    });
+                  }
                 } else {
                   warnings.push({
                     type: 'other',

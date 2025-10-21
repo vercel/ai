@@ -1988,9 +1988,13 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
             {
-              "call_id": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "output": "[{\"url\":\"https://patch.com/california/san-francisco/calendar\"}]",
-              "type": "function_call_output",
+              "content": [
+                {
+                  "text": "[{"url":"https://patch.com/california/san-francisco/calendar"}]",
+                  "type": "output_text",
+                },
+              ],
+              "role": "assistant",
             },
             {
               "content": [
