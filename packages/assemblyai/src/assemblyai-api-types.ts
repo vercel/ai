@@ -340,11 +340,6 @@ export type AssemblyAITranscriptionAPITypes = {
     | 'paragraph';
 
   /**
-   * The list of custom topics
-   */
-  topics?: string[];
-
-  /**
    * The header name to be sent with the transcript completed or failed webhook requests
    */
   webhook_auth_header_name?: string;
