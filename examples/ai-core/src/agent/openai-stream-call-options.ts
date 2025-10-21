@@ -1,16 +1,18 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { LanguageModel, ToolLoopAgent } from 'ai';
-import { run } from '../lib/run';
-import { printFullStream } from '../lib/print-full-stream';
+import { z } from 'zod';
 import { print } from '../lib/print';
+import { printFullStream } from '../lib/print-full-stream';
+import { run } from '../lib/run';
 
-const agent = new ToolLoopAgent<{
-  model: LanguageModel;
-  city: string;
-  region: string;
-  reasoningEffort: 'low' | 'medium' | 'high';
-}>({
+const agent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),
+  callOptionsSchema: z.object({
+    model: z.custom<LanguageModel>(),
+    city: z.string(),
+    region: z.string(),
+    reasoningEffort: z.enum(['low', 'medium', 'high']),
+  }),
   tools: {
     web_search: openai.tools.webSearch(),
   },
