@@ -147,7 +147,10 @@ export function convertToModelMessages<
               if (isDataUIPart<DATA_PARTS>(part)) {  
                 return options?.convertDataPart?.(part) ?? null;  
               }
-            }),
+
+              return null;
+            })
+            .filter((part): part is TextPart | FilePart => part !== null),
         });
 
         break;
