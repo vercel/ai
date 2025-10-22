@@ -43,6 +43,7 @@ import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-message
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import type { AnthropicSourceExecutionFileProviderMetadataSchema } from './anthropic-provider-metadata';
+import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 
 function createCitationSource(
   citation: Citation,
@@ -788,7 +789,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
-        },
+          container: response.container
+            ? {
+                expiresAt: response.container.expires_at,
+                id: response.container.id,
+                skills:
+                  response.container.skills?.map(skill => ({
+                    type: skill.type,
+                    skillId: skill.skill_id,
+                    version: skill.version,
+                  })) ?? null,
+              }
+            : null,
+        } satisfies AnthropicMessageMetadata,
       },
     };
   }
@@ -840,6 +853,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
+    let container: AnthropicMessageMetadata['container'] | null = null;
 
     let blockType:
       | 'text'
@@ -1387,6 +1401,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 });
 
                 stopSequence = value.delta.stop_sequence ?? null;
+                container =
+                  value.delta.container != null
+                    ? {
+                        expiresAt: value.delta.container.expires_at,
+                        id: value.delta.container.id,
+                        skills:
+                          value.delta.container.skills?.map(skill => ({
+                            type: skill.type,
+                            skillId: skill.skill_id,
+                            version: skill.version,
+                          })) ?? null,
+                      }
+                    : null;
 
                 rawUsage = {
                   ...rawUsage,
@@ -1403,10 +1430,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   usage,
                   providerMetadata: {
                     anthropic: {
-                      usage: rawUsage ?? null,
+                      usage: (rawUsage as JSONObject) ?? null,
                       cacheCreationInputTokens,
                       stopSequence,
-                    },
+                      container,
+                    } satisfies AnthropicMessageMetadata,
                   },
                 });
                 return;

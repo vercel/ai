@@ -1,5 +1,32 @@
 # ai
 
+## 6.0.0-beta.66
+
+### Patch Changes
+
+- fca786b: feat(agent): configurable call options
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/gateway@2.0.0-beta.36
+
+## 6.0.0-beta.65
+
+### Patch Changes
+
+- dce4e7b: chore(agent): rename system to instructions
+
+## 6.0.0-beta.64
+
+### Patch Changes
+
+- 2d28066: chore(agent): limit agent call parameters
+
+## 6.0.0-beta.63
+
+### Patch Changes
+
+- a7da2b6: feat(agent): change output generics
+
 ## 6.0.0-beta.62
 
 ### Patch Changes
