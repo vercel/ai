@@ -343,8 +343,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     }
 
     // reasoning content:
-    const reasoning =
-      choice.message.reasoning_content;
+    const reasoning = choice.message.reasoning_content;
     if (reasoning != null && reasoning.length > 0) {
       content.push({
         type: 'reasoning',
@@ -711,7 +710,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             if (isActiveReasoning) {
               controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
             }
-            
+
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
