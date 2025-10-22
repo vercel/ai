@@ -7,6 +7,16 @@ import { DefaultChatTransport } from 'ai';
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
     transport: new DefaultChatTransport({ api: '/api/mcp-with-auth' }),
+    onData: dataPart => {
+      if (dataPart.type === 'data-oauth') {
+        const url = (dataPart as any).data?.url as string | undefined;
+        if (url) {
+          try {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          } catch {}
+        }
+      }
+    },
   });
 
   return (

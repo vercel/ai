@@ -1,5 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  stepCountIs,
+  streamText,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+} from 'ai';
 import {
   experimental_createMCPClient,
   auth,
@@ -8,7 +14,26 @@ import {
   type OAuthTokens,
 } from '@ai-sdk/mcp';
 import { createServer } from 'node:http';
-import { exec } from 'node:child_process';
+
+type AuthGlobalState = {
+  pendingAuthorizationUrl: string | null;
+};
+
+const AUTH_GLOBAL_KEY = '__mcpAuth';
+
+function getAuthState(): AuthGlobalState {
+  const g = globalThis as any;
+  if (!g[AUTH_GLOBAL_KEY]) {
+    g[AUTH_GLOBAL_KEY] = {
+      pendingAuthorizationUrl: null,
+    } as AuthGlobalState;
+  }
+  return g[AUTH_GLOBAL_KEY] as AuthGlobalState;
+}
+
+function setPendingAuthorizationUrl(url: string | null): void {
+  getAuthState().pendingAuthorizationUrl = url;
+}
 
 // In-memory storage for OAuth state per server origin
 const oauthStateStore = new Map<
@@ -45,20 +70,7 @@ class InMemoryOAuthClientProvider {
   }
 
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
-    const cmd =
-      process.platform === 'win32'
-        ? `start ${authorizationUrl.toString()}`
-        : process.platform === 'darwin'
-          ? `open "${authorizationUrl.toString()}"`
-          : `xdg-open "${authorizationUrl.toString()}"`;
-    exec(cmd, error => {
-      if (error) {
-        console.error(
-          'Open this URL to continue:',
-          authorizationUrl.toString(),
-        );
-      }
-    });
+    setPendingAuthorizationUrl(authorizationUrl.toString());
   }
 
   async saveCodeVerifier(codeVerifier: string): Promise<void> {
@@ -180,21 +192,6 @@ function waitForAuthorizationCode(port: number): Promise<string> {
   });
 }
 
-async function authorizeWithPkceOnce(
-  authProvider: InMemoryOAuthClientProvider,
-  serverUrl: string,
-  waitForCode: () => Promise<string>,
-): Promise<void> {
-  const result = await auth(authProvider, { serverUrl: new URL(serverUrl) });
-  if (result !== 'AUTHORIZED') {
-    const authorizationCode = await waitForCode();
-    await auth(authProvider, {
-      serverUrl: new URL(serverUrl),
-      authorizationCode,
-    });
-  }
-}
-
 export async function POST(req: Request) {
   const body = await req.json();
   const messages = body.messages;
@@ -202,45 +199,61 @@ export async function POST(req: Request) {
   const callbackPort = 8090;
 
   try {
-    const authProvider = new InMemoryOAuthClientProvider(
-      serverUrl,
-      callbackPort,
-    );
+    const stream = createUIMessageStream({
+      originalMessages: messages,
+      execute: async ({ writer }) => {
+        const authProvider = new InMemoryOAuthClientProvider(
+          serverUrl,
+          callbackPort,
+        );
 
-    // Perform auth if needed (will open browser window)
-    await authorizeWithPkceOnce(authProvider, serverUrl, () =>
-      waitForAuthorizationCode(callbackPort),
-    );
+        // Attempt auth; if redirect is needed, instruct client to open URL, then wait and complete.
+        const result = await auth(authProvider, {
+          serverUrl: new URL(serverUrl),
+        });
 
-    const mcpClient = await experimental_createMCPClient({
-      transport: { type: 'http', url: serverUrl, authProvider },
-    });
+        if (result !== 'AUTHORIZED') {
+          const url = getAuthState().pendingAuthorizationUrl;
+          if (url) {
+            writer.write({
+              type: 'data-oauth',
+              data: { url },
+              transient: true,
+            });
+          }
 
-    const tools = await mcpClient.tools();
-
-    const result = streamText({
-      model: openai('gpt-4o-mini'),
-      tools,
-      stopWhen: stepCountIs(10),
-      system: 'You are a helpful assistant with access to protected tools.',
-      messages: convertToModelMessages(messages),
-      onStepFinish: async ({ toolResults }) => {
-        if (toolResults.length > 0) {
-          console.log('Tool execution results:');
-          toolResults.forEach(result => {
-            console.log(
-              `  - ${result.toolName}:`,
-              JSON.stringify(result, null, 2),
-            );
+          const authorizationCode = await waitForAuthorizationCode(callbackPort);
+          await auth(authProvider, {
+            serverUrl: new URL(serverUrl),
+            authorizationCode,
           });
         }
-      },
-      onFinish: async () => {
-        await mcpClient.close();
+
+        const mcpClient = await experimental_createMCPClient({
+          transport: { type: 'http', url: serverUrl, authProvider },
+        });
+
+        try {
+          const tools = await mcpClient.tools();
+
+          const result = streamText({
+            model: openai('gpt-4o-mini'),
+            tools,
+            stopWhen: stepCountIs(10),
+            system: 'You are a helpful assistant with access to protected tools.',
+            messages: convertToModelMessages(messages),
+          });
+
+          writer.merge(
+            result.toUIMessageStream({ originalMessages: messages }),
+          );
+        } finally {
+          await mcpClient.close();
+        }
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({ stream });
   } catch (error) {
     console.error('MCP with auth error:', error);
     return Response.json({ error: 'Unexpected error' }, { status: 500 });
