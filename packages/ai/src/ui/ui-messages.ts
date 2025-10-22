@@ -82,6 +82,7 @@ export type UIMessagePart<
   | DynamicToolUIPart
   | SourceUrlUIPart
   | SourceDocumentUIPart
+  | SourceExecutionFileUIPart
   | FileUIPart
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
@@ -150,6 +151,16 @@ export type SourceDocumentUIPart = {
   mediaType: string;
   title: string;
   filename?: string;
+  providerMetadata?: ProviderMetadata;
+};
+
+/**
+ * An execution file part of a message.
+ * It comes from OpenAI's Code Interpreter, or any other code execution tools.
+ */
+export type SourceExecutionFileUIPart = {
+  type: 'source-execution-file';
+  sourceId: string;
   providerMetadata?: ProviderMetadata;
 };
 
