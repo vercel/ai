@@ -344,6 +344,7 @@ describe('doGenerate', () => {
               "index": 0,
               "message": {
                 "content": "",
+                "reasoning_content": "",
                 "role": "assistant",
               },
             },
@@ -360,7 +361,7 @@ describe('doGenerate', () => {
           },
         },
         "headers": {
-          "content-length": "275",
+          "content-length": "298",
           "content-type": "application/json",
         },
         "id": "test-id",
@@ -443,7 +444,7 @@ describe('doGenerate', () => {
 
     expect(response?.headers).toMatchInlineSnapshot(`
       {
-        "content-length": "321",
+        "content-length": "344",
         "content-type": "application/json",
         "test-header": "test-value",
       }
@@ -1818,11 +1819,6 @@ describe('doStream', () => {
           "type": "text-start",
         },
         {
-          "delta": "",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
           "delta": "Hello",
           "id": "0",
           "type": "text-delta",
@@ -2003,17 +1999,17 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
-          "id": "txt-0",
+          "id": "0",
           "type": "text-start",
         },
         {
           "delta": "Here's",
-          "id": "txt-0",
+          "id": "0",
           "type": "text-delta",
         },
         {
           "delta": " my response",
-          "id": "txt-0",
+          "id": "0",
           "type": "text-delta",
         },
         {
@@ -2021,13 +2017,13 @@ describe('doStream', () => {
           "type": "reasoning-end",
         },
         {
-          "id": "txt-0",
+          "id": "0",
           "type": "text-end",
         },
         {
           "finishReason": "stop",
           "providerMetadata": {
-            "test-provider": {},
+            "openai": {},
           },
           "type": "finish",
           "usage": {
@@ -2075,7 +2071,6 @@ describe('doStream', () => {
           id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
         }),
         { type: 'text-start', id: '0' },
-        { type: 'text-delta', id: '0', delta: '' },
         { type: 'text-delta', id: '0', delta: 'Based on search results' },
         {
           type: 'source',
@@ -2442,15 +2437,6 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "delta": "",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-input-start",
@@ -2489,10 +2475,6 @@ describe('doStream', () => {
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-call",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
         },
         {
           "finishReason": "tool-calls",
@@ -3038,11 +3020,6 @@ describe('doStream', () => {
             "type": "text-start",
           },
           {
-            "delta": "",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
             "delta": "Hello, World!",
             "id": "0",
             "type": "text-delta",
@@ -3105,11 +3082,6 @@ describe('doStream', () => {
           {
             "id": "0",
             "type": "text-start",
-          },
-          {
-            "delta": "",
-            "id": "0",
-            "type": "text-delta",
           },
           {
             "delta": "Hello, World!",

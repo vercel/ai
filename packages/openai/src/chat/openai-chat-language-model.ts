@@ -560,7 +560,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            if (delta.content != null) {
+            if (delta.content) {
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: '0' });
                 isActiveText = true;
