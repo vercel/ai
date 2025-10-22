@@ -99,6 +99,11 @@ jobs:
               - Only assign labels if you're reasonably confident (>0.6) about the relevance
               - If the issue mentiones React Native or Expo, add the "ai/ui" label and "expo" label
 
+              Examples
+
+              - issue title "🤖 Provider API update - groq@4.2.0"
+                - labels: ["ai/provider", "provider/groq"]
+
               Here is the issue content:
 
               Issue Title: ${{ github.event.issue.title }}
