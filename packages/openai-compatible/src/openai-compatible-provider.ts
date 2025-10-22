@@ -35,6 +35,8 @@ export interface OpenAICompatibleProvider<
 
   chatModel(modelId: CHAT_MODEL_IDS): LanguageModelV3;
 
+  responsesModel(modelId: CHAT_MODEL_IDS): LanguageModelV3;
+
   completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV3;
 
   textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3<string>;
