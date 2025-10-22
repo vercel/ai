@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- fca786b: feat(provider-utils): add MaybePromiseLike type
+
 ## 4.0.0-beta.19
 
 ### Patch Changes

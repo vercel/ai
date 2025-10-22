@@ -17,24 +17,28 @@ import { Agent } from './agent';
  * @returns The UI message stream.
  */
 export async function createAgentUIStream<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  MESSAGE_METADATA = unknown,
 >({
   agent,
   messages,
+  options,
   ...uiMessageStreamOptions
 }: {
-  agent: Agent<TOOLS, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   messages: unknown[];
+  options?: CALL_OPTIONS;
 } & UIMessageStreamOptions<
-  UIMessage<never, never, InferUITools<TOOLS>>
+  UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
 >): Promise<
   AsyncIterableStream<
-    InferUIMessageChunk<UIMessage<never, never, InferUITools<TOOLS>>>
+    InferUIMessageChunk<UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>>
   >
 > {
   const validatedMessages = await validateUIMessages<
-    UIMessage<never, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
     messages,
     tools: agent.tools,
@@ -44,7 +48,10 @@ export async function createAgentUIStream<
     tools: agent.tools,
   });
 
-  const result = agent.stream({ prompt: modelMessages });
+  const result = await agent.stream({
+    prompt: modelMessages,
+    options: options as CALL_OPTIONS,
+  });
 
   return result.toUIMessageStream(uiMessageStreamOptions);
 }
