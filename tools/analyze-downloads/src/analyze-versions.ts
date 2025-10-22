@@ -62,10 +62,11 @@ async function main() {
       })
       // map to objects for better console.table formatting
       .map(([version, count]) => {
-        return { 
+        return {
           version,
           count,
-          '%': ((count / totalDownloads) * 100).toFixed(2) + '%' };
+          '%': ((count / totalDownloads) * 100).toFixed(2) + '%',
+        };
       }),
   );
 }
