@@ -27,6 +27,9 @@ function aggregateByMinor(
     // ignore versions < 1.0
     if (minor.startsWith("0.")) continue;
 
+    // ignore versions that have channel but where channel is not beta
+    if (minor.includes("(") && !minor.includes("(beta)")) continue;
+
     output[minor] = (output[minor] || 0) + downloads;
   }
   return output;
@@ -42,7 +45,12 @@ async function main() {
   const aggregated = aggregateByMinor(downloads);
   console.table(Object.entries(aggregated)
     // sort by version string
-    .sort(([a], [b]) => b.localeCompare(a))
+    .sort(([a], [b]) => {
+      // sort 5.0 beta after 5.0
+      if (a === b.replace(" (beta)", "")) return -1;
+      if (b === a.replace(" (beta)", "")) return 1;
+      return b.localeCompare(a)
+    })
     // map to objects for better console.table formatting
     .map(([version, count]) => ({ version, count })));
 }
