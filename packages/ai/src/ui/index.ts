@@ -34,8 +34,6 @@ export {
   getToolName,
   getToolOrDynamicToolName,
   isDataUIPart,
-  isFileUIPart,
-  isTextUIPart,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
   type DataUIPart,
