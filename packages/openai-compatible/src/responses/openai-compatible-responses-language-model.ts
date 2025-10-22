@@ -540,7 +540,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                     },
                   },
                 });
-              } if (value.item.type === 'message') {
+              } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-end',
                   id: value.item.id,
