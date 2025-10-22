@@ -123,6 +123,7 @@ const server = createTestServer({
 describe('doGenerate', () => {
   function prepareJsonResponse({
     content = '',
+    reasoning_content = '',
     tool_calls,
     function_call,
     annotations,
@@ -139,6 +140,7 @@ describe('doGenerate', () => {
     headers,
   }: {
     content?: string;
+    reasoning_content?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -200,6 +202,7 @@ describe('doGenerate', () => {
             message: {
               role: 'assistant',
               content,
+              reasoning_content,
               tool_calls,
               function_call,
               annotations,
@@ -226,6 +229,30 @@ describe('doGenerate', () => {
         {
           "text": "Hello, World!",
           "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should extract reasoning content', async () => {
+    prepareJsonResponse({
+      content: 'Hello, World!',
+      reasoning_content: 'This is the reasoning behind the response',
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+        {
+          "text": "This is the reasoning behind the response",
+          "type": "reasoning",
         },
       ]
     `);
@@ -1919,6 +1946,96 @@ describe('doStream', () => {
             "outputTokens": 227,
             "reasoningTokens": undefined,
             "totalTokens": 244,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream reasoning content before text deltas', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Let me think",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " about this",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here's",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " my response",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 18,
+            "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
