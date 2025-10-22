@@ -277,6 +277,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
     const logprobs: Array<OpenAICompatibleResponsesLogprobs> = [];
+    const providerOptionsName = this.providerOptionsName;
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -294,7 +295,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
               type: 'reasoning' as const,
               text: summary.text,
               providerMetadata: {
-                openai: {
+               [providerOptionsName]: {
                   itemId: part.id,
                   reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
@@ -316,7 +317,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                openai: {
+                [providerOptionsName]: {
                   itemId: part.id,
                 },
               },
@@ -335,7 +336,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
             toolName: part.name,
             input: part.arguments,
             providerMetadata: {
-              openai: {
+              [providerOptionsName]: {
                 itemId: part.id,
               },
             },
@@ -492,7 +493,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                   type: 'text-start',
                   id: value.item.id,
                   providerMetadata: {
-                    openai: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                     },
                   },
@@ -510,7 +511,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-start',
                   id: `${value.item.id}:0`,
                   providerMetadata: {
-                    openai: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                       reasoningEncryptedContent:
                         value.item.encrypted_content ?? null,
@@ -563,7 +564,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                     type: 'reasoning-end',
                     id: `${value.item.id}:${summaryIndex}`,
                     providerMetadata: {
-                      openai: {
+                      [providerOptionsName]: {
                         itemId: value.item.id,
                         reasoningEncryptedContent:
                           value.item.encrypted_content ?? null,
@@ -621,7 +622,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: `${value.item_id}:${summaryIndex}`,
-                      providerMetadata: { providerOptionsName: { itemId: value.item_id } },
+                      providerMetadata: { [providerOptionsName]: { itemId: value.item_id } },
                     });
                     activeReasoningPart.summaryParts[summaryIndex] =
                       'concluded';
@@ -632,7 +633,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-start',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    providerOptionsName: {
+                    [providerOptionsName]: {
                       itemId: value.item_id,
                       reasoningEncryptedContent:
                         activeReasoning[value.item_id]?.encryptedContent ??
@@ -647,7 +648,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                 id: `${value.item_id}:${value.summary_index}`,
                 delta: value.delta,
                 providerMetadata: {
-                  providerOptionsName: {
+                 [providerOptionsName]: {
                     itemId: value.item_id,
                   },
                 },
@@ -660,7 +661,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-end',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    providerOptionsName: { itemId: value.item_id },
+                    [providerOptionsName]: { itemId: value.item_id },
                   },
                 });
 
@@ -701,18 +702,18 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
 
           flush(controller) {
             const providerMetadata: SharedV3ProviderMetadata = {
-              providerOptionsName: {
+              [providerOptionsName]: {
                 responseId,
               },
               ...metadataExtractor?.buildMetadata(),
             };
 
             if (logprobs.length > 0) {
-              providerMetadata.providerOptionsName.logprobs = logprobs;
+              providerMetadata[providerOptionsName].logprobs = logprobs;
             }
 
             if (serviceTier !== undefined) {
-              providerMetadata.providerOptionsName.serviceTier = serviceTier;
+              providerMetadata[providerOptionsName].serviceTier = serviceTier;
             }
 
             controller.enqueue({
