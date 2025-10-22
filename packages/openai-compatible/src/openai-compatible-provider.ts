@@ -18,6 +18,7 @@ import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-com
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
 import { VERSION } from './version';
+import { OpenAICompatibleResponsesLanguageModel } from './responses/openai-compatible-responses-language-model';
 
 export interface OpenAICompatibleProvider<
   CHAT_MODEL_IDS extends string = string,
@@ -158,6 +159,9 @@ export function createOpenAICompatible<
   const createImageModel = (modelId: IMAGE_MODEL_IDS) =>
     new OpenAICompatibleImageModel(modelId, getCommonModelConfig('image'));
 
+  const createResponsesModel = (modelId: CHAT_MODEL_IDS) =>
+    new OpenAICompatibleResponsesLanguageModel(modelId, getCommonModelConfig('responses'));
+
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
   provider.languageModel = createLanguageModel;
@@ -165,6 +169,7 @@ export function createOpenAICompatible<
   provider.completionModel = createCompletionModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.imageModel = createImageModel;
+  provider.responsesModel = createResponsesModel;
 
   return provider as OpenAICompatibleProvider<
     CHAT_MODEL_IDS,
