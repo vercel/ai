@@ -222,7 +222,8 @@ export async function POST(req: Request) {
             });
           }
 
-          const authorizationCode = await waitForAuthorizationCode(callbackPort);
+          const authorizationCode =
+            await waitForAuthorizationCode(callbackPort);
           await auth(authProvider, {
             serverUrl: new URL(serverUrl),
             authorizationCode,
@@ -240,7 +241,8 @@ export async function POST(req: Request) {
             model: openai('gpt-4o-mini'),
             tools,
             stopWhen: stepCountIs(10),
-            system: 'You are a helpful assistant with access to protected tools.',
+            system:
+              'You are a helpful assistant with access to protected tools.',
             messages: convertToModelMessages(messages),
           });
 
