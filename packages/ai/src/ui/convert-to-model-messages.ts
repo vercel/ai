@@ -15,16 +15,42 @@ import {
   FileUIPart,
   getToolOrDynamicToolName,
   isDataUIPart,
-  isFileUIPart,
-  isTextUIPart,
   isToolOrDynamicToolUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
   UIDataTypes,
   UIMessage,
+  UIMessagePart,
   UITools,
 } from './ui-messages';
+
+/**
+ * Type guard to check if a message part is a text part.
+ */
+function isTextUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is TextUIPart {
+  return part.type === 'text';
+}
+
+/**
+ * Type guard to check if a message part is a file part.
+ */
+function isFileUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is FileUIPart {
+  return part.type === 'file';
+}
+
+/**
+ * Type guard to check if a message part is a reasoning part.
+ */
+function isReasoningUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is ReasoningUIPart {
+  return part.type === 'reasoning';
+}
 
 /**
 Converts an array of UI messages from useChat into an array of ModelMessages that can be used
@@ -39,8 +65,9 @@ with the AI functions (e.g. `streamText`, `generateText`).
  */
 export function convertToModelMessages<
   DATA_PARTS extends UIDataTypes = UIDataTypes,
+  TOOLS extends UITools = UITools,
 >(
-  messages: Array<Omit<UIMessage<unknown, DATA_PARTS>, 'id'>>,
+  messages: Array<Omit<UIMessage<unknown, DATA_PARTS, TOOLS>, 'id'>>,
   options?: {
     tools?: ToolSet;
     ignoreIncompleteToolCalls?: boolean;
@@ -56,7 +83,7 @@ export function convertToModelMessages<
       ...message,
       parts: message.parts.filter(
         part =>
-          !isToolOrDynamicToolUIPart(part) ||
+          !isToolOrDynamicToolUIPart<TOOLS>(part) ||
           (part.state !== 'input-streaming' &&
             part.state !== 'input-available'),
       ),
@@ -117,14 +144,10 @@ export function convertToModelMessages<
               }
 
               // Process data parts with converter if provided
-              if (isDataUIPart(part)) {  
-                return options?.convertDataPart(part) ?? null;  
-              } 
-
-              // Skip other part types
-              return null;
-            })
-            .filter((item): item is NonNullable<typeof item> => item !== null),
+              if (isDataUIPart<DATA_PARTS>(part)) {  
+                return options?.convertDataPart?.(part) ?? null;  
+              }
+            }),
         });
 
         break;
@@ -134,7 +157,7 @@ export function convertToModelMessages<
         if (message.parts != null) {
           let block: Array<
             | TextUIPart
-            | ToolUIPart<UITools>
+            | ToolUIPart<TOOLS>
             | ReasoningUIPart
             | FileUIPart
             | DynamicToolUIPart
@@ -148,7 +171,7 @@ export function convertToModelMessages<
             const content: AssistantContent = [];
 
             for (const part of block) {
-              if (part.type === 'text') {
+              if (isTextUIPart(part)) {
                 content.push({
                   type: 'text' as const,
                   text: part.text,
@@ -156,20 +179,20 @@ export function convertToModelMessages<
                     ? { providerOptions: part.providerMetadata }
                     : {}),
                 });
-              } else if (part.type === 'file') {
+              } else if (isFileUIPart(part)) {
                 content.push({
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
                   data: part.url,
                 });
-              } else if (part.type === 'reasoning') {
+              } else if (isReasoningUIPart(part)) {
                 content.push({
                   type: 'reasoning' as const,
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
-              } else if (isToolOrDynamicToolUIPart(part)) {
+              } else if (isToolOrDynamicToolUIPart<TOOLS>(part)) {
                 const toolName = getToolOrDynamicToolName(part);
 
                 if (part.state !== 'input-streaming') {
@@ -231,9 +254,9 @@ export function convertToModelMessages<
             // check if there are tool invocations with results in the block
             const toolParts = block.filter(
               part =>
-                isToolOrDynamicToolUIPart(part) &&
+                isToolOrDynamicToolUIPart<TOOLS>(part) &&
                 part.providerExecuted !== true,
-            ) as (ToolUIPart<UITools> | DynamicToolUIPart)[];
+            ) as (ToolUIPart<TOOLS> | DynamicToolUIPart)[];
 
             // tool message with tool results
             if (toolParts.length > 0) {
@@ -307,12 +330,12 @@ export function convertToModelMessages<
 
           for (const part of message.parts) {
             if (
-              part.type === 'text' ||
-              part.type === 'reasoning' ||
-              part.type === 'file' ||
-              isToolOrDynamicToolUIPart(part)
+              isTextUIPart(part) ||
+              isReasoningUIPart(part) ||
+              isFileUIPart(part) ||
+              isToolOrDynamicToolUIPart<TOOLS>(part)
             ) {
-              block.push;
+              block.push(part);
             } else if (part.type === 'step-start') {
               processBlock();
             }
