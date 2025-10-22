@@ -1956,11 +1956,18 @@ describe('convertToOpenAIResponsesInput', () => {
                 toolName: 'web_search',
                 output: {
                   type: 'json',
-                  value: [
-                    {
-                      url: 'https://patch.com/california/san-francisco/calendar',
+                  value: {
+                    action: {
+                      type: 'search',
+                      query: 'San Francisco major news events June 22 2025',
                     },
-                  ],
+                    sources: [
+                      {
+                        type: 'url',
+                        url: 'https://patch.com/california/san-francisco/calendar',
+                      },
+                    ],
+                  },
                 },
               },
               {
@@ -1974,42 +1981,56 @@ describe('convertToOpenAIResponsesInput', () => {
         store: false,
       });
 
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "input": [
-            {
-              "content": [
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Let me search for recent news from San Francisco.',
+              },
+            ],
+            id: undefined,
+          },
+          {
+            type: 'function_call',
+            call_id: 'ws_67cf2b3051e88190b006770db6fdb13d',
+            name: 'web_search',
+            arguments: JSON.stringify({
+              query: 'San Francisco major news events June 22 2025',
+            }),
+            id: undefined,
+          },
+          {
+            type: 'function_call_output',
+            call_id: 'ws_67cf2b3051e88190b006770db6fdb13d',
+            output: JSON.stringify({
+              action: {
+                type: 'search',
+                query: 'San Francisco major news events June 22 2025',
+              },
+              sources: [
                 {
-                  "text": "Let me search for recent news from San Francisco.",
-                  "type": "output_text",
+                  type: 'url',
+                  url: 'https://patch.com/california/san-francisco/calendar',
                 },
               ],
-              "id": undefined,
-              "role": "assistant",
-            },
-            {
-              "content": [
-                {
-                  "text": "[{"url":"https://patch.com/california/san-francisco/calendar"}]",
-                  "type": "output_text",
-                },
-              ],
-              "role": "assistant",
-            },
-            {
-              "content": [
-                {
-                  "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
-                  "type": "output_text",
-                },
-              ],
-              "id": undefined,
-              "role": "assistant",
-            },
-          ],
-          "warnings": [],
-        }
-      `);
+            }),
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).',
+              },
+            ],
+            id: undefined,
+          },
+        ],
+        warnings: [],
+      });
     });
 
     describe('local shell', () => {

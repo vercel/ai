@@ -15,6 +15,7 @@ import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
+import { webSearchOutputSchema } from '../tool/web-search';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -28,6 +29,10 @@ import {
 function isFileId(data: string, prefixes?: readonly string[]): boolean {
   if (!prefixes) return false;
   return prefixes.some(prefix => data.startsWith(prefix));
+}
+
+function serializeToolArguments(value: unknown): string {
+  return typeof value === 'string' ? value : JSON.stringify(value);
 }
 
 export async function convertToOpenAIResponsesInput({
@@ -138,6 +143,7 @@ export async function convertToOpenAIResponsesInput({
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
         const toolCallParts: Record<string, LanguageModelV3ToolCallPart> = {};
+        const emittedToolCallIds = new Set<string>();
 
         for (const part of content) {
           switch (part.type) {
@@ -203,7 +209,7 @@ export async function convertToOpenAIResponsesInput({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: part.toolName,
-                arguments: JSON.stringify(part.input),
+                arguments: serializeToolArguments(part.input),
                 id,
               });
               break;
@@ -216,51 +222,53 @@ export async function convertToOpenAIResponsesInput({
                 input.push({ type: 'item_reference', id: part.toolCallId });
               } else {
                 if (part.toolName === 'web_search') {
-                  const output = part.output;
-                  let text: string | undefined;
+                  const toolCallPart = toolCallParts[part.toolCallId];
 
-                  switch (output.type) {
-                    case 'text':
-                    case 'error-text':
-                      text = output.value;
-                      break;
-                    case 'execution-denied':
-                      text = output.reason ?? 'Tool execution denied.';
-                      break;
-                    case 'json':
-                    case 'error-json':
-                      try {
-                        text = JSON.stringify(output.value);
-                      } catch {
-                        text = String(output.value);
-                      }
-                      break;
-                    case 'content':
-                      // Flatten content to a simple textual representation
-                      text = output.value
-                        .map(item => {
-                          switch (item.type) {
-                            case 'text':
-                              return item.text;
-                            case 'image-data':
-                              return '[image]';
-                            case 'file-data':
-                              return `[file:${item.filename ?? 'data'}]`;
-                            default:
-                              return undefined;
-                          }
-                        })
-                        .filter(isNonNullable)
-                        .join('\n');
-                      break;
+                  if (
+                    toolCallPart?.providerExecuted &&
+                    !emittedToolCallIds.has(part.toolCallId)
+                  ) {
+                    input.push({
+                      type: 'function_call',
+                      call_id: toolCallPart.toolCallId,
+                      name: toolCallPart.toolName,
+                      arguments: serializeToolArguments(toolCallPart.input),
+                      id: toolCallPart.providerOptions?.openai?.itemId as
+                        | string
+                        | undefined,
+                    });
+                    emittedToolCallIds.add(part.toolCallId);
                   }
 
-                  if (text != null && text.length > 0) {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `Unsupported web_search tool result type: ${output.type}. Expected json.`,
+                    });
+                    break;
+                  }
+
+                  try {
+                    const parsed = await validateTypes({
+                      value: output.value,
+                      schema: webSearchOutputSchema,
+                    });
+
                     input.push({
-                      role: 'assistant',
-                      content: [{ type: 'output_text', text }],
+                      type: 'function_call_output',
+                      call_id: part.toolCallId,
+                      output: JSON.stringify(parsed),
+                    });
+                  } catch (error) {
+                    warnings.push({
+                      type: 'other',
+                      message: `Failed to parse web_search tool result: ${String(error)}`,
                     });
                   }
+
+                  break;
                 } else {
                   warnings.push({
                     type: 'other',
