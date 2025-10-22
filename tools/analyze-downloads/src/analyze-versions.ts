@@ -41,6 +41,14 @@ function aggregateByMinor(
 async function main() {
   const response = await fetch(`https://api.npmjs.org/versions/ai/last-week`);
   const { downloads } = await response.json();
+  const totalDownloads = Object.values(downloads).reduce(
+    (acc, curr) => acc + curr,
+    0,
+  );
+  console.log(`Total weekly downloads: ${totalDownloads.toLocaleString()}`);
+  console.log(
+    `For simplicity, we remove versions < 1.0 and non-beta channels from the table below.`,
+  );
 
   const aggregated = aggregateByMinor(downloads);
   console.table(
@@ -53,7 +61,13 @@ async function main() {
         return b.localeCompare(a);
       })
       // map to objects for better console.table formatting
-      .map(([version, count]) => ({ version, count })),
+      .map(([version, count]) => {
+        return {
+          version,
+          count,
+          '%': ((count / totalDownloads) * 100).toFixed(2) + '%',
+        };
+      }),
   );
 }
 
