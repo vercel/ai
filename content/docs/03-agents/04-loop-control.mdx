@@ -25,9 +25,9 @@ When you provide `stopWhen`, the agent continues executing after tool calls unti
 The AI SDK provides several built-in stopping conditions:
 
 ```ts
-import { Agent, stepCountIs } from 'ai';
+import { ToolLoopAgent, stepCountIs } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools
@@ -45,9 +45,9 @@ const result = await agent.generate({
 Combine multiple stopping conditions. The loop stops when it meets any condition:
 
 ```ts
-import { Agent, stepCountIs, hasToolCall } from 'ai';
+import { ToolLoopAgent, stepCountIs, hasToolCall } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools
@@ -68,7 +68,7 @@ const result = await agent.generate({
 Build custom stopping conditions for specific requirements:
 
 ```ts
-import { Agent, StopCondition, ToolSet } from 'ai';
+import { ToolLoopAgent, StopCondition, ToolSet } from 'ai';
 
 const tools = {
   // your tools
@@ -79,7 +79,7 @@ const hasAnswer: StopCondition<typeof tools> = ({ steps }) => {
   return steps.some(step => step.text?.includes('ANSWER:')) ?? false;
 };
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools,
   stopWhen: hasAnswer,
@@ -117,9 +117,9 @@ The `prepareStep` callback runs before each step in the loop and defaults to the
 Switch models based on step requirements:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o-mini', // Default model
   tools: {
     // your tools
@@ -146,9 +146,9 @@ const result = await agent.generate({
 Manage growing conversation history in long-running loops:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools
@@ -177,9 +177,9 @@ const result = await agent.generate({
 Control which tools are available at each step:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     search: searchTool,
@@ -242,9 +242,9 @@ prepareStep: async ({ stepNumber }) => {
 Transform messages before sending them to the model:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     // your tools

@@ -1,22 +1,28 @@
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  FlexibleSchema,
+  MaybePromiseLike,
+  ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import { ToolSet } from '../generate-text/tool-set';
 import { CallSettings } from '../prompt/call-settings';
+import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
-import { BasicAgentOnFinishCallback } from './basic-agent-on-finish-callback';
-import { BasicAgentOnStepFinishCallback } from './basic-agent-on-step-finish-callback';
+import { AgentCallParameters } from './agent';
+import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
+import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 
 /**
  * Configuration options for an agent.
  */
-export type BasicAgentSettings<
+export type ToolLoopAgentSettings<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  OUTPUT extends Output = never,
 > = CallSettings & {
   /**
    * The id of the agent.
@@ -24,9 +30,9 @@ export type BasicAgentSettings<
   id?: string;
 
   /**
-   * The system prompt to use.
+   * The instructions for the agent.
    */
-  system?: string;
+  instructions?: string;
 
   /**
 The language model to use.
@@ -67,12 +73,7 @@ changing the tool call and result types in the result.
   /**
 Optional specification for parsing structured outputs from the LLM response.
    */
-  experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
-
-  /**
-   * @deprecated Use `prepareStep` instead.
-   */
-  experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
+  experimental_output?: OUTPUT;
 
   /**
 Optional function that you can use to provide different settings for a step.
@@ -87,12 +88,12 @@ A function that attempts to repair a tool call that failed to parse.
   /**
    * Callback that is called when each step (LLM call) is finished, including intermediate steps.
    */
-  onStepFinish?: BasicAgentOnStepFinishCallback<NoInfer<TOOLS>>;
+  onStepFinish?: ToolLoopAgentOnStepFinishCallback<NoInfer<TOOLS>>;
 
   /**
    * Callback that is called when all steps are finished and the response is complete.
    */
-  onFinish?: BasicAgentOnFinishCallback<NoInfer<TOOLS>>;
+  onFinish?: ToolLoopAgentOnFinishCallback<NoInfer<TOOLS>>;
 
   /**
 Additional provider-specific options. They are passed through
@@ -109,4 +110,60 @@ functionality that can be fully encapsulated in the provider.
    * @default undefined
    */
   experimental_context?: unknown;
+
+  /**
+   * The schema for the call options.
+   */
+  callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
+
+  /**
+   * Prepare the parameters for the generateText or streamText call.
+   *
+   * You can use this to have templates based on call options.
+   */
+  prepareCall?: (
+    options: AgentCallParameters<CALL_OPTIONS> &
+      Pick<
+        ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+        | 'model'
+        | 'tools'
+        | 'maxOutputTokens'
+        | 'temperature'
+        | 'topP'
+        | 'topK'
+        | 'presencePenalty'
+        | 'frequencyPenalty'
+        | 'stopSequences'
+        | 'seed'
+        | 'headers'
+        | 'instructions'
+        | 'stopWhen'
+        | 'experimental_telemetry'
+        | 'activeTools'
+        | 'providerOptions'
+        | 'experimental_context'
+      >,
+  ) => MaybePromiseLike<
+    Pick<
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+      | 'model'
+      | 'tools'
+      | 'maxOutputTokens'
+      | 'temperature'
+      | 'topP'
+      | 'topK'
+      | 'presencePenalty'
+      | 'frequencyPenalty'
+      | 'stopSequences'
+      | 'seed'
+      | 'headers'
+      | 'instructions'
+      | 'stopWhen'
+      | 'experimental_telemetry'
+      | 'activeTools'
+      | 'providerOptions'
+      | 'experimental_context'
+    > &
+      Omit<Prompt, 'system'>
+  >;
 };

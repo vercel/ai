@@ -227,6 +227,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       prompt_cache_key: openaiOptions?.promptCacheKey,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
+      truncation: openaiOptions?.truncation,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -241,9 +242,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             }),
           },
         }),
-      ...(modelConfig.requiredAutoTruncation && {
-        truncation: 'auto',
-      }),
     };
 
     if (modelConfig.isReasoningModel) {
@@ -1315,7 +1313,6 @@ function isErrorChunk(
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
-  requiredAutoTruncation: boolean;
   supportsFlexProcessing: boolean;
   supportsPriorityProcessing: boolean;
 };
@@ -1334,7 +1331,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini');
   const defaults = {
-    requiredAutoTruncation: false,
     systemMessageMode: 'system' as const,
     supportsFlexProcessing,
     supportsPriorityProcessing,

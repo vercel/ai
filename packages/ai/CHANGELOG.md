@@ -1,5 +1,68 @@
 # ai
 
+## 6.0.0-beta.66
+
+### Patch Changes
+
+- fca786b: feat(agent): configurable call options
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/gateway@2.0.0-beta.36
+
+## 6.0.0-beta.65
+
+### Patch Changes
+
+- dce4e7b: chore(agent): rename system to instructions
+
+## 6.0.0-beta.64
+
+### Patch Changes
+
+- 2d28066: chore(agent): limit agent call parameters
+
+## 6.0.0-beta.63
+
+### Patch Changes
+
+- a7da2b6: feat(agent): change output generics
+
+## 6.0.0-beta.62
+
+### Patch Changes
+
+- 95b77e2: feat(agent): extract createAgentUIStream, add pipeAgentUIStreamToResponse
+
+## 6.0.0-beta.61
+
+### Patch Changes
+
+- c98373a: chore(agent): rename createAgentStreamResponse to createAgentUIStreamResponse
+
+## 6.0.0-beta.60
+
+### Patch Changes
+
+- 2b49dae: feat(agent): support UIMessageStreamOptions in createAgentStreamResponse
+
+## 6.0.0-beta.59
+
+### Patch Changes
+
+- e062079: chore(agent): move Agent.respond into createAgentStreamResponse function
+
+## 6.0.0-beta.58
+
+### Patch Changes
+
+- a417a34: feat(agent): introduce version property
+
+## 6.0.0-beta.57
+
+### Patch Changes
+
+- 61f7b0f: chore(agent): rename BasicAgent to ToolLoopAgent
+
 ## 6.0.0-beta.56
 
 ### Patch Changes

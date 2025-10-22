@@ -1,7 +1,7 @@
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
-import { BasicAgent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-export const anthropicMcpAgent = new BasicAgent({
+export const anthropicMcpAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
   providerOptions: {
     anthropic: {
