@@ -1998,4 +1998,335 @@ describe('convertToModelMessages', () => {
       `);
     });
   });
+
+  describe('data part conversion', () => {
+    it('should convert data parts to text when converter provided', () => {
+      type MyData = {
+        url: { url: string; content: string };
+      };
+
+      const result = convertToModelMessages<MyData>(
+        [
+          {
+            role: 'user',
+            parts: [
+              { type: 'text', text: 'Analyze this' },
+              {
+                type: 'data-url',
+                data: { url: 'https://example.com', content: 'Article text' },
+              },
+            ],
+          },
+        ],
+        {
+          convertDataPart: part => {
+            if (part.type === 'data-url') {
+              return {
+                type: 'text',
+                text: `\n\n[${part.data.url}]\n${part.data.content}`,
+              };
+            }
+            return null;
+          },
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].role).toBe('user');
+      expect(result[0].content).toHaveLength(2);
+      expect(result[0].content[0]).toEqual({
+        type: 'text',
+        text: 'Analyze this',
+      });
+      expect(result[0].content[1]).toEqual({
+        type: 'text',
+        text: '\n\n[https://example.com]\nArticle text',
+      });
+    });
+
+    it('should skip data parts when no converter provided', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            { type: 'text', text: 'Hello' },
+            { type: 'data-url', data: { url: 'https://example.com' } },
+          ],
+        },
+      ]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].role).toBe('user');
+      // Only text part included, data part skipped
+      expect(result[0].content).toHaveLength(1);
+      expect(result[0].content[0]).toEqual({
+        type: 'text',
+        text: 'Hello',
+      });
+    });
+
+    it('should selectively convert data parts', () => {
+      type MyData = {
+        url: { url: string };
+        'ui-state': { enabled: boolean };
+      };
+
+      const result = convertToModelMessages<MyData>(
+        [
+          {
+            role: 'user',
+            parts: [
+              { type: 'data-url', data: { url: 'https://example.com' } },
+              { type: 'data-ui-state', data: { enabled: true } },
+            ],
+          },
+        ],
+        {
+          convertDataPart: part => {
+            // Include URLs, skip UI state
+            if (part.type === 'data-url') {
+              return { type: 'text', text: part.data.url };
+            }
+            return null;
+          },
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toHaveLength(1);
+      expect(result[0].content[0]).toEqual({
+        type: 'text',
+        text: 'https://example.com',
+      });
+    });
+
+    it('should provide type safety for converter function', () => {
+      type MyData = {
+        code: { filename: string; code: string; language: string };
+      };
+
+      const result = convertToModelMessages<MyData>(
+        [
+          {
+            role: 'user',
+            parts: [
+              {
+                type: 'data-code',
+                data: {
+                  filename: 'test.ts',
+                  code: 'const x = 1;',
+                  language: 'typescript',
+                },
+              },
+            ],
+          },
+        ],
+        {
+          convertDataPart: part => {
+            // TypeScript knows part.data has the correct shape
+            if (part.type === 'data-code') {
+              return {
+                type: 'text',
+                text: `\`\`\`${part.data.language}\n// ${part.data.filename}\n${part.data.code}\n\`\`\``,
+              };
+            }
+            return null;
+          },
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toHaveLength(1);
+      expect(result[0].content[0]).toEqual({
+        type: 'text',
+        text: '```typescript\n// test.ts\nconst x = 1;\n```',
+      });
+    });
+
+    it('should convert data parts to file parts', () => {
+      type MyData = {
+        attachment: { mediaType: string; filename: string; data: string };
+      };
+
+      const result = convertToModelMessages<MyData>(
+        [
+          {
+            role: 'user',
+            parts: [
+              { type: 'text', text: 'Check this file' },
+              {
+                type: 'data-attachment',
+                data: {
+                  mediaType: 'application/pdf',
+                  filename: 'document.pdf',
+                  data: 'base64data',
+                },
+              },
+            ],
+          },
+        ],
+        {
+          convertDataPart: part => {
+            if (part.type === 'data-attachment') {
+              return {
+                type: 'file',
+                mediaType: part.data.mediaType,
+                filename: part.data.filename,
+                data: part.data.data,
+              };
+            }
+            return null;
+          },
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toHaveLength(2);
+      expect(result[0].content[1]).toEqual({
+        type: 'file',
+        mediaType: 'application/pdf',
+        filename: 'document.pdf',
+        data: 'base64data',
+      });
+    });
+
+    it('should handle multiple data parts of different types', () => {
+      type MyData = {
+        url: { url: string; title: string };
+        code: { code: string; language: string };
+        note: { text: string };
+      };
+
+      const result = convertToModelMessages<MyData>(
+        [
+          {
+            role: 'user',
+            parts: [
+              { type: 'text', text: 'Review these:' },
+              {
+                type: 'data-url',
+                data: { url: 'https://example.com', title: 'Example' },
+              },
+              {
+                type: 'data-code',
+                data: { code: 'console.log("test")', language: 'javascript' },
+              },
+              {
+                type: 'data-note',
+                data: { text: 'Internal note' },
+              },
+            ],
+          },
+        ],
+        {
+          convertDataPart: part => {
+            switch (part.type) {
+              case 'data-url':
+                return {
+                  type: 'text',
+                  text: `[${part.data.title}](${part.data.url})`,
+                };
+              case 'data-code':
+                return {
+                  type: 'text',
+                  text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
+                };
+              case 'data-note':
+                // Skip internal notes
+                return null;
+              default:
+                return null;
+            }
+          },
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toHaveLength(3);
+      expect(result[0].content[0]).toEqual({
+        type: 'text',
+        text: 'Review these:',
+      });
+      expect(result[0].content[1]).toEqual({
+        type: 'text',
+        text: '[Example](https://example.com)',
+      });
+      expect(result[0].content[2]).toEqual({
+        type: 'text',
+        text: '```javascript\nconsole.log("test")\n```',
+      });
+    });
+
+    it('should work with messages that have no data parts', () => {
+      const result = convertToModelMessages(
+        [
+          {
+            role: 'user',
+            parts: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                url: 'https://example.com/image.png',
+              },
+            ],
+          },
+        ],
+        {
+          convertDataPart: () => ({ type: 'text', text: 'converted' }),
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toHaveLength(2);
+      expect(result[0].content[0]).toEqual({
+        type: 'text',
+        text: 'Hello',
+      });
+      expect(result[0].content[1]).toEqual({
+        type: 'file',
+        mediaType: 'image/png',
+        data: 'https://example.com/image.png',
+      });
+    });
+
+    it('should preserve order of parts including converted data parts', () => {
+      type MyData = {
+        tag: { value: string };
+      };
+
+      const result = convertToModelMessages<MyData>(
+        [
+          {
+            role: 'user',
+            parts: [
+              { type: 'text', text: 'First' },
+              { type: 'data-tag', data: { value: 'tag1' } },
+              { type: 'text', text: 'Second' },
+              { type: 'data-tag', data: { value: 'tag2' } },
+              { type: 'text', text: 'Third' },
+            ],
+          },
+        ],
+        {
+          convertDataPart: part => {
+            if (part.type === 'data-tag') {
+              return { type: 'text', text: `[${part.data.value}]` };
+            }
+            return null;
+          },
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toHaveLength(5);
+      expect(result[0].content.map((c: any) => c.text)).toEqual([
+        'First',
+        '[tag1]',
+        'Second',
+        '[tag2]',
+        'Third',
+      ]);
+    });
+  });
 });

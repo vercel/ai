@@ -1,6 +1,8 @@
 import {
   AssistantContent,
+  FilePart,
   ModelMessage,
+  TextPart,
   ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
@@ -8,13 +10,18 @@ import { ToolSet } from '../generate-text/tool-set';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
+  DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
   getToolOrDynamicToolName,
+  isDataUIPart,
+  isFileUIPart,
+  isTextUIPart,
   isToolOrDynamicToolUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
+  UIDataTypes,
   UIMessage,
   UITools,
 } from './ui-messages';
@@ -26,14 +33,20 @@ with the AI functions (e.g. `streamText`, `generateText`).
 @param messages - The UI messages to convert.
 @param options.tools - The tools to use.
 @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
+@param options.convertDataPart - Optional function to convert data parts to text or file parts for the model.
 
 @returns An array of ModelMessages.
  */
-export function convertToModelMessages(
-  messages: Array<Omit<UIMessage, 'id'>>,
+export function convertToModelMessages<
+  DATA_PARTS extends UIDataTypes = UIDataTypes,
+>(
+  messages: Array<Omit<UIMessage<unknown, DATA_PARTS>, 'id'>>,
   options?: {
     tools?: ToolSet;
     ignoreIncompleteToolCalls?: boolean;
+    convertDataPart?: (
+      part: DataUIPart<DATA_PARTS>,
+    ) => TextPart | FilePart | null;
   },
 ): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
@@ -53,7 +66,9 @@ export function convertToModelMessages(
   for (const message of messages) {
     switch (message.role) {
       case 'system': {
-        const textParts = message.parts.filter(part => part.type === 'text');
+        const textParts = message.parts.filter(
+          (part): part is TextUIPart => part.type === 'text',
+        );
 
         const providerMetadata = textParts.reduce((acc, part) => {
           if (part.providerMetadata != null) {
@@ -76,34 +91,40 @@ export function convertToModelMessages(
         modelMessages.push({
           role: 'user',
           content: message.parts
-            .filter(
-              (part): part is TextUIPart | FileUIPart =>
-                part.type === 'text' || part.type === 'file',
-            )
-            .map(part => {
-              switch (part.type) {
-                case 'text':
-                  return {
-                    type: 'text' as const,
-                    text: part.text,
-                    ...(part.providerMetadata != null
-                      ? { providerOptions: part.providerMetadata }
-                      : {}),
-                  };
-                case 'file':
-                  return {
-                    type: 'file' as const,
-                    mediaType: part.mediaType,
-                    filename: part.filename,
-                    data: part.url,
-                    ...(part.providerMetadata != null
-                      ? { providerOptions: part.providerMetadata }
-                      : {}),
-                  };
-                default:
-                  return part;
+            .map((part): TextPart | FilePart | null => {
+              // Process text parts
+              if (isTextUIPart(part)) {
+                return {
+                  type: 'text' as const,
+                  text: part.text,
+                  ...(part.providerMetadata != null
+                    ? { providerOptions: part.providerMetadata }
+                    : {}),
+                };
               }
-            }),
+
+              // Process file parts
+              if (isFileUIPart(part)) {
+                return {
+                  type: 'file' as const,
+                  mediaType: part.mediaType,
+                  filename: part.filename,
+                  data: part.url,
+                  ...(part.providerMetadata != null
+                    ? { providerOptions: part.providerMetadata }
+                    : {}),
+                };
+              }
+
+              // Process data parts with converter if provided
+              if (isDataUIPart(part) && options?.convertDataPart) {
+                return options.convertDataPart(part);
+              }
+
+              // Skip other part types
+              return null;
+            })
+            .filter((item): item is NonNullable<typeof item> => item !== null),
         });
 
         break;
@@ -291,10 +312,11 @@ export function convertToModelMessages(
               part.type === 'file' ||
               isToolOrDynamicToolUIPart(part)
             ) {
-              block.push(part);
+              block.push(part as any); // Type assertion needed due to union type complexity
             } else if (part.type === 'step-start') {
               processBlock();
             }
+            // Skip data parts in assistant messages - they're not supported in model messages
           }
 
           processBlock();

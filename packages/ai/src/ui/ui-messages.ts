@@ -211,6 +211,18 @@ export function isDataUIPart<DATA_TYPES extends UIDataTypes>(
   return part.type.startsWith('data-');
 }
 
+export function isTextUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is TextUIPart {
+  return part.type === 'text';
+}
+
+export function isFileUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is FileUIPart {
+  return part.type === 'file';
+}
+
 /**
  * A UI tool invocation contains all the information needed to render a tool invocation in the UI.
  * It can be derived from a tool without knowing the tool name, and can be used to define
