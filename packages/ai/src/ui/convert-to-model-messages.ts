@@ -312,7 +312,7 @@ export function convertToModelMessages<
               part.type === 'file' ||
               isToolOrDynamicToolUIPart(part)
             ) {
-              block.push(part as any); // Type assertion needed due to union type complexity
+              block.push;
             } else if (part.type === 'step-start') {
               processBlock();
             }
