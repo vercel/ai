@@ -3,6 +3,7 @@ import {
   LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { asSchema } from '@ai-sdk/provider-utils';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 
@@ -14,7 +15,7 @@ export function prepareTools({
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: GoogleGenerativeAIModelId;
-}): {
+}): Promise<{
   tools:
     | {
         functionDeclarations: Array<{
@@ -34,7 +35,7 @@ export function prepareTools({
         };
       };
   toolWarnings: LanguageModelV3CallWarning[];
-} {
+}> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
@@ -144,7 +145,9 @@ export function prepareTools({
         functionDeclarations.push({
           name: tool.name,
           description: tool.description ?? '',
-          parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+          parameters: convertJSONSchemaToOpenAPISchema(
+            await asSchema(tool.inputSchema).jsonSchema,
+          ),
         });
         break;
       default:
