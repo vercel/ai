@@ -28,6 +28,7 @@ export function convertJSONSchemaToOpenAPISchema(
     const: constValue,
     minLength,
     enum: enumValues,
+    additionalProperties,
   } = jsonSchema;
 
   const result: Record<string, unknown> = {};
@@ -113,6 +114,15 @@ export function convertJSONSchemaToOpenAPISchema(
 
   if (minLength !== undefined) {
     result.minLength = minLength;
+  }
+
+  if (additionalProperties !== undefined) {
+    if (typeof additionalProperties === 'boolean') {
+      result.additionalProperties = additionalProperties;
+    } else {
+      result.additionalProperties =
+        convertJSONSchemaToOpenAPISchema(additionalProperties);
+    }
   }
 
   return result;
