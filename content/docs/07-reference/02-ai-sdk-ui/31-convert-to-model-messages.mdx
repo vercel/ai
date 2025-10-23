@@ -190,21 +190,18 @@ const result = convertToModelMessages<
       note: { text: string };
     }
   >
->(
-  messages,
-  {
-    convertDataPart: part => {
-      if (part.type === 'data-url') {
-        return {
-          type: 'text',
-          text: `[${part.data.title}](${part.data.url})`,
-        };
-      }
+>(messages, {
+  convertDataPart: part => {
+    if (part.type === 'data-url') {
+      return {
+        type: 'text',
+        text: `[${part.data.title}](${part.data.url})`,
+      };
+    }
 
-      // data-code and data-node are ignored
-    },
+    // data-code and data-node are ignored
   },
-);
+});
 ```
 
 ### Type Safety
