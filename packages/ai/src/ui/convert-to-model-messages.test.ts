@@ -1,6 +1,7 @@
 import { ModelMessage } from '@ai-sdk/provider-utils';
+import { describe, expect, it } from 'vitest';
 import { convertToModelMessages } from './convert-to-model-messages';
-import { describe, it, expect } from 'vitest';
+import { UIMessage } from './ui-messages';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
@@ -2001,11 +2002,9 @@ describe('convertToModelMessages', () => {
 
   describe('data part conversion', () => {
     it('should convert data parts to text when converter provided', () => {
-      type MyData = {
-        url: { url: string; content: string };
-      };
-
-      const result = convertToModelMessages<MyData>(
+      const result = convertToModelMessages<
+        UIMessage<unknown, { url: { url: string; content: string } }>
+      >(
         [
           {
             role: 'user',
@@ -2070,12 +2069,15 @@ describe('convertToModelMessages', () => {
     });
 
     it('should selectively convert data parts', () => {
-      type MyData = {
-        url: { url: string };
-        'ui-state': { enabled: boolean };
-      };
-
-      const result = convertToModelMessages<MyData>(
+      const result = convertToModelMessages<
+        UIMessage<
+          unknown,
+          {
+            url: { url: string };
+            'ui-state': { enabled: boolean };
+          }
+        >
+      >(
         [
           {
             role: 'user',
@@ -2112,11 +2114,12 @@ describe('convertToModelMessages', () => {
     });
 
     it('should convert data parts to file parts', () => {
-      type MyData = {
-        attachment: { mediaType: string; filename: string; data: string };
-      };
-
-      const result = convertToModelMessages<MyData>(
+      const result = convertToModelMessages<
+        UIMessage<
+          unknown,
+          { attachment: { mediaType: string; filename: string; data: string } }
+        >
+      >(
         [
           {
             role: 'user',
@@ -2170,13 +2173,16 @@ describe('convertToModelMessages', () => {
     });
 
     it('should handle multiple data parts of different types', () => {
-      type MyData = {
-        url: { url: string; title: string };
-        code: { code: string; language: string };
-        note: { text: string };
-      };
-
-      const result = convertToModelMessages<MyData>(
+      const result = convertToModelMessages<
+        UIMessage<
+          unknown,
+          {
+            url: { url: string; title: string };
+            code: { code: string; language: string };
+            note: { text: string };
+          }
+        >
+      >(
         [
           {
             role: 'user',
@@ -2288,11 +2294,9 @@ describe('convertToModelMessages', () => {
     });
 
     it('should preserve order of parts including converted data parts', () => {
-      type MyData = {
-        tag: { value: string };
-      };
-
-      const result = convertToModelMessages<MyData>(
+      const result = convertToModelMessages<
+        UIMessage<unknown, { tag: { value: string } }>
+      >(
         [
           {
             role: 'user',

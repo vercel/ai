@@ -14,43 +14,18 @@ import {
   DynamicToolUIPart,
   FileUIPart,
   getToolOrDynamicToolName,
+  InferUIMessageData,
+  InferUIMessageTools,
   isDataUIPart,
+  isFileUIPart,
+  isReasoningUIPart,
+  isTextUIPart,
   isToolOrDynamicToolUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
-  UIDataTypes,
   UIMessage,
-  UIMessagePart,
-  UITools,
 } from './ui-messages';
-
-/**
- * Type guard to check if a message part is a text part.
- */
-function isTextUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is TextUIPart {
-  return part.type === 'text';
-}
-
-/**
- * Type guard to check if a message part is a file part.
- */
-function isFileUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is FileUIPart {
-  return part.type === 'file';
-}
-
-/**
- * Type guard to check if a message part is a reasoning part.
- */
-function isReasoningUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is ReasoningUIPart {
-  return part.type === 'reasoning';
-}
 
 /**
 Converts an array of UI messages from useChat into an array of ModelMessages that can be used
@@ -63,16 +38,13 @@ with the AI functions (e.g. `streamText`, `generateText`).
 
 @returns An array of ModelMessages.
  */
-export function convertToModelMessages<
-  DATA_PARTS extends UIDataTypes = UIDataTypes,
-  TOOLS extends UITools = UITools,
->(
-  messages: Array<Omit<UIMessage<unknown, DATA_PARTS, TOOLS>, 'id'>>,
+export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
+  messages: Array<Omit<UI_MESSAGE, 'id'>>,
   options?: {
     tools?: ToolSet;
     ignoreIncompleteToolCalls?: boolean;
     convertDataPart?: (
-      part: DataUIPart<DATA_PARTS>,
+      part: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
     ) => TextPart | FilePart | null;
   },
 ): ModelMessage[] {
@@ -83,7 +55,7 @@ export function convertToModelMessages<
       ...message,
       parts: message.parts.filter(
         part =>
-          !isToolOrDynamicToolUIPart<TOOLS>(part) ||
+          !isToolOrDynamicToolUIPart(part) ||
           (part.state !== 'input-streaming' &&
             part.state !== 'input-available'),
       ),
@@ -144,8 +116,12 @@ export function convertToModelMessages<
               }
 
               // Process data parts with converter if provided
-              if (isDataUIPart<DATA_PARTS>(part)) {
-                return options?.convertDataPart?.(part) ?? null;
+              if (isDataUIPart(part)) {
+                return (
+                  options?.convertDataPart?.(
+                    part as DataUIPart<InferUIMessageData<UI_MESSAGE>>,
+                  ) ?? null
+                );
               }
 
               return null;
@@ -160,7 +136,7 @@ export function convertToModelMessages<
         if (message.parts != null) {
           let block: Array<
             | TextUIPart
-            | ToolUIPart<TOOLS>
+            | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
             | ReasoningUIPart
             | FileUIPart
             | DynamicToolUIPart
@@ -195,7 +171,9 @@ export function convertToModelMessages<
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
-              } else if (isToolOrDynamicToolUIPart<TOOLS>(part)) {
+              } else if (
+                isToolOrDynamicToolUIPart<InferUIMessageTools<UI_MESSAGE>>(part)
+              ) {
                 const toolName = getToolOrDynamicToolName(part);
 
                 if (part.state !== 'input-streaming') {
@@ -257,9 +235,13 @@ export function convertToModelMessages<
             // check if there are tool invocations with results in the block
             const toolParts = block.filter(
               part =>
-                isToolOrDynamicToolUIPart<TOOLS>(part) &&
-                part.providerExecuted !== true,
-            ) as (ToolUIPart<TOOLS> | DynamicToolUIPart)[];
+                isToolOrDynamicToolUIPart<InferUIMessageTools<UI_MESSAGE>>(
+                  part,
+                ) && part.providerExecuted !== true,
+            ) as (
+              | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
+              | DynamicToolUIPart
+            )[];
 
             // tool message with tool results
             if (toolParts.length > 0) {
@@ -336,9 +318,9 @@ export function convertToModelMessages<
               isTextUIPart(part) ||
               isReasoningUIPart(part) ||
               isFileUIPart(part) ||
-              isToolOrDynamicToolUIPart<TOOLS>(part)
+              isToolOrDynamicToolUIPart(part)
             ) {
-              block.push(part);
+              block.push(part as (typeof block)[number]);
             } else if (part.type === 'step-start') {
               processBlock();
             }
