@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@6.0.0-beta.67
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - Updated dependencies [fca786b]
   - ai@6.0.0-beta.66
 
