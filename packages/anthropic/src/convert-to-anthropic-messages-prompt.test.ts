@@ -568,15 +568,11 @@ describe('tool messages', () => {
           content: [
             {
               type: 'tool-result',
-              toolName: 'image-generator',
-              toolCallId: 'image-gen-1',
+              toolName: 'get-pdf',
+              toolCallId: 'get-pdf-1',
               output: {
                 type: 'content',
                 value: [
-                  {
-                    type: 'text',
-                    text: 'PDF loaded successfully',
-                  },
                   {
                     type: 'file-url',
                     url: 'https://example.com/document.pdf',
@@ -602,10 +598,6 @@ describe('tool messages', () => {
                   "cache_control": undefined,
                   "content": [
                     {
-                      "text": "PDF loaded successfully",
-                      "type": "text",
-                    },
-                    {
                       "source": {
                         "type": "url",
                         "url": "https://example.com/document.pdf",
@@ -614,7 +606,7 @@ describe('tool messages', () => {
                     },
                   ],
                   "is_error": undefined,
-                  "tool_use_id": "image-gen-1",
+                  "tool_use_id": "get-pdf-1",
                   "type": "tool_result",
                 },
               ],
@@ -641,10 +633,6 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'text',
-                    text: 'PDF loaded successfully',
-                  },
-                  {
                     type: 'image-url',
                     url: 'https://example.com/image.png',
                   },
@@ -668,10 +656,6 @@ describe('tool messages', () => {
                 {
                   "cache_control": undefined,
                   "content": [
-                    {
-                      "text": "PDF loaded successfully",
-                      "type": "text",
-                    },
                     {
                       "source": {
                         "type": "url",
