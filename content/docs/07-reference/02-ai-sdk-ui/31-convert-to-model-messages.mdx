@@ -194,7 +194,7 @@ const result = convertToModelMessages<
   messages,
   {
     convertDataPart: part => {
-      if (part.type === 'data-url') {}
+      if (part.type === 'data-url') {
         return {
           type: 'text',
           text: `[${part.data.title}](${part.data.url})`,
