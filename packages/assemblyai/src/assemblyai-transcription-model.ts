@@ -1,10 +1,13 @@
 import {
+  AISDKError,
   TranscriptionModelV3,
   TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
+  delay,
+  getFromApi,
   parseProviderOptions,
   postJsonToApi,
   postToApi,
@@ -237,19 +240,25 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
         (assemblyaiOptions.languageCodes as never) ?? undefined;
       body.language_confidence_threshold =
         assemblyaiOptions.languageConfidenceThreshold ?? undefined;
+
       body.language_detection =
         typeof assemblyaiOptions.languageDetection === 'boolean'
           ? assemblyaiOptions.languageDetection
           : assemblyaiOptions.languageDetection
-            ? {
-                code_switching:
-                  assemblyaiOptions.languageDetection.codeSwitching ??
-                  undefined,
-                code_switching_confidence_threshold:
-                  assemblyaiOptions.languageDetection
-                    .codeSwitchingConfidenceThreshold ?? undefined,
-              }
+            ? true
             : undefined;
+
+      body.language_detection_options =
+        assemblyaiOptions.languageDetection &&
+        typeof assemblyaiOptions.languageDetection === 'object'
+          ? {
+              code_switching:
+                assemblyaiOptions.languageDetection.codeSwitching ?? undefined,
+              code_switching_confidence_threshold:
+                assemblyaiOptions.languageDetection
+                  .codeSwitchingConfidenceThreshold ?? undefined,
+            }
+          : undefined;
 
       body.multichannel = assemblyaiOptions.multichannel ?? undefined;
       body.punctuate = assemblyaiOptions.punctuate ?? undefined;
@@ -290,10 +299,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { value: uploadResponse } = await postToApi({
-      url: this.config.url({
-        path: '/v2/upload',
-        modelId: '',
-      }),
+      url: this.config.url({ path: '/v2/upload', modelId: '' }),
       headers: {
         'Content-Type': 'application/octet-stream',
         ...combineHeaders(this.config.headers(), options.headers),
@@ -313,9 +319,9 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
     const { body, warnings } = await this.getArgs(options);
 
     const {
-      value: response,
-      responseHeaders,
-      rawValue: rawResponse,
+      value: initialTranscript,
+      responseHeaders: initialHeaders,
+      rawValue: initialRawResponse,
     } = await postJsonToApi({
       url: this.config.url({
         path: '/v2/transcript',
@@ -334,23 +340,85 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
       fetch: this.config.fetch,
     });
 
+    let transcript = initialTranscript;
+    let transcriptHeaders = initialHeaders;
+    let transcriptRawResponse = initialRawResponse;
+
+    const pollingInterval = 1000;
+    const timeoutMs = 60 * 1000;
+    const startTime = Date.now();
+
+    while (true) {
+      if (Date.now() - startTime > timeoutMs) {
+        throw new AISDKError({
+          name: 'AssemblyAITranscriptionPollingTimedOut',
+          message: 'Transcription job polling timed out',
+          cause: transcript,
+        });
+      }
+
+      const pollResult = await getFromApi({
+        url: this.config.url({
+          path: `/v2/transcript/${transcript.id}`,
+          modelId: this.modelId,
+        }),
+        headers: combineHeaders(this.config.headers(), options.headers),
+        failedResponseHandler: assemblyaiFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          assemblyaiTranscriptionResponseSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      transcript = pollResult.value;
+      transcriptHeaders = pollResult.responseHeaders;
+      transcriptRawResponse = pollResult.rawValue;
+
+      if (transcript.status === 'completed') {
+        break;
+      }
+
+      if (transcript.status === 'error') {
+        throw new AISDKError({
+          name: 'AssemblyAITranscriptionFailed',
+          message:
+            transcript.error ??
+            `AssemblyAI transcription ended with status "${transcript.status}"`,
+          cause: transcript,
+        });
+      }
+
+      await delay(pollingInterval, { abortSignal: options.abortSignal });
+    }
+
+    if (!transcript.id) {
+      throw new AISDKError({
+        name: 'AssemblyAITranscriptionEmpty',
+        message: 'Transcription result is empty',
+        cause: transcript,
+      });
+    }
+
     return {
-      text: response.text ?? '',
+      text: transcript.text ?? '',
+      durationInSeconds: transcript.audio_duration ?? undefined,
+      language: transcript.language_code ?? undefined,
       segments:
-        response.words?.map(word => ({
+        transcript.words?.map(word => ({
           text: word.text,
           startSecond: word.start,
           endSecond: word.end,
         })) ?? [],
-      language: response.language_code ?? undefined,
-      durationInSeconds:
-        response.audio_duration ?? response.words?.at(-1)?.end ?? undefined,
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
-        headers: responseHeaders,
-        body: rawResponse,
+        headers: transcriptHeaders,
+        body: transcriptRawResponse,
+      },
+      providerMetadata: {
+        assemblyai: transcript,
       },
     };
   }
@@ -361,8 +429,22 @@ const assemblyaiUploadResponseSchema = z.object({
 });
 
 const assemblyaiTranscriptionResponseSchema = z.object({
+  id: z.string(),
+  status: z.enum(['queued', 'processing', 'completed', 'error']),
+  error: z.string().nullish(),
   text: z.string().nullish(),
   language_code: z.string().nullish(),
+  language_codes: z.array(z.string()).nullish(),
+  language_detection: z.boolean().nullish(),
+  language_detection_options: z
+    .object({
+      expected_languages: z.array(z.any()).nullish(),
+      fallback_language: z.string().nullish(),
+      code_switching: z.boolean().nullish(),
+      code_switching_confidence_threshold: z.number().nullish(),
+    })
+    .nullish(),
+
   words: z
     .array(
       z.object({

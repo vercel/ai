@@ -310,23 +310,19 @@ export type AssemblyAITranscriptionAPITypes = {
   language_confidence_threshold?: number;
 
   /**
-   * Enable Automatic language detection, either true or false, or configure code switching detection.
+   * Enable Automatic language detection, either true or false.
    * @default false
    */
-  language_detection?:
-    | boolean
-    | {
-        /**
-         * Enable code switching detection.
-         * @default false
-         */
-        code_switching?: boolean;
-        /**
-         * Confidence threshold for code switching detection. Values must be between 0 and 1.
-         * @default 0.3
-         */
-        code_switching_confidence_threshold?: number;
-      };
+  language_detection?: boolean;
+
+  /**
+   * Options for Automatic language detection.
+   */
+  language_detection_options?: {
+    code_switching?: boolean | null;
+    code_switching_confidence_threshold?: number | null;
+  } | null;
+
   /**
    * Enable Multichannel transcription, can be true or false.
    * @default false
