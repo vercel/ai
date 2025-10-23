@@ -35,6 +35,12 @@ const gatewayProviderOptions = lazyValidator(() =>
        * Example: `['chat', 'v2']`
        */
       tags: z.array(z.string()).optional(),
+      /**
+       * Array of model slugs specifying fallback models to use in order.
+       *
+       * Example: `['openai/gpt-5-nano', 'zai/glm-4.6']` will try `openai/gpt-5-nano` first, then `zai/glm-4.6` as fallback.
+       */
+      models: z.array(z.string()).optional(),
     }),
   ),
 );
