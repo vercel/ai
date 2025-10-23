@@ -113,7 +113,7 @@ It contains all the text, tool calls, tool results, and more from each step.
 import { generateText } from 'ai';
 
 const { steps } = await generateText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-4o',
   stopWhen: stepCountIs(10),
   // ...
 });
@@ -520,7 +520,7 @@ async function generateSomething(prompt: string): Promise<{
   toolResults: Array<MyToolResult>; // typed tool results
 }> {
   return generateText({
-    model: openai('gpt-4.1'),
+    model: 'openai/gpt-4.1',
     tools: myToolSet,
     prompt,
   });
@@ -626,7 +626,6 @@ You can use different strategies to repair the tool call:
 ### Example: Use a model with structured outputs for repair
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
 
 const result = await generateText({
@@ -647,7 +646,7 @@ const result = await generateText({
     const tool = tools[toolCall.toolName as keyof typeof tools];
 
     const { object: repairedArgs } = await generateObject({
-      model: openai('gpt-4.1'),
+      model: 'openai/gpt-4.1',
       schema: tool.inputSchema,
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +
@@ -739,11 +738,10 @@ It is an array of tool names that are currently active.
 By default, the value is `undefined` and all tools are active.
 
 ```ts highlight="7"
-import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   tools: myToolSet,
   activeTools: ['firstTool'],
 });

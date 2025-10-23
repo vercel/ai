@@ -8,14 +8,13 @@ description: Convert useChat messages to ModelMessages for AI functions (API Ref
 The `convertToModelMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `ModelMessage` objects. These `ModelMessage` objects are compatible with AI core functions like `streamText`.
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
   });
 
@@ -77,7 +76,7 @@ const screenshotTool = tool({
 });
 
 const result = streamText({
-  model: openai('gpt-4'),
+  model: 'openai/gpt-4o',
   messages: convertToModelMessages(messages, {
     tools: {
       screenshot: screenshotTool,

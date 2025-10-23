@@ -95,7 +95,6 @@ Let's start by creating the POST handler to create the resumable stream.
 The POST handler creates resumable streams using the `consumeSseStream` callback:
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { readChat, saveChat } from '@util/chat-store';
 import {
   convertToModelMessages,
@@ -124,7 +123,7 @@ export async function POST(req: Request) {
   saveChat({ id, messages, activeStreamId: null });
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-4o-mini',
     messages: convertToModelMessages(messages),
   });
 

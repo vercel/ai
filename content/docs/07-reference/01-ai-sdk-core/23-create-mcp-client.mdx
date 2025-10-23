@@ -162,7 +162,6 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
 ```typescript
 import { experimental_createMCPClient, generateText } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
-import { openai } from '@ai-sdk/openai';
 
 let client;
 
@@ -176,7 +175,7 @@ try {
   const tools = await client.tools();
 
   const response = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-4o-mini',
     tools,
     messages: [{ role: 'user', content: 'Query the data' }],
   });

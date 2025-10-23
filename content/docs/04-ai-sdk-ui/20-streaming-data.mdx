@@ -47,7 +47,6 @@ export type MyUIMessage = UIMessage<
 In your server-side route handler, you can create a `UIMessageStream` and then pass it to `createUIMessageStreamResponse`:
 
 ```tsx filename="route.ts"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -88,7 +87,7 @@ export async function POST(req: Request) {
       });
 
       const result = streamText({
-        model: openai('gpt-4.1'),
+        model: 'openai/gpt-4.1',
         messages: convertToModelMessages(messages),
         onFinish() {
           // 4. Update the same data part (reconciliation)

@@ -52,7 +52,7 @@ const response = createUIMessageStreamResponse({
 
       // Merge with LLM stream
       const result = streamText({
-        model: openai('gpt-4'),
+        model: 'openai/gpt-4o',
         prompt: 'Say hello',
       });
 
