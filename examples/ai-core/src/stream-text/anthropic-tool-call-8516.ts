@@ -89,7 +89,7 @@ run(async () => {
     ],
   });
 
-  printFullStream({ result });
+  await printFullStream({ result });
   console.log();
   print('Request body:', (await result.request).body);
 });
