@@ -301,7 +301,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               isTextUIPart(part) ||
               isReasoningUIPart(part) ||
               isFileUIPart(part) ||
-              isToolUIPart(part) ||
+              isToolOrDynamicToolUIPart(part) ||
               isDataUIPart(part)
             ) {
               block.push(part as (typeof block)[number]);
