@@ -676,7 +676,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.43
+        specifier: 4.0.0-beta.44
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.0-beta.67
@@ -777,10 +777,10 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.0-beta.39
+        specifier: 4.0.0-beta.40
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 3.0.0-beta.35
+        specifier: 3.0.0-beta.36
         version: link:../../packages/anthropic
       '@ai-sdk/cohere':
         specifier: 3.0.0-beta.20
@@ -795,7 +795,7 @@ importers:
         specifier: 3.0.0-beta.27
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.43
+        specifier: 4.0.0-beta.44
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.0-beta.20

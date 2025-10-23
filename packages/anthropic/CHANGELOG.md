@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- 21f378c: fix(provider/anthropic): do not limit maxTokens when model id is unknown
+
 ## 3.0.0-beta.35
 
 ### Patch Changes
