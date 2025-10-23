@@ -2320,7 +2320,7 @@ describe('citations', () => {
                   "cache_control": undefined,
                   "content": "{"weather":"sunny"}",
                   "is_error": undefined,
-                  "tool_use_id": "tool-call-1",
+                  "tool_use_id": "weather-call-1",
                   "type": "tool_result",
                 },
                 {
