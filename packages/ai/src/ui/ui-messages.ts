@@ -295,8 +295,6 @@ export type DynamicToolUIPart = {
     }
 );
 
-<<<<<<< HEAD
-=======
 /**
  * Type guard to check if a message part is a text part.
  */
@@ -325,7 +323,6 @@ export function isReasoningUIPart(
 }
 
 // TODO AI SDK 6: rename to isStaticToolUIPart
->>>>>>> 9b8394786 (feat(ai): add convertDataPart option to convertToModelMessages (#9720))
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> {

@@ -1,13 +1,8 @@
 import {
   AssistantContent,
   FilePart,
-  isNonNullable,
   ModelMessage,
-<<<<<<< HEAD
-=======
   TextPart,
-  ToolApprovalResponse,
->>>>>>> 9b8394786 (feat(ai): add convertDataPart option to convertToModelMessages (#9720))
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text/tool-set';
@@ -17,17 +12,15 @@ import {
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
-<<<<<<< HEAD
   getToolName,
-=======
   getToolOrDynamicToolName,
   InferUIMessageData,
   InferUIMessageTools,
   isDataUIPart,
+  isDynamicToolUIPart,
   isFileUIPart,
   isReasoningUIPart,
   isTextUIPart,
->>>>>>> 9b8394786 (feat(ai): add convertDataPart option to convertToModelMessages (#9720))
   isToolOrDynamicToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -131,7 +124,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 );
               }
             })
-            .filter(isNonNullable),
+            .filter((part): part is TextPart | FilePart => part != null),
         });
 
         break;
@@ -177,7 +170,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
-              } else if (part.type === 'dynamic-tool') {
+              } else if (isDynamicToolUIPart(part)) {
                 const toolName = part.toolName;
 
                 if (part.state !== 'input-streaming') {
@@ -198,7 +191,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
-                    toolName,
+                    toolName: toolName as string,
                     input:
                       part.state === 'output-error'
                         ? (part.input ?? part.rawInput)
@@ -217,7 +210,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     content.push({
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
-                      toolName,
+                      toolName: toolName as string,
                       output: createToolModelOutput({
                         output:
                           part.state === 'output-error'
@@ -252,18 +245,12 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             // check if there are tool invocations with results in the block
             const toolParts = block.filter(
               part =>
-<<<<<<< HEAD
                 (isToolUIPart(part) && part.providerExecuted !== true) ||
                 part.type === 'dynamic-tool',
-            ) as (ToolUIPart<UITools> | DynamicToolUIPart)[];
-=======
-                isToolOrDynamicToolUIPart(part) &&
-                part.providerExecuted !== true,
             ) as (
               | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
               | DynamicToolUIPart
             )[];
->>>>>>> 9b8394786 (feat(ai): add convertDataPart option to convertToModelMessages (#9720))
 
             // tool message with tool results
             if (toolParts.length > 0) {
@@ -274,10 +261,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     switch (toolPart.state) {
                       case 'output-error':
                       case 'output-available': {
-                        const toolName =
-                          toolPart.type === 'dynamic-tool'
-                            ? toolPart.toolName
-                            : getToolName(toolPart);
+                        const toolName = getToolOrDynamicToolName(toolPart);
 
                         return {
                           type: 'tool-result',
@@ -314,19 +298,11 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
           for (const part of message.parts) {
             if (
-<<<<<<< HEAD
-              part.type === 'text' ||
-              part.type === 'reasoning' ||
-              part.type === 'file' ||
-              part.type === 'dynamic-tool' ||
-              isToolUIPart(part)
-=======
               isTextUIPart(part) ||
               isReasoningUIPart(part) ||
               isFileUIPart(part) ||
-              isToolOrDynamicToolUIPart(part) ||
+              isToolUIPart(part) ||
               isDataUIPart(part)
->>>>>>> 9b8394786 (feat(ai): add convertDataPart option to convertToModelMessages (#9720))
             ) {
               block.push(part as (typeof block)[number]);
             } else if (part.type === 'step-start') {
