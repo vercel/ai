@@ -1,6 +1,7 @@
 import {
   AssistantContent,
   FilePart,
+  isNonNullable,
   ModelMessage,
   TextPart,
   ToolApprovalResponse,
@@ -122,7 +123,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 );
               }
             })
-            .filter((part): part is TextPart | FilePart => part != null),
+            .filter(isNonNullable),
         });
 
         break;
