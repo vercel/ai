@@ -47,7 +47,7 @@ run(async () => {
           {
             type: 'tool-result',
             toolName: 'weather',
-            toolCallId: 'tool-call-1',
+            toolCallId: 'weather-call-1',
             output: {
               type: 'json',
               value: { weather: 'sunny' },
