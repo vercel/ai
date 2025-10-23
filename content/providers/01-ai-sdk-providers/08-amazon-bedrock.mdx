@@ -35,6 +35,18 @@ See the [Model Access Docs](https://docs.aws.amazon.com/bedrock/latest/userguide
 
 ### Authentication
 
+The Amazon Bedrock provider supports API key authentication and AWS credentials (IAM/SigV4). API keys are recommended for simpler setup.
+
+#### Using API Key (Recommended)
+
+Set the `AWS_BEARER_TOKEN_BEDROCK` environment variable:
+
+```makefile
+AWS_BEARER_TOKEN_BEDROCK=your-api-key-here
+```
+
+The API key will be automatically used. If not provided, the provider falls back to AWS credentials.
+
 #### Using IAM Access Key and Secret Key
 
 **Step 1: Creating AWS Access Key and Secret Key**
@@ -124,6 +136,13 @@ If you need a customized setup, you can import `createAmazonBedrock` from `@ai-s
 ```ts
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 
+// With API key:
+const bedrock = createAmazonBedrock({
+  apiKey: 'your-api-key',
+  region: 'us-east-1',
+});
+
+// Or with IAM credentials:
 const bedrock = createAmazonBedrock({
   region: 'us-east-1',
   accessKeyId: 'xxxxxxxxx',
@@ -142,6 +161,10 @@ const bedrock = createAmazonBedrock({
 </Note>
 
 You can use the following optional settings to customize the Amazon Bedrock provider instance:
+
+- **apiKey** _string_
+
+  The API key for authentication. It uses the `AWS_BEARER_TOKEN_BEDROCK` environment variable by default. When provided, this takes precedence over AWS credentials.
 
 - **region** _string_
 
