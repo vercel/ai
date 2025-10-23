@@ -38,8 +38,11 @@ The Helicone provider is available in the `@helicone/ai-sdk-provider` package. Y
 To get started with Helicone, use the `createHelicone` function to create a provider instance. Then query any model you like.
 
 ```typescript
+import { createHelicone } from '@helicone/ai-sdk-provider';
+import { generateText } from 'ai';
+
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY!
+  apiKey: process.env.HELICONE_API_KEY
 });
 
 const result = await generateText({
@@ -54,21 +57,21 @@ You can obtain your Helicone API key from the [Helicone Dashboard](https://us.he
 
 ## Examples
 
-Here are examples of using Helicone with the AI SDK:
+Here are examples of using Helicone with the AI SDK.
 
 ### `generateText`
 
 ```javascript
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createHelicone } from '@helicone/ai-sdk-provider';
 import { generateText } from 'ai';
 
-const openrouter = createOpenRouter({
-  apiKey: 'YOUR_OPENROUTER_API_KEY',
+const helicone = createHelicone({
+  apiKey: process.env.HELICONE_API_KEY
 });
 
 const { text } = await generateText({
-  model: openrouter.chat('anthropic/claude-3.5-sonnet'),
-  prompt: 'What is OpenRouter?',
+  model: helicone('claude-3.7-sonnet'),
+  prompt: 'What is Helicone?'
 });
 
 console.log(text);
@@ -77,13 +80,14 @@ console.log(text);
 ### `streamText`
 
 ```javascript
-import { createHelicone } from '@helicone/ai-sdk-provider';
-import { streamText } from 'ai';
+const helicone = createHelicone({
+  apiKey: process.env.HELICONE_API_KEY
+});
 
 const result = await streamText({
   model: helicone('gpt-4o-mini'),
   prompt: 'Write a short story about a robot learning to paint',
-  maxOutputTokens: 300,
+  maxOutputTokens: 300
 });
 
 for await (const chunk of result.textStream) {
