@@ -328,7 +328,6 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             } else if (part.type === 'step-start') {
               processBlock();
             }
-            // Skip data parts in assistant messages - they're not supported in model messages
           }
 
           processBlock();
