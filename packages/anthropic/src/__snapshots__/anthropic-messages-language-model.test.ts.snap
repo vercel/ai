@@ -135,8 +135,6 @@ The script uses an iterative approach to calculate Fibonacci numbers efficiently
 ]
 `;
 
-<<<<<<< HEAD
-=======
 exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 > should include file id list in code execution tool generate call result. 1`] = `
 {
   "content": [
@@ -630,52 +628,6 @@ Both files have been exported and are ready for download!",
 }
 `;
 
-exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should include mcp tool call and result in content 1`] = `
-[
-  {
-    "dynamic": true,
-    "input": "{"message":"hello world"}",
-    "providerExecuted": true,
-    "providerMetadata": {
-      "anthropic": {
-        "serverName": "echo",
-        "type": "mcp-tool-use",
-      },
-    },
-    "toolCallId": "mcptoolu_015oTj2fXVKLrDohFetJd5UL",
-    "toolName": "echo",
-    "type": "tool-call",
-  },
-  {
-    "dynamic": true,
-    "isError": false,
-    "providerExecuted": true,
-    "providerMetadata": {
-      "anthropic": {
-        "serverName": "echo",
-        "type": "mcp-tool-use",
-      },
-    },
-    "result": [
-      {
-        "text": "Tool echo: hello world",
-        "type": "text",
-      },
-    ],
-    "toolCallId": "mcptoolu_015oTj2fXVKLrDohFetJd5UL",
-    "toolName": "echo",
-    "type": "tool-result",
-  },
-  {
-    "text": "The echo tool responded back with: **"hello world"**
-
-As expected, it simply echoes back the exact message that was sent to it!",
-    "type": "text",
-  },
-]
-`;
-
->>>>>>> 80894b333 (feat(provider/anthropic): add return `file_id` property for anthropic code-execution-20250825 to download output files (#9669))
 exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should include memory tool call and result in content 1`] = `
 [
   {
