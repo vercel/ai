@@ -119,16 +119,20 @@ export const createJsonStreamResponseHandler =
       value: response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
         new TransformStream<string, ParseResult<T>>({
           async transform(chunkText, controller) {
-            if (chunkText.endsWith('\n')) {
+            buffer += chunkText;
+
+            while (buffer.includes('\n')) {
+              const index = buffer.indexOf('\n');
+              const eventChunk = buffer.slice(0, index);
+
               controller.enqueue(
                 await safeParseJSON({
-                  text: buffer + chunkText,
+                  text: eventChunk,
                   schema: chunkSchema,
                 }),
               );
-              buffer = '';
-            } else {
-              buffer += chunkText;
+
+              buffer = buffer.slice(index + 1);
             }
           },
         }),

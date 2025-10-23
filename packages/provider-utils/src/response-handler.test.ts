@@ -54,6 +54,38 @@ describe('createJsonStreamResponseHandler', () => {
       { success: true, value: { a: 1 }, rawValue: { a: 1 } },
     ]);
   });
+
+  it('should split multiple events in a single chunks', async () => {
+    const handler = createJsonStreamResponseHandler(
+      z.object({ a: z.number() }),
+    );
+
+    const { value: stream } = await handler({
+      url: 'some url',
+      requestBodyValues: {},
+      response: new Response(
+        convertArrayToReadableStream([
+          JSON.stringify({ a: 1 }) +
+            '\n' +
+            JSON.stringify({ a: 2 }) +
+            '\n' +
+            JSON.stringify({ a: 3 }) +
+            '\n',
+          JSON.stringify({ a: 4 }) + '\n',
+          JSON.stringify({ a: 5 }) + '\n' + JSON.stringify({ a: 6 }) + '\n',
+        ]).pipeThrough(new TextEncoderStream()),
+      ),
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { success: true, value: { a: 1 }, rawValue: { a: 1 } },
+      { success: true, value: { a: 2 }, rawValue: { a: 2 } },
+      { success: true, value: { a: 3 }, rawValue: { a: 3 } },
+      { success: true, value: { a: 4 }, rawValue: { a: 4 } },
+      { success: true, value: { a: 5 }, rawValue: { a: 5 } },
+      { success: true, value: { a: 6 }, rawValue: { a: 6 } },
+    ]);
+  });
 });
 
 describe('createJsonResponseHandler', () => {
