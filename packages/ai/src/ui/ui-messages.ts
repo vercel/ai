@@ -295,6 +295,34 @@ export type DynamicToolUIPart = {
     }
 );
 
+/**
+ * Type guard to check if a message part is a text part.
+ */
+export function isTextUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is TextUIPart {
+  return part.type === 'text';
+}
+
+/**
+ * Type guard to check if a message part is a file part.
+ */
+export function isFileUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is FileUIPart {
+  return part.type === 'file';
+}
+
+/**
+ * Type guard to check if a message part is a reasoning part.
+ */
+export function isReasoningUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is ReasoningUIPart {
+  return part.type === 'reasoning';
+}
+
+// TODO AI SDK 6: rename to isStaticToolUIPart
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> {
@@ -347,3 +375,8 @@ export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> =
       > & { dynamic?: false };
     }>
   | (ToolCall<string, unknown> & { dynamic: true });
+
+export type InferUIMessagePart<UI_MESSAGE extends UIMessage> = UIMessagePart<
+  InferUIMessageData<UI_MESSAGE>,
+  InferUIMessageTools<UI_MESSAGE>
+>;
