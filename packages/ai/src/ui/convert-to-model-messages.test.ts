@@ -2010,7 +2010,6 @@ describe('convertToModelMessages', () => {
           {
             role: 'user',
             parts: [
-              { type: 'text', text: 'Analyze this' },
               {
                 type: 'data-url',
                 data: { url: 'https://example.com', content: 'Article text' },
@@ -2019,15 +2018,10 @@ describe('convertToModelMessages', () => {
           },
         ],
         {
-          convertDataPart: part => {
-            if (part.type === 'data-url') {
-              return {
-                type: 'text',
-                text: `\n\n[${part.data.url}]\n${part.data.content}`,
-              };
-            }
-            return null;
-          },
+          convertDataPart: part => ({
+            type: 'text',
+            text: `\n\n[${part.data.url}]\n${part.data.content}`,
+          }),
         },
       );
 
@@ -2035,10 +2029,6 @@ describe('convertToModelMessages', () => {
         [
           {
             "content": [
-              {
-                "text": "Analyze this",
-                "type": "text",
-              },
               {
                 "text": "
 
