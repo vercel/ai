@@ -100,17 +100,20 @@ By default, data parts in user messages are filtered out during conversion. To i
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
 
-type CustomDataParts = {
-  url: { url: string; title: string; content: string };
-  'code-file': { filename: string; code: string; language: string };
-};
+type CustomUIMessage = UIMessage<
+  never,
+  {
+    url: { url: string; title: string; content: string };
+    'code-file': { filename: string; code: string; language: string };
+  }
+>;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages: convertToModelMessages<CustomDataParts>(messages, {
+    messages: convertToModelMessages<CustomUIMessage>(messages, {
       convertDataPart: part => {
         // Convert URL attachments to text
         if (part.type === 'data-url') {
@@ -171,27 +174,38 @@ convertDataPart: part => {
       text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
     };
   }
-  return null;
 };
 ```
 
 **Selective Inclusion**
-Control which data parts are sent to the model by returning `null` for parts that should be skipped:
+Only data parts for which you return a text or file model message part are included,
+all other data parts are ignored.
 
 ```ts
-convertDataPart: part => {
-  // Include documentation references
-  if (part.type === 'data-doc-reference') {
-    return { type: 'text', text: formatDocReference(part.data) };
-  }
+const result = convertToModelMessages<
+  UIMessage<
+    unknown,
+    {
+      url: { url: string; title: string };
+      code: { code: string; language: string };
+      note: { text: string };
+    }
+  >
+>(
+  messages,
+  {
+    convertDataPart: part => {
+      if (part.type === 'data-url') {}
+        return {
+          type: 'text',
+          text: `[${part.data.title}](${part.data.url})`,
+        };
+      }
 
-  // Skip UI state data
-  if (part.type === 'data-ui-state') {
-    return null;
-  }
-
-  return null;
-};
+      // data-code and data-node are ignored
+    },
+  },
+);
 ```
 
 ### Type Safety
@@ -199,13 +213,16 @@ convertDataPart: part => {
 The generic parameter ensures full type safety for your custom data parts:
 
 ```ts
-type MyDataParts = {
-  url: { url: string; content: string };
-  config: { key: string; value: string };
-};
+type MyUIMessage = UIMessage<
+  unknown,
+  {
+    url: { url: string; content: string };
+    config: { key: string; value: string };
+  }
+>;
 
 // TypeScript knows the exact shape of part.data
-convertToModelMessages<MyDataParts>(messages, {
+convertToModelMessages<MyUIMessage>(messages, {
   convertDataPart: part => {
     if (part.type === 'data-url') {
       // part.data is typed as { url: string; content: string }

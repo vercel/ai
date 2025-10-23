@@ -2173,7 +2173,7 @@ describe('convertToModelMessages', () => {
     it('should handle multiple data parts of different types', () => {
       const result = convertToModelMessages<
         UIMessage<
-          unknown,
+          never,
           {
             url: { url: string; title: string };
             code: { code: string; language: string };

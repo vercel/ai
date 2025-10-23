@@ -34,7 +34,7 @@ with the AI functions (e.g. `streamText`, `generateText`).
 @param messages - The UI messages to convert.
 @param options.tools - The tools to use.
 @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
-@param options.convertDataPart - Optional function to convert data parts to text or file parts for the model.
+@param options.convertDataPart - Optional function to convert data parts to text or file model message parts. Returns `undefined` if the part should be ignored.
 
 @returns An array of ModelMessages.
  */
