@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.27
+
+### Patch Changes
+
+- d6a831f: feat(xai): Support `parallel_function_calling` provider option for XAI provider
+
 ## 2.0.26
 
 ### Patch Changes
