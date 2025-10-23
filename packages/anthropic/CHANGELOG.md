@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- 80894b3: add return `file_id` property for anthropic code-execution-20250825 to download output files.
+
 ## 3.0.0-beta.34
 
 ### Patch Changes
