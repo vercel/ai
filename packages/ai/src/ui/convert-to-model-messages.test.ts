@@ -2093,7 +2093,6 @@ describe('convertToModelMessages', () => {
             if (part.type === 'data-url') {
               return { type: 'text', text: part.data.url };
             }
-            return null;
           },
         },
       );
@@ -2146,7 +2145,6 @@ describe('convertToModelMessages', () => {
                 data: part.data.data,
               };
             }
-            return null;
           },
         },
       );
@@ -2216,12 +2214,6 @@ describe('convertToModelMessages', () => {
                   type: 'text',
                   text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
                 };
-              // TODO rm
-              case 'data-note':
-                // Skip internal notes
-                return null;
-              default:
-                return null;
             }
           },
         },

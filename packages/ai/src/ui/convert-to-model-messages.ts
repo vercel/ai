@@ -45,7 +45,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
     ignoreIncompleteToolCalls?: boolean;
     convertDataPart?: (
       part: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
-    ) => TextPart | FilePart | null;
+    ) => TextPart | FilePart | undefined;
   },
 ): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
@@ -171,9 +171,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
-              } else if (
-                isToolOrDynamicToolUIPart<InferUIMessageTools<UI_MESSAGE>>(part)
-              ) {
+              } else if (isToolOrDynamicToolUIPart(part)) {
                 const toolName = getToolOrDynamicToolName(part);
 
                 if (part.state !== 'input-streaming') {
@@ -235,9 +233,8 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             // check if there are tool invocations with results in the block
             const toolParts = block.filter(
               part =>
-                isToolOrDynamicToolUIPart<InferUIMessageTools<UI_MESSAGE>>(
-                  part,
-                ) && part.providerExecuted !== true,
+                isToolOrDynamicToolUIPart(part) &&
+                part.providerExecuted !== true,
             ) as (
               | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
               | DynamicToolUIPart
