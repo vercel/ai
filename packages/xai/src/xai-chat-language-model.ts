@@ -144,6 +144,9 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       seed,
       reasoning_effort: options.reasoningEffort,
 
+      // parallel function calling
+      parallel_function_calling: options.parallel_function_calling,
+
       // response format
       response_format:
         responseFormat?.type === 'json'
