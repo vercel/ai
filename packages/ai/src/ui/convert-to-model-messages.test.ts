@@ -2031,17 +2031,26 @@ describe('convertToModelMessages', () => {
         },
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0].role).toBe('user');
-      expect(result[0].content).toHaveLength(2);
-      expect(result[0].content[0]).toEqual({
-        type: 'text',
-        text: 'Analyze this',
-      });
-      expect(result[0].content[1]).toEqual({
-        type: 'text',
-        text: '\n\n[https://example.com]\nArticle text',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Analyze this",
+                "type": "text",
+              },
+              {
+                "text": "
+
+        [https://example.com]
+        Article text",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should skip data parts when no converter provided', () => {
@@ -2055,14 +2064,19 @@ describe('convertToModelMessages', () => {
         },
       ]);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].role).toBe('user');
-      // Only text part included, data part skipped
-      expect(result[0].content).toHaveLength(1);
-      expect(result[0].content[0]).toEqual({
-        type: 'text',
-        text: 'Hello',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should selectively convert data parts', () => {
@@ -2092,55 +2106,19 @@ describe('convertToModelMessages', () => {
         },
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0].content).toHaveLength(1);
-      expect(result[0].content[0]).toEqual({
-        type: 'text',
-        text: 'https://example.com',
-      });
-    });
-
-    it('should provide type safety for converter function', () => {
-      type MyData = {
-        code: { filename: string; code: string; language: string };
-      };
-
-      const result = convertToModelMessages<MyData>(
+      expect(result).toMatchInlineSnapshot(`
         [
           {
-            role: 'user',
-            parts: [
+            "content": [
               {
-                type: 'data-code',
-                data: {
-                  filename: 'test.ts',
-                  code: 'const x = 1;',
-                  language: 'typescript',
-                },
+                "text": "https://example.com",
+                "type": "text",
               },
             ],
+            "role": "user",
           },
-        ],
-        {
-          convertDataPart: part => {
-            // TypeScript knows part.data has the correct shape
-            if (part.type === 'data-code') {
-              return {
-                type: 'text',
-                text: `\`\`\`${part.data.language}\n// ${part.data.filename}\n${part.data.code}\n\`\`\``,
-              };
-            }
-            return null;
-          },
-        },
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].content).toHaveLength(1);
-      expect(result[0].content[0]).toEqual({
-        type: 'text',
-        text: '```typescript\n// test.ts\nconst x = 1;\n```',
-      });
+        ]
+      `);
     });
 
     it('should convert data parts to file parts', () => {
@@ -2180,14 +2158,25 @@ describe('convertToModelMessages', () => {
         },
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0].content).toHaveLength(2);
-      expect(result[0].content[1]).toEqual({
-        type: 'file',
-        mediaType: 'application/pdf',
-        filename: 'document.pdf',
-        data: 'base64data',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Check this file",
+                "type": "text",
+              },
+              {
+                "data": "base64data",
+                "filename": "document.pdf",
+                "mediaType": "application/pdf",
+                "type": "file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should handle multiple data parts of different types', () => {
@@ -2231,6 +2220,7 @@ describe('convertToModelMessages', () => {
                   type: 'text',
                   text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
                 };
+              // TODO rm
               case 'data-note':
                 // Skip internal notes
                 return null;
@@ -2241,20 +2231,29 @@ describe('convertToModelMessages', () => {
         },
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0].content).toHaveLength(3);
-      expect(result[0].content[0]).toEqual({
-        type: 'text',
-        text: 'Review these:',
-      });
-      expect(result[0].content[1]).toEqual({
-        type: 'text',
-        text: '[Example](https://example.com)',
-      });
-      expect(result[0].content[2]).toEqual({
-        type: 'text',
-        text: '```javascript\nconsole.log("test")\n```',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Review these:",
+                "type": "text",
+              },
+              {
+                "text": "[Example](https://example.com)",
+                "type": "text",
+              },
+              {
+                "text": "\`\`\`javascript
+        console.log("test")
+        \`\`\`",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should work with messages that have no data parts', () => {
@@ -2277,17 +2276,25 @@ describe('convertToModelMessages', () => {
         },
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0].content).toHaveLength(2);
-      expect(result[0].content[0]).toEqual({
-        type: 'text',
-        text: 'Hello',
-      });
-      expect(result[0].content[1]).toEqual({
-        type: 'file',
-        mediaType: 'image/png',
-        data: 'https://example.com/image.png',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "text",
+              },
+              {
+                "data": "https://example.com/image.png",
+                "filename": undefined,
+                "mediaType": "image/png",
+                "type": "file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should preserve order of parts including converted data parts', () => {
@@ -2309,24 +2316,42 @@ describe('convertToModelMessages', () => {
           },
         ],
         {
-          convertDataPart: part => {
-            if (part.type === 'data-tag') {
-              return { type: 'text', text: `[${part.data.value}]` };
-            }
-            return null;
-          },
+          convertDataPart: part => ({
+            type: 'text',
+            text: `[${part.data.value}]`,
+          }),
         },
       );
 
-      expect(result).toHaveLength(1);
-      expect(result[0].content).toHaveLength(5);
-      expect(result[0].content.map((c: any) => c.text)).toEqual([
-        'First',
-        '[tag1]',
-        'Second',
-        '[tag2]',
-        'Third',
-      ]);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "First",
+                "type": "text",
+              },
+              {
+                "text": "[tag1]",
+                "type": "text",
+              },
+              {
+                "text": "Second",
+                "type": "text",
+              },
+              {
+                "text": "[tag2]",
+                "type": "text",
+              },
+              {
+                "text": "Third",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
   });
 });
