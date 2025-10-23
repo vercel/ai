@@ -144,8 +144,8 @@ export function convertToModelMessages<
               }
 
               // Process data parts with converter if provided
-              if (isDataUIPart<DATA_PARTS>(part)) {  
-                return options?.convertDataPart?.(part) ?? null;  
+              if (isDataUIPart<DATA_PARTS>(part)) {
+                return options?.convertDataPart?.(part) ?? null;
               }
 
               return null;
