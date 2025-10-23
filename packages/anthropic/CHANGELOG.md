@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- 7c4328e: Adds url-based pdf and image support for anthropic tool results
+
 ## 3.0.0-beta.36
 
 ### Patch Changes
