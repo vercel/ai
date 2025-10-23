@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.1
+
+### Patch Changes
+
+- f1a8734: feat (provider/gateway): add models provider option for model routing
+
 ## 2.0.0
 
 ### Major Changes
