@@ -1,8 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { streamText } from 'ai';
+import { streamText, tool } from 'ai';
 import { printFullStream } from '../lib/print-full-stream';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
+import { weatherTool } from '../tools/weather-tool';
+import z from 'zod';
 
 run(async () => {
   const result = streamText({
@@ -87,6 +89,15 @@ run(async () => {
         content: [{ type: 'text', text: 'and for new york?' }],
       },
     ],
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async () => ({ weather: 'cloudy' }),
+      }),
+    },
   });
 
   await printFullStream({ result });
