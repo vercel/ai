@@ -90,7 +90,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         modelMessages.push({
           role: 'user',
           content: message.parts
-            .map((part): TextPart | FilePart | null => {
+            .map((part): TextPart | FilePart | undefined => {
               // Process text parts
               if (isTextUIPart(part)) {
                 return {
@@ -117,16 +117,12 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
               // Process data parts with converter if provided
               if (isDataUIPart(part)) {
-                return (
-                  options?.convertDataPart?.(
-                    part as DataUIPart<InferUIMessageData<UI_MESSAGE>>,
-                  ) ?? null
+                return options?.convertDataPart?.(
+                  part as DataUIPart<InferUIMessageData<UI_MESSAGE>>,
                 );
               }
-
-              return null;
             })
-            .filter((part): part is TextPart | FilePart => part !== null),
+            .filter((part): part is TextPart | FilePart => part != null),
         });
 
         break;
