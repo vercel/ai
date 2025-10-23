@@ -138,6 +138,14 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
       type: 'bash_code_execution_result';
 
       /**
+       * Output file Id list
+       */
+      content: Array<{
+        type: 'bash_code_execution_output';
+        file_id: string;
+      }>;
+
+      /**
        * Output from successful execution
        */
       stdout: string;
