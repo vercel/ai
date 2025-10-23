@@ -140,6 +140,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             | ReasoningUIPart
             | FileUIPart
             | DynamicToolUIPart
+            | DataUIPart<InferUIMessageData<UI_MESSAGE>>
           > = [];
 
           function processBlock() {
@@ -218,6 +219,14 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       }),
                     });
                   }
+                }
+              } else if (isDataUIPart(part)) {
+                const dataPart = options?.convertDataPart?.(
+                  part as DataUIPart<InferUIMessageData<UI_MESSAGE>>,
+                );
+
+                if (dataPart != null) {
+                  content.push(dataPart);
                 }
               } else {
                 const _exhaustiveCheck: never = part;
@@ -315,7 +324,8 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               isTextUIPart(part) ||
               isReasoningUIPart(part) ||
               isFileUIPart(part) ||
-              isToolOrDynamicToolUIPart(part)
+              isToolOrDynamicToolUIPart(part) ||
+              isDataUIPart(part)
             ) {
               block.push(part as (typeof block)[number]);
             } else if (part.type === 'step-start') {

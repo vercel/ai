@@ -2368,7 +2368,22 @@ describe('convertToModelMessages', () => {
           },
         );
 
-        expect(result).toMatchInlineSnapshot(`[]`);
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "
+
+          [https://example.com]
+          Article text",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
       });
 
       it('should skip data parts when no converter provided', () => {
@@ -2426,7 +2441,19 @@ describe('convertToModelMessages', () => {
           },
         );
 
-        expect(result).toMatchInlineSnapshot(`[]`);
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "https://example.com",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
       });
 
       it('should convert data parts to file parts', () => {
@@ -2475,6 +2502,12 @@ describe('convertToModelMessages', () => {
                 {
                   "text": "Check this file",
                   "type": "text",
+                },
+                {
+                  "data": "base64data",
+                  "filename": "document.pdf",
+                  "mediaType": "application/pdf",
+                  "type": "file",
                 },
               ],
               "role": "assistant",
@@ -2538,6 +2571,16 @@ describe('convertToModelMessages', () => {
               "content": [
                 {
                   "text": "Review these:",
+                  "type": "text",
+                },
+                {
+                  "text": "[Example](https://example.com)",
+                  "type": "text",
+                },
+                {
+                  "text": "\`\`\`javascript
+          console.log("test")
+          \`\`\`",
                   "type": "text",
                 },
               ],
@@ -2621,7 +2664,15 @@ describe('convertToModelMessages', () => {
                   "type": "text",
                 },
                 {
+                  "text": "[tag1]",
+                  "type": "text",
+                },
+                {
                   "text": "Second",
+                  "type": "text",
+                },
+                {
+                  "text": "[tag2]",
                   "type": "text",
                 },
                 {
