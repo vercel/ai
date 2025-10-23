@@ -1,5 +1,29 @@
 # ai
 
+## 6.0.0-beta.68
+
+### Patch Changes
+
+- 9b83947: feat(ai): add convertDataPart option to convertToModelMessages
+
+  Add optional convertDataPart callback for converting custom data parts (URLs, code files, etc.) to text or file parts that models can process. Fully type-safe using existing UIMessage generics.
+
+## 6.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [2b6a848]
+  - @ai-sdk/gateway@2.0.0-beta.37
+
+## 6.0.0-beta.66
+
+### Patch Changes
+
+- fca786b: feat(agent): configurable call options
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/gateway@2.0.0-beta.36
+
 ## 6.0.0-beta.65
 
 ### Patch Changes

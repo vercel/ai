@@ -1,12 +1,18 @@
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  FlexibleSchema,
+  MaybePromiseLike,
+  ProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import { ToolSet } from '../generate-text/tool-set';
 import { CallSettings } from '../prompt/call-settings';
+import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import { AgentCallParameters } from './agent';
 import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 
@@ -14,6 +20,7 @@ import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-fin
  * Configuration options for an agent.
  */
 export type ToolLoopAgentSettings<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
 > = CallSettings & {
@@ -103,4 +110,60 @@ functionality that can be fully encapsulated in the provider.
    * @default undefined
    */
   experimental_context?: unknown;
+
+  /**
+   * The schema for the call options.
+   */
+  callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
+
+  /**
+   * Prepare the parameters for the generateText or streamText call.
+   *
+   * You can use this to have templates based on call options.
+   */
+  prepareCall?: (
+    options: AgentCallParameters<CALL_OPTIONS> &
+      Pick<
+        ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+        | 'model'
+        | 'tools'
+        | 'maxOutputTokens'
+        | 'temperature'
+        | 'topP'
+        | 'topK'
+        | 'presencePenalty'
+        | 'frequencyPenalty'
+        | 'stopSequences'
+        | 'seed'
+        | 'headers'
+        | 'instructions'
+        | 'stopWhen'
+        | 'experimental_telemetry'
+        | 'activeTools'
+        | 'providerOptions'
+        | 'experimental_context'
+      >,
+  ) => MaybePromiseLike<
+    Pick<
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+      | 'model'
+      | 'tools'
+      | 'maxOutputTokens'
+      | 'temperature'
+      | 'topP'
+      | 'topK'
+      | 'presencePenalty'
+      | 'frequencyPenalty'
+      | 'stopSequences'
+      | 'seed'
+      | 'headers'
+      | 'instructions'
+      | 'stopWhen'
+      | 'experimental_telemetry'
+      | 'activeTools'
+      | 'providerOptions'
+      | 'experimental_context'
+    > &
+      Omit<Prompt, 'system'>
+  >;
 };

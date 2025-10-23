@@ -1,7 +1,6 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderDefinedTool,

@@ -534,7 +534,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { warnings } = await provider('claude-haiku-4-5').doGenerate({
         prompt: TEST_PROMPT,
-        temperature: 0.5,
         maxOutputTokens: 999999,
       });
 
@@ -553,7 +552,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ],
           "model": "claude-haiku-4-5",
-          "temperature": 0.5,
         }
       `);
 
@@ -566,6 +564,35 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should not limit max output tokens for unknown models', async () => {
+      prepareJsonResponse({});
+
+      const { warnings } = await provider('future-model').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 123456,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 123456,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "future-model",
+        }
+      `);
+
+      expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should pass tools and toolChoice', async () => {
@@ -2179,6 +2206,24 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
 
         expect(result.providerMetadata).toMatchSnapshot();
+      });
+
+      it('should include file id list in code execution tool generate call result.', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.2');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result).toMatchSnapshot();
       });
     });
 
@@ -3804,6 +3849,26 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
           });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+
+        it('should include file id list in code execution tool call result.', async () => {
+          prepareChunksFixtureResponse('anthropic-code-execution-20250825.2');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+          });
+
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
