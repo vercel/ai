@@ -3,7 +3,6 @@ import { streamText, tool } from 'ai';
 import { printFullStream } from '../lib/print-full-stream';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
-import { weatherTool } from '../tools/weather-tool';
 import z from 'zod';
 
 run(async () => {
