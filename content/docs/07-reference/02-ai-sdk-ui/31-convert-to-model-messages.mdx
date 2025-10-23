@@ -98,7 +98,7 @@ By default, data parts in user messages are filtered out during conversion. To i
 
 ```ts filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 type CustomUIMessage = UIMessage<
   never,
