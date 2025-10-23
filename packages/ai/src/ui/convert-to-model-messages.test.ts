@@ -2001,30 +2001,31 @@ describe('convertToModelMessages', () => {
   });
 
   describe('data part conversion', () => {
-    it('should convert data parts to text when converter provided', () => {
-      const result = convertToModelMessages<
-        UIMessage<unknown, { url: { url: string; content: string } }>
-      >(
-        [
+    describe('in user messages', () => {
+      it('should convert data parts to text when converter provided', () => {
+        const result = convertToModelMessages<
+          UIMessage<unknown, { url: { url: string; content: string } }>
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                {
+                  type: 'data-url',
+                  data: { url: 'https://example.com', content: 'Article text' },
+                },
+              ],
+            },
+          ],
           {
-            role: 'user',
-            parts: [
-              {
-                type: 'data-url',
-                data: { url: 'https://example.com', content: 'Article text' },
-              },
-            ],
+            convertDataPart: part => ({
+              type: 'text',
+              text: `\n\n[${part.data.url}]\n${part.data.content}`,
+            }),
           },
-        ],
-        {
-          convertDataPart: part => ({
-            type: 'text',
-            text: `\n\n[${part.data.url}]\n${part.data.content}`,
-          }),
-        },
-      );
+        );
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -2040,20 +2041,20 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-    });
+      });
 
-    it('should skip data parts when no converter provided', () => {
-      const result = convertToModelMessages([
-        {
-          role: 'user',
-          parts: [
-            { type: 'text', text: 'Hello' },
-            { type: 'data-url', data: { url: 'https://example.com' } },
-          ],
-        },
-      ]);
+      it('should skip data parts when no converter provided', () => {
+        const result = convertToModelMessages([
+          {
+            role: 'user',
+            parts: [
+              { type: 'text', text: 'Hello' },
+              { type: 'data-url', data: { url: 'https://example.com' } },
+            ],
+          },
+        ]);
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -2066,38 +2067,38 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-    });
+      });
 
-    it('should selectively convert data parts', () => {
-      const result = convertToModelMessages<
-        UIMessage<
-          unknown,
-          {
-            url: { url: string };
-            'ui-state': { enabled: boolean };
-          }
-        >
-      >(
-        [
-          {
-            role: 'user',
-            parts: [
-              { type: 'data-url', data: { url: 'https://example.com' } },
-              { type: 'data-ui-state', data: { enabled: true } },
-            ],
-          },
-        ],
-        {
-          convertDataPart: part => {
-            // Include URLs, skip UI state
-            if (part.type === 'data-url') {
-              return { type: 'text', text: part.data.url };
+      it('should selectively convert data parts', () => {
+        const result = convertToModelMessages<
+          UIMessage<
+            unknown,
+            {
+              url: { url: string };
+              'ui-state': { enabled: boolean };
             }
+          >
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'data-url', data: { url: 'https://example.com' } },
+                { type: 'data-ui-state', data: { enabled: true } },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              // Include URLs, skip UI state
+              if (part.type === 'data-url') {
+                return { type: 'text', text: part.data.url };
+              }
+            },
           },
-        },
-      );
+        );
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -2110,46 +2111,48 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-    });
+      });
 
-    it('should convert data parts to file parts', () => {
-      const result = convertToModelMessages<
-        UIMessage<
-          unknown,
-          { attachment: { mediaType: string; filename: string; data: string } }
-        >
-      >(
-        [
-          {
-            role: 'user',
-            parts: [
-              { type: 'text', text: 'Check this file' },
-              {
-                type: 'data-attachment',
-                data: {
-                  mediaType: 'application/pdf',
-                  filename: 'document.pdf',
-                  data: 'base64data',
-                },
-              },
-            ],
-          },
-        ],
-        {
-          convertDataPart: part => {
-            if (part.type === 'data-attachment') {
-              return {
-                type: 'file',
-                mediaType: part.data.mediaType,
-                filename: part.data.filename,
-                data: part.data.data,
-              };
+      it('should convert data parts to file parts', () => {
+        const result = convertToModelMessages<
+          UIMessage<
+            unknown,
+            {
+              attachment: { mediaType: string; filename: string; data: string };
             }
+          >
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Check this file' },
+                {
+                  type: 'data-attachment',
+                  data: {
+                    mediaType: 'application/pdf',
+                    filename: 'document.pdf',
+                    data: 'base64data',
+                  },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              if (part.type === 'data-attachment') {
+                return {
+                  type: 'file',
+                  mediaType: part.data.mediaType,
+                  filename: part.data.filename,
+                  data: part.data.data,
+                };
+              }
+            },
           },
-        },
-      );
+        );
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -2168,58 +2171,58 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-    });
+      });
 
-    it('should handle multiple data parts of different types', () => {
-      const result = convertToModelMessages<
-        UIMessage<
-          never,
-          {
-            url: { url: string; title: string };
-            code: { code: string; language: string };
-            note: { text: string };
-          }
-        >
-      >(
-        [
-          {
-            role: 'user',
-            parts: [
-              { type: 'text', text: 'Review these:' },
-              {
-                type: 'data-url',
-                data: { url: 'https://example.com', title: 'Example' },
-              },
-              {
-                type: 'data-code',
-                data: { code: 'console.log("test")', language: 'javascript' },
-              },
-              {
-                type: 'data-note',
-                data: { text: 'Internal note' },
-              },
-            ],
-          },
-        ],
-        {
-          convertDataPart: part => {
-            switch (part.type) {
-              case 'data-url':
-                return {
-                  type: 'text',
-                  text: `[${part.data.title}](${part.data.url})`,
-                };
-              case 'data-code':
-                return {
-                  type: 'text',
-                  text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
-                };
+      it('should handle multiple data parts of different types', () => {
+        const result = convertToModelMessages<
+          UIMessage<
+            never,
+            {
+              url: { url: string; title: string };
+              code: { code: string; language: string };
+              note: { text: string };
             }
+          >
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Review these:' },
+                {
+                  type: 'data-url',
+                  data: { url: 'https://example.com', title: 'Example' },
+                },
+                {
+                  type: 'data-code',
+                  data: { code: 'console.log("test")', language: 'javascript' },
+                },
+                {
+                  type: 'data-note',
+                  data: { text: 'Internal note' },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              switch (part.type) {
+                case 'data-url':
+                  return {
+                    type: 'text',
+                    text: `[${part.data.title}](${part.data.url})`,
+                  };
+                case 'data-code':
+                  return {
+                    type: 'text',
+                    text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
+                  };
+              }
+            },
           },
-        },
-      );
+        );
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -2242,29 +2245,29 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-    });
+      });
 
-    it('should work with messages that have no data parts', () => {
-      const result = convertToModelMessages(
-        [
+      it('should work with messages that have no data parts', () => {
+        const result = convertToModelMessages(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Hello' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          ],
           {
-            role: 'user',
-            parts: [
-              { type: 'text', text: 'Hello' },
-              {
-                type: 'file',
-                mediaType: 'image/png',
-                url: 'https://example.com/image.png',
-              },
-            ],
+            convertDataPart: () => ({ type: 'text', text: 'converted' }),
           },
-        ],
-        {
-          convertDataPart: () => ({ type: 'text', text: 'converted' }),
-        },
-      );
+        );
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -2283,33 +2286,33 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-    });
+      });
 
-    it('should preserve order of parts including converted data parts', () => {
-      const result = convertToModelMessages<
-        UIMessage<unknown, { tag: { value: string } }>
-      >(
-        [
+      it('should preserve order of parts including converted data parts', () => {
+        const result = convertToModelMessages<
+          UIMessage<unknown, { tag: { value: string } }>
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'First' },
+                { type: 'data-tag', data: { value: 'tag1' } },
+                { type: 'text', text: 'Second' },
+                { type: 'data-tag', data: { value: 'tag2' } },
+                { type: 'text', text: 'Third' },
+              ],
+            },
+          ],
           {
-            role: 'user',
-            parts: [
-              { type: 'text', text: 'First' },
-              { type: 'data-tag', data: { value: 'tag1' } },
-              { type: 'text', text: 'Second' },
-              { type: 'data-tag', data: { value: 'tag2' } },
-              { type: 'text', text: 'Third' },
-            ],
+            convertDataPart: part => ({
+              type: 'text',
+              text: `[${part.data.value}]`,
+            }),
           },
-        ],
-        {
-          convertDataPart: part => ({
-            type: 'text',
-            text: `[${part.data.value}]`,
-          }),
-        },
-      );
+        );
 
-      expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
         [
           {
             "content": [
@@ -2338,6 +2341,299 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+      });
+    });
+
+    describe('in assistant messages', () => {
+      it('should convert data parts to text when converter provided', () => {
+        const result = convertToModelMessages<
+          UIMessage<unknown, { url: { url: string; content: string } }>
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'data-url',
+                  data: { url: 'https://example.com', content: 'Article text' },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => ({
+              type: 'text',
+              text: `\n\n[${part.data.url}]\n${part.data.content}`,
+            }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should skip data parts when no converter provided', () => {
+        const result = convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'text', text: 'Hello' },
+              { type: 'data-url', data: { url: 'https://example.com' } },
+            ],
+          },
+        ]);
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should selectively convert data parts', () => {
+        const result = convertToModelMessages<
+          UIMessage<
+            unknown,
+            {
+              url: { url: string };
+              'ui-state': { enabled: boolean };
+            }
+          >
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'data-url', data: { url: 'https://example.com' } },
+                { type: 'data-ui-state', data: { enabled: true } },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              // Include URLs, skip UI state
+              if (part.type === 'data-url') {
+                return { type: 'text', text: part.data.url };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should convert data parts to file parts', () => {
+        const result = convertToModelMessages<
+          UIMessage<
+            unknown,
+            {
+              attachment: { mediaType: string; filename: string; data: string };
+            }
+          >
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: 'Check this file' },
+                {
+                  type: 'data-attachment',
+                  data: {
+                    mediaType: 'application/pdf',
+                    filename: 'document.pdf',
+                    data: 'base64data',
+                  },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              if (part.type === 'data-attachment') {
+                return {
+                  type: 'file',
+                  mediaType: part.data.mediaType,
+                  filename: part.data.filename,
+                  data: part.data.data,
+                };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Check this file",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should handle multiple data parts of different types', () => {
+        const result = convertToModelMessages<
+          UIMessage<
+            never,
+            {
+              url: { url: string; title: string };
+              code: { code: string; language: string };
+              note: { text: string };
+            }
+          >
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: 'Review these:' },
+                {
+                  type: 'data-url',
+                  data: { url: 'https://example.com', title: 'Example' },
+                },
+                {
+                  type: 'data-code',
+                  data: { code: 'console.log("test")', language: 'javascript' },
+                },
+                {
+                  type: 'data-note',
+                  data: { text: 'Internal note' },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              switch (part.type) {
+                case 'data-url':
+                  return {
+                    type: 'text',
+                    text: `[${part.data.title}](${part.data.url})`,
+                  };
+                case 'data-code':
+                  return {
+                    type: 'text',
+                    text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
+                  };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Review these:",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should work with messages that have no data parts', () => {
+        const result = convertToModelMessages(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: 'Hello' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: () => ({ type: 'text', text: 'converted' }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "data": "https://example.com/image.png",
+                  "filename": undefined,
+                  "mediaType": "image/png",
+                  "type": "file",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should preserve order of parts including converted data parts', () => {
+        const result = convertToModelMessages<
+          UIMessage<unknown, { tag: { value: string } }>
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: 'First' },
+                { type: 'data-tag', data: { value: 'tag1' } },
+                { type: 'text', text: 'Second' },
+                { type: 'data-tag', data: { value: 'tag2' } },
+                { type: 'text', text: 'Third' },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => ({
+              type: 'text',
+              text: `[${part.data.value}]`,
+            }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "First",
+                  "type": "text",
+                },
+                {
+                  "text": "Second",
+                  "type": "text",
+                },
+                {
+                  "text": "Third",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
     });
   });
 });
