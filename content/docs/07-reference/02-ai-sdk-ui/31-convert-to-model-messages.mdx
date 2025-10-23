@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     },
     {
       name: 'options',
-      type: '{ tools?: ToolSet, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | null }',
+      type: '{ tools?: ToolSet, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | undefined }',
       description:
         'Optional configuration object. Provide tools to enable multi-modal tool responses, and convertDataPart to transform custom data parts into model-compatible content.',
     },
