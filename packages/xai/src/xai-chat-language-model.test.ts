@@ -301,6 +301,25 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
+    it('should pass parallel_function_calling provider option', async () => {
+      prepareJsonResponse({ content: '' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            parallel_function_calling: false,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        parallel_function_calling: false,
+      });
+    });
+
     it('should pass headers', async () => {
       prepareJsonResponse({ content: '' });
 
@@ -370,6 +389,7 @@ describe('XaiChatLanguageModel', () => {
               },
             ],
             "model": "grok-beta",
+            "parallel_function_calling": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
@@ -1018,6 +1038,7 @@ describe('XaiChatLanguageModel', () => {
               },
             ],
             "model": "grok-beta",
+            "parallel_function_calling": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
