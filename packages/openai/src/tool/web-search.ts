@@ -45,6 +45,9 @@ export const webSearchOutputSchema = lazySchema(() =>
           pattern: z.string(),
         }),
       ]),
+      sources: z
+        .array(z.object({ type: z.literal('url'), url: z.string() }))
+        .optional(),
     }),
   ),
 );
@@ -98,6 +101,11 @@ export const webSearchToolFactory =
              */
             pattern: string;
           };
+
+      /**
+       * Optional sources cited by the model for the web search call.
+       */
+      sources?: { type: 'url'; url: string }[];
     },
     {
       /**

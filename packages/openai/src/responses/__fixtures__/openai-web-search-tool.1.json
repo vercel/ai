@@ -15,7 +15,11 @@
       "status": "completed",
       "action": {
         "type": "search",
-        "query": "Vercel AI SDK next version features"
+        "query": "Vercel AI SDK next version features",
+        "sources": [
+          { "type": "url", "url": "https://vercel.com/blog" },
+          { "type": "url", "url": "https://github.com/vercel/ai" }
+        ]
       }
     },
     {
@@ -23,7 +27,10 @@
       "id": "ws_67cf2b3051e88190b006234456fdb13d",
       "status": "completed",
       "action": {
-        "type": "search"
+        "type": "search",
+        "sources": [
+          { "type": "url", "url": "https://vercel.com/ai" }
+        ]
       }
     },
     {

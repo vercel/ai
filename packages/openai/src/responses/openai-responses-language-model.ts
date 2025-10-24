@@ -1378,7 +1378,11 @@ function mapWebSearchOutput(
 ): InferSchema<typeof webSearchOutputSchema> {
   switch (action.type) {
     case 'search':
-      return { action: { type: 'search', query: action.query ?? undefined } };
+      return {
+        action: { type: 'search', query: action.query ?? undefined },
+        // include sources when provided by the Responses API (behind include flag)
+        ...(action.sources != null && { sources: action.sources }),
+      };
     case 'open_page':
       return { action: { type: 'openPage', url: action.url } };
     case 'find':

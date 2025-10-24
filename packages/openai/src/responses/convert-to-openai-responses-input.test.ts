@@ -1956,11 +1956,18 @@ describe('convertToOpenAIResponsesInput', () => {
                 toolName: 'web_search',
                 output: {
                   type: 'json',
-                  value: [
-                    {
-                      url: 'https://patch.com/california/san-francisco/calendar',
+                  value: {
+                    action: {
+                      type: 'search',
+                      query: 'San Francisco major news events June 22 2025',
                     },
-                  ],
+                    sources: [
+                      {
+                        type: 'url',
+                        url: 'https://patch.com/california/san-francisco/calendar',
+                      },
+                    ],
+                  },
                 },
               },
               {

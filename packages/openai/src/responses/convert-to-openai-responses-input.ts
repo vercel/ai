@@ -15,6 +15,7 @@ import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
+import { webSearchOutputSchema } from '../tool/web-search';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
