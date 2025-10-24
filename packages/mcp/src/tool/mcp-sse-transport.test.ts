@@ -1,10 +1,16 @@
 import {
   createTestServer,
   TestResponseController,
+<<<<<<< HEAD:packages/ai/src/tool/mcp/mcp-sse-transport.test.ts
 } from '@ai-sdk/provider-utils/test';
 import { MCPClientError } from '../../error/mcp-client-error';
+=======
+} from '@ai-sdk/test-server/with-vitest';
+import { MCPClientError } from '../error/mcp-client-error';
+>>>>>>> eca63f38d (feat(ai): add OAuth for MCP clients + refactor to new package (#9127)):packages/mcp/src/tool/mcp-sse-transport.test.ts
 import { SseMCPTransport } from './mcp-sse-transport';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { LATEST_PROTOCOL_VERSION } from './types';
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
@@ -51,6 +57,7 @@ describe('SseMCPTransport', () => {
     expect(server.calls[0].requestMethod).toBe('GET');
     expect(server.calls[0].requestUrl).toBe('http://localhost:3000/sse');
     expect(server.calls[0].requestHeaders).toEqual({
+      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'text/event-stream',
     });
   });
@@ -266,6 +273,7 @@ describe('SseMCPTransport', () => {
 
     // Verify SSE connection headers
     expect(server.calls[0].requestHeaders).toEqual({
+      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -274,6 +282,7 @@ describe('SseMCPTransport', () => {
     // Verify POST request headers
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
+      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       ...customHeaders,
     });
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
