@@ -31,10 +31,6 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
   return prefixes.some(prefix => data.startsWith(prefix));
 }
 
-function serializeToolArguments(value: unknown): string {
-  return typeof value === 'string' ? value : JSON.stringify(value);
-}
-
 export async function convertToOpenAIResponsesInput({
   prompt,
   systemMessageMode,
@@ -209,7 +205,7 @@ export async function convertToOpenAIResponsesInput({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: part.toolName,
-                arguments: serializeToolArguments(part.input),
+                arguments: JSON.stringify(part.input),
                 id,
               });
               break;
@@ -221,60 +217,10 @@ export async function convertToOpenAIResponsesInput({
                 // use item references to refer to tool results from built-in tools
                 input.push({ type: 'item_reference', id: part.toolCallId });
               } else {
-                if (part.toolName === 'web_search') {
-                  const toolCallPart = toolCallParts[part.toolCallId];
-
-                  if (
-                    toolCallPart?.providerExecuted &&
-                    !emittedToolCallIds.has(part.toolCallId)
-                  ) {
-                    input.push({
-                      type: 'function_call',
-                      call_id: toolCallPart.toolCallId,
-                      name: toolCallPart.toolName,
-                      arguments: serializeToolArguments(toolCallPart.input),
-                      id: toolCallPart.providerOptions?.openai?.itemId as
-                        | string
-                        | undefined,
-                    });
-                    emittedToolCallIds.add(part.toolCallId);
-                  }
-
-                  const output = part.output;
-
-                  if (output.type !== 'json') {
-                    warnings.push({
-                      type: 'other',
-                      message: `Unsupported web_search tool result type: ${output.type}. Expected json.`,
-                    });
-                    break;
-                  }
-
-                  try {
-                    const parsed = await validateTypes({
-                      value: output.value,
-                      schema: webSearchOutputSchema,
-                    });
-
-                    input.push({
-                      type: 'function_call_output',
-                      call_id: part.toolCallId,
-                      output: JSON.stringify(parsed),
-                    });
-                  } catch (error) {
-                    warnings.push({
-                      type: 'other',
-                      message: `Failed to parse web_search tool result: ${String(error)}`,
-                    });
-                  }
-
-                  break;
-                } else {
-                  warnings.push({
-                    type: 'other',
-                    message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`,
-                  });
-                }
+                warnings.push({
+                  type: 'other',
+                  message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`,
+                });
               }
 
               break;
