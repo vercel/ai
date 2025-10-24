@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:ws": "node ./scripts/ws-chat-server.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -44,7 +45,8 @@
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "valibot": "1.1.0",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
