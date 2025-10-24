@@ -137,6 +137,45 @@ export const object = <OUTPUT>({
   };
 };
 
+export const array = <ELEMENT>({
+  elementSchema: inputElementSchema,
+}: {
+  elementSchema: FlexibleSchema<ELEMENT>;
+}): Output<string, string> => {
+  const elementSchema = asSchema(inputElementSchema);
+
+  return {
+    type: 'object',
+
+    // returns a JSON schema that describes an array of elements:
+    responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
+      // remove $schema from schema.jsonSchema:
+      const { $schema, ...itemSchema } = jsonSchema;
+
+      return {
+        type: 'json' as const,
+        schema: {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            elements: { type: 'array', items: itemSchema },
+          },
+          required: ['elements'],
+          additionalProperties: false,
+        },
+      };
+    }),
+
+    async parsePartial({ text }: { text: string }) {
+      return { partial: text }; // TODO
+    },
+
+    async parseOutput({ text }: { text: string }) {
+      return text; // TODO
+    },
+  };
+};
+
 export type InferGenerateOutput<OUTPUT extends Output> =
   OUTPUT extends Output<infer T, any> ? T : never;
 
