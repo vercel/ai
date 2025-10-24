@@ -103,6 +103,8 @@ jobs:
 
             - issue title "🤖 Provider API update - groq@4.2.0"
               - labels: ["ai/provider", "provider/groq"]
+            - issue body includes ""@ai-sdk/groq": "^2.0.24" in the "AI SDK Version" section
+              - labels: ["ai/provider", "provider/groq"]
 
             Here is the issue content:
 
