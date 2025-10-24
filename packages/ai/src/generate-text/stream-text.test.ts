@@ -11424,7 +11424,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: text(),
+          output: text(),
           prompt: 'prompt',
         });
 
@@ -11463,7 +11463,7 @@ describe('streamText', () => {
               };
             },
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11538,7 +11538,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11575,7 +11575,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11610,7 +11610,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11641,7 +11641,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11672,7 +11672,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11838,7 +11838,7 @@ describe('streamText', () => {
                 },
               ]),
             }),
-            experimental_output: Output.array({
+            output: Output.array({
               element: z.object({ content: z.string() }),
             }),
             prompt: 'prompt',
@@ -11911,7 +11911,7 @@ describe('streamText', () => {
                 },
               ]),
             }),
-            experimental_output: Output.array({
+            output: Output.array({
               element: z.object({ content: z.string() }),
             }),
             prompt: 'prompt',
@@ -11960,7 +11960,7 @@ describe('streamText', () => {
 
         const result = streamText({
           model: mockModel,
-          experimental_output: Output.choice({
+          output: Output.choice({
             options: ['sunny', 'rainy', 'snowy'],
           }),
           prompt: 'prompt',
@@ -12000,7 +12000,7 @@ describe('streamText', () => {
 
         const result = streamText({
           model: mockModel,
-          experimental_output: Output.choice({
+          output: Output.choice({
             options: ['sunny', 'rainy', 'snowy'],
           }),
           prompt: 'prompt',
@@ -12033,7 +12033,7 @@ describe('streamText', () => {
 
         const result = streamText({
           model: mockModel,
-          experimental_output: Output.choice({
+          output: Output.choice({
             options: ['foobar', 'foobar2'],
           }),
           prompt: 'prompt',
@@ -12071,7 +12071,7 @@ describe('streamText', () => {
 
         const result = streamText({
           model: mockModel,
-          experimental_output: Output.choice({
+          output: Output.choice({
             options: ['foobar', 'barfoo'],
           }),
           prompt: 'prompt',

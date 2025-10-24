@@ -15,7 +15,7 @@ run(async () => {
       weather: weatherTool,
     },
     stopWhen: stepCountIs(5),
-    experimental_output: Output.choice({
+    output: Output.choice({
       options: [
         'winter jacket',
         'shorts and tshirt',

@@ -16,7 +16,7 @@ run(async () => {
       weather: weatherTool,
     },
     stopWhen: stepCountIs(5),
-    experimental_output: Output.object({
+    output: Output.object({
       schema: z.object({
         elements: z.array(
           z.object({

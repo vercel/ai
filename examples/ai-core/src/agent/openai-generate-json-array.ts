@@ -14,7 +14,7 @@ const agent = new ToolLoopAgent({
     } satisfies OpenAIResponsesProviderOptions,
   },
   tools: { weather: weatherTool },
-  experimental_output: Output.array({
+  output: Output.array({
     element: z.object({
       location: z.string(),
       temperature: z.number(),
@@ -24,7 +24,7 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const { experimental_output: output } = await agent.generate({
+  const { output: output } = await agent.generate({
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 

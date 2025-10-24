@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-4o'),
-  experimental_output: Output.object({
+  output: Output.object({
     schema: z.object({
       recipe: z.object({
         name: z.string(),

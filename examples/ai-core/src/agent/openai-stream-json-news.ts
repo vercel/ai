@@ -8,7 +8,7 @@ import { run } from '../lib/run';
 const agent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),
   callOptionsSchema: z.object({ topic: z.string() }),
-  experimental_output: Output.array({
+  output: Output.array({
     element: z.object({
       title: z.string(),
       tldr: z.string(),

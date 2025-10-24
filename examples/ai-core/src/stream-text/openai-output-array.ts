@@ -16,7 +16,7 @@ run(async () => {
       weather: weatherTool,
     },
     stopWhen: stepCountIs(5),
-    experimental_output: Output.array({
+    output: Output.array({
       element: z.object({
         location: z.string(),
         temperature: z.number(),
