@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.70
+
+### Patch Changes
+
+- d7bae86: feat(ai): add Output.choice()
+
 ## 6.0.0-beta.69
 
 ### Patch Changes
