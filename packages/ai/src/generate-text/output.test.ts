@@ -2,7 +2,7 @@ import { fail } from 'assert';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
-import { object, text } from './output';
+import { array, object, text } from './output';
 
 const context = {
   response: {
@@ -21,26 +21,34 @@ const context = {
 } as const;
 
 describe('Output.text', () => {
-  const outputText = text();
+  const text1 = text();
+
+  describe('responseFormat', () => {
+    it('should return the text as is', async () => {
+      const result = await text1.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+        }
+      `);
+    });
+  });
 
   describe('parseOutput', () => {
     it('should return the text as is', async () => {
-      const result = await outputText.parseOutput(
-        { text: 'some output' },
-        context,
-      );
+      const result = await text1.parseOutput({ text: 'some output' }, context);
       expect(result).toBe('some output');
     });
 
     it('should handle empty string', async () => {
-      const result = await outputText.parseOutput({ text: '' }, context);
+      const result = await text1.parseOutput({ text: '' }, context);
       expect(result).toBe('');
     });
 
     it('should handle undefined as string "undefined"', async () => {
       // Output.text() expects a string, so passing undefined would be a type error,
       // but we cast for test purposes to ensure what happens
-      const result = await outputText.parseOutput(
+      const result = await text1.parseOutput(
         { text: undefined as any },
         context,
       );
@@ -50,23 +58,47 @@ describe('Output.text', () => {
 
   describe('parsePartial', () => {
     it('should return the string as partial', async () => {
-      const result = await outputText.parsePartial({ text: 'partial text' });
+      const result = await text1.parsePartial({ text: 'partial text' });
       expect(result).toEqual({ partial: 'partial text' });
     });
 
     it('should handle empty string partial', async () => {
-      const result = await outputText.parsePartial({ text: '' });
+      const result = await text1.parsePartial({ text: '' });
       expect(result).toEqual({ partial: '' });
     });
   });
 });
 
 describe('Output.object', () => {
-  const output1 = object({ schema: z.object({ content: z.string() }) });
+  const object1 = object({ schema: z.object({ content: z.string() }) });
+
+  describe('responseFormat', () => {
+    it('should return the text as is', async () => {
+      const result = await object1.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "content": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "content",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+    });
+  });
 
   describe('parseOutput', () => {
     it('should parse the output of the model', async () => {
-      const result = await output1.parseOutput(
+      const result = await object1.parseOutput(
         { text: `{ "content": "test" }` },
         context,
       );
@@ -76,7 +108,7 @@ describe('Output.object', () => {
 
     it('should throw NoObjectGeneratedError when parsing fails', async () => {
       try {
-        await output1.parseOutput({ text: '{ broken json' }, context);
+        await object1.parseOutput({ text: '{ broken json' }, context);
         fail('must throw error');
       } catch (error) {
         verifyNoObjectGeneratedError(error, {
@@ -90,7 +122,7 @@ describe('Output.object', () => {
 
     it('should throw NoObjectGeneratedError when schema validation fails', async () => {
       try {
-        await output1.parseOutput({ text: `{ "content": 123 }` }, context);
+        await object1.parseOutput({ text: `{ "content": 123 }` }, context);
         fail('must throw error');
       } catch (error) {
         verifyNoObjectGeneratedError(error, {
@@ -105,26 +137,26 @@ describe('Output.object', () => {
 
   describe('parsePartial', () => {
     it('should return undefined for undefined input', async () => {
-      const result = await output1.parsePartial({ text: undefined as any });
+      const result = await object1.parsePartial({ text: undefined as any });
       expect(result).toBeUndefined();
     });
 
     it('should return partial object for valid JSON', async () => {
-      const result = await output1.parsePartial({
+      const result = await object1.parsePartial({
         text: '{ "content": "test" }',
       });
       expect(result).toEqual({ partial: { content: 'test' } });
     });
 
     it('should return partial object for repairable JSON', async () => {
-      const result = await output1.parsePartial({
+      const result = await object1.parsePartial({
         text: '{ "content": "test"',
       });
       expect(result).toEqual({ partial: { content: 'test' } });
     });
 
     it('should handle partial object with missing closing brace', async () => {
-      const result = await output1.parsePartial({
+      const result = await object1.parsePartial({
         text: '{ "content": "partial", "count": 42',
       });
       expect(result).toEqual({ partial: { content: 'partial', count: 42 } });
@@ -141,15 +173,55 @@ describe('Output.object', () => {
     });
 
     it('should handle empty string input', async () => {
-      const result = await output1.parsePartial({ text: '' });
+      const result = await object1.parsePartial({ text: '' });
       expect(result).toBeUndefined();
     });
 
     it('should handle partial string value', async () => {
-      const result = await output1.parsePartial({
+      const result = await object1.parsePartial({
         text: '{ "content": "partial str',
       });
       expect(result).toEqual({ partial: { content: 'partial str' } });
+    });
+  });
+});
+
+describe('Output.array', () => {
+  const array1 = array({ element: z.object({ content: z.string() }) });
+
+  describe('responseFormat', () => {
+    it('should return the text as is', async () => {
+      const result = await array1.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "elements": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "content",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "elements",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
     });
   });
 });
