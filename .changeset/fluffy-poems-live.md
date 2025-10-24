@@ -1,6 +1,6 @@
 ---
 'ai': patch
-'@ai-sdk/mcp': major
+'@ai-sdk/mcp': patch
 ---
 
 feat(ai): add OAuth for MCP clients + refactor to new package
