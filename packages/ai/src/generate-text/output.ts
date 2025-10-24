@@ -37,6 +37,7 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
 
 /**
  * Output specification for text generation.
+ * This is the default output mode that generates plain text.
  *
  * @returns An output specification for generating text.
  */
@@ -56,6 +57,7 @@ export const text = (): Output<string, string> => ({
 
 /**
  * Output specification for typed object generation using schemas.
+ * When the model generates a text response, it will return an object that matches the schema.
  *
  * @param schema - The schema of the object to generate.
  *
@@ -142,6 +144,13 @@ export const object = <OUTPUT>({
   };
 };
 
+/**
+ * Array output specification for text generation.
+ * When the model generates a text response, it will return an array of elements.
+ *
+ * @param element - The schema of the element to generate.
+ * @returns An output specification for generating an array of elements.
+ */
 export const array = <ELEMENT>({
   element: inputElementSchema,
 }: {
@@ -286,6 +295,13 @@ export const array = <ELEMENT>({
   };
 };
 
+/**
+ * Choice output specification for text generation.
+ * When the model generates a text response, it will return a one of the choice options.
+ *
+ * @param options - The options to choose from.
+ * @returns An output specification for generating a choice.
+ */
 export const choice = <ELEMENT extends string>({
   options: choiceOptions,
 }: {
