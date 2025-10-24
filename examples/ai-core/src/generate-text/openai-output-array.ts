@@ -1,8 +1,9 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { generateText, Output } from 'ai';
+import { generateText, Output, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { print } from '../lib/print';
 import { run } from '../lib/run';
+import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
@@ -12,17 +13,18 @@ run(async () => {
         strictJsonSchema: true,
       } satisfies OpenAIResponsesProviderOptions,
     },
+    tools: {
+      weather: weatherTool,
+    },
+    stopWhen: stepCountIs(5),
     experimental_output: Output.array({
       element: z.object({
-        name: z.string(),
-        class: z
-          .string()
-          .describe('Character class, e.g. warrior, mage, or thief.'),
-        description: z.string(),
+        location: z.string(),
+        temperature: z.number(),
+        condition: z.string(),
       }),
     }),
-    prompt:
-      'Generate 3 character descriptions for a fantasy role playing game.',
+    prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
   print('Output:', result.experimental_output);

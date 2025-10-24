@@ -1,32 +1,29 @@
-import { openai } from '@ai-sdk/openai';
-import { generateText, Output, stepCountIs, tool } from 'ai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { generateText, Output, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { print } from '../lib/print';
 import { run } from '../lib/run';
+import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
     model: openai('gpt-4o-mini'),
-    tools: {
-      weather: tool({
-        description: 'Get the weather in a location',
-        inputSchema: z.object({
-          location: z.string().describe('The location to get the weather for'),
-        }),
-        // location below is inferred to be a string:
-        execute: async ({ location }) => ({
-          location,
-          temperature: 72 + Math.floor(Math.random() * 21) - 10,
-        }),
-      }),
+    providerOptions: {
+      openai: {
+        strictJsonSchema: true,
+      } satisfies OpenAIResponsesProviderOptions,
     },
+    tools: {
+      weather: weatherTool,
+    },
+    stopWhen: stepCountIs(5),
     experimental_output: Output.object({
       schema: z.object({
         location: z.string(),
         temperature: z.number(),
+        condition: z.string(),
       }),
     }),
-    stopWhen: stepCountIs(2),
     prompt: 'What is the weather in San Francisco?',
   });
 
