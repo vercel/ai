@@ -360,4 +360,61 @@ describe('Output.choice', () => {
       `);
     });
   });
+
+  describe('parseOutput', () => {
+    it('should parse a valid choice output', async () => {
+      const result = await choice1.parseOutput(
+        { text: `{ "result": "a" }` },
+        context,
+      );
+      expect(result).toBe('a');
+    });
+
+    it('should throw NoObjectGeneratedError if JSON is invalid', async () => {
+      await expect(
+        choice1.parseOutput({ text: '{ broken json' }, context),
+      ).rejects.toThrowError(
+        'No object generated: could not parse the response.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError if result is missing', async () => {
+      await expect(
+        choice1.parseOutput({ text: `{}` }, context),
+      ).rejects.toThrowError(
+        'No object generated: response did not match schema.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError if result value is not a valid choice', async () => {
+      await expect(
+        choice1.parseOutput({ text: `{ "result": "d" }` }, context),
+      ).rejects.toThrowError(
+        'No object generated: response did not match schema.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError if result is not a string', async () => {
+      await expect(
+        choice1.parseOutput({ text: `{ "result": 5 }` }, context),
+      ).rejects.toThrowError(
+        'No object generated: response did not match schema.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError if top-level is not an object', async () => {
+      await expect(
+        choice1.parseOutput({ text: `"a"` }, context),
+      ).rejects.toThrowError(
+        'No object generated: response did not match schema.',
+      );
+    });
+  });
+
+  describe('parsePartial', () => {
+    it('should return undefined for any input', async () => {
+      const result = await choice1.parsePartial({ text: `{ "result": "a" }` });
+      expect(result).toBeUndefined();
+    });
+  });
 });
