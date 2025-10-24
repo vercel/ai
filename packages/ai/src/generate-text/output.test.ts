@@ -224,4 +224,46 @@ describe('Output.array', () => {
       `);
     });
   });
+
+  describe('parseOutput', () => {
+    it('should parse the output of the model', async () => {
+      const result = await array1.parseOutput(
+        { text: `{ "elements": [{ "content": "test" }] }` },
+        context,
+      );
+
+      expect(result).toStrictEqual([{ content: 'test' }]);
+    });
+
+    it('should throw NoObjectGeneratedError when parsing fails', async () => {
+      try {
+        await array1.parseOutput({ text: '{ broken json' }, context);
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: could not parse the response.',
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+    });
+
+    it('should throw NoObjectGeneratedError when schema validation fails', async () => {
+      try {
+        await array1.parseOutput(
+          { text: `{ "elements": [{ "content": 123 }] }` },
+          context,
+        );
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: response did not match schema.',
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+    });
+  });
 });

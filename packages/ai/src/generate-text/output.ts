@@ -1,4 +1,7 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import {
+  LanguageModelV3CallOptions,
+  TypeValidationError,
+} from '@ai-sdk/provider';
 import {
   asSchema,
   FlexibleSchema,
@@ -142,7 +145,7 @@ export const array = <ELEMENT>({
   // TODO: add optional name
 }: {
   element: FlexibleSchema<ELEMENT>;
-}): Output<string, string> => {
+}): Output<Array<ELEMENT>, string> => {
   const elementSchema = asSchema(inputElementSchema);
 
   return {
@@ -171,8 +174,67 @@ export const array = <ELEMENT>({
       return { partial: text }; // TODO
     },
 
-    async parseOutput({ text }: { text: string }) {
-      return text; // TODO
+    async parseOutput(
+      { text }: { text: string },
+      context: {
+        response: LanguageModelResponseMetadata;
+        usage: LanguageModelUsage;
+        finishReason: FinishReason;
+      },
+    ) {
+      const parseResult = await safeParseJSON({ text });
+
+      if (!parseResult.success) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      const outerValue = parseResult.value;
+
+      if (
+        outerValue == null ||
+        typeof outerValue !== 'object' ||
+        !('elements' in outerValue) ||
+        !Array.isArray(outerValue.elements)
+      ) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          cause: new TypeValidationError({
+            value: outerValue,
+            cause: 'response must be an object with an elements array',
+          }),
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      for (const element of outerValue.elements) {
+        const validationResult = await safeValidateTypes({
+          value: element,
+          schema: elementSchema,
+        });
+
+        if (!validationResult.success) {
+          throw new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+            cause: validationResult.error,
+            text,
+            response: context.response,
+            usage: context.usage,
+            finishReason: context.finishReason,
+          });
+        }
+      }
+
+      return outerValue.elements as Array<ELEMENT>;
     },
   };
 };
