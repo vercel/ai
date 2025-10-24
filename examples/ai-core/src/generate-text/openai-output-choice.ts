@@ -16,7 +16,7 @@ run(async () => {
       weather: weatherTool,
     },
     stopWhen: stepCountIs(5),
-    experimental_output: Output.choice({
+    output: Output.choice({
       options: [
         'winter jacket',
         'shorts and tshirt',
@@ -27,6 +27,6 @@ run(async () => {
     prompt: 'Get the weather for San Francisco. What should I wear?',
   });
 
-  print('Output:', result.experimental_output);
+  print('Output:', result.output);
   print('Request:', result.request.body);
 });
