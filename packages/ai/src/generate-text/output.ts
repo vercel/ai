@@ -146,7 +146,7 @@ export const array = <ELEMENT>({
   element: inputElementSchema,
 }: {
   element: FlexibleSchema<ELEMENT>;
-}): Output<Array<ELEMENT>, Array<DeepPartial<ELEMENT>>> => {
+}): Output<Array<ELEMENT>, Array<ELEMENT>> => {
   const elementSchema = asSchema(inputElementSchema);
 
   return {
@@ -258,15 +258,24 @@ export const array = <ELEMENT>({
           }
 
           // Note: currently no validation of partial results:
-          const elements = outerValue.elements as Array<DeepPartial<ELEMENT>>;
+          const rawElements =
+            result.state === 'repaired-parse' && outerValue.elements.length > 0
+              ? outerValue.elements.slice(0, -1)
+              : outerValue.elements;
 
-          return {
-            partial:
-              // slice off last element while the array is incomplete:
-              result.state === 'repaired-parse' && elements.length > 0
-                ? elements.slice(0, -1)
-                : elements,
-          };
+          const parsedElements: Array<ELEMENT> = [];
+          for (const rawElement of rawElements) {
+            const validationResult = await safeValidateTypes({
+              value: rawElement,
+              schema: elementSchema,
+            });
+
+            if (validationResult.success) {
+              parsedElements.push(validationResult.value);
+            }
+          }
+
+          return { partial: parsedElements };
         }
 
         default: {
