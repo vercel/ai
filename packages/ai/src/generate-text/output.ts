@@ -152,7 +152,7 @@ export const array = <ELEMENT>({
   return {
     type: 'object',
 
-    // returns a JSON schema that describes an array of elements:
+    // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
       // remove $schema from schema.jsonSchema:
       const { $schema, ...itemSchema } = jsonSchema;
@@ -282,6 +282,80 @@ export const array = <ELEMENT>({
           throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
         }
       }
+    },
+  };
+};
+
+export const choice = <ELEMENT extends string>({
+  options: choiceOptions,
+}: {
+  options: Array<ELEMENT>;
+}): Output<ELEMENT, ELEMENT> => {
+  return {
+    type: 'object',
+
+    // JSON schema that describes an enumeration:
+    responseFormat: Promise.resolve({
+      type: 'json',
+      schema: {
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        properties: {
+          result: { type: 'string', enum: choiceOptions },
+        },
+        required: ['result'],
+        additionalProperties: false,
+      },
+    } as const),
+
+    async parseOutput(
+      { text }: { text: string },
+      context: {
+        response: LanguageModelResponseMetadata;
+        usage: LanguageModelUsage;
+        finishReason: FinishReason;
+      },
+    ) {
+      const parseResult = await safeParseJSON({ text });
+
+      if (!parseResult.success) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      const outerValue = parseResult.value;
+
+      if (
+        outerValue == null ||
+        typeof outerValue !== 'object' ||
+        !('result' in outerValue) ||
+        typeof outerValue.result !== 'string' ||
+        !choiceOptions.includes(outerValue.result as any)
+      ) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          cause: new TypeValidationError({
+            value: outerValue,
+            cause: 'response must be an object that contains a choice value.',
+          }),
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      return outerValue.result as ELEMENT;
+    },
+
+    async parsePartial({ text }: { text: string }) {
+      return undefined;
     },
   };
 };
