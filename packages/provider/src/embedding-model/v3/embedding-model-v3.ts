@@ -3,6 +3,7 @@ import {
   SharedV3ProviderOptions,
   SharedV3ProviderMetadata,
 } from '../../shared';
+import { EmbeddingModelCallOptions } from './embedding-model-v3-call-options';
 import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
 
 /**
@@ -54,30 +55,7 @@ Generates a list of embeddings for the given input text.
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
-  doEmbed(options: {
-    /**
-List of values to embed.
-     */
-    values: Array<VALUE>;
-
-    /**
-Abort signal for cancelling the operation.
-     */
-    abortSignal?: AbortSignal;
-
-    /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-    */
-    providerOptions?: SharedV3ProviderOptions;
-
-    /**
-  Additional HTTP headers to be sent with the request.
-  Only applicable for HTTP-based providers.
-     */
-    headers?: Record<string, string | undefined>;
-  }): PromiseLike<{
+  doEmbed(options: EmbeddingModelCallOptions<VALUE>): PromiseLike<{
     /**
 Generated embeddings. They are in the same order as the input values.
      */
