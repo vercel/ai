@@ -2953,6 +2953,96 @@ describe('generateText', () => {
       });
     });
 
+    describe('array output', () => {
+      it('should generate an array with 3 elements', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  elements: [
+                    { content: 'element 1' },
+                    { content: 'element 2' },
+                    { content: 'element 3' },
+                  ],
+                }),
+              },
+            ],
+          },
+        });
+
+        const result = await generateText({
+          model,
+          experimental_output: Output.array({
+            element: z.object({ content: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(result.experimental_output).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "element 1",
+          },
+          {
+            "content": "element 2",
+          },
+          {
+            "content": "element 3",
+          },
+        ]
+      `);
+
+        expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+
+        expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "elements": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "content",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "elements",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+      });
+    });
+
     it('should not parse output when finish reason is tool-calls', async () => {
       const result = await generateText({
         model: new MockLanguageModelV3({

@@ -1,12 +1,11 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { generateText, Output, stepCountIs } from 'ai';
+import { Output, stepCountIs, streamText } from 'ai';
 import { z } from 'zod';
-import { print } from '../lib/print';
 import { run } from '../lib/run';
 import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
-  const result = await generateText({
+  const { experimental_partialOutputStream: partialOutputStream } = streamText({
     model: openai('gpt-4o-mini'),
     providerOptions: {
       openai: {
@@ -17,21 +16,18 @@ run(async () => {
       weather: weatherTool,
     },
     stopWhen: stepCountIs(5),
-    experimental_output: Output.object({
-      schema: z.object({
-        elements: z.array(
-          z.object({
-            location: z.string(),
-            temperature: z.number(),
-            condition: z.string(),
-          }),
-        ),
+    experimental_output: Output.array({
+      element: z.object({
+        location: z.string(),
+        temperature: z.number(),
+        condition: z.string(),
       }),
     }),
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
-  // { location: 'San Francisco', temperature: 81 }
-  print('Output:', result.experimental_output);
-  print('Request:', result.request.body);
+  for await (const partialOutput of partialOutputStream) {
+    console.clear();
+    console.log(partialOutput);
+  }
 });
