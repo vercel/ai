@@ -95,14 +95,14 @@ Agents integrate seamlessly with React and other UI frameworks:
 
 ```typescript
 // Server-side API route
-import { createAgentUIStreamResponse, convertToModelMessages } from 'ai';
+import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {
   const { messages } = await request.json();
 
   return createAgentUIStreamResponse({
     agent: weatherAgent,
-    messages: convertToModelMessages(messages),
+    messages,
   });
 }
 ```
