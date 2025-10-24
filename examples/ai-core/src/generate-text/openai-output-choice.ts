@@ -17,12 +17,14 @@ run(async () => {
     },
     stopWhen: stepCountIs(5),
     experimental_output: Output.choice({
-      options: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
+      options: [
+        'winter jacket',
+        'shorts and tshirt',
+        'light jacket',
+        'raincoat',
+      ],
     }),
-    prompt:
-      'Classify the genre of this movie plot: ' +
-      '"A group of astronauts travel through a wormhole in search of a ' +
-      'new habitable planet for humanity."',
+    prompt: 'Get the weather for San Francisco and decide what I should wear.',
   });
 
   print('Output:', result.experimental_output);
