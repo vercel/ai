@@ -62,4 +62,54 @@ describe('Output.object', () => {
       }
     });
   });
+
+  describe('parsePartial', () => {
+    it('should return undefined for undefined input', async () => {
+      const result = await output1.parsePartial({ text: undefined as any });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return partial object for valid JSON', async () => {
+      const result = await output1.parsePartial({
+        text: '{ "content": "test" }',
+      });
+      expect(result).toEqual({ partial: { content: 'test' } });
+    });
+
+    it('should return partial object for repairable JSON', async () => {
+      const result = await output1.parsePartial({
+        text: '{ "content": "test"',
+      });
+      expect(result).toEqual({ partial: { content: 'test' } });
+    });
+
+    it('should handle partial object with missing closing brace', async () => {
+      const result = await output1.parsePartial({
+        text: '{ "content": "partial", "count": 42',
+      });
+      expect(result).toEqual({ partial: { content: 'partial', count: 42 } });
+    });
+
+    it('should handle partial array', async () => {
+      const arrayOutput = object({
+        schema: z.object({ items: z.array(z.string()) }),
+      });
+      const result = await arrayOutput.parsePartial({
+        text: '{ "items": ["a", "b"',
+      });
+      expect(result).toEqual({ partial: { items: ['a', 'b'] } });
+    });
+
+    it('should handle empty string input', async () => {
+      const result = await output1.parsePartial({ text: '' });
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle partial string value', async () => {
+      const result = await output1.parsePartial({
+        text: '{ "content": "partial str',
+      });
+      expect(result).toEqual({ partial: { content: 'partial str' } });
+    });
+  });
 });
