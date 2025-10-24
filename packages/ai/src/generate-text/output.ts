@@ -138,9 +138,10 @@ export const object = <OUTPUT>({
 };
 
 export const array = <ELEMENT>({
-  elementSchema: inputElementSchema,
+  element: inputElementSchema,
+  // TODO: add optional name
 }: {
-  elementSchema: FlexibleSchema<ELEMENT>;
+  element: FlexibleSchema<ELEMENT>;
 }): Output<string, string> => {
   const elementSchema = asSchema(inputElementSchema);
 
