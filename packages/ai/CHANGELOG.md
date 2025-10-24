@@ -1,5 +1,32 @@
 # ai
 
+## 6.0.0-beta.70
+
+### Patch Changes
+
+- d7bae86: feat(ai): add Output.choice()
+
+## 6.0.0-beta.69
+
+### Patch Changes
+
+- d5b25ee: feat(ai): add Output.array()
+
+## 6.0.0-beta.68
+
+### Patch Changes
+
+- 9b83947: feat(ai): add convertDataPart option to convertToModelMessages
+
+  Add optional convertDataPart callback for converting custom data parts (URLs, code files, etc.) to text or file parts that models can process. Fully type-safe using existing UIMessage generics.
+
+## 6.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [2b6a848]
+  - @ai-sdk/gateway@2.0.0-beta.37
+
 ## 6.0.0-beta.66
 
 ### Patch Changes

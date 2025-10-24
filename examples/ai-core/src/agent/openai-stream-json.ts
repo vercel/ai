@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-4o'),
-  experimental_output: Output.object({
+  output: Output.object({
     schema: z.object({
       recipe: z.object({
         name: z.string(),
@@ -31,7 +31,7 @@ run(async () => {
     prompt: 'Generate a lasagna recipe.',
   });
 
-  for await (const partialObject of result.experimental_partialOutputStream) {
+  for await (const partialObject of result.partialOutputStream) {
     console.clear();
     console.dir(partialObject, { depth: Infinity });
   }

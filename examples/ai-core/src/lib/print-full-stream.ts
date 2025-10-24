@@ -1,4 +1,5 @@
 import { StreamTextResult } from 'ai';
+import { print } from './print';
 
 export async function printFullStream({
   result,
@@ -39,7 +40,7 @@ export async function printFullStream({
         break;
 
       case 'error':
-        console.error('Error:', chunk.error);
+        print('Error:', chunk.error);
         break;
     }
   }
