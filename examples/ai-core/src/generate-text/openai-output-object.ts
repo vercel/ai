@@ -19,12 +19,16 @@ run(async () => {
     stopWhen: stepCountIs(5),
     experimental_output: Output.object({
       schema: z.object({
-        location: z.string(),
-        temperature: z.number(),
-        condition: z.string(),
+        elements: z.array(
+          z.object({
+            location: z.string(),
+            temperature: z.number(),
+            condition: z.string(),
+          }),
+        ),
       }),
     }),
-    prompt: 'What is the weather in San Francisco?',
+    prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
   // { location: 'San Francisco', temperature: 81 }

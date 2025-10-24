@@ -28,12 +28,5 @@ run(async () => {
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
-  // [
-  //   { location: 'San Francisco', temperature: 12, condition: 'cloudy' },
-  //   { location: 'London', temperature: 8, condition: 'cloudy' },
-  //   { location: 'Paris', temperature: -6, condition: 'snowy' },
-  //   { location: 'Berlin', temperature: 34, condition: 'sunny' }
-  // ]
-
   print('Output:', output);
 });
