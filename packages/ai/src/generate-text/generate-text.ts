@@ -145,7 +145,7 @@ A result object that contains the generated text, the results of the tool calls,
 export async function generateText<
   TOOLS extends ToolSet,
   OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  PARTIAL_OUTPUT = never,
 >({
   model: modelArg,
   tools,
@@ -228,14 +228,14 @@ changing the tool call and result types in the result.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
-    output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+    output?: Output<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
 Optional specification for parsing structured outputs from the LLM response.
 
 @deprecated Use `output` instead.
      */
-    experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+    experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
 Custom download function to use for URLs.
