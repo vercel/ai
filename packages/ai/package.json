@@ -11,7 +11,6 @@
     "dist/**/*",
     "CHANGELOG.md",
     "internal.d.ts",
-    "mcp-stdio.d.ts",
     "test.d.ts"
   ],
   "scripts": {
