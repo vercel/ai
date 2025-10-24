@@ -1,10 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, Output, tool } from 'ai';
-import 'dotenv/config';
+import { generateText, Output, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
+import { print } from '../lib/print';
+import { run } from '../lib/run';
 
-async function main() {
-  const { experimental_output } = await generateText({
+run(async () => {
+  const result = await generateText({
     model: openai('gpt-4o-mini'),
     tools: {
       weather: tool({
@@ -30,7 +31,6 @@ async function main() {
   });
 
   // { location: 'San Francisco', temperature: 81 }
-  console.log(experimental_output);
-}
-
-main().catch(console.error);
+  print('Output:', result.experimental_output);
+  print('Request:', result.request.body);
+});
