@@ -11400,9 +11400,7 @@ describe('streamText', () => {
         });
 
         await expect(async () => {
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          );
+          await convertAsyncIterableToArray(result.partialOutputStream);
         }).rejects.toThrow('No output specified');
       });
     });
@@ -11429,9 +11427,7 @@ describe('streamText', () => {
         });
 
         expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
+          await convertAsyncIterableToArray(result.partialOutputStream),
         ).toStrictEqual(['Hello, ', 'Hello, ,', 'Hello, , world!']);
       });
     });
@@ -11582,9 +11578,7 @@ describe('streamText', () => {
         });
 
         expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
+          await convertAsyncIterableToArray(result.partialOutputStream),
         ).toStrictEqual([
           {},
           { value: 'Hello, ' },
@@ -11617,9 +11611,7 @@ describe('streamText', () => {
         });
 
         expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
+          await convertAsyncIterableToArray(result.partialOutputStream),
         ).toStrictEqual([{}, { value: 'Hello, ' }, { value: 'Hello, world!' }]);
       });
 
@@ -11849,11 +11841,8 @@ describe('streamText', () => {
         });
 
         it('should stream only complete objects in partialObjectStream', async () => {
-          expect(
-            await convertAsyncIterableToArray(
-              result!.experimental_partialOutputStream,
-            ),
-          ).toMatchInlineSnapshot(`
+          expect(await convertAsyncIterableToArray(result!.partialOutputStream))
+            .toMatchInlineSnapshot(`
             [
               [],
               [
@@ -11922,11 +11911,8 @@ describe('streamText', () => {
         });
 
         it('should stream only complete objects in partialObjectStream', async () => {
-          expect(
-            await convertAsyncIterableToArray(
-              result!.experimental_partialOutputStream,
-            ),
-          ).toMatchInlineSnapshot(`
+          expect(await convertAsyncIterableToArray(result!.partialOutputStream))
+            .toMatchInlineSnapshot(`
             [
               [
                 {
@@ -11966,11 +11952,8 @@ describe('streamText', () => {
           prompt: 'prompt',
         });
 
-        expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.partialOutputStream))
+          .toMatchInlineSnapshot(`
             [
               "sunny",
             ]
@@ -12007,9 +11990,7 @@ describe('streamText', () => {
         });
 
         expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
+          await convertAsyncIterableToArray(result.partialOutputStream),
         ).toMatchInlineSnapshot(`[]`);
       });
 
@@ -12039,11 +12020,8 @@ describe('streamText', () => {
           prompt: 'prompt',
         });
 
-        expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.partialOutputStream))
+          .toMatchInlineSnapshot(`
           [
             "foobar",
           ]
@@ -12077,11 +12055,8 @@ describe('streamText', () => {
           prompt: 'prompt',
         });
 
-        expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.partialOutputStream))
+          .toMatchInlineSnapshot(`
           [
             "foobar",
           ]

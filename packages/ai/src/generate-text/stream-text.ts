@@ -1811,6 +1811,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
+    return this.partialOutputStream;
+  }
+
+  get partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
     if (this.output == null) {
       throw new NoOutputSpecifiedError();
     }

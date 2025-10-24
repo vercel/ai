@@ -116,7 +116,7 @@ describe('ToolLoopAgent', () => {
         prompt: 'Hello, world!',
       });
 
-      const partialOutputStream = streamResult.experimental_partialOutputStream;
+      const partialOutputStream = streamResult.partialOutputStream;
 
       expectTypeOf<typeof partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<DeepPartial<{ value: string }>>

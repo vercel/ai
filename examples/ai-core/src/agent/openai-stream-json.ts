@@ -31,7 +31,7 @@ run(async () => {
     prompt: 'Generate a lasagna recipe.',
   });
 
-  for await (const partialObject of result.experimental_partialOutputStream) {
+  for await (const partialObject of result.partialOutputStream) {
     console.clear();
     console.dir(partialObject, { depth: Infinity });
   }

@@ -343,8 +343,8 @@ const { output } = await generateText({
 ### `streamText`
 
 ```ts highlight="2,4-18"
-// experimental_partialOutputStream contains generated partial objects:
-const { experimental_partialOutputStream } = await streamText({
+// partialOutputStream contains generated partial objects:
+const { partialOutputStream } = await streamText({
   // ...
   output: Output.object({
     schema: z.object({

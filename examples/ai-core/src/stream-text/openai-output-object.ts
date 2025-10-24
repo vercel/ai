@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
-  const { experimental_partialOutputStream: partialOutputStream } = streamText({
+  const { partialOutputStream: partialOutputStream } = streamText({
     model: openai('gpt-4o-mini'),
     providerOptions: {
       openai: {
