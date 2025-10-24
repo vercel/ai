@@ -1,10 +1,16 @@
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import {
+  McpServer,
+  ResourceTemplate,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import express from 'express';
 
 const app = express();
 
-const server = new McpServer({ name: 'mcp-resources-example', version: '1.0.0' });
+const server = new McpServer({
+  name: 'mcp-resources-example',
+  version: '1.0.0',
+});
 
 // Register a fixed resource
 server.resource(
@@ -46,7 +52,7 @@ server.resource(
     description: 'Template for example text resources',
     mimeType: 'text/plain',
   },
-  async (uri) => ({
+  async uri => ({
     contents: [
       {
         uri: uri.toString(),
@@ -69,7 +75,7 @@ app.post('/messages', async (req, res) => {
 });
 
 app.listen(8082, () => {
-  console.log('MCP resources example server listening on http://localhost:8082');
+  console.log(
+    'MCP resources example server listening on http://localhost:8082',
+  );
 });
-
-

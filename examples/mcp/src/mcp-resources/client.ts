@@ -28,7 +28,6 @@ async function main() {
     console.log('READ DYNAMIC:', JSON.stringify(dynamic, null, 2));
 
     // TODO: Integrate resource contents into LLM prompt
-
   } finally {
     await mcpClient.close();
   }
@@ -38,5 +37,3 @@ main().catch(err => {
   console.error(err);
   process.exit(1);
 });
-
-
