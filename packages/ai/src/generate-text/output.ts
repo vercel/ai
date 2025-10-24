@@ -32,6 +32,11 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
   ): Promise<OUTPUT>;
 }
 
+/**
+ * Output specification for text generation.
+ *
+ * @returns An output specification for generating text.
+ */
 export const text = (): Output<string, string> => ({
   type: 'text',
 
@@ -46,6 +51,13 @@ export const text = (): Output<string, string> => ({
   },
 });
 
+/**
+ * Output specification for typed object generation using schemas.
+ *
+ * @param schema - The schema of the object to generate.
+ *
+ * @returns An output specification for generating objects with the specified schema.
+ */
 export const object = <OUTPUT>({
   schema: inputSchema,
 }: {
