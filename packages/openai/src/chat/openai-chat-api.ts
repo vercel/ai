@@ -32,6 +32,7 @@ export const openaiChatResponseSchema = lazySchema(() =>
           message: z.object({
             role: z.literal('assistant').nullish(),
             content: z.string().nullish(),
+            reasoning_content: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({
@@ -116,6 +117,7 @@ export const openaiChatChunkSchema = lazySchema(() =>
               .object({
                 role: z.enum(['assistant']).nullish(),
                 content: z.string().nullish(),
+                reasoning_content: z.string().nullish(),
                 tool_calls: z
                   .array(
                     z.object({
