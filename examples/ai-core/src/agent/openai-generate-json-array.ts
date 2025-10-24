@@ -24,7 +24,7 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const { output: output } = await agent.generate({
+  const { output } = await agent.generate({
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 

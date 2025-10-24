@@ -168,7 +168,7 @@ const analysisAgent = new ToolLoopAgent({
   stopWhen: stepCountIs(10),
 });
 
-const { output: output } = await analysisAgent.generate({
+const { output } = await analysisAgent.generate({
   prompt: 'Analyze customer feedback from the last quarter',
 });
 ```

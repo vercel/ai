@@ -33,7 +33,7 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const { output: output } = await agent.generate({
+  const { output } = await agent.generate({
     prompt: 'Generate a lasagna recipe.',
     options: {
       strict: true,
