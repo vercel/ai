@@ -190,6 +190,7 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
+          "cachedInputTokens": undefined,
           "inputTokens": 20,
           "outputTokens": 5,
           "reasoningTokens": undefined,
@@ -197,7 +198,7 @@ describe('XaiChatLanguageModel', () => {
         }
       `);
     });
-
+    
     it('should send additional response information', async () => {
       prepareJsonResponse({
         id: 'test-id',
@@ -799,6 +800,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 4,
               "outputTokens": 32,
               "reasoningTokens": undefined,
@@ -862,6 +864,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 4,
               "outputTokens": 32,
               "reasoningTokens": undefined,
@@ -940,6 +943,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "tool-calls",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 183,
               "outputTokens": 133,
               "reasoningTokens": undefined,
@@ -1126,6 +1130,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 4,
               "outputTokens": 30,
               "reasoningTokens": undefined,
@@ -1252,6 +1257,7 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
+          "cachedInputTokens": undefined,
           "inputTokens": 15,
           "outputTokens": 20,
           "reasoningTokens": 10,
@@ -1334,6 +1340,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 15,
               "outputTokens": 20,
               "reasoningTokens": 10,
@@ -1424,6 +1431,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 15,
               "outputTokens": 20,
               "reasoningTokens": 10,
@@ -1567,6 +1575,7 @@ describe('doStream with raw chunks', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 10,
             "outputTokens": 5,
             "reasoningTokens": undefined,
