@@ -1,5 +1,23 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- 7c4328e: Adds url-based pdf and image support for anthropic tool results
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- 21f378c: fix(provider/anthropic): do not limit maxTokens when model id is unknown
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- 80894b3: add return `file_id` property for anthropic code-execution-20250825 to download output files.
+
 ## 3.0.0-beta.34
 
 ### Patch Changes

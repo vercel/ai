@@ -1,10 +1,10 @@
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
+import { Output } from '../generate-text/output';
 import {
   InferGenerateOutput,
   InferStreamOutput,
-  Output,
-} from '../generate-text/output';
+} from '../generate-text/output-utils';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 

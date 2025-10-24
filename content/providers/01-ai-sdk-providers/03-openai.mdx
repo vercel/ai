@@ -609,7 +609,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 #### Structured Outputs
 
-The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `experimental_output` option when using `generateText` or `streamText`.
+The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `output` option when using `generateText` or `streamText`.
 
 ```ts
 // Using generateObject
@@ -634,7 +634,7 @@ const result = await generateObject({
 const result = await generateText({
   model: openai('gpt-4.1'),
   prompt: 'How do I make a pizza?',
-  experimental_output: Output.object({
+  output: Output.object({
     schema: z.object({
       ingredients: z.array(z.string()),
       steps: z.array(z.string()),
