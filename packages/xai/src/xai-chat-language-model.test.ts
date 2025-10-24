@@ -198,7 +198,7 @@ describe('XaiChatLanguageModel', () => {
         }
       `);
     });
-    
+
     it('should send additional response information', async () => {
       prepareJsonResponse({
         id: 'test-id',

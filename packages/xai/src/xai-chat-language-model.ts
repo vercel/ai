@@ -295,8 +295,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
           response.usage.completion_tokens_details?.reasoning_tokens ??
           undefined,
         cachedInputTokens:
-          response.usage.prompt_tokens_details?.cached_tokens ??
-          undefined,
+          response.usage.prompt_tokens_details?.cached_tokens ?? undefined,
       },
       request: { body },
       response: {
