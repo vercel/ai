@@ -3,8 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   // RSC APIs - shared client
   {
-    // Entry is `.mts` as the entrypoints that import it will be ESM so it needs exact imports that includes the `.mjs` extension.
-    entry: ['src/rsc-shared.mts'],
+    entry: ['src/rsc-shared.ts'],
     outDir: 'dist',
     format: ['esm'],
     external: ['react', 'zod'],

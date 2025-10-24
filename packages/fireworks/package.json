@@ -2,9 +2,8 @@
   "name": "@ai-sdk/fireworks",
   "version": "2.0.0-beta.21",
   "license": "Apache-2.0",
+  "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -14,9 +13,9 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
+    "lint": "eslint \"./**/*.{ts,tsx}\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
+    "prettier-check": "prettier --check \"./**/*.{ts,tsx}\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -27,8 +26,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {

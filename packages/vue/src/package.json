@@ -1,8 +1,7 @@
 {
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "type": "module",
   "types": "./dist/index.d.ts",
-  "exports": "./dist/index.mjs",
+  "exports": "./dist/index.js",
   "private": true,
   "peerDependencies": {
     "vue": "*"

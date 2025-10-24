@@ -5,10 +5,11 @@
     "dev": "next"
   },
   "dependencies": {
+    "@ai-sdk/rsc": "workspace:*",
+    "ai": "workspace:*",
     "next": "canary",
-    "react": "rc",
     "react-dom": "rc",
-    "ai": "workspace:*"
+    "react": "rc"
   },
   "version": "0.0.0"
 }
