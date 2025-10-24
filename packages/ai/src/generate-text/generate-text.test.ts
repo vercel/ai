@@ -2791,7 +2791,7 @@ describe('generateText', () => {
         });
 
         expect(() => {
-          result.experimental_output;
+          result.output;
         }).toThrow('No output specified');
       });
     });
@@ -2806,10 +2806,10 @@ describe('generateText', () => {
             }),
           }),
           prompt: 'prompt',
-          experimental_output: Output.text(),
+          output: Output.text(),
         });
 
-        expect(result.experimental_output).toStrictEqual('Hello, world!');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
 
       it('should set responseFormat to text and not change the prompt', async () => {
@@ -2826,7 +2826,7 @@ describe('generateText', () => {
             },
           }),
           prompt: 'prompt',
-          experimental_output: Output.text(),
+          output: Output.text(),
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
@@ -2876,12 +2876,12 @@ describe('generateText', () => {
             }),
           }),
           prompt: 'prompt',
-          experimental_output: Output.object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
         });
 
-        expect(result.experimental_output).toEqual({ value: 'test-value' });
+        expect(result.output).toEqual({ value: 'test-value' });
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
@@ -2898,7 +2898,7 @@ describe('generateText', () => {
             },
           }),
           prompt: 'prompt',
-          experimental_output: Output.object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
         });
@@ -2975,13 +2975,13 @@ describe('generateText', () => {
 
         const result = await generateText({
           model,
-          experimental_output: Output.array({
+          output: Output.array({
             element: z.object({ content: z.string() }),
           }),
           prompt: 'prompt',
         });
 
-        expect(result.experimental_output).toMatchInlineSnapshot(`
+        expect(result.output).toMatchInlineSnapshot(`
         [
           {
             "content": "element 1",
@@ -3059,13 +3059,13 @@ describe('generateText', () => {
 
         const result = await generateText({
           model,
-          experimental_output: Output.choice({
+          output: Output.choice({
             options: ['sunny', 'rainy', 'snowy'],
           }),
           prompt: 'prompt',
         });
 
-        expect(result.experimental_output).toEqual('sunny');
+        expect(result.output).toEqual('sunny');
         expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
         [
           {
@@ -3124,7 +3124,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_output: Output.object({
+        output: Output.object({
           schema: z.object({ summary: z.string() }),
         }),
         tools: {
@@ -3135,9 +3135,9 @@ describe('generateText', () => {
         },
       });
 
-      // experimental_output should be undefined when finish reason is tool-calls
+      // output should be undefined when finish reason is tool-calls
       expect(() => {
-        result.experimental_output;
+        result.output;
       }).toThrow('No output specified');
 
       // But tool calls should work normally

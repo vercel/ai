@@ -907,7 +907,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_output',
+      name: 'output',
       type: 'Output',
       isOptional: true,
       description: 'Experimental setting for generating structured outputs.',
@@ -2473,10 +2473,10 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_partialOutputStream',
+      name: 'partialOutputStream',
       type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
       description:
-        'A stream of partial outputs. It uses the `experimental_output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+        'A stream of partial outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
     },
     {
       name: 'consumeStream',
