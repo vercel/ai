@@ -266,4 +266,63 @@ describe('Output.array', () => {
       }
     });
   });
+
+  describe('array.parsePartial', () => {
+    it('should parse partial output successfully for successful-parse', async () => {
+      const partial = await array1.parsePartial({
+        text: `{ "elements": [{ "content": "a" }, { "content": "b" }] }`,
+      });
+      expect(partial).toEqual({
+        partial: [{ content: 'a' }, { content: 'b' }],
+      });
+    });
+
+    it('should parse partial output successfully for repaired-parse (returns all but last element)', async () => {
+      // Simulate an incomplete last element (at the end, missing " }")
+      const partial = await array1.parsePartial({
+        text: `{ "elements": [{ "content": "a" }, { "content": "b" }`,
+      });
+      // Should only return [{ content: "a" }]
+      expect(partial).toEqual({
+        partial: [{ content: 'a' }],
+      });
+    });
+
+    it('should return undefined for failed-parse', async () => {
+      const partial = await array1.parsePartial({
+        text: '{ not valid json',
+      });
+      expect(partial).toBeUndefined();
+    });
+
+    it('should return undefined when input is undefined', async () => {
+      const partial = await array1.parsePartial({
+        text: undefined as any,
+      });
+      expect(partial).toBeUndefined();
+    });
+
+    it('should return undefined if elements is missing', async () => {
+      // "elements" property is missing
+      const partial = await array1.parsePartial({
+        text: `{ "foo": [1,2,3] }`,
+      });
+      expect(partial).toBeUndefined();
+    });
+
+    it('should return undefined if elements is not an array', async () => {
+      // "elements" property exists but is not an array
+      const partial = await array1.parsePartial({
+        text: `{ "elements": "not-an-array" }`,
+      });
+      expect(partial).toBeUndefined();
+    });
+
+    it('should handle an empty array of elements', async () => {
+      const partial = await array1.parsePartial({
+        text: `{ "elements": [] }`,
+      });
+      expect(partial).toEqual({ partial: [] });
+    });
+  });
 });
