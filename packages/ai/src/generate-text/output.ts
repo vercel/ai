@@ -355,7 +355,50 @@ export const choice = <ELEMENT extends string>({
     },
 
     async parsePartial({ text }: { text: string }) {
-      return undefined;
+      const result = await parsePartialJson(text);
+
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input': {
+          return undefined;
+        }
+
+        case 'repaired-parse':
+        case 'successful-parse': {
+          const outerValue = result.value;
+
+          if (
+            outerValue == null ||
+            typeof outerValue !== 'object' ||
+            !('result' in outerValue) ||
+            typeof outerValue.result !== 'string'
+          ) {
+            return undefined;
+          }
+
+          // list of potential matches.
+          const potentialMatches = choiceOptions.filter(choiceOption =>
+            choiceOption.startsWith(outerValue.result as string),
+          );
+
+          if (result.state === 'successful-parse') {
+            // successful parse: exact choice value
+            return potentialMatches.includes(outerValue.result as any)
+              ? { partial: outerValue.result as ELEMENT }
+              : undefined;
+          } else {
+            // repaired parse: only return if not ambiguous
+            return potentialMatches.length === 1
+              ? { partial: potentialMatches[0] as ELEMENT }
+              : undefined;
+          }
+        }
+
+        default: {
+          const _exhaustiveCheck: never = result.state;
+          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+        }
+      }
     },
   };
 };
