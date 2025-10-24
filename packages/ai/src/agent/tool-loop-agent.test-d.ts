@@ -50,7 +50,7 @@ describe('ToolLoopAgent', () => {
     it('should infer output type', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV3(),
-        experimental_output: Output.object({
+        output: Output.object({
           schema: z.object({ value: z.string() }),
         }),
       });
@@ -59,7 +59,7 @@ describe('ToolLoopAgent', () => {
         prompt: 'Hello, world!',
       });
 
-      const output = generateResult.experimental_output;
+      const output = generateResult.output;
 
       expectTypeOf<typeof output>().toEqualTypeOf<{ value: string }>();
     });
@@ -107,7 +107,7 @@ describe('ToolLoopAgent', () => {
     it('should infer output type', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV3(),
-        experimental_output: Output.object({
+        output: Output.object({
           schema: z.object({ value: z.string() }),
         }),
       });
