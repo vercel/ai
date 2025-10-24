@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.71
+
+### Patch Changes
+
+- 077aea3: feat(ai): stable structured output on generateText, streamText, and ToolLoopAgent
+
 ## 6.0.0-beta.70
 
 ### Patch Changes
