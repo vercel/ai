@@ -3043,6 +3043,69 @@ describe('generateText', () => {
       });
     });
 
+    describe('choice output', () => {
+      it('should generate a choice value', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ result: 'sunny' }),
+              },
+            ],
+          },
+        });
+
+        const result = await generateText({
+          model,
+          experimental_output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(result.experimental_output).toEqual('sunny');
+        expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+        expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "sunny",
+                  "rainy",
+                  "snowy",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+      });
+    });
+
     it('should not parse output when finish reason is tool-calls', async () => {
       const result = await generateText({
         model: new MockLanguageModelV3({

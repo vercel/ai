@@ -430,6 +430,25 @@ With `Output.array`, the model is guided to return an object with an `elements` 
 
 For more advanced validation or different structures, see [the Output API reference](/docs/reference/ai-sdk-core/output).
 
+#### `Output.choice()`
+
+Use `Output.choice({ options })` when you expect the model to choose from a specific set of string options, such as for classification or fixed-enum answers.
+
+```ts
+const { experimental_output } = await generateText({
+  // ...
+  experimental_output: Output.choice({
+    options: ['sunny', 'rainy', 'snowy'],
+  }),
+  prompt: 'Is the weather sunny, rainy, or snowy today?',
+});
+// experimental_output will be one of: 'sunny', 'rainy', or 'snowy'
+```
+
+You can provide any set of string options, and the output will always be a single string value that matches one of the specified options. The SDK validates that the result matches one of your options, and will throw if the model returns something invalid.
+
+This is especially useful for making classification-style generations or forcing valid values for API compatibility.
+
 ## More Examples
 
 You can see `generateObject` and `streamObject` in action using various frameworks in the following examples:

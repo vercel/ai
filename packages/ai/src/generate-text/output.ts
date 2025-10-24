@@ -37,6 +37,7 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
 
 /**
  * Output specification for text generation.
+ * This is the default output mode that generates plain text.
  *
  * @returns An output specification for generating text.
  */
@@ -56,6 +57,7 @@ export const text = (): Output<string, string> => ({
 
 /**
  * Output specification for typed object generation using schemas.
+ * When the model generates a text response, it will return an object that matches the schema.
  *
  * @param schema - The schema of the object to generate.
  *
@@ -142,6 +144,13 @@ export const object = <OUTPUT>({
   };
 };
 
+/**
+ * Array output specification for text generation.
+ * When the model generates a text response, it will return an array of elements.
+ *
+ * @param element - The schema of the element to generate.
+ * @returns An output specification for generating an array of elements.
+ */
 export const array = <ELEMENT>({
   element: inputElementSchema,
 }: {
@@ -152,7 +161,7 @@ export const array = <ELEMENT>({
   return {
     type: 'object',
 
-    // returns a JSON schema that describes an array of elements:
+    // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
       // remove $schema from schema.jsonSchema:
       const { $schema, ...itemSchema } = jsonSchema;
@@ -275,6 +284,130 @@ export const array = <ELEMENT>({
           }
 
           return { partial: parsedElements };
+        }
+
+        default: {
+          const _exhaustiveCheck: never = result.state;
+          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+        }
+      }
+    },
+  };
+};
+
+/**
+ * Choice output specification for text generation.
+ * When the model generates a text response, it will return a one of the choice options.
+ *
+ * @param options - The options to choose from.
+ * @returns An output specification for generating a choice.
+ */
+export const choice = <ELEMENT extends string>({
+  options: choiceOptions,
+}: {
+  options: Array<ELEMENT>;
+}): Output<ELEMENT, ELEMENT> => {
+  return {
+    type: 'object',
+
+    // JSON schema that describes an enumeration:
+    responseFormat: Promise.resolve({
+      type: 'json',
+      schema: {
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        type: 'object',
+        properties: {
+          result: { type: 'string', enum: choiceOptions },
+        },
+        required: ['result'],
+        additionalProperties: false,
+      },
+    } as const),
+
+    async parseOutput(
+      { text }: { text: string },
+      context: {
+        response: LanguageModelResponseMetadata;
+        usage: LanguageModelUsage;
+        finishReason: FinishReason;
+      },
+    ) {
+      const parseResult = await safeParseJSON({ text });
+
+      if (!parseResult.success) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      const outerValue = parseResult.value;
+
+      if (
+        outerValue == null ||
+        typeof outerValue !== 'object' ||
+        !('result' in outerValue) ||
+        typeof outerValue.result !== 'string' ||
+        !choiceOptions.includes(outerValue.result as any)
+      ) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          cause: new TypeValidationError({
+            value: outerValue,
+            cause: 'response must be an object that contains a choice value.',
+          }),
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      return outerValue.result as ELEMENT;
+    },
+
+    async parsePartial({ text }: { text: string }) {
+      const result = await parsePartialJson(text);
+
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input': {
+          return undefined;
+        }
+
+        case 'repaired-parse':
+        case 'successful-parse': {
+          const outerValue = result.value;
+
+          if (
+            outerValue == null ||
+            typeof outerValue !== 'object' ||
+            !('result' in outerValue) ||
+            typeof outerValue.result !== 'string'
+          ) {
+            return undefined;
+          }
+
+          // list of potential matches.
+          const potentialMatches = choiceOptions.filter(choiceOption =>
+            choiceOption.startsWith(outerValue.result as string),
+          );
+
+          if (result.state === 'successful-parse') {
+            // successful parse: exact choice value
+            return potentialMatches.includes(outerValue.result as any)
+              ? { partial: outerValue.result as ELEMENT }
+              : undefined;
+          } else {
+            // repaired parse: only return if not ambiguous
+            return potentialMatches.length === 1
+              ? { partial: potentialMatches[0] as ELEMENT }
+              : undefined;
+          }
         }
 
         default: {
