@@ -2,7 +2,7 @@ import { fail } from 'assert';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
-import { array, object, text } from './output';
+import { array, choice, object, text } from './output';
 
 const context = {
   response: {
@@ -73,7 +73,7 @@ describe('Output.object', () => {
   const object1 = object({ schema: z.object({ content: z.string() }) });
 
   describe('responseFormat', () => {
-    it('should return the text as is', async () => {
+    it('should return the JSON schema for the object', async () => {
       const result = await object1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
@@ -190,7 +190,7 @@ describe('Output.array', () => {
   const array1 = array({ element: z.object({ content: z.string() }) });
 
   describe('responseFormat', () => {
-    it('should return the text as is', async () => {
+    it('should return the JSON schema for the array', async () => {
       const result = await array1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
@@ -323,6 +323,41 @@ describe('Output.array', () => {
         text: `{ "elements": [] }`,
       });
       expect(partial).toEqual({ partial: [] });
+    });
+  });
+});
+
+describe('Output.choice', () => {
+  const choice1 = choice({
+    options: ['a', 'b', 'c'],
+  });
+
+  describe('responseFormat', () => {
+    it('should return the JSON schema for the choice', async () => {
+      const result = await choice1.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "a",
+                  "b",
+                  "c",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
     });
   });
 });
