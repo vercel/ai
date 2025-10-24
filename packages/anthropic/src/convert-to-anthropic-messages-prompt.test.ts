@@ -560,6 +560,123 @@ describe('tool messages', () => {
       }
     `);
   });
+  it('should handle tool result with url-based PDF content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'get-pdf',
+              toolCallId: 'get-pdf-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: 'https://example.com/document.pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.com/document.pdf",
+                      },
+                      "type": "document",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "get-pdf-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should handle tool result with url-based image content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'image-url',
+                    url: 'https://example.com/image.png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.com/image.png",
+                      },
+                      "type": "image",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "image-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
 });
 
 describe('assistant messages', () => {
@@ -2175,5 +2292,195 @@ describe('citations', () => {
         },
       }
     `);
+  });
+
+  describe('message sequences', () => {
+    it('should convert user-assistant-tool-assistant-user message sequence with multiple tool calls', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'weather for berlin, london and paris' },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I will use the weather tool to get the weather for berlin, london and paris',
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-1',
+                input: { location: 'berlin' },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-2',
+                input: { location: 'london' },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-3',
+                input: { location: 'paris' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-1',
+                output: {
+                  type: 'json',
+                  value: { weather: 'sunny' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-2',
+                output: {
+                  type: 'json',
+                  value: { weather: 'cloudy' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-3',
+                output: {
+                  type: 'json',
+                  value: { weather: 'rainy' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'The weather for berlin is sunny, the weather for london is cloudy, and the weather for paris is rainy',
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'and for new york?' }],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+      });
+
+      expect(result.prompt).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "weather for berlin, london and paris",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "I will use the weather tool to get the weather for berlin, london and paris",
+                  "type": "text",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-1",
+                  "input": {
+                    "location": "berlin",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-2",
+                  "input": {
+                    "location": "london",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-3",
+                  "input": {
+                    "location": "paris",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"sunny"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-1",
+                  "type": "tool_result",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"cloudy"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-2",
+                  "type": "tool_result",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"rainy"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-3",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "The weather for berlin is sunny, the weather for london is cloudy, and the weather for paris is rainy",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "and for new york?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        }
+      `);
+    });
   });
 });

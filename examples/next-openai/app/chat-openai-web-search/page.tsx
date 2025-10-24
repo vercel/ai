@@ -13,13 +13,13 @@ export default function TestOpenAIWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<OpenAIWebSearchMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-web-search',
+        api: 'http://localhost:8080/chat',
       }),
     });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">OpenAI Web Search Test</h1>
+      <h1 className="mb-4 text-xl font-bold">OpenAI Web Search</h1>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">

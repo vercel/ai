@@ -42,6 +42,7 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 
 function createCitationSource(
   citation: Citation,
@@ -214,7 +215,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
-    const maxOutputTokensForModel = getMaxOutputTokensForModel(this.modelId);
+    const { maxOutputTokens: maxOutputTokensForModel, knownModel } =
+      getMaxOutputTokensForModel(this.modelId);
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
     const baseArgs = {
@@ -305,8 +307,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       baseArgs.max_tokens = maxTokens + thinkingBudget;
     }
 
-    // limit to max output tokens for model to enable model switching without breakages:
-    if (baseArgs.max_tokens > maxOutputTokensForModel) {
+    // limit to max output tokens for known models to enable model switching without breaking it:
+    if (knownModel && baseArgs.max_tokens > maxOutputTokensForModel) {
       // only warn if max output tokens is provided as input:
       if (maxOutputTokens != null) {
         warnings.push({
@@ -766,7 +768,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
-        },
+          container: response.container
+            ? {
+                expiresAt: response.container.expires_at,
+                id: response.container.id,
+                skills:
+                  response.container.skills?.map(skill => ({
+                    type: skill.type,
+                    skillId: skill.skill_id,
+                    version: skill.version,
+                  })) ?? null,
+              }
+            : null,
+        } satisfies AnthropicMessageMetadata,
       },
     };
   }
@@ -818,6 +832,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
+    let container: AnthropicMessageMetadata['container'] | null = null;
 
     let blockType:
       | 'text'
@@ -1352,6 +1367,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 });
 
                 stopSequence = value.delta.stop_sequence ?? null;
+                container =
+                  value.delta.container != null
+                    ? {
+                        expiresAt: value.delta.container.expires_at,
+                        id: value.delta.container.id,
+                        skills:
+                          value.delta.container.skills?.map(skill => ({
+                            type: skill.type,
+                            skillId: skill.skill_id,
+                            version: skill.version,
+                          })) ?? null,
+                      }
+                    : null;
 
                 rawUsage = {
                   ...rawUsage,
@@ -1368,10 +1396,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   usage,
                   providerMetadata: {
                     anthropic: {
-                      usage: rawUsage ?? null,
+                      usage: (rawUsage as JSONObject) ?? null,
                       cacheCreationInputTokens,
                       stopSequence,
-                    },
+                      container,
+                    } satisfies AnthropicMessageMetadata,
                   },
                 });
                 return;
@@ -1397,18 +1426,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 }
 
 // see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
-function getMaxOutputTokensForModel(modelId: string) {
+function getMaxOutputTokensForModel(modelId: string): {
+  maxOutputTokens: number;
+  knownModel: boolean;
+} {
   if (
     modelId.includes('claude-sonnet-4-') ||
     modelId.includes('claude-3-7-sonnet') ||
     modelId.includes('claude-haiku-4-5')
   ) {
-    return 64000;
+    return { maxOutputTokens: 64000, knownModel: true };
   } else if (modelId.includes('claude-opus-4-')) {
-    return 32000;
+    return { maxOutputTokens: 32000, knownModel: true };
   } else if (modelId.includes('claude-3-5-haiku')) {
-    return 8192;
+    return { maxOutputTokens: 8192, knownModel: true };
+  } else if (modelId.includes('claude-3-haiku')) {
+    return { maxOutputTokens: 4096, knownModel: true };
   } else {
-    return 4096; // old models, e.g. Claude Haiku 3
+    return { maxOutputTokens: 4096, knownModel: false };
   }
 }

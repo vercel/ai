@@ -239,7 +239,8 @@ export function streamText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
-  experimental_output: output,
+  experimental_output,
+  output = experimental_output,
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
@@ -316,6 +317,13 @@ functionality that can be fully encapsulated in the provider.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
+    output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+
+@deprecated Use `output` instead.
+ */
     experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
@@ -1803,6 +1811,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
+    return this.partialOutputStream;
+  }
+
+  get partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
     if (this.output == null) {
       throw new NoOutputSpecifiedError();
     }
