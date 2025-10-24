@@ -257,7 +257,6 @@ export const array = <ELEMENT>({
             return undefined;
           }
 
-          // Note: currently no validation of partial results:
           const rawElements =
             result.state === 'repaired-parse' && outerValue.elements.length > 0
               ? outerValue.elements.slice(0, -1)
