@@ -121,15 +121,17 @@ export const object = <OUTPUT>({
 
       switch (result.state) {
         case 'failed-parse':
-        case 'undefined-input':
+        case 'undefined-input': {
           return undefined;
+        }
 
         case 'repaired-parse':
-        case 'successful-parse':
+        case 'successful-parse': {
           return {
             // Note: currently no validation of partial results:
             partial: result.value as DeepPartial<OUTPUT>,
           };
+        }
 
         default: {
           const _exhaustiveCheck: never = result.state;
@@ -144,7 +146,7 @@ export const array = <ELEMENT>({
   element: inputElementSchema,
 }: {
   element: FlexibleSchema<ELEMENT>;
-}): Output<Array<ELEMENT>, string> => {
+}): Output<Array<ELEMENT>, Array<DeepPartial<ELEMENT>>> => {
   const elementSchema = asSchema(inputElementSchema);
 
   return {
@@ -233,7 +235,45 @@ export const array = <ELEMENT>({
     },
 
     async parsePartial({ text }: { text: string }) {
-      return { partial: text }; // TODO
+      const result = await parsePartialJson(text);
+
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input': {
+          return undefined;
+        }
+
+        case 'repaired-parse':
+        case 'successful-parse': {
+          const outerValue = result.value;
+
+          // no parsable elements array
+          if (
+            outerValue == null ||
+            typeof outerValue !== 'object' ||
+            !('elements' in outerValue) ||
+            !Array.isArray(outerValue.elements)
+          ) {
+            return undefined;
+          }
+
+          // Note: currently no validation of partial results:
+          const elements = outerValue.elements as Array<DeepPartial<ELEMENT>>;
+
+          return {
+            partial:
+              // slice off last element while the array is incomplete:
+              result.state === 'repaired-parse' && elements.length > 0
+                ? elements.slice(0, -1)
+                : elements,
+          };
+        }
+
+        default: {
+          const _exhaustiveCheck: never = result.state;
+          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+        }
+      }
     },
   };
 };
