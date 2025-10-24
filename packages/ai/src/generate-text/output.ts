@@ -21,10 +21,6 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
 
   responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
 
-  parsePartial(options: {
-    text: string;
-  }): Promise<{ partial: PARTIAL } | undefined>;
-
   parseOutput(
     options: { text: string },
     context: {
@@ -33,6 +29,10 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
       finishReason: FinishReason;
     },
   ): Promise<OUTPUT>;
+
+  parsePartial(options: {
+    text: string;
+  }): Promise<{ partial: PARTIAL } | undefined>;
 }
 
 /**
@@ -45,12 +45,12 @@ export const text = (): Output<string, string> => ({
 
   responseFormat: Promise.resolve({ type: 'text' }),
 
-  async parsePartial({ text }: { text: string }) {
-    return { partial: text };
-  },
-
   async parseOutput({ text }: { text: string }) {
     return text;
+  },
+
+  async parsePartial({ text }: { text: string }) {
+    return { partial: text };
   },
 });
 
@@ -75,28 +75,6 @@ export const object = <OUTPUT>({
       type: 'json' as const,
       schema: jsonSchema,
     })),
-
-    async parsePartial({ text }: { text: string }) {
-      const result = await parsePartialJson(text);
-
-      switch (result.state) {
-        case 'failed-parse':
-        case 'undefined-input':
-          return undefined;
-
-        case 'repaired-parse':
-        case 'successful-parse':
-          return {
-            // Note: currently no validation of partial results:
-            partial: result.value as DeepPartial<OUTPUT>,
-          };
-
-        default: {
-          const _exhaustiveCheck: never = result.state;
-          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
-        }
-      }
-    },
 
     async parseOutput(
       { text }: { text: string },
@@ -137,12 +115,33 @@ export const object = <OUTPUT>({
 
       return validationResult.value;
     },
+
+    async parsePartial({ text }: { text: string }) {
+      const result = await parsePartialJson(text);
+
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input':
+          return undefined;
+
+        case 'repaired-parse':
+        case 'successful-parse':
+          return {
+            // Note: currently no validation of partial results:
+            partial: result.value as DeepPartial<OUTPUT>,
+          };
+
+        default: {
+          const _exhaustiveCheck: never = result.state;
+          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+        }
+      }
+    },
   };
 };
 
 export const array = <ELEMENT>({
   element: inputElementSchema,
-  // TODO: add optional name
 }: {
   element: FlexibleSchema<ELEMENT>;
 }): Output<Array<ELEMENT>, string> => {
@@ -169,10 +168,6 @@ export const array = <ELEMENT>({
         },
       };
     }),
-
-    async parsePartial({ text }: { text: string }) {
-      return { partial: text }; // TODO
-    },
 
     async parseOutput(
       { text }: { text: string },
@@ -235,6 +230,10 @@ export const array = <ELEMENT>({
       }
 
       return outerValue.elements as Array<ELEMENT>;
+    },
+
+    async parsePartial({ text }: { text: string }) {
+      return { partial: text }; // TODO
     },
   };
 };
