@@ -71,7 +71,8 @@
     "@vercel/ai-tsconfig": "0.0.0",
     "@ai-sdk/baseten": "0.0.1",
     "@ai-sdk/test-server": "0.0.0",
-    "@ai-sdk/huggingface": "0.0.1"
+    "@ai-sdk/huggingface": "0.0.1",
+    "@ai-sdk/mcp": "0.0.0"
   },
   "changesets": [
     "angry-hats-cry",
@@ -109,6 +110,7 @@
     "fifty-ligers-remember",
     "flat-birds-judge",
     "flat-pigs-leave",
+    "fluffy-poems-live",
     "forty-apricots-hug",
     "forty-cougars-work",
     "four-candles-buy",
