@@ -1,4 +1,7 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import {
+  LanguageModelV3CallOptions,
+  TypeValidationError,
+} from '@ai-sdk/provider';
 import {
   asSchema,
   FlexibleSchema,
@@ -18,10 +21,6 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
 
   responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
 
-  parsePartial(options: {
-    text: string;
-  }): Promise<{ partial: PARTIAL } | undefined>;
-
   parseOutput(
     options: { text: string },
     context: {
@@ -30,6 +29,10 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
       finishReason: FinishReason;
     },
   ): Promise<OUTPUT>;
+
+  parsePartial(options: {
+    text: string;
+  }): Promise<{ partial: PARTIAL } | undefined>;
 }
 
 /**
@@ -42,12 +45,12 @@ export const text = (): Output<string, string> => ({
 
   responseFormat: Promise.resolve({ type: 'text' }),
 
-  async parsePartial({ text }: { text: string }) {
-    return { partial: text };
-  },
-
   async parseOutput({ text }: { text: string }) {
     return text;
+  },
+
+  async parsePartial({ text }: { text: string }) {
+    return { partial: text };
   },
 });
 
@@ -72,28 +75,6 @@ export const object = <OUTPUT>({
       type: 'json' as const,
       schema: jsonSchema,
     })),
-
-    async parsePartial({ text }: { text: string }) {
-      const result = await parsePartialJson(text);
-
-      switch (result.state) {
-        case 'failed-parse':
-        case 'undefined-input':
-          return undefined;
-
-        case 'repaired-parse':
-        case 'successful-parse':
-          return {
-            // Note: currently no validation of partial results:
-            partial: result.value as DeepPartial<OUTPUT>,
-          };
-
-        default: {
-          const _exhaustiveCheck: never = result.state;
-          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
-        }
-      }
-    },
 
     async parseOutput(
       { text }: { text: string },
@@ -134,11 +115,173 @@ export const object = <OUTPUT>({
 
       return validationResult.value;
     },
+
+    async parsePartial({ text }: { text: string }) {
+      const result = await parsePartialJson(text);
+
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input': {
+          return undefined;
+        }
+
+        case 'repaired-parse':
+        case 'successful-parse': {
+          return {
+            // Note: currently no validation of partial results:
+            partial: result.value as DeepPartial<OUTPUT>,
+          };
+        }
+
+        default: {
+          const _exhaustiveCheck: never = result.state;
+          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+        }
+      }
+    },
   };
 };
 
-export type InferGenerateOutput<OUTPUT extends Output> =
-  OUTPUT extends Output<infer T, any> ? T : never;
+export const array = <ELEMENT>({
+  element: inputElementSchema,
+}: {
+  element: FlexibleSchema<ELEMENT>;
+}): Output<Array<ELEMENT>, Array<ELEMENT>> => {
+  const elementSchema = asSchema(inputElementSchema);
 
-export type InferStreamOutput<OUTPUT extends Output> =
-  OUTPUT extends Output<any, infer P> ? P : never;
+  return {
+    type: 'object',
+
+    // returns a JSON schema that describes an array of elements:
+    responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
+      // remove $schema from schema.jsonSchema:
+      const { $schema, ...itemSchema } = jsonSchema;
+
+      return {
+        type: 'json' as const,
+        schema: {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: 'object',
+          properties: {
+            elements: { type: 'array', items: itemSchema },
+          },
+          required: ['elements'],
+          additionalProperties: false,
+        },
+      };
+    }),
+
+    async parseOutput(
+      { text }: { text: string },
+      context: {
+        response: LanguageModelResponseMetadata;
+        usage: LanguageModelUsage;
+        finishReason: FinishReason;
+      },
+    ) {
+      const parseResult = await safeParseJSON({ text });
+
+      if (!parseResult.success) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      const outerValue = parseResult.value;
+
+      if (
+        outerValue == null ||
+        typeof outerValue !== 'object' ||
+        !('elements' in outerValue) ||
+        !Array.isArray(outerValue.elements)
+      ) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          cause: new TypeValidationError({
+            value: outerValue,
+            cause: 'response must be an object with an elements array',
+          }),
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      for (const element of outerValue.elements) {
+        const validationResult = await safeValidateTypes({
+          value: element,
+          schema: elementSchema,
+        });
+
+        if (!validationResult.success) {
+          throw new NoObjectGeneratedError({
+            message: 'No object generated: response did not match schema.',
+            cause: validationResult.error,
+            text,
+            response: context.response,
+            usage: context.usage,
+            finishReason: context.finishReason,
+          });
+        }
+      }
+
+      return outerValue.elements as Array<ELEMENT>;
+    },
+
+    async parsePartial({ text }: { text: string }) {
+      const result = await parsePartialJson(text);
+
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input': {
+          return undefined;
+        }
+
+        case 'repaired-parse':
+        case 'successful-parse': {
+          const outerValue = result.value;
+
+          // no parsable elements array
+          if (
+            outerValue == null ||
+            typeof outerValue !== 'object' ||
+            !('elements' in outerValue) ||
+            !Array.isArray(outerValue.elements)
+          ) {
+            return undefined;
+          }
+
+          const rawElements =
+            result.state === 'repaired-parse' && outerValue.elements.length > 0
+              ? outerValue.elements.slice(0, -1)
+              : outerValue.elements;
+
+          const parsedElements: Array<ELEMENT> = [];
+          for (const rawElement of rawElements) {
+            const validationResult = await safeValidateTypes({
+              value: rawElement,
+              schema: elementSchema,
+            });
+
+            if (validationResult.success) {
+              parsedElements.push(validationResult.value);
+            }
+          }
+
+          return { partial: parsedElements };
+        }
+
+        default: {
+          const _exhaustiveCheck: never = result.state;
+          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+        }
+      }
+    },
+  };
+};
