@@ -1,11 +1,10 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { generateText, Output, stepCountIs } from 'ai';
-import { print } from '../lib/print';
+import { Output, stepCountIs, streamText } from 'ai';
 import { run } from '../lib/run';
 import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
-  const result = await generateText({
+  const { experimental_partialOutputStream: partialOutputStream } = streamText({
     model: openai('gpt-4o-mini'),
     providerOptions: {
       openai: {
@@ -27,6 +26,8 @@ run(async () => {
     prompt: 'Get the weather for San Francisco. What should I wear?',
   });
 
-  print('Output:', result.experimental_output);
-  print('Request:', result.request.body);
+  for await (const partialOutput of partialOutputStream) {
+    console.clear();
+    console.log(partialOutput);
+  }
 });
