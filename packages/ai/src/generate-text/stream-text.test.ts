@@ -11941,6 +11941,153 @@ describe('streamText', () => {
         });
       });
     });
+
+    describe('choice output', () => {
+      it('should stream an choice value', async () => {
+        const mockModel = createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"su` },
+            { type: 'text-delta', id: '1', delta: `nny` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            { type: 'finish', finishReason: 'stop', usage: testUsage },
+          ]),
+        });
+
+        const result = streamText({
+          model: mockModel,
+          experimental_output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(
+            result.experimental_partialOutputStream,
+          ),
+        ).toMatchInlineSnapshot(`
+            [
+              "sunny",
+            ]
+          `);
+      });
+
+      it('should not stream incorrect values', async () => {
+        const mockModel = new MockLanguageModelV3({
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"result": ' },
+              { type: 'text-delta', id: '1', delta: `"foo` },
+              { type: 'text-delta', id: '1', delta: `bar` },
+              { type: 'text-delta', id: '1', delta: `"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          },
+        });
+
+        const result = streamText({
+          model: mockModel,
+          experimental_output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(
+            result.experimental_partialOutputStream,
+          ),
+        ).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should handle ambiguous values', async () => {
+        const mockModel = createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"foo` },
+            { type: 'text-delta', id: '1', delta: `bar` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        });
+
+        const result = streamText({
+          model: mockModel,
+          experimental_output: Output.choice({
+            options: ['foobar', 'foobar2'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(
+            result.experimental_partialOutputStream,
+          ),
+        ).toMatchInlineSnapshot(`
+          [
+            "foobar",
+          ]
+        `);
+      });
+
+      it('should handle non-ambiguous values', async () => {
+        const mockModel = createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"foo` },
+            { type: 'text-delta', id: '1', delta: `bar` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        });
+
+        const result = streamText({
+          model: mockModel,
+          experimental_output: Output.choice({
+            options: ['foobar', 'barfoo'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(
+            result.experimental_partialOutputStream,
+          ),
+        ).toMatchInlineSnapshot(`
+          [
+            "foobar",
+          ]
+        `);
+      });
+    });
   });
 
   describe('options.activeTools', () => {

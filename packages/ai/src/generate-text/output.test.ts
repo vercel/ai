@@ -2,7 +2,7 @@ import { fail } from 'assert';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
-import { array, object, text } from './output';
+import { array, choice, object, text } from './output';
 
 const context = {
   response: {
@@ -73,7 +73,7 @@ describe('Output.object', () => {
   const object1 = object({ schema: z.object({ content: z.string() }) });
 
   describe('responseFormat', () => {
-    it('should return the text as is', async () => {
+    it('should return the JSON schema for the object', async () => {
       const result = await object1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
@@ -190,7 +190,7 @@ describe('Output.array', () => {
   const array1 = array({ element: z.object({ content: z.string() }) });
 
   describe('responseFormat', () => {
-    it('should return the text as is', async () => {
+    it('should return the JSON schema for the array', async () => {
       const result = await array1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
@@ -323,6 +323,157 @@ describe('Output.array', () => {
         text: `{ "elements": [] }`,
       });
       expect(partial).toEqual({ partial: [] });
+    });
+  });
+});
+
+describe('Output.choice', () => {
+  const choice1 = choice({
+    options: ['aaa', 'aab', 'ccc'],
+  });
+
+  describe('responseFormat', () => {
+    it('should return the JSON schema for the choice', async () => {
+      const result = await choice1.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "aaa",
+                  "aab",
+                  "ccc",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+    });
+  });
+
+  describe('parseOutput', () => {
+    it('should parse a valid choice output', async () => {
+      const result = await choice1.parseOutput(
+        { text: `{ "result": "aaa" }` },
+        context,
+      );
+      expect(result).toBe('aaa');
+    });
+
+    it('should throw NoObjectGeneratedError if JSON is invalid', async () => {
+      await expect(
+        choice1.parseOutput({ text: '{ broken json' }, context),
+      ).rejects.toThrowError(
+        'No object generated: could not parse the response.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError if result is missing', async () => {
+      await expect(
+        choice1.parseOutput({ text: `{}` }, context),
+      ).rejects.toThrowError(
+        'No object generated: response did not match schema.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError if result value is not a valid choice', async () => {
+      await expect(
+        choice1.parseOutput({ text: `{ "result": "d" }` }, context),
+      ).rejects.toThrowError(
+        'No object generated: response did not match schema.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError if result is not a string', async () => {
+      await expect(
+        choice1.parseOutput({ text: `{ "result": 5 }` }, context),
+      ).rejects.toThrowError(
+        'No object generated: response did not match schema.',
+      );
+    });
+
+    it('should throw NoObjectGeneratedError if top-level is not an object', async () => {
+      await expect(
+        choice1.parseOutput({ text: `"a"` }, context),
+      ).rejects.toThrowError(
+        'No object generated: response did not match schema.',
+      );
+    });
+  });
+
+  describe('parsePartial', () => {
+    it('should parse a valid exact partial choice output', async () => {
+      const result = await choice1.parsePartial({
+        text: `{ "result": "aaa" }`,
+      });
+      expect(result).toEqual({ partial: 'aaa' });
+    });
+
+    it('should return undefined if JSON is invalid', async () => {
+      const result = await choice1.parsePartial({ text: '{ broken json' });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined if result is missing', async () => {
+      const result = await choice1.parsePartial({ text: `{}` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return ambiguous if result is a prefix matching multiple options (repaired-parse)', async () => {
+      const result = await choice1.parsePartial({ text: `{ "result": "` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return the single matching partial if only one option matches (repaired-parse)', async () => {
+      const result = await choice1.parsePartial({ text: `{ "result": "c` });
+      expect(result).toEqual({ partial: 'ccc' });
+    });
+
+    it('should return undefined if result does not match any choice', async () => {
+      const result = await choice1.parsePartial({ text: `{ "result": "z" }` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined if result is not a string', async () => {
+      const result = await choice1.parsePartial({ text: `{ "result": 5 }` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined if top-level is not an object', async () => {
+      const result = await choice1.parsePartial({ text: `"a"` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return full match as partial for "successful-parse" and valid choice', async () => {
+      const result = await choice1.parsePartial({
+        text: `{ "result": "aab" }`,
+      });
+      expect(result).toEqual({ partial: 'aab' });
+    });
+
+    it("should return undefined for an incomplete prefix that doesn't match any choice", async () => {
+      const result = await choice1.parsePartial({ text: `{ "result": "x" }` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for a prefix matching multiple options', async () => {
+      const result = await choice1.parsePartial({ text: `{ "result": "a` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined if partial result is null', async () => {
+      const result = await choice1.parsePartial({ text: `null` });
+      expect(result).toBeUndefined();
     });
   });
 });
