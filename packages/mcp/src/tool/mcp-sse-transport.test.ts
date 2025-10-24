@@ -1,13 +1,8 @@
 import {
   createTestServer,
   TestResponseController,
-<<<<<<< HEAD:packages/ai/src/tool/mcp/mcp-sse-transport.test.ts
 } from '@ai-sdk/provider-utils/test';
-import { MCPClientError } from '../../error/mcp-client-error';
-=======
-} from '@ai-sdk/test-server/with-vitest';
 import { MCPClientError } from '../error/mcp-client-error';
->>>>>>> eca63f38d (feat(ai): add OAuth for MCP clients + refactor to new package (#9127)):packages/mcp/src/tool/mcp-sse-transport.test.ts
 import { SseMCPTransport } from './mcp-sse-transport';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { LATEST_PROTOCOL_VERSION } from './types';

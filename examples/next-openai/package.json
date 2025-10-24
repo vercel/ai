@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
@@ -18,6 +17,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
+    "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
@@ -25,24 +25,6 @@
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/rsc": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
-=======
-    "@ai-sdk/amazon-bedrock": "4.0.0-beta.41",
-    "@ai-sdk/anthropic": "3.0.0-beta.37",
-    "@ai-sdk/cohere": "3.0.0-beta.20",
-    "@ai-sdk/deepseek": "2.0.0-beta.21",
-    "@ai-sdk/fireworks": "2.0.0-beta.21",
-    "@ai-sdk/google": "3.0.0-beta.27",
-    "@ai-sdk/google-vertex": "4.0.0-beta.45",
-    "@ai-sdk/groq": "3.0.0-beta.20",
-    "@ai-sdk/mcp": "0.0.0",
-    "@ai-sdk/mistral": "3.0.0-beta.21",
-    "@ai-sdk/openai": "3.0.0-beta.34",
-    "@ai-sdk/perplexity": "3.0.0-beta.20",
-    "@ai-sdk/provider-utils": "4.0.0-beta.20",
-    "@ai-sdk/react": "3.0.0-beta.71",
-    "@ai-sdk/rsc": "2.0.0-beta.71",
-    "@ai-sdk/xai": "3.0.0-beta.23",
->>>>>>> eca63f38d (feat(ai): add OAuth for MCP clients + refactor to new package (#9127))
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
