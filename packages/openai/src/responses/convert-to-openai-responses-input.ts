@@ -139,7 +139,6 @@ export async function convertToOpenAIResponsesInput({
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
         const toolCallParts: Record<string, LanguageModelV3ToolCallPart> = {};
-        const emittedToolCallIds = new Set<string>();
 
         for (const part of content) {
           switch (part.type) {
