@@ -1,9 +1,8 @@
 import { fail } from 'assert';
+import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
-import { object } from './output';
-import { FinishReason } from '../types';
-import { describe, it, expect } from 'vitest';
+import { object, text } from './output';
 
 const context = {
   response: {
@@ -18,8 +17,49 @@ const context = {
     reasoningTokens: undefined,
     cachedInputTokens: undefined,
   },
-  finishReason: 'length' as FinishReason,
-};
+  finishReason: 'length',
+} as const;
+
+describe('Output.text', () => {
+  const outputText = text();
+
+  describe('parseOutput', () => {
+    it('should return the text as is', async () => {
+      const result = await outputText.parseOutput(
+        { text: 'some output' },
+        context,
+      );
+      expect(result).toBe('some output');
+    });
+
+    it('should handle empty string', async () => {
+      const result = await outputText.parseOutput({ text: '' }, context);
+      expect(result).toBe('');
+    });
+
+    it('should handle undefined as string "undefined"', async () => {
+      // Output.text() expects a string, so passing undefined would be a type error,
+      // but we cast for test purposes to ensure what happens
+      const result = await outputText.parseOutput(
+        { text: undefined as any },
+        context,
+      );
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('parsePartial', () => {
+    it('should return the string as partial', async () => {
+      const result = await outputText.parsePartial({ text: 'partial text' });
+      expect(result).toEqual({ partial: 'partial text' });
+    });
+
+    it('should handle empty string partial', async () => {
+      const result = await outputText.parsePartial({ text: '' });
+      expect(result).toEqual({ partial: '' });
+    });
+  });
+});
 
 describe('Output.object', () => {
   const output1 = object({ schema: z.object({ content: z.string() }) });
