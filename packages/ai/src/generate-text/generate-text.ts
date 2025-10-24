@@ -157,7 +157,8 @@ export async function generateText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
-  experimental_output: output,
+  experimental_output,
+  output = experimental_output,
   experimental_telemetry: telemetry,
   providerOptions,
   experimental_activeTools,
@@ -226,6 +227,13 @@ changing the tool call and result types in the result.
 
     /**
 Optional specification for parsing structured outputs from the LLM response.
+     */
+    output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+
+@deprecated Use `output` instead.
      */
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
@@ -900,6 +908,10 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get experimental_output() {
+    return this.output;
+  }
+
+  get output() {
     if (this.resolvedOutput == null) {
       throw new NoOutputSpecifiedError();
     }
