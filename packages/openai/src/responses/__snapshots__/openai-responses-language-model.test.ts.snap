@@ -90,6 +90,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
   {
     "providerMetadata": {
       "openai": {
+        "annotations": [],
         "itemId": "msg_68c2e2e513c88190a72cefb37140d19a0b24aae9c6c01e4f",
       },
     },
@@ -210,21 +211,22 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "reasoning",
   },
   {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_0365d26c32c64c650068cabb0e66b081949f66f61dacef39f3",
-      },
-    },
-    "text": "According to the document, an embedding model converts complex data (like words or images) into a dense vector — a list of numbers — called an embedding. It does not generate new text or data; instead it encodes semantic and syntactic relationships between entities so those vector representations can be used as inputs for other models or NLP tasks .",
-    "type": "text",
-  },
-  {
-    "filename": "ai.pdf",
+    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
     "id": "id-0",
     "mediaType": "text/plain",
     "sourceType": "document",
     "title": "ai.pdf",
     "type": "source",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_0365d26c32c64c650068cabb0e66b081949f66f61dacef39f3",
+      },
+    },
+    "text": "According to the document, an embedding model converts complex data (like words or images) into a dense vector — a list of numbers — called an embedding. It does not generate new text or data; instead it encodes semantic and syntactic relationships between entities so those vector representations can be used as inputs for other models or NLP tasks .",
+    "type": "text",
   },
 ]
 `;
@@ -274,21 +276,22 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
     "type": "reasoning",
   },
   {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_0a098396a8feca410068caae457c508196b2fcd079d1d3ec74",
-      },
-    },
-    "text": "According to the document, an embedding model is used to convert complex data (like words or images) into a dense vector (a list of numbers) representation called an embedding, which captures semantic and syntactic relationships. Unlike generative models, embedding models do not generate new text or data; instead, they provide these vector representations to be used as input for other models or other natural language processing tasks .",
-    "type": "text",
-  },
-  {
-    "filename": "ai.pdf",
+    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
     "id": "id-0",
     "mediaType": "text/plain",
     "sourceType": "document",
     "title": "ai.pdf",
     "type": "source",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_0a098396a8feca410068caae457c508196b2fcd079d1d3ec74",
+      },
+    },
+    "text": "According to the document, an embedding model is used to convert complex data (like words or images) into a dense vector (a list of numbers) representation called an embedding, which captures semantic and syntactic relationships. Unlike generative models, embedding models do not generate new text or data; instead, they provide these vector representations to be used as input for other models or other natural language processing tasks .",
+    "type": "text",
   },
 ]
 `;
@@ -334,6 +337,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
   {
     "providerMetadata": {
       "openai": {
+        "annotations": [],
         "itemId": "msg_0a33d15155cb126d0068c96c723ed88195b1405bc370bb8a65",
       },
     },
@@ -410,41 +414,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
     "type": "tool-result",
   },
   {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
-      },
-    },
-    "text": "Last week in San Francisco, several notable events and developments took place:
-
-**Bruce Lee Statue in Chinatown**
-
-The Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))
-
-**Office Leasing Revival**
-
-The Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))
-
-**Spring Blooms in the Bay Area**
-
-With the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))
-
-**Oceanfront Great Highway Park**
-
-San Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))
-
-**Warmer Spring Seasons**
-
-An analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))
-
-
-# Key San Francisco Developments Last Week:
-- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)
-- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)
-- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)",
-    "type": "text",
-  },
-  {
     "id": "id-0",
     "sourceType": "url",
     "title": "Bruce Lee statue to be installed in SF Chinatown",
@@ -478,6 +447,42 @@ An analysis by Climate Central revealed that San Francisco, along with most U.S.
     "title": "San Francisco's spring seasons are getting warmer",
     "type": "source",
     "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
+      },
+    },
+    "text": "Last week in San Francisco, several notable events and developments took place:
+
+**Bruce Lee Statue in Chinatown**
+
+The Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))
+
+**Office Leasing Revival**
+
+The Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))
+
+**Spring Blooms in the Bay Area**
+
+With the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))
+
+**Oceanfront Great Highway Park**
+
+San Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))
+
+**Warmer Spring Seasons**
+
+An analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))
+
+
+# Key San Francisco Developments Last Week:
+- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)
+- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)
+- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)",
+    "type": "text",
   },
 ]
 `;
@@ -2510,6 +2515,21 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   },
   {
     "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "container_id": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+            "end_index": 465,
+            "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+            "filename": "roll2dice_sums_10000.csv",
+            "start_index": 423,
+            "type": "container_file_citation",
+          },
+        ],
+        "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3031,7 +3051,7 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
+    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
     "id": "id-0",
     "mediaType": "text/plain",
     "sourceType": "document",
@@ -3045,6 +3065,12 @@ providers and models, and which ones are available in the AI SDK.",
   },
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3315,7 +3341,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
+    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
     "id": "id-0",
     "mediaType": "text/plain",
     "sourceType": "document",
@@ -3528,7 +3554,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
+    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
     "id": "id-1",
     "mediaType": "text/plain",
     "sourceType": "document",
@@ -3542,6 +3568,12 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
   },
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3633,6 +3665,12 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
   },
   {
     "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3775,6 +3813,12 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   },
   {
     "id": "msg_test",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_test",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -4151,6 +4195,12 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
   },
   {
     "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [],
+        "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+      },
+    },
     "type": "text-end",
   },
   {
