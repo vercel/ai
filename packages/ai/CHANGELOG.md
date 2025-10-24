@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.69
+
+### Patch Changes
+
+- d5b25ee: feat(ai): add Output.array()
+
 ## 6.0.0-beta.68
 
 ### Patch Changes
