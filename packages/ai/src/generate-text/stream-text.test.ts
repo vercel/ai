@@ -35,11 +35,13 @@ import {
   vitest,
 } from 'vitest';
 import { z } from 'zod/v4';
+import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import { DeepPartial } from '../util/deep-partial';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
@@ -11785,6 +11787,158 @@ describe('streamText', () => {
             "warnings": [],
           }
         `);
+      });
+    });
+
+    describe('array output', () => {
+      let result:
+        | StreamTextResult<any, Array<DeepPartial<{ content: string }>>>
+        | undefined;
+
+      let onFinishResult:
+        | Parameters<Required<Parameters<typeof streamText>[0]>['onFinish']>[0]
+        | undefined;
+
+      beforeEach(async () => {
+        result = undefined;
+        onFinishResult = undefined;
+      });
+
+      describe('array with 3 elements', () => {
+        beforeEach(async () => {
+          result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{"elements":[' },
+                // first element:
+                { type: 'text-delta', id: '1', delta: '{' },
+                { type: 'text-delta', id: '1', delta: '"content":' },
+                { type: 'text-delta', id: '1', delta: `"element 1"` },
+                { type: 'text-delta', id: '1', delta: '},' },
+                // second element:
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"content": ' },
+                { type: 'text-delta', id: '1', delta: `"element 2"` },
+                { type: 'text-delta', id: '1', delta: '},' },
+                // third element:
+                { type: 'text-delta', id: '1', delta: '{' },
+                { type: 'text-delta', id: '1', delta: '"content":' },
+                { type: 'text-delta', id: '1', delta: `"element 3"` },
+                { type: 'text-delta', id: '1', delta: '}' },
+                // end of array
+                { type: 'text-delta', id: '1', delta: ']' },
+                { type: 'text-delta', id: '1', delta: '}' },
+                { type: 'text-end', id: '1' },
+                // finish
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            experimental_output: Output.array({
+              element: z.object({ content: z.string() }),
+            }),
+            prompt: 'prompt',
+            onFinish: async event => {
+              onFinishResult = event as unknown as typeof onFinishResult;
+            },
+          });
+        });
+
+        it('should stream only complete objects in partialObjectStream', async () => {
+          expect(
+            await convertAsyncIterableToArray(
+              result!.experimental_partialOutputStream,
+            ),
+          ).toMatchInlineSnapshot(`
+            [
+              [],
+              [
+                {
+                  "content": "element 1",
+                },
+              ],
+              [
+                {
+                  "content": "element 1",
+                },
+                {
+                  "content": "element 2",
+                },
+              ],
+              [
+                {
+                  "content": "element 1",
+                },
+                {
+                  "content": "element 2",
+                },
+                {
+                  "content": "element 3",
+                },
+              ],
+            ]
+          `);
+        });
+      });
+
+      describe('array with 2 elements streamed in 1 chunk', () => {
+        beforeEach(async () => {
+          result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'text-start',
+                  id: '1',
+                },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta:
+                    '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
+                },
+                {
+                  type: 'text-end',
+                  id: '1',
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            experimental_output: Output.array({
+              element: z.object({ content: z.string() }),
+            }),
+            prompt: 'prompt',
+            onFinish: async event => {
+              onFinishResult = event as unknown as typeof onFinishResult;
+            },
+          });
+        });
+
+        it('should stream only complete objects in partialObjectStream', async () => {
+          expect(
+            await convertAsyncIterableToArray(
+              result!.experimental_partialOutputStream,
+            ),
+          ).toMatchInlineSnapshot(`
+            [
+              [
+                {
+                  "content": "element 1",
+                },
+                {
+                  "content": "element 2",
+                },
+              ],
+            ]
+          `);
+        });
       });
     });
   });

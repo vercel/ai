@@ -17,21 +17,16 @@ run(async () => {
       weather: weatherTool,
     },
     stopWhen: stepCountIs(5),
-    experimental_output: Output.object({
-      schema: z.object({
-        elements: z.array(
-          z.object({
-            location: z.string(),
-            temperature: z.number(),
-            condition: z.string(),
-          }),
-        ),
+    experimental_output: Output.array({
+      element: z.object({
+        location: z.string(),
+        temperature: z.number(),
+        condition: z.string(),
       }),
     }),
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
-  // { location: 'San Francisco', temperature: 81 }
   print('Output:', result.experimental_output);
   print('Request:', result.request.body);
 });

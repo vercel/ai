@@ -365,6 +365,71 @@ const { experimental_partialOutputStream } = await streamText({
 });
 ```
 
+### Output Types
+
+The AI SDK supports multiple ways of specifying the expected structure of generated data via the `Output` object. You can select from various strategies for structured/text generation and validation.
+
+#### `Output.text()`
+
+Use `Output.text()` to generate plain text from a model. This option doesn't enforce any schema on the result: you simply receive the model's text as a string.
+
+```ts
+const { experimental_output } = await generateText({
+  // ...
+  experimental_output: Output.text(),
+  prompt: 'Tell me a joke.',
+});
+// experimental_output will be a string (the joke)
+```
+
+#### `Output.object()`
+
+Use `Output.object({ schema })` to generate a structured object based on a schema (for example, a Zod schema). The output is type-validated to ensure the returned result matches the schema.
+
+```ts
+const { experimental_output } = await generateText({
+  // ...
+  experimental_output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number().nullable(),
+      labels: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate information for a test user.',
+});
+// experimental_output will be an object matching the schema above
+```
+
+Partial outputs (e.g. with `streamText`) are also validated against your provided schema, as much as possible.
+
+#### `Output.array()`
+
+Use `Output.array({ element })` to specify that you expect an array of typed objects from the model, where each element should conform to a schema.
+
+```ts
+const { experimental_output } = await generateText({
+  // ...
+  experimental_output: Output.array({
+    element: z.object({
+      location: z.string(),
+      temperature: z.number(),
+      condition: z.string(),
+    }),
+  }),
+  prompt: 'List the weather for San Francisco and Paris.',
+});
+// experimental_output will be an array of objects like:
+// [
+//   { location: 'San Francisco', temperature: 70, condition: 'Sunny' },
+//   { location: 'Paris', temperature: 65, condition: 'Cloudy' },
+// ]
+```
+
+With `Output.array`, the model is guided to return an object with an `elements` property that is an array; the SDK then extracts and validates this array for you.
+
+For more advanced validation or different structures, see [the Output API reference](/docs/reference/ai-sdk-core/output).
+
 ## More Examples
 
 You can see `generateObject` and `streamObject` in action using various frameworks in the following examples:
