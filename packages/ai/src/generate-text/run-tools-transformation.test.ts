@@ -98,6 +98,7 @@ describe('runToolsTransformation', () => {
       generateId: mockId({ prefix: 'id' }),
       tools: {
         syncTool: {
+          title: 'Sync Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => `${value}-sync-result`,
         },
@@ -121,6 +122,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -171,6 +173,7 @@ describe('runToolsTransformation', () => {
       generateId: mockId({ prefix: 'id' }),
       tools: {
         syncTool: {
+          title: 'Sync Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: ({ value }) => `${value}-sync-result`,
         },
@@ -194,6 +197,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -244,6 +248,7 @@ describe('runToolsTransformation', () => {
       generateId: mockId({ prefix: 'id' }),
       tools: {
         delayedTool: {
+          title: 'Delayed Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => {
             await delay(0); // Simulate delayed execution
@@ -271,6 +276,7 @@ describe('runToolsTransformation', () => {
           },
           "providerExecuted": undefined,
           "providerMetadata": undefined,
+          "title": "Delayed Tool",
           "toolCallId": "call-1",
           "toolName": "delayedTool",
           "type": "tool-call",
@@ -354,6 +360,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "correctTool",
             "type": "tool-call",
@@ -496,6 +503,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "onInputAvailableTool",
             "type": "tool-call",
@@ -576,6 +584,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "onInputAvailableTool",
             "type": "tool-call",
@@ -588,6 +597,7 @@ describe('runToolsTransformation', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "onInputAvailableTool",
               "type": "tool-call",
