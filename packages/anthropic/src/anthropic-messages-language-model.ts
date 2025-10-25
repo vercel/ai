@@ -1275,7 +1275,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     }
 
                     const isJsonResponseTool =
-                      usesJsonResponseTool && contentBlock.type === 'text';
+                      usesJsonResponseTool && contentBlock?.type === 'text';
 
                     if (isJsonResponseTool) {
                       controller.enqueue({
