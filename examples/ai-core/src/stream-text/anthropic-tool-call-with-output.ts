@@ -1,4 +1,3 @@
-// import { anthropic } from '@ai-sdk/anthropic';
 import { anthropic } from '@ai-sdk/anthropic';
 import { Output, stepCountIs, streamText, tool } from 'ai';
 import { run } from '../lib/run';
