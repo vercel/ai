@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import { JSONObject } from '@ai-sdk/provider';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechWarning } from '../types';
 import { GeneratedAudioFile } from './generated-audio-file';
@@ -26,5 +26,5 @@ export interface SpeechResult {
   /**
   Provider metadata from the provider.
    */
-  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+  readonly providerMetadata: Record<string, JSONObject>;
 }
