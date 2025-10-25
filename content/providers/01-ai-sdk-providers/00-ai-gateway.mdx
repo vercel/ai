@@ -153,6 +153,14 @@ tokens](https://vercel.com/docs/oidc) without API Keys.
 
 Read more about using OIDC tokens in the [Vercel AI Gateway docs](https://vercel.com/docs/ai-gateway#using-the-ai-gateway-with-a-vercel-oidc-token).
 
+## Bring Your Own Key (BYOK)
+
+You can connect your own provider credentials to use with Vercel AI Gateway. This lets you use your existing provider accounts and access private resources.
+
+To set up BYOK, add your provider credentials in your Vercel team's AI Gateway settings. Once configured, AI Gateway automatically uses your credentials. No code changes are needed.
+
+Learn more in the [BYOK documentation](https://vercel.com/docs/ai-gateway/byok).
+
 ## Language Models
 
 You can create language models using a provider instance. The first argument is the model ID in the format `creator/model-name`:
@@ -283,6 +291,32 @@ const { text } = await generateText({
   },
 });
 ```
+
+### Provider-Executed Tools
+
+Some providers offer tools that are executed by the provider itself, such as [OpenAI's web search tool](/providers/ai-sdk-providers/openai#web-search-tool). To use these tools through AI Gateway, import the provider to access the tool definitions:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What is the Vercel AI Gateway?',
+  stopWhen: stepCountIs(10),
+  tools: {
+    web_search: openai.tools.webSearch({}),
+  },
+});
+
+console.dir(result.text);
+```
+
+<Note>
+  Some provider-executed tools require account-specific configuration (such as
+  Claude Agent Skills) and may not work through AI Gateway. To use these tools,
+  you must bring your own key (BYOK) directly to the provider.
+</Note>
 
 ### Usage Tracking with User and Tags
 
