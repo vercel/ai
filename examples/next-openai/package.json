@@ -17,6 +17,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
+    "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
