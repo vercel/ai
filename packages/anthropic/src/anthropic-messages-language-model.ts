@@ -174,14 +174,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             'JSON response format requires a schema. ' +
             'The response format is ignored.',
         });
-      } else if (tools != null) {
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'tools',
-          details:
-            'JSON response format does not support tools. ' +
-            'The provided tools are ignored.',
-        });
       }
     }
 
@@ -360,9 +352,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: [jsonResponseTool],
-            toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
-            disableParallelToolUse: true,
+            tools: tools ? [...tools, jsonResponseTool] : [jsonResponseTool],
+            toolChoice: { type: 'required' },
+            disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
           }
         : {
@@ -483,28 +475,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    let isJsonToolCalled = false;
 
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          // when a json response tool is used, the tool call is returned as text,
-          // so we ignore the text content:
-          if (!usesJsonResponseTool) {
-            content.push({ type: 'text', text: part.text });
+          content.push({ type: 'text', text: part.text });
 
-            // Process citations if present
-            if (part.citations) {
-              for (const citation of part.citations) {
-                const source = createCitationSource(
-                  citation,
-                  citationDocuments,
-                  this.generateId,
-                );
+          // Process citations if present
+          if (part.citations) {
+            for (const citation of part.citations) {
+              const source = createCitationSource(
+                citation,
+                citationDocuments,
+                this.generateId,
+              );
 
-                if (source) {
-                  content.push(source);
-                }
+              if (source) {
+                content.push(source);
               }
             }
           }
@@ -535,9 +524,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           break;
         }
         case 'tool_use': {
+          const isJsonResponseTool =
+            usesJsonResponseTool && part.name === 'json';
+
+          if (isJsonResponseTool) {
+            isJsonToolCalled = true;
+          }
+
           content.push(
             // when a json response tool is used, the tool call becomes the text:
-            usesJsonResponseTool
+            isJsonResponseTool
               ? {
                   type: 'text',
                   text: JSON.stringify(part.input),
@@ -746,7 +742,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       content,
       finishReason: mapAnthropicStopReason({
         finishReason: response.stop_reason,
-        isJsonResponseFromTool: usesJsonResponseTool,
+        isJsonResponseFromTool: isJsonToolCalled,
       }),
       usage: {
         inputTokens: response.usage.input_tokens,
@@ -833,6 +829,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
     let container: AnthropicMessageMetadata['container'] | null = null;
+    let isJsonToolCalled = false;
 
     let blockType:
       | 'text'
@@ -881,7 +878,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               case 'content_block_start': {
                 const part = value.content_block;
                 const contentBlockType = part.type;
-
                 blockType = contentBlockType;
 
                 switch (contentBlockType) {
@@ -918,7 +914,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   case 'tool_use': {
-                    contentBlocks[value.index] = usesJsonResponseTool
+                    const isJsonResponseTool =
+                      usesJsonResponseTool && part.name === 'json';
+
+                    if (isJsonResponseTool) {
+                      isJsonToolCalled = true;
+                    }
+
+                    contentBlocks[value.index] = isJsonResponseTool
                       ? { type: 'text' }
                       : {
                           type: 'tool-call',
@@ -929,7 +932,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         };
 
                     controller.enqueue(
-                      usesJsonResponseTool
+                      isJsonResponseTool
                         ? { type: 'text-start', id: String(value.index) }
                         : {
                             type: 'tool-input-start',
@@ -1182,7 +1185,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     case 'tool-call':
                       // when a json response tool is used, the tool call is returned as text,
                       // so we ignore the tool call content:
-                      if (!usesJsonResponseTool) {
+                      const isJsonResponseTool =
+                        usesJsonResponseTool &&
+                        contentBlock.toolName === 'json';
+
+                      if (!isJsonResponseTool) {
                         controller.enqueue({
                           type: 'tool-input-end',
                           id: contentBlock.toolCallId,
@@ -1217,14 +1224,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
               case 'content_block_delta': {
                 const deltaType = value.delta.type;
+
                 switch (deltaType) {
                   case 'text_delta': {
-                    // when a json response tool is used, the tool call is returned as text,
-                    // so we ignore the text content:
-                    if (usesJsonResponseTool) {
-                      return;
-                    }
-
                     controller.enqueue({
                       type: 'text-delta',
                       id: String(value.index),
@@ -1272,11 +1274,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       return;
                     }
 
-                    if (usesJsonResponseTool) {
-                      if (contentBlock?.type !== 'text') {
-                        return;
-                      }
+                    const isJsonResponseTool =
+                      usesJsonResponseTool && contentBlock.type === 'text';
 
+                    if (isJsonResponseTool) {
                       controller.enqueue({
                         type: 'text-delta',
                         id: String(value.index),
@@ -1363,7 +1364,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 finishReason = mapAnthropicStopReason({
                   finishReason: value.delta.stop_reason,
-                  isJsonResponseFromTool: usesJsonResponseTool,
+                  isJsonResponseFromTool: isJsonToolCalled,
                 });
 
                 stopSequence = value.delta.stop_sequence ?? null;
