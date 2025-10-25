@@ -1226,6 +1226,46 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('maps tool selection', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+
+    it('should include googleMaps tool and retrieval config for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const model = provider.languageModel('gemini-2.0-pro');
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_maps',
+            name: 'google_maps',
+            args: {
+              enableWidget: true,
+              retrievalConfig: {
+                latLng: { latitude: 37.78193, longitude: -122.40476 },
+              },
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: [{ googleMaps: { enableWidget: true } }],
+        toolConfig: {
+          retrievalConfig: {
+            latLng: { latitude: 37.78193, longitude: -122.40476 },
+          },
+        },
+      });
+    });
+  });
+
   it('should extract image file outputs', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
