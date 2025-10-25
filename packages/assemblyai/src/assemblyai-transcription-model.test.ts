@@ -220,7 +220,6 @@ describe('doGenerate', () => {
         summary_type: 'bullets',
         summary_model: 'informative',
         summary: '- Hello, world!',
-        topics: ['topics'],
         sentiment_analysis: true,
         entity_detection: true,
         entities: [
@@ -241,7 +240,6 @@ describe('doGenerate', () => {
         error: 'error',
         dual_channel: false,
         speed_boost: true,
-        custom_topics: true,
       },
     };
   }

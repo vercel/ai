@@ -146,10 +146,6 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   summaryType: z.string().nullish(),
   /**
-   * List of topics to identify in the transcription.
-   */
-  topics: z.array(z.string()).nullish(),
-  /**
    * Name of the authentication header for webhook requests.
    */
   webhookAuthHeaderName: z.string().nullish(),
@@ -247,7 +243,6 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
       body.summary_model =
         (assemblyaiOptions.summaryModel as never) ?? undefined;
       body.summary_type = (assemblyaiOptions.summaryType as never) ?? undefined;
-      body.topics = assemblyaiOptions.topics ?? undefined;
       body.webhook_auth_header_name =
         assemblyaiOptions.webhookAuthHeaderName ?? undefined;
       body.webhook_auth_header_value =
