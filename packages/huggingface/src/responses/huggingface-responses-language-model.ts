@@ -217,6 +217,21 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
           break;
         }
 
+        case 'reasoning': {
+          for (const contentPart of part.content) {
+            content.push({
+              type: 'reasoning',
+              text: contentPart.text,
+              providerMetadata: {
+                huggingface: {
+                  itemId: part.id,
+                },
+              },
+            });
+          }
+          break;
+        }
+
         case 'mcp_call': {
           content.push({
             type: 'tool-call',
@@ -397,6 +412,16 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
                   id: value.item.call_id,
                   toolName: value.item.name,
                 });
+              } else if (value.item.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: value.item.id,
+                  providerMetadata: {
+                    huggingface: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
               }
               return;
             }
@@ -448,6 +473,23 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
                   value.response.usage.input_tokens +
                     value.response.usage.output_tokens;
               }
+              return;
+            }
+
+            if (isReasoningDeltaChunk(value)) {
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: value.item_id,
+                delta: value.delta,
+              });
+              return;
+            }
+
+            if (isReasoningEndChunk(value)) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: value.item_id,
+              });
               return;
             }
 
@@ -541,6 +583,13 @@ const responseOutputItemAddedSchema = z.object({
       content: z.array(z.any()).optional(),
     }),
     z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+      status: z.string().optional(),
+      content: z.array(z.any()).optional(),
+      summary: z.array(z.any()).optional(),
+    }),
+    z.object({
       type: z.literal('mcp_list_tools'),
       id: z.string(),
       server_label: z.string(),
@@ -618,6 +667,24 @@ const textDeltaChunkSchema = z.object({
   sequence_number: z.number(),
 });
 
+const reasoningTextDeltaChunkSchema = z.object({
+  type: z.literal('response.reasoning_text.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  content_index: z.number(),
+  delta: z.string(),
+  sequence_number: z.number(),
+});
+
+const reasoningTextEndChunkSchema = z.object({
+  type: z.literal('response.reasoning_text.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  content_index: z.number(),
+  text: z.string(),
+  sequence_number: z.number(),
+});
+
 const responseCompletedChunkSchema = z.object({
   type: z.literal('response.completed'),
   response: huggingfaceResponsesResponseSchema,
@@ -638,6 +705,8 @@ const responseCreatedChunkSchema = z.object({
 const huggingfaceResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseOutputItemDoneSchema,
+  reasoningTextDeltaChunkSchema,
+  reasoningTextEndChunkSchema,
   textDeltaChunkSchema,
   responseCompletedChunkSchema,
   responseCreatedChunkSchema,
@@ -660,6 +729,18 @@ function isTextDeltaChunk(
   chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
 ): chunk is z.infer<typeof textDeltaChunkSchema> {
   return chunk.type === 'response.output_text.delta';
+}
+
+function isReasoningDeltaChunk(
+  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<typeof reasoningTextDeltaChunkSchema> {
+  return chunk.type === 'response.reasoning_text.delta';
+}
+
+function isReasoningEndChunk(
+  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<typeof reasoningTextEndChunkSchema> {
+  return chunk.type === 'response.reasoning_text.done';
 }
 
 function isResponseCompletedChunk(
