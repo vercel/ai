@@ -137,6 +137,13 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
       ...(preparedTools && { tools: preparedTools }),
       ...(preparedToolChoice && { tool_choice: preparedToolChoice }),
+      ...(huggingfaceOptions?.reasoningEffort != null && {
+          reasoning: {
+            ...(huggingfaceOptions?.reasoningEffort != null && {
+              effort: huggingfaceOptions.reasoningEffort,
+            }),
+          },
+        }),
     };
 
     return { args: baseArgs, warnings };
@@ -527,6 +534,7 @@ const huggingfaceResponsesProviderOptionsSchema = z.object({
   metadata: z.record(z.string(), z.string()).optional(),
   instructions: z.string().optional(),
   strictJsonSchema: z.boolean().optional(),
+  reasoningEffort: z.string().optional(),
 });
 
 const huggingfaceResponsesResponseSchema = z.object({
