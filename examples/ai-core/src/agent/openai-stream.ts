@@ -1,14 +1,14 @@
 import { openai } from '@ai-sdk/openai';
-import { BasicAgent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 import { run } from '../lib/run';
 
-const agent = new BasicAgent({
+const agent = new ToolLoopAgent({
   model: openai('gpt-5'),
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
 });
 
 run(async () => {
-  const result = agent.stream({
+  const result = await agent.stream({
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

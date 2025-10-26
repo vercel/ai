@@ -35,7 +35,6 @@ export * from './middleware';
 export * from './prompt';
 export * from './registry';
 export * from './text-stream';
-export * from './tool';
 export * from './transcribe';
 export * from './types';
 export * from './ui';
