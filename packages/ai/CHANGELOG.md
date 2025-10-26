@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.80
+
+### Patch Changes
+
+- c7688ec: fix(ai): correct type field in arrayOutputStrategy from 'enum' to 'array'
+
 ## 5.0.79
 
 ### Patch Changes
