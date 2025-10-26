@@ -112,7 +112,6 @@ Not used for provider-defined tools.
 
   /**
    * An optional title of the tool.
-   * Will be used by the language model to display the tool.
    */
   title?: string;
 
