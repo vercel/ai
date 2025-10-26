@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.73
+
+### Patch Changes
+
+- 754df61: fix(ai): correct type field in arrayOutputStrategy from 'enum' to 'array'
+
 ## 6.0.0-beta.72
 
 ### Patch Changes
