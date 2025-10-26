@@ -136,7 +136,7 @@ const arrayOutputStrategy = <ELEMENT>(
   const { $schema, ...itemSchema } = schema.jsonSchema;
 
   return {
-    type: 'enum',
+    type: 'array',
 
     // wrap in object that contains array of elements, since most LLMs will not
     // be able to generate an array directly:
