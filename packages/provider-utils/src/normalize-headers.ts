@@ -1,6 +1,9 @@
 /**
- * Normalizes different `HeadersInit` inputs into a plain record.
- * Undefined and null values are filtered out.
+ * Normalizes different header inputs into a plain record with lower-case keys.
+ * Entries with `undefined` or `null` values are removed.
+ *
+ * @param headers - Input headers (`Headers`, tuples array, plain record) to normalize.
+ * @returns A record containing the normalized header entries.
  */
 export function normalizeHeaders(
   headers: HeadersInit | Record<string, string | undefined> | undefined,
@@ -9,23 +12,29 @@ export function normalizeHeaders(
     return {};
   }
 
+  const normalized: Record<string, string> = {};
+
   if (headers instanceof Headers) {
-    return Object.fromEntries(headers.entries());
+    headers.forEach((value, key) => {
+      normalized[key.toLowerCase()] = value;
+    });
+    return normalized;
   }
 
   if (Array.isArray(headers)) {
-    return Object.fromEntries(
-      headers.filter(([_, value]) => value !== undefined && value !== null),
-    ) as Record<string, string>;
+    for (const [key, value] of headers) {
+      if (value !== undefined && value !== null) {
+        normalized[key.toLowerCase()] = value;
+      }
+    }
+    return normalized;
   }
 
-  if (typeof headers === 'object') {
-    return Object.fromEntries(
-      Object.entries(headers).filter(
-        ([_, value]) => value !== undefined && value !== null,
-      ),
-    ) as Record<string, string>;
+  for (const [key, value] of Object.entries(headers)) {
+    if (value !== undefined && value !== null) {
+      normalized[key.toLowerCase()] = value;
+    }
   }
 
-  return {};
+  return normalized;
 }

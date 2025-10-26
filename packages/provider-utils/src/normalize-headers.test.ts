@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { normalizeHeaders } from './normalize-headers';
 
@@ -23,11 +23,12 @@ describe('normalizeHeaders', () => {
     const headers: HeadersInit = [
       ['Authorization', 'Bearer token'],
       ['X-Feature', 'beta'],
+      ['X-Ignore', undefined as unknown as string],
     ];
 
     expect(normalizeHeaders(headers)).toEqual({
-      Authorization: 'Bearer token',
-      'X-Feature': 'beta',
+      authorization: 'Bearer token',
+      'x-feature': 'beta',
     });
   });
 
@@ -39,8 +40,25 @@ describe('normalizeHeaders', () => {
         'Content-Type': 'application/json',
       }),
     ).toEqual({
-      Authorization: 'Bearer token',
-      'Content-Type': 'application/json',
+      authorization: 'Bearer token',
+      'content-type': 'application/json',
+    });
+  });
+
+  it('handles empty Headers instance', () => {
+    const headers = new Headers();
+    expect(normalizeHeaders(headers)).toEqual({});
+  });
+
+  it('converts uppercase keys to lowercase', () => {
+    expect(
+      normalizeHeaders({
+        'CONTENT-TYPE': 'application/json',
+        'X-CUSTOM-HEADER': 'test-value',
+      }),
+    ).toEqual({
+      'content-type': 'application/json',
+      'x-custom-header': 'test-value',
     });
   });
 });
