@@ -138,12 +138,12 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       ...(preparedTools && { tools: preparedTools }),
       ...(preparedToolChoice && { tool_choice: preparedToolChoice }),
       ...(huggingfaceOptions?.reasoningEffort != null && {
-          reasoning: {
-            ...(huggingfaceOptions?.reasoningEffort != null && {
-              effort: huggingfaceOptions.reasoningEffort,
-            }),
-          },
-        }),
+        reasoning: {
+          ...(huggingfaceOptions?.reasoningEffort != null && {
+            effort: huggingfaceOptions.reasoningEffort,
+          }),
+        },
+      }),
     };
 
     return { args: baseArgs, warnings };
