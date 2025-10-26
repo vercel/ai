@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { LanguageModelV3CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { CacheControlValidator } from './get-cache-control';
 
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
@@ -438,7 +439,7 @@ describe('tool messages', () => {
                     text: 'Image generated successfully',
                   },
                   {
-                    type: 'media',
+                    type: 'image-data',
                     data: 'AAECAw==',
                     mediaType: 'image/png',
                   },
@@ -463,12 +464,10 @@ describe('tool messages', () => {
                   "cache_control": undefined,
                   "content": [
                     {
-                      "cache_control": undefined,
                       "text": "Image generated successfully",
                       "type": "text",
                     },
                     {
-                      "cache_control": undefined,
                       "source": {
                         "data": "AAECAw==",
                         "media_type": "image/png",
@@ -509,7 +508,7 @@ describe('tool messages', () => {
                     text: 'PDF generated successfully',
                   },
                   {
-                    type: 'media',
+                    type: 'file-data',
                     data: 'JVBERi0xLjQKJeLjz9MKNCAwIG9iago=', // Sample PDF base64
                     mediaType: 'application/pdf',
                   },
@@ -536,12 +535,10 @@ describe('tool messages', () => {
                   "cache_control": undefined,
                   "content": [
                     {
-                      "cache_control": undefined,
                       "text": "PDF generated successfully",
                       "type": "text",
                     },
                     {
-                      "cache_control": undefined,
                       "source": {
                         "data": "JVBERi0xLjQKJeLjz9MKNCAwIG9iago=",
                         "media_type": "application/pdf",
@@ -552,6 +549,123 @@ describe('tool messages', () => {
                   ],
                   "is_error": undefined,
                   "tool_use_id": "pdf-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+  it('should handle tool result with url-based PDF content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'get-pdf',
+              toolCallId: 'get-pdf-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: 'https://example.com/document.pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.com/document.pdf",
+                      },
+                      "type": "document",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "get-pdf-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should handle tool result with url-based image content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'image-url',
+                    url: 'https://example.com/image.png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.com/image.png",
+                      },
+                      "type": "image",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "image-gen-1",
                   "type": "tool_result",
                 },
               ],
@@ -1289,6 +1403,98 @@ describe('assistant messages', () => {
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });
+
+  describe('mcp tool use', () => {
+    it('should convert anthropic mcp tool use parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'mcptoolu_01HXPYHs79HH36fBbKHysCrp',
+                toolName: 'echo',
+                input: {},
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: { type: 'mcp-tool-use', serverName: 'echo' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'mcptoolu_01HXPYHs79HH36fBbKHysCrp',
+                toolName: 'echo',
+                output: {
+                  type: 'json',
+                  value: [{ type: 'text', text: 'Tool echo: hello world' }],
+                },
+                providerOptions: undefined,
+              },
+              {
+                type: 'text',
+                text: 'The echo tool responded back with "hello world" - it simply echoed the message I sent to it!',
+                providerOptions: undefined,
+              },
+            ],
+            providerOptions: undefined,
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "mcptoolu_01HXPYHs79HH36fBbKHysCrp",
+                    "input": {},
+                    "name": "echo",
+                    "server_name": "echo",
+                    "type": "mcp_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": [
+                      {
+                        "text": "Tool echo: hello world",
+                        "type": "text",
+                      },
+                    ],
+                    "is_error": false,
+                    "tool_use_id": "mcptoolu_01HXPYHs79HH36fBbKHysCrp",
+                    "type": "mcp_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "text": "The echo tool responded back with "hello world" - it simply echoed the message I sent to it!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "provider executed tool result for tool echo is not supported",
+            "type": "other",
+          },
+        ]
+      `);
+    });
+  });
 });
 
 describe('cache control', () => {
@@ -1653,6 +1859,184 @@ describe('cache control', () => {
       });
     });
   });
+
+  describe('cache control validation', () => {
+    it('should reject cache_control on thinking blocks', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const cacheControlValidator = new CacheControlValidator();
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'thinking content',
+                providerOptions: {
+                  anthropic: {
+                    signature: 'test-sig',
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        cacheControlValidator,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: 'thinking content',
+                  signature: 'test-sig',
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+
+      expect(cacheControlValidator.getWarnings()).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'cacheControl',
+        details:
+          'cache_control cannot be set on thinking block. It will be ignored.',
+      });
+    });
+
+    it('should reject cache_control on redacted thinking blocks', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const cacheControlValidator = new CacheControlValidator();
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'redacted',
+                providerOptions: {
+                  anthropic: {
+                    redactedData: 'abc123',
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        cacheControlValidator,
+      });
+
+      expect(result.prompt.messages[0].content[0]).not.toHaveProperty(
+        'cache_control',
+      );
+
+      expect(cacheControlValidator.getWarnings()).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'cacheControl',
+        details:
+          'cache_control cannot be set on redacted thinking block. It will be ignored.',
+      });
+    });
+  });
+
+  it('should limit cache breakpoints to 4', async () => {
+    const warnings: LanguageModelV3CallWarning[] = [];
+    const cacheControlValidator = new CacheControlValidator();
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'system 1',
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          role: 'system',
+          content: 'system 2',
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'user 1',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'assistant 1',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'user 2 (should be rejected)',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      cacheControlValidator,
+    });
+
+    // First 4 should have cache_control
+    expect(result.prompt.system?.[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.system?.[1].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.messages[0].content[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.messages[1].content[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+
+    // 5th should be rejected
+    expect(result.prompt.messages[2].content[0].cache_control).toBeUndefined();
+
+    // Should have warning about exceeding limit
+    expect(cacheControlValidator.getWarnings()).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'cacheControl',
+      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
+    });
+  });
 });
 
 describe('citations', () => {
@@ -1908,5 +2292,195 @@ describe('citations', () => {
         },
       }
     `);
+  });
+
+  describe('message sequences', () => {
+    it('should convert user-assistant-tool-assistant-user message sequence with multiple tool calls', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'weather for berlin, london and paris' },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I will use the weather tool to get the weather for berlin, london and paris',
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-1',
+                input: { location: 'berlin' },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-2',
+                input: { location: 'london' },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-3',
+                input: { location: 'paris' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-1',
+                output: {
+                  type: 'json',
+                  value: { weather: 'sunny' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-2',
+                output: {
+                  type: 'json',
+                  value: { weather: 'cloudy' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-3',
+                output: {
+                  type: 'json',
+                  value: { weather: 'rainy' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'The weather for berlin is sunny, the weather for london is cloudy, and the weather for paris is rainy',
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'and for new york?' }],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+      });
+
+      expect(result.prompt).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "weather for berlin, london and paris",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "I will use the weather tool to get the weather for berlin, london and paris",
+                  "type": "text",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-1",
+                  "input": {
+                    "location": "berlin",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-2",
+                  "input": {
+                    "location": "london",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-3",
+                  "input": {
+                    "location": "paris",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"sunny"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-1",
+                  "type": "tool_result",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"cloudy"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-2",
+                  "type": "tool_result",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"rainy"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-3",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "The weather for berlin is sunny, the weather for london is cloudy, and the weather for paris is rainy",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "and for new york?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        }
+      `);
+    });
   });
 });

@@ -165,7 +165,7 @@ export function convertToGoogleGenerativeAIMessages(
                     },
                   });
                   break;
-                case 'media':
+                case 'image-data':
                   parts.push(
                     {
                       inlineData: {

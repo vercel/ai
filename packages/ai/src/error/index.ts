@@ -6,6 +6,7 @@ export {
   InvalidResponseDataError,
   JSONParseError,
   LoadAPIKeyError,
+  LoadSettingError,
   NoContentGeneratedError,
   NoSuchModelError,
   TooManyEmbeddingValuesForCallError,
@@ -16,7 +17,6 @@ export {
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidStreamPartError } from './invalid-stream-part-error';
 export { InvalidToolInputError } from './invalid-tool-input-error';
-export { MCPClientError } from './mcp-client-error';
 export { NoImageGeneratedError } from './no-image-generated-error';
 export { NoObjectGeneratedError } from './no-object-generated-error';
 export { NoOutputGeneratedError } from './no-output-generated-error';
