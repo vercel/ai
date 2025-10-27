@@ -1,4 +1,4 @@
-import { JSONObject } from '@ai-sdk/provider';
+import { JSONObject, RerankingModelV3CallOptions } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -85,10 +85,25 @@ Only applicable for HTTP-based providers.
     */
   providerOptions?: ProviderOptions;
 }): Promise<RerankResult<VALUE>> {
+  if (documents.length === 0) {
+    return new DefaultRerankResult({
+      originalDocuments: [],
+      ranking: [],
+      providerMetadata: undefined,
+      response: undefined,
+    });
+  }
+
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
+
+  // detect the type of the documents:
+  const documentsToSend: RerankingModelV3CallOptions['documents'] =
+    typeof documents[0] === 'string'
+      ? { type: 'text', values: documents as string[] }
+      : { type: 'object', values: documents as JSONObject[] };
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -106,7 +121,9 @@ Only applicable for HTTP-based providers.
       attributes: {
         ...assembleOperationName({ operationId: 'ai.rerank', telemetry }),
         ...baseTelemetryAttributes,
-        'ai.documents': { input: () => documents.map(v => JSON.stringify(v)) },
+        'ai.documents': {
+          input: () => documents.map(document => JSON.stringify(document)),
+        },
       },
     }),
     tracer,
@@ -132,12 +149,7 @@ Only applicable for HTTP-based providers.
           tracer,
           fn: async doRerankSpan => {
             const modelResponse = await model.doRerank({
-              // if all documents are strings, we can use text mode, otherwise json mode
-              documents: documents.every(
-                document => typeof document === 'string',
-              )
-                ? { type: 'text', values: documents }
-                : { type: 'object', values: documents },
+              documents: documentsToSend,
               query,
               topN,
               providerOptions,
@@ -151,11 +163,7 @@ Only applicable for HTTP-based providers.
               await selectTelemetryAttributes({
                 telemetry,
                 attributes: {
-                  'ai.ranking.type': documents.every(
-                    document => typeof document === 'string',
-                  )
-                    ? 'text'
-                    : 'json',
+                  'ai.ranking.type': documentsToSend.type,
                   'ai.ranking': {
                     output: () =>
                       ranking.map(ranking => JSON.stringify(ranking)),
