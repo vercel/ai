@@ -20,7 +20,7 @@ export function wrapProvider({
   provider: ProviderV3;
   languageModelMiddleware: LanguageModelMiddleware | LanguageModelMiddleware[];
 }): ProviderV3 {
-  const wrappedProvider = {
+  return {
     languageModel: (modelId: string) =>
       wrapLanguageModel({
         model: provider.languageModel(modelId),
@@ -32,6 +32,4 @@ export function wrapProvider({
     speechModel: provider.speechModel,
     rerankingModel: provider.rerankingModel,
   };
-
-  return wrappedProvider as ProviderV3;
 }
