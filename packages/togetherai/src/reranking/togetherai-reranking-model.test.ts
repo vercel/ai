@@ -1,213 +1,261 @@
-import { describe, it, expect } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-
-import { createTogetherAI } from './togetherai-provider';
-import {
-  RerankedDocument,
-  TooManyDocumentsForRerankingError,
-} from '@ai-sdk/provider';
-
-const dummyResultDocuments: RerankedDocument<string>[] = [
-  {
-    index: 1,
-    relevanceScore: 0.45028743,
-    document: 'rainy day in the city',
-  },
-  {
-    index: 0,
-    relevanceScore: 0.0926305,
-    document: 'sunny day at the beach',
-  },
-];
-
-const testStringDocuments = ['sunny day at the beach', 'rainy day in the city'];
-const testObjectDocuments = [
-  { title: 'sunny day', text: 'sunny day at the beach' },
-  { title: 'rainy day', text: 'rainy day in the city' },
-];
+import fs from 'node:fs';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createTogetherAI } from '../togetherai-provider';
+import { TogetherAIRerankingOptions } from './togetherai-reranking-options';
 
 const provider = createTogetherAI({ apiKey: 'test-api-key' });
 const model = provider.rerankingModel('Salesforce/Llama-Rank-v1');
-const server = createTestServer({
-  'https://api.together.xyz/v1/rerank': {},
-});
 
 describe('doRerank', () => {
-  function prepareJsonResponse({
-    rerankedDocuments = dummyResultDocuments,
-    usage = {
-      prompt_tokens: 1,
-      completion_tokens: 1,
-      total_tokens: 2,
-    },
-    headers,
-  }: {
-    rerankedDocuments?: RerankedDocument<string>[];
-    usage?: {
-      prompt_tokens: number;
-      completion_tokens: number;
-      total_tokens: number;
-    };
-    headers?: Record<string, string>;
-  } = {}) {
-    // Convert RerankedDocument format to API response format
-    const apiResults = rerankedDocuments.map(doc => ({
-      index: doc.index,
-      relevance_score: doc.relevanceScore,
-    }));
+  const server = createTestServer({
+    'https://api.together.xyz/v1/rerank': {},
+  });
 
+  function prepareJsonFixtureResponse(filename: string) {
     server.urls['https://api.together.xyz/v1/rerank'].response = {
       type: 'json-value',
-      headers,
-      body: {
-        id: 'test-id',
-        model: 'Salesforce/Llama-Rank-v1',
-        object: 'rerank',
-        results: apiResults,
-        usage: {
-          prompt_tokens: 1,
-          completion_tokens: 1,
-          total_tokens: 2,
-        },
-      },
+      body: JSON.parse(
+        fs.readFileSync(`src/reranking/__fixtures__/${filename}.json`, 'utf8'),
+      ),
     };
+    return;
   }
 
-  it('should rerank documents', async () => {
-    prepareJsonResponse();
+  describe('json documents', () => {
+    let result: Awaited<ReturnType<typeof model.doRerank>>;
 
-    const { rerankedDocuments } = await model.doRerank({
-      values: testStringDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('togetherai-reranking.1');
 
-    expect(rerankedDocuments).toStrictEqual(dummyResultDocuments);
-  });
-
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse({
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doRerank({
-      values: testStringDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
-
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '229',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 1,
-        completion_tokens: 1,
-        total_tokens: 2,
-      },
-    });
-
-    const { usage } = await model.doRerank({
-      values: testStringDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
-
-    expect(usage).toStrictEqual({ tokens: 2 });
-  });
-
-  it('should pass the model and the values', async () => {
-    prepareJsonResponse();
-
-    await model.doRerank({
-      values: testStringDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'Salesforce/Llama-Rank-v1',
-      documents: testStringDocuments,
-      query: 'rainy day',
-      top_n: 2,
-    });
-  });
-
-  it('should pass the rankFields setting', async () => {
-    prepareJsonResponse();
-
-    await provider.rerankingModel('Salesforce/Llama-Rank-v1').doRerank({
-      values: testObjectDocuments,
-      query: 'rainy day',
-      topK: 2,
-      providerOptions: {
-        togetherai: {
-          rankFields: ['title', 'text'],
+      result = await model.doRerank({
+        documents: {
+          type: 'object',
+          values: [
+            { example: 'sunny day at the beach' },
+            { example: 'rainy day in the city' },
+          ],
         },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'Salesforce/Llama-Rank-v1',
-      documents: testObjectDocuments,
-      query: 'rainy day',
-      top_n: 2,
-      rank_fields: ['title', 'text'],
-    });
-  });
-
-  it('should pass headers', async () => {
-    prepareJsonResponse();
-
-    const provider = createTogetherAI({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
-      },
-    });
-
-    await provider.rerankingModel('Salesforce/Llama-Rank-v1').doRerank({
-      values: testStringDocuments,
-      query: 'rainy day',
-      topK: 2,
-      headers: {
-        'Custom-Request-Header': 'request-header-value',
-      },
-    });
-
-    const requestHeaders = server.calls[0].requestHeaders;
-
-    expect(requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
-  });
-
-  it('should throw an error if the number of documents is greater than the 1024 for Llama-Rank-v1', async () => {
-    const tooManyDocuments = Array.from(
-      { length: 1025 },
-      (_, i) => `document ${i}`,
-    );
-
-    try {
-      await model.doRerank({
-        values: tooManyDocuments,
-        query: 'test query',
-        topK: 2,
+        query: 'rainy day',
+        topN: 2,
+        providerOptions: {
+          togetherai: {
+            rankFields: ['example'],
+          } satisfies TogetherAIRerankingOptions,
+        },
       });
-      expect.fail('Expected TooManyDocumentsForRerankingError to be thrown');
-    } catch (error) {
-      expect(TooManyDocumentsForRerankingError.isInstance(error)).toBe(true);
-    }
+    });
+
+    it('should send request with stringified json documents', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            {
+              "example": "sunny day at the beach",
+            },
+            {
+              "example": "rainy day in the city",
+            },
+          ],
+          "model": "Salesforce/Llama-Rank-v1",
+          "query": "rainy day",
+          "rank_fields": [
+            "example",
+          ],
+          "return_documents": false,
+          "top_n": 2,
+        }
+      `);
+    });
+
+    it('should send request with the correct headers', async () => {
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+        }
+      `);
+    });
+
+    it('should return result with warnings', async () => {
+      expect(result.warnings).toMatchInlineSnapshot(`undefined`);
+    });
+
+    it('should return result with the correct ranking', async () => {
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "index": 0,
+            "relevanceScore": 0.6475887154399037,
+          },
+          {
+            "index": 5,
+            "relevanceScore": 0.6323295373206566,
+          },
+        ]
+      `);
+    });
+
+    it('should return result with the correct provider metadata', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`
+        {
+          "togetherai": {
+            "usage": {
+              "completion_tokens": 0,
+              "prompt_tokens": 2966,
+              "total_tokens": 2966,
+            },
+          },
+        }
+      `);
+    });
+
+    it('should return result with the correct response', async () => {
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "id": "oGs6Zt9-62bZhn-99529372487b1b0a",
+            "model": "Salesforce/Llama-Rank-v1",
+            "object": "rerank",
+            "results": [
+              {
+                "document": {},
+                "index": 0,
+                "relevance_score": 0.6475887154399037,
+              },
+              {
+                "document": {},
+                "index": 5,
+                "relevance_score": 0.6323295373206566,
+              },
+            ],
+            "usage": {
+              "completion_tokens": 0,
+              "prompt_tokens": 2966,
+              "total_tokens": 2966,
+            },
+          },
+          "headers": {
+            "content-length": "304",
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+  });
+
+  describe('text documents', () => {
+    let result: Awaited<ReturnType<typeof model.doRerank>>;
+
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('togetherai-reranking.1');
+
+      result = await model.doRerank({
+        documents: {
+          type: 'text',
+          values: ['sunny day at the beach', 'rainy day in the city'],
+        },
+        query: 'rainy day',
+        topN: 2,
+        providerOptions: {
+          togetherai: {
+            rankFields: ['example'],
+          } satisfies TogetherAIRerankingOptions,
+        },
+      });
+    });
+
+    it('should send request with text documents', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            "sunny day at the beach",
+            "rainy day in the city",
+          ],
+          "model": "Salesforce/Llama-Rank-v1",
+          "query": "rainy day",
+          "rank_fields": [
+            "example",
+          ],
+          "return_documents": false,
+          "top_n": 2,
+        }
+      `);
+    });
+
+    it('should send request with the correct headers', async () => {
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+        }
+      `);
+    });
+
+    it('should return result without warnings', async () => {
+      expect(result.warnings).toMatchInlineSnapshot(`undefined`);
+    });
+
+    it('should return result with the correct ranking', async () => {
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "index": 0,
+            "relevanceScore": 0.6475887154399037,
+          },
+          {
+            "index": 5,
+            "relevanceScore": 0.6323295373206566,
+          },
+        ]
+      `);
+    });
+
+    it('should return result with the correct provider metadata', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`
+        {
+          "togetherai": {
+            "usage": {
+              "completion_tokens": 0,
+              "prompt_tokens": 2966,
+              "total_tokens": 2966,
+            },
+          },
+        }
+      `);
+    });
+
+    it('should return result with the correct response', async () => {
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "id": "oGs6Zt9-62bZhn-99529372487b1b0a",
+            "model": "Salesforce/Llama-Rank-v1",
+            "object": "rerank",
+            "results": [
+              {
+                "document": {},
+                "index": 0,
+                "relevance_score": 0.6475887154399037,
+              },
+              {
+                "document": {},
+                "index": 5,
+                "relevance_score": 0.6323295373206566,
+              },
+            ],
+            "usage": {
+              "completion_tokens": 0,
+              "prompt_tokens": 2966,
+              "total_tokens": 2966,
+            },
+          },
+          "headers": {
+            "content-length": "304",
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
   });
 });

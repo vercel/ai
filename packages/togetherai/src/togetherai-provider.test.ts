@@ -37,7 +37,7 @@ vi.mock('./togetherai-image-model', () => ({
   TogetherAIImageModel: vi.fn(),
 }));
 
-vi.mock('./togetherai-reranking-model', () => ({
+vi.mock('./reranking/togetherai-reranking-model', () => ({
   TogetherAIRerankingModel: vi.fn(),
 }));
 
@@ -181,7 +181,7 @@ describe('TogetherAIProvider', () => {
     it('should construct a reranking model with correct configuration', () => {
       const provider = createTogetherAI();
       const modelId = 'Salesforce/Llama-Rank-v1';
-
+      0;
       const model = provider.rerankingModel(modelId);
 
       expect(TogetherAIRerankingModel).toHaveBeenCalledWith(
