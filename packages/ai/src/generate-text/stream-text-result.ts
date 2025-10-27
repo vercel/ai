@@ -379,6 +379,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
       providerExecuted?: boolean;
       dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-end';

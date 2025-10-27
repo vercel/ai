@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 293a6b7: Added a title to the tools
+
 ## 4.0.0-beta.20
 
 ### Patch Changes
