@@ -184,7 +184,8 @@ Only applicable for HTTP-based providers.
           }),
       );
 
-      logWarnings(warnings ?? [], {
+      logWarnings({
+        warnings: warnings ?? [],
         provider: model.provider,
         model: model.modelId,
       });
