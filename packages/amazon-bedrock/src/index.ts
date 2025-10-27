@@ -4,5 +4,5 @@ export type {
   AmazonBedrockProvider,
   AmazonBedrockProviderSettings,
 } from './bedrock-provider';
-export type { BedrockRerankingProviderOptions } from './reranking/bedrock-reranking-options';
+export type { BedrockRerankingOptions } from './reranking/bedrock-reranking-options';
 export { VERSION } from './version';
