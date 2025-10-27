@@ -160,6 +160,7 @@ export function createOpenAICompatible<
 
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;

@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- a755db5: feat(provider): Add SharedV3Warning type
+
 ## 3.0.0-beta.8
 
 ### Patch Changes

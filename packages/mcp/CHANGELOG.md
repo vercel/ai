@@ -1,5 +1,19 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- 5939b92: feat(mcp): adding resources support to MCP client
+
 ## 1.0.0-beta.2
 
 ### Patch Changes
