@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- 1b982e6: feat(openai): preserve file_id when converting file citations
+
 ## 3.0.0-beta.39
 
 ### Patch Changes
