@@ -58,6 +58,7 @@ export type GatewayModelId =
   | 'meta/llama-3.3-70b'
   | 'meta/llama-4-maverick'
   | 'meta/llama-4-scout'
+  | 'minimax/minimax-m2'
   | 'mistral/codestral'
   | 'mistral/devstral-small'
   | 'mistral/magistral-medium'
