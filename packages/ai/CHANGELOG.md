@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.0-beta.76
+
+### Patch Changes
+
+- a755db5: feat(ai): improve warnings with provider and model id
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/gateway@2.0.0-beta.40
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
 ## 6.0.0-beta.75
 
 ### Patch Changes

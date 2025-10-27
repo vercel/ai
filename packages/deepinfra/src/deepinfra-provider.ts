@@ -143,6 +143,7 @@ export function createDeepInfra(
 
   const provider = (modelId: DeepInfraChatModelId) => createChatModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.image = createImageModel;
