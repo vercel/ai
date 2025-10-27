@@ -16,9 +16,9 @@ export type RerankingModelV3CallOptions = {
   query: string;
 
   /**
-   * Limit returned documents to the top n documents.
+   * Optional limit returned documents to the top n documents.
    */
-  topN: number;
+  topN?: number;
 
   /**
    * Abort signal for cancelling the operation.

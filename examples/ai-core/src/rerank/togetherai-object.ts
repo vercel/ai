@@ -1,8 +1,7 @@
-import { togetherai } from '@ai-sdk/togetherai';
-import { experimental_rerank as rerank } from 'ai';
-import 'dotenv/config';
-
-const query = 'Which pricing did we get from Oracle?';
+import { togetherai, TogetherAIRerankingOptions } from '@ai-sdk/togetherai';
+import { rerank } from 'ai';
+import { print } from '../lib/print';
+import { run } from '../lib/run';
 
 const documents = [
   {
@@ -50,40 +49,19 @@ const documents = [
   },
 ];
 
-async function main() {
-  const { usage, rerankedDocuments } = await rerank({
+run(async () => {
+  const result = await rerank({
     model: togetherai.rerankingModel('Salesforce/Llama-Rank-v1'),
-    values: documents,
-    query,
-    topK: 2,
+    documents,
+    query: 'Which pricing did we get from Oracle?',
+    topN: 2,
     providerOptions: {
-      togetherai: {
+      cohere: {
         rankFields: ['from', 'to', 'date', 'subject', 'text'],
-      },
+      } satisfies TogetherAIRerankingOptions,
     },
   });
 
-  console.log('Reranked Documents:');
-  for (const document of rerankedDocuments) {
-    console.log(`Document Index: ${document.index}`);
-    console.log(`Document: ${JSON.stringify(document.document)}`);
-    console.log(`Relevance Score: ${document.relevanceScore}`);
-  }
-
-  // Document Index: 0
-  // Document: {"from":"Paul Doe <paul_fake_doe@oracle.com>","to":["Steve <steve@me.com>","lisa@example.com"],"date":"2024-03-27","subject":"Follow-up","text":"We are happy to give you the following pricing for your project."}
-  // Relevance Score: 0.6475887154399037
-  // Document Index: 5
-  // Document: {"from":"Paul Doe <paul_fake_doe@oracle.com>","to":["Steve <steve@me.com>","lisa@example.com"],"date":"2024-04-09","subject":"Price Adjustment","text":"Re: our previous correspondence on 3/27 we'd like to make an amendment on our pricing proposal. We'll have to decrease the expected base price by 5%."}
-  // Relevance Score: 0.6323295373206566
-
-  console.log('Usage:');
-  console.log(usage);
-
-  //   Usage:
-  //   {
-  //     tokens: 2966,
-  //   }
-}
-
-main().catch(console.error);
+  print('Reranking:', result.ranking);
+  print('Metadata:', result.providerMetadata);
+});

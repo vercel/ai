@@ -54,7 +54,7 @@ The query is a string that represents the query to rerank the documents against.
   /**
    * Number of top documents to return.
    */
-  topN: number;
+  topN?: number;
 
   /**
 Maximum number of retries per reranking model call. Set to 0 to disable retries.
