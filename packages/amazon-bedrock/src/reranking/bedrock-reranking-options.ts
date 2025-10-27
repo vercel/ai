@@ -7,7 +7,7 @@ export type BedrockRerankingModelId =
   | 'cohere.rerank-v3-5:0'
   | (string & {});
 
-export type BedrockRerankingProviderOptions = {
+export type BedrockRerankingOptions = {
   /**
    * If the total number of results was greater than could fit in a response, a token is returned in the nextToken field. You can enter that token in this field to return the next batch of results.
    */
@@ -19,7 +19,7 @@ export type BedrockRerankingProviderOptions = {
   additionalModelRequestFields?: Record<string, unknown>;
 };
 
-export const bedrockRerankingProviderOptionsSchema = lazySchema(() =>
+export const bedrockRerankingOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**

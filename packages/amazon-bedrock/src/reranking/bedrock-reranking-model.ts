@@ -16,7 +16,7 @@ import {
 } from './bedrock-reranking-api';
 import {
   BedrockRerankingModelId,
-  bedrockRerankingProviderOptionsSchema,
+  bedrockRerankingOptionsSchema,
 } from './bedrock-reranking-options';
 
 type BedrockRerankingConfig = {
@@ -48,7 +48,7 @@ export class BedrockRerankingModel implements RerankingModelV3 {
     const bedrockOptions = await parseProviderOptions({
       provider: 'bedrock',
       providerOptions,
-      schema: bedrockRerankingProviderOptionsSchema,
+      schema: bedrockRerankingOptionsSchema,
     });
 
     const {

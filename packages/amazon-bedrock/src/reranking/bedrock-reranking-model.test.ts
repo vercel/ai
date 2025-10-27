@@ -1,232 +1,299 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { injectFetchHeaders } from './inject-fetch-headers';
-import { RerankedDocument } from '@ai-sdk/provider';
-import { BedrockRerankingModel } from './bedrock-reranking-model';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
-
-const dummyResultDocuments: RerankedDocument<string>[] = [
-  {
-    index: 1,
-    relevanceScore: 0.45028743,
-    document: 'rainy day in the city',
-  },
-  {
-    index: 0,
-    relevanceScore: 0.0926305,
-    document: 'sunny day at the beach',
-  },
-];
-
-const testStringDocuments = ['sunny day at the beach', 'rainy day in the city'];
-
-const rerankUrl = `https://bedrock-agent-runtime.us-east-1.amazonaws.com/rerank`;
+import { injectFetchHeaders } from '../inject-fetch-headers';
+import { BedrockRerankingModel } from './bedrock-reranking-model';
+import { BedrockRerankingOptions } from './bedrock-reranking-options';
 
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
-describe('doRerank', () => {
-  const mockConfigHeaders = {
+
+const model = new BedrockRerankingModel('cohere.rerank-v3-5:0', {
+  baseUrl: () => 'https://bedrock-agent-runtime.us-east-1.amazonaws.com',
+  region: 'us-west-2',
+  headers: {
     'config-header': 'config-value',
     'shared-header': 'config-shared',
-  };
+  },
+  fetch: fakeFetchWithAuth,
+});
 
+describe('doRerank', () => {
   const server = createTestServer({
-    [rerankUrl]: {
-      response: {
-        type: 'binary',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: Buffer.from(
-          JSON.stringify({
-            results: [
-              {
-                index: 1,
-                relevanceScore: 0.45028743,
-              },
-              {
-                index: 0,
-                relevanceScore: 0.0926305,
-              },
-            ],
-          }),
-        ),
-      },
-    },
+    'https://bedrock-agent-runtime.us-east-1.amazonaws.com/rerank': {},
   });
 
-  const model = new BedrockRerankingModel('cohere.rerank-v3-5:0', {
-    baseUrl: () => 'https://bedrock-agent-runtime.us-east-1.amazonaws.com',
-    region: 'us-west-2',
-    headers: mockConfigHeaders,
-    fetch: fakeFetchWithAuth,
-  });
-
-  let callCount = 0;
-
-  beforeEach(() => {
-    callCount = 0;
-    server.urls[rerankUrl].response = {
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls[
+      'https://bedrock-agent-runtime.us-east-1.amazonaws.com/rerank'
+    ].response = {
       type: 'binary',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: { 'content-type': 'application/json' },
       body: Buffer.from(
-        JSON.stringify({
-          results: [
-            {
-              index: 1,
-              relevanceScore: 0.45028743,
-            },
-            {
-              index: 0,
-              relevanceScore: 0.0926305,
-            },
-          ],
-        }),
+        fs.readFileSync(`src/reranking/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
-  });
+  }
 
-  it('should rerank documents', async () => {
-    const { rerankedDocuments } = await model.doRerank({
-      values: testStringDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
+  describe('json documents', () => {
+    let result: Awaited<ReturnType<typeof model.doRerank>>;
 
-    expect(rerankedDocuments).toStrictEqual(dummyResultDocuments);
-  });
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('bedrock-reranking.1');
 
-  it('should expose the raw response headers', async () => {
-    const { response } = await model.doRerank({
-      values: testStringDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
-
-    expect(response?.headers).toStrictEqual({
-      'content-length': '92',
-      'content-type': 'application/json',
-    });
-  });
-
-  it('should work with partial headers', async () => {
-    const modelWithPartialHeaders = new BedrockRerankingModel(
-      'cohere.rerank-v3-5:0',
-      {
-        baseUrl: () => 'https://bedrock-agent-runtime.us-east-1.amazonaws.com',
-        region: 'us-west-2',
-        headers: {
-          'config-header': 'config-value',
+      result = await model.doRerank({
+        documents: {
+          type: 'object',
+          values: [
+            { example: 'sunny day at the beach' },
+            { example: 'rainy day in the city' },
+          ],
         },
-        fetch: injectFetchHeaders({
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-      },
-    );
-
-    await modelWithPartialHeaders.doRerank({
-      values: testStringDocuments,
-      query: 'rainy day',
-      topK: 2,
+        query: 'rainy day',
+        topN: 2,
+        providerOptions: {
+          bedrock: {
+            nextToken: 'test-token',
+            additionalModelRequestFields: {
+              test: 'test-value',
+            },
+          } satisfies BedrockRerankingOptions,
+        },
+      });
     });
 
-    const requestHeaders = server.calls[0].requestHeaders;
-    expect(requestHeaders['config-header']).toBe('config-value');
-    expect(requestHeaders['signed-header']).toBe('signed-value');
-    expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+    it('should send request with stringified json documents', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "nextToken": "test-token",
+          "queries": [
+            {
+              "textQuery": {
+                "text": "rainy day",
+              },
+              "type": "TEXT",
+            },
+          ],
+          "rerankingConfiguration": {
+            "bedrockRerankingConfiguration": {
+              "modelConfiguration": {
+                "additionalModelRequestFields": {
+                  "test": "test-value",
+                },
+                "modelArn": "arn:aws:bedrock:us-west-2::foundation-model/cohere.rerank-v3-5:0",
+              },
+              "numberOfResults": 2,
+            },
+            "type": "BEDROCK_RERANKING_MODEL",
+          },
+          "sources": [
+            {
+              "inlineDocumentSource": {
+                "jsonDocument": {
+                  "example": "sunny day at the beach",
+                },
+                "type": "JSON",
+              },
+              "type": "INLINE",
+            },
+            {
+              "inlineDocumentSource": {
+                "jsonDocument": {
+                  "example": "rainy day in the city",
+                },
+                "type": "JSON",
+              },
+              "type": "INLINE",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should send request with the correct headers', async () => {
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "config-header": "config-value",
+          "content-type": "application/json",
+          "shared-header": "config-shared",
+          "x-amz-auth": "test-auth",
+        }
+      `);
+    });
+
+    it('should return result with warnings', async () => {
+      expect(result.warnings).toMatchInlineSnapshot(`undefined`);
+    });
+
+    it('should return result with the correct ranking', async () => {
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "index": 0,
+            "relevanceScore": 0.5110583305358887,
+          },
+          {
+            "index": 5,
+            "relevanceScore": 0.30241215229034424,
+          },
+        ]
+      `);
+    });
+
+    it('should not return provider metadata (use response body instead)', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`undefined`);
+    });
+
+    it('should return result with the correct response', async () => {
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "results": [
+              {
+                "index": 0,
+                "relevanceScore": 0.5110583305358887,
+              },
+              {
+                "index": 5,
+                "relevanceScore": 0.30241215229034424,
+              },
+            ],
+          },
+          "headers": {
+            "content-length": "171",
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
   });
 
-  it('should rerank JSON documents', async () => {
-    const jsonDocuments = [
-      {
-        from: 'Paul Doe <paul_fake_doe@oracle.com>',
-        to: ['Steve <steve@me.com>', 'lisa@example.com'],
-        date: '2024-03-27',
-        subject: 'Follow-up',
-        text: 'We are happy to give you the following pricing for your project.',
-      },
-      {
-        from: 'John McGill <john_fake_mcgill@microsoft.com>',
-        to: ['Steve <steve@me.com>'],
-        date: '2024-03-28',
-        subject: 'Missing Information',
-        text: 'Sorry, but here is the pricing you asked for for the newest line of your models.',
-      },
-      {
-        from: 'John McGill <john_fake_mcgill@microsoft.com>',
-        to: ['Steve <steve@me.com>'],
-        date: '2024-02-15',
-        subject: 'Commited Pricing Strategy',
-        text: 'I know we went back and forth on this during the call but the pricing for now should follow the agreement at hand.',
-      },
-    ];
+  describe('text documents', () => {
+    let result: Awaited<ReturnType<typeof model.doRerank>>;
 
-    const expectedJsonResults: RerankedDocument<object>[] = [
-      {
-        index: 1,
-        relevanceScore: 0.45028743,
-        document: jsonDocuments[1],
-      },
-      {
-        index: 0,
-        relevanceScore: 0.0926305,
-        document: jsonDocuments[0],
-      },
-    ];
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('bedrock-reranking.1');
 
-    const { rerankedDocuments } = await model.doRerank({
-      values: jsonDocuments,
-      query: 'pricing information',
-      topK: 2,
+      result = await model.doRerank({
+        documents: {
+          type: 'text',
+          values: ['sunny day at the beach', 'rainy day in the city'],
+        },
+        query: 'rainy day',
+        topN: 2,
+        providerOptions: {
+          bedrock: {
+            nextToken: 'test-token',
+            additionalModelRequestFields: {
+              test: 'test-value',
+            },
+          } satisfies BedrockRerankingOptions,
+        },
+      });
     });
 
-    expect(rerankedDocuments).toStrictEqual(expectedJsonResults);
-  });
-
-  it('should throw error when using JSON documents with non-Cohere model', async () => {
-    const nonCohereModel = new BedrockRerankingModel('amazon.rerank-v1:0', {
-      baseUrl: () => 'https://bedrock-agent-runtime.us-east-1.amazonaws.com',
-      region: 'us-west-2',
-      headers: mockConfigHeaders,
-      fetch: fakeFetchWithAuth,
+    it('should send request with text documents', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "nextToken": "test-token",
+          "queries": [
+            {
+              "textQuery": {
+                "text": "rainy day",
+              },
+              "type": "TEXT",
+            },
+          ],
+          "rerankingConfiguration": {
+            "bedrockRerankingConfiguration": {
+              "modelConfiguration": {
+                "additionalModelRequestFields": {
+                  "test": "test-value",
+                },
+                "modelArn": "arn:aws:bedrock:us-west-2::foundation-model/cohere.rerank-v3-5:0",
+              },
+              "numberOfResults": 2,
+            },
+            "type": "BEDROCK_RERANKING_MODEL",
+          },
+          "sources": [
+            {
+              "inlineDocumentSource": {
+                "textDocument": {
+                  "text": "sunny day at the beach",
+                },
+                "type": "TEXT",
+              },
+              "type": "INLINE",
+            },
+            {
+              "inlineDocumentSource": {
+                "textDocument": {
+                  "text": "rainy day in the city",
+                },
+                "type": "TEXT",
+              },
+              "type": "INLINE",
+            },
+          ],
+        }
+      `);
     });
 
-    const jsonDocuments = [
-      {
-        from: 'Paul Doe <paul_fake_doe@oracle.com>',
-        to: ['Steve <steve@me.com>', 'lisa@example.com'],
-        date: '2024-03-27',
-        subject: 'Follow-up',
-        text: 'We are happy to give you the following pricing for your project.',
-      },
-      {
-        from: 'John McGill <john_fake_mcgill@microsoft.com>',
-        to: ['Steve <steve@me.com>'],
-        date: '2024-03-28',
-        subject: 'Missing Information',
-        text: 'Sorry, but here is the pricing you asked for for the newest line of your models.',
-      },
-    ];
+    it('should send request with the correct headers', async () => {
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "config-header": "config-value",
+          "content-type": "application/json",
+          "shared-header": "config-shared",
+          "x-amz-auth": "test-auth",
+        }
+      `);
+    });
 
-    await expect(
-      nonCohereModel.doRerank({
-        values: jsonDocuments,
-        query: 'pricing information',
-        topK: 2,
-      }),
-    ).rejects.toThrow(UnsupportedFunctionalityError);
+    it('should return result without warnings', async () => {
+      expect(result.warnings).toMatchInlineSnapshot(`undefined`);
+    });
 
-    await expect(
-      nonCohereModel.doRerank({
-        values: jsonDocuments,
-        query: 'pricing information',
-        topK: 2,
-      }),
-    ).rejects.toMatchObject({
-      functionality: 'JSON documents',
-      message: 'Only Cohere model supports JSON documents',
+    it('should return result with the correct ranking', async () => {
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "index": 0,
+            "relevanceScore": 0.5110583305358887,
+          },
+          {
+            "index": 5,
+            "relevanceScore": 0.30241215229034424,
+          },
+        ]
+      `);
+    });
+
+    it('should not return provider metadata (use response body instead)', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`undefined`);
+    });
+
+    it('should return result with the correct response', async () => {
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "results": [
+              {
+                "index": 0,
+                "relevanceScore": 0.5110583305358887,
+              },
+              {
+                "index": 5,
+                "relevanceScore": 0.30241215229034424,
+              },
+            ],
+          },
+          "headers": {
+            "content-length": "171",
+            "content-type": "application/json",
+          },
+        }
+      `);
     });
   });
 });
