@@ -73,6 +73,7 @@ export function createGladia(
     };
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 

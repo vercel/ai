@@ -9,6 +9,8 @@ import {
 } from '@ai-sdk/provider';
 
 export class MockProviderV3 implements ProviderV3 {
+  readonly specificationVersion = 'v3' as const;
+
   languageModel: ProviderV3['languageModel'];
   textEmbeddingModel: ProviderV3['textEmbeddingModel'];
   imageModel: ProviderV3['imageModel'];
