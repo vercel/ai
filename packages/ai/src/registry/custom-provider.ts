@@ -5,9 +5,11 @@ import {
   NoSuchModelError,
   ProviderV2,
   ProviderV3,
+  RerankingModelV3,
   SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
+import { asProviderV3 } from '../model/as-provider-v3';
 
 /**
  * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, and an optional fallback provider.
@@ -18,6 +20,7 @@ import {
  * @param {Record<string, ImageModel>} [options.imageModels] - A record of image models, where keys are model IDs and values are ImageModel instances.
  * @param {Record<string, TranscriptionModel>} [options.transcriptionModels] - A record of transcription models, where keys are model IDs and values are TranscriptionModel instances.
  * @param {Record<string, SpeechModel>} [options.speechModels] - A record of speech models, where keys are model IDs and values are SpeechModel instances.
+ * @param {Record<string, RerankingModel<string>>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are RerankingModel<string> instances.
  * @param {Provider} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
  * @returns {Provider} A Provider object with languageModel, textEmbeddingModel, imageModel, transcriptionModel, and speechModel methods.
  *
@@ -29,19 +32,22 @@ export function customProvider<
   IMAGE_MODELS extends Record<string, ImageModelV3>,
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV3>,
   SPEECH_MODELS extends Record<string, SpeechModelV3>,
+  RERANKING_MODELS extends Record<string, RerankingModelV3>,
 >({
   languageModels,
   textEmbeddingModels,
   imageModels,
   transcriptionModels,
   speechModels,
-  fallbackProvider,
+  rerankingModels,
+  fallbackProvider: fallbackProviderArg,
 }: {
   languageModels?: LANGUAGE_MODELS;
   textEmbeddingModels?: EMBEDDING_MODELS;
   imageModels?: IMAGE_MODELS;
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
+  rerankingModels?: RERANKING_MODELS;
   fallbackProvider?: ProviderV3 | ProviderV2;
 }): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
@@ -52,8 +58,13 @@ export function customProvider<
   transcriptionModel(
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
   ): TranscriptionModelV3;
+  rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV3;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3;
 } {
+  const fallbackProvider = fallbackProviderArg
+    ? asProviderV3(fallbackProviderArg)
+    : undefined;
+
   return {
     specificationVersion: 'v3',
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3 {
@@ -118,6 +129,19 @@ export function customProvider<
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'speechModel' });
+    },
+    rerankingModel(
+      modelId: ExtractModelId<RERANKING_MODELS>,
+    ): RerankingModelV3 {
+      if (rerankingModels != null && modelId in rerankingModels) {
+        return rerankingModels[modelId];
+      }
+
+      if (fallbackProvider?.rerankingModel) {
+        return fallbackProvider.rerankingModel(modelId);
+      }
+
+      throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
     },
   };
 }

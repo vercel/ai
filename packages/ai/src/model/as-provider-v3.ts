@@ -28,5 +28,6 @@ export function asProviderV3(provider: ProviderV2 | ProviderV3): ProviderV3 {
     speechModel: provider.speechModel
       ? (modelId: string) => asSpeechModelV3(provider.speechModel!(modelId))
       : undefined,
+    rerankingModel: undefined, // v2 providers don't have reranking models
   };
 }
