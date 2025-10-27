@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- 5939b92: feat(mcp): adding resources support to MCP client
+
 ## 1.0.0-beta.2
 
 ### Patch Changes
