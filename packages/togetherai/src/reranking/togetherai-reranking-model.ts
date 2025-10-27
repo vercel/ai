@@ -14,7 +14,7 @@ import {
 } from './togetherai-reranking-api';
 import {
   TogetherAIRerankingModelId,
-  togetheraiRerankingOptions,
+  togetheraiRerankingOptionsSchema,
 } from './togetherai-reranking-options';
 
 type TogetherAIRerankingConfig = {
@@ -56,7 +56,7 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
     const rerankingOptions = await parseProviderOptions({
       provider: 'togetherai',
       providerOptions,
-      schema: togetheraiRerankingOptions,
+      schema: togetheraiRerankingOptionsSchema,
     });
 
     const {
@@ -86,13 +86,14 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
     });
 
     return {
-      rerankedDocuments: response.results.map(result => ({
+      ranking: response.results.map(result => ({
         index: result.index,
         relevanceScore: result.relevance_score,
-        document: values[result.index],
       })),
-      usage: {
-        tokens: response.usage.total_tokens,
+      providerMetadata: {
+        togetherai: {
+          usage: response.usage,
+        },
       },
       response: { headers: responseHeaders, body: rawValue },
     };

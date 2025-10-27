@@ -12,6 +12,16 @@ export type TogetherAIRerankingInput = {
   rank_fields: string[] | undefined;
 };
 
+export const togetheraiErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        message: z.string(),
+      }),
+    }),
+  ),
+);
+
 export const togetheraiRerankingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
