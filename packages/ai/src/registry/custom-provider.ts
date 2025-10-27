@@ -3,11 +3,13 @@ import {
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
-  RerankingModelV3,
+  ProviderV2,
   ProviderV3,
+  RerankingModelV3,
   SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
+import { asProviderV3 } from '../model/as-provider-v3';
 
 /**
  * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, and an optional fallback provider.
@@ -38,7 +40,7 @@ export function customProvider<
   transcriptionModels,
   speechModels,
   rerankingModels,
-  fallbackProvider,
+  fallbackProvider: fallbackProviderArg,
 }: {
   languageModels?: LANGUAGE_MODELS;
   textEmbeddingModels?: EMBEDDING_MODELS;
@@ -46,7 +48,7 @@ export function customProvider<
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
-  fallbackProvider?: ProviderV3;
+  fallbackProvider?: ProviderV3 | ProviderV2;
 }): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
   textEmbeddingModel(
@@ -59,6 +61,10 @@ export function customProvider<
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV3;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3;
 } {
+  const fallbackProvider = fallbackProviderArg
+    ? asProviderV3(fallbackProviderArg)
+    : undefined;
+
   return {
     specificationVersion: 'v3',
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3 {
