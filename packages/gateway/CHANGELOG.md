@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.44
+
+### Patch Changes
+
+- 7d73922: feat(provider/gateway): Add MiniMax M2 to Gateway autocomplete
+
 ## 2.0.0-beta.43
 
 ### Patch Changes
