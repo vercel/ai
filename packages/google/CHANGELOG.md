@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
 ## 3.0.0-beta.29
 
 ### Patch Changes
