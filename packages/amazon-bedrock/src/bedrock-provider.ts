@@ -1,3 +1,4 @@
+import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import {
   EmbeddingModelV3,
   ImageModelV3,
@@ -13,21 +14,20 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { VERSION } from './version';
-import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
 import { BedrockImageModelId } from './bedrock-image-settings';
-import { BedrockRerankingModel } from './bedrock-reranking-model';
-import { BedrockRerankingModelId } from './bedrock-reranking-options';
 import {
   BedrockCredentials,
-  createSigV4FetchFunction,
   createApiKeyFetchFunction,
+  createSigV4FetchFunction,
 } from './bedrock-sigv4-fetch';
+import { BedrockRerankingModel } from './reranking/bedrock-reranking-model';
+import { BedrockRerankingModelId } from './reranking/bedrock-reranking-options';
+import { VERSION } from './version';
 
 export interface AmazonBedrockProviderSettings {
   /**
@@ -107,7 +107,7 @@ and `sessionToken` settings.
   generateId?: () => string;
 }
 
-export interface AmazonBedrockProvider extends ProviderV3<string | object> {
+export interface AmazonBedrockProvider extends ProviderV3 {
   (modelId: BedrockChatModelId): LanguageModelV3;
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV3;
@@ -127,9 +127,7 @@ Creates a model for image generation.
   /**
 Creates a model for reranking documents.
    */
-  rerankingModel(
-    modelId: BedrockRerankingModelId,
-  ): RerankingModelV3<string | object>;
+  rerankingModel(modelId: BedrockRerankingModelId): RerankingModelV3;
 
   /**
 Anthropic-specific tools that can be used with Anthropic models on Bedrock.
