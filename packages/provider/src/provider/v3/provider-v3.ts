@@ -8,7 +8,7 @@ import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription
 /**
  * Provider for language, text embedding, and image generation models.
  */
-export interface ProviderV3<VALUE = string> {
+export interface ProviderV3 {
   /**
 Returns the language model with the given id.
 The model id is then passed to the provider function to get the model.
@@ -73,5 +73,5 @@ The model id is then passed to the provider function to get the model.
 
 @throws {NoSuchModelError} If no such model exists.
    */
-  rerankingModel?(modelId: string): RerankingModelV3<VALUE>;
+  rerankingModel?(modelId: string): RerankingModelV3;
 }

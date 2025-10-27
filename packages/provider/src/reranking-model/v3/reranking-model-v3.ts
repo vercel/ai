@@ -1,82 +1,74 @@
-import {
-  SharedV2Headers,
-  SharedV2ProviderMetadata,
-  SharedV2ProviderOptions,
-} from '../../shared';
+import { SharedV3Headers, SharedV3ProviderMetadata } from '../../shared/v3/';
 import { RerankingModelV3CallOptions } from './reranking-model-v3-call-options';
-import { RerankedDocument } from './reranking-model-v3-result';
 
 /**
-Experimental: Specification for a reranking model that implements the reranking model
-interface version 3.
-
-VALUE is the type of the values that the model can rerank.
+ * Specification for a reranking model that implements the reranking model interface version 3.
  */
-export type RerankingModelV3<VALUE> = {
+export type RerankingModelV3 = {
   /**
-The reranking model must specify which reranking model interface
-version it implements. This will allow us to evolve the reranking
-model interface and retain backwards compatibility. The different
-implementation versions can be handled as a discriminated union
-on our side.
-    */
+   * The reranking model must specify which reranking model interface version it implements.
+   */
   readonly specificationVersion: 'v3';
 
   /**
-Name of the provider for logging purposes.
-    */
+   * Provider ID.
+   */
   readonly provider: string;
 
   /**
-Provider-specific model ID for logging purposes.
-    */
+   * Provider-specific model ID.
+   */
   readonly modelId: string;
 
   /**
-Limit of how many documents can be reranking in a single API call.
-    */
+   * Limit of how many documents can be reranked in a single API call.
+   * Use Infinity for models that do not have a limit.
+   */
   readonly maxDocumentsPerCall:
     | PromiseLike<number | undefined>
     | number
     | undefined;
 
   /**
-Reranking a list of documents using the query
-Naming: "do" prefix to prevent accidental direct usage of the method
-by the user.
+   * Reranking a list of documents using the query.
    */
-  doRerank(options: RerankingModelV3CallOptions<VALUE>): PromiseLike<{
+  // Naming: "do" prefix to prevent accidental direct usage of the method by the user.
+  doRerank(options: RerankingModelV3CallOptions): PromiseLike<{
     /**
-Reranked documents.
-This is an array of document that contain the index, relevance score, and the document.
-The documents are sorted by the descending order of relevance scores.
-    */
-    rerankedDocuments: Array<RerankedDocument<VALUE>>;
+     * Ordered list of reranked documents (via index before reranking).
+     * The documents are sorted by the descending order of relevance scores.
+     */
+    rerankedDocuments: Array<{
+      /**
+       * The index of the document in the original list of documents before reranking.
+       */
+      index: number;
+
+      /**
+       * The relevance score of the document after reranking.
+       */
+      relevanceScore: number;
+    }>;
 
     /**
-Token usage. We only have input tokens for reranking.
-    */
-    usage?: { tokens: number };
+     * Additional provider-specific metadata. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
+    providerMetadata?: SharedV3ProviderMetadata;
 
     /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-    */
-    providerMetadata?: SharedV2ProviderMetadata;
-
-    /**
-Optional response information for debugging purposes.
+     * Optional response information for debugging purposes.
      */
     response?: {
       /**
-Response headers.
+       * Response headers.
        */
-      headers?: SharedV2Headers;
+      headers?: SharedV3Headers;
 
       /**
-      The response body.
-      */
+       * Response body.
+       */
       body?: unknown;
     };
   }>;
