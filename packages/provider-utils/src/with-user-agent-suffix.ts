@@ -14,8 +14,7 @@ export function withUserAgentSuffix(
   headers: HeadersInit | Record<string, string | undefined> | undefined,
   ...userAgentSuffixParts: string[]
 ): Record<string, string> {
-  const cleanedHeaders = normalizeHeaders(headers);
-  const normalizedHeaders = new Headers(cleanedHeaders);
+  const normalizedHeaders = new Headers(normalizeHeaders(headers));
 
   const currentUserAgentHeader = normalizedHeaders.get('user-agent') || '';
 
