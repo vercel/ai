@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.80
+
+### Patch Changes
+
+- 9524761: chore(ai): rename relevanceScore to score
+
 ## 6.0.0-beta.79
 
 ### Patch Changes

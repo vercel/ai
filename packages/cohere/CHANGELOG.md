@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- 9524761: feat: shorthand names for reranking models
+
 ## 3.0.0-beta.26
 
 ### Patch Changes
