@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [a755db5]
+  - ai@6.0.0-beta.76
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - Updated dependencies [58920e0]
 - Updated dependencies [58920e0]
   - ai@6.0.0-beta.75
