@@ -6,12 +6,15 @@ export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
+export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
+export { isNonNullable } from './is-non-nullable';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
+export { type MaybePromiseLike } from './maybe-promise-like';
 export { mediaTypeToExtension } from './media-type-to-extension';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
@@ -29,15 +32,19 @@ export * from './response-handler';
 export {
   asSchema,
   jsonSchema,
+  lazySchema,
+  zodSchema,
   type FlexibleSchema,
   type InferSchema,
+  type LazySchema,
   type Schema,
+  type ValidationResult,
 } from './schema';
 export * from './uint8-utils';
 export * from './validate-types';
-export * from './validator';
+export { VERSION } from './version';
+export { withUserAgentSuffix } from './with-user-agent-suffix';
 export * from './without-trailing-slash';
-export { zodSchema } from './zod-schema';
 
 // folder re-exports
 export * from './types';

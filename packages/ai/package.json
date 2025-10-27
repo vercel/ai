@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "5.0.30",
+  "version": "6.0.0-beta.73",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -11,7 +11,6 @@
     "dist/**/*",
     "CHANGELOG.md",
     "internal.d.ts",
-    "mcp-stdio.d.ts",
     "test.d.ts"
   ],
   "scripts": {
@@ -25,7 +24,8 @@
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run"
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "check-bundle-size": "tsx scripts/check-bundle-size.ts"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -45,12 +45,6 @@
       "import": "./dist/test/index.mjs",
       "module": "./dist/test/index.mjs",
       "require": "./dist/test/index.js"
-    },
-    "./mcp-stdio": {
-      "types": "./dist/mcp-stdio/index.d.ts",
-      "import": "./dist/mcp-stdio/index.mjs",
-      "module": "./dist/mcp-stdio/index.mjs",
-      "require": "./dist/mcp-stdio/index.js"
     }
   },
   "dependencies": {
@@ -60,18 +54,21 @@
     "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
     "@types/json-schema": "7.0.15",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
+    "esbuild": "^0.24.2",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^7.2.0",
+    "tsx": "^4.19.2",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.76 || ^4"
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
     "node": ">=18"

@@ -64,7 +64,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **apiVersion** _string_
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
-  Defaults to `preview`.
+  Defaults to `v1`.
 
 - **baseURL** _string_
 
@@ -184,7 +184,7 @@ const { text } = await generateText({
 
 <Note>
   The URL for calling Azure chat models will be constructed as follows:
-  `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=preview`
+  `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=v1`
 </Note>
 
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
@@ -198,7 +198,7 @@ const result = await generateText({
   model: azure('your-deployment-name'),
   prompt: 'Write a short story about a robot.',
   providerOptions: {
-    azure: {
+    openai: {
       logitBias: {
         // optional likelihood for specific tokens
         '50256': -100,
@@ -324,6 +324,122 @@ The following OpenAI-specific metadata is returned:
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
 
+#### File Search Tool
+
+The Azure OpenAI responses API supports file search through the `azure.tools.fileSearch` tool.
+
+You can force the use of the file search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'file_search' }`.
+
+```ts
+const result = await generateText({
+  model: azure.responses('gpt-5'),
+  prompt: 'What does the document say about user authentication?',
+  tools: {
+    file_search: azure.tools.fileSearch({
+      // optional configuration:
+      vectorStoreIds: ['vs_123', 'vs_456'],
+      maxNumResults: 10,
+      ranking: {
+        ranker: 'auto',
+      },
+    }),
+  },
+  // Force file search tool:
+  toolChoice: { type: 'tool', toolName: 'file_search' },
+});
+```
+
+<Note>
+  The tool must be named `file_search` when using Azure OpenAI's file search
+  functionality. This name is required by Azure OpenAI's API specification and
+  cannot be customized.
+</Note>
+
+#### Image Generation Tool
+
+<Note type="warning">
+  Azure OpenAI Responses API
+  [image_generation](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?tabs=python-secure#image-generation-preview)
+  is now Preview release(Not GA release).Image tool does not currently support
+  streaming mode. You can not use the image tool with `streamText` currently.
+</Note>
+
+Azure OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
+Availability is restricted to specific models (for example, `gpt-5` variants).
+
+You can use the image tool with `generateText`.
+
+```ts
+import { createAzure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const azure = createAzure({
+  headers: {
+    'x-ms-oai-image-generation-deployment': 'gpt-image-1', // use your own image model deployment
+  },
+});
+
+const result = await generateText({
+  model: azure.responses('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: azure.tools.imageGeneration({ outputFormat: 'png' }),
+  },
+});
+
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
+  }
+}
+```
+
+<Note>
+  To use image_generation, you must first create an image generation model. You
+  must add a deployment specification to the header
+  `x-ms-oai-image-generation-deployment`. Please note that the Responses API
+  model and the image generation model must be in the same resource.
+</Note>
+
+<Note>
+  When you set `store: false`, then previously generated images will not be
+  accessible by the model. We recommend using the image generation tool without
+  setting `store: false`.
+</Note>
+
+#### Code Interpreter Tool
+
+The Azure OpenAI responses API supports the code interpreter tool through the `azure.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('gpt-5'),
+  prompt: 'Write and run Python code to calculate the factorial of 10',
+  tools: {
+    code_interpreter: azure.tools.codeInterpreter({
+      // optional configuration:
+      container: {
+        fileIds: ['assistant-123', 'assistant-456'], // optional file IDs to make available
+      },
+    }),
+  },
+});
+```
+
+The code interpreter tool can be configured with:
+
+- **container**: Either a container ID string or an object with `fileIds` to specify uploaded files that should be available to the code interpreter
+
+<Note>
+  The tool must be named `code_interpreter` when using Azure OpenAI's code
+  interpreter functionality. This name is required by Azure OpenAI's API
+  specification and cannot be customized.
+</Note>
+
 #### PDF support
 
 The Azure OpenAI Responses API supports reading PDF files.
@@ -378,7 +494,7 @@ const result = await generateText({
   model: azure.completion('your-gpt-35-turbo-instruct-deployment'),
   prompt: 'Write a haiku about coding.',
   providerOptions: {
-    azure: {
+    openai: {
       echo: true, // optional, echo the prompt in addition to the completion
       logitBias: {
         // optional likelihood for specific tokens
@@ -453,7 +569,7 @@ const { embedding } = await embed({
   model: azure.textEmbedding('your-embedding-deployment'),
   value: 'sunny day at the beach',
   providerOptions: {
-    azure: {
+    openai: {
       dimensions: 512, // optional, number of dimensions for the embedding
       user: 'test-user', // optional unique user identifier
     },
@@ -481,7 +597,7 @@ You can create models that call the Azure OpenAI image generation API (DALL-E) u
 const model = azure.image('your-dalle-deployment-name');
 ```
 
-Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.azure` when generating the image:
+Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.openai` when generating the image:
 
 ```ts
 await generateImage({
@@ -489,7 +605,7 @@ await generateImage({
   prompt: 'A photorealistic image of a cat astronaut floating in space',
   size: '1024x1024', // '1024x1024', '1792x1024', or '1024x1792' for DALL-E 3
   providerOptions: {
-    azure: {
+    openai: {
       user: 'test-user', // optional unique user identifier
       responseFormat: 'url', // 'url' or 'b64_json', defaults to 'url'
     },
@@ -551,10 +667,12 @@ const model = azure.transcription('whisper-1');
   ```ts
   const azure = createAzure({
     useDeploymentBasedUrls: true,
+    apiVersion: '2025-04-01-preview',
   });
   ```
   
   This uses the legacy endpoint format which may be required for certain Azure OpenAI deployments.
+  When using useDeploymentBasedUrls, the default api-version is not valid. You must set it to `2025-04-01-preview` or an earlier value.
 </Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
@@ -567,7 +685,7 @@ import { readFile } from 'fs/promises';
 const result = await transcribe({
   model: azure.transcription('whisper-1'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { azure: { language: 'en' } },
+  providerOptions: { openai: { language: 'en' } },
 });
 ```
 

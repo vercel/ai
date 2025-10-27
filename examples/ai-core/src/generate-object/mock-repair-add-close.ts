@@ -1,11 +1,11 @@
 import { generateObject, JSONParseError } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: new MockLanguageModelV2({
+    model: new MockLanguageModelV3({
       doGenerate: async () => ({
         usage: {
           inputTokens: 10,

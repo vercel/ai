@@ -1,8 +1,9 @@
-import { NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { loadApiKey } from '@ai-sdk/provider-utils';
+import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
 import { ReplicateImageModelId } from './replicate-image-settings';
+import { VERSION } from './version';
 
 export interface ReplicateProviderSettings {
   /**
@@ -29,7 +30,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface ReplicateProvider extends ProviderV2 {
+export interface ReplicateProvider extends ProviderV3 {
   /**
    * Creates a Replicate image generation model.
    */
@@ -51,14 +52,17 @@ export function createReplicate(
     new ReplicateImageModel(modelId, {
       provider: 'replicate',
       baseURL: options.baseURL ?? 'https://api.replicate.com/v1',
-      headers: {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiToken,
-          environmentVariableName: 'REPLICATE_API_TOKEN',
-          description: 'Replicate',
-        })}`,
-        ...options.headers,
-      },
+      headers: withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey: options.apiToken,
+            environmentVariableName: 'REPLICATE_API_TOKEN',
+            description: 'Replicate',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk/replicate/${VERSION}`,
+      ),
       fetch: options.fetch,
     });
 

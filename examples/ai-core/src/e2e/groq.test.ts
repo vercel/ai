@@ -15,7 +15,6 @@ createFeatureTestSuite({
       createChatModel('deepseek-r1-distill-llama-70b'),
       createChatModel('llama-3.1-8b-instant'),
       createChatModel('llama-3.3-70b-versatile'),
-      createChatModel('mistral-saba-24b'),
       createChatModel('qwen-qwq-32b'),
     ],
   },

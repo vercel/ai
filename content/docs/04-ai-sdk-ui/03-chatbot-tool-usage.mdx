@@ -296,6 +296,59 @@ export default function Chat() {
 }
 ```
 
+### Error handling
+
+Sometimes an error may occur during client-side tool execution. Use the `addToolResult` method with a `state` of `output-error` and `errorText` value instead of `output` record the error.
+
+```tsx filename='app/page.tsx' highlight="19,36-41"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+import { useState } from 'react';
+
+export default function Chat() {
+  const { messages, sendMessage, addToolResult } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall }) {
+      // Check if it's a dynamic tool first for proper type narrowing
+      if (toolCall.dynamic) {
+        return;
+      }
+
+      if (toolCall.toolName === 'getWeatherInformation') {
+        try {
+          const weather = await getWeatherInformation(toolCall.input);
+
+          // No await - avoids potential deadlocks
+          addToolResult({
+            tool: 'getWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            output: weather,
+          });
+        } catch (err) {
+          addToolResult({
+            tool: 'getWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            state: 'output-error',
+            errorText: 'Unable to get the weather information',
+          });
+        }
+      }
+    },
+  });
+}
+```
+
 ## Dynamic Tools
 
 When using dynamic tools (tools with unknown types at compile time), the UI parts use a generic `dynamic-tool` type instead of specific tool types:

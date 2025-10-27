@@ -231,7 +231,7 @@ try {
 
 ## Generating Images with Language Models
 
-Some language models such as Google `gemini-2.0-flash-exp` support multi-modal outputs including images.
+Some language models such as Google `gemini-2.5-flash-image-preview` support multi-modal outputs including images.
 With such models, you can access the generated images using the `files` property of the response.
 
 ```ts
@@ -239,10 +239,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.0-flash-exp'),
-  providerOptions: {
-    google: { responseModalities: ['TEXT', 'IMAGE'] },
-  },
+  model: google('gemini-2.5-flash-image-preview'),
   prompt: 'Generate an image of a comic cat',
 });
 

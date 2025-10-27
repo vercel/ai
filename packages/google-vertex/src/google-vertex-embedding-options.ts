@@ -45,6 +45,13 @@ export const googleVertexEmbeddingProviderOptions = z.object({
     .optional(),
 
   /**
+   * Optional. The title of the document being embedded.
+   * Only valid when task_type is set to 'RETRIEVAL_DOCUMENT'.
+   * Helps the model produce better embeddings by providing additional context.
+   */
+  title: z.string().optional(),
+
+  /**
    * Optional. When set to true, input text will be truncated. When set to false,
    * an error is returned if the input text is longer than the maximum length supported by the model. Defaults to true.
    */

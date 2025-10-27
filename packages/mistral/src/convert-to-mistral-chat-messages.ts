@@ -1,12 +1,12 @@
 import {
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { MistralPrompt } from './mistral-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToMistralChatMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): MistralPrompt {
   const messages: MistralPrompt = [];
 
@@ -116,6 +116,9 @@ export function convertToMistralChatMessages(
             case 'text':
             case 'error-text':
               contentValue = output.value;
+              break;
+            case 'execution-denied':
+              contentValue = output.reason ?? 'Tool execution denied.';
               break;
             case 'content':
             case 'json':

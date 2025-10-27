@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV2,
+  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -8,16 +8,16 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
   OpenAIEmbeddingModelId,
   openaiEmbeddingProviderOptions,
 } from './openai-embedding-options';
+import { openaiTextEmbeddingResponseSchema } from './openai-embedding-api';
 
-export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
-  readonly specificationVersion = 'v2';
+export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
+  readonly specificationVersion = 'v3';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -38,8 +38,8 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -92,10 +92,3 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
     };
   }
 }
-
-// minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiTextEmbeddingResponseSchema = z.object({
-  data: z.array(z.object({ embedding: z.array(z.number()) })),
-  usage: z.object({ prompt_tokens: z.number() }).nullish(),
-});

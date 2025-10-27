@@ -1,20 +1,24 @@
-import type { EmbeddingModelV2 } from '@ai-sdk/provider';
+import type {
+  EmbeddingModelV3,
+  SharedV3ProviderMetadata,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  lazySchema,
   postJsonToApi,
   resolve,
+  zodSchema,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
-import type { SharedV2ProviderMetadata } from '@ai-sdk/provider';
+import type { GatewayConfig } from './gateway-config';
 
-export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
-  readonly specificationVersion = 'v2';
+export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
+  readonly specificationVersion = 'v3';
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
@@ -35,8 +39,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
   > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
@@ -54,7 +58,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
         ),
         body: {
           input: values.length === 1 ? values[0] : values,
-          ...(providerOptions ?? {}),
+          ...(providerOptions ? { providerOptions } : {}),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayEmbeddingResponseSchema,
@@ -71,11 +75,11 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
         embeddings: responseBody.embeddings,
         usage: responseBody.usage ?? undefined,
         providerMetadata:
-          responseBody.providerMetadata as unknown as SharedV2ProviderMetadata,
+          responseBody.providerMetadata as unknown as SharedV3ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
@@ -91,10 +95,14 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
   }
 }
 
-const gatewayEmbeddingResponseSchema = z.object({
-  embeddings: z.array(z.array(z.number())),
-  usage: z.object({ tokens: z.number() }).nullish(),
-  providerMetadata: z
-    .record(z.string(), z.record(z.string(), z.unknown()))
-    .optional(),
-});
+const gatewayEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      embeddings: z.array(z.array(z.number())),
+      usage: z.object({ tokens: z.number() }).nullish(),
+      providerMetadata: z
+        .record(z.string(), z.record(z.string(), z.unknown()))
+        .optional(),
+    }),
+  ),
+);

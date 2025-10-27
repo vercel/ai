@@ -663,7 +663,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_repairToolCall',
-      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV2ToolCall | null>',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV3ToolCall | null>',
       isOptional: true,
       description:
         'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
@@ -683,7 +683,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolCall',
-              type: 'LanguageModelV2ToolCall',
+              type: 'LanguageModelV3ToolCall',
               description: 'The tool call that failed to parse.',
             },
             {
@@ -907,7 +907,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_output',
+      name: 'output',
       type: 'Output',
       isOptional: true,
       description: 'Experimental setting for generating structured outputs.',
@@ -978,7 +978,8 @@ To see `streamText` in action, check out [these examples](#examples).
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
-                      description: 'The number of output (completion) tokens used.',
+                      description:
+                        'The number of output (completion) tokens used.',
                     },
                     {
                       name: 'totalTokens',
@@ -1170,7 +1171,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'usage',
               type: 'LanguageModelUsage',
-              description: 'The token usage of the generated text.',
+              description: 'The token usage of last step.',
               properties: [
                 {
                   type: 'LanguageModelUsage',
@@ -1183,7 +1184,49 @@ To see `streamText` in action, check out [these examples](#examples).
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
-                      description: 'The number of output (completion) tokens used.',
+                      description:
+                        'The number of output (completion) tokens used.',
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+                    },
+                    {
+                      name: 'reasoningTokens',
+                      type: 'number | undefined',
+                      isOptional: true,
+                      description: 'The number of reasoning tokens used.',
+                    },
+                    {
+                      name: 'cachedInputTokens',
+                      type: 'number | undefined',
+                      isOptional: true,
+                      description: 'The number of cached input tokens.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'totalUsage',
+              type: 'LanguageModelUsage',
+              description: 'The total token usage from all steps.',
+              properties: [
+                {
+                  type: 'LanguageModelUsage',
+                  parameters: [
+                    {
+                      name: 'inputTokens',
+                      type: 'number | undefined',
+                      description: 'The number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'outputTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The number of output (completion) tokens used.',
                     },
                     {
                       name: 'totalTokens',
@@ -1426,8 +1469,7 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
-
-]}
+  ]}
 />
 
 ### Returns
@@ -1540,22 +1582,28 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: 'Promise<Array<ReasoningPart>>',
+      type: 'Promise<Array<ReasoningOutput>>',
       description:
         'The full reasoning that the model has generated in the last step. Automatically consumes the stream.',
       properties: [
         {
-          type: 'ReasoningPart',
+          type: 'ReasoningOutput',
           parameters: [
             {
               name: 'type',
               type: "'reasoning'",
-              description: 'The type of the reasoning part.',
+              description: 'The type of the message part.',
             },
             {
               name: 'text',
               type: 'string',
               description: 'The reasoning text.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'SharedV2ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata for the source.',
             },
           ],
         },
@@ -2425,10 +2473,10 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_partialOutputStream',
+      name: 'partialOutputStream',
       type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
       description:
-        'A stream of partial outputs. It uses the `experimental_output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+        'A stream of partial outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
     },
     {
       name: 'consumeStream',

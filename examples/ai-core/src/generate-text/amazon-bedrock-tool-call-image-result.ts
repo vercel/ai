@@ -1,7 +1,7 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText, stepCountIs, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = await generateText({
@@ -34,7 +34,7 @@ async function main() {
             type: 'content',
             value: [
               {
-                type: 'media',
+                type: 'image-data',
                 data: Buffer.from(result.bytes).toString('base64'),
                 mediaType: 'image/jpeg',
               },

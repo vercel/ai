@@ -1,9 +1,8 @@
-import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { JSONValue } from '@ai-sdk/provider';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
-import { SpeechWarning } from '../types/speech-model';
+import { SpeechWarning, SpeechModel } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import {
   audioMediaTypeSignatures,
@@ -15,7 +14,8 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
-
+import { VERSION } from '../version';
+import { resolveSpeechModel } from '../model/resolve-model';
 /**
 Generates speech audio using a speech model.
 
@@ -49,7 +49,7 @@ export async function generateSpeech({
   /**
 The speech model to use.
      */
-  model: SpeechModelV2;
+  model: SpeechModel;
 
   /**
 The text to convert to speech.
@@ -114,13 +114,15 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<SpeechResult> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
+  const resolvedModel = resolveSpeechModel(model);
+  if (!resolvedModel) {
+    throw new Error('Model could not be resolved');
   }
+
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
 
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
@@ -128,7 +130,7 @@ Only applicable for HTTP-based providers.
   });
 
   const result = await retry(() =>
-    model.doGenerate({
+    resolvedModel.doGenerate({
       text,
       voice,
       outputFormat,
@@ -136,7 +138,7 @@ Only applicable for HTTP-based providers.
       speed,
       language,
       abortSignal,
-      headers,
+      headers: headersWithUserAgent,
       providerOptions,
     }),
   );

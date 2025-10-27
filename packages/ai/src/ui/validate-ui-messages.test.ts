@@ -1,6 +1,9 @@
 import { z } from 'zod/v4';
 import { InferUITool, UIMessage } from './ui-messages';
-import { validateUIMessages } from './validate-ui-messages';
+import {
+  safeValidateUIMessages,
+  validateUIMessages,
+} from './validate-ui-messages';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 describe('validateUIMessages', () => {
@@ -121,7 +124,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -452,7 +464,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -678,6 +699,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 'bar' },
+                providerExecuted: true,
               },
             ],
           },
@@ -695,6 +717,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "providerExecuted": true,
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -718,6 +741,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-available',
                 input: { foo: 'bar' },
+                providerExecuted: true,
               },
             ],
           },
@@ -735,6 +759,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "providerExecuted": true,
                 "state": "input-available",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -759,6 +784,7 @@ describe('validateUIMessages', () => {
                 state: 'output-available',
                 input: { foo: 'bar' },
                 output: { result: 'success' },
+                providerExecuted: true,
               },
             ],
           },
@@ -779,6 +805,7 @@ describe('validateUIMessages', () => {
                 "output": {
                   "result": "success",
                 },
+                "providerExecuted": true,
                 "state": "output-available",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -803,6 +830,7 @@ describe('validateUIMessages', () => {
                 state: 'output-error',
                 input: { foo: 'bar' },
                 errorText: 'Tool execution failed',
+                providerExecuted: true,
               },
             ],
           },
@@ -821,6 +849,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "providerExecuted": true,
                 "state": "output-error",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -844,6 +873,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-available',
                 input: { foo: 'bar' },
+                providerExecuted: true,
               },
             ],
           },
@@ -855,23 +885,24 @@ describe('validateUIMessages', () => {
 
       expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
       expect(messages).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "1",
-          "parts": [
-            {
-              "input": {
-                "foo": "bar",
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "input-available",
+                "toolCallId": "1",
+                "type": "tool-foo",
               },
-              "state": "input-available",
-              "toolCallId": "1",
-              "type": "tool-foo",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
     });
 
     it('should validate tool input and output when state is output-available', async () => {
@@ -933,6 +964,7 @@ describe('validateUIMessages', () => {
                 state: 'output-error',
                 input: { foo: 'bar' },
                 errorText: 'Tool execution failed',
+                providerExecuted: true,
               },
             ],
           },
@@ -953,6 +985,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "providerExecuted": true,
                 "state": "output-error",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -977,6 +1010,7 @@ describe('validateUIMessages', () => {
                   toolCallId: '1',
                   state: 'input-available',
                   input: { foo: 'bar' },
+                  providerExecuted: true,
                 },
               ],
             },
@@ -1004,6 +1038,7 @@ describe('validateUIMessages', () => {
                   toolCallId: '1',
                   state: 'input-available',
                   input: { foo: 123 }, // wrong type
+                  providerExecuted: true,
                 },
               ],
             },
@@ -1014,7 +1049,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -1030,6 +1074,7 @@ describe('validateUIMessages', () => {
                   type: 'tool-foo',
                   toolCallId: '1',
                   state: 'output-available',
+                  providerExecuted: true,
                   input: { foo: 'bar' },
                   output: { result: 123 }, // wrong type
                 },
@@ -1042,7 +1087,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"result":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["result"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "result"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -1058,6 +1112,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 123 }, // wrong type but should not be validated
+                providerExecuted: true,
               },
             ],
           },
@@ -1077,6 +1132,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": 123,
                 },
+                "providerExecuted": true,
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -1087,5 +1143,137 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+  });
+});
+
+export function expectToBe<T extends boolean>(
+  value: boolean,
+  expected: T,
+): asserts value is T {
+  expect(value).toBe(expected);
+}
+
+describe('safeValidateUIMessages', () => {
+  it('should return success result for valid messages', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ],
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "parts": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should return failure result when messages parameter is null', async () => {
+    const result = await safeValidateUIMessages({
+      messages: null,
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_InvalidArgumentError');
+    expect(result.error.message).toBe(
+      'Invalid argument for parameter messages: messages parameter must be provided',
+    );
+  });
+
+  it('should return failure result when metadata validation fails', async () => {
+    const result = await safeValidateUIMessages<UIMessage<{ foo: string }>>({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          metadata: { foo: 123 },
+          parts: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ],
+      metadataSchema: z.object({ foo: z.string() }),
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
+  });
+
+  it('should return failure result when tool input validation fails', async () => {
+    const testTool = {
+      name: 'foo',
+      inputSchema: z.object({ foo: z.string() }),
+      outputSchema: z.object({ result: z.string() }),
+    };
+
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: { foo: 123 },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ],
+      tools: { foo: testTool },
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
+  });
+
+  it('should return failure result when data schema is missing', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [{ type: 'data-bar', data: { foo: 'bar' } }],
+        },
+      ],
+      dataSchemas: {
+        foo: z.object({ foo: z.string() }),
+      },
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain(
+      'No data schema found for data part bar',
+    );
+  });
+
+  it('should return failure result for invalid message structure', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          role: 'user',
+        },
+      ],
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
   });
 });

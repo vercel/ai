@@ -1,5 +1,355 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+
+## 3.0.0-beta.33
+
+### Patch Changes
+
+- 7756857: fix(provider/openai): add truncation parameter support for Responses API
+
+## 3.0.0-beta.32
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- 0b9fdd5: fix(provider/openai): end reasoning parts earlier
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 401f561: fix(provider/openai): fix web search tool input types
+
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- f1277fe: feat(provider/openai): send assistant text and tool call parts as reference ids when store: true
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- edc5548: feat(provider/openai): automatically add reasoning.encrypted_content include when store = false
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- 68c6187: feat(provider/openai): support file and image tool results
+
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- 484aa93: Add 'default' as service tier
+
+## 3.0.0-beta.18
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
+## 3.0.0-beta.17
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 2.1.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+
+## 2.1.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+
+## 2.1.0-beta.14
+
+### Patch Changes
+
+- 000e87b: fix(provider/openai): add providerExecuted flag to tool start chunks
+
+## 2.1.0-beta.13
+
+### Patch Changes
+
+- 357cfd7: feat(provider/openai): add new model IDs `gpt-image-1-mini`, `gpt-5-pro`, `gpt-5-pro-2025-10-06`
+
+## 2.1.0-beta.12
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+- 21e20c0: feat(provider): transcription model v3 spec
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+
+## 2.1.0-beta.11
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 2b0caef: feat(provider/openai): preview image generation results
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider-utils@3.1.0-beta.6
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 2.1.0-beta.10
+
+### Patch Changes
+
+- d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
+
+## 2.1.0-beta.9
+
+### Patch Changes
+
+- 9a51b92: support OPENAI_BASE_URL env
+
+## 2.1.0-beta.8
+
+### Patch Changes
+
+- 4122d2a: feat(provider/openai): add gpt-5-codex model id
+- 3997a42: feat(provider/openai): local shell tool
+- cb4d238: The built in Code Interpreter tool input code is streamed in `tool-input-<start/delta/end>` chunks.
+
+## 2.1.0-beta.7
+
+### Patch Changes
+
+- 77f2b20: enables code_interpreter and file_search capabilities in the Azure provider through the Responses API
+- 8dac895: feat: `LanguageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider-utils@3.1.0-beta.5
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 2.1.0-beta.6
+
+### Patch Changes
+
+- fe49278: feat(provider/openai): only send item references for reasoning when store: true
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies [4616b86]
+  - @ai-sdk/provider-utils@3.1.0-beta.4
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+  - @ai-sdk/provider-utils@3.1.0-beta.3
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- 2e86082: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
+
+  ```ts
+  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+  import { generateText } from 'ai';
+
+  await generateText({
+    model: openai.chat('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      openai: {
+        user: 'user-123',
+      } satisfies OpenAIChatLanguageModelOptions,
+    },
+  });
+  ```
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- 4920119: fix the "incomplete_details" key from nullable to nullish for openai compatibility
+- 0c4822d: feat: `EmbeddingModelV3`
+- 1cad0ab: feat: add provider version to user-agent header
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+  - @ai-sdk/provider-utils@3.1.0-beta.2
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [953d0f2]
+- Updated dependencies [cbb1d35]
+  - @ai-sdk/test-server@1.0.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.1
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+  - @ai-sdk/provider-utils@3.1.0-beta.0
+
+## 2.0.32
+
+### Patch Changes
+
+- 1cf857d: fix(provider/openai): remove provider-executed tools from chat completions model
+- 01de47f: feat(provider/openai): rework file search tool
+
+## 2.0.31
+
+### Patch Changes
+
+- bb94467: feat(provider/openai): add maxToolCalls provider option
+- 4a2b70e: feat(provider/openai): send item references for provider-executed tool results
+- 643711d: feat (provider/openai): provider defined image generation tool support
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.29
+
+### Patch Changes
+
+- 4235eb3: feat(provider/openai): code interpreter tool calls and results
+
+## 2.0.28
+
+### Patch Changes
+
+- 4c2bb77: fix (provider/openai): send sources action as include
+- 561e8b0: fix (provider/openai): fix code interpreter tool in doGenerate
+
+## 2.0.27
+
+### Patch Changes
+
+- 2338c79: feat (provider/openai): add jsdoc for openai tools
+
+## 2.0.26
+
+### Patch Changes
+
+- 5819aec: fix (provider/openai): only send tool calls finish reason for tools that are not provider-executed
+- af8c6bb: feat (provider/openai): add web_search tool
+
+## 2.0.25
+
+### Patch Changes
+
+- fb45ade: fix timestamp granularities support for openai transcription
+
+## 2.0.24
+
+### Patch Changes
+
+- ad57512: fix(provider/openai): safe practice to include filename and fileExtension to avoid `experimental_transcribe` fails with valid Buffer
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
 ## 2.0.23
 
 ### Patch Changes

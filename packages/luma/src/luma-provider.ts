@@ -1,11 +1,13 @@
-import { ImageModelV2, NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
+import { ImageModelV3, NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { LumaImageModel } from './luma-image-model';
 import { LumaImageModelId } from './luma-image-settings';
+import { VERSION } from './version';
 
 export interface LumaProviderSettings {
   /**
@@ -28,30 +30,34 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface LumaProvider extends ProviderV2 {
+export interface LumaProvider extends ProviderV3 {
   /**
 Creates a model for image generation.
   */
-  image(modelId: LumaImageModelId): ImageModelV2;
+  image(modelId: LumaImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: LumaImageModelId): ImageModelV2;
+  imageModel(modelId: LumaImageModelId): ImageModelV3;
 }
 
 const defaultBaseURL = 'https://api.lumalabs.ai';
 
 export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'LUMA_API_KEY',
-      description: 'Luma',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'LUMA_API_KEY',
+          description: 'Luma',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/luma/${VERSION}`,
+    );
 
   const createImageModel = (modelId: LumaImageModelId) =>
     new LumaImageModel(modelId, {

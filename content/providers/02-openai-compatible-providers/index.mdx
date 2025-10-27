@@ -13,7 +13,6 @@ We provide detailed documentation for the following OpenAI compatible providers:
 
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
 - [NIM](/providers/openai-compatible-providers/nim)
-- [Baseten](/providers/openai-compatible-providers/baseten)
 - [Heroku](/providers/openai-compatible-providers/heroku)
 
 The general setup and provider instance creation is the same for all of these providers.
@@ -84,6 +83,10 @@ You can use the following optional settings to customize the provider instance:
 - **includeUsage** _boolean_
 
   Include usage information in streaming responses. When enabled, usage data will be included in the response metadata for streaming requests. Defaults to `undefined` (`false`).
+
+- **supportsStructuredOutputs** _boolean_
+
+  Set to true if the provider supports structured outputs. Only relevant for `provider()`, `provider.chatModel()`, and `provider.languageModel()`.
 
 ## Language Models
 

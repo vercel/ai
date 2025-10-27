@@ -3,3 +3,4 @@ export type {
   DeepgramProvider,
   DeepgramProviderSettings,
 } from './deepgram-provider';
+export { VERSION } from './version';

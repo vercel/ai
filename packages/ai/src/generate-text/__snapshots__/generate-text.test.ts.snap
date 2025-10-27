@@ -1,6 +1,240 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
+{
+  "content": [
+    {
+      "text": "Hello, world!",
+      "type": "text",
+    },
+  ],
+  "dynamicToolCalls": [],
+  "dynamicToolResults": [],
+  "files": [],
+  "finishReason": "stop",
+  "providerMetadata": undefined,
+  "reasoning": [],
+  "reasoningText": undefined,
+  "request": {},
+  "response": {
+    "body": undefined,
+    "headers": {
+      "custom-response-header": "response-header-value",
+    },
+    "id": "test-id-2-from-model",
+    "messages": [
+      {
+        "content": [
+          {
+            "input": {
+              "value": "value",
+            },
+            "providerExecuted": undefined,
+            "providerOptions": undefined,
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+        ],
+        "role": "assistant",
+      },
+      {
+        "content": [
+          {
+            "output": {
+              "type": "text",
+              "value": "result1",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+        ],
+        "role": "tool",
+      },
+      {
+        "content": [
+          {
+            "providerOptions": undefined,
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+    ],
+    "modelId": "test-response-model-id",
+    "timestamp": 1970-01-01T00:00:10.000Z,
+  },
+  "sources": [],
+  "staticToolCalls": [],
+  "staticToolResults": [],
+  "steps": [
+    DefaultStepResult {
+      "content": [
+        {
+          "input": {
+            "value": "value",
+          },
+          "providerExecuted": undefined,
+          "providerMetadata": undefined,
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": false,
+          "input": {
+            "value": "value",
+          },
+          "output": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
+      "finishReason": "tool-calls",
+      "providerMetadata": undefined,
+      "request": {},
+      "response": {
+        "body": undefined,
+        "headers": undefined,
+        "id": "test-id-1-from-model",
+        "messages": [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result1",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ],
+        "modelId": "test-response-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 10,
+        "outputTokens": 5,
+        "reasoningTokens": undefined,
+        "totalTokens": 15,
+      },
+      "warnings": [],
+    },
+    DefaultStepResult {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "finishReason": "stop",
+      "providerMetadata": undefined,
+      "request": {},
+      "response": {
+        "body": undefined,
+        "headers": {
+          "custom-response-header": "response-header-value",
+        },
+        "id": "test-id-2-from-model",
+        "messages": [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result1",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "providerOptions": undefined,
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "modelId": "test-response-model-id",
+        "timestamp": 1970-01-01T00:00:10.000Z,
+      },
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+      "warnings": [],
+    },
+  ],
+  "text": "Hello, world!",
+  "toolCalls": [],
+  "toolResults": [],
+  "totalUsage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 13,
+    "outputTokens": 15,
+    "reasoningTokens": undefined,
+    "totalTokens": 28,
+  },
+  "usage": {
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
+    "totalTokens": 13,
+  },
+  "warnings": [],
+}
+`;
+
+exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
     "content": [
@@ -1091,6 +1325,7 @@ exports[`generateText > telemetry > should not record telemetry inputs / outputs
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.generateText",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.response.finishReason": "stop",
       "ai.settings.maxRetries": 2,
       "ai.usage.completionTokens": 10,
@@ -1105,6 +1340,7 @@ exports[`generateText > telemetry > should not record telemetry inputs / outputs
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.generateText.doGenerate",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.response.finishReason": "stop",
       "ai.response.id": "test-id",
       "ai.response.model": "mock-model-id",
@@ -1149,6 +1385,7 @@ exports[`generateText > telemetry > should record telemetry data when enabled 1`
       "ai.prompt": "{"prompt":"prompt"}",
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.response.finishReason": "stop",
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
       "ai.response.text": "Hello, world!",
@@ -1180,6 +1417,7 @@ exports[`generateText > telemetry > should record telemetry data when enabled 1`
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"prompt"}]}]",
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.response.finishReason": "stop",
       "ai.response.id": "test-id-from-model",
       "ai.response.model": "test-response-model-id",

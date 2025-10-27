@@ -6,6 +6,7 @@
 .turbo
 dist
 dist-ssr
+dist-bundle-check
 examples/*/build
 node_modules
 public/dist

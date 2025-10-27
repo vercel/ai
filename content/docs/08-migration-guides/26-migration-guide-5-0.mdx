@@ -9,11 +9,38 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0.
 
 1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
 1. Upgrade to AI SDK 5.0.
-1. Automatically migrate your code using [codemods](#codemods).
-   > If you don't want to use codemods, we recommend resolving all deprecation warnings before upgrading to AI SDK 5.0.
+1. Automatically migrate your code using one of these approaches:
+   - Use the [AI SDK 5 Migration MCP Server](#ai-sdk-5-migration-mcp-server) for AI-assisted migration in Cursor or other MCP-compatible coding agents
+   - Use [codemods](#codemods) to automatically transform your code
 1. Follow the breaking changes guide below.
 1. Verify your project is working as expected.
 1. Commit your changes.
+
+## AI SDK 5 Migration MCP Server
+
+The [AI SDK 5 Migration Model Context Protocol (MCP) Server](https://github.com/vercel-labs/ai-sdk-5-migration-mcp-server) provides an automated way to migrate your project using a coding agent. This server has been designed for Cursor, but should work with any coding agent that supports MCP.
+
+To get started, create or edit `.cursor/mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "ai-sdk-5-migration": {
+      "url": "https://ai-sdk-5-migration-mcp-server.vercel.app/api/mcp"
+    }
+  }
+}
+```
+
+After saving, open the command palette (Cmd+Shift+P on macOS, Ctrl+Shift+P on Windows/Linux) and search for "View: Open MCP Settings". Verify the new server appears and is toggled on.
+
+Then use this prompt:
+
+```
+Please migrate this project to AI SDK 5 using the ai-sdk-5-migration mcp server. Start by creating a checklist.
+```
+
+For more information, see the [AI SDK 5 Migration MCP Server repository](https://github.com/vercel-labs/ai-sdk-5-migration-mcp-server).
 
 ## AI SDK 5.0 Package Versions
 
@@ -26,13 +53,21 @@ You need to update the following packages to the following versions in your `pac
 
 Additionally, you need to update the following peer dependencies:
 
-- `zod` package: `3.25.0` or later
+- `zod` package: `4.1.8` or later (recommended to avoid TypeScript performance issues)
 
 An example upgrade command would be:
 
 ```
-npm install ai @ai-sdk/react @ai-sdk/openai zod@3.25.0
+npm install ai @ai-sdk/react @ai-sdk/openai zod@^4.1.8
 ```
+
+<Note>
+  If you encounter TypeScript performance issues after upgrading, ensure you're
+  using Zod 4.1.8 or later. If the issue persists, update your `tsconfig.json`
+  to use `moduleResolution: "nodenext"`. See the [TypeScript performance
+  troubleshooting guide](/docs/troubleshooting/typescript-performance-zod) for
+  more details.
+</Note>
 
 ## Codemods
 
@@ -577,6 +612,46 @@ for await (const part of result.fullStream) {
 }
 ```
 
+### Tool Execution Error Handling
+
+The `ToolExecutionError` class has been removed. Tool execution errors now appear as `tool-error` content parts in the result steps, enabling automated LLM roundtrips in multi-step scenarios.
+
+```tsx filename="AI SDK 4.0"
+import { ToolExecutionError } from 'ai';
+
+try {
+  const result = await generateText({
+    // ...
+  });
+} catch (error) {
+  if (error instanceof ToolExecutionError) {
+    console.log('Tool execution failed:', error.message);
+    console.log('Tool name:', error.toolName);
+    console.log('Tool input:', error.toolInput);
+  }
+}
+```
+
+```tsx filename="AI SDK 5.0"
+// Tool execution errors now appear in result steps
+const { steps } = await generateText({
+  // ...
+});
+
+// check for tool errors in the steps
+const toolErrors = steps.flatMap(step =>
+  step.content.filter(part => part.type === 'tool-error'),
+);
+
+toolErrors.forEach(toolError => {
+  console.log('Tool error:', toolError.error);
+  console.log('Tool name:', toolError.toolName);
+  console.log('Tool input:', toolError.input);
+});
+```
+
+For streaming scenarios, tool execution errors appear as `tool-error` parts in the stream, while other errors appear as `error` parts.
+
 ### Tool Call Streaming Now Default (toolCallStreaming Removed)
 
 The `toolCallStreaming` option has been removed in AI SDK 5.0. Tool call streaming is now always enabled by default.
@@ -831,6 +906,74 @@ Tool UI parts now use more granular states that better represent the streaming l
 - `call` → `input-available` (tool input complete, ready to execute)
 - `result` → `output-available` (tool execution successful)
 - New: `output-error` (tool execution failed)
+
+#### Rendering Tool Invocations (Catch-All Pattern)
+
+In v4, you typically rendered tool invocations using a catch-all `tool-invocation` type. In v5, the **recommended approach is to handle each tool specifically using its typed part name (e.g., `tool-getWeather`)**. However, if you need a catch-all pattern for rendering all tool invocations the same way, you can use the `isToolUIPart` and `getToolName` helper functions as a fallback.
+
+```tsx filename="AI SDK 4.0"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'text':
+        return <div key={index}>{part.text}</div>;
+      case 'tool-invocation':
+        const { toolInvocation } = part;
+        return (
+          <details key={`tool-${toolInvocation.toolCallId}`}>
+            <summary>
+              <span>{toolInvocation.toolName}</span>
+              {toolInvocation.state === 'result' ? (
+                <span>Click to expand</span>
+              ) : (
+                <span>calling...</span>
+              )}
+            </summary>
+            {toolInvocation.state === 'result' ? (
+              <div>
+                <pre>{JSON.stringify(toolInvocation.result, null, 2)}</pre>
+              </div>
+            ) : null}
+          </details>
+        );
+    }
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { isToolUIPart, getToolName } from 'ai';
+
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'text':
+        return <div key={index}>{part.text}</div>;
+      default:
+        if (isToolUIPart(part)) {
+          const toolInvocation = part;
+          return (
+            <details key={`tool-${toolInvocation.toolCallId}`}>
+              <summary>
+                <span>{getToolName(toolInvocation)}</span>
+                {toolInvocation.state === 'output-available' ? (
+                  <span>Click to expand</span>
+                ) : (
+                  <span>calling...</span>
+                )}
+              </summary>
+              {toolInvocation.state === 'output-available' ? (
+                <div>
+                  <pre>{JSON.stringify(toolInvocation.output, null, 2)}</pre>
+                </div>
+              ) : null}
+            </details>
+          );
+        }
+    }
+  });
+}
+```
 
 #### Media Type Standardization
 
@@ -2506,14 +2649,14 @@ import { IdGenerator } from 'ai';
 
 #### Language Model V2 Import
 
-`LanguageModelV2` must now be imported from `@ai-sdk/provider`.
+`LanguageModelV3` must now be imported from `@ai-sdk/provider`.
 
 ```tsx filename="AI SDK 4.0"
-import { LanguageModelV2 } from 'ai';
+import { LanguageModelV3 } from 'ai';
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV3 } from '@ai-sdk/provider';
 ```
 
 #### Middleware Rename
@@ -2525,7 +2668,7 @@ import { LanguageModelV1Middleware } from 'ai';
 ```
 
 ```tsx filename="AI SDK 5.0"
-import { LanguageModelV2Middleware } from '@ai-sdk/provider';
+import { LanguageModelV3Middleware } from '@ai-sdk/provider';
 ```
 
 #### Usage Token Properties
@@ -2555,11 +2698,11 @@ Token usage properties have been renamed for consistency.
 
 #### Stream Part Type Changes
 
-The `LanguageModelV2StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
+The `LanguageModelV3StreamPart` type has been expanded to support the new streaming architecture with start/delta/end patterns and IDs.
 
 ```tsx filename="AI SDK 4.0"
 // V4: Simple stream parts
-type LanguageModelV2StreamPart =
+type LanguageModelV3StreamPart =
   | { type: 'text-delta'; textDelta: string }
   | { type: 'reasoning'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: string };
@@ -2567,7 +2710,7 @@ type LanguageModelV2StreamPart =
 
 ```tsx filename="AI SDK 5.0"
 // V5: Enhanced stream parts with IDs and lifecycle events
-type LanguageModelV2StreamPart =
+type LanguageModelV3StreamPart =
   // Text blocks with start/delta/end pattern
   | {
       type: 'text-start';
@@ -2633,11 +2776,11 @@ type LanguageModelV2StreamPart =
     }
 
   // Stream lifecycle events
-  | { type: 'stream-start'; warnings: Array<LanguageModelV2CallWarning> }
+  | { type: 'stream-start'; warnings: Array<LanguageModelV3CallWarning> }
   | {
       type: 'finish';
-      usage: LanguageModelV2Usage;
-      finishReason: LanguageModelV2FinishReason;
+      usage: LanguageModelV3Usage;
+      finishReason: LanguageModelV3FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
     };
 ```
@@ -2759,6 +2902,12 @@ await generateText({
 
 ## Message Persistence Changes
 
+<Note>
+  If you have persisted messages in a database, see the [Data Migration
+  Guide](/docs/migration-guides/migration-guide-5-0-data) for comprehensive
+  guidance on migrating your stored message data to the v5 format.
+</Note>
+
 In v4, you would typically use helper functions like `appendResponseMessages` or `appendClientMessage` to format messages in the `onFinish` callback of `streamText`:
 
 ```tsx filename="AI SDK 4.0"
@@ -2809,8 +2958,8 @@ const result = streamText({
 });
 
 return result.toUIMessageStreamResponse({
-  originalMessages: messages, // Pass original messages for context
-  generateMessageId: () => generateId(), // ID generation moved here for UI messages
+  originalMessages: messages, // IMPORTANT: Required to prevent duplicate messages
+  generateMessageId: () => generateId(), // IMPORTANT: Required for proper message ID generation
   onFinish: ({ messages, responseMessage }) => {
     // messages contains all messages (original + response) in UIMessage format
     saveChat({ chatId, messages });
@@ -2820,6 +2969,14 @@ return result.toUIMessageStreamResponse({
   },
 });
 ```
+
+<Note>
+  **Important:** When using `toUIMessageStreamResponse`, you should always
+  provide both `originalMessages` and `generateMessageId` parameters. Without
+  these, you may experience duplicate or repeated assistant messages in your UI.
+  For more details, see [Troubleshooting: Repeated Assistant
+  Messages](/docs/troubleshooting/repeated-assistant-messages).
+</Note>
 
 ### Message ID Generation
 
@@ -2863,6 +3020,7 @@ import { openai } from '@ai-sdk/openai';
 
 const stream = createUIMessageStream({
   originalMessages: messages,
+  generateId: generateId, // Required for proper message ID generation
   execute: ({ writer }) => {
     // Write custom data parts
     writer.write({
@@ -2891,26 +3049,108 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs Default
+#### Default Provider Instance Uses Responses API
 
-Structured outputs are now enabled by default for supported OpenAI models.
+In AI SDK 5, the default OpenAI provider instance uses the Responses API, while AI SDK 4 used the Chat Completions API. The Chat Completions API remains fully supported and you can use it with `openai.chat(...)`.
 
 ```tsx filename="AI SDK 4.0"
-const result = await generateText({
-  model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
+import { openai } from '@ai-sdk/openai';
+
+const defaultModel = openai('gpt-4.1-mini'); // Chat Completions API
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+
+const defaultModel = openai('gpt-4.1-mini'); // Responses API
+
+// Specify a specific API when needed:
+const chatCompletionsModel = openai.chat('gpt-4.1-mini');
+const responsesModel = openai.responses('gpt-4.1-mini');
+```
+
+<Note>
+  The Responses and Chat Completions APIs have different behavior and defaults.
+  If you depend on the Chat Completions API, switch your model instance to
+  `openai.chat(...)` and audit your configuration.
+</Note>
+
+#### Strict Schemas (`strictSchemas`) with Responses API
+
+In AI SDK 4.0, you could set the `strictSchemas` option on Responses models (which defaulted to `true`). This option has been renamed to `strictJsonSchema` in AI SDK 5.0 and now defaults to `false`.
+
+```tsx filename="AI SDK 4.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai.responses('gpt-4.1'),
+  schema: z.object({
+    // ...
+  }),
+  providerOptions: {
+    openai: {
+      strictSchemas: true, // default behaviour in AI SDK 4
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
-const result = await generateText({
-  model: openai('gpt-4.1-2024-08-06'),
-  // structuredOutputs: true is now the default
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai('gpt-4.1-2024'), // uses Responses API
+  schema: z.object({
+    // ...
+  }),
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // defaults to false, opt back in to the AI SDK 4 strict behaviour
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+```
+
+If you call `openai.chat(...)` to use the Chat Completions API directly, you can type it with `OpenAIChatLanguageModelOptions`. AI SDK 5 adds the same `strictJsonSchema` option there as well.
+
+#### Structured Outputs
+
+The `structuredOutputs` option is now configured using provider options rather than as a setting on the model instance.
+
+```tsx filename="AI SDK 4.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai('gpt-4.1', { structuredOutputs: true }), // use Chat Completions API
+  schema: z.object({ name: z.string() }),
+});
+```
+
+```tsx filename="AI SDK 5.0 (Chat Completions API)"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai.chat('gpt-4.1'), // use Chat Completions API
+  schema: z.object({ name: z.string() }),
+  providerOptions: {
+    openai: {
+      structuredOutputs: true,
+    } satisfies OpenAIChatLanguageModelOptions,
+  },
 });
 ```
 
 #### Compatibility Option Removal
 
-The `compatibility` option has been removed; strict mode is now the default.
+The `compatibility` option has been removed; strict compatibility mode is now the default.
 
 ```tsx filename="AI SDK 4.0"
 const openai = createOpenAI({
@@ -3054,17 +3294,22 @@ import {
 
 ### TypeScript Performance Issues with Zod
 
-If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0, you need to use the Zod v3 import path:
+If you experience TypeScript server crashes, slow type checking, or errors like "Type instantiation is excessively deep and possibly infinite" when using Zod with AI SDK 5.0:
 
-```typescript
-// ❌ Avoid: Standard import causes TypeScript issues
-import { z } from 'zod';
+1. **First, ensure you're using Zod 4.1.8 or later** - this version includes a fix for module resolution issues that cause TypeScript performance problems.
 
-// ✅ Use: v3-specific import for AI SDK 5.0 compatibility
-import { z } from 'zod/v3';
+2. If the issue persists, update your `tsconfig.json` to use `moduleResolution: "nodenext"`:
+
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "nodenext"
+    // ... other options
+  }
+}
 ```
 
-This is particularly important when using `generateObject`, `tool`, or other AI SDK functions with Zod schemas. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
+This resolves the TypeScript performance issues while allowing you to continue using the standard Zod import. If this doesn't resolve the issue, you can try using a version-specific import path as an alternative solution. For detailed troubleshooting steps, see [TypeScript performance issues with Zod](/docs/troubleshooting/typescript-performance-zod).
 
 ## Codemod Table
 
@@ -3078,7 +3323,7 @@ For more information, see the [Codemods](#codemods) section.
 | Flatten streamText file properties               | `v5/flatten-streamtext-file-properties`               |
 | ID Generation Changes                            | `v5/require-createIdGenerator-size-argument`          |
 | IDGenerator → IdGenerator                        | `v5/rename-IDGenerator-to-IdGenerator`                |
-| Import LanguageModelV2 from provider package     | `v5/import-LanguageModelV2-from-provider-package`     |
+| Import LanguageModelV3 from provider package     | `v5/import-LanguageModelV3-from-provider-package`     |
 | Migrate to data stream protocol v2               | `v5/migrate-to-data-stream-protocol-v2`               |
 | Move image model maxImagesPerCall                | `v5/move-image-model-maxImagesPerCall`                |
 | Move LangChain adapter                           | `v5/move-langchain-adapter`                           |
