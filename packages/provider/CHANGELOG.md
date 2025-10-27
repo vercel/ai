@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- d1bdadb: Added reranking model
+
 ## 3.0.0-beta.11
 
 ### Patch Changes
