@@ -352,9 +352,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: tools ? [...tools, jsonResponseTool] : [jsonResponseTool],
+            tools: [...(tools ?? []), jsonResponseTool],
             toolChoice: { type: 'required' },
-            disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+            disableParallelToolUse: true,
             cacheControlValidator,
           }
         : {
@@ -481,19 +481,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          content.push({ type: 'text', text: part.text });
+          if (!usesJsonResponseTool) {
+            content.push({ type: 'text', text: part.text });
 
-          // Process citations if present
-          if (part.citations) {
-            for (const citation of part.citations) {
-              const source = createCitationSource(
-                citation,
-                citationDocuments,
-                this.generateId,
-              );
+            // Process citations if present
+            if (part.citations) {
+              for (const citation of part.citations) {
+                const source = createCitationSource(
+                  citation,
+                  citationDocuments,
+                  this.generateId,
+                );
 
-              if (source) {
-                content.push(source);
+                if (source) {
+                  content.push(source);
+                }
               }
             }
           }

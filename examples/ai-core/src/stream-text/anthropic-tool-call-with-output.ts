@@ -6,7 +6,7 @@ import z from 'zod';
 run(async () => {
   const { partialOutputStream } = await streamText({
     model: anthropic('claude-haiku-4-5-20251001'),
-    stopWhen: stepCountIs(2),
+    stopWhen: stepCountIs(3),
     prompt:
       'Get the weather for Berlin and Paris, then provide a structured response with the cities and their weather.',
     output: Output.object({
