@@ -252,6 +252,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
             "model": "claude-3-haiku-20240307",
             "tool_choice": {
+              "disable_parallel_tool_use": true,
               "type": "any",
             },
             "tools": [
@@ -280,12 +281,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       it('should return the json response', async () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
-            {
-              "text": "Some text
-
-          ",
-              "type": "text",
-            },
             {
               "text": "{"name":"example value"}",
               "type": "text",
@@ -362,6 +357,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody.tool_choice).toMatchInlineSnapshot(`
           {
+            "disable_parallel_tool_use": true,
             "type": "any",
           }
         `);
@@ -2641,6 +2637,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "model": "claude-3-haiku-20240307",
             "stream": true,
             "tool_choice": {
+              "disable_parallel_tool_use": true,
               "type": "any",
             },
             "tools": [
