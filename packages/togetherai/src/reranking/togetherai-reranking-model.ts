@@ -90,11 +90,6 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
         index: result.index,
         relevanceScore: result.relevance_score,
       })),
-      providerMetadata: {
-        togetherai: {
-          usage: response.usage,
-        },
-      },
       response: { headers: responseHeaders, body: rawValue },
     };
   }

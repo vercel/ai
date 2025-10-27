@@ -11,5 +11,4 @@ run(async () => {
   });
 
   print('Reranking:', result.ranking);
-  print('Metadata:', result.providerMetadata);
 });

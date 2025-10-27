@@ -96,18 +96,8 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should return result with the correct provider metadata', async () => {
-      expect(result.providerMetadata).toMatchInlineSnapshot(`
-        {
-          "togetherai": {
-            "usage": {
-              "completion_tokens": 0,
-              "prompt_tokens": 2966,
-              "total_tokens": 2966,
-            },
-          },
-        }
-      `);
+    it('should not return provider metadata (use response body instead)', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`undefined`);
     });
 
     it('should return result with the correct response', async () => {
@@ -211,18 +201,8 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should return result with the correct provider metadata', async () => {
-      expect(result.providerMetadata).toMatchInlineSnapshot(`
-        {
-          "togetherai": {
-            "usage": {
-              "completion_tokens": 0,
-              "prompt_tokens": 2966,
-              "total_tokens": 2966,
-            },
-          },
-        }
-      `);
+    it('should not return provider metadata (use response body instead)', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`undefined`);
     });
 
     it('should return result with the correct response', async () => {

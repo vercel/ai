@@ -96,9 +96,6 @@ export class CohereRerankingModel implements RerankingModelV3 {
         index: result.index,
         relevanceScore: result.relevance_score,
       })),
-      providerMetadata: {
-        cohere: response.meta,
-      },
       warnings,
       response: { headers: responseHeaders, body: rawValue },
     };

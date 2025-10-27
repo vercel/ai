@@ -99,19 +99,8 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should return result with the correct provider metadata', async () => {
-      expect(result.providerMetadata).toMatchInlineSnapshot(`
-        {
-          "cohere": {
-            "api_version": {
-              "version": "2",
-            },
-            "billed_units": {
-              "search_units": 1,
-            },
-          },
-        }
-      `);
+    it('should not return provider metadata (use response body instead)', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`undefined`);
     });
 
     it('should return result with the correct response', async () => {
@@ -213,19 +202,8 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should return result with the correct provider metadata', async () => {
-      expect(result.providerMetadata).toMatchInlineSnapshot(`
-        {
-          "cohere": {
-            "api_version": {
-              "version": "2",
-            },
-            "billed_units": {
-              "search_units": 1,
-            },
-          },
-        }
-      `);
+    it('should not return provider metadata (use response body instead)', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`undefined`);
     });
 
     it('should return result with the correct response', async () => {
