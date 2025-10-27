@@ -75,6 +75,7 @@
     "@ai-sdk/mcp": "0.0.0"
   },
   "changesets": [
+    "angry-cobras-care",
     "angry-hats-cry",
     "beige-beds-nail",
     "beige-bikes-repeat",

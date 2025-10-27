@@ -1,5 +1,14 @@
 # @ai-sdk/groq
 
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
 ## 3.0.0-beta.23
 
 ### Patch Changes
