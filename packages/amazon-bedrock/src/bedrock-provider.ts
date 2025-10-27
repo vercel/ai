@@ -125,7 +125,12 @@ Creates a model for image generation.
   imageModel(modelId: BedrockImageModelId): ImageModelV3;
 
   /**
-Creates a model for reranking documents.
+   * Creates a model for reranking documents.
+   */
+  reranking(modelId: BedrockRerankingModelId): RerankingModelV3;
+
+  /**
+   * Creates a model for reranking documents.
    */
   rerankingModel(modelId: BedrockRerankingModelId): RerankingModelV3;
 
@@ -314,6 +319,7 @@ export function createAmazonBedrock(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.reranking = createRerankingModel;
   provider.rerankingModel = createRerankingModel;
   provider.tools = anthropicTools;
 

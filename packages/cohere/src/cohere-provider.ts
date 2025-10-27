@@ -33,6 +33,14 @@ Creates a model for text generation.
 
   textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3<string>;
 
+  /**
+   * Creates a model for reranking.
+   */
+  reranking(modelId: CohereRerankingModelId): RerankingModelV3;
+
+  /**
+   * Creates a model for reranking.
+   */
   rerankingModel(modelId: CohereRerankingModelId): RerankingModelV3;
 }
 
@@ -127,6 +135,7 @@ export function createCohere(
   provider.languageModel = createChatModel;
   provider.embedding = createTextEmbeddingModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.reranking = createRerankingModel;
   provider.rerankingModel = createRerankingModel;
 
   provider.imageModel = (modelId: string) => {

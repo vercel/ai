@@ -29,7 +29,7 @@ export interface RerankResult<VALUE> {
    */
   readonly ranking: Array<{
     originalIndex: number;
-    relevanceScore: number;
+    score: number;
     document: VALUE;
   }>;
 

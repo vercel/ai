@@ -197,7 +197,7 @@ Only applicable for HTTP-based providers.
         originalDocuments: documents,
         ranking: ranking.map(ranking => ({
           originalIndex: ranking.index,
-          relevanceScore: ranking.relevanceScore,
+          score: ranking.relevanceScore,
           document: documents[ranking.index],
         })),
         providerMetadata,

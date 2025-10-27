@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await rerank({
-    model: togetherai.rerankingModel('Salesforce/Llama-Rank-v1'),
+    model: togetherai.reranking('Salesforce/Llama-Rank-v1'),
     documents: ['sunny day at the beach', 'rainy day in the city'],
     query: 'talk about rain',
   });
