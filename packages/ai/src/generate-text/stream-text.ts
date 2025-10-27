@@ -863,7 +863,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           await onStepFinish?.(currentStepResult);
 
-          logWarnings(recordedWarnings);
+          logWarnings({
+            warnings: recordedWarnings,
+            provider: model.provider,
+            model: model.modelId,
+          });
 
           recordedSteps.push(currentStepResult);
 
