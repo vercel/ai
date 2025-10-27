@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- 4c44a5b: fix(spec): allow `undefined` values in `JSONObject` type
+
 ## 3.0.0-beta.10
 
 ### Patch Changes
