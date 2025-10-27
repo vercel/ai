@@ -6,9 +6,13 @@
  * @returns A record containing the normalized header entries.
  */
 export function normalizeHeaders(
-  headers: HeadersInit | Record<string, string | undefined> | undefined,
+  headers:
+    | HeadersInit
+    | Record<string, string | undefined>
+    | Array<[string, string | undefined]>
+    | undefined,
 ): Record<string, string> {
-  if (headers === undefined || headers === null) {
+  if (headers == null) {
     return {};
   }
 
@@ -18,21 +22,15 @@ export function normalizeHeaders(
     headers.forEach((value, key) => {
       normalized[key.toLowerCase()] = value;
     });
-    return normalized;
-  }
+  } else {
+    if (!Array.isArray(headers)) {
+      headers = Object.entries(headers);
+    }
 
-  if (Array.isArray(headers)) {
     for (const [key, value] of headers) {
-      if (value !== undefined && value !== null) {
+      if (value != null) {
         normalized[key.toLowerCase()] = value;
       }
-    }
-    return normalized;
-  }
-
-  for (const [key, value] of Object.entries(headers)) {
-    if (value !== undefined && value !== null) {
-      normalized[key.toLowerCase()] = value;
     }
   }
 
