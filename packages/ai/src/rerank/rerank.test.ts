@@ -21,6 +21,19 @@ describe('rerank', () => {
               { index: 0, relevanceScore: 0.8 },
               { index: 1, relevanceScore: 0.7 },
             ],
+            providerMetadata: {
+              aProvider: {
+                someResponseKey: 'someResponseValue',
+              },
+            },
+            response: {
+              headers: {
+                'content-type': 'application/json',
+              },
+              body: {
+                id: '123',
+              },
+            },
           };
         },
       });
@@ -65,157 +78,72 @@ describe('rerank', () => {
         ]
       `);
     });
+
+    it('should return the correct original documents', () => {
+      expect(result.originalDocuments).toMatchInlineSnapshot(`
+        [
+          "sunny day at the beach",
+          "rainy day in the city",
+          "cloudy day in the mountains",
+        ]
+      `);
+    });
+
+    it('should return the correct reranked documents', () => {
+      expect(result.rerankedDocuments).toMatchInlineSnapshot(`
+        [
+          "cloudy day in the mountains",
+          "sunny day at the beach",
+          "rainy day in the city",
+        ]
+      `);
+    });
+
+    it('should return the correct ranking', () => {
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "document": "cloudy day in the mountains",
+            "originalIndex": 2,
+            "relevanceScore": 0.9,
+          },
+          {
+            "document": "sunny day at the beach",
+            "originalIndex": 0,
+            "relevanceScore": 0.8,
+          },
+          {
+            "document": "rainy day in the city",
+            "originalIndex": 1,
+            "relevanceScore": 0.7,
+          },
+        ]
+      `);
+    });
+
+    it('should return the correct provider metadata', () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`
+        {
+          "aProvider": {
+            "someResponseKey": "someResponseValue",
+          },
+        }
+      `);
+    });
+
+    it('should return the correct response', () => {
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "id": "123",
+          },
+          "headers": {
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
   });
-
-  // describe('result.reranking', () => {
-  //   it('should reranking documents', async () => {
-  //     const result = await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //     });
-
-  //     assert.deepStrictEqual(result.rerankedDocuments, dummyRerankedDocuments);
-  //   });
-  // });
-
-  // describe('result.response', () => {
-  //   it('should include response in the result', async () => {
-  //     const result = await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //     });
-
-  //     expect(result.response).toMatchSnapshot();
-  //   });
-  // });
-
-  // describe('result.value', () => {
-  //   it('should include value in the result', async () => {
-  //     const result = await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //     });
-
-  //     assert.deepStrictEqual(result.rerankedDocuments, dummyRerankedDocuments);
-  //   });
-  // });
-
-  // describe('result.usage', () => {
-  //   it('should include usage in the result', async () => {
-  //     const result = await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: mockRerank(testDocuments, dummyRerankedDocuments, {
-  //           tokens: 30,
-  //         }),
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //     });
-
-  //     assert.deepStrictEqual(result.usage, { tokens: 30 });
-  //   });
-  // });
-  // describe('result.providerMetadata', () => {
-  //   it('should include provider metadata when returned by the model', async () => {
-  //     const providerMetadata = {
-  //       gateway: {
-  //         routing: {
-  //           resolvedProvider: 'test-provider',
-  //         },
-  //       },
-  //     };
-
-  //     const result = await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: mockRerank(
-  //           testDocuments,
-  //           dummyRerankedDocuments,
-  //           undefined,
-  //           {
-  //             headers: {},
-  //             body: {},
-  //           },
-  //           providerMetadata,
-  //         ),
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //     });
-
-  //     expect(result.providerMetadata).toStrictEqual(providerMetadata);
-  //   });
-  // });
-
-  // describe('options.headers', () => {
-  //   it('should set headers', async () => {
-  //     const result = await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: async ({ headers }) => {
-  //           assert.deepStrictEqual(headers, {
-  //             'custom-request-header': 'request-header-value',
-  //           });
-
-  //           return { rerankedDocuments: dummyRerankedDocuments };
-  //         },
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //       headers: { 'custom-request-header': 'request-header-value' },
-  //     });
-
-  //     assert.deepStrictEqual(result.rerankedDocuments, dummyRerankedDocuments);
-  //   });
-  // });
-
-  // describe('options.providerOptions', () => {
-  //   it('should pass provider options to model', async () => {
-  //     const model = new MockRerankingModelV3({
-  //       doRerank: async ({ providerOptions }) => {
-  //         return {
-  //           rerankedDocuments: [dummyRerankedDocuments[0]],
-  //         };
-  //       },
-  //     });
-
-  //     vi.spyOn(model, 'doRerank');
-
-  //     await rerank({
-  //       model,
-  //       values: ['test-input'],
-  //       providerOptions: {
-  //         aProvider: { someKey: 'someValue' },
-  //       },
-  //       query: 'test-query',
-  //       topK: 1,
-  //     });
-
-  //     expect(model.doRerank).toHaveBeenCalledWith({
-  //       abortSignal: undefined,
-  //       headers: undefined,
-  //       providerOptions: {
-  //         aProvider: { someKey: 'someValue' },
-  //       },
-  //       values: ['test-input'],
-  //       query: 'test-query',
-  //       topK: 1,
-  //     });
-  //   });
-  // });
 
   // describe('telemetry', () => {
   //   let tracer: MockTracer;
@@ -277,36 +205,6 @@ describe('rerank', () => {
   //     });
 
   //     expect(tracer.jsonSpans).toMatchSnapshot();
-  //   });
-  // });
-
-  // describe('maxDocumentsPerCall validation', () => {
-  //   it('should throw TooManyDocumentsForRerankingError when documents exceed maxDocumentsPerCall', async () => {
-  //     const maxDocumentsPerCall = 2;
-  //     const tooManyDocuments = [
-  //       'document 1',
-  //       'document 2',
-  //       'document 3', // This exceeds the limit
-  //     ];
-
-  //     const model = new MockRerankingModelV3({
-  //       provider: 'test-provider',
-  //       modelId: 'test-model',
-  //       maxDocumentsPerCall,
-  //       doRerank: mockRerank(tooManyDocuments, dummyRerankedDocuments),
-  //     });
-
-  //     try {
-  //       await rerank({
-  //         model,
-  //         values: tooManyDocuments,
-  //         query: 'test query',
-  //         topK: 2,
-  //       });
-  //       expect.fail('Expected TooManyDocumentsForRerankingError to be thrown');
-  //     } catch (error) {
-  //       expect(TooManyDocumentsForRerankingError.isInstance(error)).toBe(true);
-  //     }
   //   });
   // });
 });
