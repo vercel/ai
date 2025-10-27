@@ -161,7 +161,6 @@ export function createVertex(
 
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.tools = googleVertexTools;
