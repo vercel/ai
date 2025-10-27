@@ -9,6 +9,7 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { RerankingModel } from '../types';
 import { RerankResult } from './rerank-result';
+import { logWarnings } from '../logger/log-warnings';
 
 /**
 Rerank documents using an reranking model. The type of the value is defined by the reranking model.
@@ -128,58 +129,65 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async () => {
-      const { ranking, response, providerMetadata } = await retry(() =>
-        recordSpan({
-          name: 'ai.rerank.doRerank',
-          attributes: selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              ...assembleOperationName({
-                operationId: 'ai.rerank.doRerank',
-                telemetry,
-              }),
-              ...baseTelemetryAttributes,
-              // specific settings that only make sense on the outer level:
-              'ai.documents': {
-                input: () =>
-                  documents.map(document => JSON.stringify(document)),
+      const { ranking, response, providerMetadata, warnings } = await retry(
+        () =>
+          recordSpan({
+            name: 'ai.rerank.doRerank',
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...assembleOperationName({
+                  operationId: 'ai.rerank.doRerank',
+                  telemetry,
+                }),
+                ...baseTelemetryAttributes,
+                // specific settings that only make sense on the outer level:
+                'ai.documents': {
+                  input: () =>
+                    documents.map(document => JSON.stringify(document)),
+                },
               },
+            }),
+            tracer,
+            fn: async doRerankSpan => {
+              const modelResponse = await model.doRerank({
+                documents: documentsToSend,
+                query,
+                topN,
+                providerOptions,
+                abortSignal,
+                headers,
+              });
+
+              const ranking = modelResponse.ranking;
+
+              doRerankSpan.setAttributes(
+                await selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.ranking.type': documentsToSend.type,
+                    'ai.ranking': {
+                      output: () =>
+                        ranking.map(ranking => JSON.stringify(ranking)),
+                    },
+                  },
+                }),
+              );
+
+              return {
+                ranking,
+                providerMetadata: modelResponse.providerMetadata,
+                response: modelResponse.response,
+                warnings: modelResponse.warnings,
+              };
             },
           }),
-          tracer,
-          fn: async doRerankSpan => {
-            const modelResponse = await model.doRerank({
-              documents: documentsToSend,
-              query,
-              topN,
-              providerOptions,
-              abortSignal,
-              headers,
-            });
-
-            const ranking = modelResponse.ranking;
-
-            doRerankSpan.setAttributes(
-              await selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.ranking.type': documentsToSend.type,
-                  'ai.ranking': {
-                    output: () =>
-                      ranking.map(ranking => JSON.stringify(ranking)),
-                  },
-                },
-              }),
-            );
-
-            return {
-              ranking,
-              providerMetadata: modelResponse.providerMetadata,
-              response: modelResponse.response,
-            };
-          },
-        }),
       );
+
+      logWarnings(warnings ?? [], {
+        provider: model.provider,
+        model: model.modelId,
+      });
 
       return new DefaultRerankResult({
         originalDocuments: documents,

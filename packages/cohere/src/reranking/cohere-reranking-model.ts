@@ -60,8 +60,8 @@ export class CohereRerankingModel implements RerankingModelV3 {
     if (documents.type === 'object') {
       warnings.push({
         type: 'compatibility',
-        feature: 'JSON objects',
-        details: 'JSON objects are converted to strings.',
+        feature: 'object documents',
+        details: 'Object documents are converted to strings.',
       });
     }
 

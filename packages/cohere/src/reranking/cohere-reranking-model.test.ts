@@ -67,8 +67,8 @@ describe('doRerank', () => {
       expect(result.warnings).toMatchInlineSnapshot(`
         [
           {
-            "details": "JSON objects are converted to strings.",
-            "feature": "JSON objects",
+            "details": "Object documents are converted to strings.",
+            "feature": "object documents",
             "type": "compatibility",
           },
         ]

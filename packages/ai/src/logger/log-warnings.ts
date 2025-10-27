@@ -1,6 +1,7 @@
 import {
   ImageModelV3CallWarning,
   LanguageModelV3CallWarning,
+  SharedV3Warning,
   SpeechModelV3CallWarning,
   TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
@@ -9,21 +10,38 @@ export type Warning =
   | LanguageModelV3CallWarning
   | ImageModelV3CallWarning
   | SpeechModelV3CallWarning
-  | TranscriptionModelV3CallWarning;
+  | TranscriptionModelV3CallWarning
+  | SharedV3Warning;
 
-export type LogWarningsFunction = (warnings: Warning[]) => void;
+export type LogWarningsFunction = (
+  warnings: Warning[],
+  options?: { provider: string; model: string },
+) => void;
 
 /**
  * Formats a warning object into a human-readable string with clear AI SDK branding
  */
-function formatWarning(warning: Warning): string {
-  const prefix = 'AI SDK Warning:';
+function formatWarning(
+  warning: Warning,
+  options?: { provider: string; model: string },
+): string {
+  const { provider, model } = options ?? {};
+
+  const prefix = `AI SDK Warning (${provider ?? 'unknown provider'} / ${model ?? 'unknown model'}):`;
 
   switch (warning.type) {
     case 'unsupported-setting': {
-      let message = `${prefix} The "${warning.setting}" setting is not supported by this model`;
+      let message = `${prefix} The "${warning.setting}" setting is not supported.`;
       if (warning.details) {
-        message += ` - ${warning.details}`;
+        message += ` ${warning.details}`;
+      }
+      return message;
+    }
+
+    case 'compatibility': {
+      let message = `${prefix} The "${warning.feature}" feature is not fully supported.`;
+      if (warning.details) {
+        message += ` ${warning.details}`;
       }
       return message;
     }
@@ -31,9 +49,9 @@ function formatWarning(warning: Warning): string {
     case 'unsupported-tool': {
       const toolName =
         'name' in warning.tool ? warning.tool.name : 'unknown tool';
-      let message = `${prefix} The tool "${toolName}" is not supported by this model`;
+      let message = `${prefix} The tool "${toolName}" is not supported.`;
       if (warning.details) {
-        message += ` - ${warning.details}`;
+        message += ` ${warning.details}`;
       }
       return message;
     }
@@ -54,7 +72,7 @@ export const FIRST_WARNING_INFO_MESSAGE =
 
 let hasLoggedBefore = false;
 
-export const logWarnings: LogWarningsFunction = warnings => {
+export const logWarnings: LogWarningsFunction = (warnings, options) => {
   // if the warnings array is empty, do nothing
   if (warnings.length === 0) {
     return;
@@ -69,7 +87,7 @@ export const logWarnings: LogWarningsFunction = warnings => {
 
   // use the provided logger if it is a function
   if (typeof logger === 'function') {
-    logger(warnings);
+    logger(warnings, options);
     return;
   }
 
@@ -81,7 +99,7 @@ export const logWarnings: LogWarningsFunction = warnings => {
 
   // default behavior: log warnings to the console
   for (const warning of warnings) {
-    console.warn(formatWarning(warning));
+    console.warn(formatWarning(warning, options));
   }
 };
 
