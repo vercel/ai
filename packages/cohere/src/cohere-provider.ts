@@ -16,8 +16,8 @@ import {
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
 import { CohereChatModelId } from './cohere-chat-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
-import { CohereRerankingModelId } from './cohere-reranking-options';
-import { CohereRerankingModel } from './cohere-reranking-model';
+import { CohereRerankingModelId } from './reranking/cohere-reranking-options';
+import { CohereRerankingModel } from './reranking/cohere-reranking-model';
 import { CohereEmbeddingModelId } from './cohere-embedding-options';
 import { VERSION } from './version';
 
@@ -33,7 +33,7 @@ Creates a model for text generation.
 
   textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3<string>;
 
-  rerankingModel(modelId: CohereRerankingModelId): RerankingModelV3<string>;
+  rerankingModel(modelId: CohereRerankingModelId): RerankingModelV3;
 }
 
 export interface CohereProviderSettings {

@@ -38,7 +38,7 @@ export type RerankingModelV3 = {
      * Ordered list of reranked documents (via index before reranking).
      * The documents are sorted by the descending order of relevance scores.
      */
-    rerankedDocuments: Array<{
+    ranking: Array<{
       /**
        * The index of the document in the original list of documents before reranking.
        */

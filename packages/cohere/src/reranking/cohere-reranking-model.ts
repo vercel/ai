@@ -86,7 +86,7 @@ export class CohereRerankingModel implements RerankingModelV3 {
         top_n: topK,
         max_tokens_per_doc: rerankingOptions?.maxTokensPerDoc,
         priority: rerankingOptions?.priority,
-      } as CohereRerankingInput,
+      } satisfies CohereRerankingInput,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         cohereRerankingResponseSchema,
@@ -96,7 +96,7 @@ export class CohereRerankingModel implements RerankingModelV3 {
     });
 
     return {
-      rerankedDocuments: response.results.map(result => ({
+      ranking: response.results.map(result => ({
         index: result.index,
         relevanceScore: result.relevance_score,
       })),
