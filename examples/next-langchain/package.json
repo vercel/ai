@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "workspace:*",
-    "@ai-sdk/langchain": "workspace:*",
+    "@ai-sdk/react": "3.0.0-beta.70",
+    "@ai-sdk/langchain": "2.0.0-beta.70",
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
-    "ai": "workspace:*",
+    "ai": "6.0.0-beta.70",
     "langchain": "0.1.36",
     "next": "^15.5.4",
     "react": "^18",
@@ -28,7 +28,6 @@
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "typescript": "5.8.3",
-    "@vercel/ai-tsconfig": "workspace:*"
+    "typescript": "5.8.3"
   }
 }

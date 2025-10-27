@@ -1,8 +1,8 @@
 import {
+  FlexibleSchema,
   generateId as generateIdFunc,
   IdGenerator,
-  StandardSchemaV1,
-  Validator,
+  InferSchema,
 } from '@ai-sdk/provider-utils';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
@@ -18,7 +18,9 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
-  ToolUIPart,
+  isToolUIPart,
+  UIMessagePart,
+  UITools,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -36,21 +38,14 @@ export type CreateUIMessage<UI_MESSAGE extends UIMessage> = Omit<
   role?: UI_MESSAGE['role'];
 };
 
-export type UIDataPartSchemas = Record<
-  string,
-  Validator<any> | StandardSchemaV1<any>
->;
+export type UIDataPartSchemas = Record<string, FlexibleSchema>;
 
 export type UIDataTypesToSchemas<T extends UIDataTypes> = {
-  [K in keyof T]: Validator<T[K]> | StandardSchemaV1<T[K]>;
+  [K in keyof T]: FlexibleSchema<T[K]>;
 };
 
 export type InferUIDataParts<T extends UIDataPartSchemas> = {
-  [K in keyof T]: T[K] extends Validator<infer U>
-    ? U
-    : T[K] extends StandardSchemaV1<infer U>
-      ? U
-      : unknown;
+  [K in keyof T]: InferSchema<T[K]>;
 };
 
 export type ChatRequestOptions = {
@@ -66,6 +61,27 @@ export type ChatRequestOptions = {
 
   metadata?: unknown;
 };
+
+/**
+ * Function that can be called to add a tool approval response to the chat.
+ */
+export type ChatAddToolApproveResponseFunction = ({
+  id,
+  approved,
+  reason,
+}: {
+  id: string;
+
+  /**
+   * Flag indicating whether the approval was granted or denied.
+   */
+  approved: boolean;
+
+  /**
+   * Optional reason for the approval or denial.
+   */
+  reason?: string;
+}) => void | PromiseLike<void>;
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
@@ -123,9 +139,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    */
   id?: string;
 
-  messageMetadataSchema?:
-    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
-    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
 
   messages?: UI_MESSAGE[];
@@ -180,8 +194,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   protected state: ChatState<UI_MESSAGE>;
 
   private messageMetadataSchema:
-    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
-    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>
+    | FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>
     | undefined;
   private dataPartSchemas:
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
@@ -414,6 +427,54 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
+  addToolApprovalResponse: ChatAddToolApproveResponseFunction = async ({
+    id,
+    approved,
+    reason,
+  }) =>
+    this.jobExecutor.run(async () => {
+      const messages = this.state.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> =>
+        isToolOrDynamicToolUIPart(part) &&
+        part.state === 'approval-requested' &&
+        part.approval.id === id
+          ? {
+              ...part,
+              state: 'approval-responded',
+              approval: { id, approved, reason },
+            }
+          : part;
+
+      // update the message to trigger an immediate UI update
+      this.state.replaceMessage(messages.length - 1, {
+        ...lastMessage,
+        parts: lastMessage.parts.map(updatePart),
+      });
+
+      // update the active response if it exists
+      if (this.activeResponse) {
+        this.activeResponse.state.message.parts =
+          this.activeResponse.state.message.parts.map(updatePart);
+      }
+
+      // automatically send the message if the sendAutomaticallyWhen function returns true
+      if (
+        this.status !== 'streaming' &&
+        this.status !== 'submitted' &&
+        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+      ) {
+        // no await to avoid deadlocking
+        this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+        });
+      }
+    });
+
   addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     state = 'output-available',
     tool,
@@ -439,28 +500,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
 
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> =>
+        isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+          ? ({ ...part, state, output, errorText } as typeof part)
+          : part;
+
+      // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {
         ...lastMessage,
-        parts: lastMessage.parts.map(part =>
-          isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-            ? { ...part, state, output, errorText }
-            : part,
-        ),
+        parts: lastMessage.parts.map(updatePart),
       });
 
       // update the active response if it exists
       if (this.activeResponse) {
         this.activeResponse.state.message.parts =
-          this.activeResponse.state.message.parts.map(part =>
-            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-              ? ({
-                  ...part,
-                  state,
-                  output,
-                  errorText,
-                } as typeof part)
-              : part,
-          );
+          this.activeResponse.state.message.parts.map(updatePart);
       }
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
@@ -638,7 +694,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (this.sendAutomaticallyWhen?.({ messages: this.state.messages })) {
+    if (
+      this.sendAutomaticallyWhen?.({ messages: this.state.messages }) &&
+      !isError
+    ) {
       await this.makeRequest({
         trigger: 'submit-message',
         messageId: this.lastMessage?.id,

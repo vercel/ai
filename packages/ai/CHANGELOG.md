@@ -1,5 +1,374 @@
 # ai
 
+## 6.0.0-beta.70
+
+### Patch Changes
+
+- d7bae86: feat(ai): add Output.choice()
+
+## 6.0.0-beta.69
+
+### Patch Changes
+
+- d5b25ee: feat(ai): add Output.array()
+
+## 6.0.0-beta.68
+
+### Patch Changes
+
+- 9b83947: feat(ai): add convertDataPart option to convertToModelMessages
+
+  Add optional convertDataPart callback for converting custom data parts (URLs, code files, etc.) to text or file parts that models can process. Fully type-safe using existing UIMessage generics.
+
+## 6.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [2b6a848]
+  - @ai-sdk/gateway@2.0.0-beta.37
+
+## 6.0.0-beta.66
+
+### Patch Changes
+
+- fca786b: feat(agent): configurable call options
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/gateway@2.0.0-beta.36
+
+## 6.0.0-beta.65
+
+### Patch Changes
+
+- dce4e7b: chore(agent): rename system to instructions
+
+## 6.0.0-beta.64
+
+### Patch Changes
+
+- 2d28066: chore(agent): limit agent call parameters
+
+## 6.0.0-beta.63
+
+### Patch Changes
+
+- a7da2b6: feat(agent): change output generics
+
+## 6.0.0-beta.62
+
+### Patch Changes
+
+- 95b77e2: feat(agent): extract createAgentUIStream, add pipeAgentUIStreamToResponse
+
+## 6.0.0-beta.61
+
+### Patch Changes
+
+- c98373a: chore(agent): rename createAgentStreamResponse to createAgentUIStreamResponse
+
+## 6.0.0-beta.60
+
+### Patch Changes
+
+- 2b49dae: feat(agent): support UIMessageStreamOptions in createAgentStreamResponse
+
+## 6.0.0-beta.59
+
+### Patch Changes
+
+- e062079: chore(agent): move Agent.respond into createAgentStreamResponse function
+
+## 6.0.0-beta.58
+
+### Patch Changes
+
+- a417a34: feat(agent): introduce version property
+
+## 6.0.0-beta.57
+
+### Patch Changes
+
+- 61f7b0f: chore(agent): rename BasicAgent to ToolLoopAgent
+
+## 6.0.0-beta.56
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+  - @ai-sdk/gateway@2.0.0-beta.35
+
+## 6.0.0-beta.55
+
+### Patch Changes
+
+- 42cf7ed: fix(agent): use tool.toModelOutput when available
+
+## 6.0.0-beta.54
+
+### Patch Changes
+
+- 9388ff1: feat(ui): add isDataUIPart helper
+
+## 6.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [2f8b0c8]
+  - @ai-sdk/gateway@2.0.0-beta.34
+
+## 6.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [1890317]
+  - @ai-sdk/gateway@2.0.0-beta.33
+
+## 6.0.0-beta.51
+
+### Patch Changes
+
+- 5e313e3: fix(agent): do not allow static tools when tools is empty
+
+## 6.0.0-beta.50
+
+### Patch Changes
+
+- 4812235: fix(ai): add missing export for `LoadSettingError`
+- 81d4308: feat: provider-executed dynamic tools
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/gateway@2.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 6.0.0-beta.49
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/gateway@2.0.0-beta.31
+
+## 6.0.0-beta.48
+
+### Patch Changes
+
+- 7f2c9b6: fix(ui): do not submit automatically when server return with error
+
+## 6.0.0-beta.47
+
+### Patch Changes
+
+- c62ecf0: feat(ai): add support for v2 specs in transcription and speech models
+
+## 6.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [0a2ff8a]
+  - @ai-sdk/gateway@2.0.0-beta.30
+
+## 6.0.0-beta.45
+
+### Patch Changes
+
+- 48454ab: fix(ai): handle backpressure in `writeToServerResponse`
+
+## 6.0.0-beta.44
+
+### Patch Changes
+
+- 2b1bf9d: feat(ai): add pruneMessages helper function
+
+## 6.0.0-beta.43
+
+### Patch Changes
+
+- 27e8c3a: chore(ai): rename Agent to BasicAgent, introduce Agent interface
+
+## 6.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+  - @ai-sdk/gateway@2.0.0-beta.29
+
+## 6.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/gateway@2.0.0-beta.28
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+
+## 6.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - @ai-sdk/gateway@2.0.0-beta.27
+
+## 6.0.0-beta.39
+
+### Patch Changes
+
+- f6f0c5a: chore: remove zod from ui packages
+
+## 6.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - @ai-sdk/gateway@2.0.0-beta.26
+
+## 6.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - @ai-sdk/gateway@2.0.0-beta.25
+
+## 6.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [0e29b8b]
+  - @ai-sdk/gateway@2.0.0-beta.24
+
+## 6.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [acc14d8]
+  - @ai-sdk/gateway@2.0.0-beta.23
+
+## 6.0.0-beta.34
+
+### Patch Changes
+
+- bb10a89: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+
+## 6.0.0-beta.33
+
+### Patch Changes
+
+- f733285: fix(ai): only parse experimental_output in generateText when finishReason is stop
+
+## 6.0.0-beta.32
+
+### Patch Changes
+
+- 7e4649f: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+
+## 6.0.0-beta.31
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+  - @ai-sdk/gateway@2.0.0-beta.22
+
+## 6.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [7b1b1b1]
+  - @ai-sdk/gateway@2.0.0-beta.21
+
+## 6.0.0-beta.29
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/gateway@2.0.0-beta.20
+  - @ai-sdk/provider@3.0.0-beta.6
+  - @ai-sdk/provider-utils@4.0.0-beta.10
+
+## 5.1.0-beta.28
+
+### Patch Changes
+
+- 521c537: feat(ai): Tool.needsApproval can be a function
+- Updated dependencies [521c537]
+  - @ai-sdk/provider-utils@3.1.0-beta.9
+  - @ai-sdk/gateway@1.1.0-beta.19
+
+## 5.1.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [e06565c]
+  - @ai-sdk/provider-utils@3.1.0-beta.8
+  - @ai-sdk/gateway@1.1.0-beta.18
+
+## 5.1.0-beta.26
+
+### Patch Changes
+
+- c99da05: feat(ai): add onFinish to Agent
+
+## 5.1.0-beta.25
+
+### Patch Changes
+
+- 457f1c6: feat(ai): onFinish callback for generateText
+
+## 5.1.0-beta.24
+
+### Patch Changes
+
+- 90e5bdd: chore(ai): restructure agent files
+
+## 5.1.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [1d8ea2c]
+  - @ai-sdk/gateway@1.1.0-beta.17
+
+## 5.1.0-beta.22
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+- a5e152d: fix(ai): back version support for V2 providers
+- 21e20c0: feat(provider): transcription model v3 spec
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+  - @ai-sdk/provider-utils@3.1.0-beta.7
+  - @ai-sdk/gateway@1.1.0-beta.16
+
+## 5.1.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [ef62178]
+  - @ai-sdk/gateway@1.1.0-beta.15
+
+## 5.1.0-beta.20
+
+### Patch Changes
+
+- 846e80e: fix(ai): bind functions for v2 -> v3 adapter
+- Updated dependencies [a90dca6]
+  - @ai-sdk/gateway@1.1.0-beta.14
+
 ## 5.1.0-beta.19
 
 ### Patch Changes

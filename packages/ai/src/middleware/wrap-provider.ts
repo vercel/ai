@@ -1,4 +1,4 @@
-import type { ProviderV3 } from '@ai-sdk/provider';
+import type { LanguageModelV3, ProviderV2, ProviderV3 } from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { wrapLanguageModel } from './wrap-language-model';
 
@@ -17,14 +17,14 @@ export function wrapProvider({
   provider,
   languageModelMiddleware,
 }: {
-  provider: ProviderV3;
+  provider: ProviderV3 | ProviderV2;
   languageModelMiddleware: LanguageModelMiddleware | LanguageModelMiddleware[];
 }): ProviderV3 {
   const wrappedProvider = {
     languageModel(modelId: string) {
       let model = provider.languageModel(modelId);
       model = wrapLanguageModel({
-        model,
+        model: model as LanguageModelV3,
         middleware: languageModelMiddleware,
       });
       return model;
@@ -36,5 +36,5 @@ export function wrapProvider({
     rerankingModel: provider.rerankingModel,
   };
 
-  return wrappedProvider;
+  return wrappedProvider as ProviderV3;
 }

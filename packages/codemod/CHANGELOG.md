@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.0-beta.2
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
 ## 2.1.0-beta.1
 
 ### Patch Changes

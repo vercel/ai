@@ -7,6 +7,7 @@ import {
   FetchFunction,
   generateId,
   loadApiKey,
+  loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
@@ -70,7 +71,12 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.anthropic.com/v1';
+    withoutTrailingSlash(
+      loadOptionalSetting({
+        settingValue: options.baseURL,
+        environmentVariableName: 'ANTHROPIC_BASE_URL',
+      }),
+    ) ?? 'https://api.anthropic.com/v1';
 
   const getHeaders = () =>
     withUserAgentSuffix(

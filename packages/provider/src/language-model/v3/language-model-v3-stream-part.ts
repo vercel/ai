@@ -52,6 +52,7 @@ export type LanguageModelV3StreamPart =
       toolName: string;
       providerMetadata?: SharedV3ProviderMetadata;
       providerExecuted?: boolean;
+      dynamic?: boolean;
     }
   | {
       type: 'tool-input-delta';

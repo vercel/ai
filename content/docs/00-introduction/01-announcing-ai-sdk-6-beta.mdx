@@ -1,0 +1,261 @@
+---
+title: AI SDK 6 Beta
+description: Get started with the Beta version of AI SDK 6.
+---
+
+# Announcing AI SDK 6 Beta
+
+<Note type="warning">
+  AI SDK 6 is in beta — while more stable than alpha, AI SDK 6 is still in
+  active development and APIs may still change. Pin to specific versions as
+  breaking changes may occur in patch releases.
+</Note>
+
+## Why AI SDK 6?
+
+AI SDK 6 is a **major version** due to the introduction of the **v3 Language Model Specification** that powers new capabilities like agents and tool approval. However, unlike AI SDK 5, **this release is not expected to have major breaking changes** for most users.
+
+The version bump reflects improvements to the specification, not a complete redesign of the SDK. If you're using AI SDK 5, migrating to v6 should be straightforward with minimal code changes.
+
+## Beta Version Guidance
+
+The AI SDK 6 Beta is intended for:
+
+- **Trying out new features** and giving us feedback on the developer experience
+- **Experimenting with agents** and tool approval workflows
+
+Your feedback during this beta phase directly shapes the final stable release. Share your experiences through [GitHub issues](https://github.com/vercel/ai/issues/new/choose).
+
+## Installation
+
+To install the AI SDK 6 Beta, run the following command:
+
+```bash
+npm install ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta
+```
+
+<Note type="warning">
+  APIs may still change during beta. Pin to specific versions as breaking
+  changes may occur in patch releases.
+</Note>
+
+## What's New in AI SDK 6?
+
+AI SDK 6 introduces three flagship features (with more to come soon!):
+
+### Agent Abstraction
+
+A new unified interface for building agents with full control over execution flow, tool loops, and state management.
+
+### Tool Execution Approval
+
+Request user confirmation before executing tools, enabling native human-in-the-loop patterns.
+
+### Image Editing Support
+
+Native support for image editing (coming soon).
+
+## Agent Abstraction
+
+AI SDK 6 introduces a powerful new `Agent` interface that provides a standardized way to build agents.
+
+### Default Implementation: ToolLoopAgent
+
+The `ToolLoopAgent` class provides a default implementation out of the box:
+
+```typescript
+import { openai } from '@ai-sdk/openai';
+import { ToolLoopAgent } from 'ai';
+import { weatherTool } from '@/tool/weather';
+
+export const weatherAgent = new ToolLoopAgent({
+  model: openai('gpt-4o'),
+  instructions: 'You are a helpful weather assistant.',
+  tools: {
+    weather: weatherTool,
+  },
+});
+
+// Use the agent
+const result = await weatherAgent.generate({
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+The agent automatically handles the tool execution loop:
+
+1. Calls the LLM with your prompt
+2. Executes any requested tool calls
+3. Adds results back to the conversation
+4. Repeats until complete (default `stopWhen: stepCountIs(20)`)
+
+### UI Integration
+
+Agents integrate seamlessly with React and other UI frameworks:
+
+```typescript
+// Server-side API route
+import { createAgentUIStreamResponse, convertToModelMessages } from 'ai';
+
+export async function POST(request: Request) {
+  const { messages } = await request.json();
+
+  return createAgentUIStreamResponse({
+    agent: weatherAgent,
+    messages: convertToModelMessages(messages),
+  });
+}
+```
+
+```typescript
+// Client-side with type safety
+import { useChat } from '@ai-sdk/react';
+import { InferAgentUIMessage } from 'ai';
+import { weatherAgent } from '@/agent/weather-agent';
+
+type WeatherAgentUIMessage = InferAgentUIMessage<typeof weatherAgent>;
+
+const { messages, sendMessage } = useChat<WeatherAgentUIMessage>();
+```
+
+### Custom Agent Implementations
+
+In AI SDK 6, `Agent` is an interface rather than a concrete class. While `ToolLoopAgent` provides a solid default implementation for most use cases, you can implement the `Agent` interface to build custom agent architectures:
+
+```typescript
+import { Agent } from 'ai';
+
+// Build your own multi-agent orchestrator that delegates to specialists
+class Orchestrator implements Agent {
+  constructor(private subAgents: Record<string, Agent>) {
+    /* Implementation */
+  }
+}
+
+const orchestrator = new Orchestrator({
+  subAgents: {
+    // your subagents
+  },
+});
+```
+
+This approach enables you to experiment with orchestrators, memory layers, custom stop conditions, and agent patterns tailored to your specific use case.
+
+## Tool Execution Approval
+
+AI SDK 6 introduces a tool approval system that gives you control over when tools are executed.
+
+Enable approval for a tool by setting `needsApproval`:
+
+```typescript
+import { tool } from 'ai';
+import { z } from 'zod';
+
+export const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    city: z.string(),
+  }),
+  needsApproval: true, // Require user approval
+  execute: async ({ city }) => {
+    const weather = await fetchWeather(city);
+    return weather;
+  },
+});
+```
+
+### Dynamic Approval
+
+Make approval decisions based on tool input:
+
+```typescript
+export const paymentTool = tool({
+  description: 'Process a payment',
+  inputSchema: z.object({
+    amount: z.number(),
+    recipient: z.string(),
+  }),
+  // Only require approval for large transactions
+  needsApproval: async ({ amount }) => amount > 1000,
+  execute: async ({ amount, recipient }) => {
+    return await processPayment(amount, recipient);
+  },
+});
+```
+
+### Client-Side Approval UI
+
+Handle approval requests in your UI:
+
+```tsx
+export function WeatherToolView({ invocation, addToolApprovalResponse }) {
+  if (invocation.state === 'approval-requested') {
+    return (
+      <div>
+        <p>Can I retrieve the weather for {invocation.input.city}?</p>
+        <button
+          onClick={() =>
+            addToolApprovalResponse({
+              id: invocation.approval.id,
+              approved: true,
+            })
+          }
+        >
+          Approve
+        </button>
+        <button
+          onClick={() =>
+            addToolApprovalResponse({
+              id: invocation.approval.id,
+              approved: false,
+            })
+          }
+        >
+          Deny
+        </button>
+      </div>
+    );
+  }
+
+  if (invocation.state === 'output-available') {
+    return (
+      <div>
+        Weather: {invocation.output.weather}
+        Temperature: {invocation.output.temperature}°F
+      </div>
+    );
+  }
+
+  // Handle other states...
+}
+```
+
+### Auto-Submit After Approvals
+
+Automatically continue the conversation once approvals are handled:
+
+```typescript
+import { useChat } from '@ai-sdk/react';
+import { lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
+
+const { messages, addToolApprovalResponse } = useChat({
+  sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+});
+```
+
+## Image Editing Support
+
+Native support for image editing and generation workflows is coming soon. This will enable:
+
+- Image-to-image transformations
+- Multi-modal editing with text prompts
+
+## Migration from AI SDK 5.x
+
+AI SDK 6 is expected to have minimal breaking changes. The version bump is due to the v3 Language Model Specification, but most AI SDK 5 code will work with little or no modification.
+
+## Timeline
+
+**AI SDK 6 Beta**: Available now
+
+**Stable Release**: End of 2025

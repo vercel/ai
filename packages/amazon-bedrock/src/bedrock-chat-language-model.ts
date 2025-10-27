@@ -137,14 +137,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
-    const { toolConfig, additionalTools, toolWarnings, betas } = prepareTools({
-      tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
-      toolChoice:
-        jsonResponseTool != null
-          ? { type: 'tool', toolName: jsonResponseTool.name }
-          : toolChoice,
-      modelId: this.modelId,
-    });
+    const { toolConfig, additionalTools, toolWarnings, betas } =
+      await prepareTools({
+        tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
+        toolChoice:
+          jsonResponseTool != null
+            ? { type: 'tool', toolName: jsonResponseTool.name }
+            : toolChoice,
+        modelId: this.modelId,
+      });
 
     warnings.push(...toolWarnings);
 
@@ -257,8 +258,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       await convertToBedrockChatMessages(filteredPrompt);
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
-    const { reasoningConfig: _, ...filteredBedrockOptions } =
-      providerOptions?.bedrock || {};
+    const {
+      reasoningConfig: _,
+      additionalModelRequestFields: __,
+      ...filteredBedrockOptions
+    } = providerOptions?.bedrock || {};
 
     return {
       command: {

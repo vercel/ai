@@ -1,5 +1,5 @@
 // re-exports:
-export { gateway, createGateway } from '@ai-sdk/gateway';
+export { createGateway, gateway } from '@ai-sdk/gateway';
 export {
   asSchema,
   createIdGenerator,
@@ -9,11 +9,15 @@ export {
   parseJsonEventStream,
   tool,
   zodSchema,
+  type FlexibleSchema,
   type IdGenerator,
+  type InferSchema,
   type InferToolInput,
   type InferToolOutput,
   type Schema,
   type Tool,
+  type ToolApprovalRequest,
+  type ToolApprovalResponse,
   type ToolCallOptions,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';

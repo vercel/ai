@@ -5,8 +5,9 @@ import {
   NoSuchModelError,
   RerankingModelV3,
   ProviderV3,
-  SpeechModelV2,
-  TranscriptionModelV2,
+  SpeechModelV3,
+  TranscriptionModelV3,
+  ProviderV2,
 } from '@ai-sdk/provider';
 
 /**
@@ -28,8 +29,8 @@ export function customProvider<
   LANGUAGE_MODELS extends Record<string, LanguageModelV3>,
   EMBEDDING_MODELS extends Record<string, EmbeddingModelV3<string>>,
   IMAGE_MODELS extends Record<string, ImageModelV3>,
-  TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV2>,
-  SPEECH_MODELS extends Record<string, SpeechModelV2>,
+  TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV3>,
+  SPEECH_MODELS extends Record<string, SpeechModelV3>,
   RERANKING_MODELS extends Record<string, RerankingModelV3<string>>,
 >({
   languageModels,
@@ -46,7 +47,7 @@ export function customProvider<
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
-  fallbackProvider?: ProviderV3;
+  fallbackProvider?: ProviderV3 | ProviderV2;
 }): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
   textEmbeddingModel(
@@ -55,11 +56,11 @@ export function customProvider<
   imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV3;
   transcriptionModel(
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
-  ): TranscriptionModelV2;
-  speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2;
+  ): TranscriptionModelV3;
   rerankingModel(
     modelId: ExtractModelId<RERANKING_MODELS>,
   ): RerankingModelV3<string>;
+  speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3;
 } {
   return {
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3 {
@@ -68,7 +69,7 @@ export function customProvider<
       }
 
       if (fallbackProvider) {
-        return fallbackProvider.languageModel(modelId);
+        return (fallbackProvider as ProviderV3).languageModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
@@ -82,7 +83,7 @@ export function customProvider<
       }
 
       if (fallbackProvider) {
-        return fallbackProvider.textEmbeddingModel(modelId);
+        return (fallbackProvider as ProviderV3).textEmbeddingModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
@@ -94,7 +95,7 @@ export function customProvider<
       }
 
       if (fallbackProvider?.imageModel) {
-        return fallbackProvider.imageModel(modelId);
+        return (fallbackProvider as ProviderV3).imageModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
@@ -102,25 +103,25 @@ export function customProvider<
 
     transcriptionModel(
       modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
-    ): TranscriptionModelV2 {
+    ): TranscriptionModelV3 {
       if (transcriptionModels != null && modelId in transcriptionModels) {
         return transcriptionModels[modelId];
       }
 
       if (fallbackProvider?.transcriptionModel) {
-        return fallbackProvider.transcriptionModel(modelId);
+        return (fallbackProvider as ProviderV3).transcriptionModel!(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'transcriptionModel' });
     },
 
-    speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV2 {
+    speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3 {
       if (speechModels != null && modelId in speechModels) {
         return speechModels[modelId];
       }
 
       if (fallbackProvider?.speechModel) {
-        return fallbackProvider.speechModel(modelId);
+        return (fallbackProvider as ProviderV3).speechModel!(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'speechModel' });

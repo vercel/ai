@@ -6,7 +6,7 @@ import {
 import {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
-} from './openai-chat-types';
+} from './openai-chat-api';
 
 export function prepareChatTools({
   tools,

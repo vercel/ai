@@ -4,8 +4,8 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
-import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
-import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
+import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
+import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { MockProviderV3 } from '../test/mock-provider-v3';
 import { describe, it, expect, vi } from 'vitest';
@@ -356,7 +356,7 @@ describe('imageModel', () => {
 
 describe('transcriptionModel', () => {
   it('should return transcription model from provider', () => {
-    const model = new MockTranscriptionModelV2();
+    const model = new MockTranscriptionModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -411,7 +411,7 @@ describe('transcriptionModel', () => {
 
 describe('speechModel', () => {
   it('should return speech model from provider', () => {
-    const model = new MockSpeechModelV2();
+    const model = new MockSpeechModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {

@@ -33,7 +33,6 @@ export async function POST(req: Request) {
     providerOptions: {
       openai: {
         store: false,
-        include: ['reasoning.encrypted_content'],
       } satisfies OpenAIResponsesProviderOptions,
     },
   });

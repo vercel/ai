@@ -1,11 +1,13 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
+import { JSONValue } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { TranscriptionWarning } from '../types/transcription-model';
+import {
+  TranscriptionWarning,
+  TranscriptionModel,
+} from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
@@ -15,6 +17,7 @@ import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
+import { resolveTranscriptionModel } from '../model/resolve-model';
 /**
 Generates transcripts using a transcription model.
 
@@ -39,7 +42,7 @@ export async function transcribe({
   /**
 The transcription model to use.
      */
-  model: TranscriptionModelV2;
+  model: TranscriptionModel;
 
   /**
 The audio data to transcribe.
@@ -80,12 +83,9 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
+  const resolvedModel = resolveTranscriptionModel(model);
+  if (!resolvedModel) {
+    throw new Error('Model could not be resolved');
   }
 
   const { retry } = prepareRetries({
@@ -104,7 +104,7 @@ Only applicable for HTTP-based providers.
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
-    model.doGenerate({
+    resolvedModel.doGenerate({
       audio: audioData,
       abortSignal,
       headers: headersWithUserAgent,
