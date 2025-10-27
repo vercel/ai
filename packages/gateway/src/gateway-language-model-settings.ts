@@ -47,6 +47,7 @@ export type GatewayModelId =
   | 'inception/mercury-coder-small'
   | 'meituan/longcat-flash-chat'
   | 'meituan/longcat-flash-thinking'
+  | 'minimax/minimax-m2'
   | 'meta/llama-3-70b'
   | 'meta/llama-3-8b'
   | 'meta/llama-3.1-70b'
