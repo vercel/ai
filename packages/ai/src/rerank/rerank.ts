@@ -1,7 +1,4 @@
-import {
-  JSONObject,
-  TooManyDocumentsForRerankingError,
-} from '@ai-sdk/provider';
+import { JSONObject } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -88,16 +85,6 @@ Only applicable for HTTP-based providers.
     */
   providerOptions?: ProviderOptions;
 }): Promise<RerankResult<VALUE>> {
-  const maxDocumentsPerCall = await model.maxDocumentsPerCall;
-
-  if (maxDocumentsPerCall != null && documents.length > maxDocumentsPerCall) {
-    throw new TooManyDocumentsForRerankingError({
-      provider: model.provider,
-      modelId: model.modelId,
-      maxDocumentsPerCall,
-      documentsCount: documents.length,
-    });
-  }
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
