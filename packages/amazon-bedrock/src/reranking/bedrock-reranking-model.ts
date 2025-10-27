@@ -1,4 +1,4 @@
-import { RerankingModelV3 } from '@ai-sdk/provider';
+import { JSONObject, RerankingModelV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   Resolvable,
@@ -10,7 +10,10 @@ import {
   resolve,
 } from '@ai-sdk/provider-utils';
 import { BedrockErrorSchema } from '../bedrock-error';
-import { bedrockRerankingResponseSchema } from './bedrock-reranking-api';
+import {
+  BedrockRerankingInput,
+  bedrockRerankingResponseSchema,
+} from './bedrock-reranking-api';
 import {
   BedrockRerankingModelId,
   bedrockRerankingProviderOptions,
@@ -49,57 +52,48 @@ export class BedrockRerankingModel implements RerankingModelV3 {
         schema: bedrockRerankingProviderOptions,
       })) ?? {};
 
-    const sources = documents.values.map(value => ({
-      inlineDocumentSource:
-        documents.type === 'text'
-          ? {
-              type: 'TEXT',
-              textDocument: { text: value },
-            }
-          : {
-              type: 'JSON',
-              jsonDocument: value,
-            },
-      type: 'INLINE',
-    }));
-
-    // Prepare the request body according to AWS Bedrock Rerank API
-    // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_agent-runtime_Rerank.html
-    const args = {
-      nextToken: bedrockOptions.nextToken,
-      queries: [
-        {
-          textQuery: { text: query },
-          type: 'TEXT',
-        },
-      ],
-      rerankingConfiguration: {
-        bedrockRerankingConfiguration: {
-          modelConfiguration: {
-            modelArn: `arn:aws:bedrock:${this.config.region}::foundation-model/${this.modelId}`,
-            additionalModelRequestFields:
-              bedrockOptions.additionalModelRequestFields ?? {},
-          },
-          numberOfResults: topN,
-        },
-        type: 'BEDROCK_RERANKING_MODEL',
-      },
-      sources,
-    };
-
-    // Use agent runtime API for reranking
-    const url = `${this.config.baseUrl()}/rerank`;
-
     const {
       value: response,
       responseHeaders,
       rawValue,
     } = await postJsonToApi({
-      url,
+      url: `${this.config.baseUrl()}/rerank`,
       headers: await resolve(
         combineHeaders(await resolve(this.config.headers), headers),
       ),
-      body: args,
+      body: {
+        nextToken: bedrockOptions.nextToken,
+        queries: [
+          {
+            textQuery: { text: query },
+            type: 'TEXT',
+          },
+        ],
+        rerankingConfiguration: {
+          bedrockRerankingConfiguration: {
+            modelConfiguration: {
+              modelArn: `arn:aws:bedrock:${this.config.region}::foundation-model/${this.modelId}`,
+              additionalModelRequestFields:
+                bedrockOptions.additionalModelRequestFields ?? {},
+            },
+            numberOfResults: topN,
+          },
+          type: 'BEDROCK_RERANKING_MODEL',
+        },
+        sources: documents.values.map(value => ({
+          type: 'INLINE' as const,
+          inlineDocumentSource:
+            documents.type === 'text'
+              ? {
+                  type: 'TEXT' as const,
+                  textDocument: { text: value as string },
+                }
+              : {
+                  type: 'JSON' as const,
+                  jsonDocument: value,
+                },
+        })),
+      } satisfies BedrockRerankingInput,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
         errorToMessage: error => `${error.type}: ${error.message}`,
