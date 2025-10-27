@@ -379,6 +379,9 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
               z.object({
                 type: z.literal('search'),
                 query: z.string().nullish(),
+                sources: z
+                  .array(z.object({ type: z.literal('url'), url: z.string() }))
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('open_page'),
@@ -592,6 +595,9 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
               z.object({
                 type: z.literal('search'),
                 query: z.string().nullish(),
+                sources: z
+                  .array(z.object({ type: z.literal('url'), url: z.string() }))
+                  .nullish(),
               }),
               z.object({
                 type: z.literal('open_page'),
