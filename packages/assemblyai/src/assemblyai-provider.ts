@@ -103,13 +103,6 @@ export function createAssemblyAI(
       message: 'AssemblyAI does not provide image models',
     });
   };
-  provider.rerankingModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'rerankingModel',
-      message: 'AssemblyAI does not provide reranking models',
-    });
-  };
 
   return provider as AssemblyAIProvider;
 }
