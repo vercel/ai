@@ -7,7 +7,6 @@ import {
   ProviderV3,
   SpeechModelV3,
   TranscriptionModelV3,
-  ProviderV2,
 } from '@ai-sdk/provider';
 
 /**
@@ -47,7 +46,7 @@ export function customProvider<
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
-  fallbackProvider?: ProviderV3 | ProviderV2;
+  fallbackProvider?: ProviderV3;
 }): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
   textEmbeddingModel(
