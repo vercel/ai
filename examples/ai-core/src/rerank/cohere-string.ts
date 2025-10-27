@@ -8,7 +8,7 @@ run(async () => {
     model: cohere.rerankingModel('rerank-v3.5'),
     documents: ['sunny day at the beach', 'rainy day in the city'],
     query: 'talk about rain',
-    topK: 2,
+    topN: 2,
     providerOptions: {
       cohere: {
         priority: 1,
