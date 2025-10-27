@@ -34,17 +34,6 @@ export const bedrockRerankingResponseSchema = lazySchema(() =>
     z.object({
       results: z.array(
         z.object({
-          document: z
-            .object({
-              textDocument: z
-                .object({
-                  text: z.string(),
-                })
-                .optional(),
-              jsonDocument: z.any().optional(),
-              type: z.string(),
-            })
-            .optional(),
           index: z.number(),
           relevanceScore: z.number(),
         }),

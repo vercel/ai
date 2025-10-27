@@ -106,10 +106,7 @@ export class BedrockRerankingModel implements RerankingModelV3 {
     });
 
     return {
-      ranking: response.results.map(result => ({
-        index: result.index,
-        relevanceScore: result.relevanceScore,
-      })),
+      ranking: response.results,
       response: {
         headers: responseHeaders,
         body: rawValue,
