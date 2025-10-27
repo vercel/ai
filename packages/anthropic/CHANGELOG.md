@@ -1,5 +1,12 @@
 # @ai-sdk/anthropic
 
+## 2.0.38
+
+### Patch Changes
+
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+
 ## 2.0.37
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.13
+
+### Patch Changes
+
+- 1e05490: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+
 ## 3.0.12
 
 ### Patch Changes

@@ -4,6 +4,14 @@
 
 ### Patch Changes
 
+- Updated dependencies [1e05490]
+- Updated dependencies [1e05490]
+  - ai@5.0.81
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [c7688ec]
   - ai@5.0.80
 

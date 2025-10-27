@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.81
+
+### Patch Changes
+
+- 1e05490: fix(ai): do not drop custom headers in HttpChatTransport
+- 1e05490: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+  - @ai-sdk/gateway@2.0.2
+
 ## 5.0.80
 
 ### Patch Changes
