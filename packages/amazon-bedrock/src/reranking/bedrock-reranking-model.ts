@@ -1,4 +1,4 @@
-import { JSONObject, RerankingModelV3 } from '@ai-sdk/provider';
+import { RerankingModelV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   Resolvable,
@@ -16,7 +16,7 @@ import {
 } from './bedrock-reranking-api';
 import {
   BedrockRerankingModelId,
-  bedrockRerankingProviderOptions,
+  bedrockRerankingProviderOptionsSchema,
 } from './bedrock-reranking-options';
 
 type BedrockRerankingConfig = {
@@ -45,12 +45,11 @@ export class BedrockRerankingModel implements RerankingModelV3 {
     abortSignal,
     providerOptions,
   }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<DoRerankResponse> {
-    const bedrockOptions =
-      (await parseProviderOptions({
-        provider: 'bedrock',
-        providerOptions,
-        schema: bedrockRerankingProviderOptions,
-      })) ?? {};
+    const bedrockOptions = await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions,
+      schema: bedrockRerankingProviderOptionsSchema,
+    });
 
     const {
       value: response,
@@ -62,7 +61,7 @@ export class BedrockRerankingModel implements RerankingModelV3 {
         combineHeaders(await resolve(this.config.headers), headers),
       ),
       body: {
-        nextToken: bedrockOptions.nextToken,
+        nextToken: bedrockOptions?.nextToken,
         queries: [
           {
             textQuery: { text: query },
@@ -74,7 +73,7 @@ export class BedrockRerankingModel implements RerankingModelV3 {
             modelConfiguration: {
               modelArn: `arn:aws:bedrock:${this.config.region}::foundation-model/${this.modelId}`,
               additionalModelRequestFields:
-                bedrockOptions.additionalModelRequestFields ?? {},
+                bedrockOptions?.additionalModelRequestFields,
             },
             numberOfResults: topN,
           },
