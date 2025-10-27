@@ -13,4 +13,6 @@ run(async () => {
 
   print('Reranking:', result.ranking);
   print('Metadata:', result.providerMetadata);
+
+  console.log(JSON.stringify(result.response?.body, null, 2));
 });

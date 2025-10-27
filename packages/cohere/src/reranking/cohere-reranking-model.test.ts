@@ -1,178 +1,230 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { createCohere } from './cohere-provider';
-import { describe, it, expect } from 'vitest';
-
-const dummyResultDocuments: RerankedDocument<string>[] = [
-  {
-    index: 1,
-    relevanceScore: 0.45028743,
-    document: 'rainy day in the city',
-  },
-  {
-    index: 0,
-    relevanceScore: 0.0926305,
-    document: 'sunny day at the beach',
-  },
-];
-
-const testDocuments = ['sunny day at the beach', 'rainy day in the city'];
+import { createCohere } from '../cohere-provider';
+import { describe, it, expect, beforeEach } from 'vitest';
+import fs from 'node:fs';
 
 const provider = createCohere({ apiKey: 'test-api-key' });
 const model = provider.rerankingModel('rerank-english-v3.0');
-const server = createTestServer({
-  'https://api.cohere.com/v2/rerank': {},
-});
 
 describe('doRerank', () => {
-  function prepareJsonResponse({
-    rerankedDocuments = dummyResultDocuments,
-    meta = {
-      billed_units: { search_units: 1 },
-      api_version: { version: 'v1' },
-    },
-    headers,
-  }: {
-    rerankedDocuments?: RerankedDocument<string>[];
-    meta?: {
-      billed_units: { search_units: number };
-      api_version?: { version: string };
-    };
-    headers?: Record<string, string>;
-  } = {}) {
-    // Convert RerankedDocument format to API response format
-    const apiResults = rerankedDocuments.map(doc => ({
-      index: doc.index,
-      relevance_score: doc.relevanceScore,
-    }));
+  const server = createTestServer({
+    'https://api.cohere.com/v2/rerank': {},
+  });
 
+  function prepareJsonFixtureResponse(filename: string) {
     server.urls['https://api.cohere.com/v2/rerank'].response = {
       type: 'json-value',
-      headers,
-      body: {
-        id: 'test-id',
-        results: apiResults,
-        meta,
-      },
+      body: JSON.parse(
+        fs.readFileSync(`src/reranking/__fixtures__/${filename}.json`, 'utf8'),
+      ),
     };
+    return;
   }
 
-  it('should rerank documents', async () => {
-    prepareJsonResponse();
+  describe('json documents', () => {
+    let result: Awaited<ReturnType<typeof model.doRerank>>;
 
-    const { rerankedDocuments } = await model.doRerank({
-      values: testDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('cohere-reranking.1');
 
-    expect(rerankedDocuments).toStrictEqual(dummyResultDocuments);
-  });
-
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse({
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doRerank({
-      values: testDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
-
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '183',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      meta: {
-        billed_units: { search_units: 1 },
-        api_version: { version: 'v1' },
-      },
-    });
-
-    const { usage } = await model.doRerank({
-      values: testDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
-
-    expect(usage).toStrictEqual({ tokens: 1 });
-  });
-
-  it('should pass the model and the values', async () => {
-    prepareJsonResponse();
-
-    await model.doRerank({
-      values: testDocuments,
-      query: 'rainy day',
-      topK: 2,
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'rerank-english-v3.0',
-      documents: testDocuments,
-      query: 'rainy day',
-      max_tokens_per_doc: 4096,
-      top_n: 2,
-    });
-  });
-
-  it('should pass the maxTokensPerDoc setting', async () => {
-    prepareJsonResponse();
-
-    await provider.rerankingModel('rerank-english-v3.0').doRerank({
-      values: testDocuments,
-      query: 'rainy day',
-      topK: 2,
-      providerOptions: {
-        cohere: {
-          maxTokensPerDoc: 1000,
+      result = await model.doRerank({
+        documents: {
+          type: 'json',
+          values: [
+            { example: 'sunny day at the beach' },
+            { example: 'rainy day in the city' },
+          ],
         },
-      },
+        query: 'rainy day',
+        topK: 2,
+      });
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'rerank-english-v3.0',
-      documents: testDocuments,
-      query: 'rainy day',
-      top_n: 2,
-      max_tokens_per_doc: 1000,
+    it('should send request with stringified json documents', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            "{"example":"sunny day at the beach"}",
+            "{"example":"rainy day in the city"}",
+          ],
+          "model": "rerank-english-v3.0",
+          "query": "rainy day",
+          "top_n": 2,
+        }
+      `);
+    });
+
+    it('should send request with the correct headers', async () => {
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+        }
+      `);
+    });
+
+    it('should return result with the correct ranking', async () => {
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "index": 1,
+            "relevanceScore": 0.10183054,
+          },
+          {
+            "index": 0,
+            "relevanceScore": 0.03762639,
+          },
+        ]
+      `);
+    });
+
+    it('should return result with the correct provider metadata', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`
+        {
+          "cohere": {
+            "api_version": {
+              "version": "2",
+            },
+            "billed_units": {
+              "search_units": 1,
+            },
+          },
+        }
+      `);
+    });
+
+    it('should return result with the correct response', async () => {
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "id": "b44fe75b-e3d3-489a-b61e-1a1aede3ef72",
+            "meta": {
+              "api_version": {
+                "version": "2",
+              },
+              "billed_units": {
+                "search_units": 1,
+              },
+            },
+            "results": [
+              {
+                "index": 1,
+                "relevance_score": 0.10183054,
+              },
+              {
+                "index": 0,
+                "relevance_score": 0.03762639,
+              },
+            ],
+          },
+          "headers": {
+            "content-length": "212",
+            "content-type": "application/json",
+          },
+        }
+      `);
     });
   });
 
-  it('should pass headers', async () => {
-    prepareJsonResponse();
+  describe('text documents', () => {
+    let result: Awaited<ReturnType<typeof model.doRerank>>;
 
-    const provider = createCohere({
-      apiKey: 'test-api-key',
-      headers: {
-        'Custom-Provider-Header': 'provider-header-value',
-      },
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('cohere-reranking.1');
+
+      result = await model.doRerank({
+        documents: {
+          type: 'text',
+          values: ['sunny day at the beach', 'rainy day in the city'],
+        },
+        query: 'rainy day',
+        topK: 2,
+      });
     });
 
-    await provider.rerankingModel('rerank-english-v3.0').doRerank({
-      values: testDocuments,
-      query: 'rainy day',
-      topK: 2,
-      headers: {
-        'Custom-Request-Header': 'request-header-value',
-      },
+    it('should send request with text documents', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            "sunny day at the beach",
+            "rainy day in the city",
+          ],
+          "model": "rerank-english-v3.0",
+          "query": "rainy day",
+          "top_n": 2,
+        }
+      `);
     });
 
-    const requestHeaders = server.calls[0].requestHeaders;
+    it('should send request with the correct headers', async () => {
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+        }
+      `);
+    });
 
-    expect(requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
+    it('should return result with the correct ranking', async () => {
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "index": 1,
+            "relevanceScore": 0.10183054,
+          },
+          {
+            "index": 0,
+            "relevanceScore": 0.03762639,
+          },
+        ]
+      `);
+    });
+
+    it('should return result with the correct provider metadata', async () => {
+      expect(result.providerMetadata).toMatchInlineSnapshot(`
+        {
+          "cohere": {
+            "api_version": {
+              "version": "2",
+            },
+            "billed_units": {
+              "search_units": 1,
+            },
+          },
+        }
+      `);
+    });
+
+    it('should return result with the correct response', async () => {
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "id": "b44fe75b-e3d3-489a-b61e-1a1aede3ef72",
+            "meta": {
+              "api_version": {
+                "version": "2",
+              },
+              "billed_units": {
+                "search_units": 1,
+              },
+            },
+            "results": [
+              {
+                "index": 1,
+                "relevance_score": 0.10183054,
+              },
+              {
+                "index": 0,
+                "relevance_score": 0.03762639,
+              },
+            ],
+          },
+          "headers": {
+            "content-length": "212",
+            "content-type": "application/json",
+          },
+        }
+      `);
     });
   });
 });
