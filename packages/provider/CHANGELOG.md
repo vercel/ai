@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+
 ## 3.0.0-beta.9
 
 ### Patch Changes
