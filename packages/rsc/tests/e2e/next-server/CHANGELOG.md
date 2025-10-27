@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [d1bdadb]
+  - ai@6.0.0-beta.79
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - ai@6.0.0-beta.78
 
 ## 0.0.1-beta.0

@@ -1,5 +1,15 @@
 # @ai-sdk/togetherai
 
+## 2.0.0-beta.27
+
+### Patch Changes
+
+- d1bdadb: Added reranking feature
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/openai-compatible@2.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
 ## 2.0.0-beta.26
 
 ### Patch Changes
