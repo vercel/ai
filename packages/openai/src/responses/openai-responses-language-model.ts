@@ -481,15 +481,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   mediaType: 'text/plain',
                   title: annotation.quote ?? annotation.filename ?? 'Document',
                   filename: annotation.filename ?? annotation.file_id,
-                  // ...(annotation.file_id
-                  //   ? {
-                  //       providerMetadata: {
-                  //         openai: {
-                  //           fileId: annotation.file_id,
-                  //         },
-                  //       },
-                  //     }
-                  //   : {}),
+                  ...(annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          openai: {
+                            fileId: annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
                 });
               }
             }
@@ -1203,15 +1203,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     'Document',
                   filename:
                     value.annotation.filename ?? value.annotation.file_id,
-                  // ...(value.annotation.file_id
-                  //   ? {
-                  //       providerMetadata: {
-                  //         openai: {
-                  //           fileId: value.annotation.file_id,
-                  //         },
-                  //       },
-                  //     }
-                  //   : {}),
+                  ...(value.annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          openai: {
+                            fileId: value.annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
                 });
               }
             } else if (isErrorChunk(value)) {
