@@ -1,7 +1,7 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { JSONRPCMessage } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
-import { MCPTool } from './types';
+import { MCPTool, MCPResource } from './types';
 
 const DEFAULT_TOOLS: MCPTool[] = [
   {
@@ -25,6 +25,9 @@ const DEFAULT_TOOLS: MCPTool[] = [
 
 export class MockMCPTransport implements MCPTransport {
   private tools;
+  private resources;
+  private resourceTemplates;
+  private resourceContents;
   private failOnInvalidToolParams;
   private initializeResult;
   private sendError;
@@ -35,16 +38,56 @@ export class MockMCPTransport implements MCPTransport {
 
   constructor({
     overrideTools = DEFAULT_TOOLS,
+    resources = [
+      {
+        uri: 'file:///mock/resource.txt',
+        name: 'resource.txt',
+        description: 'Mock resource',
+        mimeType: 'text/plain',
+      } satisfies MCPResource,
+    ],
+    resourceTemplates = [
+      {
+        uriTemplate: 'file:///{path}',
+        name: 'mock-template',
+        description: 'Mock template',
+      },
+    ],
+    resourceContents = [
+      {
+        uri: 'file:///mock/resource.txt',
+        text: 'Mock resource content',
+        mimeType: 'text/plain',
+      },
+    ],
     failOnInvalidToolParams = false,
     initializeResult,
     sendError = false,
   }: {
     overrideTools?: MCPTool[];
+    resources?: MCPResource[];
+    resourceTemplates?: Array<
+      Pick<MCPResource, 'name' | 'description' | 'mimeType'> & {
+        uriTemplate: string;
+        title?: string;
+      }
+    >;
+    resourceContents?: Array<
+      {
+        uri: string;
+        name?: string;
+        title?: string;
+        mimeType?: string;
+      } & ({ text: string } | { blob: string })
+    >;
     failOnInvalidToolParams?: boolean;
     initializeResult?: Record<string, unknown>;
     sendError?: boolean;
   } = {}) {
     this.tools = overrideTools;
+    this.resources = resources;
+    this.resourceTemplates = resourceTemplates;
+    this.resourceContents = resourceContents;
     this.failOnInvalidToolParams = failOnInvalidToolParams;
     this.initializeResult = initializeResult;
     this.sendError = sendError;
@@ -75,7 +118,58 @@ export class MockMCPTransport implements MCPTransport {
             },
             capabilities: {
               ...(this.tools.length > 0 ? { tools: {} } : {}),
+              ...(this.resources.length > 0 ? { resources: {} } : {}),
             },
+          },
+        });
+      }
+
+      if (message.method === 'resources/list') {
+        await delay(10);
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            resources: this.resources,
+          },
+        });
+      }
+
+      if (message.method === 'resources/read') {
+        await delay(10);
+        const uri = message.params?.uri;
+        const contents = this.resourceContents.filter(
+          content => content.uri === uri,
+        );
+
+        if (contents.length === 0) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32002,
+              message: `Resource ${uri} not found`,
+            },
+          });
+          return;
+        }
+
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            contents,
+          },
+        });
+      }
+
+      if (message.method === 'resources/templates/list') {
+        await delay(10);
+        this.onmessage?.({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            resourceTemplates: this.resourceTemplates,
           },
         });
       }
