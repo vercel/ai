@@ -1,4 +1,8 @@
-import { SharedV3Headers, SharedV3ProviderMetadata } from '../../shared/v3/';
+import {
+  SharedV3Headers,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
+} from '../../shared/v3/';
 import { RerankingModelV3CallOptions } from './reranking-model-v3-call-options';
 
 /**
@@ -47,6 +51,11 @@ export type RerankingModelV3 = {
      * functionality that can be fully encapsulated in the provider.
      */
     providerMetadata?: SharedV3ProviderMetadata;
+
+    /**
+     * Warnings for the call, e.g. unsupported settings.
+     */
+    warnings?: Array<SharedV3Warning>;
 
     /**
      * Optional response information for debugging purposes.

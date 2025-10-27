@@ -28,7 +28,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   model,
   documents,
   query,
-  topK,
+  topN,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -51,9 +51,9 @@ The query is a string that represents the query to rerank the documents against.
   query: string;
 
   /**
-Top k documents to rerank.
-  */
-  topK: number;
+   * Number of top documents to return.
+   */
+  topN: number;
 
   /**
 Maximum number of retries per reranking model call. Set to 0 to disable retries.
@@ -137,9 +137,9 @@ Only applicable for HTTP-based providers.
                 document => typeof document === 'string',
               )
                 ? { type: 'text', values: documents }
-                : { type: 'json', values: documents },
+                : { type: 'object', values: documents },
               query,
-              topK,
+              topN,
               providerOptions,
               abortSignal,
               headers,
