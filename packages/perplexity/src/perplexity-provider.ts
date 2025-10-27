@@ -79,6 +79,7 @@ export function createPerplexity(
   const provider = (modelId: PerplexityLanguageModelId) =>
     createLanguageModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
 
   provider.textEmbeddingModel = (modelId: string) => {

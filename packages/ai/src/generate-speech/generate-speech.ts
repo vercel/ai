@@ -147,7 +147,11 @@ Only applicable for HTTP-based providers.
     throw new NoSpeechGeneratedError({ responses: [result.response] });
   }
 
-  logWarnings(result.warnings);
+  logWarnings({
+    warnings: result.warnings,
+    provider: resolvedModel.provider,
+    model: resolvedModel.modelId,
+  });
 
   return new DefaultSpeechResult({
     audio: new DefaultGeneratedAudioFile({

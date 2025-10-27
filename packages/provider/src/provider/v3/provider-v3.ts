@@ -8,6 +8,8 @@ import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription
  * Provider for language, text embedding, and image generation models.
  */
 export interface ProviderV3 {
+  readonly specificationVersion: 'v3';
+
   /**
 Returns the language model with the given id.
 The model id is then passed to the provider function to get the model.

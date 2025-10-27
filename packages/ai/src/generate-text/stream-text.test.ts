@@ -14230,7 +14230,11 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings once for each step with warnings from that step', async () => {
@@ -14321,8 +14325,16 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledTimes(2);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+        warnings: [warning1],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
+        warnings: [warning2],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -14337,7 +14349,11 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
   });
 

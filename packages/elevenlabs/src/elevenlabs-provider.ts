@@ -93,6 +93,7 @@ export function createElevenLabs(
     };
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
