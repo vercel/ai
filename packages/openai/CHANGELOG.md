@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.55
+
+### Patch Changes
+
+- 2f4a59a: feat(openai): add sources in web-search actions
+
 ## 2.0.54
 
 ### Patch Changes
