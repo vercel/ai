@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 0.0.3
+
+### Patch Changes
+
+- f796ddc: feat(mcp): adding resources support to MCP client
+
 ## 0.0.2
 
 ### Patch Changes
