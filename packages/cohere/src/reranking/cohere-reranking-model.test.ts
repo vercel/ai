@@ -63,6 +63,18 @@ describe('doRerank', () => {
       `);
     });
 
+    it('should return result with warnings', async () => {
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "JSON objects are converted to strings.",
+            "feature": "JSON objects",
+            "type": "compatibility",
+          },
+        ]
+      `);
+    });
+
     it('should return result with the correct ranking', async () => {
       expect(result.ranking).toMatchInlineSnapshot(`
         [
@@ -163,6 +175,10 @@ describe('doRerank', () => {
           "content-type": "application/json",
         }
       `);
+    });
+
+    it('should return result without warnings', async () => {
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should return result with the correct ranking', async () => {

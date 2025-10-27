@@ -1,4 +1,4 @@
-import { RerankingModelV3 } from '@ai-sdk/provider';
+import { RerankingModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -55,6 +55,16 @@ export class CohereRerankingModel implements RerankingModelV3 {
       schema: cohereRerankingOptionsSchema,
     });
 
+    const warnings: SharedV3Warning[] = [];
+
+    if (documents.type === 'object') {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'JSON objects',
+        details: 'JSON objects are converted to strings.',
+      });
+    }
+
     const {
       responseHeaders,
       value: response,
@@ -89,6 +99,7 @@ export class CohereRerankingModel implements RerankingModelV3 {
       providerMetadata: {
         cohere: response.meta,
       },
+      warnings,
       response: { headers: responseHeaders, body: rawValue },
     };
   }
