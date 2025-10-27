@@ -131,6 +131,7 @@ describe('doRerank', () => {
             "content-length": "212",
             "content-type": "application/json",
           },
+          "id": "b44fe75b-e3d3-489a-b61e-1a1aede3ef72",
         }
       `);
     });
@@ -234,6 +235,7 @@ describe('doRerank', () => {
             "content-length": "212",
             "content-type": "application/json",
           },
+          "id": "b44fe75b-e3d3-489a-b61e-1a1aede3ef72",
         }
       `);
     });

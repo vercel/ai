@@ -97,7 +97,11 @@ export class CohereRerankingModel implements RerankingModelV3 {
         relevanceScore: result.relevance_score,
       })),
       warnings,
-      response: { headers: responseHeaders, body: rawValue },
+      response: {
+        id: response.id ?? undefined,
+        headers: responseHeaders,
+        body: rawValue,
+      },
     };
   }
 }

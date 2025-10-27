@@ -14,6 +14,7 @@ export type CohereRerankingInput = {
 export const cohereRerankingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      id: z.string().nullish(),
       results: z.array(
         z.object({
           index: z.number(),
