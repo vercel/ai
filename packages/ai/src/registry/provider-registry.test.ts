@@ -483,6 +483,7 @@ describe('rerankingModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         rerankingModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -520,6 +521,7 @@ describe('rerankingModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         textEmbeddingModel: () => {
           return null as any;
         },
@@ -555,6 +557,7 @@ describe('rerankingModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           rerankingModel: id => {
             expect(id).toEqual('model');
             return model;

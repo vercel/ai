@@ -12,6 +12,7 @@ const mockLanguageModel = new MockLanguageModelV3();
 const mockEmbeddingModel = new MockEmbeddingModelV3();
 const mockRerankingModel = new MockRerankingModelV3();
 const mockFallbackProvider = {
+  specificationVersion: 'v3' as const,
   languageModel: vi.fn(),
   textEmbeddingModel: vi.fn(),
   imageModel: vi.fn(),
