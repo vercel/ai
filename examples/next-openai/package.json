@@ -19,7 +19,7 @@
     "@ai-sdk/groq": "3.0.0-beta.22",
     "@ai-sdk/mcp": "1.0.0-beta.3",
     "@ai-sdk/mistral": "3.0.0-beta.23",
-    "@ai-sdk/openai": "3.0.0-beta.36",
+    "@ai-sdk/openai": "3.0.0-beta.37",
     "@ai-sdk/perplexity": "3.0.0-beta.22",
     "@ai-sdk/provider-utils": "4.0.0-beta.22",
     "@ai-sdk/react": "3.0.0-beta.75",
