@@ -162,7 +162,7 @@ Only applicable for HTTP-based providers.
               const usage = modelResponse.usage ?? { tokens: NaN };
 
               doRerankSpan.setAttributes(
-                selectTelemetryAttributes({
+                await selectTelemetryAttributes({
                   telemetry,
                   attributes: {
                     'ai.rerankedDocuments': {
@@ -187,7 +187,7 @@ Only applicable for HTTP-based providers.
         );
 
       span.setAttributes(
-        selectTelemetryAttributes({
+        await selectTelemetryAttributes({
           telemetry,
           attributes: {
             'ai.rerankedDocuments': {
