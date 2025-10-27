@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { rerank } from './rerank';
 import { RerankResult } from './rerank-result';
+import { MockTracer } from '../test/mock-tracer';
 
 describe('rerank', () => {
   describe('rerank with string documents', () => {
@@ -321,66 +322,171 @@ describe('rerank', () => {
     });
   });
 
-  // describe('telemetry', () => {
-  //   let tracer: MockTracer;
+  describe('telemetry', () => {
+    let tracer: MockTracer;
 
-  //   beforeEach(() => {
-  //     tracer = new MockTracer();
-  //   });
+    const model = new MockRerankingModelV3({
+      doRerank: async options => {
+        return {
+          ranking: [
+            { index: 2, relevanceScore: 0.9 },
+            { index: 0, relevanceScore: 0.8 },
+            { index: 1, relevanceScore: 0.7 },
+          ],
+          providerMetadata: {
+            aProvider: {
+              someResponseKey: 'someResponseValue',
+            },
+          },
+          response: {
+            headers: {
+              'content-type': 'application/json',
+            },
+            body: {
+              id: '123',
+            },
+          },
+        };
+      },
+    });
 
-  //   it('should not record any telemetry data when not explicitly enabled', async () => {
-  //     await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //     });
-  //     assert.deepStrictEqual(tracer.jsonSpans, []);
-  //   });
+    beforeEach(() => {
+      tracer = new MockTracer();
+    });
 
-  //   it('should record telemetry data when enabled (single call path)', async () => {
-  //     await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: mockRerank(testDocuments, dummyRerankedDocuments, {
-  //           tokens: 10,
-  //         }),
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //       experimental_telemetry: {
-  //         isEnabled: true,
-  //         functionId: 'test-function-id',
-  //         metadata: {
-  //           test1: 'value1',
-  //           test2: false,
-  //         },
-  //         tracer,
-  //       },
-  //     });
+    it('should not record any telemetry data when not explicitly enabled', async () => {
+      await rerank({
+        model,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        topN: 3,
+      });
 
-  //     expect(tracer.jsonSpans).toMatchSnapshot();
-  //   });
+      expect(tracer.jsonSpans).toMatchInlineSnapshot(`[]`);
+    });
 
-  //   it('should not record telemetry inputs / outputs when disabled', async () => {
-  //     await rerank({
-  //       model: new MockRerankingModelV3({
-  //         doRerank: mockRerank(testDocuments, dummyRerankedDocuments),
-  //       }),
-  //       values: testDocuments,
-  //       query,
-  //       topK,
-  //       experimental_telemetry: {
-  //         isEnabled: true,
-  //         recordInputs: false,
-  //         recordOutputs: false,
-  //         tracer,
-  //       },
-  //     });
+    it('should record telemetry data when enabled (single call path)', async () => {
+      await rerank({
+        model,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        topN: 3,
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'test-function-id',
+          metadata: {
+            test1: 'value1',
+            test2: false,
+          },
+          tracer,
+        },
+      });
 
-  //     expect(tracer.jsonSpans).toMatchSnapshot();
-  //   });
-  // });
+      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+        [
+          {
+            "attributes": {
+              "ai.documents": [
+                ""sunny day at the beach"",
+                ""rainy day in the city"",
+                ""cloudy day in the mountains"",
+              ],
+              "ai.model.id": "mock-model-id",
+              "ai.model.provider": "mock-provider",
+              "ai.operationId": "ai.rerank",
+              "ai.settings.maxRetries": 2,
+              "ai.telemetry.functionId": "test-function-id",
+              "ai.telemetry.metadata.test1": "value1",
+              "ai.telemetry.metadata.test2": false,
+              "operation.name": "ai.rerank test-function-id",
+              "resource.name": "test-function-id",
+            },
+            "events": [],
+            "name": "ai.rerank",
+          },
+          {
+            "attributes": {
+              "ai.documents": [
+                ""sunny day at the beach"",
+                ""rainy day in the city"",
+                ""cloudy day in the mountains"",
+              ],
+              "ai.model.id": "mock-model-id",
+              "ai.model.provider": "mock-provider",
+              "ai.operationId": "ai.rerank.doRerank",
+              "ai.ranking": [
+                "{"index":2,"relevanceScore":0.9}",
+                "{"index":0,"relevanceScore":0.8}",
+                "{"index":1,"relevanceScore":0.7}",
+              ],
+              "ai.ranking.type": "text",
+              "ai.settings.maxRetries": 2,
+              "ai.telemetry.functionId": "test-function-id",
+              "ai.telemetry.metadata.test1": "value1",
+              "ai.telemetry.metadata.test2": false,
+              "operation.name": "ai.rerank.doRerank test-function-id",
+              "resource.name": "test-function-id",
+            },
+            "events": [],
+            "name": "ai.rerank.doRerank",
+          },
+        ]
+      `);
+    });
+
+    it('should not record telemetry inputs / outputs when disabled', async () => {
+      await rerank({
+        model,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        topN: 3,
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: false,
+          recordOutputs: false,
+          tracer,
+        },
+      });
+
+      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+        [
+          {
+            "attributes": {
+              "ai.model.id": "mock-model-id",
+              "ai.model.provider": "mock-provider",
+              "ai.operationId": "ai.rerank",
+              "ai.settings.maxRetries": 2,
+              "operation.name": "ai.rerank",
+            },
+            "events": [],
+            "name": "ai.rerank",
+          },
+          {
+            "attributes": {
+              "ai.model.id": "mock-model-id",
+              "ai.model.provider": "mock-provider",
+              "ai.operationId": "ai.rerank.doRerank",
+              "ai.ranking.type": "text",
+              "ai.settings.maxRetries": 2,
+              "operation.name": "ai.rerank.doRerank",
+            },
+            "events": [],
+            "name": "ai.rerank.doRerank",
+          },
+        ]
+      `);
+    });
+  });
 });
