@@ -1,14 +1,14 @@
-import { JSONValue } from '../../json-value';
+import { JSONObject } from '../../json-value';
 import { SharedV3Headers, SharedV3ProviderOptions } from '../../shared/v3';
 
 export type RerankingModelV3CallOptions = {
   /**
    * Documents to rerank.
-   * Either a list of text documents or a list of JSON documents.
+   * Either a list of texts or a list of JSON objects.
    */
   documents:
     | { type: 'text'; values: string[] }
-    | { type: 'json'; values: JSONValue[] };
+    | { type: 'object'; values: JSONObject[] };
 
   /**
    * The query is a string that represents the query to rerank the documents against.
@@ -16,9 +16,9 @@ export type RerankingModelV3CallOptions = {
   query: string;
 
   /**
-   * Limit returned documents to the top k documents.
+   * Limit returned documents to the top n documents.
    */
-  topK: number;
+  topN: number;
 
   /**
    * Abort signal for cancelling the operation.

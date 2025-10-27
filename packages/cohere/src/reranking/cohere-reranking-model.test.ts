@@ -29,14 +29,14 @@ describe('doRerank', () => {
 
       result = await model.doRerank({
         documents: {
-          type: 'json',
+          type: 'object',
           values: [
             { example: 'sunny day at the beach' },
             { example: 'rainy day in the city' },
           ],
         },
         query: 'rainy day',
-        topK: 2,
+        topN: 2,
       });
     });
 
@@ -138,7 +138,7 @@ describe('doRerank', () => {
           values: ['sunny day at the beach', 'rainy day in the city'],
         },
         query: 'rainy day',
-        topK: 2,
+        topN: 2,
       });
     });
 

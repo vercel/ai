@@ -43,7 +43,7 @@ export class CohereRerankingModel implements RerankingModelV3 {
     documents,
     headers,
     query,
-    topK,
+    topN,
     abortSignal,
     providerOptions,
   }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<
@@ -69,7 +69,7 @@ export class CohereRerankingModel implements RerankingModelV3 {
           documents.type === 'text'
             ? documents.values
             : documents.values.map(value => JSON.stringify(value)),
-        top_n: topK,
+        top_n: topN,
         max_tokens_per_doc: rerankingOptions?.maxTokensPerDoc,
         priority: rerankingOptions?.priority,
       } satisfies CohereRerankingInput,

@@ -1,8 +1,4 @@
-import {
-  RerankingModelV3,
-  TooManyDocumentsForRerankingError,
-} from '@ai-sdk/provider';
-
+import { RerankingModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -11,8 +7,11 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-
-import { z } from 'zod/v4';
+import {
+  togetheraiErrorSchema,
+  TogetherAIRerankingInput,
+  togetheraiRerankingResponseSchema,
+} from './togetherai-reranking-api';
 import {
   TogetherAIRerankingModelId,
   togetheraiRerankingOptions,
@@ -28,8 +27,6 @@ type TogetherAIRerankingConfig = {
 export class TogetherAIRerankingModel implements RerankingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: TogetherAIRerankingModelId;
-
-  readonly maxDocumentsPerCall = Infinity;
 
   private readonly config: TogetherAIRerankingConfig;
 
@@ -50,7 +47,7 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
     documents,
     headers,
     query,
-    topK,
+    topN,
     abortSignal,
     providerOptions,
   }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<
@@ -62,15 +59,6 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
       schema: togetheraiRerankingOptions,
     });
 
-    if (documents.values.length > this.maxDocumentsPerCall) {
-      throw new TooManyDocumentsForRerankingError({
-        provider: this.provider,
-        modelId: this.modelId,
-        maxDocumentsPerCall: this.maxDocumentsPerCall,
-        documentsCount: documents.values.length,
-      });
-    }
-
     const {
       responseHeaders,
       value: response,
@@ -80,11 +68,12 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
-        documents: values,
-        query: query,
-        top_n: topK,
+        documents: documents.values,
+        query,
+        top_n: topN,
         rank_fields: rerankingOptions?.rankFields,
-      },
+        return_documents: false, // reduce response size
+      } satisfies TogetherAIRerankingInput,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,
         errorToMessage: data => data.error.message,
@@ -109,28 +98,3 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
     };
   }
 }
-
-const togetheraiErrorSchema = z.object({
-  error: z.object({
-    message: z.string(),
-  }),
-});
-
-// minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const togetheraiRerankingResponseSchema = z.object({
-  id: z.string(),
-  model: z.string(),
-  object: z.literal('rerank'),
-  results: z.array(
-    z.object({
-      index: z.number(),
-      relevance_score: z.number(),
-    }),
-  ),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-    total_tokens: z.number(),
-  }),
-});
