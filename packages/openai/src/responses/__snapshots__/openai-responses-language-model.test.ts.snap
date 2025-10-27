@@ -222,6 +222,11 @@ providers and models, and which ones are available in the AI SDK.",
     "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+      },
+    },
     "sourceType": "document",
     "title": "ai.pdf",
     "type": "source",
@@ -286,6 +291,11 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
     "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+      },
+    },
     "sourceType": "document",
     "title": "ai.pdf",
     "type": "source",
@@ -3050,6 +3060,11 @@ providers and models, and which ones are available in the AI SDK.",
     "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+      },
+    },
     "sourceType": "document",
     "title": "ai.pdf",
     "type": "source",
@@ -3334,6 +3349,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+      },
+    },
     "sourceType": "document",
     "title": "ai.pdf",
     "type": "source",
@@ -3547,6 +3567,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "filename": "ai.pdf",
     "id": "id-1",
     "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+      },
+    },
     "sourceType": "document",
     "title": "ai.pdf",
     "type": "source",
