@@ -1,4 +1,4 @@
-import { cohere } from '@ai-sdk/cohere';
+import { cohere, CohereRerankingOptions } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
@@ -9,10 +9,13 @@ run(async () => {
     documents: ['sunny day at the beach', 'rainy day in the city'],
     query: 'talk about rain',
     topK: 2,
+    providerOptions: {
+      cohere: {
+        priority: 1,
+      } satisfies CohereRerankingOptions,
+    },
   });
 
   print('Reranking:', result.ranking);
   print('Metadata:', result.providerMetadata);
-
-  console.log(JSON.stringify(result.response?.body, null, 2));
 });
