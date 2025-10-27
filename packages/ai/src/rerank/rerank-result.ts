@@ -41,7 +41,22 @@ export interface RerankResult<VALUE> {
   /**
    * Optional raw response data.
    */
-  readonly response?: {
+  readonly response: {
+    /**
+     * ID for the generated response if the provider sends one.
+     */
+    id?: string;
+
+    /**
+     * Timestamp of the generated response.
+     */
+    timestamp: Date;
+
+    /**
+     * The ID of the model that was used to generate the response.
+     */
+    modelId: string;
+
     /**
      * Response headers.
      */

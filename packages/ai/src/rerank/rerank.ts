@@ -91,7 +91,10 @@ Only applicable for HTTP-based providers.
       originalDocuments: [],
       ranking: [],
       providerMetadata: undefined,
-      response: undefined,
+      response: {
+        timestamp: new Date(),
+        modelId: model.modelId,
+      },
     });
   }
 
@@ -198,7 +201,13 @@ Only applicable for HTTP-based providers.
           document: documents[ranking.index],
         })),
         providerMetadata,
-        response,
+        response: {
+          id: response?.id,
+          timestamp: response?.timestamp ?? new Date(),
+          modelId: response?.modelId ?? model.modelId,
+          headers: response?.headers,
+          body: response?.body,
+        },
       });
     },
   });
@@ -214,7 +223,7 @@ class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {
     originalDocuments: RerankResult<VALUE>['originalDocuments'];
     ranking: RerankResult<VALUE>['ranking'];
     providerMetadata?: RerankResult<VALUE>['providerMetadata'];
-    response?: RerankResult<VALUE>['response'];
+    response: RerankResult<VALUE>['response'];
   }) {
     this.originalDocuments = options.originalDocuments;
     this.ranking = options.ranking;

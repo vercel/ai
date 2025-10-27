@@ -1,5 +1,5 @@
 import { RerankingModelV3CallOptions } from '@ai-sdk/provider';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { rerank } from './rerank';
 import { RerankResult } from './rerank-result';
@@ -12,6 +12,9 @@ describe('rerank', () => {
 
     beforeEach(async () => {
       calls = [];
+
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
 
       const model = new MockRerankingModelV3({
         doRerank: async options => {
@@ -34,6 +37,8 @@ describe('rerank', () => {
               body: {
                 id: '123',
               },
+              modelId: 'mock-response-model-id',
+              id: 'mock-response-id',
             },
           };
         },
@@ -52,6 +57,10 @@ describe('rerank', () => {
           aProvider: { someKey: 'someValue' },
         },
       });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
     });
 
     it('should call the model with the correct options', () => {
@@ -141,6 +150,9 @@ describe('rerank', () => {
           "headers": {
             "content-type": "application/json",
           },
+          "id": "mock-response-id",
+          "modelId": "mock-response-model-id",
+          "timestamp": 2025-01-01T00:00:00.000Z,
         }
       `);
     });
@@ -152,6 +164,9 @@ describe('rerank', () => {
 
     beforeEach(async () => {
       calls = [];
+
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
 
       const model = new MockRerankingModelV3({
         doRerank: async options => {
@@ -174,6 +189,8 @@ describe('rerank', () => {
               body: {
                 id: '123',
               },
+              modelId: 'mock-response-model-id',
+              id: 'mock-response-id',
             },
           };
         },
@@ -192,6 +209,10 @@ describe('rerank', () => {
           aProvider: { someKey: 'someValue' },
         },
       });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
     });
 
     it('should call the model with the correct options', () => {
@@ -317,6 +338,9 @@ describe('rerank', () => {
           "headers": {
             "content-type": "application/json",
           },
+          "id": "mock-response-id",
+          "modelId": "mock-response-model-id",
+          "timestamp": 2025-01-01T00:00:00.000Z,
         }
       `);
     });
