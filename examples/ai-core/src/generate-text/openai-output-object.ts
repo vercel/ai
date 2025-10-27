@@ -17,7 +17,7 @@ run(async () => {
       weather: weatherTool,
     },
     stopWhen: stepCountIs(5),
-    experimental_output: Output.object({
+    output: Output.object({
       schema: z.object({
         elements: z.array(
           z.object({
@@ -32,6 +32,6 @@ run(async () => {
   });
 
   // { location: 'San Francisco', temperature: 81 }
-  print('Output:', result.experimental_output);
+  print('Output:', result.output);
   print('Request:', result.request.body);
 });

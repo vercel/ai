@@ -1,8 +1,8 @@
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { JSONRPCMessage } from '../src/tool/mcp/json-rpc-message';
-import { MCPClientError } from '../src/error/mcp-client-error';
+import { JSONRPCMessage } from '../json-rpc-message';
+import { MCPClientError } from '../../error/mcp-client-error';
 import { createChildProcess } from './create-child-process';
 import { StdioMCPTransport } from './mcp-stdio-transport';
 

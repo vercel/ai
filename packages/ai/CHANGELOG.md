@@ -1,5 +1,46 @@
 # ai
 
+## 6.0.0-beta.74
+
+### Patch Changes
+
+- 293a6b7: Added a title to the tools
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/gateway@2.0.0-beta.38
+
+## 6.0.0-beta.73
+
+### Patch Changes
+
+- 754df61: fix(ai): correct type field in arrayOutputStrategy from 'enum' to 'array'
+
+## 6.0.0-beta.72
+
+### Patch Changes
+
+- eca63f3: feat(ai): add OAuth for MCP clients + refactor to new package
+
+  This change replaces
+
+  ```ts
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  ```
+
+  with
+
+  ```ts
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  ```
+
+## 6.0.0-beta.71
+
+### Patch Changes
+
+- 077aea3: feat(ai): stable structured output on generateText, streamText, and ToolLoopAgent
+
 ## 6.0.0-beta.70
 
 ### Patch Changes

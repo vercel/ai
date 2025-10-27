@@ -71,7 +71,8 @@
     "@vercel/ai-tsconfig": "0.0.0",
     "@ai-sdk/baseten": "0.0.1",
     "@ai-sdk/test-server": "0.0.0",
-    "@ai-sdk/huggingface": "0.0.1"
+    "@ai-sdk/huggingface": "0.0.1",
+    "@ai-sdk/mcp": "0.0.0"
   },
   "changesets": [
     "angry-hats-cry",
@@ -107,8 +108,10 @@
     "few-bottles-allow",
     "few-singers-drum",
     "fifty-ligers-remember",
+    "fix-array-output-type",
     "flat-birds-judge",
     "flat-pigs-leave",
+    "fluffy-poems-live",
     "forty-apricots-hug",
     "forty-cougars-work",
     "four-candles-buy",
@@ -127,6 +130,7 @@
     "gorgeous-dingos-join",
     "great-eels-mate",
     "green-coins-deliver",
+    "green-onions-pay",
     "grumpy-actors-sleep",
     "healthy-windows-buy",
     "hip-kings-study",
@@ -139,6 +143,7 @@
     "itchy-peaches-clean",
     "kind-chicken-share",
     "large-phones-draw",
+    "large-waves-glow",
     "late-emus-explode",
     "lemon-cherries-clap",
     "lemon-gorillas-begin",
