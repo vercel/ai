@@ -1,5 +1,15 @@
 # @ai-sdk/cerebras
 
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.25
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
 ## 2.0.0-beta.27
 
 ### Patch Changes
