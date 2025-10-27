@@ -103,6 +103,13 @@ const ToolSchema = z
         properties: z.optional(z.object({}).loose()),
       })
       .loose(),
+    annotations: z.optional(
+      z
+        .object({
+          title: z.optional(z.string()),
+        })
+        .loose(),
+    ),
   })
   .loose();
 export type MCPTool = z.infer<typeof ToolSchema>;
