@@ -1,4 +1,7 @@
-import { TooManyDocumentsForRerankingError } from '@ai-sdk/provider';
+import {
+  JSONObject,
+  TooManyDocumentsForRerankingError,
+} from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -9,13 +12,12 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { RerankingModel } from '../types';
 import { RerankResult } from './rerank-result';
-import { UnsupportedModelVersionError } from '../error';
 
 /**
 Rerank documents using an reranking model. The type of the value is defined by the reranking model.
 
 @param model - The Reranking model to use.
-@param values - The documents that should be reranking.
+@param documents - The documents that should be reranking.
 @param query - The query is a string that represents the query to rerank the documents against.
 @param topK - Top k documents to rerank.
 
@@ -25,9 +27,9 @@ Rerank documents using an reranking model. The type of the value is defined by t
 
 @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
-export async function rerank<VALUE>({
+export async function rerank<VALUE extends JSONObject | string>({
   model,
-  values,
+  documents,
   query,
   topK,
   maxRetries: maxRetriesArg,
@@ -39,12 +41,12 @@ export async function rerank<VALUE>({
   /**
 The reranking model to use.
   */
-  model: RerankingModel<VALUE>;
+  model: RerankingModel;
 
   /**
-The documents that should be reranked.
+   * The documents that should be reranked.
    */
-  values: Array<VALUE>;
+  documents: Array<VALUE>;
 
   /**
 The query is a string that represents the query to rerank the documents against.
@@ -86,21 +88,14 @@ Only applicable for HTTP-based providers.
     */
   providerOptions?: ProviderOptions;
 }): Promise<RerankResult<VALUE>> {
-  if (model.specificationVersion !== 'v3') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
-  }
-
   const maxDocumentsPerCall = await model.maxDocumentsPerCall;
-  if (maxDocumentsPerCall != null && values.length > maxDocumentsPerCall) {
+
+  if (maxDocumentsPerCall != null && documents.length > maxDocumentsPerCall) {
     throw new TooManyDocumentsForRerankingError({
       provider: model.provider,
       modelId: model.modelId,
       maxDocumentsPerCall,
-      documents: values,
+      documentsCount: documents.length,
     });
   }
   const { maxRetries, retry } = prepareRetries({
@@ -124,87 +119,80 @@ Only applicable for HTTP-based providers.
       attributes: {
         ...assembleOperationName({ operationId: 'ai.rerank', telemetry }),
         ...baseTelemetryAttributes,
-        'ai.values': { input: () => values.map(v => JSON.stringify(v)) },
+        'ai.documents': { input: () => documents.map(v => JSON.stringify(v)) },
       },
     }),
     tracer,
-    fn: async span => {
-      const { rerankedDocuments, usage, response, providerMetadata } =
-        await retry(() =>
-          recordSpan({
-            name: 'ai.rerank.doRerank',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.rerank.doRerank',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                // specific settings that only make sense on the outer level:
-                'ai.values': {
-                  input: () => values.map(value => JSON.stringify(value)),
-                },
+    fn: async () => {
+      const { ranking, response, providerMetadata } = await retry(() =>
+        recordSpan({
+          name: 'ai.rerank.doRerank',
+          attributes: selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              ...assembleOperationName({
+                operationId: 'ai.rerank.doRerank',
+                telemetry,
+              }),
+              ...baseTelemetryAttributes,
+              // specific settings that only make sense on the outer level:
+              'ai.documents': {
+                input: () =>
+                  documents.map(document => JSON.stringify(document)),
               },
-            }),
-            tracer,
-            fn: async doRerankSpan => {
-              const modelResponse = await model.doRerank({
-                values,
-                query,
-                topK,
-                providerOptions,
-                abortSignal,
-                headers,
-              });
-
-              const rerankedDocuments = modelResponse.rerankedDocuments;
-              const usage = modelResponse.usage ?? { tokens: NaN };
-
-              doRerankSpan.setAttributes(
-                await selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.rerankedDocuments': {
-                      output: () =>
-                        rerankedDocuments.map(rerankedDocument =>
-                          JSON.stringify(rerankedDocument),
-                        ),
-                    },
-                    'ai.usage.tokens': usage.tokens,
-                  },
-                }),
-              );
-
-              return {
-                rerankedDocuments,
-                usage,
-                providerMetadata: modelResponse.providerMetadata,
-                response: modelResponse.response,
-              };
             },
           }),
-        );
+          tracer,
+          fn: async doRerankSpan => {
+            const modelResponse = await model.doRerank({
+              // if all documents are strings, we can use text mode, otherwise json mode
+              documents: documents.every(
+                document => typeof document === 'string',
+              )
+                ? { type: 'text', values: documents }
+                : { type: 'json', values: documents },
+              query,
+              topK,
+              providerOptions,
+              abortSignal,
+              headers,
+            });
 
-      span.setAttributes(
-        await selectTelemetryAttributes({
-          telemetry,
-          attributes: {
-            'ai.rerankedDocuments': {
-              output: () =>
-                rerankedDocuments.map(rerankedDocument =>
-                  JSON.stringify(rerankedDocument),
-                ),
-            },
-            'ai.usage.tokens': usage.tokens,
+            const ranking = modelResponse.ranking;
+
+            doRerankSpan.setAttributes(
+              await selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  'ai.ranking.type': documents.every(
+                    document => typeof document === 'string',
+                  )
+                    ? 'text'
+                    : 'json',
+                  'ai.ranking': {
+                    output: () =>
+                      ranking.map(ranking => JSON.stringify(ranking)),
+                  },
+                },
+              }),
+            );
+
+            return {
+              ranking,
+              providerMetadata: modelResponse.providerMetadata,
+              response: modelResponse.response,
+            };
           },
         }),
       );
 
       return new DefaultRerankResult({
-        values,
-        rerankedDocuments,
-        usage,
+        originalDocuments: documents,
+        ranking: ranking.map(ranking => ({
+          originalIndex: ranking.index,
+          relevanceScore: ranking.relevanceScore,
+          document: documents[ranking.index],
+        })),
         providerMetadata,
         response,
       });
@@ -213,23 +201,24 @@ Only applicable for HTTP-based providers.
 }
 
 class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {
-  readonly documents: RerankResult<VALUE>['documents'];
-  readonly usage: RerankResult<VALUE>['usage'];
+  readonly originalDocuments: RerankResult<VALUE>['originalDocuments'];
+  readonly ranking: RerankResult<VALUE>['ranking'];
   readonly response: RerankResult<VALUE>['response'];
-  readonly rerankedDocuments: RerankResult<VALUE>['rerankedDocuments'];
   readonly providerMetadata: RerankResult<VALUE>['providerMetadata'];
 
   constructor(options: {
-    values: RerankResult<VALUE>['documents'];
-    usage: RerankResult<VALUE>['usage'];
-    response?: RerankResult<VALUE>['response'];
-    rerankedDocuments: RerankResult<VALUE>['rerankedDocuments'];
+    originalDocuments: RerankResult<VALUE>['originalDocuments'];
+    ranking: RerankResult<VALUE>['ranking'];
     providerMetadata?: RerankResult<VALUE>['providerMetadata'];
+    response?: RerankResult<VALUE>['response'];
   }) {
-    this.documents = options.values;
-    this.usage = options.usage;
+    this.originalDocuments = options.originalDocuments;
+    this.ranking = options.ranking;
     this.response = options.response;
-    this.rerankedDocuments = options.rerankedDocuments;
     this.providerMetadata = options.providerMetadata;
+  }
+
+  get rerankedDocuments(): RerankResult<VALUE>['rerankedDocuments'] {
+    return this.ranking.map(ranking => ranking.document);
   }
 }

@@ -43,13 +43,3 @@ function addTokenCounts(
     ? undefined
     : (tokenCount1 ?? 0) + (tokenCount2 ?? 0);
 }
-
-/**
-Represents the number of tokens used in a reranking model.
- */
-export type RerankingModelUsage = {
-  /**
-The number of tokens used for reranking.
-   */
-  tokens: number;
-};

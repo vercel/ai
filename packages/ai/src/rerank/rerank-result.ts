@@ -1,44 +1,55 @@
-import { RerankingModelUsage } from '../types/usage';
-import { RerankedDocument } from '../types/reranking-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 
 /**
-The result of an `rerank` call.
-It contains the documents, the reranked results, and additional information.
+ * The result of a `rerank` call.
+ * It contains the original documents, the reranked documents, and additional information.
  */
 export interface RerankResult<VALUE> {
   /**
-  The documents that were reranked.
-    */
-  readonly documents: Array<VALUE>;
+   * The original documents that were reranked.
+   */
+  readonly originalDocuments: Array<VALUE>;
 
   /**
-  The reranked documents is the list of object with the index, relevance score, and the document that have been reranked.
-    */
-  readonly rerankedDocuments: Array<RerankedDocument<VALUE>>;
+   * Reranked documents.
+   *
+   * Sorted by relevance score in descending order.
+   *
+   * Can be less than the original documents if there was a topK limit.
+   */
+  readonly rerankedDocuments: Array<VALUE>;
 
   /**
-  The reranking token usage.
-    */
-  readonly usage: RerankingModelUsage;
+   * The ranking is a list of objects with the original index,
+   * relevance score, and the reranked document.
+   *
+   * Sorted by relevance score in descending order.
+   *
+   * Can be less than the original documents if there was a topK limit.
+   */
+  readonly ranking: Array<{
+    originalIndex: number;
+    relevanceScore: number;
+    document: VALUE;
+  }>;
 
   /**
-  Optional provider-specific metadata.
-     */
+   * Optional provider-specific metadata.
+   */
   readonly providerMetadata?: ProviderMetadata;
 
   /**
-  Optional raw response data.
-     */
+   * Optional raw response data.
+   */
   readonly response?: {
     /**
-  Response headers.
-       */
+     * Response headers.
+     */
     headers?: Record<string, string>;
 
     /**
-    The response body.
-    */
+     * The response body.
+     */
     body?: unknown;
   };
 }
