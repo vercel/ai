@@ -11,7 +11,7 @@ run(async () => {
     query: 'Which pricing did we get from Oracle?',
     topN: 2,
     providerOptions: {
-      cohere: {
+      togetherai: {
         rankFields: ['from', 'to', 'date', 'subject', 'text'],
       } satisfies TogetherAIRerankingOptions,
     },
