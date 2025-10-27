@@ -13,21 +13,25 @@ export type Warning =
   | TranscriptionModelV3CallWarning
   | SharedV3Warning;
 
-export type LogWarningsFunction = (
-  warnings: Warning[],
-  options?: { provider: string; model: string },
-) => void;
+export type LogWarningsFunction = (options: {
+  warnings: Warning[];
+  provider: string;
+  model: string;
+}) => void;
 
 /**
  * Formats a warning object into a human-readable string with clear AI SDK branding
  */
-function formatWarning(
-  warning: Warning,
-  options?: { provider: string; model: string },
-): string {
-  const { provider, model } = options ?? {};
-
-  const prefix = `AI SDK Warning (${provider ?? 'unknown provider'} / ${model ?? 'unknown model'}):`;
+function formatWarning({
+  warning,
+  provider,
+  model,
+}: {
+  warning: Warning;
+  provider: string;
+  model: string;
+}): string {
+  const prefix = `AI SDK Warning (${provider} / ${model}):`;
 
   switch (warning.type) {
     case 'unsupported-setting': {
@@ -72,9 +76,9 @@ export const FIRST_WARNING_INFO_MESSAGE =
 
 let hasLoggedBefore = false;
 
-export const logWarnings: LogWarningsFunction = (warnings, options) => {
+export const logWarnings: LogWarningsFunction = options => {
   // if the warnings array is empty, do nothing
-  if (warnings.length === 0) {
+  if (options.warnings.length === 0) {
     return;
   }
 
@@ -87,7 +91,7 @@ export const logWarnings: LogWarningsFunction = (warnings, options) => {
 
   // use the provided logger if it is a function
   if (typeof logger === 'function') {
-    logger(warnings, options);
+    logger(options);
     return;
   }
 
@@ -98,8 +102,14 @@ export const logWarnings: LogWarningsFunction = (warnings, options) => {
   }
 
   // default behavior: log warnings to the console
-  for (const warning of warnings) {
-    console.warn(formatWarning(warning, options));
+  for (const warning of options.warnings) {
+    console.warn(
+      formatWarning({
+        warning,
+        provider: options.provider,
+        model: options.model,
+      }),
+    );
   }
 };
 

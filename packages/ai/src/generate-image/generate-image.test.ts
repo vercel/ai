@@ -166,7 +166,11 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should call logWarnings with aggregated warnings from multiple calls', async () => {
@@ -207,7 +211,11 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith(expectedAggregatedWarnings);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedAggregatedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -223,7 +231,11 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith([]);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: [],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   describe('base64 image data', () => {
