@@ -1,5 +1,13 @@
 # @ai-sdk/assemblyai
 
+## 1.0.15
+
+### Patch Changes
+
+- 16ac29e: fix(providers/assemblyai): remove topics
+
+  We were told the feature was priveatly beta-tested but never rolled out.
+
 ## 1.0.14
 
 ### Patch Changes
