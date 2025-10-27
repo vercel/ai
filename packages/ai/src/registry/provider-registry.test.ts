@@ -464,7 +464,7 @@ describe('speechModel', () => {
 
 describe('rerankingModel', () => {
   it('should return reranking model from provider using rerankingModel', () => {
-    const model = new MockRerankingModelV3<string>();
+    const model = new MockRerankingModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -535,7 +535,7 @@ describe('rerankingModel', () => {
   });
 
   it('should support custom separator', () => {
-    const model = new MockRerankingModelV3<string>();
+    const model = new MockRerankingModelV3();
 
     const modelRegistry = createProviderRegistry(
       {
