@@ -21,15 +21,6 @@ export type RerankingModelV3 = {
   readonly modelId: string;
 
   /**
-   * Limit of how many documents can be reranked in a single API call.
-   * Use Infinity for models that do not have a limit.
-   */
-  readonly maxDocumentsPerCall:
-    | PromiseLike<number | undefined>
-    | number
-    | undefined;
-
-  /**
    * Reranking a list of documents using the query.
    */
   // Naming: "do" prefix to prevent accidental direct usage of the method by the user.

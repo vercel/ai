@@ -1,7 +1,4 @@
-import {
-  RerankingModelV3,
-  TooManyDocumentsForRerankingError,
-} from '@ai-sdk/provider';
+import { RerankingModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -30,8 +27,6 @@ export class CohereRerankingModel implements RerankingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: CohereRerankingModelId;
 
-  readonly maxDocumentsPerCall = Infinity;
-
   private readonly config: CohereRerankingConfig;
 
   constructor(modelId: CohereRerankingModelId, config: CohereRerankingConfig) {
@@ -59,15 +54,6 @@ export class CohereRerankingModel implements RerankingModelV3 {
       providerOptions,
       schema: cohereRerankingOptionsSchema,
     });
-
-    if (documents.values.length > this.maxDocumentsPerCall) {
-      throw new TooManyDocumentsForRerankingError({
-        provider: this.provider,
-        modelId: this.modelId,
-        maxDocumentsPerCall: this.maxDocumentsPerCall,
-        documentsCount: documents.values.length,
-      });
-    }
 
     const {
       responseHeaders,

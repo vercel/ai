@@ -1,28 +1,28 @@
 import {
-  LanguageModelV3,
-  EmbeddingModelV3,
-  ProviderV3,
-  ImageModelV3,
-  RerankingModelV3,
-} from '@ai-sdk/provider';
-import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
+import {
+  EmbeddingModelV3,
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
+  RerankingModelV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
+import { TogetherAIRerankingModelId } from './reranking/togetherai-reranking-options';
 import { TogetherAIChatModelId } from './togetherai-chat-options';
-import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
 import { TogetherAICompletionModelId } from './togetherai-completion-options';
+import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
-import { TogetherAIRerankingModelId } from './togetherai-reranking-options';
-import { TogetherAIRerankingModel } from './togetherai-reranking-model';
 import { VERSION } from './version';
 
 export interface TogetherAIProviderSettings {
@@ -45,7 +45,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider extends ProviderV3<string | object> {
+export interface TogetherAIProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
@@ -86,9 +86,7 @@ Creates a model for image generation.
   /**
 Creates a model for reranking.
 */
-  rerankingModel(
-    modelId: TogetherAIRerankingModelId,
-  ): RerankingModelV3<string | object>;
+  rerankingModel(modelId: TogetherAIRerankingModelId): RerankingModelV3;
 }
 
 export function createTogetherAI(

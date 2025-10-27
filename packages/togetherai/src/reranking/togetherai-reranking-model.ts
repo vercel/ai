@@ -25,9 +25,7 @@ type TogetherAIRerankingConfig = {
   fetch?: FetchFunction;
 };
 
-export class TogetherAIRerankingModel
-  implements RerankingModelV3<string | object>
-{
+export class TogetherAIRerankingModel implements RerankingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: TogetherAIRerankingModelId;
 
@@ -47,16 +45,16 @@ export class TogetherAIRerankingModel
     return this.config.provider;
   }
 
-  // current implementation is based on v2 of the API: https://docs.together.ai/reference/rerank-1
+  // see https://docs.together.ai/reference/rerank-1
   async doRerank({
-    values,
+    documents,
     headers,
     query,
     topK,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV3<string | object>['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV3<string | object>['doRerank']>>
+  }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<
+    Awaited<ReturnType<RerankingModelV3['doRerank']>>
   > {
     const rerankingOptions = await parseProviderOptions({
       provider: 'togetherai',
@@ -64,22 +62,12 @@ export class TogetherAIRerankingModel
       schema: togetheraiRerankingOptions,
     });
 
-    if (values.length > this.maxDocumentsPerCall) {
+    if (documents.values.length > this.maxDocumentsPerCall) {
       throw new TooManyDocumentsForRerankingError({
         provider: this.provider,
         modelId: this.modelId,
         maxDocumentsPerCall: this.maxDocumentsPerCall,
-        documents: values,
-      });
-    }
-
-    // https://docs.together.ai/docs/serverless-models#rerank-models
-    if (this.modelId === 'Salesforce/Llama-Rank-v1' && values.length > 1024) {
-      throw new TooManyDocumentsForRerankingError({
-        provider: this.provider,
-        modelId: this.modelId,
-        maxDocumentsPerCall: 1024,
-        documents: values,
+        documentsCount: documents.values.length,
       });
     }
 
