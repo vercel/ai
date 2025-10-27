@@ -672,7 +672,11 @@ A function that attempts to repair a tool call that failed to parse.
             },
           });
 
-          logWarnings(currentModelResponse.warnings ?? []);
+          logWarnings({
+            warnings: currentModelResponse.warnings ?? [],
+            provider: stepModel.provider,
+            model: stepModel.modelId,
+          });
 
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);

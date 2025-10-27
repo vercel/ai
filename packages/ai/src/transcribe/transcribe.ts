@@ -117,7 +117,11 @@ Only applicable for HTTP-based providers.
     }),
   );
 
-  logWarnings(result.warnings);
+  logWarnings({
+    warnings: result.warnings,
+    provider: resolvedModel.provider,
+    model: resolvedModel.modelId,
+  });
 
   if (!result.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
