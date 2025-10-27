@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 9524761: feat: shorthand names for reranking models
+
 ## 4.0.0-beta.47
 
 ### Patch Changes

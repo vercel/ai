@@ -1,5 +1,11 @@
 # @ai-sdk/togetherai
 
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- 9524761: feat: shorthand names for reranking models
+
 ## 2.0.0-beta.27
 
 ### Patch Changes
