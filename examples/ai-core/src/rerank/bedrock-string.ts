@@ -5,7 +5,7 @@ import { print } from '../lib/print';
 
 run(async () => {
   const result = await rerank({
-    model: bedrock.rerankingModel('amazon.rerank-v1:0'),
+    model: bedrock.reranking('amazon.rerank-v1:0'),
     documents: ['sunny day at the beach', 'rainy day in the city'],
     query: 'talk about rain',
     topN: 2,

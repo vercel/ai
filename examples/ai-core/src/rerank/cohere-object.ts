@@ -6,7 +6,7 @@ import { documents } from './documents';
 
 run(async () => {
   const result = await rerank({
-    model: cohere.rerankingModel('rerank-v3.5'),
+    model: cohere.reranking('rerank-v3.5'),
     documents,
     query: 'Which pricing did we get from Oracle?',
     topN: 2,

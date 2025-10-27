@@ -6,7 +6,7 @@ import { documents } from './documents';
 
 run(async () => {
   const result = await rerank({
-    model: togetherai.rerankingModel('Salesforce/Llama-Rank-v1'),
+    model: togetherai.reranking('Salesforce/Llama-Rank-v1'),
     documents,
     query: 'Which pricing did we get from Oracle?',
     topN: 2,

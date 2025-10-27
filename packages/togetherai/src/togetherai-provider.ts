@@ -84,8 +84,13 @@ Creates a model for image generation.
   imageModel(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**
-Creates a model for reranking.
-*/
+   * Creates a model for reranking.
+   */
+  reranking(modelId: TogetherAIRerankingModelId): RerankingModelV3;
+
+  /**
+   * Creates a model for reranking.
+   */
   rerankingModel(modelId: TogetherAIRerankingModelId): RerankingModelV3;
 }
 
@@ -162,6 +167,7 @@ export function createTogetherAI(
   provider.textEmbeddingModel = createTextEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.reranking = createRerankingModel;
   provider.rerankingModel = createRerankingModel;
 
   return provider;

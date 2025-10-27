@@ -115,17 +115,17 @@ describe('rerank', () => {
           {
             "document": "cloudy day in the mountains",
             "originalIndex": 2,
-            "relevanceScore": 0.9,
+            "score": 0.9,
           },
           {
             "document": "sunny day at the beach",
             "originalIndex": 0,
-            "relevanceScore": 0.8,
+            "score": 0.8,
           },
           {
             "document": "rainy day in the city",
             "originalIndex": 1,
-            "relevanceScore": 0.7,
+            "score": 0.7,
           },
         ]
       `);
@@ -297,7 +297,7 @@ describe('rerank', () => {
               "name": "cloudy day in the mountains",
             },
             "originalIndex": 2,
-            "relevanceScore": 0.9,
+            "score": 0.9,
           },
           {
             "document": {
@@ -305,7 +305,7 @@ describe('rerank', () => {
               "name": "sunny day at the beach",
             },
             "originalIndex": 0,
-            "relevanceScore": 0.8,
+            "score": 0.8,
           },
           {
             "document": {
@@ -313,7 +313,7 @@ describe('rerank', () => {
               "name": "rainy day in the city",
             },
             "originalIndex": 1,
-            "relevanceScore": 0.7,
+            "score": 0.7,
           },
         ]
       `);
