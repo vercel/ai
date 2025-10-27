@@ -60,6 +60,7 @@ export function customProvider<
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3;
 } {
   return {
+    specificationVersion: 'v3',
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3 {
       if (languageModels != null && modelId in languageModels) {
         return languageModels[modelId];

@@ -155,6 +155,7 @@ export function createTogetherAI(
 
   const provider = (modelId: TogetherAIChatModelId) => createChatModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.completionModel = createCompletionModel;
   provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;

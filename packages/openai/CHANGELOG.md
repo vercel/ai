@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- 1b982e6: feat(openai): preserve file_id when converting file citations
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
 ## 3.0.0-beta.38
 
 ### Patch Changes

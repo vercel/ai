@@ -123,6 +123,7 @@ export function createCohere(
     return createChatModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.embedding = createTextEmbeddingModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;

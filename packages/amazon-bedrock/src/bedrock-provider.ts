@@ -307,6 +307,7 @@ export function createAmazonBedrock(
       fetch: fetchFunction,
     });
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

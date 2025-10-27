@@ -16,6 +16,7 @@ describe('languageModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         languageModel: (id: string) => {
           expect(id).toEqual('model');
           return model;
@@ -40,6 +41,7 @@ describe('languageModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         languageModel: id => {
           expect(id).toEqual('model:part2');
           return model;
@@ -71,6 +73,7 @@ describe('languageModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         languageModel: () => {
           return null as any;
         },
@@ -112,6 +115,7 @@ describe('languageModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           languageModel: id => {
             expect(id).toEqual('model');
             return model;
@@ -145,6 +149,7 @@ describe('languageModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           languageModel: id => {
             expect(id).toEqual('model');
             return model;
@@ -179,6 +184,7 @@ describe('textEmbeddingModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         textEmbeddingModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -216,6 +222,7 @@ describe('textEmbeddingModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         textEmbeddingModel: () => {
           return null as any;
         },
@@ -251,6 +258,7 @@ describe('textEmbeddingModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           textEmbeddingModel: id => {
             expect(id).toEqual('model');
             return model;
@@ -285,6 +293,7 @@ describe('imageModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         imageModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -312,6 +321,7 @@ describe('imageModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         imageModel: () => null as any,
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
@@ -338,6 +348,7 @@ describe('imageModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           imageModel: id => {
             expect(id).toEqual('model');
             return model;
@@ -360,6 +371,7 @@ describe('transcriptionModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         transcriptionModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -386,6 +398,7 @@ describe('transcriptionModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         transcriptionModel: () => null as any,
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
@@ -415,6 +428,7 @@ describe('speechModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         speechModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -441,6 +455,7 @@ describe('speechModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         speechModel: () => null as any,
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
