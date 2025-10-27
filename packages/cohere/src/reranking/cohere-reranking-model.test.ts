@@ -2,6 +2,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createCohere } from '../cohere-provider';
 import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
+import { CohereRerankingOptions } from './cohere-reranking-options';
 
 const provider = createCohere({ apiKey: 'test-api-key' });
 const model = provider.rerankingModel('rerank-english-v3.0');
@@ -37,6 +38,12 @@ describe('doRerank', () => {
         },
         query: 'rainy day',
         topN: 2,
+        providerOptions: {
+          cohere: {
+            maxTokensPerDoc: 1000,
+            priority: 1,
+          } satisfies CohereRerankingOptions,
+        },
       });
     });
 
@@ -47,7 +54,9 @@ describe('doRerank', () => {
             "{"example":"sunny day at the beach"}",
             "{"example":"rainy day in the city"}",
           ],
+          "max_tokens_per_doc": 1000,
           "model": "rerank-english-v3.0",
+          "priority": 1,
           "query": "rainy day",
           "top_n": 2,
         }
@@ -151,6 +160,12 @@ describe('doRerank', () => {
         },
         query: 'rainy day',
         topN: 2,
+        providerOptions: {
+          cohere: {
+            maxTokensPerDoc: 1000,
+            priority: 1,
+          } satisfies CohereRerankingOptions,
+        },
       });
     });
 
@@ -161,7 +176,9 @@ describe('doRerank', () => {
             "sunny day at the beach",
             "rainy day in the city",
           ],
+          "max_tokens_per_doc": 1000,
           "model": "rerank-english-v3.0",
+          "priority": 1,
           "query": "rainy day",
           "top_n": 2,
         }
