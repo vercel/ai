@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.48
+
+### Patch Changes
+
+- 1e05490: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+  - @ai-sdk/anthropic@2.0.38
+
 ## 3.0.47
 
 ### Patch Changes
