@@ -1,6 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createCohere } from './cohere-provider';
-import { RerankedDocument } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 
 const dummyResultDocuments: RerankedDocument<string>[] = [

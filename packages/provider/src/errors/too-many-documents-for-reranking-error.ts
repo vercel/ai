@@ -10,26 +10,26 @@ export class TooManyDocumentsForRerankingError extends AISDKError {
   readonly provider: string;
   readonly modelId: string;
   readonly maxDocumentsPerCall: number;
-  readonly documents: Array<unknown>;
+  readonly documentsCount: number;
 
   constructor(options: {
     provider: string;
     modelId: string;
     maxDocumentsPerCall: number;
-    documents: Array<unknown>;
+    documentsCount: number;
   }) {
     super({
       name,
       message:
         `Too many documents for a single reranking call. ` +
         `The ${options.provider} model "${options.modelId}" can only rerank up to ` +
-        `${options.maxDocumentsPerCall} documents per call, but ${options.documents.length} documents were provided.`,
+        `${options.maxDocumentsPerCall} documents per call, but ${options.documentsCount} documents were provided.`,
     });
 
     this.provider = options.provider;
     this.modelId = options.modelId;
     this.maxDocumentsPerCall = options.maxDocumentsPerCall;
-    this.documents = options.documents;
+    this.documentsCount = options.documentsCount;
   }
 
   static isInstance(

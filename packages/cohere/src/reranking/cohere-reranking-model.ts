@@ -2,7 +2,6 @@ import {
   RerankingModelV3,
   TooManyDocumentsForRerankingError,
 } from '@ai-sdk/provider';
-
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -10,12 +9,14 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-
-import { z } from 'zod/v4';
-import { cohereFailedResponseHandler } from './cohere-error';
+import { cohereFailedResponseHandler } from '../cohere-error';
+import {
+  CohereRerankingInput,
+  cohereRerankingResponseSchema,
+} from './cohere-reranking-api';
 import {
   CohereRerankingModelId,
-  cohereRerankingOptions,
+  cohereRerankingOptionsSchema,
 } from './cohere-reranking-options';
 
 type CohereRerankingConfig = {
@@ -25,7 +26,7 @@ type CohereRerankingConfig = {
   fetch?: FetchFunction;
 };
 
-export class CohereRerankingModel implements RerankingModelV3<string> {
+export class CohereRerankingModel implements RerankingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: CohereRerankingModelId;
 
@@ -44,27 +45,27 @@ export class CohereRerankingModel implements RerankingModelV3<string> {
 
   // current implementation is based on v2 of the API: https://docs.cohere.com/v2/reference/rerank
   async doRerank({
-    values,
+    documents,
     headers,
     query,
     topK,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV3<string>['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV3<string>['doRerank']>>
+  }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<
+    Awaited<ReturnType<RerankingModelV3['doRerank']>>
   > {
     const rerankingOptions = await parseProviderOptions({
       provider: 'cohere',
       providerOptions,
-      schema: cohereRerankingOptions,
+      schema: cohereRerankingOptionsSchema,
     });
 
-    if (values.length > this.maxDocumentsPerCall) {
+    if (documents.values.length > this.maxDocumentsPerCall) {
       throw new TooManyDocumentsForRerankingError({
         provider: this.provider,
         modelId: this.modelId,
         maxDocumentsPerCall: this.maxDocumentsPerCall,
-        documents: values,
+        documentsCount: documents.values.length,
       });
     }
 
@@ -77,11 +78,15 @@ export class CohereRerankingModel implements RerankingModelV3<string> {
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
-        documents: values,
-        query: query,
+        query,
+        documents:
+          documents.type === 'text'
+            ? documents.values
+            : documents.values.map(value => JSON.stringify(value)),
         top_n: topK,
-        max_tokens_per_doc: rerankingOptions?.maxTokensPerDoc ?? 4096,
-      },
+        max_tokens_per_doc: rerankingOptions?.maxTokensPerDoc,
+        priority: rerankingOptions?.priority,
+      } as CohereRerankingInput,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         cohereRerankingResponseSchema,
@@ -94,30 +99,11 @@ export class CohereRerankingModel implements RerankingModelV3<string> {
       rerankedDocuments: response.results.map(result => ({
         index: result.index,
         relevanceScore: result.relevance_score,
-        document: values[result.index],
       })),
-      usage: { tokens: response.meta.billed_units.search_units },
+      providerMetadata: {
+        cohere: response.meta,
+      },
       response: { headers: responseHeaders, body: rawValue },
     };
   }
 }
-
-// minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const cohereRerankingResponseSchema = z.object({
-  id: z.string(),
-  results: z.array(
-    z.object({
-      index: z.number(),
-      relevance_score: z.number(),
-    }),
-  ),
-  meta: z.object({
-    api_version: z.object({
-      version: z.string(),
-    }),
-    billed_units: z.object({
-      search_units: z.number(),
-    }),
-  }),
-});
