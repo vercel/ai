@@ -1,5 +1,20 @@
 # ai
 
+## 6.0.0-beta.74
+
+### Patch Changes
+
+- 293a6b7: Added a title to the tools
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/gateway@2.0.0-beta.38
+
+## 6.0.0-beta.73
+
+### Patch Changes
+
+- 754df61: fix(ai): correct type field in arrayOutputStrategy from 'enum' to 'array'
+
 ## 6.0.0-beta.72
 
 ### Patch Changes
