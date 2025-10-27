@@ -341,6 +341,23 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         }
       }
 
+      // citations
+      if (part.citationsContent) {
+        for (const generatedContent of part.citationsContent.content) {
+          // Push the citation generated content (text block) as text to prevent an empty response when citations are present
+          content.push({
+            type: 'text',
+            text: generatedContent.text,
+            // provide actual citations in providerMetadata
+            providerMetadata: {
+              bedrock: {
+                citations: part.citationsContent.citations
+              },
+            },
+          });
+        }
+      }
+
       // reasoning
       if (part.reasoningContent) {
         if ('reasoningText' in part.reasoningContent) {
@@ -798,6 +815,38 @@ const BedrockRedactedReasoningSchema = z.object({
   data: z.string(),
 });
 
+const DocumentLocationSchema = z.object({
+    documentIndex: z.number(),
+    start: z.number().min(0),
+    end: z.number().min(0),
+});
+
+const BedrockCitationLocationSchema = z.object({
+  documentChar: DocumentLocationSchema.nullish(),
+  documentPage: DocumentLocationSchema.nullish(),
+  documentChunk: DocumentLocationSchema.nullish(),
+});
+
+const BedrockCitationSchema = z.object({
+  title: z.string(),
+  sourceContent: z
+    .array(
+      z.object({
+        text: z.string(),
+      }),
+    ),
+  location: BedrockCitationLocationSchema,
+});
+
+const BedrockCitationsContentSchema = z.object({
+  content: z.array(
+    z.object({
+      text: z.string(),
+    }),
+  ),
+  citations: z.array(BedrockCitationSchema),
+});
+
 // limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
@@ -812,6 +861,7 @@ const BedrockResponseSchema = z.object({
         z.object({
           text: z.string().nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
+          citationsContent: BedrockCitationsContentSchema.nullish(),
           reasoningContent: z
             .union([
               z.object({
