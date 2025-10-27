@@ -71,10 +71,10 @@ export interface ProviderRegistryProvider<
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['rerankingModel']>>[0]>}`
       : never,
-  ): RerankingModelV3<string>;
+  ): RerankingModelV3;
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): RerankingModelV3<string>;
+  ): RerankingModelV3;
 }
 
 /**
@@ -297,7 +297,7 @@ class DefaultProviderRegistry<
 
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): RerankingModelV3<string> {
+  ): RerankingModelV3 {
     const [providerId, modelId] = this.splitId(id, 'rerankingModel');
     const provider = this.getProvider(providerId, 'rerankingModel');
 

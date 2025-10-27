@@ -30,7 +30,7 @@ export function customProvider<
   IMAGE_MODELS extends Record<string, ImageModelV3>,
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV3>,
   SPEECH_MODELS extends Record<string, SpeechModelV3>,
-  RERANKING_MODELS extends Record<string, RerankingModelV3<string>>,
+  RERANKING_MODELS extends Record<string, RerankingModelV3>,
 >({
   languageModels,
   textEmbeddingModels,
@@ -56,9 +56,7 @@ export function customProvider<
   transcriptionModel(
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
   ): TranscriptionModelV3;
-  rerankingModel(
-    modelId: ExtractModelId<RERANKING_MODELS>,
-  ): RerankingModelV3<string>;
+  rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV3;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3;
 } {
   return {
@@ -127,7 +125,7 @@ export function customProvider<
     },
     rerankingModel(
       modelId: ExtractModelId<RERANKING_MODELS>,
-    ): RerankingModelV3<string> {
+    ): RerankingModelV3 {
       if (rerankingModels != null && modelId in rerankingModels) {
         return rerankingModels[modelId];
       }

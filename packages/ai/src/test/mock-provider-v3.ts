@@ -30,7 +30,7 @@ export class MockProviderV3 implements ProviderV3 {
     imageModels?: Record<string, ImageModelV3>;
     transcriptionModels?: Record<string, TranscriptionModelV3>;
     speechModels?: Record<string, SpeechModelV3>;
-    rerankingModels?: Record<string, RerankingModelV3<string>>;
+    rerankingModels?: Record<string, RerankingModelV3>;
   } = {}) {
     this.languageModel = (modelId: string) => {
       if (!languageModels?.[modelId]) {

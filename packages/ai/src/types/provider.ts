@@ -44,12 +44,12 @@ export type Provider = {
   /**
    Returns the reranking model with the given id.
    The model id is then passed to the provider function to get the model.
-   
+
   @param {string} id - The id of the model to return.
-  
+
   @return {RerankingModel<VALUE>} The reranking model associated with the id
-  
+
   @throws {NoSuchModelError} If no such model exists.
    */
-  rerankingModel<VALUE>(modelId: string): RerankingModel<VALUE>;
+  rerankingModel(modelId: string): RerankingModel;
 };

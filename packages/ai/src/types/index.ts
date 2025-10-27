@@ -1,6 +1,5 @@
 export type { JSONSchema7 } from '@ai-sdk/provider';
 export type { Embedding, EmbeddingModel } from './embedding-model';
-export type { RerankingModel, RerankedDocument } from './reranking-model';
 export type {
   ImageModel,
   ImageGenerationWarning as ImageModelCallWarning,
@@ -19,6 +18,7 @@ export type { LanguageModelRequestMetadata } from './language-model-request-meta
 export type { LanguageModelResponseMetadata } from './language-model-response-metadata';
 export type { Provider } from './provider';
 export type { ProviderMetadata } from './provider-metadata';
+export type { RerankingModel } from './reranking-model';
 export type { SpeechModel, SpeechWarning } from './speech-model';
 export type { SpeechModelResponseMetadata } from './speech-model-response-metadata';
 export type {
@@ -26,8 +26,4 @@ export type {
   TranscriptionWarning,
 } from './transcription-model';
 export type { TranscriptionModelResponseMetadata } from './transcription-model-response-metadata';
-export type {
-  EmbeddingModelUsage,
-  LanguageModelUsage,
-  RerankingModelUsage,
-} from './usage';
+export type { EmbeddingModelUsage, LanguageModelUsage } from './usage';
