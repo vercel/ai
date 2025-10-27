@@ -4,15 +4,15 @@ import {
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV3,
   EmbeddingModelV3,
+  LanguageModelV3,
   RerankingModelV3,
 } from '@ai-sdk/provider';
-import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { loadApiKey } from '@ai-sdk/provider-utils';
+import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { createTogetherAI } from './togetherai-provider';
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import { TogetherAIRerankingModel } from './togetherai-reranking-model';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -44,8 +44,7 @@ vi.mock('./togetherai-reranking-model', () => ({
 describe('TogetherAIProvider', () => {
   let mockLanguageModel: LanguageModelV3;
   let mockEmbeddingModel: EmbeddingModelV3<string>;
-  let mockRerankingModel: RerankingModelV3<string | object>;
-  let createOpenAICompatibleMock: Mock;
+  let mockRerankingModel: RerankingModelV3;
 
   beforeEach(() => {
     // Mock implementations of models
@@ -57,7 +56,7 @@ describe('TogetherAIProvider', () => {
     } as EmbeddingModelV3<string>;
     mockRerankingModel = {
       // Add any required methods for RerankingModelV3
-    } as RerankingModelV3<string | object>;
+    } as RerankingModelV3;
 
     // Reset mocks
     vi.clearAllMocks();
