@@ -7,7 +7,7 @@ import { TranscriptionModelV2 } from '../../transcription-model/v2/transcription
 /**
  * Provider for language, text embedding, and image generation models.
  */
-export interface ProviderV2<VALUE = string> {
+export interface ProviderV2 {
   /**
 Returns the language model with the given id.
 The model id is then passed to the provider function to get the model.
@@ -30,7 +30,7 @@ The model id is then passed to the provider function to get the model.
 
 @throws {NoSuchModelError} If no such model exists.
    */
-  textEmbeddingModel(modelId: string): EmbeddingModelV2<VALUE>;
+  textEmbeddingModel(modelId: string): EmbeddingModelV2<string>;
 
   /**
 Returns the image model with the given id.
