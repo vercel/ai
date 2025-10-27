@@ -221,6 +221,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    * ID of the tool call.
    */
   toolCallId: string;
+  title?: string;
 
   /**
    * Whether the tool call was executed by the provider.
@@ -324,6 +325,7 @@ export type DynamicToolUIPart = {
    * ID of the tool call.
    */
   toolCallId: string;
+  title?: string;
 
   /**
    * Whether the tool call was executed by the provider.
