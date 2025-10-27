@@ -90,7 +90,12 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
         index: result.index,
         relevanceScore: result.relevance_score,
       })),
-      response: { headers: responseHeaders, body: rawValue },
+      response: {
+        id: response.id ?? undefined,
+        modelId: response.model ?? undefined,
+        headers: responseHeaders,
+        body: rawValue,
+      },
     };
   }
 }

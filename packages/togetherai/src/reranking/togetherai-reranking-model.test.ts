@@ -129,6 +129,8 @@ describe('doRerank', () => {
             "content-length": "304",
             "content-type": "application/json",
           },
+          "id": "oGs6Zt9-62bZhn-99529372487b1b0a",
+          "modelId": "Salesforce/Llama-Rank-v1",
         }
       `);
     });
@@ -234,6 +236,8 @@ describe('doRerank', () => {
             "content-length": "304",
             "content-type": "application/json",
           },
+          "id": "oGs6Zt9-62bZhn-99529372487b1b0a",
+          "modelId": "Salesforce/Llama-Rank-v1",
         }
       `);
     });

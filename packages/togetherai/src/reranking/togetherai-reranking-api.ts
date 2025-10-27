@@ -25,6 +25,8 @@ export const togetheraiErrorSchema = lazySchema(() =>
 export const togetheraiRerankingResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      id: z.string().nullish(),
+      model: z.string().nullish(),
       results: z.array(
         z.object({
           index: z.number(),
