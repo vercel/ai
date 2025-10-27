@@ -18,7 +18,7 @@ export function wrapProvider({
   provider,
   languageModelMiddleware,
 }: {
-  provider: ProviderV3;
+  provider: ProviderV3 | ProviderV2;
   languageModelMiddleware: LanguageModelMiddleware | LanguageModelMiddleware[];
 }): ProviderV3 {
   const providerV3 = asProviderV3(provider);
