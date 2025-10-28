@@ -616,7 +616,7 @@ describe('middleware functionality', () => {
       },
       {
         languageModelMiddleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideModelId,
         },
       },
