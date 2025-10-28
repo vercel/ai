@@ -1,0 +1,40 @@
+{
+  "id": "resp_reasoning_001",
+  "created_at": 1741265000,
+  "model": "grok-2-1212",
+  "output": [
+    {
+      "id": "reasoning_001",
+      "type": "reasoning",
+      "encrypted_content": "encrypted_content_placeholder",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "The sky appears blue due to Rayleigh scattering, where shorter wavelengths of light (blue) scatter more than longer wavelengths (red) in the atmosphere."
+        }
+      ]
+    },
+    {
+      "id": "msg_reasoning_response",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "The sky is blue because of a phenomenon called Rayleigh scattering. When sunlight enters Earth's atmosphere, it collides with gas molecules. Blue light has a shorter wavelength and gets scattered more than other colors, making the sky appear blue to our eyes."
+        }
+      ]
+    }
+  ],
+  "incomplete_details": null,
+  "usage": {
+    "input_tokens": 32,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 89,
+    "output_tokens_details": {
+      "reasoning_tokens": 45
+    }
+  }
+}

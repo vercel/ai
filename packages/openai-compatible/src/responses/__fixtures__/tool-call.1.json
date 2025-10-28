@@ -1,0 +1,25 @@
+{
+  "id": "resp_abc123def456",
+  "created_at": 1741260000,
+  "model": "grok-2-1212",
+  "output": [
+    {
+      "id": "fc_call_001",
+      "type": "function_call",
+      "call_id": "call_weather_sf",
+      "name": "getWeather",
+      "arguments": "{\"location\":\"San Francisco\",\"unit\":\"celsius\"}"
+    }
+  ],
+  "incomplete_details": null,
+  "usage": {
+    "input_tokens": 45,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 18,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

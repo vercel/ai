@@ -1,0 +1,29 @@
+{
+  "id": "resp_67c97c0203188190a025beb4a75242bc",
+  "created_at": 1741257730,
+  "model": "grok-2-1212",
+  "output": [
+    {
+      "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Code in silence,\nBugs emerge at runtime—\nConsole dot log."
+        }
+      ]
+    }
+  ],
+  "incomplete_details": null,
+  "usage": {
+    "input_tokens": 28,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 21,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

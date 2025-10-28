@@ -1,0 +1,14 @@
+{"type":"response.created","response":{"id":"resp_abc123def456","created_at":1741260000,"model":"grok-2-1212"}}
+{"type":"response.output_item.added","output_index":0,"item":{"id":"fc_call_001","type":"function_call","call_id":"call_weather_sf","name":"getWeather","arguments":""}}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"{\""}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"location"}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"\":\""}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"San"}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":" Francisco"}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"\",\""}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"unit"}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"\":\""}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"celsius"}
+{"type":"response.function_call_arguments.delta","output_index":0,"item_id":"fc_call_001","delta":"\"}"}
+{"type":"response.output_item.done","output_index":0,"item":{"id":"fc_call_001","type":"function_call","call_id":"call_weather_sf","name":"getWeather","arguments":"{\"location\":\"San Francisco\",\"unit\":\"celsius\"}","status":"completed"}}
+{"type":"response.completed","response":{"incomplete_details":null,"usage":{"input_tokens":45,"input_tokens_details":{"cached_tokens":0},"output_tokens":18,"output_tokens_details":{"reasoning_tokens":0}}}}

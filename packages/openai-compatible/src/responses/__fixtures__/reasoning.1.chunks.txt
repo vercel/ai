@@ -1,0 +1,73 @@
+{"type":"response.created","response":{"id":"resp_reasoning_001","created_at":1741265000,"model":"grok-2-1212"}}
+{"type":"response.output_item.added","output_index":0,"item":{"id":"reasoning_001","type":"reasoning","encrypted_content":"encrypted_content_placeholder"}}
+{"type":"response.reasoning_summary_part.added","item_id":"reasoning_001","summary_index":0}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":"The sky"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" appears"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" blue"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" due to"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" Rayleigh"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" scattering"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":", where"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" shorter"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" wavelengths"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" of light"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" (blue)"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" scatter"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" more"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" than"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" longer"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" wavelengths"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" (red)"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" in the"}
+{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" atmosphere."}
+{"type":"response.reasoning_summary_part.done","item_id":"reasoning_001","summary_index":0}
+{"type":"response.output_item.done","output_index":0,"item":{"id":"reasoning_001","type":"reasoning","encrypted_content":"encrypted_content_placeholder"}}
+{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_reasoning_response","type":"message"}}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":"The sky"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" is"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" blue"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" because"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" of"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" a"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" phenomenon"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" called"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" Rayleigh"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" scattering"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":"."}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" When"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" sunlight"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" enters"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" Earth's"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" atmosphere"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":","}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" it"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" collides"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" with"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" gas"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" molecules"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":"."}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" Blue"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" light"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" has"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" a"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" shorter"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" wavelength"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" and"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" gets"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" scattered"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" more"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" than"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" other"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" colors"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":","}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" making"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" the"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" sky"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" appear"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" blue"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" to"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" our"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" eyes"}
+{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":"."}
+{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_reasoning_response","type":"message"}}
+{"type":"response.completed","response":{"incomplete_details":null,"usage":{"input_tokens":32,"input_tokens_details":{"cached_tokens":0},"output_tokens":89,"output_tokens_details":{"reasoning_tokens":45}}}}

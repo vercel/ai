@@ -535,7 +535,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                   toolName: value.item.name,
                   input: value.item.arguments,
                   providerMetadata: {
-                    providerOptionsName: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                     },
                   },

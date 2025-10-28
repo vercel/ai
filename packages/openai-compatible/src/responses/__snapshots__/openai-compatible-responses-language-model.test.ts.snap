@@ -1,0 +1,721 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenAICompatibleResponsesLanguageModel > doGenerate > reasoning > should generate reasoning and message 1`] = `
+[
+  {
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+        "reasoningEncryptedContent": "encrypted_content_placeholder",
+      },
+    },
+    "text": "The sky appears blue due to Rayleigh scattering, where shorter wavelengths of light (blue) scatter more than longer wavelengths (red) in the atmosphere.",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "xai": {
+        "itemId": "msg_reasoning_response",
+      },
+    },
+    "text": "The sky is blue because of a phenomenon called Rayleigh scattering. When sunlight enters Earth's atmosphere, it collides with gas molecules. Blue light has a shorter wavelength and gets scattered more than other colors, making the sky appear blue to our eyes.",
+    "type": "text",
+  },
+]
+`;
+
+exports[`OpenAICompatibleResponsesLanguageModel > doStream > basic text stream > should stream text deltas 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_67c97c0203188190a025beb4a75242bc",
+    "modelId": "grok-2-1212",
+    "timestamp": 2025-03-06T10:42:10.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "Code",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silence",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",
+",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Bugs",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " emerge",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " runtime",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "—
+",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Console",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dot",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " log",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "xai": {
+        "responseId": "resp_67c97c0203188190a025beb4a75242bc",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 28,
+      "outputTokens": 21,
+      "reasoningTokens": 0,
+      "totalTokens": 49,
+    },
+  },
+]
+`;
+
+exports[`OpenAICompatibleResponsesLanguageModel > doStream > reasoning stream > should stream reasoning and text 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_reasoning_001",
+    "modelId": "grok-2-1212",
+    "timestamp": 2025-03-06T12:43:20.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+        "reasoningEncryptedContent": "encrypted_content_placeholder",
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "The sky",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " appears",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " blue",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " due to",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Rayleigh",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " scattering",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ", where",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " shorter",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " wavelengths",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " of light",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " (blue)",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " scatter",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " more",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " than",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " longer",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " wavelengths",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " (red)",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " in the",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " atmosphere.",
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "reasoning_001:0",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "reasoning_001",
+        "reasoningEncryptedContent": "encrypted_content_placeholder",
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_reasoning_response",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "msg_reasoning_response",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The sky",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " blue",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " because",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " phenomenon",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " called",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Rayleigh",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " scattering",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " When",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sunlight",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " enters",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Earth's",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " atmosphere",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " collides",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gas",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " molecules",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Blue",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " light",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " has",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shorter",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wavelength",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gets",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " scattered",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " more",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " than",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " colors",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " making",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sky",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " appear",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " blue",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " our",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": " eyes",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_reasoning_response",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_reasoning_response",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "xai": {
+        "responseId": "resp_reasoning_001",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 32,
+      "outputTokens": 89,
+      "reasoningTokens": 45,
+      "totalTokens": 121,
+    },
+  },
+]
+`;
+
+exports[`OpenAICompatibleResponsesLanguageModel > doStream > tool call stream > should stream tool call with argument deltas 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_abc123def456",
+    "modelId": "grok-2-1212",
+    "timestamp": 2025-03-06T11:20:00.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "call_weather_sf",
+    "toolName": "getWeather",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "location",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":"",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "San",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Francisco",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "","",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "unit",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":"",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "celsius",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "call_weather_sf",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_weather_sf",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location":"San Francisco","unit":"celsius"}",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "fc_call_001",
+      },
+    },
+    "toolCallId": "call_weather_sf",
+    "toolName": "getWeather",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "tool-calls",
+    "providerMetadata": {
+      "xai": {
+        "responseId": "resp_abc123def456",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 45,
+      "outputTokens": 18,
+      "reasoningTokens": 0,
+      "totalTokens": 63,
+    },
+  },
+]
+`;
