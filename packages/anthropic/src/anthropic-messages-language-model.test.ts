@@ -2598,7 +2598,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       let result: Array<LanguageModelV3StreamPart>;
 
       beforeEach(async () => {
-        prepareJsonFixtureResponse('anthropic-json-tool.1');
+        prepareChunksFixtureResponse('anthropic-json-tool.1');
 
         const { stream } = await model.doStream({
           prompt: TEST_PROMPT,
@@ -2670,6 +2670,57 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "stream-start",
               "warnings": [],
             },
+            {
+              "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+              "modelId": "claude-haiku-4-5-20251001",
+              "type": "response-metadata",
+            },
+            {
+              "id": "0",
+              "type": "text-start",
+            },
+            {
+              "delta": "{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "delta": "}",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "id": "0",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": 0,
+                  "container": null,
+                  "stopSequence": null,
+                  "usage": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 47,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": 0,
+                "inputTokens": 849,
+                "outputTokens": 47,
+                "totalTokens": 896,
+              },
+            },
           ]
         `);
       });
@@ -2679,14 +2730,14 @@ describe('AnthropicMessagesLanguageModel', () => {
       let result: Awaited<ReturnType<typeof model.doStream>>;
 
       beforeEach(async () => {
-        prepareJsonFixtureResponse('anthropic-json-other-tool.1');
+        prepareChunksFixtureResponse('anthropic-json-other-tool.1');
 
         result = await model.doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
               type: 'function',
-              name: 'get-weather',
+              name: 'weather',
               description: 'Get the weather in a location',
               inputSchema: {
                 type: 'object',
@@ -2752,7 +2803,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "name": "get-weather",
+                "name": "weather",
               },
               {
                 "description": "Respond with a JSON object.",
@@ -2787,6 +2838,65 @@ describe('AnthropicMessagesLanguageModel', () => {
               {
                 "type": "stream-start",
                 "warnings": [],
+              },
+              {
+                "id": "msg_01CD3XaZfhNabxRt1SG5ybtK",
+                "modelId": "claude-haiku-4-5-20251001",
+                "type": "response-metadata",
+              },
+              {
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "toolName": "weather",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{"location": "San Francisco",
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": ""}",
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"location": "San Francisco"}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": 0,
+                    "container": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 843,
+                      "output_tokens": 28,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 843,
+                  "outputTokens": 28,
+                  "totalTokens": 871,
+                },
               },
             ]
           `);
