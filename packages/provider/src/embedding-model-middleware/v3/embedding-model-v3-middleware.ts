@@ -14,19 +14,19 @@ export type EmbeddingModelV3Middleware = {
 
   /**
    * Override the provider name if desired.
-   * @param options.model - The language model instance.
+   * @param options.model - The embedding model instance.
    */
   overrideProvider?: (options: { model: EmbeddingModelV3<string> }) => string;
 
   /**
    * Override the model ID if desired.
-   * @param options.model - The language model instance.
+   * @param options.model - The embedding model instance.
    */
   overrideModelId?: (options: { model: EmbeddingModelV3<string> }) => string;
 
   /**
    * Override the limit of how many embeddings can be generated in a single API call if desired.
-   * @param options.model - The language model instance.
+   * @param options.model - The embedding model instance.
    */
   overrideMaxEmbeddingsPerCall?: (options: {
     model: EmbeddingModelV3<string>;
@@ -34,7 +34,7 @@ export type EmbeddingModelV3Middleware = {
 
   /**
    * Override support for handling multiple embedding calls in parallel, if desired..
-   * @param options.model - The language model instance.
+   * @param options.model - The embedding model instance.
    */
   overrideSupportsParallelCalls?: (options: {
     model: EmbeddingModelV3<string>;
@@ -43,7 +43,7 @@ export type EmbeddingModelV3Middleware = {
   /**
    * Transforms the parameters before they are passed to the embed model.
    * @param options - Object containing the type of operation and the parameters.
-   * @param options.params - The original parameters for the language model call.
+   * @param options.params - The original parameters for the embedding model call.
    * @returns A promise that resolves to the transformed parameters.
    */
   transformParams?: (options: {
@@ -52,13 +52,13 @@ export type EmbeddingModelV3Middleware = {
   }) => PromiseLike<EmbeddingModelCallOptions<string>>;
 
   /**
-   * Wraps the embed operation of the language model.
+   * Wraps the embed operation of the embedding model.
    *
    * @param options - Object containing the embed function, parameters, and model.
    * @param options.doEmbed - The original embed function.
    * @param options.params - The parameters for the embed call. If the
    * `transformParams` middleware is used, this will be the transformed parameters.
-   * @param options.model - The language model instance.
+   * @param options.model - The embedding model instance.
    * @returns A promise that resolves to the result of the generate operation.
    */
   wrapEmbed?: (options: {
