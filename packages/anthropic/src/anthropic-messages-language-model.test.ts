@@ -2598,27 +2598,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       let result: Array<LanguageModelV3StreamPart>;
 
       beforeEach(async () => {
-        server.urls['https://api.anthropic.com/v1/messages'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
-            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
-            `data: {"type": "ping"}\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
-            `data: {"type":"content_block_stop","index":0    }\n\n`,
-            `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"json","input":{}}      }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
-            `data: {"type":"content_block_stop","index":1              }\n\n`,
-            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
-            `data: {"type":"message_stop"           }\n\n`,
-          ],
-        };
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
 
         const { stream } = await model.doStream({
           prompt: TEST_PROMPT,
@@ -2689,83 +2669,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             {
               "type": "stream-start",
               "warnings": [],
-            },
-            {
-              "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
-              "modelId": "claude-3-haiku-20240307",
-              "type": "response-metadata",
-            },
-            {
-              "id": "0",
-              "type": "text-start",
-            },
-            {
-              "delta": "Okay",
-              "id": "0",
-              "type": "text-delta",
-            },
-            {
-              "delta": "!",
-              "id": "0",
-              "type": "text-delta",
-            },
-            {
-              "id": "0",
-              "type": "text-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "delta": "{"value",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": "":",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": ""Spark",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": "le",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": " Day"}",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "providerMetadata": {
-                "anthropic": {
-                  "cacheCreationInputTokens": null,
-                  "container": null,
-                  "stopSequence": null,
-                  "usage": {
-                    "input_tokens": 441,
-                    "output_tokens": 65,
-                  },
-                },
-              },
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 441,
-                "outputTokens": 65,
-                "totalTokens": 506,
-              },
             },
           ]
         `);
