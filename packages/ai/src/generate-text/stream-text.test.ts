@@ -1073,6 +1073,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
           }),
         },
@@ -1175,6 +1176,7 @@ describe('streamText', () => {
             {
               "dynamic": false,
               "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "title": undefined,
               "toolName": "test-tool",
               "type": "tool-input-start",
             },
@@ -1223,6 +1225,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
               "toolName": "test-tool",
               "type": "tool-call",
@@ -1285,6 +1288,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
             execute: async (input, options) => {
               expect(input).toStrictEqual({ value: 'value' });
@@ -1328,6 +1332,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => {
               await delay(50); // delay to show bug where step finish is sent before tool result
@@ -4479,6 +4484,7 @@ describe('streamText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -4619,6 +4625,7 @@ describe('streamText', () => {
           {
             "dynamic": false,
             "id": "2",
+            "title": undefined,
             "toolName": "tool1",
             "type": "tool-input-start",
           },
@@ -4665,6 +4672,7 @@ describe('streamText', () => {
                 "custom": "value",
               },
             },
+            "title": undefined,
             "toolCallId": "2",
             "toolName": "tool1",
             "type": "tool-call",
@@ -4775,6 +4783,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -4854,6 +4863,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -4885,6 +4895,7 @@ describe('streamText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -4969,6 +4980,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -5770,6 +5782,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -5958,6 +5971,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -6142,6 +6156,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -6345,6 +6360,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -6879,6 +6895,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -7062,6 +7079,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -7345,6 +7363,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -7533,6 +7552,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -7717,6 +7737,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -7916,6 +7937,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -8431,6 +8453,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -8520,6 +8543,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -8722,6 +8746,7 @@ describe('streamText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -8743,6 +8768,7 @@ describe('streamText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-call",
@@ -8778,6 +8804,7 @@ describe('streamText', () => {
                 "dynamic": false,
                 "id": "call-1",
                 "providerExecuted": true,
+                "title": undefined,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -8796,6 +8823,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": true,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "web_search",
                 "type": "tool-call",
@@ -8817,6 +8845,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": true,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-2",
                 "toolName": "web_search",
                 "type": "tool-call",
@@ -8985,6 +9014,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "dynamicTool",
               "type": "tool-call",
@@ -9020,6 +9050,7 @@ describe('streamText', () => {
               {
                 "dynamic": true,
                 "id": "call-1",
+                "title": undefined,
                 "toolName": "dynamicTool",
                 "type": "tool-input-start",
               },
@@ -9039,6 +9070,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "dynamicTool",
                 "type": "tool-call",
@@ -9721,6 +9753,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
+            title: 'Tool 1',
             inputSchema: jsonSchema<{ value: string }>({
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -9845,6 +9878,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -9903,6 +9937,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -10254,6 +10289,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -10361,6 +10397,7 @@ describe('streamText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -10568,6 +10605,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -10647,6 +10685,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -10678,6 +10717,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -10762,6 +10802,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -10863,6 +10904,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -11069,6 +11111,7 @@ describe('streamText', () => {
             {
               "dynamic": false,
               "id": "call-1",
+              "title": undefined,
               "toolName": "tool1",
               "type": "tool-input-start",
             },
@@ -11093,6 +11136,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -12926,6 +12970,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -13014,6 +13059,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -13368,6 +13414,7 @@ describe('streamText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -13388,6 +13435,7 @@ describe('streamText', () => {
               "input": {
                 "cities": "San Francisco",
               },
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-error",
@@ -13411,6 +13459,7 @@ describe('streamText', () => {
               {
                 "dynamic": false,
                 "id": "call-1",
+                "title": undefined,
                 "toolName": "cityAttractions",
                 "type": "tool-input-start",
               },
@@ -13440,6 +13489,7 @@ describe('streamText', () => {
                   "cities": "San Francisco",
                 },
                 "invalid": true,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-call",
@@ -13460,6 +13510,7 @@ describe('streamText', () => {
                 "input": {
                   "cities": "San Francisco",
                 },
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-error",
@@ -13629,6 +13680,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-call",
@@ -13644,6 +13696,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-result",
@@ -13660,6 +13713,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-result",
@@ -13776,6 +13830,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -13809,6 +13864,7 @@ describe('streamText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "cityAttractions",
                   "type": "tool-call",
@@ -13983,6 +14039,7 @@ describe('streamText', () => {
                     "serverName": "echo",
                   },
                 },
+                "title": undefined,
                 "toolName": "cityAttractions",
                 "type": "tool-input-start",
               },
@@ -14173,7 +14230,11 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings once for each step with warnings from that step', async () => {
@@ -14264,8 +14325,16 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledTimes(2);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+        warnings: [warning1],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
+        warnings: [warning2],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -14280,7 +14349,11 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
   });
 
@@ -14325,70 +14398,72 @@ describe('streamText', () => {
       it('should add tool approval requests to the full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
-            },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "input": {
-                "value": "value",
+            [
+              {
+                "type": "start",
               },
-              "providerExecuted": undefined,
-              "providerMetadata": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-            {
-              "approvalId": "id-1",
-              "toolCall": {
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
                 "input": {
                   "value": "value",
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
               },
-              "type": "tool-approval-request",
-            },
-            {
-              "finishReason": "tool-calls",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+              {
+                "approvalId": "id-1",
+                "toolCall": {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                "type": "tool-approval-request",
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
               },
-            },
-            {
-              "finishReason": "tool-calls",
-              "totalUsage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
+              {
+                "finishReason": "tool-calls",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "type": "finish",
               },
-              "type": "finish",
-            },
-          ]
-        `);
+            ]
+          `);
       });
 
       it('should add tool approval requests to the UI message stream', async () => {
@@ -14433,6 +14508,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -14445,6 +14521,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -14551,6 +14628,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -14563,6 +14641,7 @@ describe('streamText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -14575,6 +14654,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-2",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -14685,6 +14765,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -14697,6 +14778,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -14709,6 +14791,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "tool1",
               "type": "tool-call",

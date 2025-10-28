@@ -2677,6 +2677,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-abc123",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-abc123",
+              },
+            },
             "sourceType": "document",
             "title": "This is a quote from the file",
             "type": "source",
@@ -2760,6 +2765,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-xyz789",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-xyz789",
+              },
+            },
             "sourceType": "document",
             "title": "Important information from document",
             "type": "source",
@@ -2848,6 +2858,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -2856,6 +2871,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -4617,6 +4637,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-abc123",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-abc123",
+              },
+            },
             "sourceType": "document",
             "title": "This is a quote from the file",
             "type": "source",
@@ -4673,6 +4698,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -4681,6 +4711,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",

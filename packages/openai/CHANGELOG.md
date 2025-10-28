@@ -1,5 +1,64 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 3.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- 1b982e6: feat(openai): preserve file_id when converting file citations
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- e85fa2f: feat(openai): add sources in web-search actions
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+
 ## 3.0.0-beta.34
 
 ### Patch Changes
