@@ -829,7 +829,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
     let container: AnthropicMessageMetadata['container'] | null = null;
-    let isJsonToolCalled = false;
+    let isJsonResponseFromTool = false;
 
     let blockType:
       | 'text'
@@ -918,28 +918,29 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       usesJsonResponseTool && part.name === 'json';
 
                     if (isJsonResponseTool) {
-                      isJsonToolCalled = true;
+                      isJsonResponseFromTool = true;
+
+                      contentBlocks[value.index] = { type: 'text' };
+
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: String(value.index),
+                      });
+                    } else {
+                      contentBlocks[value.index] = {
+                        type: 'tool-call',
+                        toolCallId: part.id,
+                        toolName: part.name,
+                        input: '',
+                        firstDelta: true,
+                      };
+
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: part.id,
+                        toolName: part.name,
+                      });
                     }
-
-                    contentBlocks[value.index] = isJsonResponseTool
-                      ? { type: 'text' }
-                      : {
-                          type: 'tool-call',
-                          toolCallId: part.id,
-                          toolName: part.name,
-                          input: '',
-                          firstDelta: true,
-                        };
-
-                    controller.enqueue(
-                      isJsonResponseTool
-                        ? { type: 'text-start', id: String(value.index) }
-                        : {
-                            type: 'tool-input-start',
-                            id: part.id,
-                            toolName: part.name,
-                          },
-                    );
                     return;
                   }
 
@@ -1364,7 +1365,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 finishReason = mapAnthropicStopReason({
                   finishReason: value.delta.stop_reason,
-                  isJsonResponseFromTool: isJsonToolCalled,
+                  isJsonResponseFromTool,
                 });
 
                 stopSequence = value.delta.stop_sequence ?? null;
