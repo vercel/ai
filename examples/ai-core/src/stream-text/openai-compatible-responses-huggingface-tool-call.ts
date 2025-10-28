@@ -20,7 +20,7 @@ async function main() {
     tools: {
       getCurrentTime: {
         description: 'Get the current time for a timezone',
-        parameters: z.object({
+        inputSchema: z.object({
           timezone: z
             .string()
             .describe('The timezone identifier (e.g., Asia/Tokyo)'),
@@ -38,12 +38,12 @@ async function main() {
 
   for await (const part of result.fullStream) {
     if (part.type === 'text-delta') {
-      process.stdout.write(part.delta);
+      process.stdout.write(part.text);
     } else if (part.type === 'tool-call') {
       console.log('\nTool call:', part.toolName);
       console.log('Arguments:', part.input);
     } else if (part.type === 'tool-result') {
-      console.log('Tool result:', part.result);
+      console.log('Tool result:', part.output);
     }
   }
 

@@ -20,7 +20,7 @@ async function main() {
     tools: {
       getWeather: {
         description: 'Get the weather for a location',
-        parameters: z.object({
+        inputSchema: z.object({
           location: z.string().describe('The location to get weather for'),
           unit: z
             .enum(['celsius', 'fahrenheit'])
@@ -42,12 +42,12 @@ async function main() {
 
   for await (const part of result.fullStream) {
     if (part.type === 'text-delta') {
-      process.stdout.write(part.delta);
+      process.stdout.write(part.text);
     } else if (part.type === 'tool-call') {
       console.log('\nTool call:', part.toolName);
       console.log('Arguments:', part.input);
     } else if (part.type === 'tool-result') {
-      console.log('Tool result:', part.result);
+      console.log('Tool result:', part.output);
     }
   }
 

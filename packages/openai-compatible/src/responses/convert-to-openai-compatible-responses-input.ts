@@ -89,7 +89,9 @@ export async function convertToOpenAICompatibleResponsesInput({
                         : {
                             image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
                           }),
-                    detail: part.providerOptions?.openaiCompatibleResponses?.imageDetail,
+                    detail:
+                      part.providerOptions?.openaiCompatibleResponses
+                        ?.imageDetail,
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
@@ -155,9 +157,8 @@ export async function convertToOpenAICompatibleResponsesInput({
                 break;
               }
 
-              const id = part.providerOptions?.openaiCompatibleResponses?.itemId as
-                | string
-                | undefined;
+              const id = part.providerOptions?.openaiCompatibleResponses
+                ?.itemId as string | undefined;
 
               // item references reduce the payload size
               if (store && id != null) {

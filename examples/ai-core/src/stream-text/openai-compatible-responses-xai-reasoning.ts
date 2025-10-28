@@ -27,9 +27,9 @@ async function main() {
   console.log('Streaming response:');
   for await (const part of result.fullStream) {
     if (part.type === 'reasoning-delta') {
-      process.stdout.write(`[REASONING] ${part.delta}`);
+      process.stdout.write(`[REASONING] ${part.text}`);
     } else if (part.type === 'text-delta') {
-      process.stdout.write(part.delta);
+      process.stdout.write(part.text);
     }
   }
 
