@@ -3,6 +3,7 @@ import { Output, stepCountIs, streamText } from 'ai';
 import z from 'zod';
 import { run } from '../lib/run';
 import { weatherTool } from '../tools/weather-tool';
+import { saveRawChunks } from '../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
@@ -10,7 +11,8 @@ run(async () => {
     headers: {
       'anthropic-beta': 'fine-grained-tool-streaming-2025-05-14',
     },
-    stopWhen: stepCountIs(20),
+    stopWhen: stepCountIs(1),
+    includeRawChunks: true,
     output: Output.array({
       element: z.object({
         location: z.string(),
@@ -22,8 +24,5 @@ run(async () => {
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
-  for await (const partialOutput of result.partialOutputStream) {
-    console.clear();
-    console.log(partialOutput);
-  }
+  await saveRawChunks({ result, filename: 'anthropic-output-array-tools' });
 });

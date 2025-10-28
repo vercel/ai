@@ -2772,32 +2772,13 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format with other tools (stream)', () => {
-      let result: Array<LanguageModelV3StreamPart>;
+    describe('json schema response format with other tool response', () => {
+      let result: Awaited<ReturnType<typeof model.doStream>>;
 
       beforeEach(async () => {
-        server.urls['https://api.anthropic.com/v1/messages'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: {"type":"message_start","message":{"id":"msg_01ABC","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":2},"content":[],"stop_reason":null}}\n\n`,
-            // Regular tool call
-            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01XYZ","name":"get-weather","input":{}}}\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"location\\""}}\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":":\\""}}\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"San Francisco\\"}"}}\n\n`,
-            `data: {"type":"content_block_stop","index":0}\n\n`,
-            // JSON response tool call
-            `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01JSON","name":"json","input":{}}}\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"weather\\""}}\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":":\\"sunny\\","}}\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"temperature\\":72}"}}\n\n`,
-            `data: {"type":"content_block_stop","index":1}\n\n`,
-            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
-            `data: {"type":"message_stop"}\n\n`,
-          ],
-        };
+        prepareJsonFixtureResponse('anthropic-json-other-tool.1');
 
-        const { stream } = await model.doStream({
+        result = await model.doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -2829,86 +2810,83 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           },
         });
-
-        result = await convertReadableStreamToArray(stream);
       });
 
-      it('should stream regular tool as tool-call and json tool as text', async () => {
-        // Filter to just tool-related events
-        const toolEvents = result.filter(
-          part =>
-            part.type === 'tool-input-start' ||
-            part.type === 'tool-input-delta' ||
-            part.type === 'tool-input-end' ||
-            part.type === 'tool-call' ||
-            part.type === 'text-start' ||
-            part.type === 'text-delta' ||
-            part.type === 'text-end',
-        );
-
-        expect(toolEvents).toMatchInlineSnapshot(`
-          [
-            {
-              "id": "toolu_01XYZ",
-              "toolName": "get-weather",
-              "type": "tool-input-start",
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
             },
-            {
-              "delta": "{"location"",
-              "id": "toolu_01XYZ",
-              "type": "tool-input-delta",
-            },
-            {
-              "delta": ":"",
-              "id": "toolu_01XYZ",
-              "type": "tool-input-delta",
-            },
-            {
-              "delta": "San Francisco"}",
-              "id": "toolu_01XYZ",
-              "type": "tool-input-delta",
-            },
-            {
-              "id": "toolu_01XYZ",
-              "type": "tool-input-end",
-            },
-            {
-              "input": "{"location":"San Francisco"}",
-              "providerExecuted": undefined,
-              "toolCallId": "toolu_01XYZ",
-              "toolName": "get-weather",
-              "type": "tool-call",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "delta": "{"weather"",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": ":"sunny",",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": ""temperature":72}",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-          ]
+            "tools": [
+              {
+                "description": "Get the weather in a location",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "name": "get-weather",
+              },
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "temperature": {
+                      "type": "number",
+                    },
+                    "weather": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "weather",
+                    "temperature",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
         `);
       });
 
-      it('should map finish reason to stop for json tool in stream', async () => {
-        const finishEvent = result.find(part => part.type === 'finish');
-        expect(finishEvent?.finishReason).toBe('stop');
+      it('should stream the tool call', async () => {
+        expect(await convertReadableStreamToArray(result.stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+            ]
+          `);
       });
     });
 
