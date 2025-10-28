@@ -10,7 +10,7 @@ export type LanguageModelV2Middleware = {
   /**
    * Middleware specification version. Use `v2` for the current version.
    */
-  specificationVersion?: 'v2' | undefined; // backwards compatibility
+  readonly specificationVersion?: 'v2' | undefined; // backwards compatibility
 
   /**
    * Override the provider name if desired.
