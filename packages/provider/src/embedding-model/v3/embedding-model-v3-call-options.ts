@@ -1,4 +1,4 @@
-import { SharedV3ProviderOptions } from '../../shared';
+import { SharedV3Headers, SharedV3ProviderOptions } from '../../shared';
 
 export type EmbeddingModelCallOptions<VALUE> = {
   /**
@@ -22,5 +22,5 @@ export type EmbeddingModelCallOptions<VALUE> = {
    Additional HTTP headers to be sent with the request.
    Only applicable for HTTP-based providers.
  */
-  headers?: Record<string, string | undefined>;
+  headers?: SharedV3Headers;
 };
