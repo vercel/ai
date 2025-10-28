@@ -537,6 +537,57 @@ const huggingfaceResponsesProviderOptionsSchema = z.object({
   reasoningEffort: z.string().optional(),
 });
 
+const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type',[
+  z.object({
+    type: z.literal('message'),
+    id: z.string(),
+    role: z.string().optional(),
+    status: z.string().optional(),
+    content: z.array(z.object({
+      type: z.literal('ouput_text'),
+      text: z.string(),
+      annotations: z.array(z.any()).optional(),
+    })),
+  }),
+  z.object({
+    type: z.literal('reasoning'),
+    id: z.string(),
+    status: z.string().optional(),
+    content: z.array(z.object({
+      type: z.literal('reasoning_text'),
+      text: z.string(),
+    })),
+    summary: z.array(z.object({
+      type: z.literal('reasoning_summary'),
+      text: z.string(),
+    }).optional()).optional(),
+  }),
+  z.object({
+    type: z.literal('function_call'),
+    id: z.string(),
+    call_id: z.string(),
+    name: z.string(),
+    arguments: z.string(),
+    output: z.string().optional(),
+    status: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('mcp_call'),
+    id: z.string(),
+    name: z.string(),
+    arguments: z.string(),
+    output: z.string().optional(),
+    status: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('mcp_list_tools'),
+    id: z.string(),
+    server_label: z.string(),
+    tools: z.array(z.any()).optional(),
+    status: z.string().optional(),
+  }),
+])
+
 const huggingfaceResponsesResponseSchema = z.object({
   id: z.string(),
   model: z.string(),
@@ -575,7 +626,7 @@ const huggingfaceResponsesResponseSchema = z.object({
     })
     .nullable()
     .optional(),
-  output: z.array(z.any()),
+  output: z.array(huggingfaceResponsesOutputSchema),
   output_text: z.string().nullable().optional(),
 });
 
