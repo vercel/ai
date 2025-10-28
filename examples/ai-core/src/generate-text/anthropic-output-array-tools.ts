@@ -21,5 +21,4 @@ run(async () => {
   });
 
   print('Output:', result.output);
-  print('Response:', result.response.body);
 });

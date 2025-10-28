@@ -287,23 +287,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
-        prepareJsonResponse({
-          content: [
-            {
-              type: 'tool_use',
-              id: 'toolu_1',
-              name: 'get-weather',
-              input: { location: 'San Francisco' },
-            },
-            {
-              type: 'tool_use',
-              id: 'toolu_2',
-              name: 'json',
-              input: { weather: 'sunny', temperature: 72 },
-            },
-          ],
-          stopReason: 'tool_use',
-        });
+        prepareJsonFixtureResponse('anthropic-json-other-tool.1');
 
         result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -339,42 +323,85 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
-      it('should include both regular tools and json response tool', async () => {
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.tools).toHaveLength(2);
-        expect(requestBody.tools[0].name).toBe('get-weather');
-        expect(requestBody.tools[1].name).toBe('json');
-      });
-
-      it('should use required tool choice to allow any tool', async () => {
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.tool_choice).toMatchInlineSnapshot(`
+      it('should pass the tool and the json schema response format as tools', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
-            "disable_parallel_tool_use": true,
-            "type": "any",
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Get the weather in a location",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "name": "get-weather",
+              },
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "temperature": {
+                      "type": "number",
+                    },
+                    "weather": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "weather",
+                    "temperature",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
           }
         `);
       });
 
-      it('should return regular tool call as tool-call and json tool as text', async () => {
+      it('should return the tool call', async () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
               "input": "{"location":"San Francisco"}",
-              "toolCallId": "toolu_1",
-              "toolName": "get-weather",
+              "toolCallId": "toolu_01PQjhxo3eirCdKNvCJrKc8f",
+              "toolName": "weather",
               "type": "tool-call",
-            },
-            {
-              "text": "{"weather":"sunny","temperature":72}",
-              "type": "text",
             },
           ]
         `);
       });
 
-      it('should map finish reason to stop for json tool', async () => {
-        expect(result.finishReason).toBe('stop');
+      it('should send tool-calls finish reason', async () => {
+        expect(result.finishReason).toBe('tool-calls');
       });
     });
 
