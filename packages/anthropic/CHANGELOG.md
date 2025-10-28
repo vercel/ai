@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- cf4e2a9: Add support for tool calling with structured output
+
 ## 3.0.0-beta.43
 
 ### Patch Changes
