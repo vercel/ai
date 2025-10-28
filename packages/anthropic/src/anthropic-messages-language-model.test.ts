@@ -2726,6 +2726,146 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('json schema response format with text content prefix', () => {
+      let result: Array<LanguageModelV3StreamPart>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-tool.2');
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+
+        result = await convertReadableStreamToArray(stream);
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should stream the response', async () => {
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+              "modelId": "claude-haiku-4-5-20251001",
+              "type": "response-metadata",
+            },
+            {
+              "id": "0",
+              "type": "text-start",
+            },
+            {
+              "id": "0",
+              "type": "text-end",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": "}",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": 0,
+                  "container": null,
+                  "stopSequence": null,
+                  "usage": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 47,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": 0,
+                "inputTokens": 849,
+                "outputTokens": 47,
+                "totalTokens": 896,
+              },
+            },
+          ]
+        `);
+      });
+    });
+
     describe('json schema response format with other tool response', () => {
       let result: Awaited<ReturnType<typeof model.doStream>>;
 
