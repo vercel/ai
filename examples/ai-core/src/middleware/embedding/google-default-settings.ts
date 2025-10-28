@@ -2,13 +2,13 @@ import { google } from '@ai-sdk/google';
 import {
   customProvider,
   defaultEmbeddingSettingsMiddleware,
-  embedMany,
   embed,
   wrapEmbeddingModel,
 } from 'ai';
-import 'dotenv/config';
+import { print } from '../../lib/print';
+import { run } from '../../lib/run';
 
-const centralSpace = customProvider({
+const custom = customProvider({
   textEmbeddingModels: {
     'powerful-embedding-model': wrapEmbeddingModel({
       model: google.textEmbedding('gemini-embedding-001'),
@@ -25,22 +25,12 @@ const centralSpace = customProvider({
     }),
   },
 });
-async function main() {
-  const embedManyResponse = await embedMany({
-    model: centralSpace.textEmbeddingModel('powerful-embedding-model'),
-    values: [
-      'sunny day at the beach',
-      'rainy afternoon in the city',
-      'snowy night in the mountains',
-    ],
-  });
-  console.log(embedManyResponse.embeddings);
 
-  const response = await embed({
-    model: centralSpace.textEmbeddingModel('powerful-embedding-model'),
+run(async () => {
+  const result = await embed({
+    model: custom.textEmbeddingModel('powerful-embedding-model'),
     value: 'rainy afternoon in the city',
   });
-  console.log(response.embedding);
-}
 
-main().catch(console.error);
+  print('Embedding length:', result.embedding.length);
+});
