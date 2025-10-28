@@ -141,7 +141,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    stream,
+  }: Parameters<LanguageModelV3['doGenerate']>[0] & { stream: boolean }) {
     const warnings: LanguageModelV3CallWarning[] = [];
 
     if (frequencyPenalty != null) {
@@ -344,7 +345,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    if (anthropicOptions?.toolStreaming ?? true) {
+    // only when streaming: enable fine-grained tool streaming
+    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
       betas.add('fine-grained-tool-streaming-2025-05-14');
     }
 
@@ -377,6 +379,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         ...baseArgs,
         tools: anthropicTools,
         tool_choice: anthropicToolChoice,
+        stream: stream === true ? true : undefined, // do not send when not streaming
       },
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
       betas: new Set([...betas, ...toolsBetas]),
@@ -455,8 +458,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
+    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
+      ...options,
+      stream: false,
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
@@ -788,13 +793,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doStream(
     options: Parameters<LanguageModelV3['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
+    const {
+      args: body,
+      warnings,
+      betas,
+      usesJsonResponseTool,
+    } = await this.getArgs({
+      ...options,
+      stream: true,
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
-
-    const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.buildRequestUrl(true),

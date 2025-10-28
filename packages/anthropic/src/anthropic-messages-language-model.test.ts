@@ -810,7 +810,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
-          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",
@@ -904,6 +903,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               ],
               "model": "claude-3-haiku-20240307",
               "stop_sequences": undefined,
+              "stream": undefined,
               "system": undefined,
               "temperature": undefined,
               "tool_choice": undefined,
@@ -1044,6 +1044,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               ],
               "model": "claude-3-haiku-20240307",
               "stop_sequences": undefined,
+              "stream": undefined,
               "system": undefined,
               "temperature": undefined,
               "tool_choice": undefined,
@@ -1120,6 +1121,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
             "model": "claude-3-haiku-20240307",
             "stop_sequences": undefined,
+            "stream": undefined,
             "system": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
@@ -1914,7 +1916,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "mcp-client-2025-04-04,fine-grained-tool-streaming-2025-05-14",
+            "anthropic-beta": "mcp-client-2025-04-04",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2126,7 +2128,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "code-execution-2025-08-25,skills-2025-10-02,files-api-2025-04-14,fine-grained-tool-streaming-2025-05-14",
+            "anthropic-beta": "code-execution-2025-08-25,skills-2025-10-02,files-api-2025-04-14",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2210,7 +2212,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,context-management-2025-06-27",
+            "anthropic-beta": "context-management-2025-06-27",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2279,7 +2281,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,code-execution-2025-08-25",
+            "anthropic-beta": "code-execution-2025-08-25",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2414,7 +2416,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,code-execution-2025-05-22",
+            "anthropic-beta": "code-execution-2025-05-22",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2616,7 +2618,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,code-execution-2025-05-22",
+            "anthropic-beta": "code-execution-2025-05-22",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
