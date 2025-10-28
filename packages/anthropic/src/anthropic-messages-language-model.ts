@@ -1228,6 +1228,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 switch (deltaType) {
                   case 'text_delta': {
+                    // when a json response tool is used, the tool call is returned as text,
+                    // so we ignore the text content:
+                    if (usesJsonResponseTool) {
+                      return;
+                    }
+
                     controller.enqueue({
                       type: 'text-delta',
                       id: String(value.index),
@@ -1275,10 +1281,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       return;
                     }
 
-                    const isJsonResponseTool =
-                      usesJsonResponseTool && contentBlock?.type === 'text';
-
-                    if (isJsonResponseTool) {
+                    if (isJsonResponseFromTool) {
                       controller.enqueue({
                         type: 'text-delta',
                         id: String(value.index),
