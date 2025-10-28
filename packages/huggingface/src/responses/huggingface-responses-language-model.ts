@@ -723,6 +723,10 @@ const responseOutputItemDoneSchema = z.object({
       output: z.string().optional(),
       error: z.string().optional(),
     }),
+    z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+    })
   ]),
   sequence_number: z.number(),
 });
