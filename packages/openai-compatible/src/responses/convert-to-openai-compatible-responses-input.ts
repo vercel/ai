@@ -117,12 +117,6 @@ export async function convertToOpenAICompatibleResponsesInput({
               const id = part.providerOptions?.openaiCompatibleResponses
                 ?.itemId as string | undefined;
 
-              // item references reduce the payload size
-              if (store && id != null) {
-                input.push({ type: 'item_reference', id });
-                break;
-              }
-
               input.push({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
@@ -141,12 +135,6 @@ export async function convertToOpenAICompatibleResponsesInput({
               const id = part.providerOptions?.openaiCompatibleResponses
                 ?.itemId as string | undefined;
 
-              // item references reduce the payload size
-              if (store && id != null) {
-                input.push({ type: 'item_reference', id });
-                break;
-              }
-
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
@@ -154,21 +142,6 @@ export async function convertToOpenAICompatibleResponsesInput({
                 arguments: JSON.stringify(part.input),
                 id,
               });
-              break;
-            }
-
-            // assistant tool result parts are from provider-executed tools:
-            case 'tool-result': {
-              if (store) {
-                // use item references to refer to tool results from built-in tools
-                input.push({ type: 'item_reference', id: part.toolCallId });
-              } else {
-                warnings.push({
-                  type: 'other',
-                  message: `Results for OpenAI tool ${part.toolName} are not sent to the API when store is false`,
-                });
-              }
-
               break;
             }
 
@@ -188,8 +161,6 @@ export async function convertToOpenAICompatibleResponsesInput({
                   // use item references to refer to reasoning (single reference)
                   // when the first part is encountered
                   if (reasoningMessage === undefined) {
-                    input.push({ type: 'item_reference', id: reasoningId });
-
                     // store unused reasoning message to mark id as used
                     reasoningMessages[reasoningId] = {
                       type: 'reasoning',

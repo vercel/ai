@@ -11,8 +11,7 @@ export type OpenAICompatibleResponsesInputItem =
   | OpenAICompatibleResponsesAssistantMessage
   | OpenAICompatibleResponsesFunctionCall
   | OpenAICompatibleResponsesFunctionCallOutput
-  | OpenAICompatibleResponsesReasoning
-  | OpenAICompatibleResponsesItemReference;
+  | OpenAICompatibleResponsesReasoning;
 
 export type OpenAICompatibleResponsesReasoning = {
   type: 'reasoning';
@@ -333,11 +332,6 @@ export type OpenAICompatibleResponsesFunctionCallOutput = {
         | { type: 'input_image'; image_url: string }
         | { type: 'input_file'; filename: string; file_data: string }
       >;
-};
-
-export type OpenAICompatibleResponsesItemReference = {
-  type: 'item_reference';
-  id: string;
 };
 
 export type OpenAICompatibleResponsesTool = {

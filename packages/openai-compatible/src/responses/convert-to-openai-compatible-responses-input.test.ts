@@ -425,53 +425,6 @@ describe('convertToOpenAICompatibleResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with tool call parts that have ids', async () => {
-      const result = await convertToOpenAICompatibleResponsesInput({
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'text',
-                text: 'I will search for that information.',
-                providerOptions: {
-                  openaiCompatibleResponses: {
-                    itemId: 'id_123',
-                  },
-                },
-              },
-              {
-                type: 'tool-call',
-                toolCallId: 'call_123',
-                toolName: 'search',
-                input: { query: 'weather in San Francisco' },
-                providerOptions: {
-                  openaiCompatibleResponses: {
-                    itemId: 'id_456',
-                  },
-                },
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        store: true,
-      });
-
-      expect(result.input).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "id_123",
-            "type": "item_reference",
-          },
-          {
-            "id": "id_456",
-            "type": "item_reference",
-          },
-        ]
-      `);
-    });
-
     it('should convert multiple tool call parts in a single message', async () => {
       const result = await convertToOpenAICompatibleResponsesInput({
         prompt: [
@@ -968,13 +921,6 @@ describe('convertToOpenAICompatibleResponsesInput', () => {
           store: true,
         });
 
-        expect(result.input).toEqual([
-          {
-            type: 'item_reference',
-            id: 'reasoning_001',
-          },
-        ]);
-
         expect(result.warnings).toHaveLength(0);
       });
 
@@ -1008,13 +954,6 @@ describe('convertToOpenAICompatibleResponsesInput', () => {
           systemMessageMode: 'system',
           store: true,
         });
-
-        expect(result.input).toEqual([
-          {
-            type: 'item_reference',
-            id: 'reasoning_001',
-          },
-        ]);
 
         expect(result.warnings).toHaveLength(0);
       });
