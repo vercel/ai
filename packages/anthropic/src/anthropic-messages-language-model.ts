@@ -1288,6 +1288,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     }
 
                     if (isJsonResponseFromTool) {
+                      if (contentBlock?.type !== 'text') {
+                        return; // exclude reasoning
+                      }
+
                       controller.enqueue({
                         type: 'text-delta',
                         id: String(value.index),
