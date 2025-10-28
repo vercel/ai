@@ -10,7 +10,7 @@ export type EmbeddingModelV3Middleware = {
   /**
    * Middleware specification version. Use `v3` for the current version.
    */
-  middlewareVersion?: 'v3';
+  readonly middlewareVersion: 'v3';
 
   /**
    * Override the provider name if desired.
