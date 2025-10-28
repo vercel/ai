@@ -26,7 +26,7 @@ describe('minimax OpenAI-compatible provider', () => {
     it('should create a language model with default call', () => {
       const model = minimax('MiniMax-M2');
       expect(model).toBeDefined();
-      expect(model.provider).toBe('minimax.openai');
+      expect(model.provider).toBe('minimax.openai.chat');
       expect(model.modelId).toBe('MiniMax-M2');
       expect(model.specificationVersion).toBe('v3');
     });
@@ -34,14 +34,14 @@ describe('minimax OpenAI-compatible provider', () => {
     it('should create a chat model', () => {
       const model = minimax.chat('MiniMax-M2');
       expect(model).toBeDefined();
-      expect(model.provider).toBe('minimax.openai');
+      expect(model.provider).toBe('minimax.openai.chat');
       expect(model.modelId).toBe('MiniMax-M2');
     });
 
     it('should create a language model via languageModel method', () => {
       const model = minimax.languageModel('MiniMax-M2');
       expect(model).toBeDefined();
-      expect(model.provider).toBe('minimax.openai');
+      expect(model.provider).toBe('minimax.openai.chat');
       expect(model.modelId).toBe('MiniMax-M2');
     });
 

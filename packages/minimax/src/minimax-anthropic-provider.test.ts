@@ -20,7 +20,7 @@ describe('minimax Anthropic-compatible provider', () => {
     it('should create an Anthropic language model', () => {
       const model = minimaxAnthropic('MiniMax-M2');
       expect(model).toBeDefined();
-      expect(model.provider).toBe('minimax.anthropic');
+      expect(model.provider).toBe('minimax.anthropic.messages');
       expect(model.modelId).toBe('MiniMax-M2');
       expect(model.specificationVersion).toBe('v3');
     });
@@ -28,14 +28,14 @@ describe('minimax Anthropic-compatible provider', () => {
     it('should create an Anthropic chat model', () => {
       const model = minimaxAnthropic.chat('MiniMax-M2');
       expect(model).toBeDefined();
-      expect(model.provider).toBe('minimax.anthropic');
+      expect(model.provider).toBe('minimax.anthropic.messages');
       expect(model.modelId).toBe('MiniMax-M2');
     });
 
     it('should create an Anthropic language model via languageModel method', () => {
       const model = minimaxAnthropic.languageModel('MiniMax-M2');
       expect(model).toBeDefined();
-      expect(model.provider).toBe('minimax.anthropic');
+      expect(model.provider).toBe('minimax.anthropic.messages');
       expect(model.modelId).toBe('MiniMax-M2');
     });
 
@@ -162,7 +162,7 @@ describe('minimax Anthropic-compatible provider', () => {
   describe('Anthropic-specific features', () => {
     it('should be the default provider', () => {
       const model = minimaxAnthropic('MiniMax-M2');
-      expect(model.provider).toBe('minimax.anthropic');
+      expect(model.provider).toBe('minimax.anthropic.messages');
     });
 
     it('should use Anthropic-compatible baseURL by default', () => {
@@ -171,7 +171,7 @@ describe('minimax Anthropic-compatible provider', () => {
       });
       const model = customMinimax('MiniMax-M2');
       expect(model).toBeDefined();
-      expect(model.provider).toBe('minimax.anthropic');
+      expect(model.provider).toBe('minimax.anthropic.messages');
     });
   });
 });
