@@ -351,7 +351,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             // provide actual citations in providerMetadata
             providerMetadata: {
               bedrock: {
-                citations: part.citationsContent.citations
+                citations: part.citationsContent.citations,
               },
             },
           });
@@ -816,9 +816,9 @@ const BedrockRedactedReasoningSchema = z.object({
 });
 
 const DocumentLocationSchema = z.object({
-    documentIndex: z.number(),
-    start: z.number().min(0),
-    end: z.number().min(0),
+  documentIndex: z.number(),
+  start: z.number().min(0),
+  end: z.number().min(0),
 });
 
 const BedrockCitationLocationSchema = z.object({
