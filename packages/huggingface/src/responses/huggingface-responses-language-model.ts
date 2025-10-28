@@ -726,6 +726,9 @@ const responseOutputItemDoneSchema = z.object({
     z.object({
       type: z.literal('reasoning'),
       id: z.string(),
+      status: z.string().optional(),
+      content: z.array(z.any()).optional(),
+      summary: z.array(z.any()).optional(),
     })
   ]),
   sequence_number: z.number(),
