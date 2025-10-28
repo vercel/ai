@@ -545,7 +545,7 @@ const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type', [
     status: z.string().optional(),
     content: z.array(
       z.object({
-        type: z.literal('ouput_text'),
+        type: z.literal('output_text'),
         text: z.string(),
         annotations: z.array(z.any()).optional(),
       }),
