@@ -11,7 +11,7 @@ describe('wrapEmbeddingModel', () => {
           modelId: 'test-model',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
       });
 
@@ -24,7 +24,7 @@ describe('wrapEmbeddingModel', () => {
           modelId: 'test-model',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideModelId: ({ model }) => 'override-model',
         },
       });
@@ -38,7 +38,7 @@ describe('wrapEmbeddingModel', () => {
           modelId: 'test-model',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
         modelId: 'override-model',
       });
@@ -54,7 +54,7 @@ describe('wrapEmbeddingModel', () => {
           provider: 'test-provider',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
       });
 
@@ -67,7 +67,7 @@ describe('wrapEmbeddingModel', () => {
           provider: 'test-provider',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideProvider: ({ model }) => 'override-provider',
         },
       });
@@ -81,7 +81,7 @@ describe('wrapEmbeddingModel', () => {
           provider: 'test-provider',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
         providerId: 'override-provider',
       });
@@ -97,7 +97,7 @@ describe('wrapEmbeddingModel', () => {
       const wrappedModel = wrapEmbeddingModel({
         model: new MockEmbeddingModelV3({ maxEmbeddingsPerCall }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
       });
 
@@ -110,7 +110,7 @@ describe('wrapEmbeddingModel', () => {
           maxEmbeddingsPerCall: 2,
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideMaxEmbeddingsPerCall: ({ model }) => 3,
         },
       });
@@ -126,7 +126,7 @@ describe('wrapEmbeddingModel', () => {
       const wrappedModel = wrapEmbeddingModel({
         model: new MockEmbeddingModelV3({ supportsParallelCalls }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
       });
 
@@ -139,7 +139,7 @@ describe('wrapEmbeddingModel', () => {
           supportsParallelCalls: false,
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideSupportsParallelCalls: ({ model }) => true,
         },
       });
@@ -161,7 +161,7 @@ describe('wrapEmbeddingModel', () => {
     const wrappedModel = wrapEmbeddingModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v3',
+        specificationVersion: 'v3',
         transformParams,
       },
     });
@@ -197,7 +197,7 @@ describe('wrapEmbeddingModel', () => {
     const wrappedModel = wrapEmbeddingModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v3',
+        specificationVersion: 'v3',
         wrapEmbed,
       },
     });
@@ -239,11 +239,11 @@ describe('wrapEmbeddingModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             transformParams: transformParams1,
           },
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             transformParams: transformParams2,
           },
         ],
@@ -300,11 +300,11 @@ describe('wrapEmbeddingModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             wrapEmbed: wrapEmbed1,
           },
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             wrapEmbed: wrapEmbed2,
           },
         ],

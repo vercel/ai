@@ -14,7 +14,7 @@ export function defaultEmbeddingSettingsMiddleware({
   }>;
 }): EmbeddingModelMiddleware {
   return {
-    middlewareVersion: 'v3',
+    specificationVersion: 'v3',
     transformParams: async ({ params }) => {
       return mergeObjects(
         settings,
