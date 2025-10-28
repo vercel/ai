@@ -729,7 +729,7 @@ const responseOutputItemDoneSchema = z.object({
       status: z.string().optional(),
       content: z.array(z.any()).optional(),
       summary: z.array(z.any()).optional(),
-    })
+    }),
   ]),
   sequence_number: z.number(),
 });
