@@ -201,22 +201,11 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format', () => {
+    describe('json schema response format with json tool response', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
-        prepareJsonResponse({
-          content: [
-            { type: 'text', text: 'Some text\n\n' },
-            {
-              type: 'tool_use',
-              id: 'toolu_1',
-              name: 'json',
-              input: { name: 'example value' },
-            },
-          ],
-          stopReason: 'tool_use',
-        });
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
 
         result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -282,15 +271,19 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "text": "{"name":"example value"}",
+              "text": "{"elements":[{"location":"San Francisco","temperature":-5,"condition":"snowy"},{"location":"London","temperature":0,"condition":"snowy"},{"location":"Paris","temperature":23,"condition":"cloudy"},{"location":"Berlin","temperature":-9,"condition":"snowy"}]}",
               "type": "text",
             },
           ]
         `);
       });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
     });
 
-    describe('json schema response format with other tools', () => {
+    describe('json schema response format with other tool response', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
