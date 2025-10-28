@@ -828,14 +828,15 @@ const BedrockCitationLocationSchema = z.object({
 });
 
 const BedrockCitationSchema = z.object({
-  title: z.string(),
+  title: z.string().nullish(),
   sourceContent: z
     .array(
       z.object({
         text: z.string(),
       }),
-    ),
-  location: BedrockCitationLocationSchema,
+    )
+    .nullish(),
+  location: BedrockCitationLocationSchema.nullish(),
 });
 
 const BedrockCitationsContentSchema = z.object({
@@ -908,6 +909,9 @@ const BedrockStreamSchema = z.object({
           }),
           z.object({
             reasoningContent: z.object({ data: z.string() }),
+          }),
+          z.object({
+            citation: BedrockCitationSchema,
           }),
         ])
         .nullish(),
