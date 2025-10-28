@@ -537,30 +537,40 @@ const huggingfaceResponsesProviderOptionsSchema = z.object({
   reasoningEffort: z.string().optional(),
 });
 
-const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type',[
+const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('message'),
     id: z.string(),
     role: z.string().optional(),
     status: z.string().optional(),
-    content: z.array(z.object({
-      type: z.literal('ouput_text'),
-      text: z.string(),
-      annotations: z.array(z.any()).optional(),
-    })),
+    content: z.array(
+      z.object({
+        type: z.literal('ouput_text'),
+        text: z.string(),
+        annotations: z.array(z.any()).optional(),
+      }),
+    ),
   }),
   z.object({
     type: z.literal('reasoning'),
     id: z.string(),
     status: z.string().optional(),
-    content: z.array(z.object({
-      type: z.literal('reasoning_text'),
-      text: z.string(),
-    })),
-    summary: z.array(z.object({
-      type: z.literal('reasoning_summary'),
-      text: z.string(),
-    }).optional()).optional(),
+    content: z.array(
+      z.object({
+        type: z.literal('reasoning_text'),
+        text: z.string(),
+      }),
+    ),
+    summary: z
+      .array(
+        z
+          .object({
+            type: z.literal('reasoning_summary'),
+            text: z.string(),
+          })
+          .optional(),
+      )
+      .optional(),
   }),
   z.object({
     type: z.literal('function_call'),
@@ -586,7 +596,7 @@ const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type',[
     tools: z.array(z.any()).optional(),
     status: z.string().optional(),
   }),
-])
+]);
 
 const huggingfaceResponsesResponseSchema = z.object({
   id: z.string(),
