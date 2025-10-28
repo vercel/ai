@@ -23,10 +23,10 @@ jobs:
         with:
           version: 10.11.0
 
-      - name: Use Node.js 22
+      - name: Use Node.js LTS
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: lts/*
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -47,10 +47,10 @@ jobs:
         with:
           version: 10.11.0
 
-      - name: Use Node.js 22
+      - name: Use Node.js LTS
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: lts/*
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -71,10 +71,10 @@ jobs:
         with:
           version: 10.11.0
 
-      - name: Use Node.js 22
+      - name: Use Node.js LTS
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: lts/*
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -95,10 +95,10 @@ jobs:
         with:
           version: 10.11.0
 
-      - name: Use Node.js 22
+      - name: Use Node.js LTS
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: lts/*
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -119,10 +119,10 @@ jobs:
         with:
           version: 10.11.0
 
-      - name: Use Node.js 22
+      - name: Use Node.js LTS
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: lts/*
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -149,7 +149,7 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
-        node-version: [20, 22]
+        node-version: [20, 22, 24]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -214,10 +214,10 @@ jobs:
         with:
           version: 10.11.0
 
-      - name: Use Node.js 22
+      - name: Use Node.js LTS
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: lts/*
           cache: 'pnpm'
 
       - name: Install dependencies
