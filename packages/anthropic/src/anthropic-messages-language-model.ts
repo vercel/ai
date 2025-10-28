@@ -475,7 +475,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
-    let isJsonToolCalled = false;
+    let isJsonResponseFromTool = false;
 
     // map response content to content array
     for (const part of response.content) {
@@ -530,7 +530,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             usesJsonResponseTool && part.name === 'json';
 
           if (isJsonResponseTool) {
-            isJsonToolCalled = true; // flag for the finish reason
+            isJsonResponseFromTool = true;
 
             // when a json response tool is used, the tool call becomes the text:
             content.push({
@@ -742,7 +742,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       content,
       finishReason: mapAnthropicStopReason({
         finishReason: response.stop_reason,
-        isJsonResponseFromTool: isJsonToolCalled,
+        isJsonResponseFromTool,
       }),
       usage: {
         inputTokens: response.usage.input_tokens,
