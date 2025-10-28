@@ -810,6 +810,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
+          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",
@@ -1913,7 +1914,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "mcp-client-2025-04-04",
+            "anthropic-beta": "mcp-client-2025-04-04,fine-grained-tool-streaming-2025-05-14",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2125,7 +2126,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "code-execution-2025-08-25,skills-2025-10-02,files-api-2025-04-14",
+            "anthropic-beta": "code-execution-2025-08-25,skills-2025-10-02,files-api-2025-04-14,fine-grained-tool-streaming-2025-05-14",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2209,7 +2210,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "context-management-2025-06-27",
+            "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,context-management-2025-06-27",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2278,7 +2279,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "code-execution-2025-08-25",
+            "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,code-execution-2025-08-25",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2387,15 +2388,38 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.tools).toHaveLength(1);
-        expect(requestBody.tools[0]).toEqual({
-          type: 'code_execution_20250522',
-          name: 'code_execution',
-        });
-        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
-          'code-execution-2025-05-22',
-        );
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Write a Python function to calculate factorial",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250522",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,code-execution-2025-05-22",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
       });
 
       it('should handle server-side code execution results', async () => {
@@ -2558,23 +2582,46 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.tools).toHaveLength(2);
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Write a Python function to calculate factorial",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "description": "Calculate math expressions",
+                "input_schema": {
+                  "properties": {},
+                  "type": "object",
+                },
+                "name": "calculator",
+              },
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250522",
+              },
+            ],
+          }
+        `);
 
-        expect(requestBody.tools[0]).toMatchObject({
-          name: 'calculator',
-          description: 'Calculate math expressions',
-          input_schema: { type: 'object', properties: {} },
-        });
-        expect(requestBody.tools[0]).not.toHaveProperty('type');
-
-        expect(requestBody.tools[1]).toEqual({
-          type: 'code_execution_20250522',
-          name: 'code_execution',
-        });
-        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
-          'code-execution-2025-05-22',
-        );
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,code-execution-2025-05-22",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
       });
     });
 
@@ -3623,6 +3670,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
+          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",

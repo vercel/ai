@@ -344,6 +344,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
+    if (anthropicOptions?.toolStreaming ?? true) {
+      betas.add('fine-grained-tool-streaming-2025-05-14');
+    }
+
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
