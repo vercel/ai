@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-haiku-4-5-20251001'),
+    model: anthropic('claude-haiku-4-5'),
     stopWhen: stepCountIs(20),
     output: Output.array({
       element: z.object({

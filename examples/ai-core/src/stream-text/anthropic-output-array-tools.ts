@@ -6,7 +6,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
   const { partialOutputStream } = streamText({
-    model: anthropic('claude-haiku-4-5-20251001'),
+    model: anthropic('claude-haiku-4-5'),
     headers: {
       'anthropic-beta': 'fine-grained-tool-streaming-2025-05-14',
     },
