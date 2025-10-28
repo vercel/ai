@@ -1,5 +1,72 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 293a6b7: Added a title to the tools
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- fca786b: feat(provider-utils): add MaybePromiseLike type
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+
 ## 4.0.0-beta.16
 
 ### Patch Changes

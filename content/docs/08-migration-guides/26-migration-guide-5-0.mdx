@@ -9,11 +9,38 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0.
 
 1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
 1. Upgrade to AI SDK 5.0.
-1. Automatically migrate your code using [codemods](#codemods).
-   > If you don't want to use codemods, we recommend resolving all deprecation warnings before upgrading to AI SDK 5.0.
+1. Automatically migrate your code using one of these approaches:
+   - Use the [AI SDK 5 Migration MCP Server](#ai-sdk-5-migration-mcp-server) for AI-assisted migration in Cursor or other MCP-compatible coding agents
+   - Use [codemods](#codemods) to automatically transform your code
 1. Follow the breaking changes guide below.
 1. Verify your project is working as expected.
 1. Commit your changes.
+
+## AI SDK 5 Migration MCP Server
+
+The [AI SDK 5 Migration Model Context Protocol (MCP) Server](https://github.com/vercel-labs/ai-sdk-5-migration-mcp-server) provides an automated way to migrate your project using a coding agent. This server has been designed for Cursor, but should work with any coding agent that supports MCP.
+
+To get started, create or edit `.cursor/mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "ai-sdk-5-migration": {
+      "url": "https://ai-sdk-5-migration-mcp-server.vercel.app/api/mcp"
+    }
+  }
+}
+```
+
+After saving, open the command palette (Cmd+Shift+P on macOS, Ctrl+Shift+P on Windows/Linux) and search for "View: Open MCP Settings". Verify the new server appears and is toggled on.
+
+Then use this prompt:
+
+```
+Please migrate this project to AI SDK 5 using the ai-sdk-5-migration mcp server. Start by creating a checklist.
+```
+
+For more information, see the [AI SDK 5 Migration MCP Server repository](https://github.com/vercel-labs/ai-sdk-5-migration-mcp-server).
 
 ## AI SDK 5.0 Package Versions
 
@@ -3022,29 +3049,101 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs
+#### Default Provider Instance Uses Responses API
 
-The `structuredOutputs` parameter has been replaced with the `strictJsonSchema` provider option. It is now disabled by default.
+In AI SDK 5, the default OpenAI provider instance uses the Responses API, while AI SDK 4 used the Chat Completions API. The Chat Completions API remains fully supported and you can use it with `openai.chat(...)`.
 
 ```tsx filename="AI SDK 4.0"
 import { openai } from '@ai-sdk/openai';
 
+const defaultModel = openai('gpt-4.1-mini'); // Chat Completions API
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+
+const defaultModel = openai('gpt-4.1-mini'); // Responses API
+
+// Specify a specific API when needed:
+const chatCompletionsModel = openai.chat('gpt-4.1-mini');
+const responsesModel = openai.responses('gpt-4.1-mini');
+```
+
+<Note>
+  The Responses and Chat Completions APIs have different behavior and defaults.
+  If you depend on the Chat Completions API, switch your model instance to
+  `openai.chat(...)` and audit your configuration.
+</Note>
+
+#### Strict Schemas (`strictSchemas`) with Responses API
+
+In AI SDK 4.0, you could set the `strictSchemas` option on Responses models (which defaulted to `true`). This option has been renamed to `strictJsonSchema` in AI SDK 5.0 and now defaults to `false`.
+
+```tsx filename="AI SDK 4.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
 const result = await generateObject({
-  model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
-  schema: z.object({ name: z.string() }),
+  model: openai.responses('gpt-4.1'),
+  schema: z.object({
+    // ...
+  }),
+  providerOptions: {
+    openai: {
+      strictSchemas: true, // default behaviour in AI SDK 4
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
 import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 
 const result = await generateObject({
-  model: openai('gpt-4.1-2024-08-06'),
+  model: openai('gpt-4.1-2024'), // uses Responses API
+  schema: z.object({
+    // ...
+  }),
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // defaults to false, opt back in to the AI SDK 4 strict behaviour
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+```
+
+If you call `openai.chat(...)` to use the Chat Completions API directly, you can type it with `OpenAIChatLanguageModelOptions`. AI SDK 5 adds the same `strictJsonSchema` option there as well.
+
+#### Structured Outputs
+
+The `structuredOutputs` option is now configured using provider options rather than as a setting on the model instance.
+
+```tsx filename="AI SDK 4.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai('gpt-4.1', { structuredOutputs: true }), // use Chat Completions API
+  schema: z.object({ name: z.string() }),
+});
+```
+
+```tsx filename="AI SDK 5.0 (Chat Completions API)"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai.chat('gpt-4.1'), // use Chat Completions API
   schema: z.object({ name: z.string() }),
   providerOptions: {
     openai: {
-      strictJsonSchema: true, // renamed and opt-in via provider options
-    } satisfies OpenAIResponsesProviderOptions,
+      structuredOutputs: true,
+    } satisfies OpenAIChatLanguageModelOptions,
   },
 });
 ```

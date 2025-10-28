@@ -239,7 +239,8 @@ export function streamText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
-  experimental_output: output,
+  experimental_output,
+  output = experimental_output,
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
@@ -316,6 +317,13 @@ functionality that can be fully encapsulated in the provider.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
+    output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+
+@deprecated Use `output` instead.
+ */
     experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
@@ -855,7 +863,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           await onStepFinish?.(currentStepResult);
 
-          logWarnings(recordedWarnings);
+          logWarnings({
+            warnings: recordedWarnings,
+            provider: model.provider,
+            model: model.modelId,
+          });
 
           recordedSteps.push(currentStepResult);
 
@@ -1455,7 +1467,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                       controller.enqueue({
                         ...chunk,
-                        dynamic: tool?.type === 'dynamic',
+                        dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
+                        title: tool?.title,
                       });
                       break;
                     }
@@ -1803,6 +1816,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
+    return this.partialOutputStream;
+  }
+
+  get partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
     if (this.output == null) {
       throw new NoOutputSpecifiedError();
     }
@@ -1844,12 +1861,16 @@ However, the LLM results are expected to be small enough to not cause issues.
           })
         : undefined;
 
-    const toolNamesByCallId: Record<string, string> = {};
+    // TODO simplify once dynamic is no longer needed for invalid tool inputs
+    const isDynamic = (part: { toolName: string; dynamic?: boolean }) => {
+      const tool = this.tools?.[part.toolName];
 
-    const isDynamic = (toolCallId: string) => {
-      const toolName = toolNamesByCallId[toolCallId];
-      const dynamic = this.tools?.[toolName]?.type === 'dynamic';
-      return dynamic ? true : undefined; // only send when dynamic to reduce data transfer
+      // provider-executed, dynamic tools are not listed in the tools object
+      if (tool == null) {
+        return part.dynamic;
+      }
+
+      return tool?.type === 'dynamic' ? true : undefined;
     };
 
     const baseStream = this.fullStream.pipeThrough(
@@ -1973,8 +1994,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-input-start': {
-              toolNamesByCallId[part.id] = part.toolName;
-              const dynamic = isDynamic(part.id);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-input-start',
@@ -1984,6 +2004,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
+                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
@@ -1998,8 +2019,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-call': {
-              toolNamesByCallId[part.toolCallId] = part.toolName;
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               if (part.invalid) {
                 controller.enqueue({
@@ -2015,6 +2035,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   errorText: onError(part.error),
+                  ...(part.title != null ? { title: part.title } : {}),
                 });
               } else {
                 controller.enqueue({
@@ -2029,6 +2050,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
+                  ...(part.title != null ? { title: part.title } : {}),
                 });
               }
 
@@ -2045,7 +2067,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-result': {
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-output-available',
@@ -2063,7 +2085,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-error': {
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-output-error',

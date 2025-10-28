@@ -1,5 +1,98 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/openai-compatible@2.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/openai-compatible@2.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.25
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/openai-compatible@2.0.0-beta.24
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+  - @ai-sdk/openai-compatible@2.0.0-beta.23
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/openai-compatible@2.0.0-beta.22
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- b9e5b77: feat(xai): Support `parallel_function_calling` provider option for XAI provider
+
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/openai-compatible@2.0.0-beta.21
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+  - @ai-sdk/openai-compatible@2.0.0-beta.20
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/openai-compatible@2.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/openai-compatible@2.0.0-beta.18
+
 ## 3.0.0-beta.18
 
 ### Patch Changes

@@ -1,5 +1,113 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 3.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- 1b982e6: feat(openai): preserve file_id when converting file citations
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- e85fa2f: feat(openai): add sources in web-search actions
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+
+## 3.0.0-beta.33
+
+### Patch Changes
+
+- 7756857: fix(provider/openai): add truncation parameter support for Responses API
+
+## 3.0.0-beta.32
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- 0b9fdd5: fix(provider/openai): end reasoning parts earlier
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 401f561: fix(provider/openai): fix web search tool input types
+
 ## 3.0.0-beta.27
 
 ### Patch Changes

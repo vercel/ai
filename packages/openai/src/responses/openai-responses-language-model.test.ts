@@ -911,6 +911,63 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send truncation auto provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              truncation: 'auto',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          truncation: 'auto',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send truncation disabled provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              truncation: 'disabled',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          truncation: 'disabled',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should not send truncation when not specified', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send logprobs provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
@@ -2620,6 +2677,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-abc123",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-abc123",
+              },
+            },
             "sourceType": "document",
             "title": "This is a quote from the file",
             "type": "source",
@@ -2703,6 +2765,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-xyz789",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-xyz789",
+              },
+            },
             "sourceType": "document",
             "title": "Important information from document",
             "type": "source",
@@ -2791,6 +2858,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -2799,6 +2871,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -3345,42 +3422,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
-
-      it('should handle streaming web search with missing action query field', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"in_progress","action":{"type":"search"}}}\n\n`,
-            `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_test"}\n\n`,
-            `data:{"type":"response.web_search_call.searching","output_index":0,"item_id":"ws_test"}\n\n`,
-            `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_test"}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search"}}}\n\n`,
-            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"message","id":"msg_test","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-            `data:{"type":"response.content_part.added","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-            `data:{"type":"response.output_text.delta","item_id":"msg_test","output_index":1,"content_index":0,"delta":"Based on the search results, here are the upcoming features."}\n\n`,
-            `data:{"type":"response.output_text.done","item_id":"msg_test","output_index":1,"content_index":0,"text":"Based on the search results, here are the upcoming features."}\n\n`,
-            `data:{"type":"response.content_part.done","item_id":"msg_test","output_index":1,"content_index":0,"part":{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}}\n\n`,
-            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}}\n\n`,
-            `data:{"type":"response.completed","response":{"id":"resp_test","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_test","status":"completed","action":{"type":"search"}},{"type":"message","id":"msg_test","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on the search results, here are the upcoming features.","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
-            'data: [DONE]\n\n',
-          ],
-        };
-
-        const { stream } = await createModel('gpt-5-nano').doStream({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search',
-              name: 'web_search',
-              args: {},
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
-      });
     });
 
     describe('file search tool', () => {
@@ -3638,6 +3679,15 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -3668,16 +3718,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                   },
                 },
                 "type": "reasoning-delta",
-              },
-              {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
               },
               {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
@@ -3932,6 +3972,15 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -3962,16 +4011,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                   },
                 },
                 "type": "reasoning-delta",
-              },
-              {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
-                  },
-                },
-                "type": "reasoning-end",
               },
               {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
@@ -4242,6 +4281,15 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -4272,16 +4320,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                   },
                 },
                 "type": "reasoning-delta",
-              },
-              {
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
               },
               {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
@@ -4599,6 +4637,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-abc123",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-abc123",
+              },
+            },
             "sourceType": "document",
             "title": "This is a quote from the file",
             "type": "source",
@@ -4655,6 +4698,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -4663,6 +4711,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",

@@ -9,7 +9,9 @@ export type {
   GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
+export type { InferGenerateOutput, InferStreamOutput } from './output-utils';
 export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
+export { pruneMessages } from './prune-messages';
 export type { ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';

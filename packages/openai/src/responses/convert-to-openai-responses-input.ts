@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  isNonNullable,
   parseProviderOptions,
   validateTypes,
 } from '@ai-sdk/provider-utils';
@@ -14,6 +15,7 @@ import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
+import { webSearchOutputSchema } from '../tool/web-search';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -236,8 +238,9 @@ export async function convertToOpenAIResponsesInput({
                 const reasoningMessage = reasoningMessages[reasoningId];
 
                 if (store) {
+                  // use item references to refer to reasoning (single reference)
+                  // when the first part is encountered
                   if (reasoningMessage === undefined) {
-                    // use item references to refer to reasoning (single reference)
                     input.push({ type: 'item_reference', id: reasoningId });
 
                     // store unused reasoning message to mark id as used
@@ -276,6 +279,12 @@ export async function convertToOpenAIResponsesInput({
                     input.push(reasoningMessages[reasoningId]);
                   } else {
                     reasoningMessage.summary.push(...summaryParts);
+
+                    // updated encrypted content to enable setting it in the last summary part:
+                    if (providerOptions?.reasoningEncryptedContent != null) {
+                      reasoningMessage.encrypted_content =
+                        providerOptions.reasoningEncryptedContent;
+                    }
                   }
                 }
               } else {
@@ -328,25 +337,38 @@ export async function convertToOpenAIResponsesInput({
               contentValue = JSON.stringify(output.value);
               break;
             case 'content':
-              contentValue = output.value.map(item => {
-                switch (item.type) {
-                  case 'text': {
-                    return { type: 'input_text' as const, text: item.text };
+              contentValue = output.value
+                .map(item => {
+                  switch (item.type) {
+                    case 'text': {
+                      return { type: 'input_text' as const, text: item.text };
+                    }
+
+                    case 'image-data': {
+                      return {
+                        type: 'input_image' as const,
+                        image_url: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    case 'file-data': {
+                      return {
+                        type: 'input_file' as const,
+                        filename: item.filename ?? 'data',
+                        file_data: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    default: {
+                      warnings.push({
+                        type: 'other',
+                        message: `unsupported tool content part type: ${item.type}`,
+                      });
+                      return undefined;
+                    }
                   }
-                  case 'media': {
-                    return item.mediaType.startsWith('image/')
-                      ? {
-                          type: 'input_image' as const,
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
-                        }
-                      : {
-                          type: 'input_file' as const,
-                          filename: 'data',
-                          file_data: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                  }
-                }
-              });
+                })
+                .filter(isNonNullable);
               break;
           }
 

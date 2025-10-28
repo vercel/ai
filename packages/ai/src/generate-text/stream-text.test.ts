@@ -2,7 +2,6 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3CallWarning,
-  LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderDefinedTool,
@@ -15,8 +14,8 @@ import {
   jsonSchema,
   ModelMessage,
   tool,
-  ToolExecuteFunction,
   Tool,
+  ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -36,11 +35,13 @@ import {
   vitest,
 } from 'vitest';
 import { z } from 'zod/v4';
+import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import { DeepPartial } from '../util/deep-partial';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
@@ -1072,6 +1073,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
           }),
         },
@@ -1174,6 +1176,7 @@ describe('streamText', () => {
             {
               "dynamic": false,
               "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+              "title": undefined,
               "toolName": "test-tool",
               "type": "tool-input-start",
             },
@@ -1222,6 +1225,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
               "toolName": "test-tool",
               "type": "tool-call",
@@ -1284,6 +1288,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: tool({
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
             execute: async (input, options) => {
               expect(input).toStrictEqual({ value: 'value' });
@@ -1327,6 +1332,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
+            title: 'Tool 1',
             inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => {
               await delay(50); // delay to show bug where step finish is sent before tool result
@@ -4478,6 +4484,7 @@ describe('streamText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -4618,6 +4625,7 @@ describe('streamText', () => {
           {
             "dynamic": false,
             "id": "2",
+            "title": undefined,
             "toolName": "tool1",
             "type": "tool-input-start",
           },
@@ -4664,6 +4672,7 @@ describe('streamText', () => {
                 "custom": "value",
               },
             },
+            "title": undefined,
             "toolCallId": "2",
             "toolName": "tool1",
             "type": "tool-call",
@@ -4774,6 +4783,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -4853,6 +4863,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -4884,6 +4895,7 @@ describe('streamText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -4968,6 +4980,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -5769,6 +5782,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -5957,6 +5971,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -6141,6 +6156,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -6344,6 +6360,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -6878,6 +6895,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -7061,6 +7079,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -7344,6 +7363,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -7532,6 +7552,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -7716,6 +7737,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -7915,6 +7937,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -8430,6 +8453,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -8519,6 +8543,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -8721,11 +8746,13 @@ describe('streamText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
             },
             {
+              "dynamic": undefined,
               "input": {
                 "value": "value",
               },
@@ -8741,11 +8768,13 @@ describe('streamText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-call",
             },
             {
+              "dynamic": undefined,
               "error": "ERROR",
               "input": {
                 "value": "value",
@@ -8775,6 +8804,7 @@ describe('streamText', () => {
                 "dynamic": false,
                 "id": "call-1",
                 "providerExecuted": true,
+                "title": undefined,
                 "toolName": "web_search",
                 "type": "tool-input-start",
               },
@@ -8793,11 +8823,13 @@ describe('streamText', () => {
                 },
                 "providerExecuted": true,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "web_search",
                 "type": "tool-call",
               },
               {
+                "dynamic": undefined,
                 "input": {
                   "value": "value",
                 },
@@ -8813,11 +8845,13 @@ describe('streamText', () => {
                 },
                 "providerExecuted": true,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-2",
                 "toolName": "web_search",
                 "type": "tool-call",
               },
               {
+                "dynamic": undefined,
                 "error": "ERROR",
                 "input": {
                   "value": "value",
@@ -8980,6 +9014,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "dynamicTool",
               "type": "tool-call",
@@ -9015,6 +9050,7 @@ describe('streamText', () => {
               {
                 "dynamic": true,
                 "id": "call-1",
+                "title": undefined,
                 "toolName": "dynamicTool",
                 "type": "tool-input-start",
               },
@@ -9034,6 +9070,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "dynamicTool",
                 "type": "tool-call",
@@ -9716,6 +9753,7 @@ describe('streamText', () => {
         }),
         tools: {
           tool1: {
+            title: 'Tool 1',
             inputSchema: jsonSchema<{ value: string }>({
               type: 'object',
               properties: { value: { type: 'string' } },
@@ -9840,6 +9878,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -9898,6 +9937,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -10249,6 +10289,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -10356,6 +10397,7 @@ describe('streamText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -10563,6 +10605,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -10642,6 +10685,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -10673,6 +10717,7 @@ describe('streamText', () => {
                     },
                     "providerExecuted": undefined,
                     "providerMetadata": undefined,
+                    "title": undefined,
                     "toolCallId": "call-1",
                     "toolName": "tool1",
                     "type": "tool-call",
@@ -10757,6 +10802,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -10858,6 +10904,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -11064,6 +11111,7 @@ describe('streamText', () => {
             {
               "dynamic": false,
               "id": "call-1",
+              "title": undefined,
               "toolName": "tool1",
               "type": "tool-input-start",
             },
@@ -11088,6 +11136,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -11395,9 +11444,7 @@ describe('streamText', () => {
         });
 
         await expect(async () => {
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          );
+          await convertAsyncIterableToArray(result.partialOutputStream);
         }).rejects.toThrow('No output specified');
       });
     });
@@ -11419,14 +11466,12 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: text(),
+          output: text(),
           prompt: 'prompt',
         });
 
         expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
+          await convertAsyncIterableToArray(result.partialOutputStream),
         ).toStrictEqual(['Hello, ', 'Hello, ,', 'Hello, , world!']);
       });
     });
@@ -11458,7 +11503,7 @@ describe('streamText', () => {
               };
             },
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11533,7 +11578,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11570,16 +11615,14 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
         });
 
         expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
+          await convertAsyncIterableToArray(result.partialOutputStream),
         ).toStrictEqual([
           {},
           { value: 'Hello, ' },
@@ -11605,16 +11648,14 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
         });
 
         expect(
-          await convertAsyncIterableToArray(
-            result.experimental_partialOutputStream,
-          ),
+          await convertAsyncIterableToArray(result.partialOutputStream),
         ).toStrictEqual([{}, { value: 'Hello, ' }, { value: 'Hello, world!' }]);
       });
 
@@ -11636,7 +11677,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11667,7 +11708,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          experimental_output: object({
+          output: object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11781,6 +11822,288 @@ describe('streamText', () => {
             },
             "warnings": [],
           }
+        `);
+      });
+    });
+
+    describe('array output', () => {
+      let result:
+        | StreamTextResult<any, Array<DeepPartial<{ content: string }>>>
+        | undefined;
+
+      let onFinishResult:
+        | Parameters<Required<Parameters<typeof streamText>[0]>['onFinish']>[0]
+        | undefined;
+
+      beforeEach(async () => {
+        result = undefined;
+        onFinishResult = undefined;
+      });
+
+      describe('array with 3 elements', () => {
+        beforeEach(async () => {
+          result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{"elements":[' },
+                // first element:
+                { type: 'text-delta', id: '1', delta: '{' },
+                { type: 'text-delta', id: '1', delta: '"content":' },
+                { type: 'text-delta', id: '1', delta: `"element 1"` },
+                { type: 'text-delta', id: '1', delta: '},' },
+                // second element:
+                { type: 'text-delta', id: '1', delta: '{ ' },
+                { type: 'text-delta', id: '1', delta: '"content": ' },
+                { type: 'text-delta', id: '1', delta: `"element 2"` },
+                { type: 'text-delta', id: '1', delta: '},' },
+                // third element:
+                { type: 'text-delta', id: '1', delta: '{' },
+                { type: 'text-delta', id: '1', delta: '"content":' },
+                { type: 'text-delta', id: '1', delta: `"element 3"` },
+                { type: 'text-delta', id: '1', delta: '}' },
+                // end of array
+                { type: 'text-delta', id: '1', delta: ']' },
+                { type: 'text-delta', id: '1', delta: '}' },
+                { type: 'text-end', id: '1' },
+                // finish
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.array({
+              element: z.object({ content: z.string() }),
+            }),
+            prompt: 'prompt',
+            onFinish: async event => {
+              onFinishResult = event as unknown as typeof onFinishResult;
+            },
+          });
+        });
+
+        it('should stream only complete objects in partialObjectStream', async () => {
+          expect(await convertAsyncIterableToArray(result!.partialOutputStream))
+            .toMatchInlineSnapshot(`
+            [
+              [],
+              [
+                {
+                  "content": "element 1",
+                },
+              ],
+              [
+                {
+                  "content": "element 1",
+                },
+                {
+                  "content": "element 2",
+                },
+              ],
+              [
+                {
+                  "content": "element 1",
+                },
+                {
+                  "content": "element 2",
+                },
+                {
+                  "content": "element 3",
+                },
+              ],
+            ]
+          `);
+        });
+      });
+
+      describe('array with 2 elements streamed in 1 chunk', () => {
+        beforeEach(async () => {
+          result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'text-start',
+                  id: '1',
+                },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta:
+                    '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
+                },
+                {
+                  type: 'text-end',
+                  id: '1',
+                },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.array({
+              element: z.object({ content: z.string() }),
+            }),
+            prompt: 'prompt',
+            onFinish: async event => {
+              onFinishResult = event as unknown as typeof onFinishResult;
+            },
+          });
+        });
+
+        it('should stream only complete objects in partialObjectStream', async () => {
+          expect(await convertAsyncIterableToArray(result!.partialOutputStream))
+            .toMatchInlineSnapshot(`
+            [
+              [
+                {
+                  "content": "element 1",
+                },
+                {
+                  "content": "element 2",
+                },
+              ],
+            ]
+          `);
+        });
+      });
+    });
+
+    describe('choice output', () => {
+      it('should stream an choice value', async () => {
+        const mockModel = createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"su` },
+            { type: 'text-delta', id: '1', delta: `nny` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            { type: 'finish', finishReason: 'stop', usage: testUsage },
+          ]),
+        });
+
+        const result = streamText({
+          model: mockModel,
+          output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(await convertAsyncIterableToArray(result.partialOutputStream))
+          .toMatchInlineSnapshot(`
+            [
+              "sunny",
+            ]
+          `);
+      });
+
+      it('should not stream incorrect values', async () => {
+        const mockModel = new MockLanguageModelV3({
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"result": ' },
+              { type: 'text-delta', id: '1', delta: `"foo` },
+              { type: 'text-delta', id: '1', delta: `bar` },
+              { type: 'text-delta', id: '1', delta: `"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          },
+        });
+
+        const result = streamText({
+          model: mockModel,
+          output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(
+          await convertAsyncIterableToArray(result.partialOutputStream),
+        ).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should handle ambiguous values', async () => {
+        const mockModel = createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"foo` },
+            { type: 'text-delta', id: '1', delta: `bar` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        });
+
+        const result = streamText({
+          model: mockModel,
+          output: Output.choice({
+            options: ['foobar', 'foobar2'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(await convertAsyncIterableToArray(result.partialOutputStream))
+          .toMatchInlineSnapshot(`
+          [
+            "foobar",
+          ]
+        `);
+      });
+
+      it('should handle non-ambiguous values', async () => {
+        const mockModel = createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"foo` },
+            { type: 'text-delta', id: '1', delta: `bar` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        });
+
+        const result = streamText({
+          model: mockModel,
+          output: Output.choice({
+            options: ['foobar', 'barfoo'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(await convertAsyncIterableToArray(result.partialOutputStream))
+          .toMatchInlineSnapshot(`
+          [
+            "foobar",
+          ]
         `);
       });
     });
@@ -12647,6 +12970,7 @@ describe('streamText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -12735,6 +13059,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -13089,6 +13414,7 @@ describe('streamText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -13109,6 +13435,7 @@ describe('streamText', () => {
               "input": {
                 "cities": "San Francisco",
               },
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-error",
@@ -13132,6 +13459,7 @@ describe('streamText', () => {
               {
                 "dynamic": false,
                 "id": "call-1",
+                "title": undefined,
                 "toolName": "cityAttractions",
                 "type": "tool-input-start",
               },
@@ -13161,6 +13489,7 @@ describe('streamText', () => {
                   "cities": "San Francisco",
                 },
                 "invalid": true,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-call",
@@ -13181,6 +13510,7 @@ describe('streamText', () => {
                 "input": {
                   "cities": "San Francisco",
                 },
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-error",
@@ -13350,6 +13680,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-call",
@@ -13365,6 +13696,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-result",
@@ -13381,6 +13713,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-result",
@@ -13497,6 +13830,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -13530,6 +13864,7 @@ describe('streamText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "cityAttractions",
                   "type": "tool-call",
@@ -13608,6 +13943,268 @@ describe('streamText', () => {
     });
   });
 
+  describe('provider-executed dynamic tools', () => {
+    describe('single provider-executed dynamic tool with input streaming', () => {
+      let result: StreamTextResult<any, any>;
+
+      beforeEach(async () => {
+        result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'cityAttractions',
+                providerExecuted: true,
+                dynamic: true,
+                providerMetadata: {
+                  anthropic: {
+                    serverName: 'echo',
+                  },
+                },
+              },
+              {
+                type: 'tool-input-delta',
+                id: 'call-1',
+                delta: `{ "city": "San Francisco" }`,
+              },
+              {
+                type: 'tool-input-end',
+                id: 'call-1',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: `{ "city": "San Francisco" }`,
+                providerExecuted: true,
+                dynamic: true,
+                providerMetadata: {
+                  anthropic: {
+                    serverName: 'echo',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: `{ "city": "San Francisco" }`,
+                result: {
+                  status: 'success',
+                  text: 'The weather in San Francisco is 72°F',
+                },
+                providerExecuted: true,
+                dynamic: true,
+                providerMetadata: {
+                  anthropic: {
+                    serverName: 'echo',
+                  },
+                },
+              },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          _internal: {
+            currentDate: mockValues(new Date(2000)),
+            generateId: mockId(),
+          },
+        });
+      });
+
+      it('should set dynamic and providerExecuted in full stream', async () => {
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "dynamic": true,
+                "id": "call-1",
+                "providerExecuted": true,
+                "providerMetadata": {
+                  "anthropic": {
+                    "serverName": "echo",
+                  },
+                },
+                "title": undefined,
+                "toolName": "cityAttractions",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{ "city": "San Francisco" }",
+                "id": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "call-1",
+                "type": "tool-input-end",
+              },
+              {
+                "dynamic": true,
+                "input": {
+                  "city": "San Francisco",
+                },
+                "providerExecuted": true,
+                "providerMetadata": {
+                  "anthropic": {
+                    "serverName": "echo",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-call",
+              },
+              {
+                "dynamic": true,
+                "input": undefined,
+                "output": {
+                  "status": "success",
+                  "text": "The weather in San Francisco is 72°F",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-result",
+              },
+              {
+                "finishReason": "stop",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:02.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+              },
+              {
+                "finishReason": "stop",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      it('should set dynamic and providerExecuted in ui message stream', async () => {
+        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "dynamic": true,
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-input-start",
+              },
+              {
+                "inputTextDelta": "{ "city": "San Francisco" }",
+                "toolCallId": "call-1",
+                "type": "tool-input-delta",
+              },
+              {
+                "dynamic": true,
+                "input": {
+                  "city": "San Francisco",
+                },
+                "providerExecuted": true,
+                "providerMetadata": {
+                  "anthropic": {
+                    "serverName": "echo",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-input-available",
+              },
+              {
+                "dynamic": true,
+                "output": {
+                  "status": "success",
+                  "text": "The weather in San Francisco is 72°F",
+                },
+                "providerExecuted": true,
+                "toolCallId": "call-1",
+                "type": "tool-output-available",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "finish",
+              },
+            ]
+          `);
+      });
+
+      it('should set dynamic and providerExecuted in content', async () => {
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": true,
+              "input": {
+                "city": "San Francisco",
+              },
+              "providerExecuted": true,
+              "providerMetadata": {
+                "anthropic": {
+                  "serverName": "echo",
+                },
+              },
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": true,
+              "input": undefined,
+              "output": {
+                "status": "success",
+                "text": "The weather in San Francisco is 72°F",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+  });
+
   describe('logWarnings', () => {
     it('should call logWarnings with warnings from a single step', async () => {
       const expectedWarnings = [
@@ -13633,7 +14230,11 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings once for each step with warnings from that step', async () => {
@@ -13724,8 +14325,16 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledTimes(2);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+        warnings: [warning1],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
+        warnings: [warning2],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -13740,7 +14349,11 @@ describe('streamText', () => {
       await result.finishReason;
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
   });
 
@@ -13785,70 +14398,72 @@ describe('streamText', () => {
       it('should add tool approval requests to the full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
-            },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "input": {
-                "value": "value",
+            [
+              {
+                "type": "start",
               },
-              "providerExecuted": undefined,
-              "providerMetadata": undefined,
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
-            },
-            {
-              "approvalId": "id-1",
-              "toolCall": {
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
                 "input": {
                   "value": "value",
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
               },
-              "type": "tool-approval-request",
-            },
-            {
-              "finishReason": "tool-calls",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
+              {
+                "approvalId": "id-1",
+                "toolCall": {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                "type": "tool-approval-request",
               },
-              "type": "finish-step",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": undefined,
+                "response": {
+                  "headers": undefined,
+                  "id": "id-0",
+                  "modelId": "mock-model-id",
+                  "timestamp": 1970-01-01T00:00:00.000Z,
+                },
+                "type": "finish-step",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
               },
-            },
-            {
-              "finishReason": "tool-calls",
-              "totalUsage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
+              {
+                "finishReason": "tool-calls",
+                "totalUsage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 3,
+                  "outputTokens": 10,
+                  "reasoningTokens": undefined,
+                  "totalTokens": 13,
+                },
+                "type": "finish",
               },
-              "type": "finish",
-            },
-          ]
-        `);
+            ]
+          `);
       });
 
       it('should add tool approval requests to the UI message stream', async () => {
@@ -13893,6 +14508,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -13905,6 +14521,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -14011,6 +14628,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -14023,6 +14641,7 @@ describe('streamText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -14035,6 +14654,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-2",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -14145,6 +14765,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -14157,6 +14778,7 @@ describe('streamText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -14169,6 +14791,7 @@ describe('streamText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "tool1",
               "type": "tool-call",

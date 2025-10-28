@@ -86,6 +86,7 @@ export function createVercel(
 
   const provider = (modelId: VercelChatModelId) => createChatModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });

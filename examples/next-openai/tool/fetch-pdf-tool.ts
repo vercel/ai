@@ -22,7 +22,7 @@ export const fetchPdfTool = tool({
   },
   toModelOutput: ({ mediaType, base64 }) => ({
     type: 'content',
-    value: [{ type: 'media', data: base64, mediaType }],
+    value: [{ type: 'file-data', data: base64, mediaType }],
   }),
 });
 

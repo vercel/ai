@@ -6,6 +6,7 @@ export * from './language-model-middleware/index';
 export * from './embedding-model-middleware/index';
 export * from './language-model/index';
 export * from './provider/index';
+export * from './reranking-model/index';
 export * from './shared/index';
 export * from './speech-model/index';
 export * from './transcription-model/index';
