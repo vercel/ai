@@ -242,6 +242,8 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
             }),
           },
         }),
+        instructions: compatibleOptions?.instructions,
+        include: compatibleOptions?.include,
         // tools:
         tools: openaiTools,
         tool_choice: openaiToolChoice,
