@@ -111,7 +111,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
     // Parse provider options
     const compatibleOptions = Object.assign(
       (await parseProviderOptions({
-        provider: 'openai-compatible-responses',
+        provider: 'openaiCompatibleResponses',
         providerOptions,
         schema: openaiCompatibleResponsesProviderOptions,
       })) ?? {},

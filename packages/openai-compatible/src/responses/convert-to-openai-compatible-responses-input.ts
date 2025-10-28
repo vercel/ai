@@ -193,7 +193,7 @@ export async function convertToOpenAICompatibleResponsesInput({
 
             case 'reasoning': {
               const providerOptions = await parseProviderOptions({
-                provider: 'openai-compatible-responses',
+                provider: 'openaiCompatibleResponses',
                 providerOptions: part.providerOptions,
                 schema: OpenAICompatibleResponsesReasoningProviderOptionsSchema,
               });
