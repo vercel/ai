@@ -8,7 +8,7 @@ const agent = new ToolLoopAgent({
   callOptionsSchema: z.object({
     strict: z.boolean(),
   }),
-  experimental_output: Output.object({
+  output: Output.object({
     schema: z.object({
       recipe: z.object({
         name: z.string(),
@@ -33,7 +33,7 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const { experimental_output: output } = await agent.generate({
+  const { output } = await agent.generate({
     prompt: 'Generate a lasagna recipe.',
     options: {
       strict: true,

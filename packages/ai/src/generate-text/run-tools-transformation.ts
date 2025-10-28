@@ -66,6 +66,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       toolName: string;
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-delta';
@@ -238,6 +239,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 input: toolCall.input,
                 error: getErrorMessage(toolCall.error!),
                 dynamic: true,
+                title: toolCall.title,
               });
               break;
             }

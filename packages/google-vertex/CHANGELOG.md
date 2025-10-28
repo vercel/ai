@@ -1,5 +1,85 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/anthropic@3.0.0-beta.43
+  - @ai-sdk/google@3.0.0-beta.33
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/anthropic@3.0.0-beta.42
+  - @ai-sdk/google@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/anthropic@3.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/google@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/anthropic@3.0.0-beta.40
+  - @ai-sdk/google@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+  - @ai-sdk/anthropic@3.0.0-beta.39
+  - @ai-sdk/google@3.0.0-beta.29
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/anthropic@3.0.0-beta.38
+  - @ai-sdk/google@3.0.0-beta.28
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [7c4328e]
+  - @ai-sdk/anthropic@3.0.0-beta.37
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [21f378c]
+  - @ai-sdk/anthropic@3.0.0-beta.36
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [80894b3]
+  - @ai-sdk/anthropic@3.0.0-beta.35
+
 ## 4.0.0-beta.42
 
 ### Patch Changes
