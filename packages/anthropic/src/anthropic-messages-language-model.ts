@@ -882,6 +882,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 switch (contentBlockType) {
                   case 'text': {
+                    // when a json response tool is used, the tool call is returned as text,
+                    // so we ignore the text content:
+                    if (usesJsonResponseTool) {
+                      return;
+                    }
+
                     contentBlocks[value.index] = { type: 'text' };
                     controller.enqueue({
                       type: 'text-start',
@@ -1231,7 +1237,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     // when a json response tool is used, the tool call is returned as text,
                     // so we ignore the text content:
                     if (usesJsonResponseTool) {
-                      return;
+                      return; // excluding the text-start will also exclude the text-end
                     }
 
                     controller.enqueue({

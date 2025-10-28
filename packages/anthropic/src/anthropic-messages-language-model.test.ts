@@ -2808,14 +2808,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "response-metadata",
             },
             {
-              "id": "0",
-              "type": "text-start",
-            },
-            {
-              "id": "0",
-              "type": "text-end",
-            },
-            {
               "id": "1",
               "type": "text-start",
             },
