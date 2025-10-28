@@ -1,5 +1,25 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- f4e4a95: feat(provider/anthropic): enable fine grained tool streaming by default
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- cf4e2a9: Add support for tool calling with structured output
+
 ## 3.0.0-beta.43
 
 ### Patch Changes
