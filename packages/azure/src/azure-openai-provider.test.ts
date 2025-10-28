@@ -37,34 +37,43 @@ const server = createTestServer({
     {},
 });
 
-describe('chat', () => {
+describe('responses (default language model)', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
+    function prepareJsonResponse({
+      content = '',
+      usage = {
+        input_tokens: 4,
+        output_tokens: 30,
+        total_tokens: 34,
+      },
+    } = {}) {
       server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+        'https://test-resource.openai.azure.com/openai/v1/responses'
       ].response = {
         type: 'json-value',
         body: {
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          object: 'chat.completion',
-          created: 1711115037,
-          model: 'gpt-3.5-turbo-0125',
-          choices: [
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          model: 'test-deployment',
+          output: [
             {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content,
-              },
-              finish_reason: 'stop',
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: content,
+                  annotations: [],
+                },
+              ],
             },
           ],
-          usage: {
-            prompt_tokens: 4,
-            total_tokens: 34,
-            completion_tokens: 30,
-          },
-          system_fingerprint: 'fp_3bc1b5746c',
+          usage,
+          incomplete_details: null,
         },
       };
     }
@@ -131,6 +140,109 @@ describe('chat', () => {
       });
 
       await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1',
+      );
+    });
+  });
+});
+
+describe('chat', () => {
+  describe('doGenerate', () => {
+    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'gpt-3.5-turbo-0125',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 4,
+            total_tokens: 34,
+            completion_tokens: 30,
+          },
+          system_fingerprint: 'fp_3bc1b5746c',
+        },
+      };
+    }
+
+    it('should set the correct default api version', async () => {
+      prepareJsonResponse();
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('v1');
+    });
+
+    it('should set the correct modified api version', async () => {
+      prepareJsonResponse();
+
+      await providerApiVersionChanged.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2025-04-01-preview');
+    });
+
+    it('should pass headers', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
+    });
+
+    it('should use the baseURL correctly', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        baseURL: 'https://test-resource.openai.azure.com/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
