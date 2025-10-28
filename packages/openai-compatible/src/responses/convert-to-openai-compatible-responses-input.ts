@@ -122,15 +122,17 @@ export async function convertToOpenAICompatibleResponsesInput({
       }
 
       case 'assistant': {
-        const reasoningMessages: Record<string, OpenAICompatibleResponsesReasoning> = {};
+        const reasoningMessages: Record<
+          string,
+          OpenAICompatibleResponsesReasoning
+        > = {};
         const toolCallParts: Record<string, LanguageModelV3ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              const id = part.providerOptions?.openaiCompatibleResponses?.itemId as
-                | string
-                | undefined;
+              const id = part.providerOptions?.openaiCompatibleResponses
+                ?.itemId as string | undefined;
 
               // item references reduce the payload size
               if (store && id != null) {

@@ -27,7 +27,14 @@ import {
 } from './openai-compatible-responses-options';
 import { MetadataExtractor } from '../chat/openai-compatible-metadata-extractor';
 import { prepareResponsesTools } from './openai-compatible-responses-prepare-tools';
-import { OpenAICompatibleResponsesChunk, openaiCompatibleResponsesChunkSchema, OpenAICompatibleResponsesIncludeOptions, OpenAICompatibleResponsesIncludeValue, OpenAICompatibleResponsesLogprobs, openaiCompatibleResponsesResponseSchema } from './openai-compatible-responses-api';
+import {
+  OpenAICompatibleResponsesChunk,
+  openaiCompatibleResponsesChunkSchema,
+  OpenAICompatibleResponsesIncludeOptions,
+  OpenAICompatibleResponsesIncludeValue,
+  OpenAICompatibleResponsesLogprobs,
+  openaiCompatibleResponsesResponseSchema,
+} from './openai-compatible-responses-api';
 import { ProviderErrorStructure } from '../openai-compatible-error';
 import { defaultOpenAICompatibleResponsesErrorStructure } from './openai-compatible-responses-error';
 
@@ -120,11 +127,17 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
     }
 
     if (presencePenalty != null) {
-        warnings.push({ type: 'unsupported-setting', setting: 'presencePenalty'})
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'presencePenalty',
+      });
     }
 
     if (frequencyPenalty != null) {
-        warnings.push({ type: 'unsupported-setting', setting: 'frequencyPenalty'})
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'frequencyPenalty',
+      });
     }
 
     if (
@@ -142,7 +155,8 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
 
     const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? false;
 
-    let include: OpenAICompatibleResponsesIncludeOptions = compatibleOptions?.include;
+    let include: OpenAICompatibleResponsesIncludeOptions =
+      compatibleOptions?.include;
 
     function addInclude(key: OpenAICompatibleResponsesIncludeValue) {
       if (include == null) {
@@ -152,17 +166,18 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    const store = compatibleOptions?.store
+    const store = compatibleOptions?.store;
 
     if (store === false && compatibleOptions.reasoningEffort != null) {
       addInclude('reasoning.encrypted_content');
     }
 
-    const { input, warnings: inputWarnings } = await convertToOpenAICompatibleResponsesInput({
+    const { input, warnings: inputWarnings } =
+      await convertToOpenAICompatibleResponsesInput({
         prompt,
         systemMessageMode: 'system', // FIXME: how to pass the systemMessageMode param
         store: compatibleOptions?.store ?? true,
-    })
+      });
 
     warnings.push(...inputWarnings);
 
@@ -173,7 +188,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
     } = prepareResponsesTools({
       tools,
       toolChoice,
-      strictJsonSchema
+      strictJsonSchema,
     });
 
     warnings.push(...toolWarnings);
@@ -209,13 +224,14 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
             providerOptions?.[this.providerOptionsName] ?? {},
           ).filter(
             ([key]) =>
-              !Object.keys(openaiCompatibleResponsesProviderOptions.shape).includes(key),
+              !Object.keys(
+                openaiCompatibleResponsesProviderOptions.shape,
+              ).includes(key),
           ),
         ),
 
         input,
-        ...(
-        (compatibleOptions?.reasoningEffort != null ||
+        ...((compatibleOptions?.reasoningEffort != null ||
           compatibleOptions?.reasoningSummary != null) && {
           reasoning: {
             ...(compatibleOptions?.reasoningEffort != null && {
@@ -231,7 +247,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
         tool_choice: openaiToolChoice,
       },
       warnings: [...warnings],
-      store
+      store,
     };
   }
 
@@ -257,7 +273,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        openaiCompatibleResponsesResponseSchema
+        openaiCompatibleResponsesResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -295,7 +311,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
               type: 'reasoning' as const,
               text: summary.text,
               providerMetadata: {
-               [providerOptionsName]: {
+                [providerOptionsName]: {
                   itemId: part.id,
                   reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
@@ -357,22 +373,22 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
       providerMetadata[this.providerOptionsName].logprobs = logprobs;
     }
     if (typeof response.service_tier === 'string') {
-      providerMetadata[this.providerOptionsName].serviceTier = response.service_tier;
+      providerMetadata[this.providerOptionsName].serviceTier =
+        response.service_tier;
     }
 
     return {
       content,
       finishReason: mapOpenAICompatibleResponsesFinishReason({
         finishReason: response.incomplete_details?.reason,
-        hasFunctionCall
-    }),
+        hasFunctionCall,
+      }),
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
         totalTokens: response.usage.input_tokens + response.usage.output_tokens,
         reasoningTokens:
-          response.usage?.output_tokens_details?.reasoning_tokens ??
-          undefined,
+          response.usage?.output_tokens_details?.reasoning_tokens ?? undefined,
         cachedInputTokens:
           response.usage.input_tokens_details?.cached_tokens ?? undefined,
       },
@@ -411,7 +427,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
-        openaiCompatibleResponsesChunkSchema
+        openaiCompatibleResponsesChunkSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -477,7 +493,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
             metadataExtractor?.processChunk(chunk.rawValue);
 
             if (isResponseOutputItemAddedChunk(value)) {
-                if (value.item.type === 'function_call') {
+              if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = {
                   toolName: value.item.name,
                   toolCallId: value.item.call_id,
@@ -520,7 +536,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                 });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
-                if (value.item.type === 'function_call') {
+              if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
@@ -576,7 +592,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                 delete activeReasoning[value.item.id];
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
-                const toolCall = ongoingToolCalls[value.output_index];
+              const toolCall = ongoingToolCalls[value.output_index];
 
               if (toolCall != null) {
                 controller.enqueue({
@@ -586,25 +602,28 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                 });
               }
             } else if (isResponseCreatedChunk(value)) {
-                responseId = value.response.id;
-                controller.enqueue({
-                    type: 'response-metadata',
-                    id: value.response.id,
-                    timestamp: new Date(value.response.created_at * 1000),
-                    modelId: value.response.model,
-                });
+              responseId = value.response.id;
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.response.id,
+                timestamp: new Date(value.response.created_at * 1000),
+                modelId: value.response.model,
+              });
             } else if (isTextDeltaChunk(value)) {
-                controller.enqueue({
+              controller.enqueue({
                 type: 'text-delta',
                 id: value.item_id,
                 delta: value.delta,
               });
 
-              if (options.providerOptions?.[providerOptionsName]?.logprobs && value.logprobs) {
+              if (
+                options.providerOptions?.[providerOptionsName]?.logprobs &&
+                value.logprobs
+              ) {
                 logprobs.push(value.logprobs);
               }
             } else if (value.type === 'response.reasoning_summary_part.added') {
-                // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
+              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
                 const activeReasoningPart = activeReasoning[value.item_id]!;
 
@@ -622,7 +641,9 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: `${value.item_id}:${summaryIndex}`,
-                      providerMetadata: { [providerOptionsName]: { itemId: value.item_id } },
+                      providerMetadata: {
+                        [providerOptionsName]: { itemId: value.item_id },
+                      },
                     });
                     activeReasoningPart.summaryParts[summaryIndex] =
                       'concluded';
@@ -648,7 +669,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                 id: `${value.item_id}:${value.summary_index}`,
                 delta: value.delta,
                 providerMetadata: {
-                 [providerOptionsName]: {
+                  [providerOptionsName]: {
                     itemId: value.item_id,
                   },
                 },
@@ -677,7 +698,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                 ] = 'can-conclude';
               }
             } else if (isResponseFinishedChunk(value)) {
-                finishReason = mapOpenAICompatibleResponsesFinishReason({
+              finishReason = mapOpenAICompatibleResponsesFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
                 hasFunctionCall,
               });
@@ -696,7 +717,7 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
                 serviceTier = value.response.service_tier;
               }
             } else if (isErrorChunk(value)) {
-                controller.enqueue({ type: 'error', error: value });
+              controller.enqueue({ type: 'error', error: value });
             }
           },
 
@@ -733,10 +754,11 @@ export class OpenAICompatibleResponsesLanguageModel implements LanguageModelV3 {
 
 function isTextDeltaChunk(
   chunk: OpenAICompatibleResponsesChunk,
-): chunk is OpenAICompatibleResponsesChunk & { type: 'response.output_text.delta' } {
+): chunk is OpenAICompatibleResponsesChunk & {
+  type: 'response.output_text.delta';
+} {
   return chunk.type === 'response.output_text.delta';
 }
-
 
 function isResponseFinishedChunk(
   chunk: OpenAICompatibleResponsesChunk,
@@ -764,13 +786,17 @@ function isResponseFunctionCallArgumentsDeltaChunk(
 
 function isResponseOutputItemAddedChunk(
   chunk: OpenAICompatibleResponsesChunk,
-): chunk is OpenAICompatibleResponsesChunk & { type: 'response.output_item.added' } {
+): chunk is OpenAICompatibleResponsesChunk & {
+  type: 'response.output_item.added';
+} {
   return chunk.type === 'response.output_item.added';
 }
 
 function isResponseOutputItemDoneChunk(
   chunk: OpenAICompatibleResponsesChunk,
-): chunk is OpenAICompatibleResponsesChunk & { type: 'response.output_item.done' } {
+): chunk is OpenAICompatibleResponsesChunk & {
+  type: 'response.output_item.done';
+} {
   return chunk.type === 'response.output_item.done';
 }
 

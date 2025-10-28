@@ -1,73 +1,688 @@
-{"type":"response.created","response":{"id":"resp_reasoning_001","created_at":1741265000,"model":"grok-2-1212"}}
-{"type":"response.output_item.added","output_index":0,"item":{"id":"reasoning_001","type":"reasoning","encrypted_content":"encrypted_content_placeholder"}}
-{"type":"response.reasoning_summary_part.added","item_id":"reasoning_001","summary_index":0}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":"The sky"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" appears"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" blue"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" due to"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" Rayleigh"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" scattering"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":", where"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" shorter"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" wavelengths"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" of light"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" (blue)"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" scatter"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" more"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" than"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" longer"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" wavelengths"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" (red)"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" in the"}
-{"type":"response.reasoning_summary_text.delta","item_id":"reasoning_001","summary_index":0,"delta":" atmosphere."}
-{"type":"response.reasoning_summary_part.done","item_id":"reasoning_001","summary_index":0}
-{"type":"response.output_item.done","output_index":0,"item":{"id":"reasoning_001","type":"reasoning","encrypted_content":"encrypted_content_placeholder"}}
-{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_reasoning_response","type":"message"}}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":"The sky"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" is"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" blue"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" because"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" of"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" a"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" phenomenon"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" called"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" Rayleigh"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" scattering"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":"."}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" When"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" sunlight"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" enters"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" Earth's"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" atmosphere"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":","}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" it"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" collides"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" with"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" gas"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" molecules"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":"."}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" Blue"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" light"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" has"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" a"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" shorter"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" wavelength"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" and"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" gets"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" scattered"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" more"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" than"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" other"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" colors"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":","}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" making"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" the"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" sky"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" appear"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" blue"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" to"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" our"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":" eyes"}
-{"type":"response.output_text.delta","item_id":"msg_reasoning_response","delta":"."}
-{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_reasoning_response","type":"message"}}
-{"type":"response.completed","response":{"incomplete_details":null,"usage":{"input_tokens":32,"input_tokens_details":{"cached_tokens":0},"output_tokens":89,"output_tokens_details":{"reasoning_tokens":45}}}}
+{"sequence_number":0,"type":"response.created","response":{"created_at":1761682617,"id":"151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","max_output_tokens":300,"model":"grok-3-mini-high","object":"response","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"user":null,"incomplete_details":null,"status":"in_progress","store":true,"metadata":{}}}
+{"sequence_number":1,"type":"response.in_progress","response":{"created_at":1761682617,"id":"151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","max_output_tokens":300,"model":"grok-3-mini-high","object":"response","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"user":null,"incomplete_details":null,"status":"in_progress","store":true,"metadata":{}}}
+{"sequence_number":2,"type":"response.output_item.added","item":{"id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","summary":[],"type":"reasoning","status":"in_progress"},"output_index":0}
+{"sequence_number":3,"type":"response.reasoning_summary_part.added","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"part":{"text":"","type":"summary_text"},"summary_index":0}
+{"sequence_number":4,"type":"response.reasoning_summary_text.delta","delta":"First","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":5,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":6,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":7,"type":"response.reasoning_summary_text.delta","delta":" user","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":8,"type":"response.reasoning_summary_text.delta","delta":" asked","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":9,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":10,"type":"response.reasoning_summary_text.delta","delta":" \"","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":11,"type":"response.reasoning_summary_text.delta","delta":"Explain","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":12,"type":"response.reasoning_summary_text.delta","delta":" why","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":13,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":14,"type":"response.reasoning_summary_text.delta","delta":" sky","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":15,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":16,"type":"response.reasoning_summary_text.delta","delta":" blue","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":17,"type":"response.reasoning_summary_text.delta","delta":".\"","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":18,"type":"response.reasoning_summary_text.delta","delta":" I","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":19,"type":"response.reasoning_summary_text.delta","delta":" need","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":20,"type":"response.reasoning_summary_text.delta","delta":" to","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":21,"type":"response.reasoning_summary_text.delta","delta":" provide","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":22,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":23,"type":"response.reasoning_summary_text.delta","delta":" clear","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":24,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":25,"type":"response.reasoning_summary_text.delta","delta":" accurate","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":26,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":27,"type":"response.reasoning_summary_text.delta","delta":" and","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":28,"type":"response.reasoning_summary_text.delta","delta":" helpful","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":29,"type":"response.reasoning_summary_text.delta","delta":" explanation","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":30,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":31,"type":"response.reasoning_summary_text.delta","delta":" As","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":32,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":33,"type":"response.reasoning_summary_text.delta","delta":" helpful","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":34,"type":"response.reasoning_summary_text.delta","delta":" assistant","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":35,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":36,"type":"response.reasoning_summary_text.delta","delta":" I","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":37,"type":"response.reasoning_summary_text.delta","delta":" should","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":38,"type":"response.reasoning_summary_text.delta","delta":" keep","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":39,"type":"response.reasoning_summary_text.delta","delta":" it","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":40,"type":"response.reasoning_summary_text.delta","delta":" simple","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":41,"type":"response.reasoning_summary_text.delta","delta":" yet","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":42,"type":"response.reasoning_summary_text.delta","delta":" informative","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":43,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":44,"type":"response.reasoning_summary_text.delta","delta":" avoiding","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":45,"type":"response.reasoning_summary_text.delta","delta":" jargon","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":46,"type":"response.reasoning_summary_text.delta","delta":" where","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":47,"type":"response.reasoning_summary_text.delta","delta":" possible","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":48,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":49,"type":"response.reasoning_summary_text.delta","delta":" but","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":50,"type":"response.reasoning_summary_text.delta","delta":" I","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":51,"type":"response.reasoning_summary_text.delta","delta":" can","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":52,"type":"response.reasoning_summary_text.delta","delta":" include","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":53,"type":"response.reasoning_summary_text.delta","delta":" some","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":54,"type":"response.reasoning_summary_text.delta","delta":" science","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":55,"type":"response.reasoning_summary_text.delta","delta":" if","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":56,"type":"response.reasoning_summary_text.delta","delta":" it's","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":57,"type":"response.reasoning_summary_text.delta","delta":" explained","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":58,"type":"response.reasoning_summary_text.delta","delta":" well","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":59,"type":"response.reasoning_summary_text.delta","delta":".\n\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":60,"type":"response.reasoning_summary_text.delta","delta":"Key","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":61,"type":"response.reasoning_summary_text.delta","delta":" points","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":62,"type":"response.reasoning_summary_text.delta","delta":" from","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":63,"type":"response.reasoning_summary_text.delta","delta":" science","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":64,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":65,"type":"response.reasoning_summary_text.delta","delta":" The","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":66,"type":"response.reasoning_summary_text.delta","delta":" sky","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":67,"type":"response.reasoning_summary_text.delta","delta":" appears","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":68,"type":"response.reasoning_summary_text.delta","delta":" blue","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":69,"type":"response.reasoning_summary_text.delta","delta":" because","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":70,"type":"response.reasoning_summary_text.delta","delta":" of","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":71,"type":"response.reasoning_summary_text.delta","delta":" Rayleigh","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":72,"type":"response.reasoning_summary_text.delta","delta":" scattering","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":73,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":74,"type":"response.reasoning_summary_text.delta","delta":" This","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":75,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":76,"type":"response.reasoning_summary_text.delta","delta":" when","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":77,"type":"response.reasoning_summary_text.delta","delta":" sunlight","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":78,"type":"response.reasoning_summary_text.delta","delta":" enters","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":79,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":80,"type":"response.reasoning_summary_text.delta","delta":" Earth's","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":81,"type":"response.reasoning_summary_text.delta","delta":" atmosphere","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":82,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":83,"type":"response.reasoning_summary_text.delta","delta":" and","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":84,"type":"response.reasoning_summary_text.delta","delta":" shorter","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":85,"type":"response.reasoning_summary_text.delta","delta":" wavelengths","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":86,"type":"response.reasoning_summary_text.delta","delta":" of","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":87,"type":"response.reasoning_summary_text.delta","delta":" light","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":88,"type":"response.reasoning_summary_text.delta","delta":" (","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":89,"type":"response.reasoning_summary_text.delta","delta":"like","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":90,"type":"response.reasoning_summary_text.delta","delta":" blue","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":91,"type":"response.reasoning_summary_text.delta","delta":")","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":92,"type":"response.reasoning_summary_text.delta","delta":" are","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":93,"type":"response.reasoning_summary_text.delta","delta":" scattered","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":94,"type":"response.reasoning_summary_text.delta","delta":" more","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":95,"type":"response.reasoning_summary_text.delta","delta":" than","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":96,"type":"response.reasoning_summary_text.delta","delta":" longer","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":97,"type":"response.reasoning_summary_text.delta","delta":" wavelengths","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":98,"type":"response.reasoning_summary_text.delta","delta":" (","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":99,"type":"response.reasoning_summary_text.delta","delta":"like","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":100,"type":"response.reasoning_summary_text.delta","delta":" red","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":101,"type":"response.reasoning_summary_text.delta","delta":").","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":102,"type":"response.reasoning_summary_text.delta","delta":" Sun","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":103,"type":"response.reasoning_summary_text.delta","delta":"light","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":104,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":105,"type":"response.reasoning_summary_text.delta","delta":" made","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":106,"type":"response.reasoning_summary_text.delta","delta":" up","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":107,"type":"response.reasoning_summary_text.delta","delta":" of","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":108,"type":"response.reasoning_summary_text.delta","delta":" all","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":109,"type":"response.reasoning_summary_text.delta","delta":" colors","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":110,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":111,"type":"response.reasoning_summary_text.delta","delta":" and","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":112,"type":"response.reasoning_summary_text.delta","delta":" blue","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":113,"type":"response.reasoning_summary_text.delta","delta":" light","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":114,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":115,"type":"response.reasoning_summary_text.delta","delta":" scattered","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":116,"type":"response.reasoning_summary_text.delta","delta":" in","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":117,"type":"response.reasoning_summary_text.delta","delta":" all","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":118,"type":"response.reasoning_summary_text.delta","delta":" directions","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":119,"type":"response.reasoning_summary_text.delta","delta":" by","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":120,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":121,"type":"response.reasoning_summary_text.delta","delta":" gases","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":122,"type":"response.reasoning_summary_text.delta","delta":" and","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":123,"type":"response.reasoning_summary_text.delta","delta":" particles","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":124,"type":"response.reasoning_summary_text.delta","delta":" in","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":125,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":126,"type":"response.reasoning_summary_text.delta","delta":" air","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":127,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":128,"type":"response.reasoning_summary_text.delta","delta":" which","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":129,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":130,"type":"response.reasoning_summary_text.delta","delta":" why","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":131,"type":"response.reasoning_summary_text.delta","delta":" we","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":132,"type":"response.reasoning_summary_text.delta","delta":" see","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":133,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":134,"type":"response.reasoning_summary_text.delta","delta":" blue","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":135,"type":"response.reasoning_summary_text.delta","delta":" sky","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":136,"type":"response.reasoning_summary_text.delta","delta":".\n\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":137,"type":"response.reasoning_summary_text.delta","delta":"Structure","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":138,"type":"response.reasoning_summary_text.delta","delta":" my","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":139,"type":"response.reasoning_summary_text.delta","delta":" response","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":140,"type":"response.reasoning_summary_text.delta","delta":":\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":141,"type":"response.reasoning_summary_text.delta","delta":"1","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":142,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":143,"type":"response.reasoning_summary_text.delta","delta":" Start","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":144,"type":"response.reasoning_summary_text.delta","delta":" with","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":145,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":146,"type":"response.reasoning_summary_text.delta","delta":" simple","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":147,"type":"response.reasoning_summary_text.delta","delta":" statement","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":148,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":149,"type":"response.reasoning_summary_text.delta","delta":" \"","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":150,"type":"response.reasoning_summary_text.delta","delta":"The","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":151,"type":"response.reasoning_summary_text.delta","delta":" sky","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":152,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":153,"type":"response.reasoning_summary_text.delta","delta":" blue","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":154,"type":"response.reasoning_summary_text.delta","delta":" primarily","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":155,"type":"response.reasoning_summary_text.delta","delta":" due","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":156,"type":"response.reasoning_summary_text.delta","delta":" to","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":157,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":158,"type":"response.reasoning_summary_text.delta","delta":" phenomenon","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":159,"type":"response.reasoning_summary_text.delta","delta":" called","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":160,"type":"response.reasoning_summary_text.delta","delta":" Rayleigh","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":161,"type":"response.reasoning_summary_text.delta","delta":" scattering","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":162,"type":"response.reasoning_summary_text.delta","delta":".\"\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":163,"type":"response.reasoning_summary_text.delta","delta":"2","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":164,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":165,"type":"response.reasoning_summary_text.delta","delta":" Explain","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":166,"type":"response.reasoning_summary_text.delta","delta":" what","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":167,"type":"response.reasoning_summary_text.delta","delta":" Rayleigh","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":168,"type":"response.reasoning_summary_text.delta","delta":" scattering","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":169,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":170,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":171,"type":"response.reasoning_summary_text.delta","delta":" Describe","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":172,"type":"response.reasoning_summary_text.delta","delta":" how","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":173,"type":"response.reasoning_summary_text.delta","delta":" sunlight","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":174,"type":"response.reasoning_summary_text.delta","delta":" interacts","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":175,"type":"response.reasoning_summary_text.delta","delta":" with","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":176,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":177,"type":"response.reasoning_summary_text.delta","delta":" atmosphere","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":178,"type":"response.reasoning_summary_text.delta","delta":".\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":179,"type":"response.reasoning_summary_text.delta","delta":"3","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":180,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":181,"type":"response.reasoning_summary_text.delta","delta":" Break","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":182,"type":"response.reasoning_summary_text.delta","delta":" it","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":183,"type":"response.reasoning_summary_text.delta","delta":" down","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":184,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":185,"type":"response.reasoning_summary_text.delta","delta":" Sun","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":186,"type":"response.reasoning_summary_text.delta","delta":"light","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":187,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":188,"type":"response.reasoning_summary_text.delta","delta":" white","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":189,"type":"response.reasoning_summary_text.delta","delta":" light","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":190,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":191,"type":"response.reasoning_summary_text.delta","delta":" which","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":192,"type":"response.reasoning_summary_text.delta","delta":" contains","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":193,"type":"response.reasoning_summary_text.delta","delta":" all","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":194,"type":"response.reasoning_summary_text.delta","delta":" colors","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":195,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":196,"type":"response.reasoning_summary_text.delta","delta":" When","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":197,"type":"response.reasoning_summary_text.delta","delta":" it","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":198,"type":"response.reasoning_summary_text.delta","delta":" hits","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":199,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":200,"type":"response.reasoning_summary_text.delta","delta":" atmosphere","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":201,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":202,"type":"response.reasoning_summary_text.delta","delta":" molecules","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":203,"type":"response.reasoning_summary_text.delta","delta":" and","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":204,"type":"response.reasoning_summary_text.delta","delta":" small","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":205,"type":"response.reasoning_summary_text.delta","delta":" particles","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":206,"type":"response.reasoning_summary_text.delta","delta":" scatter","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":207,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":208,"type":"response.reasoning_summary_text.delta","delta":" light","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":209,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":210,"type":"response.reasoning_summary_text.delta","delta":" Blue","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":211,"type":"response.reasoning_summary_text.delta","delta":" light","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":212,"type":"response.reasoning_summary_text.delta","delta":" has","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":213,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":214,"type":"response.reasoning_summary_text.delta","delta":" shorter","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":215,"type":"response.reasoning_summary_text.delta","delta":" wavelength","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":216,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":217,"type":"response.reasoning_summary_text.delta","delta":" so","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":218,"type":"response.reasoning_summary_text.delta","delta":" it's","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":219,"type":"response.reasoning_summary_text.delta","delta":" scattered","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":220,"type":"response.reasoning_summary_text.delta","delta":" more","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":221,"type":"response.reasoning_summary_text.delta","delta":" efficiently","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":222,"type":"response.reasoning_summary_text.delta","delta":".\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":223,"type":"response.reasoning_summary_text.delta","delta":"4","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":224,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":225,"type":"response.reasoning_summary_text.delta","delta":" Mention","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":226,"type":"response.reasoning_summary_text.delta","delta":" why","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":227,"type":"response.reasoning_summary_text.delta","delta":" other","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":228,"type":"response.reasoning_summary_text.delta","delta":" colors","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":229,"type":"response.reasoning_summary_text.delta","delta":" aren't","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":230,"type":"response.reasoning_summary_text.delta","delta":" as","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":231,"type":"response.reasoning_summary_text.delta","delta":" prominent","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":232,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":233,"type":"response.reasoning_summary_text.delta","delta":" Longer","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":234,"type":"response.reasoning_summary_text.delta","delta":" wavelengths","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":235,"type":"response.reasoning_summary_text.delta","delta":" like","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":236,"type":"response.reasoning_summary_text.delta","delta":" red","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":237,"type":"response.reasoning_summary_text.delta","delta":" and","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":238,"type":"response.reasoning_summary_text.delta","delta":" yellow","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":239,"type":"response.reasoning_summary_text.delta","delta":" are","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":240,"type":"response.reasoning_summary_text.delta","delta":" scattered","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":241,"type":"response.reasoning_summary_text.delta","delta":" less","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":242,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":243,"type":"response.reasoning_summary_text.delta","delta":" so","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":244,"type":"response.reasoning_summary_text.delta","delta":" they","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":245,"type":"response.reasoning_summary_text.delta","delta":" pass","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":246,"type":"response.reasoning_summary_text.delta","delta":" through","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":247,"type":"response.reasoning_summary_text.delta","delta":" more","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":248,"type":"response.reasoning_summary_text.delta","delta":" directly","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":249,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":250,"type":"response.reasoning_summary_text.delta","delta":" which","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":251,"type":"response.reasoning_summary_text.delta","delta":" is","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":252,"type":"response.reasoning_summary_text.delta","delta":" why","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":253,"type":"response.reasoning_summary_text.delta","delta":" sun","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":254,"type":"response.reasoning_summary_text.delta","delta":"sets","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":255,"type":"response.reasoning_summary_text.delta","delta":" are","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":256,"type":"response.reasoning_summary_text.delta","delta":" red","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":257,"type":"response.reasoning_summary_text.delta","delta":".\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":258,"type":"response.reasoning_summary_text.delta","delta":"5","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":259,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":260,"type":"response.reasoning_summary_text.delta","delta":" Keep","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":261,"type":"response.reasoning_summary_text.delta","delta":" it","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":262,"type":"response.reasoning_summary_text.delta","delta":" concise","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":263,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":264,"type":"response.reasoning_summary_text.delta","delta":" Don't","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":265,"type":"response.reasoning_summary_text.delta","delta":" overwhelm","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":266,"type":"response.reasoning_summary_text.delta","delta":" with","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":267,"type":"response.reasoning_summary_text.delta","delta":" too","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":268,"type":"response.reasoning_summary_text.delta","delta":" much","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":269,"type":"response.reasoning_summary_text.delta","delta":" detail","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":270,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":271,"type":"response.reasoning_summary_text.delta","delta":" but","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":272,"type":"response.reasoning_summary_text.delta","delta":" make","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":273,"type":"response.reasoning_summary_text.delta","delta":" it","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":274,"type":"response.reasoning_summary_text.delta","delta":" educational","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":275,"type":"response.reasoning_summary_text.delta","delta":".\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":276,"type":"response.reasoning_summary_text.delta","delta":"6","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":277,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":278,"type":"response.reasoning_summary_text.delta","delta":" End","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":279,"type":"response.reasoning_summary_text.delta","delta":" on","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":280,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":281,"type":"response.reasoning_summary_text.delta","delta":" helpful","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":282,"type":"response.reasoning_summary_text.delta","delta":" note","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":283,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":284,"type":"response.reasoning_summary_text.delta","delta":" Maybe","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":285,"type":"response.reasoning_summary_text.delta","delta":" add","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":286,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":287,"type":"response.reasoning_summary_text.delta","delta":" fun","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":288,"type":"response.reasoning_summary_text.delta","delta":" fact","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":289,"type":"response.reasoning_summary_text.delta","delta":" or","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":290,"type":"response.reasoning_summary_text.delta","delta":" invite","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":291,"type":"response.reasoning_summary_text.delta","delta":" further","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":292,"type":"response.reasoning_summary_text.delta","delta":" questions","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":293,"type":"response.reasoning_summary_text.delta","delta":".\n\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":294,"type":"response.reasoning_summary_text.delta","delta":"Ensure","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":295,"type":"response.reasoning_summary_text.delta","delta":" accuracy","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":296,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":297,"type":"response.reasoning_summary_text.delta","delta":" Rayleigh","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":298,"type":"response.reasoning_summary_text.delta","delta":" scattering","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":299,"type":"response.reasoning_summary_text.delta","delta":" applies","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":300,"type":"response.reasoning_summary_text.delta","delta":" to","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":301,"type":"response.reasoning_summary_text.delta","delta":" clear","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":302,"type":"response.reasoning_summary_text.delta","delta":" skies","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":303,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":304,"type":"response.reasoning_summary_text.delta","delta":" Other","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":305,"type":"response.reasoning_summary_text.delta","delta":" factors","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":306,"type":"response.reasoning_summary_text.delta","delta":" like","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":307,"type":"response.reasoning_summary_text.delta","delta":" pollution","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":308,"type":"response.reasoning_summary_text.delta","delta":" or","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":309,"type":"response.reasoning_summary_text.delta","delta":" clouds","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":310,"type":"response.reasoning_summary_text.delta","delta":" can","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":311,"type":"response.reasoning_summary_text.delta","delta":" affect","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":312,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":313,"type":"response.reasoning_summary_text.delta","delta":" color","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":314,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":315,"type":"response.reasoning_summary_text.delta","delta":" but","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":316,"type":"response.reasoning_summary_text.delta","delta":" for","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":317,"type":"response.reasoning_summary_text.delta","delta":" a","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":318,"type":"response.reasoning_summary_text.delta","delta":" standard","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":319,"type":"response.reasoning_summary_text.delta","delta":" explanation","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":320,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":321,"type":"response.reasoning_summary_text.delta","delta":" focus","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":322,"type":"response.reasoning_summary_text.delta","delta":" on","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":323,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":324,"type":"response.reasoning_summary_text.delta","delta":" main","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":325,"type":"response.reasoning_summary_text.delta","delta":" reason","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":326,"type":"response.reasoning_summary_text.delta","delta":".\n\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":327,"type":"response.reasoning_summary_text.delta","delta":"Possible","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":328,"type":"response.reasoning_summary_text.delta","delta":" follow","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":329,"type":"response.reasoning_summary_text.delta","delta":"-up","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":330,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":331,"type":"response.reasoning_summary_text.delta","delta":" If","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":332,"type":"response.reasoning_summary_text.delta","delta":" they","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":333,"type":"response.reasoning_summary_text.delta","delta":" ask","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":334,"type":"response.reasoning_summary_text.delta","delta":" more","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":335,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":336,"type":"response.reasoning_summary_text.delta","delta":" I","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":337,"type":"response.reasoning_summary_text.delta","delta":" can","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":338,"type":"response.reasoning_summary_text.delta","delta":" dive","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":339,"type":"response.reasoning_summary_text.delta","delta":" deeper","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":340,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":341,"type":"response.reasoning_summary_text.delta","delta":" but","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":342,"type":"response.reasoning_summary_text.delta","delta":" for","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":343,"type":"response.reasoning_summary_text.delta","delta":" now","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":344,"type":"response.reasoning_summary_text.delta","delta":",","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":345,"type":"response.reasoning_summary_text.delta","delta":" stick","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":346,"type":"response.reasoning_summary_text.delta","delta":" to","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":347,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":348,"type":"response.reasoning_summary_text.delta","delta":" basics","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":349,"type":"response.reasoning_summary_text.delta","delta":".\n\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":350,"type":"response.reasoning_summary_text.delta","delta":"Final","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":351,"type":"response.reasoning_summary_text.delta","delta":" response","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":352,"type":"response.reasoning_summary_text.delta","delta":" outline","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":353,"type":"response.reasoning_summary_text.delta","delta":":\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":354,"type":"response.reasoning_summary_text.delta","delta":"-","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":355,"type":"response.reasoning_summary_text.delta","delta":" Introduction","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":356,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":357,"type":"response.reasoning_summary_text.delta","delta":" State","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":358,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":359,"type":"response.reasoning_summary_text.delta","delta":" main","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":360,"type":"response.reasoning_summary_text.delta","delta":" reason","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":361,"type":"response.reasoning_summary_text.delta","delta":".\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":362,"type":"response.reasoning_summary_text.delta","delta":"-","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":363,"type":"response.reasoning_summary_text.delta","delta":" Explanation","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":364,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":365,"type":"response.reasoning_summary_text.delta","delta":" Describe","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":366,"type":"response.reasoning_summary_text.delta","delta":" the","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":367,"type":"response.reasoning_summary_text.delta","delta":" science","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":368,"type":"response.reasoning_summary_text.delta","delta":" simply","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":369,"type":"response.reasoning_summary_text.delta","delta":".\n","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":370,"type":"response.reasoning_summary_text.delta","delta":"-","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":371,"type":"response.reasoning_summary_text.delta","delta":" Conclusion","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":372,"type":"response.reasoning_summary_text.delta","delta":":","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":373,"type":"response.reasoning_summary_text.delta","delta":" Tie","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":374,"type":"response.reasoning_summary_text.delta","delta":" it","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":375,"type":"response.reasoning_summary_text.delta","delta":" back","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":376,"type":"response.reasoning_summary_text.delta","delta":" and","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":377,"type":"response.reasoning_summary_text.delta","delta":" offer","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":378,"type":"response.reasoning_summary_text.delta","delta":" more","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":379,"type":"response.reasoning_summary_text.delta","delta":" if","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":380,"type":"response.reasoning_summary_text.delta","delta":" needed","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":381,"type":"response.reasoning_summary_text.delta","delta":".","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0}
+{"sequence_number":382,"type":"response.reasoning_summary_text.done","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"summary_index":0,"text":"First, the user asked: \"Explain why the sky is blue.\" I need to provide a clear, accurate, and helpful explanation. As a helpful assistant, I should keep it simple yet informative, avoiding jargon where possible, but I can include some science if it's explained well.\n\nKey points from science: The sky appears blue because of Rayleigh scattering. This is when sunlight enters the Earth's atmosphere, and shorter wavelengths of light (like blue) are scattered more than longer wavelengths (like red). Sunlight is made up of all colors, and blue light is scattered in all directions by the gases and particles in the air, which is why we see a blue sky.\n\nStructure my response:\n1. Start with a simple statement: \"The sky is blue primarily due to a phenomenon called Rayleigh scattering.\"\n2. Explain what Rayleigh scattering is: Describe how sunlight interacts with the atmosphere.\n3. Break it down: Sunlight is white light, which contains all colors. When it hits the atmosphere, molecules and small particles scatter the light. Blue light has a shorter wavelength, so it's scattered more efficiently.\n4. Mention why other colors aren't as prominent: Longer wavelengths like red and yellow are scattered less, so they pass through more directly, which is why sunsets are red.\n5. Keep it concise: Don't overwhelm with too much detail, but make it educational.\n6. End on a helpful note: Maybe add a fun fact or invite further questions.\n\nEnsure accuracy: Rayleigh scattering applies to clear skies. Other factors like pollution or clouds can affect the color, but for a standard explanation, focus on the main reason.\n\nPossible follow-up: If they ask more, I can dive deeper, but for now, stick to the basics.\n\nFinal response outline:\n- Introduction: State the main reason.\n- Explanation: Describe the science simply.\n- Conclusion: Tie it back and offer more if needed."}
+{"sequence_number":383,"type":"response.reasoning_summary_part.done","item_id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":0,"part":{"text":"First, the user asked: \"Explain why the sky is blue.\" I need to provide a clear, accurate, and helpful explanation. As a helpful assistant, I should keep it simple yet informative, avoiding jargon where possible, but I can include some science if it's explained well.\n\nKey points from science: The sky appears blue because of Rayleigh scattering. This is when sunlight enters the Earth's atmosphere, and shorter wavelengths of light (like blue) are scattered more than longer wavelengths (like red). Sunlight is made up of all colors, and blue light is scattered in all directions by the gases and particles in the air, which is why we see a blue sky.\n\nStructure my response:\n1. Start with a simple statement: \"The sky is blue primarily due to a phenomenon called Rayleigh scattering.\"\n2. Explain what Rayleigh scattering is: Describe how sunlight interacts with the atmosphere.\n3. Break it down: Sunlight is white light, which contains all colors. When it hits the atmosphere, molecules and small particles scatter the light. Blue light has a shorter wavelength, so it's scattered more efficiently.\n4. Mention why other colors aren't as prominent: Longer wavelengths like red and yellow are scattered less, so they pass through more directly, which is why sunsets are red.\n5. Keep it concise: Don't overwhelm with too much detail, but make it educational.\n6. End on a helpful note: Maybe add a fun fact or invite further questions.\n\nEnsure accuracy: Rayleigh scattering applies to clear skies. Other factors like pollution or clouds can affect the color, but for a standard explanation, focus on the main reason.\n\nPossible follow-up: If they ask more, I can dive deeper, but for now, stick to the basics.\n\nFinal response outline:\n- Introduction: State the main reason.\n- Explanation: Describe the science simply.\n- Conclusion: Tie it back and offer more if needed.","type":"summary_text"},"summary_index":0}
+{"sequence_number":384,"type":"response.output_item.done","item":{"id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","summary":[{"text":"First, the user asked: \"Explain why the sky is blue.\" I need to provide a clear, accurate, and helpful explanation. As a helpful assistant, I should keep it simple yet informative, avoiding jargon where possible, but I can include some science if it's explained well.\n\nKey points from science: The sky appears blue because of Rayleigh scattering. This is when sunlight enters the Earth's atmosphere, and shorter wavelengths of light (like blue) are scattered more than longer wavelengths (like red). Sunlight is made up of all colors, and blue light is scattered in all directions by the gases and particles in the air, which is why we see a blue sky.\n\nStructure my response:\n1. Start with a simple statement: \"The sky is blue primarily due to a phenomenon called Rayleigh scattering.\"\n2. Explain what Rayleigh scattering is: Describe how sunlight interacts with the atmosphere.\n3. Break it down: Sunlight is white light, which contains all colors. When it hits the atmosphere, molecules and small particles scatter the light. Blue light has a shorter wavelength, so it's scattered more efficiently.\n4. Mention why other colors aren't as prominent: Longer wavelengths like red and yellow are scattered less, so they pass through more directly, which is why sunsets are red.\n5. Keep it concise: Don't overwhelm with too much detail, but make it educational.\n6. End on a helpful note: Maybe add a fun fact or invite further questions.\n\nEnsure accuracy: Rayleigh scattering applies to clear skies. Other factors like pollution or clouds can affect the color, but for a standard explanation, focus on the main reason.\n\nPossible follow-up: If they ask more, I can dive deeper, but for now, stick to the basics.\n\nFinal response outline:\n- Introduction: State the main reason.\n- Explanation: Describe the science simply.\n- Conclusion: Tie it back and offer more if needed.","type":"summary_text"}],"type":"reasoning","status":"completed"},"output_index":0}
+{"sequence_number":385,"type":"response.output_item.added","item":{"content":[],"id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","role":"assistant","type":"message","status":"in_progress"},"output_index":1}
+{"sequence_number":386,"type":"response.content_part.added","content_index":0,"item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"part":{"type":"output_text","text":"","logprobs":[],"annotations":[]}}
+{"sequence_number":387,"type":"response.output_text.delta","content_index":0,"delta":"The","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":388,"type":"response.output_text.delta","content_index":0,"delta":" sky","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":389,"type":"response.output_text.delta","content_index":0,"delta":" appears","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":390,"type":"response.output_text.delta","content_index":0,"delta":" blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":391,"type":"response.output_text.delta","content_index":0,"delta":" during","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":392,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":393,"type":"response.output_text.delta","content_index":0,"delta":" day","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":394,"type":"response.output_text.delta","content_index":0,"delta":" primarily","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":395,"type":"response.output_text.delta","content_index":0,"delta":" due","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":396,"type":"response.output_text.delta","content_index":0,"delta":" to","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":397,"type":"response.output_text.delta","content_index":0,"delta":" a","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":398,"type":"response.output_text.delta","content_index":0,"delta":" scientific","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":399,"type":"response.output_text.delta","content_index":0,"delta":" phenomenon","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":400,"type":"response.output_text.delta","content_index":0,"delta":" called","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":401,"type":"response.output_text.delta","content_index":0,"delta":" Rayleigh","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":402,"type":"response.output_text.delta","content_index":0,"delta":" scattering","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":403,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":404,"type":"response.output_text.delta","content_index":0,"delta":" Here's","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":405,"type":"response.output_text.delta","content_index":0,"delta":" a","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":406,"type":"response.output_text.delta","content_index":0,"delta":" step","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":407,"type":"response.output_text.delta","content_index":0,"delta":"-by","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":408,"type":"response.output_text.delta","content_index":0,"delta":"-step","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":409,"type":"response.output_text.delta","content_index":0,"delta":" explanation","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":410,"type":"response.output_text.delta","content_index":0,"delta":":\n\n","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":411,"type":"response.output_text.delta","content_index":0,"delta":"1","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":412,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":413,"type":"response.output_text.delta","content_index":0,"delta":" **","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":414,"type":"response.output_text.delta","content_index":0,"delta":"Sun","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":415,"type":"response.output_text.delta","content_index":0,"delta":"light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":416,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":417,"type":"response.output_text.delta","content_index":0,"delta":" its","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":418,"type":"response.output_text.delta","content_index":0,"delta":" colors","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":419,"type":"response.output_text.delta","content_index":0,"delta":"**:","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":420,"type":"response.output_text.delta","content_index":0,"delta":" Sun","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":421,"type":"response.output_text.delta","content_index":0,"delta":"light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":422,"type":"response.output_text.delta","content_index":0,"delta":" looks","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":423,"type":"response.output_text.delta","content_index":0,"delta":" white","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":424,"type":"response.output_text.delta","content_index":0,"delta":" to","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":425,"type":"response.output_text.delta","content_index":0,"delta":" us","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":426,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":427,"type":"response.output_text.delta","content_index":0,"delta":" but","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":428,"type":"response.output_text.delta","content_index":0,"delta":" it's","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":429,"type":"response.output_text.delta","content_index":0,"delta":" actually","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":430,"type":"response.output_text.delta","content_index":0,"delta":" made","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":431,"type":"response.output_text.delta","content_index":0,"delta":" up","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":432,"type":"response.output_text.delta","content_index":0,"delta":" of","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":433,"type":"response.output_text.delta","content_index":0,"delta":" all","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":434,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":435,"type":"response.output_text.delta","content_index":0,"delta":" colors","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":436,"type":"response.output_text.delta","content_index":0,"delta":" of","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":437,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":438,"type":"response.output_text.delta","content_index":0,"delta":" rainbow","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":439,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":440,"type":"response.output_text.delta","content_index":0,"delta":" which","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":441,"type":"response.output_text.delta","content_index":0,"delta":" correspond","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":442,"type":"response.output_text.delta","content_index":0,"delta":" to","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":443,"type":"response.output_text.delta","content_index":0,"delta":" different","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":444,"type":"response.output_text.delta","content_index":0,"delta":" wavelengths","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":445,"type":"response.output_text.delta","content_index":0,"delta":" of","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":446,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":447,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":448,"type":"response.output_text.delta","content_index":0,"delta":" Blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":449,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":450,"type":"response.output_text.delta","content_index":0,"delta":" has","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":451,"type":"response.output_text.delta","content_index":0,"delta":" a","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":452,"type":"response.output_text.delta","content_index":0,"delta":" shorter","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":453,"type":"response.output_text.delta","content_index":0,"delta":" wavelength","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":454,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":455,"type":"response.output_text.delta","content_index":0,"delta":" while","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":456,"type":"response.output_text.delta","content_index":0,"delta":" red","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":457,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":458,"type":"response.output_text.delta","content_index":0,"delta":" has","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":459,"type":"response.output_text.delta","content_index":0,"delta":" a","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":460,"type":"response.output_text.delta","content_index":0,"delta":" longer","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":461,"type":"response.output_text.delta","content_index":0,"delta":" one","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":462,"type":"response.output_text.delta","content_index":0,"delta":".\n\n","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":463,"type":"response.output_text.delta","content_index":0,"delta":"2","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":464,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":465,"type":"response.output_text.delta","content_index":0,"delta":" **","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":466,"type":"response.output_text.delta","content_index":0,"delta":"Interaction","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":467,"type":"response.output_text.delta","content_index":0,"delta":" with","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":468,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":469,"type":"response.output_text.delta","content_index":0,"delta":" atmosphere","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":470,"type":"response.output_text.delta","content_index":0,"delta":"**:","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":471,"type":"response.output_text.delta","content_index":0,"delta":" When","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":472,"type":"response.output_text.delta","content_index":0,"delta":" sunlight","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":473,"type":"response.output_text.delta","content_index":0,"delta":" enters","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":474,"type":"response.output_text.delta","content_index":0,"delta":" Earth's","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":475,"type":"response.output_text.delta","content_index":0,"delta":" atmosphere","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":476,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":477,"type":"response.output_text.delta","content_index":0,"delta":" it","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":478,"type":"response.output_text.delta","content_index":0,"delta":" coll","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":479,"type":"response.output_text.delta","content_index":0,"delta":"ides","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":480,"type":"response.output_text.delta","content_index":0,"delta":" with","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":481,"type":"response.output_text.delta","content_index":0,"delta":" tiny","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":482,"type":"response.output_text.delta","content_index":0,"delta":" molecules","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":483,"type":"response.output_text.delta","content_index":0,"delta":" of","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":484,"type":"response.output_text.delta","content_index":0,"delta":" gases","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":485,"type":"response.output_text.delta","content_index":0,"delta":" like","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":486,"type":"response.output_text.delta","content_index":0,"delta":" nitrogen","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":487,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":488,"type":"response.output_text.delta","content_index":0,"delta":" oxygen","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":489,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":490,"type":"response.output_text.delta","content_index":0,"delta":" as","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":491,"type":"response.output_text.delta","content_index":0,"delta":" well","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":492,"type":"response.output_text.delta","content_index":0,"delta":" as","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":493,"type":"response.output_text.delta","content_index":0,"delta":" small","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":494,"type":"response.output_text.delta","content_index":0,"delta":" particles","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":495,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":496,"type":"response.output_text.delta","content_index":0,"delta":" This","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":497,"type":"response.output_text.delta","content_index":0,"delta":" causes","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":498,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":499,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":500,"type":"response.output_text.delta","content_index":0,"delta":" to","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":501,"type":"response.output_text.delta","content_index":0,"delta":" scatter","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":502,"type":"response.output_text.delta","content_index":0,"delta":" in","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":503,"type":"response.output_text.delta","content_index":0,"delta":" all","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":504,"type":"response.output_text.delta","content_index":0,"delta":" directions","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":505,"type":"response.output_text.delta","content_index":0,"delta":".\n\n","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":506,"type":"response.output_text.delta","content_index":0,"delta":"3","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":507,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":508,"type":"response.output_text.delta","content_index":0,"delta":" **","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":509,"type":"response.output_text.delta","content_index":0,"delta":"Why","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":510,"type":"response.output_text.delta","content_index":0,"delta":" blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":511,"type":"response.output_text.delta","content_index":0,"delta":" is","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":512,"type":"response.output_text.delta","content_index":0,"delta":" scattered","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":513,"type":"response.output_text.delta","content_index":0,"delta":" more","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":514,"type":"response.output_text.delta","content_index":0,"delta":"**:","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":515,"type":"response.output_text.delta","content_index":0,"delta":" According","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":516,"type":"response.output_text.delta","content_index":0,"delta":" to","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":517,"type":"response.output_text.delta","content_index":0,"delta":" Rayleigh","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":518,"type":"response.output_text.delta","content_index":0,"delta":" scattering","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":519,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":520,"type":"response.output_text.delta","content_index":0,"delta":" shorter","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":521,"type":"response.output_text.delta","content_index":0,"delta":" wavelengths","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":522,"type":"response.output_text.delta","content_index":0,"delta":" (","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":523,"type":"response.output_text.delta","content_index":0,"delta":"like","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":524,"type":"response.output_text.delta","content_index":0,"delta":" blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":525,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":526,"type":"response.output_text.delta","content_index":0,"delta":" violet","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":527,"type":"response.output_text.delta","content_index":0,"delta":")","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":528,"type":"response.output_text.delta","content_index":0,"delta":" are","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":529,"type":"response.output_text.delta","content_index":0,"delta":" scattered","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":530,"type":"response.output_text.delta","content_index":0,"delta":" much","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":531,"type":"response.output_text.delta","content_index":0,"delta":" more","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":532,"type":"response.output_text.delta","content_index":0,"delta":" efficiently","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":533,"type":"response.output_text.delta","content_index":0,"delta":" than","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":534,"type":"response.output_text.delta","content_index":0,"delta":" longer","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":535,"type":"response.output_text.delta","content_index":0,"delta":" wavelengths","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":536,"type":"response.output_text.delta","content_index":0,"delta":" (","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":537,"type":"response.output_text.delta","content_index":0,"delta":"like","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":538,"type":"response.output_text.delta","content_index":0,"delta":" red","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":539,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":540,"type":"response.output_text.delta","content_index":0,"delta":" yellow","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":541,"type":"response.output_text.delta","content_index":0,"delta":").","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":542,"type":"response.output_text.delta","content_index":0,"delta":" As","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":543,"type":"response.output_text.delta","content_index":0,"delta":" a","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":544,"type":"response.output_text.delta","content_index":0,"delta":" result","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":545,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":546,"type":"response.output_text.delta","content_index":0,"delta":" blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":547,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":548,"type":"response.output_text.delta","content_index":0,"delta":" is","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":549,"type":"response.output_text.delta","content_index":0,"delta":" bounced","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":550,"type":"response.output_text.delta","content_index":0,"delta":" around","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":551,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":552,"type":"response.output_text.delta","content_index":0,"delta":" spread","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":553,"type":"response.output_text.delta","content_index":0,"delta":" out","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":554,"type":"response.output_text.delta","content_index":0,"delta":" across","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":555,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":556,"type":"response.output_text.delta","content_index":0,"delta":" sky","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":557,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":558,"type":"response.output_text.delta","content_index":0,"delta":" making","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":559,"type":"response.output_text.delta","content_index":0,"delta":" it","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":560,"type":"response.output_text.delta","content_index":0,"delta":" visible","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":561,"type":"response.output_text.delta","content_index":0,"delta":" from","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":562,"type":"response.output_text.delta","content_index":0,"delta":" all","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":563,"type":"response.output_text.delta","content_index":0,"delta":" angles","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":564,"type":"response.output_text.delta","content_index":0,"delta":" when","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":565,"type":"response.output_text.delta","content_index":0,"delta":" we","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":566,"type":"response.output_text.delta","content_index":0,"delta":" look","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":567,"type":"response.output_text.delta","content_index":0,"delta":" up","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":568,"type":"response.output_text.delta","content_index":0,"delta":".\n\n","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":569,"type":"response.output_text.delta","content_index":0,"delta":"4","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":570,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":571,"type":"response.output_text.delta","content_index":0,"delta":" **","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":572,"type":"response.output_text.delta","content_index":0,"delta":"Why","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":573,"type":"response.output_text.delta","content_index":0,"delta":" not","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":574,"type":"response.output_text.delta","content_index":0,"delta":" violet","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":575,"type":"response.output_text.delta","content_index":0,"delta":"?","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":576,"type":"response.output_text.delta","content_index":0,"delta":"**:","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":577,"type":"response.output_text.delta","content_index":0,"delta":" You","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":578,"type":"response.output_text.delta","content_index":0,"delta":" might","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":579,"type":"response.output_text.delta","content_index":0,"delta":" wonder","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":580,"type":"response.output_text.delta","content_index":0,"delta":" why","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":581,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":582,"type":"response.output_text.delta","content_index":0,"delta":" sky","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":583,"type":"response.output_text.delta","content_index":0,"delta":" isn't","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":584,"type":"response.output_text.delta","content_index":0,"delta":" violet","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":585,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":586,"type":"response.output_text.delta","content_index":0,"delta":" since","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":587,"type":"response.output_text.delta","content_index":0,"delta":" violet","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":588,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":589,"type":"response.output_text.delta","content_index":0,"delta":" has","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":590,"type":"response.output_text.delta","content_index":0,"delta":" an","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":591,"type":"response.output_text.delta","content_index":0,"delta":" even","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":592,"type":"response.output_text.delta","content_index":0,"delta":" shorter","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":593,"type":"response.output_text.delta","content_index":0,"delta":" wavelength","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":594,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":595,"type":"response.output_text.delta","content_index":0,"delta":" The","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":596,"type":"response.output_text.delta","content_index":0,"delta":" reason","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":597,"type":"response.output_text.delta","content_index":0,"delta":" is","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":598,"type":"response.output_text.delta","content_index":0,"delta":" that","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":599,"type":"response.output_text.delta","content_index":0,"delta":" our","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":600,"type":"response.output_text.delta","content_index":0,"delta":" eyes","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":601,"type":"response.output_text.delta","content_index":0,"delta":" are","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":602,"type":"response.output_text.delta","content_index":0,"delta":" more","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":603,"type":"response.output_text.delta","content_index":0,"delta":" sensitive","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":604,"type":"response.output_text.delta","content_index":0,"delta":" to","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":605,"type":"response.output_text.delta","content_index":0,"delta":" blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":606,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":607,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":608,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":609,"type":"response.output_text.delta","content_index":0,"delta":" there's","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":610,"type":"response.output_text.delta","content_index":0,"delta":" less","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":611,"type":"response.output_text.delta","content_index":0,"delta":" violet","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":612,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":613,"type":"response.output_text.delta","content_index":0,"delta":" in","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":614,"type":"response.output_text.delta","content_index":0,"delta":" sunlight","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":615,"type":"response.output_text.delta","content_index":0,"delta":" to","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":616,"type":"response.output_text.delta","content_index":0,"delta":" begin","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":617,"type":"response.output_text.delta","content_index":0,"delta":" with","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":618,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":619,"type":"response.output_text.delta","content_index":0,"delta":" so","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":620,"type":"response.output_text.delta","content_index":0,"delta":" blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":621,"type":"response.output_text.delta","content_index":0,"delta":" dominates","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":622,"type":"response.output_text.delta","content_index":0,"delta":" what","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":623,"type":"response.output_text.delta","content_index":0,"delta":" we","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":624,"type":"response.output_text.delta","content_index":0,"delta":" see","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":625,"type":"response.output_text.delta","content_index":0,"delta":".\n\n","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":626,"type":"response.output_text.delta","content_index":0,"delta":"This","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":627,"type":"response.output_text.delta","content_index":0,"delta":" scattering","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":628,"type":"response.output_text.delta","content_index":0,"delta":" effect","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":629,"type":"response.output_text.delta","content_index":0,"delta":" is","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":630,"type":"response.output_text.delta","content_index":0,"delta":" most","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":631,"type":"response.output_text.delta","content_index":0,"delta":" noticeable","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":632,"type":"response.output_text.delta","content_index":0,"delta":" on","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":633,"type":"response.output_text.delta","content_index":0,"delta":" clear","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":634,"type":"response.output_text.delta","content_index":0,"delta":" days","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":635,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":636,"type":"response.output_text.delta","content_index":0,"delta":" However","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":637,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":638,"type":"response.output_text.delta","content_index":0,"delta":" factors","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":639,"type":"response.output_text.delta","content_index":0,"delta":" like","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":640,"type":"response.output_text.delta","content_index":0,"delta":" pollution","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":641,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":642,"type":"response.output_text.delta","content_index":0,"delta":" dust","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":643,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":644,"type":"response.output_text.delta","content_index":0,"delta":" or","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":645,"type":"response.output_text.delta","content_index":0,"delta":" water","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":646,"type":"response.output_text.delta","content_index":0,"delta":" vapor","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":647,"type":"response.output_text.delta","content_index":0,"delta":" can","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":648,"type":"response.output_text.delta","content_index":0,"delta":" make","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":649,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":650,"type":"response.output_text.delta","content_index":0,"delta":" sky","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":651,"type":"response.output_text.delta","content_index":0,"delta":" look","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":652,"type":"response.output_text.delta","content_index":0,"delta":" less","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":653,"type":"response.output_text.delta","content_index":0,"delta":" blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":654,"type":"response.output_text.delta","content_index":0,"delta":" or","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":655,"type":"response.output_text.delta","content_index":0,"delta":" even","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":656,"type":"response.output_text.delta","content_index":0,"delta":" hazy","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":657,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":658,"type":"response.output_text.delta","content_index":0,"delta":" At","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":659,"type":"response.output_text.delta","content_index":0,"delta":" sunrise","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":660,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":661,"type":"response.output_text.delta","content_index":0,"delta":" sunset","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":662,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":663,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":664,"type":"response.output_text.delta","content_index":0,"delta":" light","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":665,"type":"response.output_text.delta","content_index":0,"delta":" has","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":666,"type":"response.output_text.delta","content_index":0,"delta":" to","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":667,"type":"response.output_text.delta","content_index":0,"delta":" pass","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":668,"type":"response.output_text.delta","content_index":0,"delta":" through","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":669,"type":"response.output_text.delta","content_index":0,"delta":" more","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":670,"type":"response.output_text.delta","content_index":0,"delta":" atmosphere","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":671,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":672,"type":"response.output_text.delta","content_index":0,"delta":" scattering","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":673,"type":"response.output_text.delta","content_index":0,"delta":" away","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":674,"type":"response.output_text.delta","content_index":0,"delta":" the","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":675,"type":"response.output_text.delta","content_index":0,"delta":" blue","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":676,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":677,"type":"response.output_text.delta","content_index":0,"delta":" leaving","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":678,"type":"response.output_text.delta","content_index":0,"delta":" longer","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":679,"type":"response.output_text.delta","content_index":0,"delta":" wavelengths","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":680,"type":"response.output_text.delta","content_index":0,"delta":" like","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":681,"type":"response.output_text.delta","content_index":0,"delta":" red","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":682,"type":"response.output_text.delta","content_index":0,"delta":" and","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":683,"type":"response.output_text.delta","content_index":0,"delta":" orange","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":684,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":685,"type":"response.output_text.delta","content_index":0,"delta":" which","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":686,"type":"response.output_text.delta","content_index":0,"delta":" is","item_id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","output_index":1,"logprobs":[]}
+{"sequence_number":687,"type":"response.incomplete","response":{"created_at":1761682617,"id":"151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","max_output_tokens":300,"model":"grok-3-mini-high","object":"response","output":[{"id":"rs_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","summary":[{"text":"First, the user asked: \"Explain why the sky is blue.\" I need to provide a clear, accurate, and helpful explanation. As a helpful assistant, I should keep it simple yet informative, avoiding jargon where possible, but I can include some science if it's explained well.\n\nKey points from science: The sky appears blue because of Rayleigh scattering. This is when sunlight enters the Earth's atmosphere, and shorter wavelengths of light (like blue) are scattered more than longer wavelengths (like red). Sunlight is made up of all colors, and blue light is scattered in all directions by the gases and particles in the air, which is why we see a blue sky.\n\nStructure my response:\n1. Start with a simple statement: \"The sky is blue primarily due to a phenomenon called Rayleigh scattering.\"\n2. Explain what Rayleigh scattering is: Describe how sunlight interacts with the atmosphere.\n3. Break it down: Sunlight is white light, which contains all colors. When it hits the atmosphere, molecules and small particles scatter the light. Blue light has a shorter wavelength, so it's scattered more efficiently.\n4. Mention why other colors aren't as prominent: Longer wavelengths like red and yellow are scattered less, so they pass through more directly, which is why sunsets are red.\n5. Keep it concise: Don't overwhelm with too much detail, but make it educational.\n6. End on a helpful note: Maybe add a fun fact or invite further questions.\n\nEnsure accuracy: Rayleigh scattering applies to clear skies. Other factors like pollution or clouds can affect the color, but for a standard explanation, focus on the main reason.\n\nPossible follow-up: If they ask more, I can dive deeper, but for now, stick to the basics.\n\nFinal response outline:\n- Introduction: State the main reason.\n- Explanation: Describe the science simply.\n- Conclusion: Tie it back and offer more if needed.","type":"summary_text"}],"type":"reasoning","status":"completed"},{"content":[{"type":"output_text","text":"The sky appears blue during the day primarily due to a scientific phenomenon called Rayleigh scattering. Here's a step-by-step explanation:\n\n1. **Sunlight and its colors**: Sunlight looks white to us, but it's actually made up of all the colors of the rainbow, which correspond to different wavelengths of light. Blue light has a shorter wavelength, while red light has a longer one.\n\n2. **Interaction with the atmosphere**: When sunlight enters Earth's atmosphere, it collides with tiny molecules of gases like nitrogen and oxygen, as well as small particles. This causes the light to scatter in all directions.\n\n3. **Why blue is scattered more**: According to Rayleigh scattering, shorter wavelengths (like blue and violet) are scattered much more efficiently than longer wavelengths (like red and yellow). As a result, blue light is bounced around and spread out across the sky, making it visible from all angles when we look up.\n\n4. **Why not violet?**: You might wonder why the sky isn't violet, since violet light has an even shorter wavelength. The reason is that our eyes are more sensitive to blue light, and there's less violet light in sunlight to begin with, so blue dominates what we see.\n\nThis scattering effect is most noticeable on clear days. However, factors like pollution, dust, or water vapor can make the sky look less blue or even hazy. At sunrise and sunset, the light has to pass through more atmosphere, scattering away the blue and leaving longer wavelengths like red and orange, which is","logprobs":[],"annotations":[]}],"id":"msg_151d997e-77dc-ca4a-3b0f-13fee416d63c_us-east-1","role":"assistant","type":"message","status":"incomplete"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"usage":{"input_tokens":24,"input_tokens_details":{"cached_tokens":12},"output_tokens":678,"output_tokens_details":{"reasoning_tokens":378},"total_tokens":702,"num_sources_used":0,"num_server_side_tools_used":0},"user":null,"incomplete_details":{"reason":"REASON_MAX_LEN"},"status":"incomplete","store":true,"metadata":{}}}

@@ -1,17 +1,27 @@
-{"type":"response.created","response":{"id":"resp_67c97c0203188190a025beb4a75242bc","created_at":1741257730,"model":"grok-2-1212"}}
-{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c97c02656c81908e080dfdf4a03cd1","type":"message"}}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":"Code"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":" in"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":" silence"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":",\n"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":"Bugs"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":" emerge"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":" at"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":" runtime"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":"—\n"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":"Console"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":" dot"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":" log"}
-{"type":"response.output_text.delta","item_id":"msg_67c97c02656c81908e080dfdf4a03cd1","delta":"."}
-{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c97c02656c81908e080dfdf4a03cd1","type":"message"}}
-{"type":"response.completed","response":{"incomplete_details":null,"usage":{"input_tokens":28,"input_tokens_details":{"cached_tokens":0},"output_tokens":21,"output_tokens_details":{"reasoning_tokens":0}}}}
+{"sequence_number":0,"type":"response.created","response":{"created_at":1761682613,"id":"cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","max_output_tokens":100,"model":"grok-2-1212","object":"response","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"user":null,"incomplete_details":null,"status":"in_progress","store":true,"metadata":{}}}
+{"sequence_number":1,"type":"response.in_progress","response":{"created_at":1761682613,"id":"cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","max_output_tokens":100,"model":"grok-2-1212","object":"response","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"user":null,"incomplete_details":null,"status":"in_progress","store":true,"metadata":{}}}
+{"sequence_number":2,"type":"response.output_item.added","item":{"content":[],"id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","role":"assistant","type":"message","status":"in_progress"},"output_index":0}
+{"sequence_number":3,"type":"response.content_part.added","content_index":0,"item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"part":{"type":"output_text","text":"","logprobs":[],"annotations":[]}}
+{"sequence_number":4,"type":"response.output_text.delta","content_index":0,"delta":"Code","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":5,"type":"response.output_text.delta","content_index":0,"delta":" flows","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":6,"type":"response.output_text.delta","content_index":0,"delta":" like","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":7,"type":"response.output_text.delta","content_index":0,"delta":" a","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":8,"type":"response.output_text.delta","content_index":0,"delta":" stream","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":9,"type":"response.output_text.delta","content_index":0,"delta":",\n","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":10,"type":"response.output_text.delta","content_index":0,"delta":"Logic","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":11,"type":"response.output_text.delta","content_index":0,"delta":" weaves","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":12,"type":"response.output_text.delta","content_index":0,"delta":" through","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":13,"type":"response.output_text.delta","content_index":0,"delta":" lines","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":14,"type":"response.output_text.delta","content_index":0,"delta":" of","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":15,"type":"response.output_text.delta","content_index":0,"delta":" thought","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":16,"type":"response.output_text.delta","content_index":0,"delta":",\n","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":17,"type":"response.output_text.delta","content_index":0,"delta":"Debug","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":18,"type":"response.output_text.delta","content_index":0,"delta":"ging","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":19,"type":"response.output_text.delta","content_index":0,"delta":",","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":20,"type":"response.output_text.delta","content_index":0,"delta":" a","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":21,"type":"response.output_text.delta","content_index":0,"delta":" dream","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":22,"type":"response.output_text.delta","content_index":0,"delta":".","item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"logprobs":[]}
+{"sequence_number":23,"type":"response.output_text.done","content_index":0,"item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"text":"Code flows like a stream,\nLogic weaves through lines of thought,\nDebugging, a dream."}
+{"sequence_number":24,"type":"response.content_part.done","content_index":0,"item_id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","output_index":0,"part":{"type":"output_text","text":"Code flows like a stream,\nLogic weaves through lines of thought,\nDebugging, a dream.","logprobs":[],"annotations":[]}}
+{"sequence_number":25,"type":"response.output_item.done","item":{"content":[{"type":"output_text","text":"Code flows like a stream,\nLogic weaves through lines of thought,\nDebugging, a dream.","logprobs":[],"annotations":[]}],"id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","role":"assistant","type":"message","status":"completed"},"output_index":0}
+{"sequence_number":26,"type":"response.completed","response":{"created_at":1761682613,"id":"cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","max_output_tokens":100,"model":"grok-2-1212","object":"response","output":[{"content":[{"type":"output_text","text":"Code flows like a stream,\nLogic weaves through lines of thought,\nDebugging, a dream.","logprobs":[],"annotations":[]}],"id":"msg_cc553b85-8766-3d93-60bc-48805b32794c_us-east-1","role":"assistant","type":"message","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"temperature":null,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":null,"usage":{"input_tokens":23,"input_tokens_details":{"cached_tokens":0},"output_tokens":19,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":42,"num_sources_used":0,"num_server_side_tools_used":0},"user":null,"incomplete_details":null,"status":"completed","store":true,"metadata":{}}}

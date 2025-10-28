@@ -1,40 +1,67 @@
 {
-  "id": "resp_reasoning_001",
-  "created_at": 1741265000,
-  "model": "grok-2-1212",
+  "created_at": 1761682605,
+  "id": "b50b3034-2737-1dbf-ea5c-27c7d05188ee_us-east-1",
+  "max_output_tokens": 300,
+  "model": "grok-3-mini-high",
+  "object": "response",
   "output": [
     {
-      "id": "reasoning_001",
-      "type": "reasoning",
-      "encrypted_content": "encrypted_content_placeholder",
+      "id": "rs_b50b3034-2737-1dbf-ea5c-27c7d05188ee_us-east-1",
       "summary": [
         {
-          "type": "summary_text",
-          "text": "The sky appears blue due to Rayleigh scattering, where shorter wavelengths of light (blue) scatter more than longer wavelengths (red) in the atmosphere."
+          "text": "First, the user asked: \"Explain why the sky is blue.\" I need to provide a clear, accurate, and helpful explanation as a helpful assistant.\n\nKey points about why the sky is blue:\n\n- The sky appears blue due to Rayleigh scattering. This is the scattering of sunlight by the molecules in the Earth's atmosphere.\n\n- Sunlight is made up of different colors (wavelengths) of light. Blue light has a shorter wavelength than red light, for example.\n\n- Rayleigh scattering is more effective at shorter wavelengths. So, blue light is scattered more than red light.\n\n- When we look at the sky, we're seeing the scattered light, which is mostly blue.\n\nStructure the response:\n\n- Start with a simple explanation to make it accessible.\n\n- Then, add more details for depth.\n\n- Use everyday language, avoid jargon, or explain terms if used.\n\n- Keep it engaging and not too technical, since the user might not be an expert.\n\nPossible outline:\n\n1. Introduction: State the main reason briefly.\n\n2. Explain the science: Describe Rayleigh scattering and why blue light is scattered more.\n\n3. Relate it to what we see: How this scattering makes the sky blue during the day.\n\n4. Additional notes: Mention why the sky can look different at sunrise/sunset (more red/orange), but only if it fits naturally, as the question is specifically about why it's blue.\n\nEnsure the response is concise yet comprehensive. Aim for a few paragraphs.\n\nMake it helpful: End with a summary or a fun fact to make it memorable.\n\nFinally, box the final answer as per the system prompt, but since this is an explanation, the entire response is the answer. I think I need to provide the response directly.",
+          "type": "summary_text"
         }
-      ]
+      ],
+      "type": "reasoning",
+      "status": "completed"
     },
     {
-      "id": "msg_reasoning_response",
-      "type": "message",
-      "role": "assistant",
       "content": [
         {
           "type": "output_text",
-          "text": "The sky is blue because of a phenomenon called Rayleigh scattering. When sunlight enters Earth's atmosphere, it collides with gas molecules. Blue light has a shorter wavelength and gets scattered more than other colors, making the sky appear blue to our eyes."
+          "text": "The sky appears blue during the day primarily due to a scientific phenomenon called Rayleigh scattering. Let me break it down for you step by step:\n\n1. **Sunlight and its colors**: Sunlight is made up of all the colors of the rainbow, which correspond to different wavelengths of light. Blue light has a shorter wavelength, while red light has a longer one.\n\n2. **Scattering by the atmosphere**: As sunlight enters Earth's atmosphere, it collides with tiny molecules of gases like nitrogen and oxygen. This process, known as Rayleigh scattering, causes the light to scatter in all directions. Shorter wavelengths (like blue and violet) are scattered more effectively than longer wavelengths (like red and yellow) because of the way the scattering works—it's inversely proportional to the fourth power of the wavelength.\n\n3. **Why we see blue**: When you look up at the sky, you're seeing the scattered sunlight. Since blue light is scattered the most, it dominates the view, making the sky appear blue. (Fun fact: Violet light is actually scattered even more than blue, but our eyes are less sensitive to violet, and some of it is absorbed by the atmosphere, so blue stands out more.)\n\nThis effect is most noticeable when the sun is high in the sky. At sunrise or sunset, the light has to pass through more atmosphere, scattering away the blue and shorter wavelengths, which is why the sky can look red or orange during those times. If you have any follow-up questions, feel free to",
+          "logprobs": [],
+          "annotations": []
         }
-      ]
+      ],
+      "id": "msg_b50b3034-2737-1dbf-ea5c-27c7d05188ee_us-east-1",
+      "role": "assistant",
+      "type": "message",
+      "status": "completed"
     }
   ],
-  "incomplete_details": null,
-  "usage": {
-    "input_tokens": 32,
-    "input_tokens_details": {
-      "cached_tokens": 0
-    },
-    "output_tokens": 89,
-    "output_tokens_details": {
-      "reasoning_tokens": 45
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": "medium",
+    "summary": "detailed"
+  },
+  "temperature": null,
+  "text": {
+    "format": {
+      "type": "text"
     }
-  }
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": null,
+  "usage": {
+    "input_tokens": 24,
+    "input_tokens_details": {
+      "cached_tokens": 12
+    },
+    "output_tokens": 646,
+    "output_tokens_details": {
+      "reasoning_tokens": 346
+    },
+    "total_tokens": 670,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 0
+  },
+  "user": null,
+  "incomplete_details": null,
+  "status": "completed",
+  "store": true,
+  "metadata": {}
 }

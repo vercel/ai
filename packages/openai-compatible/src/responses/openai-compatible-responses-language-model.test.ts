@@ -1,4 +1,7 @@
-import { LanguageModelV3FunctionTool, LanguageModelV3Prompt } from '@ai-sdk/provider';
+import {
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
+} from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
@@ -46,20 +49,14 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
     server.urls['https://api.x.ai/v1/responses'].response = {
       type: 'json-value',
       body: JSON.parse(
-        fs.readFileSync(
-          `src/responses/__fixtures__/${filename}.json`,
-          'utf8',
-        ),
+        fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
   }
 
   function prepareChunksFixtureResponse(filename: string) {
     const chunks = fs
-      .readFileSync(
-        `src/responses/__fixtures__/${filename}.chunks.txt`,
-        'utf8',
-      )
+      .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
       .split('\n')
       .filter(line => line.trim())
       .map(line => `data: ${line}\n\n`);
@@ -78,7 +75,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should generate text', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
         });
 
@@ -87,12 +84,12 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
             {
               "providerMetadata": {
                 "xai": {
-                  "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  "itemId": "msg_29d7c0b4-e047-9016-cc6a-e60b5d9dd0ba_us-east-1",
                 },
               },
-              "text": "Code in silence,
-          Bugs emerge at runtime—
-          Console dot log.",
+              "text": "Code flows like a stream,
+          Logic weaves through lines of text,
+          Debugging, a dream.",
               "type": "text",
             },
           ]
@@ -100,35 +97,35 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should extract usage', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
         });
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
             "cachedInputTokens": 0,
-            "inputTokens": 28,
-            "outputTokens": 21,
+            "inputTokens": 23,
+            "outputTokens": 19,
             "reasoningTokens": 0,
-            "totalTokens": 49,
+            "totalTokens": 42,
           }
         `);
       });
 
       it('should extract response id metadata', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
         });
 
         expect(result.providerMetadata).toStrictEqual({
           xai: {
-            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
+            responseId: '29d7c0b4-e047-9016-cc6a-e60b5d9dd0ba_us-east-1',
           },
         });
       });
 
       it('should send model id, settings, and input', async () => {
-        const { warnings } = await createModel('grok-2-1212').doGenerate({
+        const { warnings } = await createModel('grok-3-mini').doGenerate({
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -154,7 +151,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "grok-2-1212",
+            "model": "grok-3-mini",
             "temperature": 0.5,
             "top_p": 0.3,
           }
@@ -164,7 +161,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should extract finish reason', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
         });
 
@@ -178,7 +175,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should generate tool call', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
           tools: TEST_TOOLS,
         });
@@ -186,13 +183,13 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "{"location":"San Francisco","unit":"celsius"}",
+              "input": "{"location":"San Francisco"}",
               "providerMetadata": {
                 "xai": {
-                  "itemId": "fc_call_001",
+                  "itemId": "fc_36f3a0f5-6911-7bde-f6c3-4c53150aad60_us-east-1_0",
                 },
               },
-              "toolCallId": "call_weather_sf",
+              "toolCallId": "call_19494542",
               "toolName": "getWeather",
               "type": "tool-call",
             },
@@ -201,7 +198,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should extract finish reason as tool-calls', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
           tools: TEST_TOOLS,
         });
@@ -216,7 +213,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should generate reasoning and message', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             xai: {
@@ -230,24 +227,26 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should extract reasoning tokens from usage', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
         });
 
-        expect(result.usage.reasoningTokens).toBe(45);
+        // Real xAI response has 346 reasoning tokens
+        expect(result.usage.reasoningTokens).toBe(346);
       });
 
       it('should include encrypted content in metadata', async () => {
-        const result = await createModel('grok-2-1212').doGenerate({
+        const result = await createModel('grok-3-mini').doGenerate({
           prompt: TEST_PROMPT,
         });
 
         const reasoningContent = result.content.find(
           c => c.type === 'reasoning',
         );
-        expect(reasoningContent?.providerMetadata?.xai).toMatchObject({
-          itemId: 'reasoning_001',
-          reasoningEncryptedContent: 'encrypted_content_placeholder',
+        // Verify exact values from fixture (null encrypted content because store=true)
+        expect(reasoningContent?.providerMetadata?.xai).toStrictEqual({
+          itemId: 'rs_b50b3034-2737-1dbf-ea5c-27c7d05188ee_us-east-1',
+          reasoningEncryptedContent: null,
         });
       });
     });
@@ -260,7 +259,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should stream text deltas', async () => {
-        const result = await createModel('grok-2-1212').doStream({
+        const result = await createModel('grok-3-mini').doStream({
           prompt: TEST_PROMPT,
         });
 
@@ -270,7 +269,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should extract usage from stream', async () => {
-        const result = await createModel('grok-2-1212').doStream({
+        const result = await createModel('grok-3-mini').doStream({
           prompt: TEST_PROMPT,
         });
 
@@ -280,10 +279,10 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
         expect(finishPart?.usage).toMatchInlineSnapshot(`
           {
             "cachedInputTokens": 0,
-            "inputTokens": 28,
-            "outputTokens": 21,
+            "inputTokens": 23,
+            "outputTokens": 19,
             "reasoningTokens": 0,
-            "totalTokens": 49,
+            "totalTokens": 42,
           }
         `);
       });
@@ -295,7 +294,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should stream tool call with argument deltas', async () => {
-        const result = await createModel('grok-2-1212').doStream({
+        const result = await createModel('grok-3-mini').doStream({
           prompt: TEST_PROMPT,
           tools: TEST_TOOLS,
         });
@@ -312,7 +311,7 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
       });
 
       it('should stream reasoning and text', async () => {
-        const result = await createModel('grok-2-1212').doStream({
+        const result = await createModel('grok-3-mini').doStream({
           prompt: TEST_PROMPT,
           providerOptions: {
             xai: {
@@ -335,16 +334,22 @@ describe('OpenAICompatibleResponsesLanguageModel', () => {
     });
 
     it('should use xai provider name in metadata', async () => {
-      const result = await createModel('grok-2-1212').doGenerate({
+      const result = await createModel('grok-3-mini').doGenerate({
         prompt: TEST_PROMPT,
       });
 
-      expect(result.providerMetadata).toHaveProperty('xai');
-      expect(result.providerMetadata?.xai).toHaveProperty('responseId');
+      expect(result.providerMetadata).toStrictEqual({
+        xai: {
+          responseId: '29d7c0b4-e047-9016-cc6a-e60b5d9dd0ba_us-east-1',
+        },
+      });
 
       const textContent = result.content.find(c => c.type === 'text');
-      expect(textContent?.providerMetadata).toHaveProperty('xai');
-      expect(textContent?.providerMetadata?.xai).toHaveProperty('itemId');
+      expect(textContent?.providerMetadata).toStrictEqual({
+        xai: {
+          itemId: 'msg_29d7c0b4-e047-9016-cc6a-e60b5d9dd0ba_us-east-1',
+        },
+      });
     });
   });
 });

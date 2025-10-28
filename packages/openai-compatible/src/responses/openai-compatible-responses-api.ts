@@ -1,8 +1,9 @@
-import { JSONSchema7 } from "@ai-sdk/provider";
-import { InferSchema, lazySchema, zodSchema } from "@ai-sdk/provider-utils";
-import z from "zod/v4";
+import { JSONSchema7 } from '@ai-sdk/provider';
+import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import z from 'zod/v4';
 
-export type OpenAICompatibleResponsesInput = Array<OpenAICompatibleResponsesInputItem>;
+export type OpenAICompatibleResponsesInput =
+  Array<OpenAICompatibleResponsesInputItem>;
 
 export type OpenAICompatibleResponsesInputItem =
   | OpenAICompatibleResponsesSystemMessage
@@ -12,7 +13,6 @@ export type OpenAICompatibleResponsesInputItem =
   | OpenAICompatibleResponsesFunctionCallOutput
   | OpenAICompatibleResponsesReasoning
   | OpenAICompatibleResponsesItemReference;
-
 
 export type OpenAICompatibleResponsesReasoning = {
   type: 'reasoning';
@@ -98,7 +98,6 @@ export const openaiCompatibleResponsesResponseSchema = lazySchema(() =>
     }),
   ),
 );
-
 
 export const openaiCompatibleResponsesChunkSchema = lazySchema(() =>
   zodSchema(
@@ -265,12 +264,12 @@ export const openaiCompatibleResponsesChunkSchema = lazySchema(() =>
 );
 
 export const openaiCompatibleResponsesErrorDataSchema = z.object({
-        type: z.literal('error'),
-        message: z.string(),
-        code: z.union([z.string(), z.number()]).nullish(),
-        param: z.any().nullish(),
-        sequence_number: z.number().nullish(),
-      })
+  type: z.literal('error'),
+  message: z.string(),
+  code: z.union([z.string(), z.number()]).nullish(),
+  param: z.any().nullish(),
+  sequence_number: z.number().nullish(),
+});
 
 export type OpenAICompatibleResponsesErrorData = z.infer<
   typeof openaiCompatibleResponsesErrorDataSchema
@@ -341,11 +340,10 @@ export type OpenAICompatibleResponsesItemReference = {
   id: string;
 };
 
-export type OpenAICompatibleResponsesTool =
-  | {
-      type: 'function';
-      name: string;
-      description: string | undefined;
-      parameters: JSONSchema7;
-      strict: boolean | undefined;
-    };
+export type OpenAICompatibleResponsesTool = {
+  type: 'function';
+  name: string;
+  description: string | undefined;
+  parameters: JSONSchema7;
+  strict: boolean | undefined;
+};

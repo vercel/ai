@@ -1,29 +1,56 @@
 {
-  "id": "resp_67c97c0203188190a025beb4a75242bc",
-  "created_at": 1741257730,
+  "created_at": 1761682599,
+  "id": "29d7c0b4-e047-9016-cc6a-e60b5d9dd0ba_us-east-1",
+  "max_output_tokens": 100,
   "model": "grok-2-1212",
+  "object": "response",
   "output": [
     {
-      "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
-      "type": "message",
-      "role": "assistant",
       "content": [
         {
           "type": "output_text",
-          "text": "Code in silence,\nBugs emerge at runtime—\nConsole dot log."
+          "text": "Code flows like a stream,\nLogic weaves through lines of text,\nDebugging, a dream.",
+          "logprobs": [],
+          "annotations": []
         }
-      ]
+      ],
+      "id": "msg_29d7c0b4-e047-9016-cc6a-e60b5d9dd0ba_us-east-1",
+      "role": "assistant",
+      "type": "message",
+      "status": "completed"
     }
   ],
-  "incomplete_details": null,
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "temperature": null,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": null,
   "usage": {
-    "input_tokens": 28,
+    "input_tokens": 23,
     "input_tokens_details": {
       "cached_tokens": 0
     },
-    "output_tokens": 21,
+    "output_tokens": 19,
     "output_tokens_details": {
       "reasoning_tokens": 0
-    }
-  }
+    },
+    "total_tokens": 42,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 0
+  },
+  "user": null,
+  "incomplete_details": null,
+  "status": "completed",
+  "store": true,
+  "metadata": {}
 }

@@ -65,8 +65,8 @@ export function prepareResponsesTools({
       return {
         tools: openaiTools,
         toolChoice: {
-            type: 'function',
-            name: toolChoice.toolName
+          type: 'function',
+          name: toolChoice.toolName,
         },
         toolWarnings,
       };

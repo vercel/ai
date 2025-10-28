@@ -162,7 +162,10 @@ export function createOpenAICompatible<
     new OpenAICompatibleImageModel(modelId, getCommonModelConfig('image'));
 
   const createResponsesModel = (modelId: CHAT_MODEL_IDS) =>
-    new OpenAICompatibleResponsesLanguageModel(modelId, getCommonModelConfig('responses'));
+    new OpenAICompatibleResponsesLanguageModel(
+      modelId,
+      getCommonModelConfig('responses'),
+    );
 
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
