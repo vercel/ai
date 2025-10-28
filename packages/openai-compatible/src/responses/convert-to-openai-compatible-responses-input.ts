@@ -16,24 +16,13 @@ import {
   OpenAICompatibleResponsesReasoning,
 } from './openai-compatible-responses-api';
 
-/**
- * Check if a string is a file ID based on the given prefixes
- * Returns false if prefixes is undefined (disables file ID detection)
- */
-function isFileId(data: string, prefixes?: readonly string[]): boolean {
-  if (!prefixes) return false;
-  return prefixes.some(prefix => data.startsWith(prefix));
-}
-
 export async function convertToOpenAICompatibleResponsesInput({
   prompt,
   systemMessageMode,
-  fileIdPrefixes,
   store,
 }: {
   prompt: LanguageModelV3Prompt;
   systemMessageMode: 'system' | 'developer';
-  fileIdPrefixes?: readonly string[];
   store: boolean;
 }): Promise<{
   input: OpenAICompatibleResponsesInput;
@@ -83,12 +72,9 @@ export async function convertToOpenAICompatibleResponsesInput({
                     type: 'input_image',
                     ...(part.data instanceof URL
                       ? { image_url: part.data.toString() }
-                      : typeof part.data === 'string' &&
-                          isFileId(part.data, fileIdPrefixes)
-                        ? { file_id: part.data }
-                        : {
-                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                          }),
+                      : {
+                          image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                        }),
                     detail:
                       part.providerOptions?.openaiCompatibleResponses
                         ?.imageDetail,
@@ -102,13 +88,8 @@ export async function convertToOpenAICompatibleResponsesInput({
                   }
                   return {
                     type: 'input_file',
-                    ...(typeof part.data === 'string' &&
-                    isFileId(part.data, fileIdPrefixes)
-                      ? { file_id: part.data }
-                      : {
-                          filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                        }),
+                    filename: part.filename ?? `part-${index}.pdf`,
+                    file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({

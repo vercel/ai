@@ -140,39 +140,6 @@ describe('convertToOpenAICompatibleResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with image parts using file_id', async () => {
-      const result = await convertToOpenAICompatibleResponsesInput({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                mediaType: 'image/png',
-                data: 'file-12345',
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        fileIdPrefixes: ['file-'],
-        store: true,
-      });
-
-      expect(result.input).toEqual([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'input_image',
-              file_id: 'file-12345',
-              detail: undefined,
-            },
-          ],
-        },
-      ]);
-    });
-
     it('should use default mime type for binary images', async () => {
       const result = await convertToOpenAICompatibleResponsesInput({
         prompt: [
@@ -292,7 +259,6 @@ describe('convertToOpenAICompatibleResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        fileIdPrefixes: ['file-'],
         store: true,
       });
 
@@ -302,7 +268,8 @@ describe('convertToOpenAICompatibleResponsesInput', () => {
           content: [
             {
               type: 'input_file',
-              file_id: 'file-pdf-12345',
+              file_data: 'data:application/pdf;base64,file-pdf-12345',
+              filename: 'part-0.pdf',
             },
           ],
         },
@@ -395,193 +362,6 @@ describe('convertToOpenAICompatibleResponsesInput', () => {
           ],
         },
       ]);
-    });
-
-    describe('fileIdPrefixes support', () => {
-      it('should convert image parts with assistant- prefix', async () => {
-        const result = await convertToOpenAICompatibleResponsesInput({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  mediaType: 'image/png',
-                  data: 'assistant-img-abc123',
-                },
-              ],
-            },
-          ],
-          systemMessageMode: 'system',
-          fileIdPrefixes: ['assistant-'],
-          store: true,
-        });
-
-        expect(result.input).toEqual([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'input_image',
-                file_id: 'assistant-img-abc123',
-                detail: undefined,
-              },
-            ],
-          },
-        ]);
-      });
-
-      it('should convert PDF parts with assistant- prefix', async () => {
-        const result = await convertToOpenAICompatibleResponsesInput({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  mediaType: 'application/pdf',
-                  data: 'assistant-pdf-abc123',
-                },
-              ],
-            },
-          ],
-          systemMessageMode: 'system',
-          fileIdPrefixes: ['assistant-'],
-          store: true,
-        });
-
-        expect(result.input).toEqual([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'input_file',
-                file_id: 'assistant-pdf-abc123',
-              },
-            ],
-          },
-        ]);
-      });
-
-      it('should support multiple file ID prefixes', async () => {
-        const result = await convertToOpenAICompatibleResponsesInput({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  mediaType: 'image/png',
-                  data: 'assistant-img-abc123',
-                },
-                {
-                  type: 'file',
-                  mediaType: 'application/pdf',
-                  data: 'file-pdf-xyz789',
-                },
-              ],
-            },
-          ],
-          systemMessageMode: 'system',
-          fileIdPrefixes: ['assistant-', 'file-'],
-          store: true,
-        });
-
-        expect(result.input).toEqual([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'input_image',
-                file_id: 'assistant-img-abc123',
-                detail: undefined,
-              },
-              {
-                type: 'input_file',
-                file_id: 'file-pdf-xyz789',
-              },
-            ],
-          },
-        ]);
-      });
-    });
-
-    describe('fileIdPrefixes undefined behavior', () => {
-      it('should treat all file data as base64 when fileIdPrefixes is undefined', async () => {
-        const result = await convertToOpenAICompatibleResponsesInput({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  mediaType: 'image/png',
-                  data: 'file-12345',
-                },
-                {
-                  type: 'file',
-                  mediaType: 'application/pdf',
-                  data: 'assistant-abc123',
-                  filename: 'test.pdf',
-                },
-              ],
-            },
-          ],
-          systemMessageMode: 'system',
-          store: true,
-        });
-
-        expect(result.input).toEqual([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'input_image',
-                image_url: 'data:image/png;base64,file-12345',
-                detail: undefined,
-              },
-              {
-                type: 'input_file',
-                filename: 'test.pdf',
-                file_data: 'data:application/pdf;base64,assistant-abc123',
-              },
-            ],
-          },
-        ]);
-      });
-
-      it('should handle empty fileIdPrefixes array', async () => {
-        const result = await convertToOpenAICompatibleResponsesInput({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  mediaType: 'image/png',
-                  data: 'file-12345',
-                },
-              ],
-            },
-          ],
-          systemMessageMode: 'system',
-          fileIdPrefixes: [],
-          store: true,
-        });
-
-        expect(result.input).toEqual([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'input_image',
-                image_url: 'data:image/png;base64,file-12345',
-                detail: undefined,
-              },
-            ],
-          },
-        ]);
-      });
     });
   });
 
