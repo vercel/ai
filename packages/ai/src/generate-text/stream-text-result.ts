@@ -272,9 +272,16 @@ enables provider-specific results that can be fully encapsulated in the provider
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 
   /**
-A stream of partial outputs. It uses the `experimental_output` specification.
+   * A stream of partial outputs. It uses the `output` specification.
+   *
+   * @deprecated Use `partialOutputStream` instead.
    */
   readonly experimental_partialOutputStream: AsyncIterableStream<PARTIAL_OUTPUT>;
+
+  /**
+   * A stream of partial outputs. It uses the `output` specification.
+   */
+  readonly partialOutputStream: AsyncIterableStream<PARTIAL_OUTPUT>;
 
   /**
 Consumes the stream without processing the parts.
@@ -372,6 +379,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
       providerExecuted?: boolean;
       dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-end';

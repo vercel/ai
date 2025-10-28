@@ -209,6 +209,12 @@ The following provider options are available:
   `['message.output_text.logprobs']` for logprobs.
   Defaults to `undefined`.
 
+- **truncation** _string_
+  The truncation strategy to use for the model response.
+
+  - Auto: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation.
+  - disabled (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error.
+
 - **promptCacheKey** _string_
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
 
@@ -331,8 +337,17 @@ const result = await generateText({
   toolChoice: { type: 'tool', toolName: 'web_search' },
 });
 
-// URL sources
+// URL sources directly from `results`
 const sources = result.sources;
+
+// Or access sources from tool results
+for (const toolResult of result.toolResults) {
+  if (toolResult.toolName === 'web_search') {
+    console.log('Query:', toolResult.output.action.query);
+    console.log('Sources:', toolResult.output.sources);
+    // `sources` is an array of object: { type: 'url', url: string }
+  }
+}
 ```
 
 #### File Search Tool
@@ -603,7 +618,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 #### Structured Outputs
 
-The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `experimental_output` option when using `generateText` or `streamText`.
+The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `output` option when using `generateText` or `streamText`.
 
 ```ts
 // Using generateObject
@@ -628,7 +643,7 @@ const result = await generateObject({
 const result = await generateText({
   model: openai('gpt-4.1'),
   prompt: 'How do I make a pizza?',
-  experimental_output: Output.object({
+  output: Output.object({
     schema: z.object({
       ingredients: z.array(z.string()),
       steps: z.array(z.string()),

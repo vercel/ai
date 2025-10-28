@@ -227,6 +227,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       prompt_cache_key: openaiOptions?.promptCacheKey,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
+      truncation: openaiOptions?.truncation,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -241,9 +242,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             }),
           },
         }),
-      ...(modelConfig.requiredAutoTruncation && {
-        truncation: 'auto',
-      }),
     };
 
     if (modelConfig.isReasoningModel) {
@@ -483,6 +481,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   mediaType: 'text/plain',
                   title: annotation.quote ?? annotation.filename ?? 'Document',
                   filename: annotation.filename ?? annotation.file_id,
+                  ...(annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          openai: {
+                            fileId: annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
                 });
               }
             }
@@ -1196,6 +1203,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     'Document',
                   filename:
                     value.annotation.filename ?? value.annotation.file_id,
+                  ...(value.annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          openai: {
+                            fileId: value.annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
                 });
               }
             } else if (isErrorChunk(value)) {
@@ -1315,7 +1331,6 @@ function isErrorChunk(
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
-  requiredAutoTruncation: boolean;
   supportsFlexProcessing: boolean;
   supportsPriorityProcessing: boolean;
 };
@@ -1334,7 +1349,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini');
   const defaults = {
-    requiredAutoTruncation: false,
     systemMessageMode: 'system' as const,
     supportsFlexProcessing,
     supportsPriorityProcessing,
@@ -1382,7 +1396,11 @@ function mapWebSearchOutput(
 ): InferSchema<typeof webSearchOutputSchema> {
   switch (action.type) {
     case 'search':
-      return { action: { type: 'search', query: action.query ?? undefined } };
+      return {
+        action: { type: 'search', query: action.query ?? undefined },
+        // include sources when provided by the Responses API (behind include flag)
+        ...(action.sources != null && { sources: action.sources }),
+      };
     case 'open_page':
       return { action: { type: 'openPage', url: action.url } };
     case 'find':

@@ -164,8 +164,8 @@ Custom api version to use. Defaults to `preview`.
   apiVersion?: string;
 
   /**
-Use deployment-based URLs for specific model types. Set to true to use legacy deployment format: 
-`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of 
+Use deployment-based URLs for specific model types. Set to true to use legacy deployment format:
+`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of
 `{baseURL}/v1{path}?api-version={apiVersion}`.
    */
   useDeploymentBasedUrls?: boolean;
@@ -341,6 +341,7 @@ export function createAzure(
     return createChatModel(deploymentId, settings);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;

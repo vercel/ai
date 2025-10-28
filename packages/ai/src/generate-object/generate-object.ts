@@ -433,7 +433,11 @@ Default and recommended: 'auto' (best mode for the model).
         response = generateResult.responseData;
         reasoning = generateResult.reasoning;
 
-        logWarnings(warnings);
+        logWarnings({
+          warnings,
+          provider: model.provider,
+          model: model.modelId,
+        });
 
         const object = await parseAndValidateObjectResultWithRepair(
           result,

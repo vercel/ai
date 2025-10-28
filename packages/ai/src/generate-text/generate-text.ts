@@ -145,7 +145,7 @@ A result object that contains the generated text, the results of the tool calls,
 export async function generateText<
   TOOLS extends ToolSet,
   OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  PARTIAL_OUTPUT = never,
 >({
   model: modelArg,
   tools,
@@ -157,7 +157,8 @@ export async function generateText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
-  experimental_output: output,
+  experimental_output,
+  output = experimental_output,
   experimental_telemetry: telemetry,
   providerOptions,
   experimental_activeTools,
@@ -227,7 +228,14 @@ changing the tool call and result types in the result.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
-    experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+    output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+
+@deprecated Use `output` instead.
+     */
+    experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
 Custom download function to use for URLs.
@@ -557,7 +565,13 @@ A function that attempts to repair a tool call that failed to parse.
               continue; // ignore invalid tool calls
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              continue;
+            }
 
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -658,7 +672,11 @@ A function that attempts to repair a tool call that failed to parse.
             },
           });
 
-          logWarnings(currentModelResponse.warnings ?? []);
+          logWarnings({
+            warnings: currentModelResponse.warnings ?? [],
+            provider: stepModel.provider,
+            model: stepModel.modelId,
+          });
 
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);
@@ -894,6 +912,10 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get experimental_output() {
+    return this.output;
+  }
+
+  get output() {
     if (this.resolvedOutput == null) {
       throw new NoOutputSpecifiedError();
     }

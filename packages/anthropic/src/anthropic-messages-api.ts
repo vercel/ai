@@ -11,6 +11,7 @@ export type AnthropicMessage = AnthropicUserMessage | AnthropicAssistantMessage;
 
 export type AnthropicCacheControl = {
   type: 'ephemeral';
+  ttl?: '5m' | '1h';
 };
 
 export interface AnthropicUserMessage {
@@ -34,6 +35,10 @@ export interface AnthropicAssistantMessage {
     | AnthropicCodeExecutionToolResultContent
     | AnthropicWebFetchToolResultContent
     | AnthropicWebSearchToolResultContent
+    | AnthropicBashCodeExecutionToolResultContent
+    | AnthropicTextEditorCodeExecutionToolResultContent
+    | AnthropicMcpToolUseContent
+    | AnthropicMcpToolResultContent
   >;
 }
 
@@ -47,13 +52,17 @@ export interface AnthropicThinkingContent {
   type: 'thinking';
   thinking: string;
   signature: string;
-  cache_control: AnthropicCacheControl | undefined;
+  // Note: thinking blocks cannot be directly cached with cache_control.
+  // They are cached implicitly when appearing in previous assistant turns.
+  cache_control?: never;
 }
 
 export interface AnthropicRedactedThinkingContent {
   type: 'redacted_thinking';
   data: string;
-  cache_control: AnthropicCacheControl | undefined;
+  // Note: redacted thinking blocks cannot be directly cached with cache_control.
+  // They are cached implicitly when appearing in previous assistant turns.
+  cache_control?: never;
 }
 
 type AnthropicContentSource =
@@ -98,10 +107,40 @@ export interface AnthropicToolCallContent {
 export interface AnthropicServerToolUseContent {
   type: 'server_tool_use';
   id: string;
-  name: 'code_execution' | 'web_fetch' | 'web_search';
+  name:
+    | 'web_fetch'
+    | 'web_search'
+    // code execution 20250522:
+    | 'code_execution'
+    // code execution 20250825:
+    | 'bash_code_execution'
+    | 'text_editor_code_execution';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
+
+// Nested content types for tool results (without cache_control)
+// Sub-content blocks cannot be cached directly according to Anthropic docs
+type AnthropicNestedTextContent = Omit<
+  AnthropicTextContent,
+  'cache_control'
+> & {
+  cache_control?: never;
+};
+
+type AnthropicNestedImageContent = Omit<
+  AnthropicImageContent,
+  'cache_control'
+> & {
+  cache_control?: never;
+};
+
+type AnthropicNestedDocumentContent = Omit<
+  AnthropicDocumentContent,
+  'cache_control'
+> & {
+  cache_control?: never;
+};
 
 export interface AnthropicToolResultContent {
   type: 'tool_result';
@@ -109,7 +148,9 @@ export interface AnthropicToolResultContent {
   content:
     | string
     | Array<
-        AnthropicTextContent | AnthropicImageContent | AnthropicDocumentContent
+        | AnthropicNestedTextContent
+        | AnthropicNestedImageContent
+        | AnthropicNestedDocumentContent
       >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
@@ -128,6 +169,7 @@ export interface AnthropicWebSearchToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+// code execution results for code_execution_20250522 tool:
 export interface AnthropicCodeExecutionToolResultContent {
   type: 'code_execution_tool_result';
   tool_use_id: string;
@@ -137,6 +179,60 @@ export interface AnthropicCodeExecutionToolResultContent {
     stderr: string;
     return_code: number;
   };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+// text editor code execution results for code_execution_20250825 tool:
+export interface AnthropicTextEditorCodeExecutionToolResultContent {
+  type: 'text_editor_code_execution_tool_result';
+  tool_use_id: string;
+  content:
+    | {
+        type: 'text_editor_code_execution_tool_result_error';
+        error_code: string;
+      }
+    | {
+        type: 'text_editor_code_execution_create_result';
+        is_file_update: boolean;
+      }
+    | {
+        type: 'text_editor_code_execution_view_result';
+        content: string;
+        file_type: string;
+        num_lines: number | null;
+        start_line: number | null;
+        total_lines: number | null;
+      }
+    | {
+        type: 'text_editor_code_execution_str_replace_result';
+        lines: string[] | null;
+        new_lines: number | null;
+        new_start: number | null;
+        old_lines: number | null;
+        old_start: number | null;
+      };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+// bash code execution results for code_execution_20250825 tool:
+export interface AnthropicBashCodeExecutionToolResultContent {
+  type: 'bash_code_execution_tool_result';
+  tool_use_id: string;
+  content:
+    | {
+        type: 'bash_code_execution_result';
+        stdout: string;
+        stderr: string;
+        return_code: number;
+        content: {
+          type: 'bash_code_execution_output';
+          file_id: string;
+        }[];
+      }
+    | {
+        type: 'bash_code_execution_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -159,6 +255,23 @@ export interface AnthropicWebFetchToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+export interface AnthropicMcpToolUseContent {
+  type: 'mcp_tool_use';
+  id: string;
+  name: string;
+  server_name: string;
+  input: unknown;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicMcpToolResultContent {
+  type: 'mcp_tool_result';
+  tool_use_id: string;
+  is_error: boolean;
+  content: string | Array<{ type: 'text'; text: string }>;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
 export type AnthropicTool =
   | {
       name: string;
@@ -169,6 +282,11 @@ export type AnthropicTool =
   | {
       type: 'code_execution_20250522';
       name: string;
+      cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      type: 'code_execution_20250825';
+      name: string;
     }
   | {
       name: string;
@@ -176,6 +294,7 @@ export type AnthropicTool =
       display_width_px: number;
       display_height_px: number;
       display_number: number;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
@@ -183,15 +302,22 @@ export type AnthropicTool =
         | 'text_editor_20250124'
         | 'text_editor_20241022'
         | 'text_editor_20250429';
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
       type: 'text_editor_20250728';
       max_characters?: number;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       name: string;
       type: 'bash_20250124' | 'bash_20241022';
+      cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      name: string;
+      type: 'memory_20250818';
     }
   | {
       type: 'web_fetch_20250910';
@@ -201,6 +327,7 @@ export type AnthropicTool =
       blocked_domains?: string[];
       citations?: { enabled: boolean };
       max_content_tokens?: number;
+      cache_control: AnthropicCacheControl | undefined;
     }
   | {
       type: 'web_search_20250305';
@@ -215,11 +342,21 @@ export type AnthropicTool =
         country?: string;
         timezone?: string;
       };
+      cache_control: AnthropicCacheControl | undefined;
     };
 
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
+
+export type AnthropicContainer = {
+  id?: string | null;
+  skills?: Array<{
+    type: 'anthropic' | 'custom';
+    skill_id: string;
+    version?: string;
+  }> | null;
+};
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -286,6 +423,24 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             input: z.record(z.string(), z.unknown()).nullish(),
           }),
           z.object({
+            type: z.literal('mcp_tool_use'),
+            id: z.string(),
+            name: z.string(),
+            input: z.unknown(),
+            server_name: z.string(),
+          }),
+          z.object({
+            type: z.literal('mcp_tool_result'),
+            tool_use_id: z.string(),
+            is_error: z.boolean(),
+            content: z.array(
+              z.union([
+                z.string(),
+                z.object({ type: z.literal('text'), text: z.string() }),
+              ]),
+            ),
+          }),
+          z.object({
             type: z.literal('web_fetch_tool_result'),
             tool_use_id: z.string(),
             content: z.union([
@@ -329,6 +484,7 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // code execution results for code_execution_20250522 tool:
           z.object({
             type: z.literal('code_execution_tool_result'),
             tool_use_id: z.string(),
@@ -345,6 +501,62 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // bash code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('bash_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('bash_code_execution_result'),
+                content: z.array(
+                  z.object({
+                    type: z.literal('bash_code_execution_output'),
+                    file_id: z.string(),
+                  }),
+                ),
+                stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+              }),
+              z.object({
+                type: z.literal('bash_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
+          // text editor code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('text_editor_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('text_editor_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_view_result'),
+                content: z.string(),
+                file_type: z.string(),
+                num_lines: z.number().nullable(),
+                start_line: z.number().nullable(),
+                total_lines: z.number().nullable(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_create_result'),
+                is_file_update: z.boolean(),
+              }),
+              z.object({
+                type: z.literal(
+                  'text_editor_code_execution_str_replace_result',
+                ),
+                lines: z.array(z.string()).nullable(),
+                new_lines: z.number().nullable(),
+                new_start: z.number().nullable(),
+                old_lines: z.number().nullable(),
+                old_start: z.number().nullable(),
+              }),
+            ]),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -355,6 +567,21 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
       }),
+      container: z
+        .object({
+          expires_at: z.string(),
+          id: z.string(),
+          skills: z
+            .array(
+              z.object({
+                type: z.union([z.literal('anthropic'), z.literal('custom')]),
+                skill_id: z.string(),
+                version: z.string(),
+              }),
+            )
+            .nullish(),
+        })
+        .nullish(),
     }),
   ),
 );
@@ -404,6 +631,24 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             input: z.record(z.string(), z.unknown()).nullish(),
           }),
           z.object({
+            type: z.literal('mcp_tool_use'),
+            id: z.string(),
+            name: z.string(),
+            input: z.unknown(),
+            server_name: z.string(),
+          }),
+          z.object({
+            type: z.literal('mcp_tool_result'),
+            tool_use_id: z.string(),
+            is_error: z.boolean(),
+            content: z.array(
+              z.union([
+                z.string(),
+                z.object({ type: z.literal('text'), text: z.string() }),
+              ]),
+            ),
+          }),
+          z.object({
             type: z.literal('web_fetch_tool_result'),
             tool_use_id: z.string(),
             content: z.union([
@@ -447,6 +692,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // code execution results for code_execution_20250522 tool:
           z.object({
             type: z.literal('code_execution_tool_result'),
             tool_use_id: z.string(),
@@ -460,6 +706,62 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_tool_result_error'),
                 error_code: z.string(),
+              }),
+            ]),
+          }),
+          // bash code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('bash_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('bash_code_execution_result'),
+                content: z.array(
+                  z.object({
+                    type: z.literal('bash_code_execution_output'),
+                    file_id: z.string(),
+                  }),
+                ),
+                stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+              }),
+              z.object({
+                type: z.literal('bash_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
+          // text editor code execution results for code_execution_20250825 tool:
+          z.object({
+            type: z.literal('text_editor_code_execution_tool_result'),
+            tool_use_id: z.string(),
+            content: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('text_editor_code_execution_tool_result_error'),
+                error_code: z.string(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_view_result'),
+                content: z.string(),
+                file_type: z.string(),
+                num_lines: z.number().nullable(),
+                start_line: z.number().nullable(),
+                total_lines: z.number().nullable(),
+              }),
+              z.object({
+                type: z.literal('text_editor_code_execution_create_result'),
+                is_file_update: z.boolean(),
+              }),
+              z.object({
+                type: z.literal(
+                  'text_editor_code_execution_str_replace_result',
+                ),
+                lines: z.array(z.string()).nullable(),
+                new_lines: z.number().nullable(),
+                new_start: z.number().nullable(),
+                old_lines: z.number().nullable(),
+                old_start: z.number().nullable(),
               }),
             ]),
           }),
@@ -531,6 +833,24 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
         delta: z.object({
           stop_reason: z.string().nullish(),
           stop_sequence: z.string().nullish(),
+          container: z
+            .object({
+              expires_at: z.string(),
+              id: z.string(),
+              skills: z
+                .array(
+                  z.object({
+                    type: z.union([
+                      z.literal('anthropic'),
+                      z.literal('custom'),
+                    ]),
+                    skill_id: z.string(),
+                    version: z.string(),
+                  }),
+                )
+                .nullish(),
+            })
+            .nullish(),
         }),
         usage: z.looseObject({
           output_tokens: z.number(),

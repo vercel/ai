@@ -1,5 +1,203 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/anthropic@3.0.0-beta.46
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [f4e4a95]
+  - @ai-sdk/anthropic@3.0.0-beta.45
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [cf4e2a9]
+  - @ai-sdk/anthropic@3.0.0-beta.44
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 9524761: feat: shorthand names for reranking models
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- d1bdadb: Added support for reranking models
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/anthropic@3.0.0-beta.43
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/anthropic@3.0.0-beta.42
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/anthropic@3.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/anthropic@3.0.0-beta.40
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+  - @ai-sdk/anthropic@3.0.0-beta.39
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/anthropic@3.0.0-beta.38
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [7c4328e]
+  - @ai-sdk/anthropic@3.0.0-beta.37
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [21f378c]
+  - @ai-sdk/anthropic@3.0.0-beta.36
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [80894b3]
+  - @ai-sdk/anthropic@3.0.0-beta.35
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/anthropic@3.0.0-beta.34
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [0e38a79]
+  - @ai-sdk/anthropic@3.0.0-beta.33
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [f4db7b5]
+  - @ai-sdk/anthropic@3.0.0-beta.32
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [ca07285]
+  - @ai-sdk/anthropic@3.0.0-beta.31
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [9354297]
+  - @ai-sdk/anthropic@3.0.0-beta.30
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/anthropic@3.0.0-beta.29
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+- Updated dependencies [81d4308]
+  - @ai-sdk/anthropic@3.0.0-beta.28
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [4c5a6be]
+  - @ai-sdk/anthropic@3.0.0-beta.27
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- d711ff8: chore: add model ID for Haiku 4.5
+- Updated dependencies [f33a018]
+  - @ai-sdk/anthropic@3.0.0-beta.26
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/anthropic@3.0.0-beta.25
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [d08308b]
+  - @ai-sdk/anthropic@3.0.0-beta.24
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [6f845b4]
+  - @ai-sdk/anthropic@3.0.0-beta.23
+
 ## 4.0.0-beta.26
 
 ### Patch Changes

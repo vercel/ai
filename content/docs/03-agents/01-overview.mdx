@@ -15,15 +15,15 @@ These components work together:
   - **Context management** - Maintaining conversation history and deciding what the model sees (input) at each step
   - **Stopping conditions** - Determining when the loop (task) is complete
 
-## Agent Class
+## ToolLoopAgent Class
 
-The Agent class handles these three components. Here's an agent that uses multiple tools in a loop to accomplish a task:
+The ToolLoopAgent class handles these three components. Here's an agent that uses multiple tools in a loop to accomplish a task:
 
 ```ts
-import { Agent, stepCountIs, tool } from 'ai';
+import { ToolLoopAgent, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 
-const weatherAgent = new Agent({
+const weatherAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
   tools: {
     weather: tool({

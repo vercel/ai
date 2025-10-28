@@ -1,6 +1,6 @@
 ---
 title: pruneMessages
-description: Prune ModelMessages for optimized AI generation (API Reference)
+description: API Reference for pruneMessages.
 ---
 
 # `pruneMessages()`
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     },
     {
       name: 'toolCalls',
-      type: `'all' | 'before-last-message' | \`before-last-${number}-messages\` | 'none' | PruneToolCallsOption[]`,
+      type: `'all' | 'before-last-message' | 'before-last-\${number}-messages\' | 'none' | PruneToolCallsOption[]`,
       description:
         'How to prune tool call/results/approval content. Can specify strategy or a list with tools.',
     },
@@ -97,7 +97,7 @@ const pruned = pruneMessages({
 - **toolCalls:** Prune tool-call, tool-result, and tool-approval chunks from assistant/tool messages. Options include:
   - `'all'`: Prune all such content.
   - `'before-last-message'`: Prune except in the last message.
-  - \`before-last-N-messages\`: Prune except in the last N messages.
+  - `before-last-N-messages`: Prune except in the last N messages.
   - `'none'`: Do not prune.
   - Or provide an array for per-tool fine control.
 - **emptyMessages:** Set to `'remove'` (default) to exclude messages that have no content after pruning.

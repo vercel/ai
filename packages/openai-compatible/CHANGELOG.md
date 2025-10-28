@@ -1,5 +1,90 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 2.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 2.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 2.0.0-beta.25
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 2.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+
+## 2.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 2.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
 ## 2.0.0-beta.17
 
 ### Patch Changes

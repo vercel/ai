@@ -39,6 +39,38 @@ console.log(text);
 console.log(sources);
 ```
 
+You can also use the `ToolLoopAgent` to build a web search agent with OpenAI. This following example shows how to extract query and sources from tool calls:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: openai('gpt-5-mini'),
+  tools: {
+    web_search: openai.tools.webSearch({
+      searchContextSize: 'low',
+    }),
+  },
+});
+
+const { text, sources, toolResults } = await agent.generate({
+  prompt: 'What happened in San Francisco last week?',
+});
+
+// Access sources directly
+console.log('Sources:', sources);
+
+// Or extract query and sources from tool results
+for (const toolResult of toolResults) {
+  if (toolResult.toolName === 'web_search') {
+    const { action, sources } = toolResult.output;
+    console.log('Search query:', action.query);
+    console.log('Sources:', sources);
+  }
+}
+```
+
 ### Perplexity
 
 Perplexity's Sonar models combines real-time web search with natural language processing. Each response is grounded in current web data and includes detailed citations.
@@ -103,7 +135,6 @@ Unlike the native web search examples where searching is built into the model, u
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import Exa from 'exa-js';
 
@@ -129,7 +160,7 @@ export const webSearch = tool({
 });
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'), // can be any model that supports tools
+  model: 'openai/gpt-4o-mini', // can be any model that supports tools
   prompt: 'What happened in San Francisco last week?',
   tools: {
     webSearch,
@@ -144,7 +175,6 @@ const { text } = await generateText({
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import FirecrawlApp from '@mendable/firecrawl-js';
 import 'dotenv/config';
@@ -177,7 +207,7 @@ export const webSearch = tool({
 
 const main = async () => {
   const { text } = await generateText({
-    model: openai('gpt-4o-mini'), // can be any model that supports tools
+    model: 'openai/gpt-4o-mini', // can be any model that supports tools
     prompt: 'Get the latest blog post from vercel.com/blog',
     tools: {
       webSearch,
