@@ -73,7 +73,7 @@ export function createMinimax(
 
   const createLanguageModel = (modelId: MinimaxChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {
-      provider: `minimax.openai`,
+      provider: `minimax.openai.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,

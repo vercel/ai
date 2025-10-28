@@ -75,7 +75,7 @@ export function createMinimaxAnthropic(
 
   const createLanguageModel = (modelId: MinimaxChatModelId) => {
     return new AnthropicMessagesLanguageModel(modelId, {
-      provider: 'minimax.anthropic',
+      provider: 'minimax.anthropic.messages',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
