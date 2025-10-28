@@ -33,5 +33,6 @@ export function wrapProvider({
     imageModel: providerV3.imageModel,
     transcriptionModel: providerV3.transcriptionModel,
     speechModel: providerV3.speechModel,
+    rerankingModel: providerV3.rerankingModel,
   };
 }

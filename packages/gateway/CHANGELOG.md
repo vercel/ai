@@ -1,5 +1,44 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 2.0.0-beta.44
+
+### Patch Changes
+
+- 7d73922: feat(provider/gateway): Add MiniMax M2 to Gateway autocomplete
+
+## 2.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 2.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 2.0.0-beta.41
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
 ## 2.0.0-beta.40
 
 ### Patch Changes

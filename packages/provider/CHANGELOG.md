@@ -1,5 +1,29 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- d1bdadb: Added reranking model
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- 4c44a5b: fix(spec): allow `undefined` values in `JSONObject` type
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+
 ## 3.0.0-beta.9
 
 ### Patch Changes

@@ -1,5 +1,42 @@
 # @ai-sdk/cerebras
 
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/openai-compatible@2.0.0-beta.28
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/openai-compatible@2.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/openai-compatible@2.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.25
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
 ## 2.0.0-beta.27
 
 ### Patch Changes

@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 
 export const yourGuardrailMiddleware: LanguageModelV3Middleware = {
+  specificationVersion: 'v3',
   wrapGenerate: async ({ doGenerate }) => {
     const { content, ...rest } = await doGenerate();
 

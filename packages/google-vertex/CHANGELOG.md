@@ -1,5 +1,60 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/anthropic@3.0.0-beta.46
+  - @ai-sdk/google@3.0.0-beta.34
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [f4e4a95]
+  - @ai-sdk/anthropic@3.0.0-beta.45
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [cf4e2a9]
+  - @ai-sdk/anthropic@3.0.0-beta.44
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/anthropic@3.0.0-beta.43
+  - @ai-sdk/google@3.0.0-beta.33
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/anthropic@3.0.0-beta.42
+  - @ai-sdk/google@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/anthropic@3.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/google@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
 ## 4.0.0-beta.48
 
 ### Patch Changes

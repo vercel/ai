@@ -1,5 +1,57 @@
 # ai
 
+## 6.0.0-beta.82
+
+### Patch Changes
+
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/gateway@2.0.0-beta.45
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 6.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [7d73922]
+  - @ai-sdk/gateway@2.0.0-beta.44
+
+## 6.0.0-beta.80
+
+### Patch Changes
+
+- 9524761: chore(ai): rename relevanceScore to score
+
+## 6.0.0-beta.79
+
+### Patch Changes
+
+- d1bdadb: Added experimental_rerank support
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/gateway@2.0.0-beta.43
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 6.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/gateway@2.0.0-beta.42
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 6.0.0-beta.77
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/gateway@2.0.0-beta.41
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
 ## 6.0.0-beta.76
 
 ### Patch Changes
