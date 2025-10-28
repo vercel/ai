@@ -47,6 +47,7 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
   OpenAICompatibleImageModel,
+  OpenAICompatibleResponsesLanguageModel,
 } from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
@@ -92,6 +93,14 @@ Creates a model for text generation.
 Creates a chat model for text generation.
 */
   chatModel(
+    modelId: ExampleChatModelId,
+    settings?: ExampleChatSettings,
+  ): LanguageModelV1;
+
+  /**
+Creates a responses model for text generation with advanced features.
+*/
+  responsesModel(
     modelId: ExampleChatModelId,
     settings?: ExampleChatSettings,
   ): LanguageModelV1;
@@ -167,6 +176,17 @@ export function createExample(
     );
   };
 
+  const createResponsesModel = (
+    modelId: ExampleChatModelId,
+    settings: ExampleChatSettings = {},
+  ) => {
+    return new OpenAICompatibleResponsesLanguageModel(
+      modelId,
+      settings,
+      getCommonModelConfig('responses'),
+    );
+  };
+
   const createCompletionModel = (
     modelId: ExampleCompletionModelId,
     settings: ExampleCompletionSettings = {},
@@ -204,6 +224,7 @@ export function createExample(
 
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
+  provider.responsesModel = createResponsesModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
   provider.imageModel = createImageModel;
 
