@@ -9,13 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "4.0.0-beta.49",
-    "@ai-sdk/anthropic": "3.0.0-beta.44",
+    "@ai-sdk/amazon-bedrock": "4.0.0-beta.50",
+    "@ai-sdk/anthropic": "3.0.0-beta.45",
     "@ai-sdk/cohere": "3.0.0-beta.27",
     "@ai-sdk/deepseek": "2.0.0-beta.27",
     "@ai-sdk/fireworks": "2.0.0-beta.27",
     "@ai-sdk/google": "3.0.0-beta.33",
-    "@ai-sdk/google-vertex": "4.0.0-beta.52",
+    "@ai-sdk/google-vertex": "4.0.0-beta.53",
     "@ai-sdk/groq": "3.0.0-beta.26",
     "@ai-sdk/mcp": "1.0.0-beta.7",
     "@ai-sdk/mistral": "3.0.0-beta.27",

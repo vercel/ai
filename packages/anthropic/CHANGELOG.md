@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- f4e4a95: feat(provider/anthropic): enable fine grained tool streaming by default
+
 ## 3.0.0-beta.44
 
 ### Patch Changes
