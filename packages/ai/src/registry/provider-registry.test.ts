@@ -6,6 +6,7 @@ import { createProviderRegistry } from './provider-registry';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
+import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { MockProviderV3 } from '../test/mock-provider-v3';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -15,6 +16,7 @@ describe('languageModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         languageModel: (id: string) => {
           expect(id).toEqual('model');
           return model;
@@ -23,6 +25,9 @@ describe('languageModel', () => {
           return null as any;
         },
         imageModel: (id: string) => {
+          return null as any;
+        },
+        rerankingModel: (id: string) => {
           return null as any;
         },
       },
@@ -36,6 +41,7 @@ describe('languageModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         languageModel: id => {
           expect(id).toEqual('model:part2');
           return model;
@@ -44,6 +50,9 @@ describe('languageModel', () => {
           return null as any;
         },
         imageModel: () => {
+          return null as any;
+        },
+        rerankingModel: (id: string) => {
           return null as any;
         },
       },
@@ -64,6 +73,7 @@ describe('languageModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         languageModel: () => {
           return null as any;
         },
@@ -77,6 +87,9 @@ describe('languageModel', () => {
           return null as any;
         },
         speechModel: () => {
+          return null as any;
+        },
+        rerankingModel: () => {
           return null as any;
         },
       },
@@ -102,6 +115,7 @@ describe('languageModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           languageModel: id => {
             expect(id).toEqual('model');
             return model;
@@ -116,6 +130,9 @@ describe('languageModel', () => {
             return null as any;
           },
           speechModel: () => {
+            return null as any;
+          },
+          rerankingModel: () => {
             return null as any;
           },
         },
@@ -132,6 +149,7 @@ describe('languageModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           languageModel: id => {
             expect(id).toEqual('model');
             return model;
@@ -146,6 +164,9 @@ describe('languageModel', () => {
             return null as any;
           },
           speechModel: () => {
+            return null as any;
+          },
+          rerankingModel: () => {
             return null as any;
           },
         },
@@ -163,6 +184,7 @@ describe('textEmbeddingModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         textEmbeddingModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -177,6 +199,9 @@ describe('textEmbeddingModel', () => {
           return null as any;
         },
         speechModel: () => {
+          return null as any;
+        },
+        rerankingModel: () => {
           return null as any;
         },
       },
@@ -197,6 +222,7 @@ describe('textEmbeddingModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         textEmbeddingModel: () => {
           return null as any;
         },
@@ -204,6 +230,9 @@ describe('textEmbeddingModel', () => {
           return null as any;
         },
         imageModel: () => {
+          return null as any;
+        },
+        rerankingModel: (id: string) => {
           return null as any;
         },
       },
@@ -229,6 +258,7 @@ describe('textEmbeddingModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           textEmbeddingModel: id => {
             expect(id).toEqual('model');
             return model;
@@ -243,6 +273,9 @@ describe('textEmbeddingModel', () => {
             return null as any;
           },
           speechModel: () => {
+            return null as any;
+          },
+          rerankingModel: (id: string) => {
             return null as any;
           },
         },
@@ -260,6 +293,7 @@ describe('imageModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         imageModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -268,6 +302,7 @@ describe('imageModel', () => {
         textEmbeddingModel: () => null as any,
         transcriptionModel: () => null as any,
         speechModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -286,9 +321,12 @@ describe('imageModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         imageModel: () => null as any,
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
+        transcriptionModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -310,12 +348,14 @@ describe('imageModel', () => {
     const modelRegistry = createProviderRegistry(
       {
         provider: {
+          specificationVersion: 'v3',
           imageModel: id => {
             expect(id).toEqual('model');
             return model;
           },
           languageModel: () => null as any,
           textEmbeddingModel: () => null as any,
+          rerankingModel: () => null as any,
         },
       },
       { separator: '|' },
@@ -331,6 +371,7 @@ describe('transcriptionModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         transcriptionModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -338,6 +379,7 @@ describe('transcriptionModel', () => {
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
         imageModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -356,10 +398,12 @@ describe('transcriptionModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         transcriptionModel: () => null as any,
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
         imageModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -384,6 +428,7 @@ describe('speechModel', () => {
 
     const modelRegistry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         speechModel: id => {
           expect(id).toEqual('model');
           return model;
@@ -391,6 +436,7 @@ describe('speechModel', () => {
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
         imageModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -409,10 +455,12 @@ describe('speechModel', () => {
   it('should throw NoSuchModelError if provider does not return a model', () => {
     const registry = createProviderRegistry({
       provider: {
+        specificationVersion: 'v3',
         speechModel: () => null as any,
         languageModel: () => null as any,
         textEmbeddingModel: () => null as any,
         imageModel: () => null as any,
+        rerankingModel: () => null as any,
       },
     });
 
@@ -426,6 +474,115 @@ describe('speechModel', () => {
 
     // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.speechModel('model')).toThrowError(NoSuchModelError);
+  });
+});
+
+describe('rerankingModel', () => {
+  it('should return reranking model from provider using rerankingModel', () => {
+    const model = new MockRerankingModelV3();
+
+    const modelRegistry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v3',
+        rerankingModel: id => {
+          expect(id).toEqual('model');
+          return model;
+        },
+        textEmbeddingModel: () => {
+          return null as any;
+        },
+        languageModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
+          return null as any;
+        },
+        transcriptionModel: () => {
+          return null as any;
+        },
+        speechModel: () => {
+          return null as any;
+        },
+      },
+    });
+
+    expect(modelRegistry.rerankingModel('provider:model')).toEqual(model);
+  });
+
+  it('should throw NoSuchProviderError if provider does not exist', () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.rerankingModel('provider:model')).toThrowError(
+      NoSuchProviderError,
+    );
+  });
+
+  it('should throw NoSuchModelError if provider does not return a model', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v3',
+        textEmbeddingModel: () => {
+          return null as any;
+        },
+        languageModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
+          return null as any;
+        },
+        rerankingModel: (id: string) => {
+          return null as any;
+        },
+      },
+    });
+
+    expect(() => registry.rerankingModel('provider:model')).toThrowError(
+      NoSuchModelError,
+    );
+  });
+
+  it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.rerankingModel('model')).toThrowError(
+      NoSuchModelError,
+    );
+  });
+
+  it('should support custom separator', () => {
+    const model = new MockRerankingModelV3();
+
+    const modelRegistry = createProviderRegistry(
+      {
+        provider: {
+          specificationVersion: 'v3',
+          rerankingModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          textEmbeddingModel: () => {
+            return null as any;
+          },
+          languageModel: () => {
+            return null as any;
+          },
+          imageModel: () => {
+            return null as any;
+          },
+          transcriptionModel: () => {
+            return null as any;
+          },
+          speechModel: () => {
+            return null as any;
+          },
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.rerankingModel('provider|model')).toEqual(model);
   });
 });
 
@@ -459,7 +616,7 @@ describe('middleware functionality', () => {
       },
       {
         languageModelMiddleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideModelId,
         },
       },

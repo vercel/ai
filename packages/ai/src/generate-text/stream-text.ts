@@ -239,7 +239,8 @@ export function streamText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
-  experimental_output: output,
+  experimental_output,
+  output = experimental_output,
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
@@ -316,6 +317,13 @@ functionality that can be fully encapsulated in the provider.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
+    output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+
+@deprecated Use `output` instead.
+ */
     experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
 
     /**
@@ -855,7 +863,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           await onStepFinish?.(currentStepResult);
 
-          logWarnings(recordedWarnings);
+          logWarnings({
+            warnings: recordedWarnings,
+            provider: model.provider,
+            model: model.modelId,
+          });
 
           recordedSteps.push(currentStepResult);
 
@@ -1456,6 +1468,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       controller.enqueue({
                         ...chunk,
                         dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
+                        title: tool?.title,
                       });
                       break;
                     }
@@ -1803,6 +1816,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
+    return this.partialOutputStream;
+  }
+
+  get partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
     if (this.output == null) {
       throw new NoOutputSpecifiedError();
     }
@@ -1987,6 +2004,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
+                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
@@ -2017,6 +2035,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   errorText: onError(part.error),
+                  ...(part.title != null ? { title: part.title } : {}),
                 });
               } else {
                 controller.enqueue({
@@ -2031,6 +2050,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
+                  ...(part.title != null ? { title: part.title } : {}),
                 });
               }
 

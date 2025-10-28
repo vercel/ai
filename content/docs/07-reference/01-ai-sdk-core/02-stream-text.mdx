@@ -543,7 +543,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'providerOptions',
-      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      type: 'Record<string,JSONObject> | undefined',
       isOptional: true,
       description:
         'Provider-specific options. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -907,7 +907,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_output',
+      name: 'output',
       type: 'Output',
       isOptional: true,
       description: 'Experimental setting for generating structured outputs.',
@@ -1144,7 +1144,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'providerMetadata',
-              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              type: 'Record<string,JSONObject> | undefined',
               isOptional: true,
               description:
                 'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -1252,7 +1252,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'providerMetadata',
-              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              type: 'Record<string,JSONObject> | undefined',
               description:
                 'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
             },
@@ -1988,7 +1988,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'providerMetadata',
-              type: 'Record<string,Record<string,JSONValue>> | undefined',
+              type: 'Record<string,JSONObject> | undefined',
               isOptional: true,
               description:
                 'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -2473,10 +2473,10 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_partialOutputStream',
+      name: 'partialOutputStream',
       type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
       description:
-        'A stream of partial outputs. It uses the `experimental_output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+        'A stream of partial outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
     },
     {
       name: 'consumeStream',

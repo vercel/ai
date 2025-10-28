@@ -38,6 +38,25 @@ export default function OpenAIWebSearchView({
                   {output.action.query}
                 </span>
               </div>
+              {output.sources && output.sources.length > 0 && (
+                <div className="pl-5 text-sm text-blue-800">
+                  <span className="font-semibold">Sources:</span>
+                  <ul className="mt-1 list-disc pl-5 break-all">
+                    {output.sources.map((s, i) => (
+                      <li key={i}>
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-blue-700"
+                        >
+                          {s.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           );
         case 'openPage':

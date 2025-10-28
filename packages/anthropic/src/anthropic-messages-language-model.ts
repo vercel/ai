@@ -27,6 +27,7 @@ import {
   resolve,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
   AnthropicContainer,
   anthropicMessagesChunkSchema,
@@ -42,7 +43,6 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 
 function createCitationSource(
   citation: Citation,
@@ -141,7 +141,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    stream,
+  }: Parameters<LanguageModelV3['doGenerate']>[0] & { stream: boolean }) {
     const warnings: LanguageModelV3CallWarning[] = [];
 
     if (frequencyPenalty != null) {
@@ -173,14 +174,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           details:
             'JSON response format requires a schema. ' +
             'The response format is ignored.',
-        });
-      } else if (tools != null) {
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'tools',
-          details:
-            'JSON response format does not support tools. ' +
-            'The provided tools are ignored.',
         });
       }
     }
@@ -215,7 +208,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
-    const maxOutputTokensForModel = getMaxOutputTokensForModel(this.modelId);
+    const { maxOutputTokens: maxOutputTokensForModel, knownModel } =
+      getMaxOutputTokensForModel(this.modelId);
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
     const baseArgs = {
@@ -306,8 +300,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       baseArgs.max_tokens = maxTokens + thinkingBudget;
     }
 
-    // limit to max output tokens for model to enable model switching without breakages:
-    if (baseArgs.max_tokens > maxOutputTokensForModel) {
+    // limit to max output tokens for known models to enable model switching without breaking it:
+    if (knownModel && baseArgs.max_tokens > maxOutputTokensForModel) {
       // only warn if max output tokens is provided as input:
       if (maxOutputTokens != null) {
         warnings.push({
@@ -351,6 +345,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
+    // only when streaming: enable fine-grained tool streaming
+    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
+      betas.add('fine-grained-tool-streaming-2025-05-14');
+    }
+
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -359,8 +358,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: [jsonResponseTool],
-            toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
+            tools: [...(tools ?? []), jsonResponseTool],
+            toolChoice: { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,
           }
@@ -380,6 +379,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         ...baseArgs,
         tools: anthropicTools,
         tool_choice: anthropicToolChoice,
+        stream: stream === true ? true : undefined, // do not send when not streaming
       },
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
       betas: new Set([...betas, ...toolsBetas]),
@@ -458,8 +458,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
+    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
+      ...options,
+      stream: false,
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
@@ -482,13 +484,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    let isJsonResponseFromTool = false;
 
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          // when a json response tool is used, the tool call is returned as text,
-          // so we ignore the text content:
           if (!usesJsonResponseTool) {
             content.push({ type: 'text', text: part.text });
 
@@ -534,20 +535,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           break;
         }
         case 'tool_use': {
-          content.push(
+          const isJsonResponseTool =
+            usesJsonResponseTool && part.name === 'json';
+
+          if (isJsonResponseTool) {
+            isJsonResponseFromTool = true;
+
             // when a json response tool is used, the tool call becomes the text:
-            usesJsonResponseTool
-              ? {
-                  type: 'text',
-                  text: JSON.stringify(part.input),
-                }
-              : {
-                  type: 'tool-call',
-                  toolCallId: part.id,
-                  toolName: part.name,
-                  input: JSON.stringify(part.input),
-                },
-          );
+            content.push({
+              type: 'text',
+              text: JSON.stringify(part.input),
+            });
+          } else {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: part.name,
+              input: JSON.stringify(part.input),
+            });
+          }
 
           break;
         }
@@ -745,7 +751,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       content,
       finishReason: mapAnthropicStopReason({
         finishReason: response.stop_reason,
-        isJsonResponseFromTool: usesJsonResponseTool,
+        isJsonResponseFromTool,
       }),
       usage: {
         inputTokens: response.usage.input_tokens,
@@ -787,13 +793,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doStream(
     options: Parameters<LanguageModelV3['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
+    const {
+      args: body,
+      warnings,
+      betas,
+      usesJsonResponseTool,
+    } = await this.getArgs({
+      ...options,
+      stream: true,
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
-
-    const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.buildRequestUrl(true),
@@ -832,6 +843,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
     let container: AnthropicMessageMetadata['container'] | null = null;
+    let isJsonResponseFromTool = false;
 
     let blockType:
       | 'text'
@@ -880,11 +892,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               case 'content_block_start': {
                 const part = value.content_block;
                 const contentBlockType = part.type;
-
                 blockType = contentBlockType;
 
                 switch (contentBlockType) {
                   case 'text': {
+                    // when a json response tool is used, the tool call is returned as text,
+                    // so we ignore the text content:
+                    if (usesJsonResponseTool) {
+                      return;
+                    }
+
                     contentBlocks[value.index] = { type: 'text' };
                     controller.enqueue({
                       type: 'text-start',
@@ -917,25 +934,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   case 'tool_use': {
-                    contentBlocks[value.index] = usesJsonResponseTool
-                      ? { type: 'text' }
-                      : {
-                          type: 'tool-call',
-                          toolCallId: part.id,
-                          toolName: part.name,
-                          input: '',
-                          firstDelta: true,
-                        };
+                    const isJsonResponseTool =
+                      usesJsonResponseTool && part.name === 'json';
 
-                    controller.enqueue(
-                      usesJsonResponseTool
-                        ? { type: 'text-start', id: String(value.index) }
-                        : {
-                            type: 'tool-input-start',
-                            id: part.id,
-                            toolName: part.name,
-                          },
-                    );
+                    if (isJsonResponseTool) {
+                      isJsonResponseFromTool = true;
+
+                      contentBlocks[value.index] = { type: 'text' };
+
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: String(value.index),
+                      });
+                    } else {
+                      contentBlocks[value.index] = {
+                        type: 'tool-call',
+                        toolCallId: part.id,
+                        toolName: part.name,
+                        input: '',
+                        firstDelta: true,
+                      };
+
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: part.id,
+                        toolName: part.name,
+                      });
+                    }
                     return;
                   }
 
@@ -1181,7 +1206,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     case 'tool-call':
                       // when a json response tool is used, the tool call is returned as text,
                       // so we ignore the tool call content:
-                      if (!usesJsonResponseTool) {
+                      const isJsonResponseTool =
+                        usesJsonResponseTool &&
+                        contentBlock.toolName === 'json';
+
+                      if (!isJsonResponseTool) {
                         controller.enqueue({
                           type: 'tool-input-end',
                           id: contentBlock.toolCallId,
@@ -1216,12 +1245,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
               case 'content_block_delta': {
                 const deltaType = value.delta.type;
+
                 switch (deltaType) {
                   case 'text_delta': {
                     // when a json response tool is used, the tool call is returned as text,
                     // so we ignore the text content:
                     if (usesJsonResponseTool) {
-                      return;
+                      return; // excluding the text-start will also exclude the text-end
                     }
 
                     controller.enqueue({
@@ -1271,9 +1301,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       return;
                     }
 
-                    if (usesJsonResponseTool) {
+                    if (isJsonResponseFromTool) {
                       if (contentBlock?.type !== 'text') {
-                        return;
+                        return; // exclude reasoning
                       }
 
                       controller.enqueue({
@@ -1362,7 +1392,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 finishReason = mapAnthropicStopReason({
                   finishReason: value.delta.stop_reason,
-                  isJsonResponseFromTool: usesJsonResponseTool,
+                  isJsonResponseFromTool,
                 });
 
                 stopSequence = value.delta.stop_sequence ?? null;
@@ -1425,18 +1455,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 }
 
 // see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
-function getMaxOutputTokensForModel(modelId: string) {
+function getMaxOutputTokensForModel(modelId: string): {
+  maxOutputTokens: number;
+  knownModel: boolean;
+} {
   if (
     modelId.includes('claude-sonnet-4-') ||
     modelId.includes('claude-3-7-sonnet') ||
     modelId.includes('claude-haiku-4-5')
   ) {
-    return 64000;
+    return { maxOutputTokens: 64000, knownModel: true };
   } else if (modelId.includes('claude-opus-4-')) {
-    return 32000;
+    return { maxOutputTokens: 32000, knownModel: true };
   } else if (modelId.includes('claude-3-5-haiku')) {
-    return 8192;
+    return { maxOutputTokens: 8192, knownModel: true };
+  } else if (modelId.includes('claude-3-haiku')) {
+    return { maxOutputTokens: 4096, knownModel: true };
   } else {
-    return 4096; // old models, e.g. Claude Haiku 3
+    return { maxOutputTokens: 4096, knownModel: false };
   }
 }

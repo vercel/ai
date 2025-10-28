@@ -159,6 +159,7 @@ export function createVertex(
     return createChatModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;

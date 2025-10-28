@@ -14,6 +14,7 @@ export const mcpApiHandler = initializeMcpApiHandler({
       {
         values: z.array(z.number()),
       },
+      { title: '🔢 Calculator' },
       async ({ values }: { values: number[] }) => ({
         content: [
           {

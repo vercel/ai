@@ -82,6 +82,7 @@ export function createHuggingFace(
   const provider = (modelId: HuggingFaceResponsesModelId) =>
     createResponsesModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createResponsesModel;
   provider.responses = createResponsesModel;
 
