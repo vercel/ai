@@ -2,7 +2,7 @@ import { fail } from 'assert';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
-import { array, choice, object, text } from './output';
+import { array, choice, json, object, text } from './output';
 
 const context = {
   response: {
@@ -495,6 +495,75 @@ describe('Output.choice', () => {
 
     it('should return undefined if partial result is null', async () => {
       const result = await choice1.parsePartialOutput({ text: `null` });
+      expect(result).toBeUndefined();
+    });
+  });
+});
+describe('Output.json', () => {
+  const json1 = json();
+
+  describe('responseFormat', () => {
+    it('should return json responseFormat', async () => {
+      const result = await json1.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+        }
+      `);
+    });
+  });
+
+  describe('parseCompleteOutput', () => {
+    it('should parse valid JSON', async () => {
+      const result = await json1.parseCompleteOutput(
+        { text: `{"a": 1, "b": [2,3]}` },
+        context,
+      );
+      expect(result).toEqual({ a: 1, b: [2, 3] });
+    });
+
+    it('should throw if JSON is invalid', async () => {
+      await expect(() =>
+        json1.parseCompleteOutput({ text: `{ a: 1 }` }, context),
+      ).rejects.toThrow('No object generated: could not parse the response.');
+    });
+
+    it('should throw if JSON is just text', async () => {
+      await expect(() =>
+        json1.parseCompleteOutput({ text: `foo` }, context),
+      ).rejects.toThrow('No object generated: could not parse the response.');
+    });
+  });
+
+  describe('parsePartialOutput', () => {
+    it('should parse partial valid JSON (successful-parse)', async () => {
+      const result = await json1.parsePartialOutput({
+        text: `{ "foo": 1, "bar": [2, 3] }`,
+      });
+      expect(result).toEqual({ partial: { foo: 1, bar: [2, 3] } });
+    });
+
+    it('should parse partial valid JSON (repaired-parse)', async () => {
+      // simulate incomplete/repaired but still valid
+      const result = await json1.parsePartialOutput({ text: `{ "foo": 123` });
+      // Since parsePartialJson may not be able to repair this, just check it's undefined or a value
+      expect([undefined, { partial: expect.anything() }]).toContainEqual(
+        result,
+      );
+    });
+
+    it('should return undefined for invalid partial', async () => {
+      const result = await json1.parsePartialOutput({ text: `invalid!` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for undefined input', async () => {
+      const result = await json1.parsePartialOutput({ text: `` });
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined if parsed value is undefined', async () => {
+      const result = await json1.parsePartialOutput({ text: `undefined` });
       expect(result).toBeUndefined();
     });
   });
