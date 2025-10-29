@@ -15,10 +15,7 @@ import { rerank } from 'ai';
 
 const { ranking } = await rerank({
   model: cohere.reranking('rerank-v3.5'),
-  documents: [
-    'sunny day at the beach',
-    'rainy afternoon in the city'
-  ],
+  documents: ['sunny day at the beach', 'rainy afternoon in the city'],
   query: 'talk about rain',
 });
 ```
@@ -42,7 +39,8 @@ const { ranking } = await rerank({
     {
       name: 'documents',
       type: 'Array<VALUE>',
-      description: 'The documents to rerank. Can be an array of strings or JSON objects.',
+      description:
+        'The documents to rerank. Can be an array of strings or JSON objects.',
     },
     {
       name: 'query',
@@ -165,12 +163,14 @@ const { ranking } = await rerank({
             {
               name: 'originalIndex',
               type: 'number',
-              description: 'The index of the document in the original documents array.',
+              description:
+                'The index of the document in the original documents array.',
             },
             {
               name: 'score',
               type: 'number',
-              description: 'The relevance score for the document (typically 0-1, where higher is more relevant).',
+              description:
+                'The relevance score for the document (typically 0-1, where higher is more relevant).',
             },
             {
               name: 'document',
