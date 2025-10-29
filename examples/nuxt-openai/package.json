@@ -10,9 +10,9 @@
     "clean": "rm -rf .nuxt"
   },
   "dependencies": {
-    "@ai-sdk/vue": "workspace:*",
-    "@ai-sdk/openai": "workspace:*",
-    "ai": "workspace:*",
+    "@ai-sdk/vue": "3.0.0-beta.82",
+    "@ai-sdk/openai": "3.0.0-beta.43",
+    "ai": "6.0.0-beta.82",
     "zod": "3.25.76"
   },
   "devDependencies": {

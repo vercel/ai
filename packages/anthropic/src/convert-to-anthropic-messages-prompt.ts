@@ -295,6 +295,24 @@ export async function convertToAnthropicMessagesPrompt({
                               },
                             };
                           }
+                          case 'image-url': {
+                            return {
+                              type: 'image' as const,
+                              source: {
+                                type: 'url' as const,
+                                url: contentPart.url,
+                              },
+                            };
+                          }
+                          case 'file-url': {
+                            return {
+                              type: 'document' as const,
+                              source: {
+                                type: 'url' as const,
+                                url: contentPart.url,
+                              },
+                            };
+                          }
                           case 'file-data': {
                             if (contentPart.mediaType === 'application/pdf') {
                               betas.add('pdfs-2024-09-25');

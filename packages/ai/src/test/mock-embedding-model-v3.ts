@@ -11,6 +11,8 @@ export class MockEmbeddingModelV3<VALUE> implements EmbeddingModelV3<VALUE> {
 
   doEmbed: EmbeddingModelV3<VALUE>['doEmbed'];
 
+  doEmbedCalls: Parameters<EmbeddingModelV3<VALUE>['doEmbed']>[0][] = [];
+
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
@@ -24,12 +26,25 @@ export class MockEmbeddingModelV3<VALUE> implements EmbeddingModelV3<VALUE> {
       | EmbeddingModelV3<VALUE>['maxEmbeddingsPerCall']
       | null;
     supportsParallelCalls?: EmbeddingModelV3<VALUE>['supportsParallelCalls'];
-    doEmbed?: EmbeddingModelV3<VALUE>['doEmbed'];
+    doEmbed?:
+      | EmbeddingModelV3<VALUE>['doEmbed']
+      | Awaited<ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>>
+      | Awaited<ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>>[];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
     this.maxEmbeddingsPerCall = maxEmbeddingsPerCall ?? undefined;
     this.supportsParallelCalls = supportsParallelCalls;
-    this.doEmbed = doEmbed;
+    this.doEmbed = async options => {
+      this.doEmbedCalls.push(options);
+
+      if (typeof doEmbed === 'function') {
+        return doEmbed(options);
+      } else if (Array.isArray(doEmbed)) {
+        return doEmbed[this.doEmbedCalls.length];
+      } else {
+        return doEmbed;
+      }
+    };
   }
 }

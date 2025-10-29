@@ -202,7 +202,7 @@ Only applicable for HTTP-based providers.
     responses.push(result.response);
   }
 
-  logWarnings(warnings);
+  logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
   if (!images.length) {
     throw new NoImageGeneratedError({ responses });

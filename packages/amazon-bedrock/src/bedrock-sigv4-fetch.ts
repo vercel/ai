@@ -1,7 +1,7 @@
-import { convertHeadersToRecord, extractHeaders } from './headers-utils';
 import {
   FetchFunction,
   combineHeaders,
+  normalizeHeaders,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -32,8 +32,8 @@ export function createSigV4FetchFunction(
   ): Promise<Response> => {
     const request = input instanceof Request ? input : undefined;
     const originalHeaders = combineHeaders(
-      extractHeaders(request?.headers),
-      extractHeaders(init?.headers),
+      normalizeHeaders(request?.headers),
+      normalizeHeaders(init?.headers),
     );
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
@@ -79,7 +79,7 @@ export function createSigV4FetchFunction(
     });
 
     const signingResult = await signer.sign();
-    const signedHeaders = convertHeadersToRecord(signingResult.headers);
+    const signedHeaders = normalizeHeaders(signingResult.headers);
 
     // Use the combined headers directly as HeadersInit
     const combinedHeaders = combineHeaders(headersWithUserAgent, signedHeaders);
@@ -119,7 +119,7 @@ export function createApiKeyFetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
-    const originalHeaders = extractHeaders(init?.headers);
+    const originalHeaders = normalizeHeaders(init?.headers);
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
       `ai-sdk/amazon-bedrock/${VERSION}`,

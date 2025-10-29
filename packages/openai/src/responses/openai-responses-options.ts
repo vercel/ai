@@ -157,6 +157,7 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
       store: z.boolean().nullish(),
       strictJsonSchema: z.boolean().nullish(),
       textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+      truncation: z.enum(['auto', 'disabled']).nullish(),
       user: z.string().nullish(),
     }),
   ),

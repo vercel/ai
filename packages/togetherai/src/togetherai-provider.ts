@@ -1,23 +1,26 @@
 import {
-  LanguageModelV3,
-  EmbeddingModelV3,
-  ProviderV3,
-  ImageModelV3,
-} from '@ai-sdk/provider';
-import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
+import {
+  EmbeddingModelV3,
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
+  RerankingModelV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
+import { TogetherAIRerankingModelId } from './reranking/togetherai-reranking-options';
 import { TogetherAIChatModelId } from './togetherai-chat-options';
-import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
 import { TogetherAICompletionModelId } from './togetherai-completion-options';
+import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
 import { VERSION } from './version';
@@ -79,6 +82,16 @@ Creates a model for image generation.
 Creates a model for image generation.
 */
   imageModel(modelId: TogetherAIImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for reranking.
+   */
+  reranking(modelId: TogetherAIRerankingModelId): RerankingModelV3;
+
+  /**
+   * Creates a model for reranking.
+   */
+  rerankingModel(modelId: TogetherAIRerankingModelId): RerankingModelV3;
 }
 
 export function createTogetherAI(
@@ -139,14 +152,23 @@ export function createTogetherAI(
       baseURL: baseURL ?? 'https://api.together.xyz/v1/',
     });
 
+  const createRerankingModel = (modelId: TogetherAIRerankingModelId) =>
+    new TogetherAIRerankingModel(modelId, {
+      ...getCommonModelConfig('reranking'),
+      baseURL: baseURL ?? 'https://api.together.xyz/v1/',
+    });
+
   const provider = (modelId: TogetherAIChatModelId) => createChatModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.completionModel = createCompletionModel;
   provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.reranking = createRerankingModel;
+  provider.rerankingModel = createRerankingModel;
 
   return provider;
 }

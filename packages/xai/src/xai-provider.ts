@@ -115,6 +115,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
 
   const provider = (modelId: XaiChatModelId) => createLanguageModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
   provider.textEmbeddingModel = (modelId: string) => {
