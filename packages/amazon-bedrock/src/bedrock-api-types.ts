@@ -182,6 +182,37 @@ export interface BedrockRedactedReasoningContentBlock {
   };
 }
 
+export interface BedrockCitationLocation {
+  documentChar?: {
+    documentIndex: number;
+    start: number;
+    end: number;
+  } | null;
+  documentPage?: {
+    documentIndex: number;
+    start: number;
+    end: number;
+  } | null;
+  documentChunk?: {
+    documentIndex: number;
+    start: number;
+    end: number;
+  } | null;
+}
+
+export interface BedrockCitation {
+  title?: string | null;
+  location?: BedrockCitationLocation | null;
+  sourceContent?: Array<{ text: string }> | null;
+}
+
+export interface BedrockCitationsContentBlock {
+  citationsContent: {
+    content: Array<{ text: string }>;
+    citations: Array<BedrockCitation>;
+  };
+}
+
 export type BedrockContentBlock =
   | BedrockDocumentBlock
   | BedrockGuardrailConverseContentBlock
@@ -191,4 +222,5 @@ export type BedrockContentBlock =
   | BedrockToolUseBlock
   | BedrockReasoningContentBlock
   | BedrockRedactedReasoningContentBlock
+  | BedrockCitationsContentBlock
   | BedrockCachePoint;

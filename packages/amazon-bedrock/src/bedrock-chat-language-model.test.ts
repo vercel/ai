@@ -7,6 +7,7 @@ import { injectFetchHeaders } from './inject-fetch-headers';
 import {
   BedrockReasoningContentBlock,
   BedrockRedactedReasoningContentBlock,
+  BedrockCitationsContentBlock,
 } from './bedrock-api-types';
 import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
@@ -1389,6 +1390,149 @@ describe('doStream', () => {
     `);
   });
 
+  it('should process PDF citation responses in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Based on the document' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: ', results show growth.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 0 },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              citation: {
+                title: 'Financial Report 2023',
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    pageNumber: 5,
+                  },
+                },
+                sourceContent: [
+                  {
+                    text: 'Revenue increased by 25% year over year',
+                  },
+                ],
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 17, outputTokens: 227, totalTokens: 244 },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'end_turn',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+              filename: 'financial-report.pdf',
+              providerOptions: {
+                bedrock: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'What do the results show?',
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Based on the document",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ", results show growth.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "filename": "financial-report.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "bedrock": {
+              "location": {
+                "documentPage": {
+                  "documentIndex": 0,
+                  "pageNumber": 5,
+                },
+              },
+              "sourceContent": [
+                {
+                  "text": "Revenue increased by 25% year over year",
+                },
+              ],
+              "title": "Financial Report 2023",
+            },
+          },
+          "sourceType": "document",
+          "title": "Financial Report 2023",
+          "type": "source",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 17,
+            "outputTokens": 227,
+            "totalTokens": 244,
+          },
+        },
+      ]
+    `);
+  });
+
   it('should transform reasoningConfig to thinking in stream requests', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1577,6 +1721,7 @@ describe('doGenerate', () => {
       | { type: 'tool_use'; id: string; name: string; input: unknown }
       | BedrockReasoningContentBlock
       | BedrockRedactedReasoningContentBlock
+      | BedrockCitationsContentBlock
     >;
     toolCalls?: Array<{
       id?: string;
@@ -2460,6 +2605,634 @@ describe('doGenerate', () => {
         details: 'Only text and json response formats are supported.',
       },
     ]);
+  });
+
+  it('should process PDF citation responses in generate', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          citationsContent: {
+            content: [
+              {
+                text: 'Based on the financial report, the company showed significant growth this year.',
+              },
+            ],
+            citations: [
+              {
+                title: 'Financial Report 2023',
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 5,
+                    end: 5,
+                  },
+                },
+                sourceContent: [
+                  {
+                    text: 'Revenue increased by 25% year over year',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+              filename: 'financial-report.pdf',
+              providerOptions: {
+                bedrock: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'What do the results show?',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Based on the financial report, the company showed significant growth this year.",
+          "type": "text",
+        },
+        {
+          "filename": "financial-report.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "bedrock": {
+              "location": {
+                "documentPage": {
+                  "documentIndex": 0,
+                  "end": 5,
+                  "start": 5,
+                },
+              },
+              "sourceContent": [
+                {
+                  "text": "Revenue increased by 25% year over year",
+                },
+              ],
+              "title": "Financial Report 2023",
+            },
+          },
+          "sourceType": "document",
+          "title": "Financial Report 2023",
+          "type": "source",
+        },
+      ]
+    `);
+  });
+
+  it('should process multiple citations in generate', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          citationsContent: {
+            content: [
+              {
+                text: 'The annual report and quarterly review both show positive trends.',
+              },
+            ],
+            citations: [
+              {
+                title: 'Annual Report 2023',
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 3,
+                    end: 3,
+                  },
+                },
+                sourceContent: [
+                  {
+                    text: 'Overall revenue growth of 30%',
+                  },
+                ],
+              },
+              {
+                title: 'Q4 Quarterly Review',
+                location: {
+                  documentPage: {
+                    documentIndex: 1,
+                    start: 1,
+                    end: 1,
+                  },
+                },
+                sourceContent: [
+                  {
+                    text: 'Q4 performance exceeded expectations',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata1',
+              mediaType: 'application/pdf',
+              filename: 'annual-report.pdf',
+              providerOptions: {
+                bedrock: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+            {
+              type: 'file',
+              data: 'base64PDFdata2',
+              mediaType: 'application/pdf',
+              filename: 'quarterly-review.pdf',
+              providerOptions: {
+                bedrock: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Summarize the performance data.',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "The annual report and quarterly review both show positive trends.",
+          "type": "text",
+        },
+        {
+          "filename": "annual-report.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "bedrock": {
+              "location": {
+                "documentPage": {
+                  "documentIndex": 0,
+                  "end": 3,
+                  "start": 3,
+                },
+              },
+              "sourceContent": [
+                {
+                  "text": "Overall revenue growth of 30%",
+                },
+              ],
+              "title": "Annual Report 2023",
+            },
+          },
+          "sourceType": "document",
+          "title": "Annual Report 2023",
+          "type": "source",
+        },
+        {
+          "filename": "quarterly-review.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "bedrock": {
+              "location": {
+                "documentPage": {
+                  "documentIndex": 1,
+                  "end": 1,
+                  "start": 1,
+                },
+              },
+              "sourceContent": [
+                {
+                  "text": "Q4 performance exceeded expectations",
+                },
+              ],
+              "title": "Q4 Quarterly Review",
+            },
+          },
+          "sourceType": "document",
+          "title": "Q4 Quarterly Review",
+          "type": "source",
+        },
+      ]
+    `);
+  });
+
+  it('should handle citations with character-based location in generate', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          citationsContent: {
+            content: [
+              {
+                text: 'The research indicates promising results.',
+              },
+            ],
+            citations: [
+              {
+                title: 'Research Paper 2023',
+                location: {
+                  documentChar: {
+                    documentIndex: 0,
+                    start: 1234,
+                    end: 1345,
+                  },
+                },
+                sourceContent: [
+                  {
+                    text: 'Statistical significance was achieved with p < 0.001',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+              filename: 'research-paper.pdf',
+              providerOptions: {
+                bedrock: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'What does the research show?',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "The research indicates promising results.",
+          "type": "text",
+        },
+        {
+          "filename": "research-paper.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "bedrock": {
+              "location": {
+                "documentChar": {
+                  "documentIndex": 0,
+                  "end": 1345,
+                  "start": 1234,
+                },
+              },
+              "sourceContent": [
+                {
+                  "text": "Statistical significance was achieved with p < 0.001",
+                },
+              ],
+              "title": "Research Paper 2023",
+            },
+          },
+          "sourceType": "document",
+          "title": "Research Paper 2023",
+          "type": "source",
+        },
+      ]
+    `);
+  });
+
+  it('should handle citations without title in generate', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          citationsContent: {
+            content: [
+              {
+                text: 'The document provides valuable insights.',
+              },
+            ],
+            citations: [
+              {
+                title: null,
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 2,
+                    end: 2,
+                  },
+                },
+                sourceContent: [
+                  {
+                    text: 'Key findings from the analysis',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+              filename: 'analysis.pdf',
+              providerOptions: {
+                bedrock: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Analyze this document.',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "The document provides valuable insights.",
+          "type": "text",
+        },
+        {
+          "filename": "analysis.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "bedrock": {
+              "location": {
+                "documentPage": {
+                  "documentIndex": 0,
+                  "end": 2,
+                  "start": 2,
+                },
+              },
+              "sourceContent": [
+                {
+                  "text": "Key findings from the analysis",
+                },
+              ],
+              "title": null,
+            },
+          },
+          "sourceType": "document",
+          "title": "analysis.pdf",
+          "type": "source",
+        },
+      ]
+    `);
+  });
+
+  it('should handle citations with mixed content types in generate', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'text',
+          text: 'First, let me summarize what I found.',
+        },
+        {
+          citationsContent: {
+            content: [
+              {
+                text: 'The data shows significant trends.',
+              },
+            ],
+            citations: [
+              {
+                title: 'Data Analysis Report',
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 7,
+                    end: 7,
+                  },
+                },
+                sourceContent: [
+                  {
+                    text: 'Trend analysis reveals upward trajectory',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        {
+          type: 'text',
+          text: 'In conclusion, the results are promising.',
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+              filename: 'data-report.pdf',
+              providerOptions: {
+                bedrock: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'What trends do you see?',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "First, let me summarize what I found.",
+          "type": "text",
+        },
+        {
+          "text": "The data shows significant trends.",
+          "type": "text",
+        },
+        {
+          "filename": "data-report.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "bedrock": {
+              "location": {
+                "documentPage": {
+                  "documentIndex": 0,
+                  "end": 7,
+                  "start": 7,
+                },
+              },
+              "sourceContent": [
+                {
+                  "text": "Trend analysis reveals upward trajectory",
+                },
+              ],
+              "title": "Data Analysis Report",
+            },
+          },
+          "sourceType": "document",
+          "title": "Data Analysis Report",
+          "type": "source",
+        },
+        {
+          "text": "In conclusion, the results are promising.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should skip citations with invalid location in generate', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          citationsContent: {
+            content: [
+              {
+                text: 'Some content was found.',
+              },
+            ],
+            citations: [
+              {
+                title: 'Valid Citation',
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 1,
+                    end: 1,
+                  },
+                },
+                sourceContent: [
+                  {
+                    text: 'Valid source content',
+                  },
+                ],
+              },
+              {
+                title: 'Invalid Citation',
+                location: null,
+                sourceContent: [
+                  {
+                    text: 'This should be skipped',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64PDFdata',
+              mediaType: 'application/pdf',
+              filename: 'mixed-content.pdf',
+              providerOptions: {
+                bedrock: {
+                  citations: { enabled: true },
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Analyze this content.',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Some content was found.",
+          "type": "text",
+        },
+        {
+          "filename": "mixed-content.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "providerMetadata": {
+            "bedrock": {
+              "location": {
+                "documentPage": {
+                  "documentIndex": 0,
+                  "end": 1,
+                  "start": 1,
+                },
+              },
+              "sourceContent": [
+                {
+                  "text": "Valid source content",
+                },
+              ],
+              "title": "Valid Citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "Valid Citation",
+          "type": "source",
+        },
+      ]
+    `);
   });
 
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
