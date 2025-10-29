@@ -46,7 +46,8 @@ async function main() {
       const citedText = metaCitation.sourceContent?.[0]?.text ?? 'N/A';
       const location =
         metaCitation.location?.documentChar ||
-        metaCitation.location?.documentPage;
+        metaCitation.location?.documentPage ||
+        metaCitation.location?.documentChunk;
       const startIdx = location?.start ?? 'N/A';
       const endIdx = location?.end ?? 'N/A';
       console.log(`\n[${i + 1}] "${citedText}" (chars: ${startIdx}-${endIdx})`);

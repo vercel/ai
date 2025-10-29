@@ -50,7 +50,9 @@ function createCitationSource(
   generateId: () => string,
 ): LanguageModelV3Source | undefined {
   const location =
-    citation?.location?.documentPage || citation?.location?.documentChar;
+    citation?.location?.documentPage ||
+    citation?.location?.documentChar ||
+    citation?.location?.documentChunk;
   if (!location) {
     return;
   }
