@@ -708,9 +708,11 @@ export const getGroundingMetadataSchema = () =>
     groundingChunks: z
       .array(
         z.object({
-          web: z.object({ uri: z.string(), title: z.string() }).nullish(),
+          web: z
+            .object({ uri: z.string(), title: z.string().nullish() })
+            .nullish(),
           retrievedContext: z
-            .object({ uri: z.string(), title: z.string() })
+            .object({ uri: z.string(), title: z.string().nullish() })
             .nullish(),
         }),
       )
