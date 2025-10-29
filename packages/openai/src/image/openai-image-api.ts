@@ -9,7 +9,7 @@ export const openaiImageResponseSchema = lazySchema(() =>
       data: z.array(
         z.object({
           b64_json: z.string(),
-          revised_prompt: z.string().nullish().optional(),
+          revised_prompt: z.string().nullish(),
         }),
       ),
     }),
