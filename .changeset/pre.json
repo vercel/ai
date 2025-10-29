@@ -114,6 +114,7 @@
     "few-singers-drum",
     "fifty-ligers-remember",
     "fix-array-output-type",
+    "fix-async-iterator-cancel-cleanup",
     "fix-headers-normalization",
     "flat-birds-judge",
     "flat-pigs-leave",
