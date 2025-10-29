@@ -1,6 +1,7 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 import 'dotenv/config';
+import { BedrockCitation } from '../../../../packages/amazon-bedrock/src/bedrock-api-types';
 
 async function main() {
   const result = await generateText({
@@ -36,14 +37,19 @@ async function main() {
       citation.sourceType === 'document' &&
       citation.providerMetadata?.bedrock
     ) {
-      const meta = citation.providerMetadata.bedrock;
-      const citedText = meta.sourceContent?.[0]?.text ?? 'N/A';
-      const location = meta.location?.documentChar || meta.location?.documentPage;
+      const metaCitation = citation.providerMetadata.bedrock
+        .citation as BedrockCitation;
+      if (!metaCitation) {
+        return;
+      }
+
+      const citedText = metaCitation.sourceContent?.[0]?.text ?? 'N/A';
+      const location =
+        metaCitation.location?.documentChar ||
+        metaCitation.location?.documentPage;
       const startIdx = location?.start ?? 'N/A';
       const endIdx = location?.end ?? 'N/A';
-      console.log(
-        `\n[${i + 1}] "${citedText}" (chars: ${startIdx}-${endIdx})`,
-      );
+      console.log(`\n[${i + 1}] "${citedText}" (chars: ${startIdx}-${endIdx})`);
     }
   });
 }

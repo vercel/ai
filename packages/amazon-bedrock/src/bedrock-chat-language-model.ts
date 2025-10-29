@@ -68,7 +68,7 @@ function createCitationSource(
     title: citation.title ?? documentInfo.title,
     filename: documentInfo.filename,
     providerMetadata: {
-      bedrock: citation,
+      bedrock: { citation },
     } satisfies SharedV3ProviderMetadata,
   };
 }
