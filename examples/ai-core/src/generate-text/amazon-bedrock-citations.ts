@@ -37,8 +37,12 @@ async function main() {
       citation.providerMetadata?.bedrock
     ) {
       const meta = citation.providerMetadata.bedrock;
+      const citedText = meta.sourceContent?.[0]?.text ?? 'N/A';
+      const location = meta.location?.documentChar || meta.location?.documentPage;
+      const startIdx = location?.start ?? 'N/A';
+      const endIdx = location?.end ?? 'N/A';
       console.log(
-        `\n[${i + 1}] "${meta.citedText}" (chars: ${meta.startCharIndex}-${meta.endCharIndex})`,
+        `\n[${i + 1}] "${citedText}" (chars: ${startIdx}-${endIdx})`,
       );
     }
   });
