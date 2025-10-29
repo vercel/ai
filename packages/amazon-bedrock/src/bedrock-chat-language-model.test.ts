@@ -1419,7 +1419,8 @@ describe('doStream', () => {
                 location: {
                   documentPage: {
                     documentIndex: 0,
-                    pageNumber: 5,
+                    start: 5,
+                    end: 5,
                   },
                 },
                 sourceContent: [
@@ -1501,18 +1502,21 @@ describe('doStream', () => {
           "mediaType": "application/pdf",
           "providerMetadata": {
             "bedrock": {
-              "location": {
-                "documentPage": {
-                  "documentIndex": 0,
-                  "pageNumber": 5,
+              "citation": {
+                "location": {
+                  "documentPage": {
+                    "documentIndex": 0,
+                    "end": 5,
+                    "start": 5,
+                  },
                 },
+                "sourceContent": [
+                  {
+                    "text": "Revenue increased by 25% year over year",
+                  },
+                ],
+                "title": "Financial Report 2023",
               },
-              "sourceContent": [
-                {
-                  "text": "Revenue increased by 25% year over year",
-                },
-              ],
-              "title": "Financial Report 2023",
             },
           },
           "sourceType": "document",
@@ -2676,19 +2680,21 @@ describe('doGenerate', () => {
           "mediaType": "application/pdf",
           "providerMetadata": {
             "bedrock": {
-              "location": {
-                "documentPage": {
-                  "documentIndex": 0,
-                  "end": 5,
-                  "start": 5,
+              "citation": {
+                "location": {
+                  "documentPage": {
+                    "documentIndex": 0,
+                    "end": 5,
+                    "start": 5,
+                  },
                 },
+                "sourceContent": [
+                  {
+                    "text": "Revenue increased by 25% year over year",
+                  },
+                ],
+                "title": "Financial Report 2023",
               },
-              "sourceContent": [
-                {
-                  "text": "Revenue increased by 25% year over year",
-                },
-              ],
-              "title": "Financial Report 2023",
             },
           },
           "sourceType": "document",
@@ -2794,19 +2800,21 @@ describe('doGenerate', () => {
           "mediaType": "application/pdf",
           "providerMetadata": {
             "bedrock": {
-              "location": {
-                "documentPage": {
-                  "documentIndex": 0,
-                  "end": 3,
-                  "start": 3,
+              "citation": {
+                "location": {
+                  "documentPage": {
+                    "documentIndex": 0,
+                    "end": 3,
+                    "start": 3,
+                  },
                 },
+                "sourceContent": [
+                  {
+                    "text": "Overall revenue growth of 30%",
+                  },
+                ],
+                "title": "Annual Report 2023",
               },
-              "sourceContent": [
-                {
-                  "text": "Overall revenue growth of 30%",
-                },
-              ],
-              "title": "Annual Report 2023",
             },
           },
           "sourceType": "document",
@@ -2819,19 +2827,21 @@ describe('doGenerate', () => {
           "mediaType": "application/pdf",
           "providerMetadata": {
             "bedrock": {
-              "location": {
-                "documentPage": {
-                  "documentIndex": 1,
-                  "end": 1,
-                  "start": 1,
+              "citation": {
+                "location": {
+                  "documentPage": {
+                    "documentIndex": 1,
+                    "end": 1,
+                    "start": 1,
+                  },
                 },
+                "sourceContent": [
+                  {
+                    "text": "Q4 performance exceeded expectations",
+                  },
+                ],
+                "title": "Q4 Quarterly Review",
               },
-              "sourceContent": [
-                {
-                  "text": "Q4 performance exceeded expectations",
-                },
-              ],
-              "title": "Q4 Quarterly Review",
             },
           },
           "sourceType": "document",
@@ -2911,19 +2921,21 @@ describe('doGenerate', () => {
           "mediaType": "application/pdf",
           "providerMetadata": {
             "bedrock": {
-              "location": {
-                "documentChar": {
-                  "documentIndex": 0,
-                  "end": 1345,
-                  "start": 1234,
+              "citation": {
+                "location": {
+                  "documentChar": {
+                    "documentIndex": 0,
+                    "end": 1345,
+                    "start": 1234,
+                  },
                 },
+                "sourceContent": [
+                  {
+                    "text": "Statistical significance was achieved with p < 0.001",
+                  },
+                ],
+                "title": "Research Paper 2023",
               },
-              "sourceContent": [
-                {
-                  "text": "Statistical significance was achieved with p < 0.001",
-                },
-              ],
-              "title": "Research Paper 2023",
             },
           },
           "sourceType": "document",
@@ -3003,19 +3015,21 @@ describe('doGenerate', () => {
           "mediaType": "application/pdf",
           "providerMetadata": {
             "bedrock": {
-              "location": {
-                "documentPage": {
-                  "documentIndex": 0,
-                  "end": 2,
-                  "start": 2,
+              "citation": {
+                "location": {
+                  "documentPage": {
+                    "documentIndex": 0,
+                    "end": 2,
+                    "start": 2,
+                  },
                 },
+                "sourceContent": [
+                  {
+                    "text": "Key findings from the analysis",
+                  },
+                ],
+                "title": null,
               },
-              "sourceContent": [
-                {
-                  "text": "Key findings from the analysis",
-                },
-              ],
-              "title": null,
             },
           },
           "sourceType": "document",
@@ -3107,19 +3121,21 @@ describe('doGenerate', () => {
           "mediaType": "application/pdf",
           "providerMetadata": {
             "bedrock": {
-              "location": {
-                "documentPage": {
-                  "documentIndex": 0,
-                  "end": 7,
-                  "start": 7,
+              "citation": {
+                "location": {
+                  "documentPage": {
+                    "documentIndex": 0,
+                    "end": 7,
+                    "start": 7,
+                  },
                 },
+                "sourceContent": [
+                  {
+                    "text": "Trend analysis reveals upward trajectory",
+                  },
+                ],
+                "title": "Data Analysis Report",
               },
-              "sourceContent": [
-                {
-                  "text": "Trend analysis reveals upward trajectory",
-                },
-              ],
-              "title": "Data Analysis Report",
             },
           },
           "sourceType": "document",
@@ -3212,19 +3228,21 @@ describe('doGenerate', () => {
           "mediaType": "application/pdf",
           "providerMetadata": {
             "bedrock": {
-              "location": {
-                "documentPage": {
-                  "documentIndex": 0,
-                  "end": 1,
-                  "start": 1,
+              "citation": {
+                "location": {
+                  "documentPage": {
+                    "documentIndex": 0,
+                    "end": 1,
+                    "start": 1,
+                  },
                 },
+                "sourceContent": [
+                  {
+                    "text": "Valid source content",
+                  },
+                ],
+                "title": "Valid Citation",
               },
-              "sourceContent": [
-                {
-                  "text": "Valid source content",
-                },
-              ],
-              "title": "Valid Citation",
             },
           },
           "sourceType": "document",
