@@ -1,5 +1,26 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- c8003fb: fix(@ai-sdk/google): Make title field optional in grounding metadata schema
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
 ## 3.0.0-beta.33
 
 ### Patch Changes

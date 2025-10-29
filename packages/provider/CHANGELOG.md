@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+
 ## 3.0.0-beta.12
 
 ### Patch Changes

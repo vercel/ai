@@ -543,7 +543,7 @@ function createOutputTransformStream<
       textChunk += chunk.text;
 
       // only publish if partial json can be parsed:
-      const result = await output.parsePartial({ text });
+      const result = await output.parsePartialOutput({ text });
       if (result != null) {
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);

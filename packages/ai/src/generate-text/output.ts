@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   LanguageModelV3CallOptions,
   TypeValidationError,
 } from '@ai-sdk/provider';
@@ -17,11 +18,15 @@ import { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
 
 export interface Output<OUTPUT = any, PARTIAL = any> {
-  readonly type: 'object' | 'text';
-
+  /**
+   * The response format to use for the model.
+   */
   responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
 
-  parseOutput(
+  /**
+   * Parses the complete output of the model.
+   */
+  parseCompleteOutput(
     options: { text: string },
     context: {
       response: LanguageModelResponseMetadata;
@@ -30,7 +35,10 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
     },
   ): Promise<OUTPUT>;
 
-  parsePartial(options: {
+  /**
+   * Parses the partial output of the model.
+   */
+  parsePartialOutput(options: {
     text: string;
   }): Promise<{ partial: PARTIAL } | undefined>;
 }
@@ -42,15 +50,13 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
  * @returns An output specification for generating text.
  */
 export const text = (): Output<string, string> => ({
-  type: 'text',
-
   responseFormat: Promise.resolve({ type: 'text' }),
 
-  async parseOutput({ text }: { text: string }) {
+  async parseCompleteOutput({ text }: { text: string }) {
     return text;
   },
 
-  async parsePartial({ text }: { text: string }) {
+  async parsePartialOutput({ text }: { text: string }) {
     return { partial: text };
   },
 });
@@ -71,14 +77,12 @@ export const object = <OUTPUT>({
   const schema = asSchema(inputSchema);
 
   return {
-    type: 'object',
-
     responseFormat: resolve(schema.jsonSchema).then(jsonSchema => ({
       type: 'json' as const,
       schema: jsonSchema,
     })),
 
-    async parseOutput(
+    async parseCompleteOutput(
       { text }: { text: string },
       context: {
         response: LanguageModelResponseMetadata;
@@ -118,7 +122,7 @@ export const object = <OUTPUT>({
       return validationResult.value;
     },
 
-    async parsePartial({ text }: { text: string }) {
+    async parsePartialOutput({ text }: { text: string }) {
       const result = await parsePartialJson(text);
 
       switch (result.state) {
@@ -133,11 +137,6 @@ export const object = <OUTPUT>({
             // Note: currently no validation of partial results:
             partial: result.value as DeepPartial<OUTPUT>,
           };
-        }
-
-        default: {
-          const _exhaustiveCheck: never = result.state;
-          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
         }
       }
     },
@@ -159,8 +158,6 @@ export const array = <ELEMENT>({
   const elementSchema = asSchema(inputElementSchema);
 
   return {
-    type: 'object',
-
     // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
       // remove $schema from schema.jsonSchema:
@@ -180,7 +177,7 @@ export const array = <ELEMENT>({
       };
     }),
 
-    async parseOutput(
+    async parseCompleteOutput(
       { text }: { text: string },
       context: {
         response: LanguageModelResponseMetadata;
@@ -243,7 +240,7 @@ export const array = <ELEMENT>({
       return outerValue.elements as Array<ELEMENT>;
     },
 
-    async parsePartial({ text }: { text: string }) {
+    async parsePartialOutput({ text }: { text: string }) {
       const result = await parsePartialJson(text);
 
       switch (result.state) {
@@ -285,11 +282,6 @@ export const array = <ELEMENT>({
 
           return { partial: parsedElements };
         }
-
-        default: {
-          const _exhaustiveCheck: never = result.state;
-          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
-        }
       }
     },
   };
@@ -308,8 +300,6 @@ export const choice = <ELEMENT extends string>({
   options: Array<ELEMENT>;
 }): Output<ELEMENT, ELEMENT> => {
   return {
-    type: 'object',
-
     // JSON schema that describes an enumeration:
     responseFormat: Promise.resolve({
       type: 'json',
@@ -324,7 +314,7 @@ export const choice = <ELEMENT extends string>({
       },
     } as const),
 
-    async parseOutput(
+    async parseCompleteOutput(
       { text }: { text: string },
       context: {
         response: LanguageModelResponseMetadata;
@@ -370,7 +360,7 @@ export const choice = <ELEMENT extends string>({
       return outerValue.result as ELEMENT;
     },
 
-    async parsePartial({ text }: { text: string }) {
+    async parsePartialOutput({ text }: { text: string }) {
       const result = await parsePartialJson(text);
 
       switch (result.state) {
@@ -409,10 +399,61 @@ export const choice = <ELEMENT extends string>({
               : undefined;
           }
         }
+      }
+    },
+  };
+};
 
-        default: {
-          const _exhaustiveCheck: never = result.state;
-          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+/**
+ * Output specification for unstructured JSON generation.
+ * When the model generates a text response, it will return a JSON object.
+ *
+ * @returns An output specification for generating JSON.
+ */
+export const json = (): Output<JSONValue, JSONValue> => {
+  return {
+    responseFormat: Promise.resolve({
+      type: 'json' as const,
+    }),
+
+    async parseCompleteOutput(
+      { text }: { text: string },
+      context: {
+        response: LanguageModelResponseMetadata;
+        usage: LanguageModelUsage;
+        finishReason: FinishReason;
+      },
+    ) {
+      const parseResult = await safeParseJSON({ text });
+
+      if (!parseResult.success) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      return parseResult.value;
+    },
+
+    async parsePartialOutput({ text }: { text: string }) {
+      const result = await parsePartialJson(text);
+
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input': {
+          return undefined;
+        }
+
+        case 'repaired-parse':
+        case 'successful-parse': {
+          return result.value === undefined
+            ? undefined
+            : { partial: result.value };
         }
       }
     },
