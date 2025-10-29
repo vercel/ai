@@ -759,7 +759,7 @@ A function that attempts to repair a tool call that failed to parse.
         // parse output only if the last step was finished with "stop":
         let resolvedOutput;
         if (lastStep.finishReason === 'stop') {
-          resolvedOutput = await output?.parseOutput(
+          resolvedOutput = await output?.parseCompleteOutput(
             { text: lastStep.text },
             {
               response: lastStep.response,
