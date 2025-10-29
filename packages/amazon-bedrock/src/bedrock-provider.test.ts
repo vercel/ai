@@ -3,7 +3,6 @@ import { createAmazonBedrock } from './bedrock-provider';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { BedrockImageModel } from './bedrock-image-model';
-import { anthropicTools } from '@ai-sdk/anthropic/internal';
 
 // Add type assertions for the mocked classes
 const BedrockChatLanguageModelMock =
@@ -28,14 +27,13 @@ vi.mock('./bedrock-sigv4-fetch', () => ({
   createApiKeyFetchFunction: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/anthropic', async importOriginal => {
-  const original = await importOriginal<typeof import('@ai-sdk/anthropic')>();
-  return {
-    ...original,
-    anthropicTools: { mock: 'tools' },
-    prepareTools: vi.fn(),
-  };
-});
+vi.mock('@ai-sdk/anthropic/internal', () => ({
+  anthropicTools: { anthropic_tool: vi.fn() },
+}));
+
+vi.mock('./bedrock-nova-tools', () => ({
+  novaTools: { nova_grounding: vi.fn() },
+}));
 
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
   const original =
@@ -449,9 +447,12 @@ describe('AmazonBedrockProvider', () => {
       expect(model).toBeInstanceOf(BedrockImageModel);
     });
 
-    it('should expose anthropicTools', () => {
+    it('should expose anthropicTools and novaTools', () => {
       const provider = createAmazonBedrock();
-      expect(provider.tools).toBe(anthropicTools);
+      expect(provider.tools).toEqual({
+        anthropic_tool: expect.any(Function),
+        nova_grounding: expect.any(Function),
+      });
     });
   });
 });
