@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
-  const { partialOutputStream: partialOutputStream } = streamText({
+  const result = streamText({
     model: openai('gpt-4o-mini'),
     providerOptions: {
       openai: {
@@ -26,7 +26,7 @@ run(async () => {
     prompt: 'Get the weather for San Francisco. What should I wear?',
   });
 
-  for await (const partialOutput of partialOutputStream) {
+  for await (const partialOutput of result.partialOutputStream) {
     console.clear();
     console.log(partialOutput);
   }
