@@ -68,17 +68,7 @@ function createCitationSource(
     title: citation.title ?? documentInfo.title,
     filename: documentInfo.filename,
     providerMetadata: {
-      bedrock: citation.location?.documentPage
-        ? {
-            citedText: citation.sourceContent,
-            startPageNumber: location.start,
-            endPageNumber: location.end,
-          }
-        : {
-            citedText: citation.sourceContent,
-            startCharIndex: location.start,
-            endCharIndex: location.end,
-          },
+      bedrock: citation,
     } satisfies SharedV3ProviderMetadata,
   };
 }
