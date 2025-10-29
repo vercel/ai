@@ -600,6 +600,59 @@ Parameters:
 
 These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-20240620-v1:0` model to enable more complex interactions and tasks.
 
+## Nova Web Grounding
+
+Amazon Nova models support Web Grounding, a built-in tool that provides real-time web search capabilities. Web Grounding is a turnkey Retrieval Augmented Generation (RAG) option that allows Nova models to intelligently decide when to retrieve and incorporate relevant up-to-date information based on the context of the prompt.
+
+### When to Use Web Grounding
+
+Web Grounding is particularly useful for:
+
+- Applications requiring access to current, factual information
+- Responses that need well-cited sources
+- Knowledge-based chat assistants providing up-to-date information
+- Content generation tools requiring fact-checking and source verification
+- Research assistants synthesizing information from multiple current sources
+- Customer support applications where accuracy and verifiability are crucial
+
+### Using Web Grounding
+
+Web Grounding is available via the `tools` property of the provider instance:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: bedrock('us.amazon.nova-premier-v1:0'),
+  prompt: 'What are the current AWS Regions and their locations?',
+  tools: {
+    nova_grounding: bedrock.tools.nova_grounding(),
+  },
+});
+
+console.log(result.text);
+```
+
+When Web Grounding is enabled, the model will automatically:
+
+1. Determine when external information is needed based on the prompt
+2. Search for relevant, up-to-date information from the web
+3. Incorporate the retrieved information into its response
+4. Provide source citations for the information used
+
+### Availability
+
+- **Regions**: US East (N. Virginia), with US East (Ohio) and US West (Oregon) coming soon
+- **Models**: Currently available for Nova Premier, with support for other Nova models coming soon
+- **Pricing**: Web Grounding incurs additional costs. See the [Amazon Bedrock pricing page](https://aws.amazon.com/bedrock/pricing/) for details
+
+<Note>
+  Web Grounding represents a significant step forward in making AI applications
+  more reliable and current with minimum effort, eliminating the need to build
+  and maintain complex RAG pipelines.
+</Note>
+
 ### Model Capabilities
 
 | Model                                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |

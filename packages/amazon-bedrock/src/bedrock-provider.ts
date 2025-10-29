@@ -1,4 +1,5 @@
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
+import { novaTools } from './bedrock-nova-tools';
 import {
   EmbeddingModelV3,
   ImageModelV3,
@@ -137,7 +138,7 @@ Creates a model for image generation.
   /**
 Anthropic-specific tools that can be used with Anthropic models on Bedrock.
    */
-  tools: typeof anthropicTools;
+  tools: typeof anthropicTools & typeof novaTools;
 }
 
 /**
@@ -321,7 +322,7 @@ export function createAmazonBedrock(
   provider.imageModel = createImageModel;
   provider.reranking = createRerankingModel;
   provider.rerankingModel = createRerankingModel;
-  provider.tools = anthropicTools;
+  provider.tools = { ...anthropicTools, ...novaTools };
 
   return provider;
 }

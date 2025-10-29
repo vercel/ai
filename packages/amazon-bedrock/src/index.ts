@@ -7,4 +7,5 @@ export type {
   AmazonBedrockProviderSettings,
 } from './bedrock-provider';
 export type { BedrockRerankingOptions } from './reranking/bedrock-reranking-options';
+export { novaTools } from './bedrock-nova-tools';
 export { VERSION } from './version';
