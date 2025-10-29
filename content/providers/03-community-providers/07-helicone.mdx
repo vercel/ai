@@ -5,12 +5,13 @@ description: Helicone Provider for the AI SDK
 
 # Helicone
 
-The [Helicone AI Gateway](https://helicone.ai/) provides you with access to hundreds of AI models, as well as tracing and monitoring through our embedded observability platform.
+The [Helicone AI Gateway](https://helicone.ai/) provides you with access to hundreds of AI models, as well as tracing and monitoring integrated directly through our observability platform.
 
-- **🌐 Unified model access**: Use one API key to access hundreds of models from leading providers like Anthropic, Google, Meta, and more.
-- **⚡ Smart provider selection**: Always hit the cheapest provider, and always aware of provider uptimes and your rate limits. Built-in strategies include model-based latency routing (fastest model), provider latency-based P2C + PeakEWMA (fastest provider), weighted distribution (based on model weight), and cost optimization (cheapest option).
-- **🚀 Improve performance**: Cache responses to reduce costs and latency.
-- **📊 Simplified tracing**: Monitor performance and debug issues with Helicone observability embedded, including OpenTelemetry support for logs, metrics, and traces.
+- **Unified model access**: Use one API key to access hundreds of models from leading providers like Anthropic, Google, Meta, and more.
+- **Smart provider selection**: Always hit the cheapest provider, enabling fallbacks for provider uptimes and rate limits.
+- **Simplified tracing**: Monitor your LLM's performance and debug applications with Helicone observability by default, including OpenTelemetry support for logs, metrics, and traces.
+- **Improve performance and cost**: Cache responses to reduce costs and latency.
+- **Prompt management**: Handle prompt versioning and playground directly from Helicone, so you no longer depeend on engineers to make changes.
 
 Learn more about Helicone's capabilities in the [Helicone Documentation](https://helicone.ai/docs).
 
@@ -46,7 +47,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone("claude-3.7-sonnet"),
+  model: helicone("claude-4.5-haiku"),
   prompt: "Write a haiku about artificial intelligence",
 });
 
@@ -70,7 +71,7 @@ const helicone = createHelicone({
 });
 
 const { text } = await generateText({
-  model: helicone('claude-3.7-sonnet'),
+  model: helicone('gemini-2.5-flash-lite'),
   prompt: 'What is Helicone?'
 });
 
@@ -85,7 +86,7 @@ const helicone = createHelicone({
 });
 
 const result = await streamText({
-  model: helicone('gpt-4o-mini'),
+  model: helicone('deepseek-v3.1-terminus'),
   prompt: 'Write a short story about a robot learning to paint',
   maxOutputTokens: 300
 });
