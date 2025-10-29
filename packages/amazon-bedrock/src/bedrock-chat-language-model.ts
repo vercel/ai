@@ -49,7 +49,8 @@ function createCitationSource(
   }>,
   generateId: () => string,
 ): LanguageModelV3Source | undefined {
-  const location = citation?.location?.documentPage || citation?.location?.documentChar;
+  const location =
+    citation?.location?.documentPage || citation?.location?.documentChar;
   if (!location) {
     return;
   }
@@ -67,17 +68,16 @@ function createCitationSource(
     title: citation.title ?? documentInfo.title,
     filename: documentInfo.filename,
     providerMetadata: {
-      bedrock:
-        citation.location?.documentPage
-          ? {
-              citedText: citation.sourceContent,
-              startPageNumber: location.start,
-              endPageNumber: location.end,
-            }
-          : {
-              citedText: citation.sourceContent,
-              startCharIndex: location.start,
-              endCharIndex: location.end,
+      bedrock: citation.location?.documentPage
+        ? {
+            citedText: citation.sourceContent,
+            startPageNumber: location.start,
+            endPageNumber: location.end,
+          }
+        : {
+            citedText: citation.sourceContent,
+            startCharIndex: location.start,
+            endCharIndex: location.end,
           },
     } satisfies SharedV3ProviderMetadata,
   };
@@ -561,6 +561,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
+    // Extract citation documents for response processing
+    const citationDocuments = this.extractCitationDocuments(options.prompt);
+
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: await this.getHeaders({ betas, headers: options.headers }),
@@ -725,6 +728,23 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                   id: String(blockIndex),
                   delta: value.contentBlockDelta.delta.text,
                 });
+              }
+            }
+
+            if (
+              value.contentBlockDelta?.delta &&
+              'citation' in value.contentBlockDelta.delta &&
+              value.contentBlockDelta.delta.citation
+            ) {
+              const citation = value.contentBlockDelta.delta.citation;
+              const source = createCitationSource(
+                citation,
+                citationDocuments,
+                generateId,
+              );
+
+              if (source) {
+                controller.enqueue(source);
               }
             }
 
