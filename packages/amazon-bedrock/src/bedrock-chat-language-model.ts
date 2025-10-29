@@ -553,7 +553,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
-
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: await this.getHeaders({ betas, headers: options.headers }),
@@ -586,6 +585,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         }
       | { type: 'text' | 'reasoning' }
     > = {};
+
+    const generateId = this.generateId;
 
     return {
       stream: response.pipeThrough(
