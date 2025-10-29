@@ -80,7 +80,7 @@ describe('prepareTools', () => {
       expect(result.betas.size).toBe(0);
     });
 
-    it('should warn when mixing Nova tools with function tools', async () => {
+    it('should warn when mixing Nova tools with function tools and exclude function tools', async () => {
       const result = await prepareTools({
         tools: [
           {
@@ -104,6 +104,16 @@ describe('prepareTools', () => {
         details:
           'Mixed Nova provider-defined tools and standard function tools are not supported in a single call to Bedrock. Only Nova tools will be used.',
       });
+
+      // Verify that only Nova tools are included, function tools are excluded
+      expect(result.toolConfig.tools).toEqual([
+        {
+          systemTool: {
+            name: 'nova_grounding',
+          },
+        },
+      ]);
+      expect(result.toolConfig.tools?.length).toBe(1);
     });
 
     it('should not use Nova tools with non-Nova models', async () => {
@@ -132,7 +142,38 @@ describe('prepareTools', () => {
     });
   });
 
-  describe('Anthropic web_search tool filtering', () => {
+  describe('Anthropic provider-defined tools', () => {
+    it('should warn when mixing Anthropic tools with function tools and exclude function tools', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'anthropic.bash_20241022',
+            name: 'bash',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'testFunction',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+      });
+
+      expect(result.toolWarnings).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'tools',
+        details:
+          'Mixed Anthropic provider-defined tools and standard function tools are not supported in a single call to Bedrock. Only Anthropic tools will be used.',
+      });
+
+      // Verify that only Anthropic tools are included, function tools are excluded
+      expect(result.toolConfig.tools).toHaveLength(1);
+      expect(result.toolConfig.tools?.[0]).toHaveProperty('toolSpec');
+      expect((result.toolConfig.tools?.[0] as any).toolSpec?.name).toBe('bash');
+    });
+
     it('should filter out web_search_20250305 and add warning', async () => {
       const result = await prepareTools({
         tools: [

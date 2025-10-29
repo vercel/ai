@@ -171,17 +171,19 @@ export async function prepareTools({
     }
   }
 
-  // Handle standard function tools for all models
-  for (const tool of functionTools) {
-    bedrockTools.push({
-      toolSpec: {
-        name: tool.name,
-        description: tool.description,
-        inputSchema: {
-          json: tool.inputSchema as JSONObject,
+  // Handle standard function tools for all models (but NOT when using provider-defined tools)
+  if (!usingAnthropicTools && !usingNovaTools) {
+    for (const tool of functionTools) {
+      bedrockTools.push({
+        toolSpec: {
+          name: tool.name,
+          description: tool.description,
+          inputSchema: {
+            json: tool.inputSchema as JSONObject,
+          },
         },
-      },
-    });
+      });
+    }
   }
 
   // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic/Nova provider-defined tools
