@@ -185,10 +185,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
             if (contentPart.annotations) {
               for (const annotation of contentPart.annotations) {
-                if (
-                  annotation.type === 'url_citation' &&
-                  'url' in annotation
-                ) {
+                if (annotation.type === 'url_citation' && 'url' in annotation) {
                   content.push({
                     type: 'source',
                     sourceType: 'url',
@@ -227,8 +224,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
         totalTokens: response.usage.total_tokens,
-        reasoningTokens:
-          response.usage.output_tokens_details?.reasoning_tokens,
+        reasoningTokens: response.usage.output_tokens_details?.reasoning_tokens,
       },
       request: { body },
       response: {
@@ -332,7 +328,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             if (event.type === 'response.output_text.done') {
               if (event.annotations) {
                 for (const annotation of event.annotations) {
-                  if (annotation.type === 'url_citation' && 'url' in annotation) {
+                  if (
+                    annotation.type === 'url_citation' &&
+                    'url' in annotation
+                  ) {
                     controller.enqueue({
                       type: 'source',
                       sourceType: 'url',
@@ -362,7 +361,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               return;
             }
 
-            if (event.type === 'response.done' || event.type === 'response.completed') {
+            if (
+              event.type === 'response.done' ||
+              event.type === 'response.completed'
+            ) {
               const response = event.response;
 
               if (response.usage) {

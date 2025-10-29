@@ -2,10 +2,7 @@ import {
   LanguageModelV3CallWarning,
   LanguageModelV3Message,
 } from '@ai-sdk/provider';
-import {
-  XaiResponsesInput,
-  XaiResponsesInputItem,
-} from './xai-responses-api';
+import { XaiResponsesInput, XaiResponsesInputItem } from './xai-responses-api';
 
 export async function convertToXaiResponsesInput(
   prompt: LanguageModelV3Message[],
@@ -39,7 +36,8 @@ export async function convertToXaiResponsesInput(
             case 'file': {
               inputWarnings.push({
                 type: 'other',
-                message: 'xAI Responses API does not support files in user messages',
+                message:
+                  'xAI Responses API does not support files in user messages',
               });
               break;
             }
@@ -48,7 +46,8 @@ export async function convertToXaiResponsesInput(
               const _exhaustiveCheck: never = block;
               inputWarnings.push({
                 type: 'other',
-                message: 'xAI Responses API does not support this content type in user messages',
+                message:
+                  'xAI Responses API does not support this content type in user messages',
               });
             }
           }
@@ -81,7 +80,8 @@ export async function convertToXaiResponsesInput(
             case 'file': {
               inputWarnings.push({
                 type: 'other',
-                message: 'xAI Responses API does not support this content type in assistant messages',
+                message:
+                  'xAI Responses API does not support this content type in assistant messages',
               });
               break;
             }
@@ -90,7 +90,8 @@ export async function convertToXaiResponsesInput(
               const _exhaustiveCheck: never = block;
               inputWarnings.push({
                 type: 'other',
-                message: 'xAI Responses API does not support this content type in assistant messages',
+                message:
+                  'xAI Responses API does not support this content type in assistant messages',
               });
             }
           }

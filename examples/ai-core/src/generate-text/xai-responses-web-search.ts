@@ -17,7 +17,9 @@ async function main() {
   console.log('Tool calls made:');
   for (const content of result.content) {
     if (content.type === 'tool-call') {
-      console.log(`  - ${content.toolName} (${content.providerExecuted ? 'server-side' : 'client-side'})`);
+      console.log(
+        `  - ${content.toolName} (${content.providerExecuted ? 'server-side' : 'client-side'})`,
+      );
     }
   }
 

@@ -16,5 +16,6 @@ const viewImageToolFactory = createProviderDefinedToolFactoryWithOutputSchema({
   outputSchema: viewImageOutputSchema,
 });
 
-export const viewImage = (args: Parameters<typeof viewImageToolFactory>[0] = {}) =>
-  viewImageToolFactory(args);
+export const viewImage = (
+  args: Parameters<typeof viewImageToolFactory>[0] = {},
+) => viewImageToolFactory(args);

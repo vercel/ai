@@ -6,12 +6,14 @@ const codeExecutionOutputSchema = z.object({
   error: z.string().optional().describe('any error that occurred'),
 });
 
-const codeExecutionToolFactory = createProviderDefinedToolFactoryWithOutputSchema({
-  id: 'xai.code_execution',
-  name: 'code_execution',
-  inputSchema: z.object({}).describe('no input parameters'),
-  outputSchema: codeExecutionOutputSchema,
-});
+const codeExecutionToolFactory =
+  createProviderDefinedToolFactoryWithOutputSchema({
+    id: 'xai.code_execution',
+    name: 'code_execution',
+    inputSchema: z.object({}).describe('no input parameters'),
+    outputSchema: codeExecutionOutputSchema,
+  });
 
-export const codeExecution = (args: Parameters<typeof codeExecutionToolFactory>[0] = {}) =>
-  codeExecutionToolFactory(args);
+export const codeExecution = (
+  args: Parameters<typeof codeExecutionToolFactory>[0] = {},
+) => codeExecutionToolFactory(args);
