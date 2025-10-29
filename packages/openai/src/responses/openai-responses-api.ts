@@ -468,6 +468,20 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             end_index: z.number().nullish(),
             quote: z.string().nullish(),
           }),
+          z.object({
+            type: z.literal('container_file_citation'),
+            container_id: z.string(),
+            file_id: z.string(),
+            filename: z.string().nullish(),
+            start_index: z.number().nullish(),
+            end_index: z.number().nullish(),
+            index: z.number().nullish(),
+          }),
+          z.object({
+            type: z.literal('file_path'),
+            file_id: z.string(),
+            index: z.number().nullish(),
+          }),
         ]),
       }),
       z.object({
@@ -578,6 +592,17 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                     }),
                     z.object({
                       type: z.literal('container_file_citation'),
+                      container_id: z.string(),
+                      file_id: z.string(),
+                      filename: z.string().nullish(),
+                      start_index: z.number().nullish(),
+                      end_index: z.number().nullish(),
+                      index: z.number().nullish(),
+                    }),
+                    z.object({
+                      type: z.literal('file_path'),
+                      file_id: z.string(),
+                      index: z.number().nullish(),
                     }),
                   ]),
                 ),
