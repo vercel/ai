@@ -1,5 +1,12 @@
 # @ai-sdk/cohere
 
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+
 ## 2.0.15
 
 ### Patch Changes
