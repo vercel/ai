@@ -10,6 +10,7 @@ import {
 } from './bedrock-api-types';
 import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
+import fs from 'node:fs';
 
 const mockPrepareAnthropicTools = vi.mocked(prepareTools);
 
@@ -92,6 +93,29 @@ const server = createTestServer({
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
 });
+
+function prepareJsonFixtureResponse(filename: string) {
+  server.urls[generateUrl].response = {
+    type: 'json-value',
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+  return;
+}
+
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map(line => line + '\n');
+
+  server.urls[streamUrl].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
 
 beforeEach(() => {
   // Reset stream chunks for the default model
@@ -1476,39 +1500,7 @@ describe('doStream', () => {
 
   it('should handle JSON response format in streaming', async () => {
     setupMockEventStreamHandler();
-    server.urls[streamUrl].response = {
-      type: 'stream-chunks',
-      chunks: [
-        JSON.stringify({
-          contentBlockStart: {
-            contentBlockIndex: 0,
-            start: {
-              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
-            },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 0,
-            delta: { toolUse: { input: '{"value":' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 0,
-            delta: { toolUse: { input: '"test"}' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 0 },
-        }) + '\n',
-        JSON.stringify({
-          messageStop: {
-            stopReason: 'tool_use',
-          },
-        }) + '\n',
-      ],
-    };
+    prepareChunksFixtureResponse('bedrock-json-tool.1');
 
     const { stream } = await model.doStream({
       prompt: [
@@ -1564,45 +1556,7 @@ describe('doStream', () => {
 
   it('should include text content before JSON tool call in streaming', async () => {
     setupMockEventStreamHandler();
-    server.urls[streamUrl].response = {
-      type: 'stream-chunks',
-      chunks: [
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 0,
-            delta: { text: 'Let me generate' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 0,
-            delta: { text: ' that JSON for you.' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStart: {
-            contentBlockIndex: 1,
-            start: {
-              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
-            },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 1,
-            delta: { toolUse: { input: '{"value":"test"}' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 1 },
-        }) + '\n',
-        JSON.stringify({
-          messageStop: {
-            stopReason: 'tool_use',
-          },
-        }) + '\n',
-      ],
-    };
+    prepareChunksFixtureResponse('bedrock-json-tool.2');
 
     const { stream } = await model.doStream({
       prompt: [
@@ -1675,51 +1629,7 @@ describe('doStream', () => {
 
   it('should include multiple text blocks before JSON tool call in streaming', async () => {
     setupMockEventStreamHandler();
-    server.urls[streamUrl].response = {
-      type: 'stream-chunks',
-      chunks: [
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 0,
-            delta: { text: 'First text block.' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 1,
-            delta: { text: 'Second text block.' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 2,
-            delta: { text: 'Third block.' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStart: {
-            contentBlockIndex: 3,
-            start: {
-              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
-            },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 3,
-            delta: { toolUse: { input: '{"result":42}' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 3 },
-        }) + '\n',
-        JSON.stringify({
-          messageStop: {
-            stopReason: 'tool_use',
-          },
-        }) + '\n',
-      ],
-    };
+    prepareChunksFixtureResponse('bedrock-json-tool.3');
 
     const { stream } = await model.doStream({
       prompt: [
@@ -1805,62 +1715,7 @@ describe('doStream', () => {
 
   it('should handle regular tool call before JSON tool call in streaming', async () => {
     setupMockEventStreamHandler();
-    server.urls[streamUrl].response = {
-      type: 'stream-chunks',
-      chunks: [
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 0,
-            delta: { text: 'Calling a tool first.' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStart: {
-            contentBlockIndex: 1,
-            start: {
-              toolUse: { toolUseId: 'tool-1', name: 'get-weather' },
-            },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 1,
-            delta: { toolUse: { input: '{"location":"SF"}' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 1 },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 2,
-            delta: { text: 'Now JSON.' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStart: {
-            contentBlockIndex: 3,
-            start: {
-              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
-            },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 3,
-            delta: { toolUse: { input: '{"result":"data"}' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 3 },
-        }) + '\n',
-        JSON.stringify({
-          messageStop: {
-            stopReason: 'tool_use',
-          },
-        }) + '\n',
-      ],
-    };
+    prepareChunksFixtureResponse('bedrock-json-with-tool.1');
 
     const { stream } = await model.doStream({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
@@ -1966,79 +1821,7 @@ describe('doStream', () => {
 
   it('should handle multiple regular tool calls before JSON tool call in streaming', async () => {
     setupMockEventStreamHandler();
-    server.urls[streamUrl].response = {
-      type: 'stream-chunks',
-      chunks: [
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 0,
-            delta: { text: 'Multiple tools.' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStart: {
-            contentBlockIndex: 1,
-            start: {
-              toolUse: { toolUseId: 'tool-1', name: 'tool-a' },
-            },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 1,
-            delta: { toolUse: { input: '{"a":"1"}' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 1 },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStart: {
-            contentBlockIndex: 2,
-            start: {
-              toolUse: { toolUseId: 'tool-2', name: 'tool-b' },
-            },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 2,
-            delta: { toolUse: { input: '{"b":"2"}' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 2 },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 3,
-            delta: { text: 'Final JSON.' },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStart: {
-            contentBlockIndex: 4,
-            start: {
-              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
-            },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockDelta: {
-            contentBlockIndex: 4,
-            delta: { toolUse: { input: '{"final":"result"}' } },
-          },
-        }) + '\n',
-        JSON.stringify({
-          contentBlockStop: { contentBlockIndex: 4 },
-        }) + '\n',
-        JSON.stringify({
-          messageStop: {
-            stopReason: 'tool_use',
-          },
-        }) + '\n',
-      ],
-    };
+    prepareChunksFixtureResponse('bedrock-json-with-tools.1');
 
     const { stream } = await model.doStream({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
@@ -3029,27 +2812,7 @@ describe('doGenerate', () => {
     let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
     beforeEach(async () => {
-      prepareJsonResponse({
-        content: [
-          {
-            toolUse: {
-              toolUseId: 'json-tool-id',
-              name: 'json',
-              input: {
-                elements: [
-                  {
-                    location: 'San Francisco',
-                    temperature: -5,
-                    condition: 'snowy',
-                  },
-                  { location: 'London', temperature: 0, condition: 'snowy' },
-                ],
-              },
-            },
-          } as any,
-        ],
-        stopReason: 'tool_use',
-      });
+      prepareJsonFixtureResponse('bedrock-json-tool.1');
 
       result = await model.doGenerate({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
@@ -3272,19 +3035,7 @@ describe('doGenerate', () => {
   });
 
   it('should include text content before JSON tool call in doGenerate', async () => {
-    prepareJsonResponse({
-      content: [
-        { type: 'text', text: 'Let me generate that JSON for you.' },
-        {
-          toolUse: {
-            toolUseId: 'json-tool-id',
-            name: 'json',
-            input: { value: 'test data' },
-          },
-        } as any,
-      ],
-      stopReason: 'tool_use',
-    });
+    prepareJsonFixtureResponse('bedrock-json-tool.2');
 
     const result = await model.doGenerate({
       prompt: [
@@ -3319,21 +3070,7 @@ describe('doGenerate', () => {
   });
 
   it('should include multiple text blocks before JSON tool call in doGenerate', async () => {
-    prepareJsonResponse({
-      content: [
-        { type: 'text', text: 'First text block.' },
-        { type: 'text', text: 'Second text block.' },
-        { type: 'text', text: 'Third text block before JSON.' },
-        {
-          toolUse: {
-            toolUseId: 'json-tool-id',
-            name: 'json',
-            input: { result: 42 },
-          },
-        } as any,
-      ],
-      stopReason: 'tool_use',
-    });
+    prepareJsonFixtureResponse('bedrock-json-tool.3');
 
     const result = await model.doGenerate({
       prompt: [
@@ -3375,27 +3112,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle regular tool call before JSON tool call in doGenerate', async () => {
-    prepareJsonResponse({
-      content: [
-        { type: 'text', text: 'Let me call a tool first.' },
-        {
-          toolUse: {
-            toolUseId: 'tool-1',
-            name: 'get-weather',
-            input: { location: 'SF' },
-          },
-        } as any,
-        { type: 'text', text: 'Now the JSON.' },
-        {
-          toolUse: {
-            toolUseId: 'json-tool-id',
-            name: 'json',
-            input: { result: 'data' },
-          },
-        } as any,
-      ],
-      stopReason: 'tool_use',
-    });
+    prepareJsonFixtureResponse('bedrock-json-with-tool.1');
 
     const result = await model.doGenerate({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
@@ -3449,34 +3166,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle multiple regular tool calls before JSON tool call in doGenerate', async () => {
-    prepareJsonResponse({
-      content: [
-        { type: 'text', text: 'Calling multiple tools.' },
-        {
-          toolUse: {
-            toolUseId: 'tool-1',
-            name: 'tool-a',
-            input: { param: 'a' },
-          },
-        } as any,
-        {
-          toolUse: {
-            toolUseId: 'tool-2',
-            name: 'tool-b',
-            input: { param: 'b' },
-          },
-        } as any,
-        { type: 'text', text: 'Finally the JSON response.' },
-        {
-          toolUse: {
-            toolUseId: 'json-tool-id',
-            name: 'json',
-            input: { final: 'result' },
-          },
-        } as any,
-      ],
-      stopReason: 'tool_use',
-    });
+    prepareJsonFixtureResponse('bedrock-json-with-tools.1');
 
     const result = await model.doGenerate({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
