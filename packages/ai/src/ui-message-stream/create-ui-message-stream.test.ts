@@ -6,7 +6,7 @@ import { UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 import { consumeStream } from '../util/consume-stream';
 import { UIMessage } from '../ui/ui-messages';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
@@ -632,5 +632,112 @@ describe('createUIMessageStream', () => {
         },
       ]
     `);
+  });
+
+  describe('onStepFinish callback', () => {
+    let onStepFinishCalls: Array<{
+      stepNumber: number;
+      stepMessage: UIMessage;
+      responseMessage: UIMessage;
+    }>;
+
+    beforeEach(() => {
+      onStepFinishCalls = [];
+    });
+
+    it('should call onStepFinish for each finish-step chunk', async () => {
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: 'start' });
+          writer.write({ type: 'start-step' });
+          writer.write({ type: 'text-start', id: '1' });
+          writer.write({ type: 'text-delta', id: '1', delta: 'Hello' });
+          writer.write({ type: 'text-end', id: '1' });
+          writer.write({ type: 'finish-step' });
+          writer.write({ type: 'start-step' });
+          writer.write({ type: 'text-start', id: '2' });
+          writer.write({ type: 'text-delta', id: '2', delta: 'World' });
+          writer.write({ type: 'text-end', id: '2' });
+          writer.write({ type: 'finish-step' });
+          writer.write({ type: 'finish' });
+        },
+        onStepFinish: event => {
+          onStepFinishCalls.push({
+            stepNumber: event.stepNumber,
+            stepMessage: event.stepMessage,
+            responseMessage: event.responseMessage,
+          });
+        },
+      });
+
+      await consumeStream({ stream });
+
+      expect(onStepFinishCalls).toHaveLength(2);
+      expect(onStepFinishCalls[0].stepNumber).toBe(1);
+      expect(onStepFinishCalls[1].stepNumber).toBe(2);
+    });
+
+    it('should return only new parts for each step in stepMessage', async () => {
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: 'start' });
+          writer.write({ type: 'start-step' });
+          writer.write({ type: 'text-start', id: '1' });
+          writer.write({ type: 'text-delta', id: '1', delta: 'Step1' });
+          writer.write({ type: 'text-end', id: '1' });
+          writer.write({ type: 'finish-step' });
+          writer.write({ type: 'start-step' });
+          writer.write({ type: 'text-start', id: '2' });
+          writer.write({ type: 'text-delta', id: '2', delta: 'Step2' });
+          writer.write({ type: 'text-end', id: '2' });
+          writer.write({ type: 'finish-step' });
+          writer.write({ type: 'finish' });
+        },
+        onStepFinish: event => {
+          onStepFinishCalls.push({
+            stepNumber: event.stepNumber,
+            stepMessage: event.stepMessage,
+            responseMessage: event.responseMessage,
+          });
+        },
+      });
+
+      await consumeStream({ stream });
+
+      // Step 1: stepMessage should only have Step1 parts
+      expect(onStepFinishCalls[0].stepMessage.parts).toHaveLength(2);
+      expect((onStepFinishCalls[0].stepMessage.parts[1] as any).text).toBe(
+        'Step1',
+      );
+
+      // Step 1: responseMessage should have Step1 parts
+      expect(onStepFinishCalls[0].responseMessage.parts).toHaveLength(2);
+
+      // Step 2: stepMessage should only have Step2 parts
+      expect(onStepFinishCalls[1].stepMessage.parts).toHaveLength(2);
+      expect((onStepFinishCalls[1].stepMessage.parts[1] as any).text).toBe(
+        'Step2',
+      );
+
+      // Step 2: responseMessage should have both Step1 and Step2 parts
+      expect(onStepFinishCalls[1].responseMessage.parts).toHaveLength(4);
+    });
+
+    it('should not call onStepFinish if no finish-step chunks exist', async () => {
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: 'text-start', id: '1' });
+          writer.write({ type: 'text-delta', id: '1', delta: 'Hello' });
+          writer.write({ type: 'text-end', id: '1' });
+        },
+        onStepFinish: () => {
+          onStepFinishCalls.push({} as any);
+        },
+      });
+
+      await consumeStream({ stream });
+
+      expect(onStepFinishCalls).toHaveLength(0);
+    });
   });
 });

@@ -7,11 +7,13 @@ import { UIMessage } from '../ui/ui-messages';
 import { ErrorHandler } from '../util/error-handler';
 import { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
   originalMessages = [],
   onFinish,
+  onStepFinish,
   onError,
   stream,
 }: {
@@ -31,6 +33,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   onError: ErrorHandler;
 
   onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   // last message is only relevant for assistant messages
   let lastMessage: UI_MESSAGE | undefined =
@@ -69,7 +73,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     }),
   );
 
-  if (onFinish == null) {
+  // If neither onFinish nor onStepFinish is provided, just pass through the stream
+  if (onFinish == null && onStepFinish == null) {
     return idInjectedStream;
   }
 
@@ -109,10 +114,45 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     });
   };
 
+  // Prepare onStepFinish callback wrapper
+  const wrappedOnStepFinish = onStepFinish
+    ? async (options: {
+        state: StreamingUIMessageState<UI_MESSAGE>;
+        stepNumber: number;
+        stepParts: Array<UI_MESSAGE['parts'][number]>;
+      }) => {
+        const isContinuation = options.state.message.id === lastMessage?.id;
+
+        // Create a step message containing only the parts from this step
+        const stepMessage: UI_MESSAGE = {
+          id: options.state.message.id,
+          role: 'assistant',
+          parts: options.stepParts,
+          metadata: options.state.message.metadata,
+        } as UI_MESSAGE;
+
+        await onStepFinish({
+          messages: [
+            ...(isContinuation
+              ? originalMessages.slice(0, -1)
+              : originalMessages),
+            options.state.message,
+          ] as UI_MESSAGE[],
+          stepNumber: options.stepNumber,
+          responseMessage: options.state.message as UI_MESSAGE,
+          stepMessage,
+          isContinuation,
+          isAborted,
+          stepParts: options.stepParts,
+        });
+      }
+    : undefined;
+
   return processUIMessageStream<UI_MESSAGE>({
     stream: idInjectedStream,
     runUpdateMessageJob,
     onError,
+    onStepFinish: wrappedOnStepFinish,
   }).pipeThrough(
     new TransformStream<
       InferUIMessageChunk<UI_MESSAGE>,

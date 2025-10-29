@@ -77,6 +77,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError,
   onToolCall,
   onData,
+  onStepFinish,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
@@ -93,7 +94,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     }) => Promise<void>,
   ) => Promise<void>;
   onError: ErrorHandler;
+  onStepFinish?: (options: {
+    state: StreamingUIMessageState<UI_MESSAGE>;
+    stepNumber: number;
+    stepParts: Array<UI_MESSAGE['parts'][number]>;
+  }) => PromiseLike<void> | void;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
+  // Track step state outside the transform function
+  let stepNumber = 0;
+  let lastStepStartPartsIndex = 0;
+
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
@@ -611,6 +621,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'start-step': {
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
+              // Track the index where this step starts (after adding step-start)
+              lastStepStartPartsIndex = state.message.parts.length - 1;
               break;
             }
 
@@ -618,6 +630,32 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // reset the current text and reasoning parts
               state.activeTextParts = {};
               state.activeReasoningParts = {};
+
+              // Call onStepFinish if provided
+              if (onStepFinish) {
+                stepNumber++;
+                // Calculate step parts: from lastStepStartPartsIndex to end
+                // This includes the step-start part if it exists
+                const stepParts = state.message.parts.slice(
+                  lastStepStartPartsIndex,
+                ) as Array<UI_MESSAGE['parts'][number]>;
+
+                try {
+                  await onStepFinish({
+                    state,
+                    stepNumber,
+                    stepParts,
+                  });
+                } catch (error) {
+                  // Handle errors in onStepFinish gracefully
+                  onError?.(error);
+                }
+
+                // Update lastStepStartPartsIndex for the next step
+                // (if there's no start-step, we'll continue from here)
+                lastStepStartPartsIndex = state.message.parts.length;
+              }
+
               break;
             }
 
