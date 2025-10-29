@@ -903,7 +903,7 @@ describe('Chat', () => {
         }),
         formatChunk({ type: 'text-end', id: 'text-1' }),
         formatChunk({ type: 'finish-step' }),
-        formatChunk({ type: 'finish' }),
+        formatChunk({ type: 'finish', finishReason: 'stop' }),
       ],
     };
 
@@ -1556,7 +1556,7 @@ describe('Chat', () => {
 
       // finish stream
       controller1.write(formatChunk({ type: 'finish-step' }));
-      controller1.write(formatChunk({ type: 'finish' }));
+      controller1.write(formatChunk({ type: 'finish', finishReason: 'stop' }));
 
       await controller1.close();
 
@@ -1923,7 +1923,7 @@ describe('Chat', () => {
             }),
             formatChunk({ type: 'text-end', id: 'id-1' }),
             formatChunk({ type: 'finish-step' }),
-            formatChunk({ type: 'finish' }),
+            formatChunk({ type: 'finish', finishReason: 'stop' }),
           ],
         },
       ];
@@ -2426,7 +2426,7 @@ describe('Chat', () => {
               }),
               formatChunk({ type: 'text-end', id: 'txt-1' }),
               formatChunk({ type: 'finish-step' }),
-              formatChunk({ type: 'finish' }),
+              formatChunk({ type: 'finish', finishReason: 'stop' }),
             ],
           },
         ];
