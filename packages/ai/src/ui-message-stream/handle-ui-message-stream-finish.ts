@@ -1,4 +1,3 @@
-import { FinishReason } from '../types/language-model';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
