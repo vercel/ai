@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.14
+
+### Patch Changes
+
+- 949718b: fix(provider-utils): make ReadableStream.cancel() properly finalize async iterators
+
 ## 3.0.13
 
 ### Patch Changes

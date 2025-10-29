@@ -1,5 +1,12 @@
 # @ai-sdk/replicate
 
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+
 ## 1.0.14
 
 ### Patch Changes
