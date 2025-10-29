@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   LanguageModelV3CallOptions,
   TypeValidationError,
 } from '@ai-sdk/provider';
@@ -136,11 +137,6 @@ export const object = <OUTPUT>({
             // Note: currently no validation of partial results:
             partial: result.value as DeepPartial<OUTPUT>,
           };
-        }
-
-        default: {
-          const _exhaustiveCheck: never = result.state;
-          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
         }
       }
     },
@@ -286,11 +282,6 @@ export const array = <ELEMENT>({
 
           return { partial: parsedElements };
         }
-
-        default: {
-          const _exhaustiveCheck: never = result.state;
-          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
-        }
       }
     },
   };
@@ -408,10 +399,61 @@ export const choice = <ELEMENT extends string>({
               : undefined;
           }
         }
+      }
+    },
+  };
+};
 
-        default: {
-          const _exhaustiveCheck: never = result.state;
-          throw new Error(`Unsupported parse state: ${_exhaustiveCheck}`);
+/**
+ * Output specification for unstructured JSON generation.
+ * When the model generates a text response, it will return a JSON object.
+ *
+ * @returns An output specification for generating JSON.
+ */
+export const json = (): Output<JSONValue, JSONValue> => {
+  return {
+    responseFormat: Promise.resolve({
+      type: 'json' as const,
+    }),
+
+    async parseCompleteOutput(
+      { text }: { text: string },
+      context: {
+        response: LanguageModelResponseMetadata;
+        usage: LanguageModelUsage;
+        finishReason: FinishReason;
+      },
+    ) {
+      const parseResult = await safeParseJSON({ text });
+
+      if (!parseResult.success) {
+        throw new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          cause: parseResult.error,
+          text,
+          response: context.response,
+          usage: context.usage,
+          finishReason: context.finishReason,
+        });
+      }
+
+      return parseResult.value;
+    },
+
+    async parsePartialOutput({ text }: { text: string }) {
+      const result = await parsePartialJson(text);
+
+      switch (result.state) {
+        case 'failed-parse':
+        case 'undefined-input': {
+          return undefined;
+        }
+
+        case 'repaired-parse':
+        case 'successful-parse': {
+          return result.value === undefined
+            ? undefined
+            : { partial: result.value };
         }
       }
     },
