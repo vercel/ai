@@ -1,0 +1,43 @@
+name: New Discussion Auto-lock
+# automatically lock and close new discussion posts
+
+on:
+  discussion:
+    types: [created]
+
+jobs:
+  lock_discussion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close and lock discussion
+        run: |
+          lockSucceeded="$(gh api graphql -F discussionId=$DISCUSSION_ID -f query='
+          mutation lock($discussionId:ID!) {
+            addDiscussionComment(input:{discussionId:$discussionId, body:"This discussion was automatically closed because the community moved to [community.vercel.com/ai-sdk](https://community.vercel.com/ai-sdk)"}) {
+              comment{
+                url
+              }
+            }
+            closeDiscussion(input: {discussionId:$discussionId, reason: OUTDATED}) {
+              discussion {
+                url
+                stateReason
+              }
+            }
+            lockLockable(input: {lockableId:$discussionId}) {
+              actor {
+                login
+              }
+              lockedRecord {
+                activeLockReason
+                locked
+              }
+            }
+          }
+          ' --jq '.data.lockLockable.lockedRecord.locked')"
+
+          echo "LOCKED =" $lockSucceeded
+          echo '${{ github.event.discussion.number }}' | jq -r '"https://github.com/vercel/community/discussions/\(.)"'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCUSSION_ID: ${{ github.event.discussion.node_id }}

@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
-  const { experimental_partialOutputStream: partialOutputStream } = streamText({
+  const { partialOutputStream: partialOutputStream } = streamText({
     model: openai('gpt-4o-mini'),
     providerOptions: {
       openai: {
@@ -16,7 +16,7 @@ run(async () => {
       weather: weatherTool,
     },
     stopWhen: stepCountIs(5),
-    experimental_output: Output.object({
+    output: Output.object({
       schema: z.object({
         elements: z.array(
           z.object({

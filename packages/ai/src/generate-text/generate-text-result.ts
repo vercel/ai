@@ -145,7 +145,15 @@ such as the tool calls or the response headers.
   readonly steps: Array<StepResult<TOOLS>>;
 
   /**
-The generated structured output. It uses the `experimental_output` specification.
+The generated structured output. It uses the `output` specification.
+
+@deprecated Use `output` instead.
    */
   readonly experimental_output: OUTPUT;
+
+  /**
+The generated structured output. It uses the `output` specification.
+
+   */
+  readonly output: OUTPUT;
 }

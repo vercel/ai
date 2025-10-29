@@ -1,0 +1,68 @@
+name: Auto Lock Stale Discussions
+# lock discussions that have not been updated in 30 days,
+# starting with oldest, and running once per day
+
+on:
+ schedule:
+    - cron: '45 * * * *'
+ workflow_dispatch:
+
+jobs:
+  close_discussion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: get-stale-discussions
+        id: get-stale-discussions
+        run: |
+          staleDiscussionsQuery="repo:vercel/community updated:<$(date -d "-30days" -I) sort:updated-asc is:unlocked"
+
+          discussions=$(gh api graphql -F searchQuery="$staleDiscussionsQuery" -f query='
+           query oldDiscussions($searchQuery: String!) {
+             search(query:$searchQuery, type:DISCUSSION, first: 20) {
+               nodes {
+                 ... on Discussion {
+                   id
+                   locked
+                   url
+                 }
+               }
+             }
+           }
+          ' --jq '.data.search.nodes')
+
+          echo "DISCUSSIONS_TO_LOCK=$discussions" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: lock-discussions
+        run: |
+         echo "$DISCUSSIONS_TO_LOCK" | jq -r '"Closing \(length) stale discussions: "'
+         for id in $(jq -r '.[].id' <<< "$DISCUSSIONS_TO_LOCK")
+         do
+           lockSucceeded="$(gh api graphql -F discussionId=$id -f query='
+            mutation lock($discussionId:ID!) {
+              closeDiscussion(input: {discussionId:$discussionId, reason: OUTDATED}) {
+                discussion {
+                  url
+                  stateReason
+                }
+              }
+              lockLockable(input: {lockableId:$discussionId}) {
+                actor {
+                  login
+                }
+                lockedRecord {
+                  activeLockReason
+                  locked
+                }
+              }
+              addDiscussionComment(input: {discussionId: $discussionId, body: "This discussion was automatically locked because it has not been updated in over 30 days. If you still have questions about this topic, please ask us at [community.vercel.com/ai-sdk](https://community.vercel.com/ai-sdk)"}) {
+                comment {
+                  body
+                }
+              }
+            }
+           ' --jq '.data.lockLockable.lockedRecord.locked')"
+           echo "Locked $id: $lockSucceeded"
+         done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
