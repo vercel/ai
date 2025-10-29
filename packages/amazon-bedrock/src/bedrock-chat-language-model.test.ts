@@ -1545,7 +1545,12 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "isJsonResponseFromTool": true,
+            },
+          },
           "type": "finish",
           "usage": {
             "inputTokens": undefined,
@@ -2354,14 +2359,16 @@ describe('doGenerate', () => {
     prepareJsonResponse({
       content: [
         {
-          type: 'tool_use',
-          id: 'json-tool-id',
-          name: 'json',
-          input: {
-            recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] },
+          toolUse: {
+            toolUseId: 'json-tool-id',
+            name: 'json',
+            input: {
+              recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] },
+            },
           },
-        },
+        } as any,
       ],
+      stopReason: 'tool_use',
     });
 
     const result = await model.doGenerate({
@@ -2390,9 +2397,17 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(result.content).toMatchInlineSnapshot(`[]`);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"recipe":{"name":"Lasagna","ingredients":["pasta","cheese"]}}",
+          "type": "text",
+        },
+      ]
+    `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+    expect(result.finishReason).toBe('stop');
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.toolConfig.tools).toHaveLength(1);
@@ -2400,9 +2415,7 @@ describe('doGenerate', () => {
     expect(requestBody.toolConfig.tools[0].toolSpec.description).toBe(
       'Respond with a JSON object.',
     );
-    expect(requestBody.toolConfig.toolChoice).toEqual({
-      tool: { name: 'json' },
-    });
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
   });
 
   describe('json schema response format with json tool response', () => {
@@ -2412,16 +2425,17 @@ describe('doGenerate', () => {
       prepareJsonResponse({
         content: [
           {
-            type: 'tool_use',
-            id: 'json-tool-id',
-            name: 'json',
-            input: {
-              elements: [
-                { location: 'San Francisco', temperature: -5, condition: 'snowy' },
-                { location: 'London', temperature: 0, condition: 'snowy' },
-              ],
+            toolUse: {
+              toolUseId: 'json-tool-id',
+              name: 'json',
+              input: {
+                elements: [
+                  { location: 'San Francisco', temperature: -5, condition: 'snowy' },
+                  { location: 'London', temperature: 0, condition: 'snowy' },
+                ],
+              },
             },
-          },
+          } as any,
         ],
         stopReason: 'tool_use',
       });
@@ -2495,11 +2509,12 @@ describe('doGenerate', () => {
       prepareJsonResponse({
         content: [
           {
-            type: 'tool_use',
-            id: 'toolu_01PQjhxo3eirCdKNvCJrKc8f',
-            name: 'get-weather',
-            input: { location: 'San Francisco' },
-          },
+            toolUse: {
+              toolUseId: 'toolu_01PQjhxo3eirCdKNvCJrKc8f',
+              name: 'get-weather',
+              input: { location: 'San Francisco' },
+            },
+          } as any,
         ],
         stopReason: 'tool_use',
       });
