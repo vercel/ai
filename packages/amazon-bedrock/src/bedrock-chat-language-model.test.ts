@@ -1561,6 +1561,247 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should include text content before JSON tool call in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Let me generate' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: ' that JSON for you.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 1,
+            start: {
+              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { toolUse: { input: '{"value":"test"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 1 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Generate JSON' }] },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    // Text before JSON tool call should be streamed normally
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Let me generate",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " that JSON for you.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "{"value":"test"}",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "isJsonResponseFromTool": true,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should include multiple text blocks before JSON tool call in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'First text block.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { text: 'Second text block.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 2,
+            delta: { text: 'Third block.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 3,
+            start: {
+              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 3,
+            delta: { toolUse: { input: '{"result":42}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 3 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Generate data' }] },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { result: { type: 'number' } },
+          required: ['result'],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    // All text blocks before the JSON tool call should be streamed
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "First text block.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Second text block.",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "2",
+          "type": "text-start",
+        },
+        {
+          "delta": "Third block.",
+          "id": "2",
+          "type": "text-delta",
+        },
+        {
+          "id": "3",
+          "type": "text-start",
+        },
+        {
+          "delta": "{"result":42}",
+          "id": "3",
+          "type": "text-delta",
+        },
+        {
+          "id": "3",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "isJsonResponseFromTool": true,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
 });
 
 describe('doGenerate', () => {
@@ -2658,5 +2899,280 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
 
     expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
+  });
+
+  it('should include text content before JSON tool call in doGenerate', async () => {
+    prepareJsonResponse({
+      content: [
+        { type: 'text', text: 'Let me generate that JSON for you.' },
+        {
+          toolUse: {
+            toolUseId: 'json-tool-id',
+            name: 'json',
+            input: { value: 'test data' },
+          },
+        } as any,
+      ],
+      stopReason: 'tool_use',
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Generate JSON' }] },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+        },
+      },
+    });
+
+    // Text before the JSON tool call should be included
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Let me generate that JSON for you.",
+          "type": "text",
+        },
+        {
+          "text": "{"value":"test data"}",
+          "type": "text",
+        },
+      ]
+    `);
+
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('should include multiple text blocks before JSON tool call in doGenerate', async () => {
+    prepareJsonResponse({
+      content: [
+        { type: 'text', text: 'First text block.' },
+        { type: 'text', text: 'Second text block.' },
+        { type: 'text', text: 'Third text block before JSON.' },
+        {
+          toolUse: {
+            toolUseId: 'json-tool-id',
+            name: 'json',
+            input: { result: 42 },
+          },
+        } as any,
+      ],
+      stopReason: 'tool_use',
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Generate data' }] },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { result: { type: 'number' } },
+          required: ['result'],
+        },
+      },
+    });
+
+    // All text blocks before the JSON tool call should be included
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "First text block.",
+          "type": "text",
+        },
+        {
+          "text": "Second text block.",
+          "type": "text",
+        },
+        {
+          "text": "Third text block before JSON.",
+          "type": "text",
+        },
+        {
+          "text": "{"result":42}",
+          "type": "text",
+        },
+      ]
+    `);
+
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+  });
+
+  it('should handle regular tool call before JSON tool call in doGenerate', async () => {
+    prepareJsonResponse({
+      content: [
+        { type: 'text', text: 'Let me call a tool first.' },
+        {
+          toolUse: {
+            toolUseId: 'tool-1',
+            name: 'get-weather',
+            input: { location: 'SF' },
+          },
+        } as any,
+        { type: 'text', text: 'Now the JSON.' },
+        {
+          toolUse: {
+            toolUseId: 'json-tool-id',
+            name: 'json',
+            input: { result: 'data' },
+          },
+        } as any,
+      ],
+      stopReason: 'tool_use',
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Test' }] },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'get-weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { result: { type: 'string' } },
+          required: ['result'],
+        },
+      },
+    });
+
+    // Should include text, regular tool call, more text, and JSON as text
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Let me call a tool first.",
+          "type": "text",
+        },
+        {
+          "input": "{"location":"SF"}",
+          "toolCallId": "tool-1",
+          "toolName": "get-weather",
+          "type": "tool-call",
+        },
+        {
+          "text": "Now the JSON.",
+          "type": "text",
+        },
+        {
+          "text": "{"result":"data"}",
+          "type": "text",
+        },
+      ]
+    `);
+
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('should handle multiple regular tool calls before JSON tool call in doGenerate', async () => {
+    prepareJsonResponse({
+      content: [
+        { type: 'text', text: 'Calling multiple tools.' },
+        {
+          toolUse: {
+            toolUseId: 'tool-1',
+            name: 'tool-a',
+            input: { param: 'a' },
+          },
+        } as any,
+        {
+          toolUse: {
+            toolUseId: 'tool-2',
+            name: 'tool-b',
+            input: { param: 'b' },
+          },
+        } as any,
+        { type: 'text', text: 'Finally the JSON response.' },
+        {
+          toolUse: {
+            toolUseId: 'json-tool-id',
+            name: 'json',
+            input: { final: 'result' },
+          },
+        } as any,
+      ],
+      stopReason: 'tool_use',
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Test' }] },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'tool-a',
+          inputSchema: {
+            type: 'object',
+            properties: { param: { type: 'string' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool-b',
+          inputSchema: {
+            type: 'object',
+            properties: { param: { type: 'string' } },
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { final: { type: 'string' } },
+          required: ['final'],
+        },
+      },
+    });
+
+    // Should preserve all content
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Calling multiple tools.",
+          "type": "text",
+        },
+        {
+          "input": "{"param":"a"}",
+          "toolCallId": "tool-1",
+          "toolName": "tool-a",
+          "type": "tool-call",
+        },
+        {
+          "input": "{"param":"b"}",
+          "toolCallId": "tool-2",
+          "toolName": "tool-b",
+          "type": "tool-call",
+        },
+        {
+          "text": "Finally the JSON response.",
+          "type": "text",
+        },
+        {
+          "text": "{"final":"result"}",
+          "type": "text",
+        },
+      ]
+    `);
+
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+    expect(result.finishReason).toBe('stop');
   });
 });
