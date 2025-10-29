@@ -723,7 +723,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // log warnings:
-                    logWarnings(warnings ?? []);
+                    logWarnings({
+                      warnings: warnings ?? [],
+                      provider: model.provider,
+                      model: model.modelId,
+                    });
 
                     // resolve promises that can be resolved now:
                     self._usage.resolve(usage);
