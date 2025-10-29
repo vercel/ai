@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.83
+
+### Patch Changes
+
+- e1f6e8e: feat(ai): add Output.json()
+
 ## 6.0.0-beta.82
 
 ### Patch Changes
