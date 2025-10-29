@@ -43,12 +43,12 @@ import { createHelicone } from '@helicone/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY
+  apiKey: process.env.HELICONE_API_KEY,
 });
 
 const result = await generateText({
-  model: helicone("claude-4.5-haiku"),
-  prompt: "Write a haiku about artificial intelligence",
+  model: helicone('claude-4.5-haiku'),
+  prompt: 'Write a haiku about artificial intelligence',
 });
 
 console.log(result.text);
@@ -67,12 +67,12 @@ import { createHelicone } from '@helicone/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY
+  apiKey: process.env.HELICONE_API_KEY,
 });
 
 const { text } = await generateText({
   model: helicone('gemini-2.5-flash-lite'),
-  prompt: 'What is Helicone?'
+  prompt: 'What is Helicone?',
 });
 
 console.log(text);
@@ -82,13 +82,13 @@ console.log(text);
 
 ```javascript
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY
+  apiKey: process.env.HELICONE_API_KEY,
 });
 
 const result = await streamText({
   model: helicone('deepseek-v3.1-terminus'),
   prompt: 'Write a short story about a robot learning to paint',
-  maxOutputTokens: 300
+  maxOutputTokens: 300,
 });
 
 for await (const chunk of result.textStream) {
