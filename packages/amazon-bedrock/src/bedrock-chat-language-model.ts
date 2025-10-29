@@ -116,16 +116,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
-    if (tools != null && responseFormat?.type === 'json') {
-      if (tools.length > 0) {
-        warnings.push({
-          type: 'other',
-          message:
-            'JSON response format does not support tools. ' +
-            'The provided tools are ignored.',
-        });
-      }
-    }
 
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
       responseFormat?.type === 'json' && responseFormat.schema != null
@@ -141,9 +131,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       await prepareTools({
         tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
         toolChoice:
-          jsonResponseTool != null
-            ? { type: 'tool', toolName: jsonResponseTool.name }
-            : toolChoice,
+          jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
       });
 
@@ -414,6 +402,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       content,
       finishReason: mapBedrockFinishReason(
         response.stopReason as BedrockStopReason,
+        usesJsonResponseTool,
       ),
       usage: {
         inputTokens: response.usage?.inputTokens,
@@ -524,6 +513,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             if (value.messageStop) {
               finishReason = mapBedrockFinishReason(
                 value.messageStop.stopReason as BedrockStopReason,
+                usesJsonResponseTool,
               );
             }
 

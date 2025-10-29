@@ -2405,44 +2405,165 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should warn when tools are provided with JSON response format', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          type: 'tool_use',
-          id: 'json-tool-id',
-          name: 'json',
-          input: { value: 'test' },
+  describe('json schema response format with json tool response', () => {
+    let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+    beforeEach(async () => {
+      prepareJsonResponse({
+        content: [
+          {
+            type: 'tool_use',
+            id: 'json-tool-id',
+            name: 'json',
+            input: {
+              elements: [
+                { location: 'San Francisco', temperature: -5, condition: 'snowy' },
+                { location: 'London', temperature: 0, condition: 'snowy' },
+              ],
+            },
+          },
+        ],
+        stopReason: 'tool_use',
+      });
+
+      result = await model.doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              elements: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    temperature: { type: 'number' },
+                    condition: { type: 'string' },
+                  },
+                  required: ['location', 'temperature', 'condition'],
+                },
+              },
+            },
+            required: ['elements'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
         },
-      ],
+      });
     });
 
-    const result = await model.doGenerate({
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
-      responseFormat: {
-        type: 'json',
-        schema: {
-          type: 'object',
-          properties: { value: { type: 'string' } },
-          required: ['value'],
-        },
-      },
-      tools: [
-        {
-          type: 'function',
-          name: 'test-tool',
-          inputSchema: { type: 'object', properties: {} },
-        },
-      ],
+    it('should pass json schema response format as a tool', async () => {
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig).toBeDefined();
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.tools[0].toolSpec.description).toBe(
+        'Respond with a JSON object.',
+      );
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
     });
 
-    expect(result.warnings).toEqual([
-      {
-        type: 'other',
-        message:
-          'JSON response format does not support tools. The provided tools are ignored.',
-      },
-    ]);
+    it('should return the json response as text', async () => {
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "{"elements":[{"location":"San Francisco","temperature":-5,"condition":"snowy"},{"location":"London","temperature":0,"condition":"snowy"}]}",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should send stop finish reason when json tool is used', async () => {
+      expect(result.finishReason).toBe('stop');
+    });
+
+    it('should set isJsonResponseFromTool in provider metadata', async () => {
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    });
+  });
+
+  describe('json schema response format with other tool response', () => {
+    let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+    beforeEach(async () => {
+      prepareJsonResponse({
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_01PQjhxo3eirCdKNvCJrKc8f',
+            name: 'get-weather',
+            input: { location: 'San Francisco' },
+          },
+        ],
+        stopReason: 'tool_use',
+      });
+
+      result = await model.doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
+        tools: [
+          {
+            type: 'function',
+            name: 'get-weather',
+            description: 'Get the weather in a location',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                location: { type: 'string' },
+              },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              weather: { type: 'string' },
+              temperature: { type: 'number' },
+            },
+            required: ['weather', 'temperature'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      });
+    });
+
+    it('should pass the tool and the json schema response format as tools', async () => {
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig).toBeDefined();
+      expect(requestBody.toolConfig.tools).toHaveLength(2);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('get-weather');
+      expect(requestBody.toolConfig.tools[1].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+    });
+
+    it('should return the regular tool call', async () => {
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"location":"San Francisco"}",
+            "toolCallId": "toolu_01PQjhxo3eirCdKNvCJrKc8f",
+            "toolName": "get-weather",
+            "type": "tool-call",
+          },
+        ]
+      `);
+    });
+
+    it('should send tool-calls finish reason', async () => {
+      expect(result.finishReason).toBe('tool-calls');
+    });
   });
 
   it('should handle unsupported response format types', async () => {
