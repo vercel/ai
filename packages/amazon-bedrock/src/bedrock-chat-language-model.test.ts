@@ -1802,6 +1802,372 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should handle regular tool call before JSON tool call in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Calling a tool first.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 1,
+            start: {
+              toolUse: { toolUseId: 'tool-1', name: 'get-weather' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { toolUse: { input: '{"location":"SF"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 1 },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 2,
+            delta: { text: 'Now JSON.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 3,
+            start: {
+              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 3,
+            delta: { toolUse: { input: '{"result":"data"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 3 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
+      tools: [
+        {
+          type: 'function',
+          name: 'get-weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { result: { type: 'string' } },
+          required: ['result'],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    // Should include text, regular tool, text, then JSON as text
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Calling a tool first.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "tool-1",
+          "toolName": "get-weather",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"location":"SF"}",
+          "id": "tool-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-1",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"location":"SF"}",
+          "toolCallId": "tool-1",
+          "toolName": "get-weather",
+          "type": "tool-call",
+        },
+        {
+          "id": "2",
+          "type": "text-start",
+        },
+        {
+          "delta": "Now JSON.",
+          "id": "2",
+          "type": "text-delta",
+        },
+        {
+          "id": "3",
+          "type": "text-start",
+        },
+        {
+          "delta": "{"result":"data"}",
+          "id": "3",
+          "type": "text-delta",
+        },
+        {
+          "id": "3",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "isJsonResponseFromTool": true,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should handle multiple regular tool calls before JSON tool call in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Multiple tools.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 1,
+            start: {
+              toolUse: { toolUseId: 'tool-1', name: 'tool-a' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { toolUse: { input: '{"a":"1"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 1 },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 2,
+            start: {
+              toolUse: { toolUseId: 'tool-2', name: 'tool-b' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 2,
+            delta: { toolUse: { input: '{"b":"2"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 2 },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 3,
+            delta: { text: 'Final JSON.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStart: {
+            contentBlockIndex: 4,
+            start: {
+              toolUse: { toolUseId: 'json-tool-id', name: 'json' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 4,
+            delta: { toolUse: { input: '{"final":"result"}' } },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockStop: { contentBlockIndex: 4 },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'tool_use',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
+      tools: [
+        {
+          type: 'function',
+          name: 'tool-a',
+          inputSchema: {
+            type: 'object',
+            properties: { a: { type: 'string' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool-b',
+          inputSchema: {
+            type: 'object',
+            properties: { b: { type: 'string' } },
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { final: { type: 'string' } },
+          required: ['final'],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    // Should preserve all content in order
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Multiple tools.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "tool-1",
+          "toolName": "tool-a",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"a":"1"}",
+          "id": "tool-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-1",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"a":"1"}",
+          "toolCallId": "tool-1",
+          "toolName": "tool-a",
+          "type": "tool-call",
+        },
+        {
+          "id": "tool-2",
+          "toolName": "tool-b",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"b":"2"}",
+          "id": "tool-2",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "tool-2",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"b":"2"}",
+          "toolCallId": "tool-2",
+          "toolName": "tool-b",
+          "type": "tool-call",
+        },
+        {
+          "id": "3",
+          "type": "text-start",
+        },
+        {
+          "delta": "Final JSON.",
+          "id": "3",
+          "type": "text-delta",
+        },
+        {
+          "id": "4",
+          "type": "text-start",
+        },
+        {
+          "delta": "{"final":"result"}",
+          "id": "4",
+          "type": "text-delta",
+        },
+        {
+          "id": "4",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "isJsonResponseFromTool": true,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+            "totalTokens": undefined,
+          },
+        },
+      ]
+    `);
+  });
 });
 
 describe('doGenerate', () => {
@@ -2671,7 +3037,11 @@ describe('doGenerate', () => {
               name: 'json',
               input: {
                 elements: [
-                  { location: 'San Francisco', temperature: -5, condition: 'snowy' },
+                  {
+                    location: 'San Francisco',
+                    temperature: -5,
+                    condition: 'snowy',
+                  },
                   { location: 'London', temperature: 0, condition: 'snowy' },
                 ],
               },
@@ -3028,9 +3398,7 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      prompt: [
-        { role: 'user', content: [{ type: 'text', text: 'Test' }] },
-      ],
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
       tools: [
         {
           type: 'function',
@@ -3111,9 +3479,7 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      prompt: [
-        { role: 'user', content: [{ type: 'text', text: 'Test' }] },
-      ],
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
       tools: [
         {
           type: 'function',

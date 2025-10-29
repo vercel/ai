@@ -116,7 +116,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
-
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
       responseFormat?.type === 'json' && responseFormat.schema != null
         ? {
@@ -371,8 +370,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call' as const,
             toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
-            toolName:
-              part.toolUse?.name ?? `tool-${this.config.generateId()}`,
+            toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
             input: JSON.stringify(part.toolUse?.input ?? ''),
           });
         }
@@ -696,7 +694,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             if (contentBlockStart?.start?.toolUse != null) {
               const toolUse = contentBlockStart.start.toolUse;
               const blockIndex = contentBlockStart.contentBlockIndex!;
-              const isJsonTool = usesJsonResponseTool && toolUse.name === 'json';
+              const isJsonTool =
+                usesJsonResponseTool && toolUse.name === 'json';
 
               if (isJsonTool) {
                 isJsonResponseFromTool = true;
