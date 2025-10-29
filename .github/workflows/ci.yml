@@ -24,7 +24,7 @@ jobs:
           version: 10.11.0
 
       - name: Use Node.js LTS
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: 'pnpm'
@@ -48,7 +48,7 @@ jobs:
           version: 10.11.0
 
       - name: Use Node.js LTS
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: 'pnpm'
@@ -72,7 +72,7 @@ jobs:
           version: 10.11.0
 
       - name: Use Node.js LTS
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: 'pnpm'
@@ -96,7 +96,7 @@ jobs:
           version: 10.11.0
 
       - name: Use Node.js LTS
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: 'pnpm'
@@ -120,7 +120,7 @@ jobs:
           version: 10.11.0
 
       - name: Use Node.js LTS
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: 'pnpm'
@@ -149,7 +149,7 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
-        node-version: [20, 22, 24]
+        node-version: [20, 22, lts/*]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -160,7 +160,7 @@ jobs:
           version: 10.11.0
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
@@ -215,7 +215,7 @@ jobs:
           version: 10.11.0
 
       - name: Use Node.js LTS
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
           cache: 'pnpm'
