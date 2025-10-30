@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(uiMessages),
     onStepFinish: async ({ sources, request }) => {
       console.log(JSON.stringify(request.body, null, 2));
-      
+
       // Collect container file citations from sources
       for (const source of sources) {
         if (
@@ -52,9 +52,7 @@ export async function POST(req: Request) {
           const containerId = String(
             source.providerMetadata.openai.containerId || '',
           );
-          const fileId = String(
-            source.providerMetadata.openai.fileId || '',
-          );
+          const fileId = String(source.providerMetadata.openai.fileId || '');
           const filename = source.filename || source.title || 'file';
 
           // Avoid duplicates

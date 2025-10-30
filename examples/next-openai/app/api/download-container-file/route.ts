@@ -24,10 +24,9 @@ export async function GET(req: Request) {
     );
 
     if (!response.ok) {
-      return new Response(
-        `Failed to fetch file: ${response.statusText}`,
-        { status: response.status },
-      );
+      return new Response(`Failed to fetch file: ${response.statusText}`, {
+        status: response.status,
+      });
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -45,4 +44,3 @@ export async function GET(req: Request) {
     return new Response('Error downloading file', { status: 500 });
   }
 }
-
