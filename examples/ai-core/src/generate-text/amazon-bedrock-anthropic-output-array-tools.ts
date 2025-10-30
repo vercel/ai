@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('us.anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: bedrock('global.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     stopWhen: stepCountIs(20),
     output: Output.array({
       element: z.object({
@@ -18,6 +18,7 @@ run(async () => {
     }),
     tools: { weather: weatherTool },
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
+
   });
 
   print('Output:', result.output);

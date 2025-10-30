@@ -1951,6 +1951,140 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should stream text, then regular tool calls, with JSON response format available', async () => {
+    setupMockEventStreamHandler();
+    prepareChunksFixtureResponse('bedrock-json-tool-text-then-weather-then-json.1');
+
+    const { stream } = await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: "What's 2+2? Also check the weather in San Francisco and London.",
+            },
+          ],
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            locations: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                  temperature: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    // Should show: text answer, then tool calls (not JSON tool)
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "2 + 2 equals 4. Now let me check",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " the weather for you.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "id": "weather-tool-1",
+          "toolName": "weather",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"location":",
+          "id": "weather-tool-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""San Francisco"}",
+          "id": "weather-tool-1",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "weather-tool-1",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"location":"San Francisco"}",
+          "toolCallId": "weather-tool-1",
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        {
+          "id": "weather-tool-2",
+          "toolName": "weather",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"location":"London"}",
+          "id": "weather-tool-2",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "weather-tool-2",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"location":"London"}",
+          "toolCallId": "weather-tool-2",
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 500,
+            "outputTokens": 100,
+            "totalTokens": 600,
+          },
+        },
+      ]
+    `);
+  });
 });
 
 describe('doGenerate', () => {
@@ -2880,18 +3014,7 @@ describe('doGenerate', () => {
     let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
     beforeEach(async () => {
-      prepareJsonResponse({
-        content: [
-          {
-            toolUse: {
-              toolUseId: 'toolu_01PQjhxo3eirCdKNvCJrKc8f',
-              name: 'get-weather',
-              input: { location: 'San Francisco' },
-            },
-          } as any,
-        ],
-        stopReason: 'tool_use',
-      });
+      prepareJsonFixtureResponse('bedrock-json-other-tool.1');
 
       result = await model.doGenerate({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Test' }] }],
@@ -3067,6 +3190,54 @@ describe('doGenerate', () => {
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
     expect(result.finishReason).toBe('stop');
+  });
+
+  it('should preserve text response before JSON output (answering question then returning structured data)', async () => {
+    prepareJsonFixtureResponse('bedrock-json-tool-with-answer.1');
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: "What's 2+2? Also the name to use is John Doe",
+            },
+          ],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+          },
+          required: ['firstName', 'lastName'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+    });
+
+    // Should preserve the answer text AND the structured JSON output
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "2 + 2 equals 4.",
+          "type": "text",
+        },
+        {
+          "text": "{"firstName":"John","lastName":"Doe"}",
+          "type": "text",
+        },
+      ]
+    `);
+
+    expect(result.finishReason).toBe('stop');
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
   it('should include multiple text blocks before JSON tool call in doGenerate', async () => {

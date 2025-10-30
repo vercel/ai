@@ -358,10 +358,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
       // tool calls
       if (part.toolUse) {
-        const isJsonTool = usesJsonResponseTool && part.toolUse.name === 'json';
+        const isJsonResponseTool =
+          usesJsonResponseTool && part.toolUse.name === 'json';
 
-        if (isJsonTool) {
+        if (isJsonResponseTool) {
           isJsonResponseFromTool = true;
+          // when a json response tool is used, the tool call becomes the text:
           content.push({
             type: 'text',
             text: JSON.stringify(part.toolUse.input),
@@ -457,6 +459,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           toolCallId: string;
           toolName: string;
           jsonText: string;
+          isJsonResponseTool?: boolean;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -511,7 +514,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             if (value.messageStop) {
               finishReason = mapBedrockFinishReason(
                 value.messageStop.stopReason as BedrockStopReason,
-                false, // will be remapped in flush if json tool was called
+                isJsonResponseFromTool,
               );
             }
 
@@ -542,14 +545,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                   }
                 : undefined;
 
-              if (cacheUsage || trace || usesJsonResponseTool) {
+              if (cacheUsage || trace) {
                 providerMetadata = {
                   bedrock: {
                     ...cacheUsage,
                     ...trace,
-                    ...(usesJsonResponseTool && {
-                      isJsonResponseFromTool: true,
-                    }),
                   },
                 };
               }
@@ -576,6 +576,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
               if (contentBlocks[blockIndex] == null) {
                 contentBlocks[blockIndex] = { type: 'text' };
+
                 controller.enqueue({
                   type: 'text-start',
                   id: String(blockIndex),
@@ -605,9 +606,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                     id: String(blockIndex),
                   });
                 } else if (contentBlock.type === 'tool-call') {
-                  const isJsonTool = contentBlock.toolName === 'json';
-                  if (isJsonTool) {
-                    // when a json response tool is used, emit the tool input as text
+                  if (contentBlock.isJsonResponseTool) {
+                    isJsonResponseFromTool = true;
+                    // when this specific tool is the json response tool, emit the tool input as text
                     controller.enqueue({
                       type: 'text-start',
                       id: String(blockIndex),
@@ -694,22 +695,19 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             if (contentBlockStart?.start?.toolUse != null) {
               const toolUse = contentBlockStart.start.toolUse;
               const blockIndex = contentBlockStart.contentBlockIndex!;
-              const isJsonTool =
+              const isJsonResponseTool =
                 usesJsonResponseTool && toolUse.name === 'json';
-
-              if (isJsonTool) {
-                isJsonResponseFromTool = true;
-              }
 
               contentBlocks[blockIndex] = {
                 type: 'tool-call',
                 toolCallId: toolUse.toolUseId!,
                 toolName: toolUse.name!,
                 jsonText: '',
+                isJsonResponseTool,
               };
 
-              // when a json response tool is used, we don't emit tool events
-              if (!isJsonTool) {
+              // when this specific tool is the json response tool, we don't emit tool events
+              if (!isJsonResponseTool) {
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: toolUse.toolUseId!,
@@ -729,10 +727,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
               if (contentBlock?.type === 'tool-call') {
                 const delta = contentBlockDelta.delta.toolUse.input ?? '';
-                const isJsonTool = contentBlock.toolName === 'json';
 
-                // when a json response tool is used, we don't emit tool events
-                if (!isJsonTool) {
+                // when this specific tool is the json response tool, we don't emit tool events
+                if (!contentBlock.isJsonResponseTool) {
                   controller.enqueue({
                     type: 'tool-input-delta',
                     id: contentBlock.toolCallId,
@@ -745,29 +742,27 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             }
           },
           flush(controller) {
-            // Remap finish reason if json tool was called
-            const finalFinishReason =
-              isJsonResponseFromTool && finishReason === 'tool-calls'
-                ? 'stop'
-                : finishReason;
-
-            // Add json flag to provider metadata if needed
-            const finalProviderMetadata = isJsonResponseFromTool
-              ? {
+            // Update provider metadata with isJsonResponseFromTool if needed
+            if (isJsonResponseFromTool) {
+              if (providerMetadata) {
+                providerMetadata.bedrock = {
+                  ...providerMetadata.bedrock,
+                  isJsonResponseFromTool: true,
+                };
+              } else {
+                providerMetadata = {
                   bedrock: {
-                    ...providerMetadata?.bedrock,
                     isJsonResponseFromTool: true,
                   },
-                }
-              : providerMetadata;
+                };
+              }
+            }
 
             controller.enqueue({
               type: 'finish',
-              finishReason: finalFinishReason,
+              finishReason,
               usage,
-              ...(finalProviderMetadata && {
-                providerMetadata: finalProviderMetadata,
-              }),
+              ...(providerMetadata && { providerMetadata }),
             });
           },
         }),
