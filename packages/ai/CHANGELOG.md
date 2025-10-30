@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.0-beta.87
+
+### Patch Changes
+
+- ca13d26: feat(ai): add output to StreamTextResult
+
+## 6.0.0-beta.86
+
+### Patch Changes
+
+- 36b175c: chore(ai): change output generics
+
 ## 6.0.0-beta.85
 
 ### Patch Changes

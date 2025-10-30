@@ -910,7 +910,8 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'output',
       type: 'Output',
       isOptional: true,
-      description: 'Experimental setting for generating structured outputs.',
+      description:
+        'Specification for parsing structured outputs from the LLM response.',
       properties: [
         {
           type: 'Output',
@@ -918,12 +919,13 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'Output.text()',
               type: 'Output',
-              description: 'Forward text output.',
+              description: 'Output specification for text generation.',
             },
             {
               name: 'Output.object()',
               type: 'Output',
-              description: 'Generate a JSON object of type OBJECT.',
+              description:
+                'Output specification for typed object generation using schemas. When the model generates a text response, it will return an object that matches the schema.',
               properties: [
                 {
                   type: 'Options',
@@ -931,11 +933,54 @@ To see `streamText` in action, check out [these examples](#examples).
                     {
                       name: 'schema',
                       type: 'Schema<OBJECT>',
-                      description: 'The schema of the JSON object to generate.',
+                      description: 'The schema of the object to generate.',
                     },
                   ],
                 },
               ],
+            },
+            {
+              name: 'Output.array()',
+              type: 'Output',
+              description:
+                'Output specification for array generation. When the model generates a text response, it will return an array of elements.',
+              properties: [
+                {
+                  type: 'Options',
+                  parameters: [
+                    {
+                      name: 'element',
+                      type: 'Schema<ELEMENT>',
+                      description:
+                        'The schema of the array elements to generate.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'Output.choice()',
+              type: 'Output',
+              description:
+                'Output specification for choice generation. When the model generates a text response, it will return a one of the choice options.',
+              properties: [
+                {
+                  type: 'Options',
+                  parameters: [
+                    {
+                      name: 'options',
+                      type: 'Array<string>',
+                      description: 'The available choices.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'Output.json()',
+              type: 'Output',
+              description:
+                ' Output specification for unstructured JSON generation. When the model generates a text response, it will return a JSON object.',
             },
           ],
         },
@@ -2476,7 +2521,13 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'partialOutputStream',
       type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
       description:
-        'A stream of partial outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+        'A stream of partial parsed outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+    },
+    {
+      name: 'output',
+      type: 'Promise<COMPLETE_OUTPUT>',
+      description:
+        'The complete parsed output. It uses the `output` specification.',
     },
     {
       name: 'consumeStream',
