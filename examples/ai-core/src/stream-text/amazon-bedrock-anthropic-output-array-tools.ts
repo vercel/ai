@@ -21,7 +21,8 @@ run(async () => {
 
     toolChoice: 'required',
     tools: { weather: weatherTool },
-    prompt: 'First, you must answer this questions: "What is 2+2". Then, answer: What is the weather in San Francisco, London, Paris, and Berlin?',
+    prompt:
+      'First, you must answer this questions: "What is 2+2". Then, answer: What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
   for await (const part of fullStream) {

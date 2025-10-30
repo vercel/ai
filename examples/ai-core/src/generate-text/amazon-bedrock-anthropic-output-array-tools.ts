@@ -18,7 +18,6 @@ run(async () => {
     }),
     tools: { weather: weatherTool },
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
-
   });
 
   print('Output:', result.output);

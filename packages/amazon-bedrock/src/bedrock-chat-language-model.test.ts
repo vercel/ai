@@ -1954,7 +1954,9 @@ describe('doStream', () => {
 
   it('should stream text, then regular tool calls, with JSON response format available', async () => {
     setupMockEventStreamHandler();
-    prepareChunksFixtureResponse('bedrock-json-tool-text-then-weather-then-json.1');
+    prepareChunksFixtureResponse(
+      'bedrock-json-tool-text-then-weather-then-json.1',
+    );
 
     const { stream } = await model.doStream({
       prompt: [
