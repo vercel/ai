@@ -44,7 +44,11 @@ export type XaiResponsesReasoning = {
 };
 
 export type XaiResponsesToolCall = {
-  type: 'function_call' | 'web_search_call' | 'x_search_call' | 'code_interpreter_call';
+  type:
+    | 'function_call'
+    | 'web_search_call'
+    | 'x_search_call'
+    | 'code_interpreter_call';
   id: string;
   call_id: string;
   name: string;

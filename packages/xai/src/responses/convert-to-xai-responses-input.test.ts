@@ -287,7 +287,10 @@ describe('convertToXaiResponsesInput', () => {
     it('should handle conversation with server-side tool calls and item references', async () => {
       const result = await convertToXaiResponsesInput({
         prompt: [
-          { role: 'user', content: [{ type: 'text', text: 'search for ai news' }] },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'search for ai news' }],
+          },
           {
             role: 'assistant',
             content: [

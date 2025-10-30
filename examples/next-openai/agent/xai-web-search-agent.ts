@@ -16,6 +16,4 @@ export const xaiWebSearchAgent = new ToolLoopAgent({
   },
 });
 
-export type XaiWebSearchMessage = InferAgentUIMessage<
-  typeof xaiWebSearchAgent
->;
+export type XaiWebSearchMessage = InferAgentUIMessage<typeof xaiWebSearchAgent>;

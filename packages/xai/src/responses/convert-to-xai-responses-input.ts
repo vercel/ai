@@ -2,9 +2,7 @@ import {
   LanguageModelV3CallWarning,
   LanguageModelV3Message,
 } from '@ai-sdk/provider';
-import {
-  XaiResponsesInput,
-} from './xai-responses-api';
+import { XaiResponsesInput } from './xai-responses-api';
 
 export async function convertToXaiResponsesInput({
   prompt,
@@ -42,7 +40,7 @@ export async function convertToXaiResponsesInput({
               inputWarnings.push({
                 type: 'other',
                 message: `xAI Responses API does not support ${block.type} in user messages`,
-                });
+              });
               break;
             }
 

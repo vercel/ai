@@ -1,5 +1,8 @@
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import { convertReadableStreamToArray, mockId } from '@ai-sdk/provider-utils/test';
+import {
+  convertReadableStreamToArray,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
@@ -55,7 +58,9 @@ describe('XaiResponsesLanguageModel', () => {
   function prepareStreamChunks(chunks: string[]) {
     server.urls['https://api.x.ai/v1/responses'].response = {
       type: 'stream-chunks',
-      chunks: chunks.map(chunk => `data: ${chunk}\n\n`).concat('data: [DONE]\n\n'),
+      chunks: chunks
+        .map(chunk => `data: ${chunk}\n\n`)
+        .concat('data: [DONE]\n\n'),
     };
   }
 
@@ -244,7 +249,9 @@ describe('XaiResponsesLanguageModel', () => {
     });
 
     describe('web_search tool', () => {
-      let result: Awaited<ReturnType<(typeof createModel)['prototype']['doGenerate']>>;
+      let result: Awaited<
+        ReturnType<(typeof createModel)['prototype']['doGenerate']>
+      >;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('xai-web-search-tool.1');
