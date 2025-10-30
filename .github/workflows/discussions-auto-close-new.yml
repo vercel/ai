@@ -37,7 +37,7 @@ jobs:
           ' --jq '.data.lockLockable.lockedRecord.locked')"
 
           echo "LOCKED =" $lockSucceeded
-          echo '${{ github.event.discussion.number }}' | jq -r '"https://github.com/vercel/community/discussions/\(.)"'
+          echo '${{ github.event.discussion.number }}' | jq -r '"https://github.com/vercel/ai/discussions/\(.)"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISCUSSION_ID: ${{ github.event.discussion.node_id }}
