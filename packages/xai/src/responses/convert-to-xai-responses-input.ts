@@ -2,11 +2,16 @@ import {
   LanguageModelV3CallWarning,
   LanguageModelV3Message,
 } from '@ai-sdk/provider';
-import { XaiResponsesInput, XaiResponsesInputItem } from './xai-responses-api';
+import {
+  XaiResponsesInput,
+} from './xai-responses-api';
 
-export async function convertToXaiResponsesInput(
-  prompt: LanguageModelV3Message[],
-): Promise<{
+export async function convertToXaiResponsesInput({
+  prompt,
+}: {
+  prompt: LanguageModelV3Message[];
+  store?: boolean;
+}): Promise<{
   input: XaiResponsesInput;
   inputWarnings: LanguageModelV3CallWarning[];
 }> {
@@ -36,9 +41,8 @@ export async function convertToXaiResponsesInput(
             case 'file': {
               inputWarnings.push({
                 type: 'other',
-                message:
-                  'xAI Responses API does not support files in user messages',
-              });
+                message: `xAI Responses API does not support ${block.type} in user messages`,
+                });
               break;
             }
 
@@ -61,33 +65,75 @@ export async function convertToXaiResponsesInput(
       }
 
       case 'assistant': {
-        let assistantContent = '';
-
-        for (const block of message.content) {
-          switch (block.type) {
+        for (const part of message.content) {
+          switch (part.type) {
             case 'text': {
-              assistantContent += block.text;
+              const id =
+                typeof part.providerOptions?.xai?.itemId === 'string'
+                  ? part.providerOptions.xai.itemId
+                  : undefined;
+
+              input.push({
+                role: 'assistant',
+                content: part.text,
+                id,
+              });
+
               break;
             }
 
             case 'tool-call': {
-              assistantContent += `[tool_call: ${block.toolName}]`;
+              const serverSideToolNames = [
+                'web_search',
+                'web_search_with_snippets',
+                'browse_page',
+                'x_user_search',
+                'x_keyword_search',
+                'x_semantic_search',
+                'x_thread_fetch',
+                'code_execution',
+                'view_image',
+                'view_x_video',
+              ];
+
+              if (
+                part.providerExecuted ||
+                serverSideToolNames.includes(part.toolName)
+              ) {
+                break;
+              }
+
+              const id =
+                typeof part.providerOptions?.xai?.itemId === 'string'
+                  ? part.providerOptions.xai.itemId
+                  : undefined;
+
+              input.push({
+                type: 'function_call',
+                id: id ?? part.toolCallId,
+                call_id: part.toolCallId,
+                name: part.toolName,
+                arguments: JSON.stringify(part.input),
+                status: 'completed',
+              });
+              break;
+            }
+
+            case 'tool-result': {
               break;
             }
 
             case 'reasoning':
-            case 'tool-result':
             case 'file': {
               inputWarnings.push({
                 type: 'other',
-                message:
-                  'xAI Responses API does not support this content type in assistant messages',
+                message: `xAI Responses API does not support ${part.type} in assistant messages`,
               });
               break;
             }
 
             default: {
-              const _exhaustiveCheck: never = block;
+              const _exhaustiveCheck: never = part;
               inputWarnings.push({
                 type: 'other',
                 message:
@@ -97,18 +143,49 @@ export async function convertToXaiResponsesInput(
           }
         }
 
-        input.push({
-          role: 'assistant',
-          content: assistantContent,
-        });
         break;
       }
 
       case 'tool': {
-        inputWarnings.push({
-          type: 'other',
-          message: 'xAI Responses API does not support tool role messages',
-        });
+        for (const part of message.content) {
+          const output = part.output;
+
+          let outputValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error-text':
+              outputValue = output.value;
+              break;
+            case 'execution-denied':
+              outputValue = output.reason ?? 'tool execution denied';
+              break;
+            case 'json':
+            case 'error-json':
+              outputValue = JSON.stringify(output.value);
+              break;
+            case 'content':
+              outputValue = output.value
+                .map(item => {
+                  if (item.type === 'text') {
+                    return item.text;
+                  }
+                  return '';
+                })
+                .join('');
+              break;
+            default: {
+              const _exhaustiveCheck: never = output;
+              outputValue = '';
+            }
+          }
+
+          input.push({
+            type: 'function_call_output',
+            call_id: part.toolCallId,
+            output: outputValue,
+          });
+        }
+
         break;
       }
 

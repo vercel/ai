@@ -5,6 +5,7 @@ export function mapXaiResponsesFinishReason(
 ): LanguageModelV3FinishReason {
   switch (finishReason) {
     case 'stop':
+    case 'completed':
       return 'stop';
     case 'length':
       return 'length';

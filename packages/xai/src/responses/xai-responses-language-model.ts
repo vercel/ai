@@ -85,7 +85,24 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
-    const { input, inputWarnings } = await convertToXaiResponsesInput(prompt);
+    const webSearchToolName = tools?.find(
+      tool =>
+        tool.type === 'provider-defined' && tool.id === 'xai.web_search',
+    )?.name;
+
+    const xSearchToolName = tools?.find(
+      tool => tool.type === 'provider-defined' && tool.id === 'xai.x_search',
+    )?.name;
+
+    const codeExecutionToolName = tools?.find(
+      tool =>
+        tool.type === 'provider-defined' && tool.id === 'xai.code_execution',
+    )?.name;
+
+    const { input, inputWarnings } = await convertToXaiResponsesInput({
+      prompt,
+      store: true,
+    });
     warnings.push(...inputWarnings);
 
     const {
@@ -119,13 +136,22 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     return {
       args: baseArgs,
       warnings,
+      webSearchToolName,
+      xSearchToolName,
+      codeExecutionToolName,
     };
   }
 
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args: body, warnings } = await this.getArgs(options);
+    const {
+      args: body,
+      warnings,
+      webSearchToolName,
+      xSearchToolName,
+      codeExecutionToolName,
+    } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -145,6 +171,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
 
+    const webSearchSubTools = [
+      'web_search',
+      'web_search_with_snippets',
+      'browse_page',
+    ];
+    const xSearchSubTools = [
+      'x_user_search',
+      'x_keyword_search',
+      'x_semantic_search',
+      'x_thread_fetch',
+    ];
+
     for (const part of response.output) {
       if (
         part.type === 'web_search_call' ||
@@ -154,10 +192,19 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         part.type === 'view_image_call' ||
         part.type === 'view_x_video_call'
       ) {
+        let toolName = part.name;
+        if (webSearchSubTools.includes(part.name)) {
+          toolName = webSearchToolName ?? 'web_search';
+        } else if (xSearchSubTools.includes(part.name)) {
+          toolName = xSearchToolName ?? 'x_search';
+        } else if (part.name === 'code_execution') {
+          toolName = codeExecutionToolName ?? 'code_execution';
+        }
+
         content.push({
           type: 'tool-call',
           toolCallId: part.id,
-          toolName: part.name,
+          toolName,
           input: part.arguments,
           providerExecuted: true,
         });
@@ -165,7 +212,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         content.push({
           type: 'tool-result',
           toolCallId: part.id,
-          toolName: part.name,
+          toolName,
           result: undefined,
           providerExecuted: true,
         });
@@ -191,7 +238,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     sourceType: 'url',
                     id: this.config.generateId(),
                     url: annotation.url,
-                    title: annotation.title,
+                    title: annotation.title ?? annotation.url,
                   });
                 }
               }
@@ -239,7 +286,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
   async doStream(
     options: Parameters<LanguageModelV3['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const {
+      args,
+      warnings,
+      webSearchToolName,
+      xSearchToolName,
+      codeExecutionToolName,
+    } = await this.getArgs(options);
     const body = {
       ...args,
       stream: true,
@@ -354,7 +407,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'url',
                   id: self.config.generateId(),
                   url: annotation.url,
-                  title: annotation.title,
+                  title: annotation.title ?? annotation.url,
                 });
               }
 
@@ -398,10 +451,31 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 if (!seenToolCalls.has(part.id)) {
                   seenToolCalls.add(part.id);
 
+                  const webSearchSubTools = [
+                    'web_search',
+                    'web_search_with_snippets',
+                    'browse_page',
+                  ];
+                  const xSearchSubTools = [
+                    'x_user_search',
+                    'x_keyword_search',
+                    'x_semantic_search',
+                    'x_thread_fetch',
+                  ];
+
+                  let toolName = part.name;
+                  if (webSearchSubTools.includes(part.name)) {
+                    toolName = webSearchToolName ?? 'web_search';
+                  } else if (xSearchSubTools.includes(part.name)) {
+                    toolName = xSearchToolName ?? 'x_search';
+                  } else if (part.name === 'code_execution') {
+                    toolName = codeExecutionToolName ?? 'code_execution';
+                  }
+
                   controller.enqueue({
                     type: 'tool-input-start',
                     id: part.id,
-                    toolName: part.name,
+                    toolName,
                   });
 
                   controller.enqueue({
@@ -418,7 +492,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId: part.id,
-                    toolName: part.name,
+                    toolName,
                     input: part.arguments,
                     providerExecuted: true,
                   });
@@ -426,7 +500,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-result',
                     toolCallId: part.id,
-                    toolName: part.name,
+                    toolName,
                     result: undefined,
                     providerExecuted: true,
                   });

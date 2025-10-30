@@ -5,7 +5,10 @@ export type XaiResponsesInput = Array<XaiResponsesInputItem>;
 export type XaiResponsesInputItem =
   | XaiResponsesSystemMessage
   | XaiResponsesUserMessage
-  | XaiResponsesAssistantMessage;
+  | XaiResponsesAssistantMessage
+  | XaiResponsesFunctionCallOutput
+  | XaiResponsesReasoning
+  | XaiResponsesToolCall;
 
 export type XaiResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -20,6 +23,33 @@ export type XaiResponsesUserMessage = {
 export type XaiResponsesAssistantMessage = {
   role: 'assistant';
   content: string;
+  id?: string;
+};
+
+export type XaiResponsesFunctionCallOutput = {
+  type: 'function_call_output';
+  call_id: string;
+  output: string;
+};
+
+export type XaiResponsesReasoning = {
+  type: 'reasoning';
+  id: string;
+  summary: Array<{
+    type: 'summary_text';
+    text: string;
+  }>;
+  status: string;
+  encrypted_content?: string | null;
+};
+
+export type XaiResponsesToolCall = {
+  type: 'function_call' | 'web_search_call' | 'x_search_call' | 'code_interpreter_call';
+  id: string;
+  call_id: string;
+  name: string;
+  arguments: string;
+  status: string;
 };
 
 export type XaiResponsesTool =
@@ -166,6 +196,13 @@ export const xaiResponsesChunkSchema = z.union([
   }),
   z.object({
     type: z.literal('response.content_part.added'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    part: messageContentPartSchema,
+  }),
+  z.object({
+    type: z.literal('response.content_part.done'),
     item_id: z.string(),
     output_index: z.number(),
     content_index: z.number(),

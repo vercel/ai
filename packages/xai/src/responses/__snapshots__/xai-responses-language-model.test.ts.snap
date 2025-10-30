@@ -1,0 +1,1437 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`XaiResponsesLanguageModel > doGenerate > code_interpreter tool > should include code_interpreter tool call with real response 1`] = `
+[
+  {
+    "input": "{"code":"def fibonacci(n):\\n    if n <= 0:\\n        return 0\\n    elif n == 1:\\n        return 1\\n    else:\\n        a, b = 0, 1\\n        for _ in range(2, n + 1):\\n            a, b = b, a + b\\n        return b\\n\\nprint(fibonacci(10))"}",
+    "providerExecuted": true,
+    "toolCallId": "fc_5138abcf-4c4e-b0ab-7e0b-f4c81b98f455_us-east-1_0",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": undefined,
+    "toolCallId": "fc_5138abcf-4c4e-b0ab-7e0b-f4c81b98f455_us-east-1_0",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "text": "55",
+    "type": "text",
+  },
+]
+`;
+
+exports[`XaiResponsesLanguageModel > doGenerate > web_search tool > should include web_search tool call with providerExecuted true 1`] = `
+[
+  {
+    "input": "{"query":"what is xAI","num_results":5}",
+    "providerExecuted": true,
+    "toolCallId": "fc_c25a6e1c-a324-6a96-df49-9866618255cd_us-east-1_0",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": undefined,
+    "toolCallId": "fc_c25a6e1c-a324-6a96-df49-9866618255cd_us-east-1_0",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "xAI is an American artificial intelligence company founded by Elon Musk in July 2023. Its mission is to "understand the true nature of the universe" by advancing scientific discovery through AI. The company develops large language models and AI tools, including the Grok chatbot (which powers interactions like this one), and aims to compete with other major AI players like OpenAI. xAI is headquartered in the San Francisco Bay Area and has raised significant funding, including from investors like Andreessen Horowitz.
+
+(Note: "XAI" can also refer to "Explainable AI," a field in machine learning focused on making AI decisions transparent and understandable to humans. If that's what you meant, let me know for more details!)",
+    "type": "text",
+  },
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://en.wikipedia.org/wiki/XAI_%28company%29",
+  },
+  {
+    "id": "id-1",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.ai/",
+  },
+  {
+    "id": "id-2",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://www.ibm.com/think/topics/explainable-ai",
+  },
+  {
+    "id": "id-3",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://www.owkin.com/a-z-of-ai-for-healthcare/xai",
+  },
+  {
+    "id": "id-4",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.ai/company",
+  },
+]
+`;
+
+exports[`XaiResponsesLanguageModel > doGenerate > x_search tool > should include x_search tool call with real response 1`] = `
+[
+  {
+    "input": "{"query":"AI artificial intelligence","limit":20,"from_date":"2025-10-01","to_date":"2025-10-29","min_score_threshold":0.2}",
+    "providerExecuted": true,
+    "toolCallId": "fc_84c1a8ea-1f29-4a33-1049-0ed3561b0f64_us-east-1_0",
+    "toolName": "x_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": undefined,
+    "toolCallId": "fc_84c1a8ea-1f29-4a33-1049-0ed3561b0f64_us-east-1_0",
+    "toolName": "x_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "### What People Are Saying About AI on X (as of Late October 2025)
+
+Based on recent posts on X (formerly Twitter), discussions about AI are buzzing with a mix of excitement, technical deep dives, and cautious optimism. The conversation heavily revolves around **Artificial General Intelligence (AGI)** as the holy grail of AI development, with frequent references to a new paper from AI luminaries like Yoshua Bengio, Eric Schmidt, Gary Marcus, and Max Tegmark. People are debating definitions, progress, limitations, and real-world applications. Here's a breakdown of the main themes from the top relevant posts (focusing on the last month):
+
+#### 1. **Defining AGI and Its Distance from Current AI**
+   - A huge focus is on clarifying what AGI really means. Multiple users cite the aforementioned paper, which defines AGI as an AI system that "matches or exceeds the cognitive versatility and proficiency of a well-educated adult" across 10 core cognitive areas (e.g., reasoning, memory, math, language, perception).
+     - Example: @jiqizhixin shared the paper, noting that models like GPT-4 and GPT-5 score poorly (e.g., 0% on long-term memory), emphasizing AGI isn't here yet.
+     - @alex_prompter broke it down simply: GPT-4 is at 27% toward AGI, GPT-5 at 58%, but gaps in continuous learning persist. They called it a "clear benchmark" without hype.
+     - @AskPerplexity and @flowersslop echoed this, describing AGI as broadly adaptable like humans, not just narrow tools like today's chatbots.
+   - ASI (Artificial Superintelligence) gets mentioned as the next step beyond AGI—AI surpassing humans in *all* domains, including creativity and strategy. @SciTechera tied it to the "Singularity," where AI self-improves uncontrollably.
+   - Skepticism: @Newaxeman called AI an "advanced search engine" aggregating conventional wisdom, questioning deeper intelligence claims.
+
+#### 2. **Progress and Timelines Toward AGI**
+   - Optimism is high but grounded. @bindureddy (CEO of Abacus.AI) boldly predicted AGI (AI replacing humans in digital tasks) is "just a couple of years away," citing missing pieces like context, tools, and self-awareness that labs are tackling.
+   - @slow_developer referenced OpenAI and DeepMind's 5-level AGI framework: Current models are past Level 2 (emerging intelligence) and into early Level 3 (competent in complex tasks with supervision), but not fully autonomous yet.
+   - @timmur_ stressed AGI requires efficient learning across open-ended tasks with minimal data—something no model achieves today, but "we will solve it eventually."
+   - Broader view: @FrnkNlsn recommended the book *Artificial Intelligence: A Modern Approach* by Russell and Norvig for a comprehensive overview, highlighting topics like knowledge representation and multi-agent systems.
+
+#### 3. **Types of AI and Distinctions**
+   - Users are educating on AI's varieties to cut through confusion:
+     - @y00ngipurrs differentiated analytical AI (e.g., for medicine, fraud detection) from generative AI (e.g., ChatGPT for text/art).
+     - @techyoutbe contrasted AI agents (task-specific automators) with "agentic AI" (autonomous systems for long-term planning and multi-domain reasoning).
+     - @SukhSandhu listed what AI *is* (data processor, pattern recognizer, task automator) vs. what it's *not* (conscious, emotional, intuitively moral). They warned of biases in training data.
+   - @AITECHio hyped proactive "AI agents" that set goals and execute workflows autonomously, predicting one for every task from finance to on-chain automation.
+
+#### 4. **Applications, Projects, and Broader Impacts**
+   - AI's practical side shines in Web3 and business contexts. @O_H_JAY highlighted crypto projects advancing AGI/ASI, like @SentientAGI (decentralized AGI networks), @AGI_XT (AI automation on Solana), and @StoryProtocol (on-chain IP for AI models). They urged getting in early during market dips.
+   - @Voa_De_Voa discussed combining AI with compute and robotics for "autonomous intelligence," but flagged centralized control as a risk.
+   - @DeviprasadSD positioned AGI as a future horizon for reasoning across any task, still in research.
+   - @zolayolanetwork and @davilagrau amplified the AGI definition paper, linking it to blockchain and cognitive tools.
+
+#### Overall Sentiment
+- **Positive/Visionary**: Excitement about AI augmenting human capabilities (e.g., @hailstorm_9 called AGI "augmentation, not automation"). Many see it transforming industries like healthcare, finance, and creative work.
+- **Cautious/Realistic**: Emphasis on limitations—current AI is "narrow" and lacks true understanding or adaptability. No one's claiming AGI is imminent without caveats.
+- **Volume and Engagement**: These posts garnered thousands of likes/views, with high engagement on definitions and project lists. Discussions are technical but accessible, often with images, threads, or links to papers/arXiv.
+
+This is a snapshot from ~20 recent, highly relevant posts. AI chatter on X is evolving fast—trends like AGI benchmarks and agentic systems are dominating. If you want deeper dives into specific posts, users, or subtopics (e.g., AI ethics or tools), let me know!",
+    "type": "text",
+  },
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1982033415697514642",
+  },
+  {
+    "id": "id-1",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1983126826739228851",
+  },
+  {
+    "id": "id-2",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1978543466042040366",
+  },
+  {
+    "id": "id-3",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1982845451188720069",
+  },
+  {
+    "id": "id-4",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1981716983168040972",
+  },
+  {
+    "id": "id-5",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1977864424770990183",
+  },
+  {
+    "id": "id-6",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1979019210870395155",
+  },
+  {
+    "id": "id-7",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1981725084059668849",
+  },
+  {
+    "id": "id-8",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1982159004857217324",
+  },
+  {
+    "id": "id-9",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1982984027209630067",
+  },
+  {
+    "id": "id-10",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1979140575476764920",
+  },
+  {
+    "id": "id-11",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1978340270413377544",
+  },
+  {
+    "id": "id-12",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1975597769089032357",
+  },
+  {
+    "id": "id-13",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1979729023413670239",
+  },
+  {
+    "id": "id-14",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1979892126969209017",
+  },
+  {
+    "id": "id-15",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1974520747503792531",
+  },
+  {
+    "id": "id-16",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1977071347584135287",
+  },
+  {
+    "id": "id-17",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1983115564005626367",
+  },
+  {
+    "id": "id-18",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1981679355345686727",
+  },
+  {
+    "id": "id-19",
+    "sourceType": "url",
+    "title": undefined,
+    "type": "source",
+    "url": "https://x.com/i/status/1982892944261582868",
+  },
+]
+`;
+
+exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream web search with real response 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "modelId": "grok-4-fast-reasoning",
+    "timestamp": undefined,
+    "type": "response-metadata",
+  },
+  {
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-start",
+  },
+  {
+    "delta": "x",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "AI",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " artificial",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " intelligence",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " company",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " founded",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Elon",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Musk",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " July",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "3",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Its",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " mission",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "understand",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " true",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " nature",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " universe",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": """,
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " advancing",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " scientific",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " discovery",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " through",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " AI",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " x",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "AI",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " develops",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " large",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " language",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " AI",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " systems",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " notable",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " projects",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " including",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Gro",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "k",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "that's",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "!),",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " AI",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chatbot",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " designed",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " maximally",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " truthful",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " helpful",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " inspired",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Hitch",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "hik",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "er's",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Guide",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Galaxy",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " JAR",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "VIS",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Iron",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Man",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Key",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " points",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Head",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "quarters",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Based",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " San",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Francisco",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Bay",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Area",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Products",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Gro",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "k",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "an",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " open",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-source",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " base",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " model",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " released",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "4",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Gro",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "k",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " integrations",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " platforms",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " X",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "formerly",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Twitter",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").
+",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Funding",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Raised",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " over",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " $",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "6",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " billion",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " funding",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rounds",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " mid",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "4",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " valuing",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " company",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " around",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " $",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "24",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " billion",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "D",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ifferenti",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ators",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Emphas",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "izes",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " curiosity",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-driven",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " AI",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " less",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " censorship",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " than",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " competitors",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Open",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "AI",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " focus",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reasoning",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " real",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-world",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " utility",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "If",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you're",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " referring",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " something",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " else",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "explain",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "able",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " AI",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": """,
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " different",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " acronym",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " let",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " know",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " more",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " details",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "!",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "xAI is an artificial intelligence company founded by Elon Musk in July 2023. Its mission is to "understand the true nature of the universe" by advancing scientific discovery through AI. xAI develops large language models and AI systems, with notable projects including Grok (that's me!), an AI chatbot designed to be maximally truthful and helpful, inspired by the Hitchhiker's Guide to the Galaxy and JARVIS from Iron Man.
+
+Key points:
+- **Headquarters**: Based in the San Francisco Bay Area.
+- **Products**: Grok-1 (an open-source base model released in 2024), Grok-2, and integrations with platforms like X (formerly Twitter).
+- **Funding**: Raised over $6 billion in funding rounds by mid-2024, valuing the company at around $24 billion.
+- **Differentiators**: Emphasizes curiosity-driven AI, less censorship than competitors like OpenAI, and a focus on reasoning and real-world utility.
+
+If you're referring to something else (e.g., "explainable AI" or a different acronym), let me know for more details!",
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-delta",
+  },
+  {
+    "id": "text-msg_73b3c852-45b3-4443-e6f4-0327a9cfe526_us-east-1",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "type": "finish",
+    "usage": {
+      "inputTokens": 680,
+      "outputTokens": 484,
+      "reasoningTokens": 264,
+      "totalTokens": 1164,
+    },
+  },
+]
+`;
