@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.88
+
+### Patch Changes
+
+- 22ef5c6: feat(ai): Output.text() is default output mode
+
 ## 6.0.0-beta.87
 
 ### Patch Changes
