@@ -7,6 +7,9 @@ on:
     - cron: '45 * * * *'
  workflow_dispatch:
 
+permissions:
+  discussions: write
+
 jobs:
   close_discussion:
     runs-on: ubuntu-latest
