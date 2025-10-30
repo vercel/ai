@@ -17,6 +17,8 @@ import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { ErrorHandler } from '../util/error-handler';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { Output } from './output';
+import { InferPartialOutput } from './output-utils';
 import { ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
@@ -100,7 +102,10 @@ export type ConsumeStreamOptions = {
 /**
 A result object for accessing different stream types and additional information.
  */
-export interface StreamTextResult<TOOLS extends ToolSet, PARTIAL_OUTPUT> {
+export interface StreamTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output,
+> {
   /**
 The content that was generated in the last step.
 
@@ -276,12 +281,14 @@ enables provider-specific results that can be fully encapsulated in the provider
    *
    * @deprecated Use `partialOutputStream` instead.
    */
-  readonly experimental_partialOutputStream: AsyncIterableStream<PARTIAL_OUTPUT>;
+  readonly experimental_partialOutputStream: AsyncIterableStream<
+    InferPartialOutput<OUTPUT>
+  >;
 
   /**
    * A stream of partial outputs. It uses the `output` specification.
    */
-  readonly partialOutputStream: AsyncIterableStream<PARTIAL_OUTPUT>;
+  readonly partialOutputStream: AsyncIterableStream<InferPartialOutput<OUTPUT>>;
 
   /**
 Consumes the stream without processing the parts.
