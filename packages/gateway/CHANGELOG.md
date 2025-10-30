@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.47
+
+### Patch Changes
+
+- 96322b7: feat(provider/gateway): Add GPT OSS Safeguard 20B to Gateway model string autocomplete
+
 ## 2.0.0-beta.46
 
 ### Patch Changes
