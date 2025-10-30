@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.86
+
+### Patch Changes
+
+- 36b175c: chore(ai): change output generics
+
 ## 6.0.0-beta.85
 
 ### Patch Changes
