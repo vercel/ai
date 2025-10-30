@@ -12017,7 +12017,9 @@ describe('streamText', () => {
         });
 
         it('should resolve text promise with the correct text', async () => {
-          expect(await result!.text).toMatchInlineSnapshot(`"{"elements":[{"content":"element 1"},{"content":"element 2"}]}"`);
+          expect(await result!.text).toMatchInlineSnapshot(
+            `"{"elements":[{"content":"element 1"},{"content":"element 2"}]}"`,
+          );
         });
       });
     });
