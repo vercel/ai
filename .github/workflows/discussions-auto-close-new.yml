@@ -5,6 +5,9 @@ on:
   discussion:
     types: [created]
 
+permissions:
+  discussions: write
+
 jobs:
   lock_discussion:
     runs-on: ubuntu-latest
