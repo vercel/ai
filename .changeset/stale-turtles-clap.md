@@ -1,6 +1,6 @@
 ---
-'@ai-sdk/amazon-bedrock': minor
-'@ai-sdk/google-vertex': minor
+'@ai-sdk/amazon-bedrock': patch
+'@ai-sdk/google-vertex': patch
 ---
 
 feat(provider/amazon-bedrock,provider/google-vertex-anthropic): add support for tool calling with structured output
