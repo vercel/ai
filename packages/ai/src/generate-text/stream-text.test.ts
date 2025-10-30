@@ -11827,9 +11827,7 @@ describe('streamText', () => {
     });
 
     describe('array output', () => {
-      let result:
-        | StreamTextResult<any, Array<DeepPartial<{ content: string }>>>
-        | undefined;
+      let result: StreamTextResult<any, any> | undefined;
 
       let onFinishResult:
         | Parameters<Required<Parameters<typeof streamText>[0]>['onFinish']>[0]
@@ -12737,7 +12735,7 @@ describe('streamText', () => {
 
   describe('abort signal', () => {
     describe('basic abort', () => {
-      let result: StreamTextResult<ToolSet, TextStreamPart<ToolSet>>;
+      let result: StreamTextResult<ToolSet, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
 
@@ -12852,7 +12850,7 @@ describe('streamText', () => {
     });
 
     describe('abort in 2nd step', () => {
-      let result: StreamTextResult<any, TextStreamPart<any>>;
+      let result: StreamTextResult<any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
 
@@ -13142,7 +13140,7 @@ describe('streamText', () => {
     });
 
     describe('abort during tool call', () => {
-      let result: StreamTextResult<any, TextStreamPart<any>>;
+      let result: StreamTextResult<any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
 

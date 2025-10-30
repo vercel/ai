@@ -91,6 +91,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
+import { InferPartialOutput } from './output-utils';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -226,8 +227,7 @@ A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
-  OUTPUT = never,
-  PARTIAL_OUTPUT = never,
+  OUTPUT extends Output = never,
 >({
   model,
   tools,
@@ -317,14 +317,14 @@ functionality that can be fully encapsulated in the provider.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
-    output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+    output?: OUTPUT;
 
     /**
 Optional specification for parsing structured outputs from the LLM response.
 
 @deprecated Use `output` instead.
  */
-    experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+    experimental_output?: OUTPUT;
 
     /**
 Optional function that you can use to provide different settings for a step.
@@ -413,8 +413,8 @@ Internal. For test use only. May change without notice.
       generateId?: IdGenerator;
       currentDate?: () => Date;
     };
-  }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
-  return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
+  }): StreamTextResult<TOOLS, OUTPUT> {
+  return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
@@ -556,17 +556,17 @@ function createOutputTransformStream<
   });
 }
 
-class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
-  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
+class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
+  implements StreamTextResult<TOOLS, OUTPUT>
 {
   private readonly _totalUsage = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['usage']>
   >();
   private readonly _finishReason = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['finishReason']>
   >();
   private readonly _steps = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
   >();
 
   private readonly addStream: (
@@ -575,9 +575,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private readonly closeStream: () => void;
 
-  private baseStream: ReadableStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>>;
+  private baseStream: ReadableStream<
+    EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+  >;
 
-  private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
+  private output: OUTPUT | undefined;
 
   private includeRawChunks: boolean;
 
@@ -629,7 +631,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
-    output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
+    output: OUTPUT | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     includeRawChunks: boolean;
@@ -684,8 +686,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     > = {};
 
     const eventProcessor = new TransformStream<
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >({
       async transform(chunk, controller) {
         controller.enqueue(chunk); // forward the chunk to the next stream
@@ -1778,7 +1780,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
-        new TransformStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
+        new TransformStream<
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+          string
+        >({
           transform({ part }, controller) {
             if (part.type === 'text-delta') {
               controller.enqueue(part.text);
@@ -1793,7 +1798,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
-          EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
           TextStreamPart<TOOLS>
         >({
           transform({ part }, controller) {
@@ -1815,11 +1820,13 @@ However, the LLM results are expected to be small enough to not cause issues.
     }
   }
 
-  get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
+  get experimental_partialOutputStream(): AsyncIterableStream<
+    InferPartialOutput<OUTPUT>
+  > {
     return this.partialOutputStream;
   }
 
-  get partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
+  get partialOutputStream(): AsyncIterableStream<InferPartialOutput<OUTPUT>> {
     if (this.output == null) {
       throw new NoOutputSpecifiedError();
     }
@@ -1827,8 +1834,8 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
-          EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
-          PARTIAL_OUTPUT
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+          InferPartialOutput<OUTPUT>
         >({
           transform({ partialOutput }, controller) {
             if (partialOutput != null) {

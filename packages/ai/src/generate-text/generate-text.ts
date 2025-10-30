@@ -44,6 +44,7 @@ import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
 import { Output } from './output';
+import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
@@ -144,8 +145,7 @@ A result object that contains the generated text, the results of the tool calls,
  */
 export async function generateText<
   TOOLS extends ToolSet,
-  OUTPUT = never,
-  PARTIAL_OUTPUT = never,
+  OUTPUT extends Output = never,
 >({
   model: modelArg,
   tools,
@@ -228,14 +228,14 @@ changing the tool call and result types in the result.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
-    output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+    output?: OUTPUT;
 
     /**
 Optional specification for parsing structured outputs from the LLM response.
 
 @deprecated Use `output` instead.
      */
-    experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+    experimental_output?: OUTPUT;
 
     /**
 Custom download function to use for URLs.
@@ -817,17 +817,17 @@ async function executeTools<TOOLS extends ToolSet>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
+class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
   readonly totalUsage: LanguageModelUsage;
 
-  private readonly resolvedOutput: OUTPUT;
+  private readonly resolvedOutput: InferCompleteOutput<OUTPUT>;
 
   constructor(options: {
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-    resolvedOutput: OUTPUT;
+    resolvedOutput: InferCompleteOutput<OUTPUT>;
     totalUsage: LanguageModelUsage;
   }) {
     this.steps = options.steps;
