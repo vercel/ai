@@ -452,7 +452,7 @@ describe('XaiResponsesLanguageModel', () => {
             {
               "id": "id-1",
               "sourceType": "url",
-              "title": undefined,
+              "title": "https://test.com",
               "type": "source",
               "url": "https://test.com",
             },

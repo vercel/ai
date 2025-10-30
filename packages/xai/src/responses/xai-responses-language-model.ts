@@ -390,7 +390,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                       sourceType: 'url',
                       id: self.config.generateId(),
                       url: annotation.url,
-                      title: annotation.title,
+                      title: annotation.title ?? annotation.url,
                     });
                   }
                 }
@@ -540,7 +540,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                           sourceType: 'url',
                           id: self.config.generateId(),
                           url: annotation.url,
-                          title: annotation.title,
+                          title: annotation.title ?? annotation.url,
                         });
                       }
                     }
