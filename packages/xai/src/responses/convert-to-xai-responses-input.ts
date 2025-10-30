@@ -81,23 +81,7 @@ export async function convertToXaiResponsesInput({
             }
 
             case 'tool-call': {
-              const serverSideToolNames = [
-                'web_search',
-                'web_search_with_snippets',
-                'browse_page',
-                'x_user_search',
-                'x_keyword_search',
-                'x_semantic_search',
-                'x_thread_fetch',
-                'code_execution',
-                'view_image',
-                'view_x_video',
-              ];
-
-              if (
-                part.providerExecuted ||
-                serverSideToolNames.includes(part.toolName)
-              ) {
+              if (part.providerExecuted) {
                 break;
               }
 

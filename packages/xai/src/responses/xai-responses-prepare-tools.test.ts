@@ -365,7 +365,26 @@ describe('prepareResponsesTools', () => {
         toolChoice: { type: 'tool', toolName: 'weather' },
       });
 
-      expect(result.toolChoice).toBe('weather');
+      expect(result.toolChoice).toEqual({
+        type: 'function',
+        name: 'weather',
+      });
+    });
+
+    it('should handle provider-defined tool choice mapping', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'xai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'web_search' },
+      });
+
+      expect(result.toolChoice).toEqual({ type: 'web_search' });
     });
   });
 

@@ -130,6 +130,37 @@ describe('convertToXaiResponsesInput', () => {
       `);
     });
 
+    it('should handle client-side tool-call parts named like server-side tools', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_ws',
+                toolName: 'web_search',
+                input: { query: 'latest news' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{\"query\":\"latest news\"}",
+            "call_id": "call_ws",
+            "id": "call_ws",
+            "name": "web_search",
+            "status": "completed",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
     it('should skip server-side tool-call parts', async () => {
       const result = await convertToXaiResponsesInput({
         prompt: [

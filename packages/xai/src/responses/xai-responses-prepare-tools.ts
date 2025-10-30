@@ -8,6 +8,17 @@ import { webSearchArgsSchema } from '../tool/web-search';
 import { xSearchArgsSchema } from '../tool/x-search';
 import { XaiResponsesTool } from './xai-responses-api';
 
+type XaiResponsesToolChoice =
+  | 'auto'
+  | 'none'
+  | 'required'
+  | { type: 'web_search' }
+  | { type: 'x_search' }
+  | { type: 'code_interpreter' }
+  | { type: 'file_search' }
+  | { type: 'mcp' }
+  | { type: 'function'; name: string };
+
 export async function prepareResponsesTools({
   tools,
   toolChoice,
@@ -16,20 +27,23 @@ export async function prepareResponsesTools({
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
 }): Promise<{
   tools: Array<XaiResponsesTool> | undefined;
-  toolChoice: string | undefined;
+  toolChoice: XaiResponsesToolChoice | undefined;
   toolWarnings: LanguageModelV3CallWarning[];
 }> {
-  tools = tools?.length ? tools : undefined;
+  const normalizedTools = tools?.length ? tools : undefined;
 
   const toolWarnings: LanguageModelV3CallWarning[] = [];
 
-  if (tools == null) {
+  if (normalizedTools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
   const xaiTools: Array<XaiResponsesTool> = [];
+  const toolByName = new Map<string, (typeof normalizedTools)[number]>();
 
-  for (const tool of tools) {
+  for (const tool of normalizedTools) {
+    toolByName.set(tool.name, tool);
+
     if (tool.type === 'provider-defined') {
       switch (tool.id) {
         case 'xai.web_search': {
@@ -115,12 +129,61 @@ export async function prepareResponsesTools({
       return { tools: xaiTools, toolChoice: type, toolWarnings };
     case 'required':
       return { tools: xaiTools, toolChoice: 'required', toolWarnings };
-    case 'tool':
+    case 'tool': {
+      const selectedTool = toolByName.get(toolChoice.toolName);
+
+      if (selectedTool == null) {
+        return {
+          tools: xaiTools,
+          toolChoice: undefined,
+          toolWarnings,
+        };
+      }
+
+      if (selectedTool.type === 'provider-defined') {
+        switch (selectedTool.id) {
+          case 'xai.web_search':
+            return {
+              tools: xaiTools,
+              toolChoice: { type: 'web_search' },
+              toolWarnings,
+            };
+          case 'xai.x_search':
+            return {
+              tools: xaiTools,
+              toolChoice: { type: 'x_search' },
+              toolWarnings,
+            };
+          case 'xai.code_execution':
+            return {
+              tools: xaiTools,
+              toolChoice: { type: 'code_interpreter' },
+              toolWarnings,
+            };
+          case 'xai.file_search':
+            return {
+              tools: xaiTools,
+              toolChoice: { type: 'file_search' },
+              toolWarnings,
+            };
+          case 'xai.mcp':
+            return {
+              tools: xaiTools,
+              toolChoice: { type: 'mcp' },
+              toolWarnings,
+            };
+          default:
+            toolWarnings.push({ type: 'unsupported-tool', tool: selectedTool });
+            return { tools: xaiTools, toolChoice: undefined, toolWarnings };
+        }
+      }
+
       return {
         tools: xaiTools,
-        toolChoice: toolChoice.toolName,
+        toolChoice: { type: 'function', name: selectedTool.name },
         toolWarnings,
       };
+    }
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
