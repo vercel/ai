@@ -1,5 +1,44 @@
 # ai
 
+## 6.0.0-beta.88
+
+### Patch Changes
+
+- 22ef5c6: feat(ai): Output.text() is default output mode
+
+## 6.0.0-beta.87
+
+### Patch Changes
+
+- ca13d26: feat(ai): add output to StreamTextResult
+
+## 6.0.0-beta.86
+
+### Patch Changes
+
+- 36b175c: chore(ai): change output generics
+
+## 6.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [96322b7]
+  - @ai-sdk/gateway@2.0.0-beta.47
+
+## 6.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.46
+
+## 6.0.0-beta.83
+
+### Patch Changes
+
+- e1f6e8e: feat(ai): add Output.json()
+
 ## 6.0.0-beta.82
 
 ### Patch Changes

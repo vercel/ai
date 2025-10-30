@@ -5,6 +5,8 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { Output } from './output';
+import { InferCompleteOutput } from './output-utils';
 import { ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
@@ -20,7 +22,10 @@ import { ToolSet } from './tool-set';
 The result of a `generateText` call.
 It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
-export interface GenerateTextResult<TOOLS extends ToolSet, OUTPUT> {
+export interface GenerateTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output,
+> {
   /**
 The content that was generated in the last step.
    */
@@ -149,11 +154,11 @@ The generated structured output. It uses the `output` specification.
 
 @deprecated Use `output` instead.
    */
-  readonly experimental_output: OUTPUT;
+  readonly experimental_output: InferCompleteOutput<OUTPUT>;
 
   /**
 The generated structured output. It uses the `output` specification.
 
    */
-  readonly output: OUTPUT;
+  readonly output: InferCompleteOutput<OUTPUT>;
 }
