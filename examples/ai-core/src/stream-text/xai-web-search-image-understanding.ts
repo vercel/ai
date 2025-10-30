@@ -11,7 +11,8 @@ async function main() {
         enableImageUnderstanding: true,
       }),
     },
-    prompt: 'search x.ai website and describe any images you find on the homepage',
+    prompt:
+      'search x.ai website and describe any images you find on the homepage',
   });
 
   console.log('searching x.ai with image understanding...\n');
