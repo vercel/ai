@@ -2125,7 +2125,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchSnapshot();
 
         const sources = result.content.filter(
-          (part): part is Extract<LanguageModelV3Content, { type: 'source' }> => part.type === 'source',
+          (part): part is Extract<LanguageModelV3Content, { type: 'source' }> =>
+            part.type === 'source',
         );
 
         expect(sources).toHaveLength(1);
@@ -3758,7 +3759,10 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(streamParts).toMatchSnapshot();
 
         const sourceParts = streamParts.filter(
-          (part): part is Extract<LanguageModelV3StreamPart, { type: 'source' }> => part.type === 'source',
+          (
+            part,
+          ): part is Extract<LanguageModelV3StreamPart, { type: 'source' }> =>
+            part.type === 'source',
         );
 
         expect(sourceParts).toHaveLength(1);
@@ -5030,11 +5034,131 @@ describe('OpenAIResponsesLanguageModel', () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data:${JSON.stringify({"type":"response.content_part.added","item_id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}})}\n\n`,
-          `data:${JSON.stringify({"type":"response.output_text.annotation.added","item_id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"container_file_citation","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","end_index":465,"file_id":"cfile_68c2e7084ab48191a67824aa1f4c90f1","filename":"roll2dice_sums_10000.csv","start_index":423}})}\n\n`,
-          `data:${JSON.stringify({"type":"response.content_part.done","item_id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","output_index":0,"content_index":0,"part":{"type":"output_text","annotations":[{"type":"container_file_citation","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","end_index":465,"file_id":"cfile_68c2e7084ab48191a67824aa1f4c90f1","filename":"roll2dice_sums_10000.csv","start_index":423}],"logprobs":[],"text":"Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)."}})}\n\n`,
-          `data:${JSON.stringify({"type":"response.output_item.done","output_index":0,"item":{"id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","type":"message","status":"completed","content":[{"type":"output_text","annotations":[{"type":"container_file_citation","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","end_index":465,"file_id":"cfile_68c2e7084ab48191a67824aa1f4c90f1","filename":"roll2dice_sums_10000.csv","start_index":423}],"logprobs":[],"text":"Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)."}],"role":"assistant"}})}\n\n`,
-          `data:${JSON.stringify({"type":"response.completed","response":{"id":"resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9","object":"response","created_at":1757603567,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-5-nano-2025-08-07","output":[{"id":"rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9","type":"reasoning","summary":[]},{"id":"ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9","type":"code_interpreter_call","status":"completed","code":"import random, math\nN=10000\nsums=[]\ns=0\nfor _ in range(N):\n    a=random.randint(1,6)\n    b=random.randint(1,6)\n    sm=a+b\n    sums.append(sm)\n    s+=sm\nmin(sums), max(sums), sum(sums), sum(sums)/N\n","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","outputs":[{"type":"logs","logs":"(2, 12, 69868, 6.9868)"}]},{"id":"rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9","type":"reasoning","summary":[]},{"id":"ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9","type":"code_interpreter_call","status":"completed","code":"import csv, pathlib\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\nwith open(path, 'w', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['sum'])\n    for val in sums:\n        writer.writerow([val])\npath, path.exists(), len(sums)\n","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","outputs":[{"type":"logs","logs":"(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)"}]},{"id":"rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9","type":"reasoning","summary":[]},{"id":"ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9","type":"code_interpreter_call","status":"completed","code":"sums[:20]\n","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","outputs":[{"type":"logs","logs":"[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]"}]},{"id":"rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9","type":"reasoning","summary":[]},{"id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","type":"message","status":"completed","content":[{"type":"output_text","annotations":[{"type":"container_file_citation","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","end_index":465,"file_id":"cfile_68c2e7084ab48191a67824aa1f4c90f1","filename":"roll2dice_sums_10000.csv","start_index":423}],"logprobs":[],"text":"Here's a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)."}],"role":"assistant"}],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[{"type":"code_interpreter","container":{"type":"auto"}}],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":{"input_tokens":6047,"input_tokens_details":{"cached_tokens":2944},"output_tokens":1623,"output_tokens_details":{"reasoning_tokens":1408},"total_tokens":7670},"user":null,"metadata":{}}})}\n\n`,
+          `data:${JSON.stringify({ type: 'response.content_part.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', text: '', annotations: [] } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_text.annotation.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, annotation_index: 0, annotation: { type: 'container_file_citation', container_id: 'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9', end_index: 465, file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1', filename: 'roll2dice_sums_10000.csv', start_index: 423 } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.content_part.done', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', annotations: [{ type: 'container_file_citation', container_id: 'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9', end_index: 465, file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1', filename: 'roll2dice_sums_10000.csv', start_index: 423 }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_item.done', output_index: 0, item: { id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', type: 'message', status: 'completed', content: [{ type: 'output_text', annotations: [{ type: 'container_file_citation', container_id: 'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9', end_index: 465, file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1', filename: 'roll2dice_sums_10000.csv', start_index: 423 }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." }], role: 'assistant' } })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9',
+              object: 'response',
+              created_at: 1757603567,
+              status: 'completed',
+              error: null,
+              incomplete_details: null,
+              instructions: null,
+              max_output_tokens: null,
+              model: 'gpt-5-nano-2025-08-07',
+              output: [
+                {
+                  id: 'rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: 'import random, math\nN=10000\nsums=[]\ns=0\nfor _ in range(N):\n    a=random.randint(1,6)\n    b=random.randint(1,6)\n    sm=a+b\n    sums.append(sm)\n    s+=sm\nmin(sums), max(sums), sum(sums), sum(sums)/N\n',
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [{ type: 'logs', logs: '(2, 12, 69868, 6.9868)' }],
+                },
+                {
+                  id: 'rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: "import csv, pathlib\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\nwith open(path, 'w', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['sum'])\n    for val in sums:\n        writer.writerow([val])\npath, path.exists(), len(sums)\n",
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [
+                    {
+                      type: 'logs',
+                      logs: "(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)",
+                    },
+                  ],
+                },
+                {
+                  id: 'rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: 'sums[:20]\n',
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [
+                    {
+                      type: 'logs',
+                      logs: '[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]',
+                    },
+                  ],
+                },
+                {
+                  id: 'rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9',
+                  type: 'message',
+                  status: 'completed',
+                  content: [
+                    {
+                      type: 'output_text',
+                      annotations: [
+                        {
+                          type: 'container_file_citation',
+                          container_id:
+                            'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                          end_index: 465,
+                          file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1',
+                          filename: 'roll2dice_sums_10000.csv',
+                          start_index: 423,
+                        },
+                      ],
+                      logprobs: [],
+                      text: "Here's a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.).",
+                    },
+                  ],
+                  role: 'assistant',
+                },
+              ],
+              parallel_tool_calls: true,
+              previous_response_id: null,
+              prompt_cache_key: null,
+              reasoning: { effort: 'medium', summary: null },
+              safety_identifier: null,
+              store: true,
+              temperature: 1,
+              text: { format: { type: 'text' }, verbosity: 'medium' },
+              tool_choice: 'auto',
+              tools: [
+                { type: 'code_interpreter', container: { type: 'auto' } },
+              ],
+              top_logprobs: 0,
+              top_p: 1,
+              truncation: 'disabled',
+              usage: {
+                input_tokens: 6047,
+                input_tokens_details: { cached_tokens: 2944 },
+                output_tokens: 1623,
+                output_tokens_details: { reasoning_tokens: 1408 },
+                total_tokens: 7670,
+              },
+              user: null,
+              metadata: {},
+            },
+          })}\n\n`,
           'data: [DONE]\n\n',
         ],
       };
@@ -5093,11 +5217,126 @@ describe('OpenAIResponsesLanguageModel', () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data:${JSON.stringify({"type":"response.content_part.added","item_id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}})}\n\n`,
-          `data:${JSON.stringify({"type":"response.output_text.annotation.added","item_id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"file_path","file_id":"cfile_68c2e7084ab48191a67824aa1f4c90f1"}})}\n\n`,
-          `data:${JSON.stringify({"type":"response.content_part.done","item_id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","output_index":0,"content_index":0,"part":{"type":"output_text","annotations":[{"type":"file_path","file_id":"cfile_68c2e7084ab48191a67824aa1f4c90f1"}],"logprobs":[],"text":"Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)."}})}\n\n`,
-          `data:${JSON.stringify({"type":"response.output_item.done","output_index":0,"item":{"id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","type":"message","status":"completed","content":[{"type":"output_text","annotations":[{"type":"file_path","file_id":"cfile_68c2e7084ab48191a67824aa1f4c90f1"}],"logprobs":[],"text":"Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)."}],"role":"assistant"}})}\n\n`,
-          `data:${JSON.stringify({"type":"response.completed","response":{"id":"resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9","object":"response","created_at":1757603567,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-5-nano-2025-08-07","output":[{"id":"rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9","type":"reasoning","summary":[]},{"id":"ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9","type":"code_interpreter_call","status":"completed","code":"import random, math\nN=10000\nsums=[]\ns=0\nfor _ in range(N):\n    a=random.randint(1,6)\n    b=random.randint(1,6)\n    sm=a+b\n    sums.append(sm)\n    s+=sm\nmin(sums), max(sums), sum(sums), sum(sums)/N\n","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","outputs":[{"type":"logs","logs":"(2, 12, 69868, 6.9868)"}]},{"id":"rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9","type":"reasoning","summary":[]},{"id":"ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9","type":"code_interpreter_call","status":"completed","code":"import csv, pathlib\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\nwith open(path, 'w', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['sum'])\n    for val in sums:\n        writer.writerow([val])\npath, path.exists(), len(sums)\n","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","outputs":[{"type":"logs","logs":"(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)"}]},{"id":"rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9","type":"reasoning","summary":[]},{"id":"ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9","type":"code_interpreter_call","status":"completed","code":"sums[:20]\n","container_id":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9","outputs":[{"type":"logs","logs":"[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]"}]},{"id":"rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9","type":"reasoning","summary":[]},{"id":"msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9","type":"message","status":"completed","content":[{"type":"output_text","annotations":[{"type":"file_path","file_id":"cfile_68c2e7084ab48191a67824aa1f4c90f1"}],"logprobs":[],"text":"Here's a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)."}],"role":"assistant"}],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[{"type":"code_interpreter","container":{"type":"auto"}}],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":{"input_tokens":6047,"input_tokens_details":{"cached_tokens":2944},"output_tokens":1623,"output_tokens_details":{"reasoning_tokens":1408},"total_tokens":7670},"user":null,"metadata":{}}})}\n\n`,
+          `data:${JSON.stringify({ type: 'response.content_part.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', text: '', annotations: [] } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_text.annotation.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, annotation_index: 0, annotation: { type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.content_part.done', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', annotations: [{ type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_item.done', output_index: 0, item: { id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', type: 'message', status: 'completed', content: [{ type: 'output_text', annotations: [{ type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." }], role: 'assistant' } })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9',
+              object: 'response',
+              created_at: 1757603567,
+              status: 'completed',
+              error: null,
+              incomplete_details: null,
+              instructions: null,
+              max_output_tokens: null,
+              model: 'gpt-5-nano-2025-08-07',
+              output: [
+                {
+                  id: 'rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: 'import random, math\nN=10000\nsums=[]\ns=0\nfor _ in range(N):\n    a=random.randint(1,6)\n    b=random.randint(1,6)\n    sm=a+b\n    sums.append(sm)\n    s+=sm\nmin(sums), max(sums), sum(sums), sum(sums)/N\n',
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [{ type: 'logs', logs: '(2, 12, 69868, 6.9868)' }],
+                },
+                {
+                  id: 'rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: "import csv, pathlib\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\nwith open(path, 'w', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['sum'])\n    for val in sums:\n        writer.writerow([val])\npath, path.exists(), len(sums)\n",
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [
+                    {
+                      type: 'logs',
+                      logs: "(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)",
+                    },
+                  ],
+                },
+                {
+                  id: 'rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: 'sums[:20]\n',
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [
+                    {
+                      type: 'logs',
+                      logs: '[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]',
+                    },
+                  ],
+                },
+                {
+                  id: 'rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9',
+                  type: 'message',
+                  status: 'completed',
+                  content: [
+                    {
+                      type: 'output_text',
+                      annotations: [
+                        {
+                          type: 'file_path',
+                          file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1',
+                        },
+                      ],
+                      logprobs: [],
+                      text: "Here's a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.).",
+                    },
+                  ],
+                  role: 'assistant',
+                },
+              ],
+              parallel_tool_calls: true,
+              previous_response_id: null,
+              prompt_cache_key: null,
+              reasoning: { effort: 'medium', summary: null },
+              safety_identifier: null,
+              store: true,
+              temperature: 1,
+              text: { format: { type: 'text' }, verbosity: 'medium' },
+              tool_choice: 'auto',
+              tools: [
+                { type: 'code_interpreter', container: { type: 'auto' } },
+              ],
+              top_logprobs: 0,
+              top_p: 1,
+              truncation: 'disabled',
+              usage: {
+                input_tokens: 6047,
+                input_tokens_details: { cached_tokens: 2944 },
+                output_tokens: 1623,
+                output_tokens_details: { reasoning_tokens: 1408 },
+                total_tokens: 7670,
+              },
+              user: null,
+              metadata: {},
+            },
+          })}\n\n`,
           'data: [DONE]\n\n',
         ],
       };
