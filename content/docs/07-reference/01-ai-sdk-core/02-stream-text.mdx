@@ -2476,7 +2476,13 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'partialOutputStream',
       type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
       description:
-        'A stream of partial outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+        'A stream of partial parsed outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+    },
+    {
+      name: 'output',
+      type: 'Promise<COMPLETE_OUTPUT>',
+      description:
+        'The complete parsed output. It uses the `output` specification.',
     },
     {
       name: 'consumeStream',
