@@ -7,7 +7,10 @@ import { UIMessage } from '../ui/ui-messages';
 import { ErrorHandler } from '../util/error-handler';
 import { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
-import { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
+import {
+  StepUIMessage,
+  UIMessageStreamOnStepFinishCallback,
+} from './ui-message-stream-on-step-finish-callback';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
@@ -103,14 +106,16 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     finishCalled = true;
 
     const isContinuation = state.message.id === lastMessage?.id;
+    const messages: UI_MESSAGE[] = [
+      ...(isContinuation ? originalMessages.slice(0, -1) : originalMessages),
+      state.message,
+    ];
+
     await onFinish({
       isAborted,
       isContinuation,
-      responseMessage: state.message as UI_MESSAGE,
-      messages: [
-        ...(isContinuation ? originalMessages.slice(0, -1) : originalMessages),
-        state.message,
-      ] as UI_MESSAGE[],
+      responseMessage: state.message,
+      messages,
     });
   };
 
@@ -124,22 +129,24 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
         const isContinuation = options.state.message.id === lastMessage?.id;
 
         // Create a step message containing only the parts from this step
-        const stepMessage: UI_MESSAGE = {
+        const stepMessage: StepUIMessage<UI_MESSAGE> = {
           id: options.state.message.id,
           role: 'assistant',
           parts: options.stepParts,
           metadata: options.state.message.metadata,
-        } as UI_MESSAGE;
+        };
+
+        const messages: UI_MESSAGE[] = [
+          ...(isContinuation
+            ? originalMessages.slice(0, -1)
+            : originalMessages),
+          options.state.message,
+        ];
 
         await onStepFinish({
-          messages: [
-            ...(isContinuation
-              ? originalMessages.slice(0, -1)
-              : originalMessages),
-            options.state.message,
-          ] as UI_MESSAGE[],
+          messages,
           stepNumber: options.stepNumber,
-          responseMessage: options.state.message as UI_MESSAGE,
+          responseMessage: options.state.message,
           stepMessage,
           isContinuation,
           isAborted,

@@ -2519,6 +2519,12 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'Callback function called when the stream finishes. Provides the updated list of UI messages, whether the response is a continuation, the response message, and whether the stream was aborted.',
             },
             {
+              name: 'onStepFinish',
+              type: "(event: { messages: UIMessage[]; stepNumber: number; responseMessage: UIMessage; stepMessage: UIMessage; isContinuation: boolean; isAborted: boolean; stepParts: UIMessage['parts']; }) => Promise<void> | void",
+              isOptional: true,
+              description: 'Callback function called when a step finishes (on finish-step). Provides a minimal step message containing only the parts generated in that step, the accumulated response message so far, the full messages array at that point, and flags for continuation and abort status.',
+            },
+            {
               name: 'messageMetadata',
               type: '(options: { part: TextStreamPart<TOOLS> & { type: "start" | "finish" | "start-step" | "finish-step"; }; }) => unknown',
               isOptional: true,

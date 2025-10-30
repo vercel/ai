@@ -1,5 +1,15 @@
 import { UIMessage } from '../ui/ui-messages';
 
+// A minimal, structurally correct UI message representing just a single step.
+// It preserves id/role/metadata from the full message and replaces parts with the
+// parts produced in this step. This avoids unsafe type assertions for generic UI_MESSAGE.
+export type StepUIMessage<UI_MESSAGE extends UIMessage> = Pick<
+  UI_MESSAGE,
+  'id' | 'role' | 'metadata'
+> & {
+  parts: Array<UI_MESSAGE['parts'][number]>;
+};
+
 export type UIMessageStreamOnStepFinishCallback<UI_MESSAGE extends UIMessage> =
   (event: {
     /**
@@ -22,8 +32,10 @@ export type UIMessageStreamOnStepFinishCallback<UI_MESSAGE extends UIMessage> =
     /**
      * A message containing only the parts that were added in this step.
      * This represents the new content generated in this specific step.
+     * The object maintains structural compatibility with UI messages and
+     * includes id/role/metadata from the current response message.
      */
-    stepMessage: UI_MESSAGE;
+    stepMessage: StepUIMessage<UI_MESSAGE>;
 
     /**
      * Indicates whether the response message is a continuation of the last original message,
