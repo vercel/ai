@@ -2778,7 +2778,7 @@ describe('generateText', () => {
   });
 
   describe('options.output', () => {
-    describe('no output', () => {
+    describe('text output (default)', () => {
       it('should throw error when accessing output', async () => {
         const result = await generateText({
           model: new MockLanguageModelV3({
@@ -2790,9 +2790,7 @@ describe('generateText', () => {
           prompt: 'prompt',
         });
 
-        expect(() => {
-          result.output;
-        }).toThrow('No output specified');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
     });
 
@@ -3138,7 +3136,7 @@ describe('generateText', () => {
       // output should be undefined when finish reason is tool-calls
       expect(() => {
         result.output;
-      }).toThrow('No output specified');
+      }).toThrow('No output generated');
 
       // But tool calls should work normally
       expect(result.toolCalls).toHaveLength(1);
