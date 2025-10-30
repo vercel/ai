@@ -91,7 +91,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
-import { InferPartialOutput } from './output-utils';
+import { InferCompleteOutput, InferPartialOutput } from './output-utils';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -579,7 +579,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >;
 
-  private output: OUTPUT | undefined;
+  private outputSpecification: OUTPUT | undefined;
 
   private includeRawChunks: boolean;
 
@@ -648,7 +648,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
-    this.output = output;
+    this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
@@ -1827,7 +1827,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get partialOutputStream(): AsyncIterableStream<InferPartialOutput<OUTPUT>> {
-    if (this.output == null) {
+    if (this.outputSpecification == null) {
       throw new NoOutputSpecifiedError();
     }
 
@@ -1845,6 +1845,23 @@ However, the LLM results are expected to be small enough to not cause issues.
         }),
       ),
     );
+  }
+
+  get output(): Promise<InferCompleteOutput<OUTPUT>> {
+    return this.finalStep.then(step => {
+      if (this.outputSpecification == null) {
+        throw new NoOutputSpecifiedError();
+      }
+
+      return this.outputSpecification.parseCompleteOutput(
+        { text: step.text },
+        {
+          response: step.response,
+          usage: step.usage,
+          finishReason: step.finishReason,
+        },
+      );
+    });
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
