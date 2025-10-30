@@ -8,7 +8,7 @@ import { DeepPartial } from '../util/deep-partial';
 
 describe('streamText types', () => {
   describe('output', () => {
-    it('should infer default output type', async () => {
+    it('should infer text output type (default)', async () => {
       const result = streamText({
         model: new MockLanguageModelV3(),
         prompt: 'Hello, world!',
@@ -73,7 +73,7 @@ describe('streamText types', () => {
   });
 
   describe('partialOutputStream', () => {
-    it('should infer default partial output type', async () => {
+    it('should infer text partial output type (default)', async () => {
       const result = streamText({
         model: new MockLanguageModelV3(),
         prompt: 'Hello, world!',

@@ -6,6 +6,15 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 
 describe('generateText types', () => {
   describe('output', () => {
+    it('should infer text output type (default)', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+      });
+
+      expectTypeOf<typeof result.output>().toEqualTypeOf<string>();
+    });
+
     it('should infer text output type', async () => {
       const result = await generateText({
         model: new MockLanguageModelV3(),
