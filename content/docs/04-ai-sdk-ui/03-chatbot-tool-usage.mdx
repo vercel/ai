@@ -20,10 +20,10 @@ The flow is as follows:
 1. All tool calls are forwarded to the client.
 1. Server-side tools are executed using their `execute` method and their results are forwarded to the client.
 1. Client-side tools that should be automatically executed are handled with the `onToolCall` callback.
-   You must call `addToolResult` to provide the tool result.
+   You must call `addToolOutput` to provide the tool result.
 1. Client-side tool that require user interactions can be displayed in the UI.
    The tool calls and results are available as tool invocation parts in the `parts` property of the last assistant message.
-1. When the user interaction is done, `addToolResult` can be used to add the tool result to the chat.
+1. When the user interaction is done, `addToolOutput` can be used to add the tool result to the chat.
 1. The chat can be configured to automatically submit when all tool results are available using `sendAutomaticallyWhen`.
    This triggers another iteration of this flow.
 
@@ -104,13 +104,13 @@ There are three things worth mentioning:
 
 1. The [`onToolCall`](/docs/reference/ai-sdk-ui/use-chat#on-tool-call) callback is used to handle client-side tools that should be automatically executed.
    In this example, the `getLocation` tool is a client-side tool that returns a random city.
-   You call `addToolResult` to provide the result (without `await` to avoid potential deadlocks).
+   You call `addToolOutput` to provide the result (without `await` to avoid potential deadlocks).
 
    <Note>
      Always check `if (toolCall.dynamic)` first in your `onToolCall` handler.
      Without this check, TypeScript will throw an error like: `Type 'string' is
      not assignable to type '"toolName1" | "toolName2"'` when you try to use
-     `toolCall.toolName` in `addToolResult`.
+     `toolCall.toolName` in `addToolOutput`.
    </Note>
 
 2. The [`sendAutomaticallyWhen`](/docs/reference/ai-sdk-ui/use-chat#send-automatically-when) option with `lastAssistantMessageIsCompleteWithToolCalls` helper automatically submits when all tool results are available.
@@ -118,7 +118,7 @@ There are three things worth mentioning:
 3. The `parts` array of assistant messages contains tool parts with typed names like `tool-askForConfirmation`.
    The client-side tool `askForConfirmation` is displayed in the UI.
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
-   The result is added to the chat using `addToolResult` with the `tool` parameter for type safety.
+   The result is added to the chat using `addToolOutput` with the `tool` parameter for type safety.
 
 ```tsx filename='app/page.tsx' highlight="2,6,10,14-20"
 'use client';
@@ -131,7 +131,7 @@ import {
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolResult } = useChat({
+  const { messages, sendMessage, addToolOutput } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -149,7 +149,7 @@ export default function Chat() {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
         // No await - avoids potential deadlocks
-        addToolResult({
+        addToolOutput({
           tool: 'getLocation',
           toolCallId: toolCall.toolCallId,
           output: cities[Math.floor(Math.random() * cities.length)],
@@ -186,7 +186,7 @@ export default function Chat() {
                         <div>
                           <button
                             onClick={() =>
-                              addToolResult({
+                              addToolOutput({
                                 tool: 'askForConfirmation',
                                 toolCallId: callId,
                                 output: 'Yes, confirmed.',
@@ -197,7 +197,7 @@ export default function Chat() {
                           </button>
                           <button
                             onClick={() =>
-                              addToolResult({
+                              addToolOutput({
                                 tool: 'askForConfirmation',
                                 toolCallId: callId,
                                 output: 'No, denied',
