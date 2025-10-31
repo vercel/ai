@@ -1215,6 +1215,12 @@ describe('responses', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -1424,6 +1430,12 @@ describe('responses', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
