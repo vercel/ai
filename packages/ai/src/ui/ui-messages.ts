@@ -217,7 +217,15 @@ export function isDataUIPart<DATA_TYPES extends UIDataTypes>(
  * UI components for the tool.
  */
 export type UIToolInvocation<TOOL extends UITool | Tool> = {
+  /**
+   * ID of the tool call.
+   */
   toolCallId: string;
+
+  /**
+   * Whether the tool call was executed by the provider.
+   */
+  providerExecuted?: boolean;
 } & (
   | {
       state: 'input-streaming';
@@ -262,8 +270,22 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 
 export type DynamicToolUIPart = {
   type: 'dynamic-tool';
+
+  /**
+   * Name of the tool that is being called.
+   */
   toolName: string;
+
+  /**
+   * ID of the tool call.
+   */
   toolCallId: string;
+  title?: string;
+
+  /**
+   * Whether the tool call was executed by the provider.
+   */
+  providerExecuted?: boolean;
 } & (
   | {
       state: 'input-streaming';
