@@ -24,8 +24,13 @@ export const wrapLanguageModel = ({
   middleware: LanguageModelMiddleware | LanguageModelMiddleware[];
   modelId?: string;
   providerId?: string;
+<<<<<<< HEAD
 }): LanguageModelV2 => {
   return asArray(middlewareArg)
+=======
+}): LanguageModelV3 => {
+  return [...asArray(middlewareArg)]
+>>>>>>> d59ce25f1 (fix(ai): do not mutate middleware array argument when wrapping (#9935))
     .reverse()
     .reduce((wrappedModel, middleware) => {
       return doWrap({ model: wrappedModel, middleware, modelId, providerId });
