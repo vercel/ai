@@ -41,13 +41,13 @@ Setting up Helicone:
    import { generateText } from 'ai';
 
    const helicone = createHelicone({
-     apiKey: process.env.HELICONE_API_KEY
+     apiKey: process.env.HELICONE_API_KEY,
    });
 
    // Use the provider with any supported model: https://helicone.ai/models
    const result = await generateText({
      model: helicone('claude-4.5-haiku'),
-     prompt: 'Hello world'
+     prompt: 'Hello world',
    });
 
    console.log(result.text);
@@ -62,26 +62,31 @@ That's it! Your requests are now being logged and monitored through Helicone wit
 Helicone provides comprehensive observability for your AI applications with zero additional instrumentation:
 
 **Automatic Request Tracking**
+
 - Every request is logged automatically with full request/response data
 - Track latency, tokens, costs, and model performance in real-time
 - No OpenTelemetry setup or additional configuration required
 
 **Analytics Dashboard**
+
 - View metrics across all your AI requests: costs, latency, token usage, and error rates
 - Filter by user, session, model, or custom properties
 - Identify performance bottlenecks and optimize model selection
 
 **User & Session Analytics**
+
 - Track individual user behavior and usage patterns
 - Monitor conversation flows with session tracking
 - Analyze user engagement and feature adoption
 
 **Cost Monitoring**
+
 - Real-time cost tracking per request, user, feature, or model
 - Budget alerts and cost optimization insights
 - Compare costs across different models and providers
 
 **Debugging & Troubleshooting**
+
 - Full request/response logging for every call
 - Error tracking with detailed context
 - Search and filter requests to identify issues quickly
@@ -99,22 +104,23 @@ import { createHelicone } from '@helicone/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY
+  apiKey: process.env.HELICONE_API_KEY,
 });
 
 const result = await generateText({
   model: helicone('gpt-4o-mini', {
     extraBody: {
       helicone: {
-        userId: 'user@example.com'
-      }
-    }
+        userId: 'user@example.com',
+      },
+    },
   }),
-  prompt: 'Hello world'
+  prompt: 'Hello world',
 });
 ```
 
 **What you can track:**
+
 - Total requests per user
 - Cost per user
 - Average latency per user
@@ -131,7 +137,7 @@ import { createHelicone } from '@helicone/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY
+  apiKey: process.env.HELICONE_API_KEY,
 });
 
 const result = await generateText({
@@ -142,16 +148,17 @@ const result = await generateText({
           feature: 'translation',
           source: 'mobile-app',
           language: 'French',
-          environment: 'production'
-        }
-      }
-    }
+          environment: 'production',
+        },
+      },
+    },
   }),
-  prompt: 'Translate this text to French'
+  prompt: 'Translate this text to French',
 });
 ```
 
 **Use cases for custom properties:**
+
 - Compare performance across different features or environments
 - Track costs by product area or customer tier
 - Identify which features drive the most AI usage
@@ -168,7 +175,7 @@ import { createHelicone } from '@helicone/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY
+  apiKey: process.env.HELICONE_API_KEY,
 });
 
 const result = await generateText({
@@ -177,15 +184,16 @@ const result = await generateText({
       helicone: {
         sessionId: 'convo-123',
         sessionName: 'Travel Planning',
-        sessionPath: '/chats/travel'
-      }
-    }
+        sessionPath: '/chats/travel',
+      },
+    },
   }),
-  prompt: 'Tell me more about that'
+  prompt: 'Tell me more about that',
 });
 ```
 
 **Session tracking benefits:**
+
 - View complete conversation history in a single timeline
 - Calculate total cost per session/conversation
 - Measure session duration and message counts
@@ -205,7 +213,7 @@ import { createHelicone } from '@helicone/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY
+  apiKey: process.env.HELICONE_API_KEY,
 });
 
 const result = await generateText({
@@ -216,16 +224,17 @@ const result = await generateText({
         properties: {
           ticketId: 'TICKET-789',
           priority: 'high',
-          department: 'support'
-        }
-      }
-    }
+          department: 'support',
+        },
+      },
+    },
   }),
-  prompt: 'Help resolve this customer issue'
+  prompt: 'Help resolve this customer issue',
 });
 ```
 
 **Tags insights:**
+
 - Filter and group requests by tags
 - Track performance across different categories
 - Identify patterns in tagged requests
@@ -242,7 +251,7 @@ import { createHelicone } from '@helicone/ai-sdk-provider';
 import { streamText } from 'ai';
 
 const helicone = createHelicone({
-  apiKey: process.env.HELICONE_API_KEY
+  apiKey: process.env.HELICONE_API_KEY,
 });
 
 const result = await streamText({
@@ -251,11 +260,11 @@ const result = await streamText({
       helicone: {
         userId: 'user@example.com',
         sessionId: 'stream-session-123',
-        tags: ['streaming', 'content-generation']
-      }
-    }
+        tags: ['streaming', 'content-generation'],
+      },
+    },
   }),
-  prompt: 'Write a short story about AI'
+  prompt: 'Write a short story about AI',
 });
 
 for await (const chunk of result.textStream) {
@@ -264,6 +273,7 @@ for await (const chunk of result.textStream) {
 ```
 
 **Streaming metrics tracked:**
+
 - Time to first token (TTFT)
 - Total streaming duration
 - Tokens per second
