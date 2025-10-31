@@ -1,12 +1,8 @@
-<<<<<<< HEAD
-import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
-=======
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Middleware,
+  LanguageModelV2,
+  LanguageModelV2CallOptions,
+  LanguageModelV2Middleware,
 } from '@ai-sdk/provider';
->>>>>>> d59ce25f1 (fix(ai): do not mutate middleware array argument when wrapping (#9935))
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { describe, it, expect, vi } from 'vitest';
@@ -495,22 +491,22 @@ describe('wrapLanguageModel', () => {
 
     it('should not mutate the middleware array argument', async () => {
       const middleware1 = {
-        specificationVersion: 'v3',
+        middlewareVersion: 'v2',
         wrapStream: vi.fn(),
       };
 
       const middleware2 = {
-        specificationVersion: 'v3',
+        middlewareVersion: 'v2',
         wrapStream: vi.fn(),
       };
 
       const middlewares = [
         middleware1,
         middleware2,
-      ] as LanguageModelV3Middleware[];
+      ] as LanguageModelV2Middleware[];
 
       wrapLanguageModel({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV2(),
         middleware: middlewares,
       });
 
