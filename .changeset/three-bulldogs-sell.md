@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls
+fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
