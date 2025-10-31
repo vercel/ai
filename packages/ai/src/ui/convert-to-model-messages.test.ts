@@ -2687,4 +2687,75 @@ describe('convertToModelMessages', () => {
       });
     });
   });
+
+  describe('issue #9731: empty providerMetadata should not create providerOptions', () => {
+    it('should not add providerOptions for empty providerMetadata', () => {
+      const cases = [
+        {
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'Hi', providerMetadata: {} }],
+        },
+        {
+          role: 'user' as const,
+          parts: [
+            {
+              type: 'file' as const,
+              mediaType: 'image/jpeg',
+              url: 'test.jpg',
+              providerMetadata: {},
+            },
+          ],
+        },
+        {
+          role: 'assistant' as const,
+          parts: [{ type: 'text' as const, text: 'Hi', providerMetadata: {} }],
+        },
+      ];
+
+      cases.forEach(msg => {
+        const result = convertToModelMessages([msg]);
+        const content = result[0].content as any[];
+        content.forEach(part => {
+          expect(part).not.toHaveProperty('providerOptions');
+        });
+      });
+    });
+
+    it('should add providerOptions for non-empty providerMetadata', () => {
+      const metadata = { test: { key: 'val' } };
+      const cases = [
+        {
+          role: 'user' as const,
+          parts: [
+            { type: 'text' as const, text: 'Hi', providerMetadata: metadata },
+          ],
+        },
+        {
+          role: 'user' as const,
+          parts: [
+            {
+              type: 'file' as const,
+              mediaType: 'image/jpeg',
+              url: 'test.jpg',
+              providerMetadata: metadata,
+            },
+          ],
+        },
+        {
+          role: 'assistant' as const,
+          parts: [
+            { type: 'text' as const, text: 'Hi', providerMetadata: metadata },
+          ],
+        },
+      ];
+
+      cases.forEach(msg => {
+        const result = convertToModelMessages([msg]);
+        const content = result[0].content as any[];
+        content.forEach(part => {
+          expect(part.providerOptions).toEqual(metadata);
+        });
+      });
+    });
+  });
 });
