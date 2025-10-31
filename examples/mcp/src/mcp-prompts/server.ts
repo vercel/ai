@@ -42,9 +42,5 @@ app.post('/messages', async (req, res) => {
 });
 
 app.listen(8083, () => {
-  console.log(
-    'MCP prompts example server listening on http://localhost:8083',
-  );
+  console.log('MCP prompts example server listening on http://localhost:8083');
 });
-
-

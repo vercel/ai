@@ -15,7 +15,7 @@ async function main() {
     const prompt = await mcpClient.getPrompt({
       name: 'code_review',
       arguments: {
-        code: "function add(a, b) { return a + b; }\n",
+        code: 'function add(a, b) { return a + b; }\n',
       },
     });
     console.log('GET PROMPT:', JSON.stringify(prompt, null, 2));
@@ -28,5 +28,3 @@ main().catch(err => {
   console.error(err);
   process.exit(1);
 });
-
-
