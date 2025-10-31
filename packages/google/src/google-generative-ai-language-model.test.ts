@@ -1103,25 +1103,26 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toEqual([{ codeExecution: {} }]);
 
-    expect(content).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        input: '{"language":"PYTHON","code":"print(1+1)"}',
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        result: {
-          outcome: 'OUTCOME_OK',
-          output: '2',
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(1+1)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
         },
-        providerExecuted: true,
-      },
-    ]);
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "2",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
   });
 
   describe('search tool selection', () => {
@@ -2173,25 +2174,27 @@ describe('doStream', () => {
       e => e.type === 'tool-call' || e.type === 'tool-result',
     );
 
-    expect(toolEvents).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        input: '{"language":"PYTHON","code":"print(\\"hello\\")"}',
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        result: {
-          outcome: 'OUTCOME_OK',
-          output: 'hello\n',
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(\\"hello\\")"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
         },
-        providerExecuted: true,
-      },
-    ]);
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "hello
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
   });
 
   describe('search tool selection', () => {

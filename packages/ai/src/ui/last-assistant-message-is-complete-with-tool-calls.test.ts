@@ -337,4 +337,35 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
       }),
     ).toBe(false);
   });
+
+  it('should return false for complete provider executed tool calls', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-web_search',
+                input: {
+                  query: 'New York weather',
+                },
+                state: 'output-available',
+                output: [],
+                toolCallId: 'srvtoolu_01KSMqkKSbgKhCwGZHQDaV48',
+                providerExecuted: true,
+              },
+              {
+                type: 'text',
+                text: 'The current weather in New York is windy.',
+                state: 'done',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
 });

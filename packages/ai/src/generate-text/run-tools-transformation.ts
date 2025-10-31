@@ -321,7 +321,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolCallId: chunk.toolCallId,
               toolName,
               input: toolInputs.get(chunk.toolCallId),
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
               error: chunk.result,
               dynamic: chunk.dynamic,
             } as TypedToolError<TOOLS>);
@@ -332,7 +332,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolName,
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
               dynamic: chunk.dynamic,
             } as TypedToolResult<TOOLS>);
           }
