@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.92
+
+### Patch Changes
+
+- 97b1d77: fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
+
 ## 6.0.0-beta.91
 
 ### Patch Changes
