@@ -1197,10 +1197,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title:
-                    value.annotation.filename,
-                  filename:
-                    value.annotation.filename,
+                  title: value.annotation.filename,
+                  filename: value.annotation.filename,
                   ...(value.annotation.file_id
                     ? {
                         providerMetadata: {
