@@ -12,7 +12,6 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
@@ -66,7 +65,8 @@ import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
-import { Output } from './output';
+import { Output, text } from './output';
+import { InferCompleteOutput, InferPartialOutput } from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
@@ -91,7 +91,6 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
-import { InferCompleteOutput, InferPartialOutput } from './output-utils';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -227,7 +226,7 @@ A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
-  OUTPUT extends Output = never,
+  OUTPUT extends Output = Output<string, string>,
 >({
   model,
   tools,
@@ -454,28 +453,17 @@ type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
 
 function createOutputTransformStream<
   TOOLS extends ToolSet,
-  OUTPUT,
-  PARTIAL_OUTPUT,
+  OUTPUT extends Output,
 >(
-  output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined,
+  output: OUTPUT,
 ): TransformStream<
   TextStreamPart<TOOLS>,
-  EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+  EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
 > {
-  if (!output) {
-    return new TransformStream<
-      TextStreamPart<TOOLS>,
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
-    >({
-      transform(chunk, controller) {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
-      },
-    });
-  }
-
   let firstTextChunkId: string | undefined = undefined;
   let text = '';
   let textChunk = '';
+  let textProviderMetadata: ProviderMetadata | undefined = undefined;
   let lastPublishedJson = '';
 
   function publishTextChunk({
@@ -483,15 +471,16 @@ function createOutputTransformStream<
     partialOutput = undefined,
   }: {
     controller: TransformStreamDefaultController<
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >;
-    partialOutput?: PARTIAL_OUTPUT;
+    partialOutput?: InferPartialOutput<OUTPUT>;
   }) {
     controller.enqueue({
       part: {
         type: 'text-delta',
         id: firstTextChunkId!,
         text: textChunk,
+        providerMetadata: textProviderMetadata,
       },
       partialOutput,
     });
@@ -500,7 +489,7 @@ function createOutputTransformStream<
 
   return new TransformStream<
     TextStreamPart<TOOLS>,
-    EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+    EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
@@ -541,10 +530,13 @@ function createOutputTransformStream<
 
       text += chunk.text;
       textChunk += chunk.text;
+      textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
 
       // only publish if partial json can be parsed:
       const result = await output.parsePartialOutput({ text });
-      if (result != null) {
+
+      // null should be allowed (valid JSON value) but undefined should not:
+      if (result !== undefined) {
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
         if (currentJson !== lastPublishedJson) {
@@ -1036,7 +1028,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     }
 
     this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output))
+      .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
@@ -1827,10 +1819,6 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get partialOutputStream(): AsyncIterableStream<InferPartialOutput<OUTPUT>> {
-    if (this.outputSpecification == null) {
-      throw new NoOutputSpecifiedError();
-    }
-
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
@@ -1849,11 +1837,8 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
     return this.finalStep.then(step => {
-      if (this.outputSpecification == null) {
-        throw new NoOutputSpecifiedError();
-      }
-
-      return this.outputSpecification.parseCompleteOutput(
+      const output = this.outputSpecification ?? text();
+      return output.parseCompleteOutput(
         { text: step.text },
         {
           response: step.response,
