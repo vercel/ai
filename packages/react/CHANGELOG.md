@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- ai@6.0.0-beta.90
+- @ai-sdk/provider-utils@4.0.0-beta.29
+
 ## 3.0.0-beta.89
 
 ### Patch Changes
