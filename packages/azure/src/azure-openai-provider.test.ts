@@ -1400,6 +1400,11 @@ describe('responses', () => {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -1408,6 +1413,11 @@ describe('responses', () => {
             "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
