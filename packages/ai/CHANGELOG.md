@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.84
+
+### Patch Changes
+
+- a017497: fix(ai): do not mutate middleware array argument when wrapping
+
 ## 5.0.83
 
 ### Patch Changes
