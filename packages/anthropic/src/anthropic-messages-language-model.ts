@@ -611,7 +611,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             toolName: mcpToolCalls[part.tool_use_id].toolName,
             isError: part.is_error,
             result: part.content,
-            providerExecuted: true,
             dynamic: true,
             providerMetadata: mcpToolCalls[part.tool_use_id].providerMetadata,
           });
@@ -638,7 +637,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   },
                 },
               },
-              providerExecuted: true,
             });
           } else if (part.content.type === 'web_fetch_tool_result_error') {
             content.push({
@@ -650,7 +648,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'web_fetch_tool_result_error',
                 errorCode: part.content.error_code,
               },
-              providerExecuted: true,
             });
           }
           break;
@@ -668,7 +665,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 encryptedContent: result.encrypted_content,
                 type: result.type,
               })),
-              providerExecuted: true,
             });
 
             for (const result of part.content) {
@@ -695,7 +691,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'web_search_tool_result_error',
                 errorCode: part.content.error_code,
               },
-              providerExecuted: true,
             });
           }
           break;
@@ -714,7 +709,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 stderr: part.content.stderr,
                 return_code: part.content.return_code,
               },
-              providerExecuted: true,
             });
           } else if (part.content.type === 'code_execution_tool_result_error') {
             content.push({
@@ -726,7 +720,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'code_execution_tool_result_error',
                 errorCode: part.content.error_code,
               },
-              providerExecuted: true,
             });
           }
           break;
@@ -740,7 +733,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             toolCallId: part.tool_use_id,
             toolName: 'code_execution',
             result: part.content,
-            providerExecuted: true,
           });
           break;
         }
@@ -1038,7 +1030,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           type: 'web_fetch_tool_result_error',
                           errorCode: part.content.error_code,
                         },
-                        providerExecuted: true,
                       });
                     }
 
@@ -1058,7 +1049,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           encryptedContent: result.encrypted_content,
                           type: result.type,
                         })),
-                        providerExecuted: true,
                       });
 
                       for (const result of part.content) {
@@ -1085,7 +1075,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           type: 'web_search_tool_result_error',
                           errorCode: part.content.error_code,
                         },
-                        providerExecuted: true,
                       });
                     }
                     return;
@@ -1104,7 +1093,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           stderr: part.content.stderr,
                           return_code: part.content.return_code,
                         },
-                        providerExecuted: true,
                       });
                     } else if (
                       part.content.type === 'code_execution_tool_result_error'
@@ -1118,7 +1106,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           type: 'code_execution_tool_result_error',
                           errorCode: part.content.error_code,
                         },
-                        providerExecuted: true,
                       });
                     }
 
@@ -1133,7 +1120,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       toolCallId: part.tool_use_id,
                       toolName: 'code_execution',
                       result: part.content,
-                      providerExecuted: true,
                     });
                     return;
                   }
@@ -1164,7 +1150,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       toolName: mcpToolCalls[part.tool_use_id].toolName,
                       isError: part.is_error,
                       result: part.content,
-                      providerExecuted: true,
                       dynamic: true,
                       providerMetadata:
                         mcpToolCalls[part.tool_use_id].providerMetadata,

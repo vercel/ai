@@ -25,7 +25,7 @@ export const wrapEmbeddingModel = ({
   modelId?: string;
   providerId?: string;
 }): EmbeddingModelV3<string> => {
-  return asArray(middlewareArg)
+  return [...asArray(middlewareArg)]
     .reverse()
     .reduce((wrappedModel, middleware) => {
       return doWrap({ model: wrappedModel, middleware, modelId, providerId });
