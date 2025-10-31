@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.89
+
+### Patch Changes
+
+- d59ce25: fix(ai): do not mutate middleware array argument when wrapping
+
 ## 6.0.0-beta.88
 
 ### Patch Changes
