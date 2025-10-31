@@ -20,7 +20,6 @@ exports[`responses > doGenerate > code interpreter tool > should include code in
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "outputs": [
         {
@@ -80,7 +79,6 @@ exports[`responses > doGenerate > file search tool > with results include > shou
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "queries": [
         "What is an embedding model according to this document?",
@@ -195,7 +193,6 @@ exports[`responses > doGenerate > file search tool > without results include > s
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "queries": [
         "What is an embedding model according to this document?",
@@ -819,7 +816,6 @@ exports[`responses > doStream > should send code interpreter calls 1`] = `
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "outputs": [
         {
@@ -2040,7 +2036,6 @@ exports[`responses > file search tool > should stream file search results with r
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "queries": [
         "What is an embedding model according to this document?",
@@ -2580,7 +2575,6 @@ exports[`responses > file search tool > should stream file search results withou
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "queries": [
         "What is an embedding model according to this document?",
@@ -3067,7 +3061,6 @@ exports[`responses > image generation tool > should include generate image tool 
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "result": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
     },
