@@ -1,5 +1,12 @@
 # @ai-sdk/vue
 
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [97b1d77]
+  - ai@6.0.0-beta.92
+
 ## 3.0.0-beta.91
 
 ### Patch Changes
