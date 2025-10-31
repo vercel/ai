@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 2.0.83
+
+### Patch Changes
+
+- ai@5.0.83
+
 ## 2.0.82
 
 ### Patch Changes
