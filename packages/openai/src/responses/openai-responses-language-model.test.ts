@@ -2524,6 +2524,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [],
                 "itemId": "msg_computer_test",
               },
             },
@@ -2670,7 +2671,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://example.com",
           },
           {
-            "filename": "file-abc123",
+            "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
@@ -2758,7 +2759,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "filename": "file-xyz789",
+            "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
@@ -2779,19 +2780,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "text": "Based on the file content.",
             "type": "text",
-          },
-          {
-            "filename": "file-xyz789",
-            "id": "id-0",
-            "mediaType": "text/plain",
-            "providerMetadata": {
-              "openai": {
-                "fileId": "file-xyz789",
-              },
-            },
-            "sourceType": "document",
-            "title": "Important information from document",
-            "type": "source",
           },
         ]
       `);
@@ -2865,7 +2853,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "filename": "file-YRcoCqn3Fo2K4JgraG",
+            "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
@@ -2878,7 +2866,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "source",
           },
           {
-            "filename": "file-YRcoCqn3Fo2K4JgraG",
+            "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
@@ -4714,7 +4702,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://example.com",
           },
           {
-            "filename": "file-abc123",
+            "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
@@ -4781,7 +4769,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "warnings": [],
           },
           {
-            "filename": "file-YRcoCqn3Fo2K4JgraG",
+            "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
@@ -4794,7 +4782,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "source",
           },
           {
-            "filename": "file-YRcoCqn3Fo2K4JgraG",
+            "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {

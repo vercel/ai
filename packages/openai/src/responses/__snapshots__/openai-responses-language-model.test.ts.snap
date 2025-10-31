@@ -208,7 +208,7 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "reasoning",
   },
   {
-    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+    "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
     "providerMetadata": {
@@ -277,7 +277,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
     "type": "reasoning",
   },
   {
-    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+    "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
     "providerMetadata": {
@@ -3066,7 +3066,7 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "text-delta",
   },
   {
-    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+    "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
     "providerMetadata": {
@@ -3360,7 +3360,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "text-delta",
   },
   {
-    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+    "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
     "providerMetadata": {
@@ -3578,7 +3578,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "text-delta",
   },
   {
-    "filename": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+    "filename": "ai.pdf",
     "id": "id-1",
     "mediaType": "text/plain",
     "providerMetadata": {
