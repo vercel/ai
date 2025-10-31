@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- fd47df5: fix(openai): revised_prompt sometimes returns null, causing errors
+
 ## 3.0.0-beta.44
 
 ### Patch Changes

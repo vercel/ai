@@ -41,8 +41,6 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
-import { DeepPartial } from '../util/deep-partial';
-import { object, text } from './output';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
 import { streamText, StreamTextOnFinishCallback } from './stream-text';
@@ -11420,18 +11418,14 @@ describe('streamText', () => {
   });
 
   describe('options.output', () => {
-    describe('no output', () => {
-      it('should throw error when accessing partial output stream', async () => {
+    describe('text output (default)', () => {
+      it('should send partial output stream', async () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: '{ ' },
-              { type: 'text-delta', id: '1', delta: '"value": ' },
-              { type: 'text-delta', id: '1', delta: `"Hello, ` },
-              { type: 'text-delta', id: '1', delta: `world` },
-              { type: 'text-delta', id: '1', delta: `!"` },
-              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
@@ -11443,9 +11437,34 @@ describe('streamText', () => {
           prompt: 'prompt',
         });
 
-        await expect(async () => {
-          await convertAsyncIterableToArray(result.partialOutputStream);
-        }).rejects.toThrow('No output specified');
+        expect(await convertAsyncIterableToArray(result.partialOutputStream))
+          .toMatchInlineSnapshot(`
+          [
+            "Hello, ",
+            "Hello, world!",
+          ]
+        `);
+      });
+
+      it('should resolve output promise with the correct content', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(await result.output).toStrictEqual('Hello, world!');
       });
     });
 
@@ -11456,8 +11475,7 @@ describe('streamText', () => {
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
               { type: 'text-delta', id: '1', delta: 'Hello, ' },
-              { type: 'text-delta', id: '1', delta: ',' },
-              { type: 'text-delta', id: '1', delta: ' world!' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
@@ -11466,13 +11484,39 @@ describe('streamText', () => {
               },
             ]),
           }),
-          output: text(),
           prompt: 'prompt',
+          output: Output.text(),
         });
 
-        expect(
-          await convertAsyncIterableToArray(result.partialOutputStream),
-        ).toStrictEqual(['Hello, ', 'Hello, ,', 'Hello, , world!']);
+        expect(await convertAsyncIterableToArray(result.partialOutputStream))
+          .toMatchInlineSnapshot(`
+          [
+            "Hello, ",
+            "Hello, world!",
+          ]
+        `);
+      });
+
+      it('should resolve output promise with the correct content', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'prompt',
+          output: Output.text(),
+        });
+
+        expect(await result.output).toStrictEqual('Hello, world!');
       });
     });
 
@@ -11503,7 +11547,7 @@ describe('streamText', () => {
               };
             },
           }),
-          output: object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11578,7 +11622,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          output: object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11615,7 +11659,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          output: object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11648,7 +11692,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          output: object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11677,13 +11721,40 @@ describe('streamText', () => {
               },
             ]),
           }),
-          output: object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
         });
 
         expect(await result.text).toStrictEqual('{ "value": "Hello, world!" }');
+      });
+
+      it('should resolve output promise with the correct content', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"value": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world!" ` },
+              { type: 'text-delta', id: '1', delta: '}' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(await result.output).toStrictEqual({ value: 'Hello, world!' });
       });
 
       it('should call onFinish with the correct content', async () => {
@@ -11708,7 +11779,7 @@ describe('streamText', () => {
               },
             ]),
           }),
-          output: object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
           prompt: 'prompt',
@@ -11827,9 +11898,7 @@ describe('streamText', () => {
     });
 
     describe('array output', () => {
-      let result:
-        | StreamTextResult<any, Array<DeepPartial<{ content: string }>>>
-        | undefined;
+      let result: StreamTextResult<any, any> | undefined;
 
       let onFinishResult:
         | Parameters<Required<Parameters<typeof streamText>[0]>['onFinish']>[0]
@@ -11916,6 +11985,20 @@ describe('streamText', () => {
             ]
           `);
         });
+
+        it('should resolve output promise with the correct content', async () => {
+          expect(await result!.output).toStrictEqual([
+            { content: 'element 1' },
+            { content: 'element 2' },
+            { content: 'element 3' },
+          ]);
+        });
+
+        it('should resolve text promise with the correct text', async () => {
+          expect(await result!.text).toMatchInlineSnapshot(
+            `"{"elements":[{"content":"element 1"},{ "content": "element 2"},{"content":"element 3"}]}"`,
+          );
+        });
       });
 
       describe('array with 2 elements streamed in 1 chunk', () => {
@@ -11969,6 +12052,19 @@ describe('streamText', () => {
             ]
           `);
         });
+
+        it('should resolve output promise with the correct content', async () => {
+          expect(await result!.output).toStrictEqual([
+            { content: 'element 1' },
+            { content: 'element 2' },
+          ]);
+        });
+
+        it('should resolve text promise with the correct text', async () => {
+          expect(await result!.text).toMatchInlineSnapshot(
+            `"{"elements":[{"content":"element 1"},{"content":"element 2"}]}"`,
+          );
+        });
       });
     });
 
@@ -12002,6 +12098,58 @@ describe('streamText', () => {
               "sunny",
             ]
           `);
+      });
+
+      it('should resolve text promise with the correct text', async () => {
+        const mockModel = createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"su` },
+            { type: 'text-delta', id: '1', delta: `nny` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            { type: 'finish', finishReason: 'stop', usage: testUsage },
+          ]),
+        });
+
+        const result = streamText({
+          model: mockModel,
+          output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(await result.text).toBe('{ "result": "sunny" }');
+      });
+
+      it('should resolve output promise with the correct content', async () => {
+        const mockModel = createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"result": ' },
+            { type: 'text-delta', id: '1', delta: `"su` },
+            { type: 'text-delta', id: '1', delta: `nny` },
+            { type: 'text-delta', id: '1', delta: `"` },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            { type: 'finish', finishReason: 'stop', usage: testUsage },
+          ]),
+        });
+
+        const result = streamText({
+          model: mockModel,
+          output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(await result.output).toBe('sunny');
       });
 
       it('should not stream incorrect values', async () => {
@@ -12737,7 +12885,7 @@ describe('streamText', () => {
 
   describe('abort signal', () => {
     describe('basic abort', () => {
-      let result: StreamTextResult<ToolSet, TextStreamPart<ToolSet>>;
+      let result: StreamTextResult<ToolSet, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
 
@@ -12852,7 +13000,7 @@ describe('streamText', () => {
     });
 
     describe('abort in 2nd step', () => {
-      let result: StreamTextResult<any, TextStreamPart<any>>;
+      let result: StreamTextResult<any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
 
@@ -13142,7 +13290,7 @@ describe('streamText', () => {
     });
 
     describe('abort during tool call', () => {
-      let result: StreamTextResult<any, TextStreamPart<any>>;
+      let result: StreamTextResult<any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
 
