@@ -28,7 +28,7 @@ export interface AzureOpenAIProvider extends ProviderV3 {
   (deploymentId: string): LanguageModelV3;
 
   /**
-Creates an Azure OpenAI chat model for text generation.
+  Creates an Azure OpenAI responses API model for text generation.
    */
   languageModel(deploymentId: string): LanguageModelV3;
 
@@ -239,11 +239,11 @@ export function createAzure(
       );
     }
 
-    return createChatModel(deploymentId);
+    return createResponsesModel(deploymentId);
   };
 
   provider.specificationVersion = 'v3' as const;
-  provider.languageModel = createChatModel;
+  provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;

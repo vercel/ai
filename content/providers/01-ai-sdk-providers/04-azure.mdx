@@ -123,6 +123,11 @@ const enhancedModel = wrapLanguageModel({
 
 You can then use that enhanced model in functions like `generateText` and `streamText`.
 
+<Note>
+  The Azure provider calls the Responses API by default (unless you specify e.g.
+  `azure.chat`).
+</Note>
+
 ### Example
 
 You can use OpenAI language models to generate text with the `generateText` function:
