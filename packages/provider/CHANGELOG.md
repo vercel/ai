@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- af3780b: chore(provider): remove providerExecuted from LanguageModelV3ToolResult
+
 ## 3.0.0-beta.13
 
 ### Patch Changes

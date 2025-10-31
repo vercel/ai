@@ -1,5 +1,20 @@
 # ai
 
+## 6.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/gateway@2.0.0-beta.48
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 6.0.0-beta.89
+
+### Patch Changes
+
+- d59ce25: fix(ai): do not mutate middleware array argument when wrapping
+
 ## 6.0.0-beta.88
 
 ### Patch Changes
