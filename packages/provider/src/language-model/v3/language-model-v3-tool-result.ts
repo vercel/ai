@@ -1,3 +1,4 @@
+import { JSONArray, JSONObject } from '../../json-value';
 import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 
 /**
@@ -19,7 +20,7 @@ export type LanguageModelV3ToolResult = {
   /**
    * Result of the tool call. This is a JSON-serializable object.
    */
-  result: NonNullable<unknown>;
+  result: JSONObject | JSONArray;
 
   /**
    * Optional flag if the result is an error or an error message.
