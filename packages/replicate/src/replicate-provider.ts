@@ -67,6 +67,7 @@ export function createReplicate(
     });
 
   return {
+    specificationVersion: 'v3' as const,
     image: createImageModel,
     imageModel: createImageModel,
     languageModel: () => {

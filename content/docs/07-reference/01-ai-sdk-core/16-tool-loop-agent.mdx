@@ -83,7 +83,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Limits the subset of tools that are available in a specific call.',
     },
     {
-      name: 'experimental_output',
+      name: 'output',
       type: 'Output',
       isOptional: true,
       description:
@@ -332,7 +332,7 @@ import { z } from 'zod';
 
 const analysisAgent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
-  experimental_output: {
+  output: {
     schema: z.object({
       sentiment: z.enum(['positive', 'negative', 'neutral']),
       score: z.number(),
@@ -345,7 +345,7 @@ const result = await analysisAgent.generate({
   prompt: 'Analyze this review: "The product exceeded my expectations!"',
 });
 
-console.log(result.experimental_output);
+console.log(result.output);
 // Typed as { sentiment: 'positive' | 'negative' | 'neutral', score: number, summary: string }
 ```
 

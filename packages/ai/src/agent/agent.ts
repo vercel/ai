@@ -1,10 +1,6 @@
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
-import {
-  InferGenerateOutput,
-  InferStreamOutput,
-  Output,
-} from '../generate-text/output';
+import { Output } from '../generate-text/output';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 
@@ -77,12 +73,12 @@ export interface Agent<
    */
   generate(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): PromiseLike<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>>;
+  ): PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>;
 
   /**
    * Streams an output from the agent (streaming).
    */
   stream(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): PromiseLike<StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>>;
+  ): PromiseLike<StreamTextResult<TOOLS, OUTPUT>>;
 }

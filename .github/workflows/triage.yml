@@ -3,15 +3,137 @@ name: Triage
 on:
   issues:
     types: [opened, reopened]
+  pull_request_target:
+    paths: 'packages/**'
+    branches: 
+      - 'main'
+      - 'release-v*'
 
 permissions:
   issues: write
 
 jobs:
-  triage:
+  triage_pull_request:
+    name: Auto-triage Pull Request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Create access token for GitHub App
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
+          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Fetch existing labels
+        id: fetch-labels
+        run: |
+          labels_json=$(gh api /repos/vercel/ai/labels | jq -c 'map(.name)')
+          echo "labels_json=$labels_json" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Get changed file paths
+        id: get-changed-files
+        run: |
+          changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+          echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
+
+      - name: Determine appropriate labels
+        id: classify-issue
+        uses: vercel/ai-action@v2
+        with:
+          model: 'openai/gpt-4o'
+          api-key: ${{ secrets.AI_GATEWAY_API_KEY }}
+          schema: |
+            {
+              "type": "object",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ${{ steps.fetch-labels.outputs.labels_json }}
+                  },
+                  "description": "Array of labels that are most relevant to this issue. Choose one or more labels that best match the issue."
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Confidence score for the label classification (0-1)"
+                },
+                "reasoning": {
+                  "type": "string",
+                  "description": "A brief explanation of why these labels were chosen based on the issue content"
+                }
+              },
+              "required": ["labels", "confidence", "reasoning"]
+            }
+          system: You are an expert software engineer working on classifying GitHub issues for the Vercel AI SDK repository. Your task is to analyze the content of each issue and determine which labels should be assigned.
+          prompt: |
+            First find out which category label the issue should be assigned. If the category label should be "ai/provider", then also determine which specific provider labels are relevant based on the issue content.
+
+            Available category labels:
+
+            - ai/ui
+            - ai/gateway
+            - ai/mcp
+            - ai/rsc
+            - ai/telemetry
+            - ai/provider
+
+            Available provider labels:
+
+            ${{ steps.fetch-labels.outputs.labels_json }}
+
+            Here are the rules to follow when assigning labels:
+
+            - If the pull request title includes "Version Packages", return "maintenance" and no other labels
+            - If the pull request is about a UI problem (Vue, Angular, React, AI Elements), return ai/ui and no other labels
+            - If the pull request is about the AI gateway, return ai/gateway and no other labels
+            - If the pull request is about MCP functionality, return ai/mcp and no other labels
+            - If the pull request is about RSC functionality, return ai/rsc and no other labels
+            - If the pull request is about telementry, return ai/telemetry and no other labels
+            - If the pull request is about a core functionality of the AI SDK, such as generating text, images, audio, or embeddings, return ai/core and no other labels.
+            - If the pull request is related to an AI provider, add "ai/provider" to the list of returned labels.
+            - If any of the changed files match "providers/<provider name>", add the corresponding provider label(s) and ai/provider
+            - If more than 3 provider labels are applicable, set the "ai/core" and no other labels
+
+            Here is the issue content:
+
+            Issue Title: ${{ github.event.issue.title }}
+
+            Issue Body: ${{ github.event.issue.body }}
+
+            Changed Paths: ${{ steps.get-changed-files.outputs.files }}
+
+      - name: Apply labels to issue
+        if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
+        run: |
+          labels='${{ toJSON(fromJSON(steps.classify-issue.outputs.json).labels) }}'
+          if [ "$labels" != "[]" ]; then
+            gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels \
+              --method POST \
+              --input - <<< "{\"labels\": $labels}"
+            echo "Applied labels: $labels"
+          else
+            echo "No labels to apply"
+          fi
+
+          echo "Reasoning: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+  triage_issue:
     name: Auto-triage Issue
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: github.event_name == 'issues'
     steps:
       - name: Create access token for GitHub App
         uses: actions/create-github-app-token@v2
@@ -102,6 +224,8 @@ jobs:
             Examples
 
             - issue title "🤖 Provider API update - groq@4.2.0"
+              - labels: ["ai/provider", "provider/groq"]
+            - issue body includes ""@ai-sdk/groq": "^2.0.24" in the "AI SDK Version" section
               - labels: ["ai/provider", "provider/groq"]
 
             Here is the issue content:

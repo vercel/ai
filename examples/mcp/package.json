@@ -5,6 +5,8 @@
   "scripts": {
     "sse:server": "tsx src/sse/server.ts",
     "sse:client": "tsx src/sse/client.ts",
+    "sse-auth:server": "tsx src/mcp-with-auth/server.ts",
+    "sse-auth:client": "tsx src/mcp-with-auth/client.ts",
     "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
     "stdio:client": "tsx src/stdio/client.ts",
     "http:server": "tsx src/http/server.ts",
@@ -14,14 +16,15 @@
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.0-beta.34",
+    "@ai-sdk/openai": "3.0.0-beta.46",
     "@modelcontextprotocol/sdk": "^1.10.2",
-    "ai": "6.0.0-beta.67",
+    "ai": "6.0.0-beta.90",
     "dotenv": "16.4.5",
     "express": "5.0.1",
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@ai-sdk/mcp": "workspace:*",
     "@types/express": "5.0.0",
     "@types/node": "20.17.24",
     "tsx": "4.19.2",

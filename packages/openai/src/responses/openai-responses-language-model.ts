@@ -422,7 +422,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             result: {
               result: part.result,
             } satisfies InferSchema<typeof imageGenerationOutputSchema>,
-            providerExecuted: true,
           });
 
           break;
@@ -473,8 +472,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: annotation.filename,
-                  filename: annotation.file_id,
+                  title: annotation.filename ?? 'Document',
+                  filename: annotation.filename ?? annotation.file_id,
+                  ...(annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          openai: {
+                            fileId: annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
                 });
               } else if (annotation.type === 'container_file_citation') {
                 annotations.push(annotation);
@@ -529,7 +537,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
             result: mapWebSearchOutput(part.action),
-            providerExecuted: true,
           });
 
           break;
@@ -552,7 +559,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'computer_use_tool_result',
               status: part.status || 'completed',
             },
-            providerExecuted: true,
           });
           break;
         }
@@ -581,7 +587,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   text: result.text,
                 })) ?? null,
             } satisfies InferSchema<typeof fileSearchOutputSchema>,
-            providerExecuted: true,
           });
           break;
         }
@@ -605,7 +610,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             result: {
               outputs: part.outputs,
             } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
-            providerExecuted: true,
           });
           break;
         }
@@ -893,7 +897,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: value.item.id,
                   toolName: 'web_search',
                   result: mapWebSearchOutput(value.item.action),
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -919,7 +922,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     type: 'computer_use_tool_result',
                     status: value.item.status || 'completed',
                   },
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'file_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -939,7 +941,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         text: result.text,
                       })) ?? null,
                   } satisfies InferSchema<typeof fileSearchOutputSchema>,
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -951,7 +952,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   result: {
                     outputs: value.item.outputs,
                   } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'image_generation_call') {
                 controller.enqueue({
@@ -961,7 +961,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   result: {
                     result: value.item.result,
                   } satisfies InferSchema<typeof imageGenerationOutputSchema>,
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'local_shell_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1032,7 +1031,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 result: {
                   result: value.partial_image_b64,
                 } satisfies InferSchema<typeof imageGenerationOutputSchema>,
-                providerExecuted: true,
                 preliminary: true,
               });
             } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
@@ -1199,8 +1197,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: value.annotation.filename,
-                  filename: value.annotation.file_id,
+                  title:
+                    value.annotation.filename ??
+                    'Document',
+                  filename:
+                    value.annotation.filename ?? value.annotation.file_id,
+                  ...(value.annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          openai: {
+                            fileId: value.annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
                 });
               } else if (value.annotation.type === 'container_file_citation') {
                 ongoingAnnotations.push(value.annotation);
@@ -1403,7 +1413,11 @@ function mapWebSearchOutput(
 ): InferSchema<typeof webSearchOutputSchema> {
   switch (action.type) {
     case 'search':
-      return { action: { type: 'search', query: action.query ?? undefined } };
+      return {
+        action: { type: 'search', query: action.query ?? undefined },
+        // include sources when provided by the Responses API (behind include flag)
+        ...(action.sources != null && { sources: action.sources }),
+      };
     case 'open_page':
       return { action: { type: 'openPage', url: action.url } };
     case 'find':

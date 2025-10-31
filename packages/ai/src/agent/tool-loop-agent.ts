@@ -1,10 +1,6 @@
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
-import {
-  InferGenerateOutput,
-  InferStreamOutput,
-  Output,
-} from '../generate-text/output';
+import { Output } from '../generate-text/output';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
@@ -85,7 +81,7 @@ export class ToolLoopAgent<
    */
   async generate(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): Promise<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>> {
+  ): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
     return generateText(await this.prepareCall(options));
   }
 
@@ -94,7 +90,7 @@ export class ToolLoopAgent<
    */
   async stream(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): Promise<StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>> {
+  ): Promise<StreamTextResult<TOOLS, OUTPUT>> {
     return streamText(await this.prepareCall(options));
   }
 }
