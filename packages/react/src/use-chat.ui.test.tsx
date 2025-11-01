@@ -10,6 +10,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
+  FinishReason,
   isToolUIPart,
   TextStreamChatTransport,
   UIMessage,
@@ -84,7 +85,14 @@ describe('initial messages', () => {
 });
 
 describe('data protocol stream', () => {
-  let onFinishCalls: Array<{ message: UIMessage }> = [];
+  let onFinishCalls: Array<{
+    message: UIMessage;
+    messages: UIMessage[];
+    isAbort: boolean;
+    isDisconnect: boolean;
+    isError: boolean;
+    finishReason?: FinishReason;
+  }> = [];
 
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
@@ -304,6 +312,7 @@ describe('data protocol stream', () => {
     controller.write(
       formatChunk({
         type: 'finish',
+        finishReason: 'stop',
         messageMetadata: {
           example: 'metadata',
         },
@@ -346,6 +355,7 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": "stop",
           "isAbort": false,
           "isDisconnect": false,
           "isError": false,
@@ -436,7 +446,14 @@ describe('data protocol stream', () => {
 });
 
 describe('text stream', () => {
-  let onFinishCalls: Array<{ message: UIMessage }> = [];
+  let onFinishCalls: Array<{
+    message: UIMessage;
+    messages: UIMessage[];
+    isAbort: boolean;
+    isDisconnect: boolean;
+    isError: boolean;
+    finishReason?: FinishReason;
+  }> = [];
 
   setupTestComponent(() => {
     const { messages, sendMessage } = useChat({
@@ -537,6 +554,7 @@ describe('text stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": undefined,
           "isAbort": false,
           "isDisconnect": false,
           "isError": false,

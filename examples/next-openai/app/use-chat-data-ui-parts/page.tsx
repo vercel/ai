@@ -2,7 +2,8 @@
 
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, UIMessage } from 'ai';
+import { DefaultChatTransport, UIMessage, type FinishReason } from 'ai';
+import { useState } from 'react';
 
 type MyMessage = UIMessage<
   never,
@@ -16,6 +17,7 @@ type MyMessage = UIMessage<
 >;
 
 export default function Chat() {
+  const [lastFinishReason, setLastFinishReason] = useState<FinishReason | undefined>(undefined);
   const { error, status, sendMessage, messages, regenerate, stop } =
     useChat<MyMessage>({
       transport: new DefaultChatTransport({
@@ -23,6 +25,9 @@ export default function Chat() {
       }),
       onData: dataPart => {
         console.log('dataPart', JSON.stringify(dataPart, null, 2));
+      },
+      onFinish: ({ finishReason }) => {
+        setLastFinishReason(finishReason);
       },
     });
 
@@ -93,6 +98,8 @@ export default function Chat() {
           </button>
         </div>
       )}
+
+      {messages.length > 0 && <div className="mt-4 text-gray-500">Finish reason: {String(lastFinishReason)}</div>}
 
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
