@@ -9,6 +9,51 @@ import {
 } from './google-generative-ai-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
+const imageExtensionMimeTypes: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  bmp: 'image/bmp',
+  svg: 'image/svg+xml',
+  tif: 'image/tiff',
+  tiff: 'image/tiff',
+  heic: 'image/heic',
+  heif: 'image/heif',
+};
+
+const fileExtensionMimeTypes: Record<string, string> = {
+  pdf: 'application/pdf',
+};
+
+function inferMimeTypeFromUrl(
+  urlString: string,
+  options: {
+    extensionMap: Record<string, string>;
+    defaultMimeType: string;
+  },
+): string {
+  try {
+    const url = new URL(urlString);
+    const pathname = url.pathname.toLowerCase();
+    const lastDotIndex = pathname.lastIndexOf('.');
+
+    if (lastDotIndex !== -1 && lastDotIndex < pathname.length - 1) {
+      const extension = pathname.slice(lastDotIndex + 1);
+      const mappedMimeType = options.extensionMap[extension];
+
+      if (mappedMimeType) {
+        return mappedMimeType;
+      }
+    }
+  } catch {
+    // ignore invalid URLs and fall back to default mime type
+  }
+
+  return options.defaultMimeType;
+}
+
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV3Prompt,
   options?: { isGemmaModel?: boolean },
@@ -178,6 +223,44 @@ export function convertToGoogleGenerativeAIMessages(
                     },
                   );
                   break;
+                case 'image-url': {
+                  const mimeType = inferMimeTypeFromUrl(contentPart.url, {
+                    extensionMap: imageExtensionMimeTypes,
+                    defaultMimeType: 'image/*',
+                  });
+
+                  parts.push(
+                    {
+                      fileData: {
+                        mimeType,
+                        fileUri: contentPart.url,
+                      },
+                    },
+                    {
+                      text: 'Tool executed successfully and returned this image as a response',
+                    },
+                  );
+                  break;
+                }
+                case 'file-url': {
+                  const mimeType = inferMimeTypeFromUrl(contentPart.url, {
+                    extensionMap: fileExtensionMimeTypes,
+                    defaultMimeType: 'application/octet-stream',
+                  });
+
+                  parts.push(
+                    {
+                      fileData: {
+                        mimeType,
+                        fileUri: contentPart.url,
+                      },
+                    },
+                    {
+                      text: 'Tool executed successfully and returned this file as a response',
+                    },
+                  );
+                  break;
+                }
                 default:
                   parts.push({ text: JSON.stringify(contentPart) });
                   break;

@@ -410,4 +410,92 @@ describe('assistant messages', () => {
       ],
     });
   });
+
+  it('should handle tool result with url-based pdf content', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'pdf-fetcher',
+            toolCallId: 'get-pdf-1',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file-url',
+                  url: 'https://example.com/document.pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'application/pdf',
+                fileUri: 'https://example.com/document.pdf',
+              },
+            },
+            {
+              text: 'Tool executed successfully and returned this file as a response',
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should handle tool result with url-based image content', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'image-generator',
+            toolCallId: 'image-gen-1',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'image-url',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri: 'https://example.com/image.png',
+              },
+            },
+            {
+              text: 'Tool executed successfully and returned this image as a response',
+            },
+          ],
+        },
+      ],
+    });
+  });
 });
