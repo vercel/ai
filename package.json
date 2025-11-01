@@ -47,7 +47,7 @@
     "vitest": "2.1.4"
   },
   "engines": {
-    "node": "^18.0.0 || ^20.0.0 || ^22.0.0"
+    "node": "^18.0.0 || ^20.0.0 || ^22.0.0 || ^24.0.0"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
