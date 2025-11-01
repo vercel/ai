@@ -225,6 +225,42 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
+export const openaiResponsesOutputTextAnnotationSchema = z.discriminatedUnion(
+  'type',
+  [
+    z.object({
+      type: z.literal('url_citation'),
+      start_index: z.number(),
+      end_index: z.number(),
+      url: z.string(),
+      title: z.string(),
+    }),
+    z.object({
+      type: z.literal('file_citation'),
+      file_id: z.string(),
+      filename: z.string(),
+      index: z.number(),
+    }),
+    z.object({
+      type: z.literal('container_file_citation'),
+      container_id: z.string(),
+      file_id: z.string(),
+      filename: z.string(),
+      start_index: z.number(),
+      end_index: z.number(),
+    }),
+    z.object({
+      type: z.literal('file_path'),
+      file_id: z.string(),
+      index: z.number(),
+    }),
+  ],
+);
+export type OpenaiResponsesOutputTextCodeInterpreterAnnotation = Extract<
+  z.infer<typeof openaiResponsesOutputTextAnnotationSchema>,
+  { type: 'container_file_citation' } | { type: 'file_path' }
+>;
+
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
@@ -453,22 +489,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('response.output_text.annotation.added'),
-        annotation: z.discriminatedUnion('type', [
-          z.object({
-            type: z.literal('url_citation'),
-            url: z.string(),
-            title: z.string(),
-          }),
-          z.object({
-            type: z.literal('file_citation'),
-            file_id: z.string(),
-            filename: z.string().nullish(),
-            index: z.number().nullish(),
-            start_index: z.number().nullish(),
-            end_index: z.number().nullish(),
-            quote: z.string().nullish(),
-          }),
-        ]),
+        annotation: openaiResponsesOutputTextAnnotationSchema,
       }),
       z.object({
         type: z.literal('response.reasoning_summary_part.added'),
@@ -558,29 +579,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                     }),
                   )
                   .nullish(),
-                annotations: z.array(
-                  z.discriminatedUnion('type', [
-                    z.object({
-                      type: z.literal('url_citation'),
-                      start_index: z.number(),
-                      end_index: z.number(),
-                      url: z.string(),
-                      title: z.string(),
-                    }),
-                    z.object({
-                      type: z.literal('file_citation'),
-                      file_id: z.string(),
-                      filename: z.string().nullish(),
-                      index: z.number().nullish(),
-                      start_index: z.number().nullish(),
-                      end_index: z.number().nullish(),
-                      quote: z.string().nullish(),
-                    }),
-                    z.object({
-                      type: z.literal('container_file_citation'),
-                    }),
-                  ]),
-                ),
+                annotations: z.array(openaiResponsesOutputTextAnnotationSchema),
               }),
             ),
           }),

@@ -39,6 +39,7 @@ import {
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
   OpenAIResponsesWebSearchAction,
+  OpenaiResponsesOutputTextCodeInterpreterAnnotation,
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
@@ -453,15 +454,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               logprobs.push(contentPart.logprobs);
             }
 
-            content.push({
-              type: 'text',
-              text: contentPart.text,
-              providerMetadata: {
-                openai: {
-                  itemId: part.id,
-                },
-              },
-            });
+            const annotations: Array<OpenaiResponsesOutputTextCodeInterpreterAnnotation> =
+              [];
 
             for (const annotation of contentPart.annotations) {
               if (annotation.type === 'url_citation') {
@@ -478,8 +472,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: annotation.quote ?? annotation.filename ?? 'Document',
-                  filename: annotation.filename ?? annotation.file_id,
+                  title: annotation.filename,
+                  filename: annotation.filename,
                   ...(annotation.file_id
                     ? {
                         providerMetadata: {
@@ -490,8 +484,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       }
                     : {}),
                 });
+              } else if (annotation.type === 'container_file_citation') {
+                annotations.push(annotation);
+              } else if (annotation.type === 'file_path') {
+                annotations.push(annotation);
               }
             }
+
+            content.push({
+              type: 'text',
+              text: contentPart.text,
+              providerMetadata: {
+                openai: {
+                  itemId: part.id,
+                  annotations,
+                },
+              },
+            });
           }
 
           break;
@@ -697,6 +706,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       | undefined
     > = {};
 
+    const ongoingAnnotations: Array<OpenaiResponsesOutputTextCodeInterpreterAnnotation> =
+      [];
+
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
@@ -822,6 +834,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
+                ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
@@ -852,7 +865,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
-            } else if (isResponseOutputItemDoneChunk(value)) {
+            } else if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type !== 'message'
+            ) {
               if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
@@ -966,11 +982,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerMetadata: {
                     openai: { itemId: value.item.id },
                   },
-                });
-              } else if (value.item.type === 'message') {
-                controller.enqueue({
-                  type: 'text-end',
-                  id: value.item.id,
                 });
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
@@ -1186,12 +1197,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title:
-                    value.annotation.quote ??
-                    value.annotation.filename ??
-                    'Document',
-                  filename:
-                    value.annotation.filename ?? value.annotation.file_id,
+                  title: value.annotation.filename,
+                  filename: value.annotation.filename,
                   ...(value.annotation.file_id
                     ? {
                         providerMetadata: {
@@ -1202,7 +1209,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       }
                     : {}),
                 });
+              } else if (value.annotation.type === 'container_file_citation') {
+                ongoingAnnotations.push(value.annotation);
+              } else if (value.annotation.type === 'file_path') {
+                ongoingAnnotations.push(value.annotation);
               }
+            } else if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type === 'message'
+            ) {
+              controller.enqueue({
+                type: 'text-end',
+                id: value.item.id,
+                providerMetadata: {
+                  openai: {
+                    itemId: value.item.id,
+                    annotations: ongoingAnnotations,
+                  },
+                },
+              });
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }
