@@ -1,0 +1,90 @@
+{
+  "created_at": 1761768891,
+  "id": "c25a6e1c-a324-6a96-df49-9866618255cd_us-east-1",
+  "max_output_tokens": null,
+  "model": "grok-4-fast-reasoning",
+  "object": "response",
+  "output": [
+    {
+      "arguments": "{\"query\":\"what is xAI\",\"num_results\":5}",
+      "call_id": "",
+      "name": "web_search",
+      "type": "web_search_call",
+      "id": "fc_c25a6e1c-a324-6a96-df49-9866618255cd_us-east-1_0",
+      "status": "completed"
+    },
+    {
+      "content": [
+        {
+          "type": "output_text",
+          "text": "xAI is an American artificial intelligence company founded by Elon Musk in July 2023. Its mission is to \"understand the true nature of the universe\" by advancing scientific discovery through AI. The company develops large language models and AI tools, including the Grok chatbot (which powers interactions like this one), and aims to compete with other major AI players like OpenAI. xAI is headquartered in the San Francisco Bay Area and has raised significant funding, including from investors like Andreessen Horowitz.\n\n(Note: \"XAI\" can also refer to \"Explainable AI,\" a field in machine learning focused on making AI decisions transparent and understandable to humans. If that's what you meant, let me know for more details!)",
+          "logprobs": [],
+          "annotations": [
+            {
+              "type": "url_citation",
+              "url": "https://en.wikipedia.org/wiki/XAI_%28company%29"
+            },
+            {
+              "type": "url_citation",
+              "url": "https://x.ai/"
+            },
+            {
+              "type": "url_citation",
+              "url": "https://www.ibm.com/think/topics/explainable-ai"
+            },
+            {
+              "type": "url_citation",
+              "url": "https://www.owkin.com/a-z-of-ai-for-healthcare/xai"
+            },
+            {
+              "type": "url_citation",
+              "url": "https://x.ai/company"
+            }
+          ]
+        }
+      ],
+      "id": "msg_c25a6e1c-a324-6a96-df49-9866618255cd_us-east-1",
+      "role": "assistant",
+      "type": "message",
+      "status": "completed"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "temperature": null,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "web_search",
+      "search_context_size": "medium"
+    }
+  ],
+  "top_p": null,
+  "usage": {
+    "input_tokens": 1894,
+    "input_tokens_details": {
+      "cached_tokens": 1307
+    },
+    "output_tokens": 569,
+    "output_tokens_details": {
+      "reasoning_tokens": 388
+    },
+    "total_tokens": 2463,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 1
+  },
+  "user": null,
+  "incomplete_details": null,
+  "status": "completed",
+  "store": true,
+  "metadata": {}
+}

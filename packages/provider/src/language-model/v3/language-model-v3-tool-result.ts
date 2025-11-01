@@ -19,7 +19,7 @@ export type LanguageModelV3ToolResult = {
   /**
    * Result of the tool call. This is a JSON-serializable object.
    */
-  result: unknown;
+  result: NonNullable<unknown>;
 
   /**
    * Optional flag if the result is an error or an error message.
