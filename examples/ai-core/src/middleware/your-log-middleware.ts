@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 
 export const yourLogMiddleware: LanguageModelV3Middleware = {
+  specificationVersion: 'v3',
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('doGenerate called');
     console.log(`params: ${JSON.stringify(params, null, 2)}`);

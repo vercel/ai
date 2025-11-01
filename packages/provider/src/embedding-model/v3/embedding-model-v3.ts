@@ -1,8 +1,5 @@
-import {
-  SharedV2Headers,
-  SharedV2ProviderOptions,
-  SharedV2ProviderMetadata,
-} from '../../shared';
+import { SharedV3Headers, SharedV3ProviderMetadata } from '../../shared';
+import { EmbeddingModelCallOptions } from './embedding-model-v3-call-options';
 import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
 
 /**
@@ -54,30 +51,7 @@ Generates a list of embeddings for the given input text.
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
-  doEmbed(options: {
-    /**
-List of values to embed.
-     */
-    values: Array<VALUE>;
-
-    /**
-Abort signal for cancelling the operation.
-     */
-    abortSignal?: AbortSignal;
-
-    /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-    */
-    providerOptions?: SharedV2ProviderOptions;
-
-    /**
-  Additional HTTP headers to be sent with the request.
-  Only applicable for HTTP-based providers.
-     */
-    headers?: Record<string, string | undefined>;
-  }): PromiseLike<{
+  doEmbed(options: EmbeddingModelCallOptions<VALUE>): PromiseLike<{
     /**
 Generated embeddings. They are in the same order as the input values.
      */
@@ -93,7 +67,7 @@ Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
-    providerMetadata?: SharedV2ProviderMetadata;
+    providerMetadata?: SharedV3ProviderMetadata;
 
     /**
 Optional response information for debugging purposes.
@@ -102,7 +76,7 @@ Optional response information for debugging purposes.
       /**
 Response headers.
        */
-      headers?: SharedV2Headers;
+      headers?: SharedV3Headers;
 
       /**
       The response body.

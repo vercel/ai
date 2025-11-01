@@ -7,18 +7,18 @@ import {
   LanguageModelV3ProviderDefinedTool,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  InferSchema,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
@@ -27,112 +27,25 @@ import {
 } from '../tool/code-interpreter';
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
+import { localShellInputSchema } from '../tool/local-shell';
+import { webSearchOutputSchema } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
+  OpenAIResponsesChunk,
+  openaiResponsesChunkSchema,
   OpenAIResponsesIncludeOptions,
   OpenAIResponsesIncludeValue,
-} from './openai-responses-api-types';
+  OpenAIResponsesLogprobs,
+  openaiResponsesResponseSchema,
+  OpenAIResponsesWebSearchAction,
+} from './openai-responses-api';
+import {
+  OpenAIResponsesModelId,
+  openaiResponsesProviderOptionsSchema,
+  TOP_LOGPROBS_MAX,
+} from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { OpenAIResponsesModelId } from './openai-responses-settings';
-import { localShellInputSchema } from '../tool/local-shell';
-
-const webSearchCallItem = z.object({
-  type: z.literal('web_search_call'),
-  id: z.string(),
-  status: z.string(),
-  action: z
-    .discriminatedUnion('type', [
-      z.object({
-        type: z.literal('search'),
-        query: z.string().nullish(),
-      }),
-      z.object({
-        type: z.literal('open_page'),
-        url: z.string(),
-      }),
-      z.object({
-        type: z.literal('find'),
-        url: z.string(),
-        pattern: z.string(),
-      }),
-    ])
-    .nullish(),
-});
-
-const fileSearchCallItem = z.object({
-  type: z.literal('file_search_call'),
-  id: z.string(),
-  queries: z.array(z.string()),
-  results: z
-    .array(
-      z.object({
-        attributes: z.record(z.string(), z.unknown()),
-        file_id: z.string(),
-        filename: z.string(),
-        score: z.number(),
-        text: z.string(),
-      }),
-    )
-    .nullish(),
-});
-
-const codeInterpreterCallItem = z.object({
-  type: z.literal('code_interpreter_call'),
-  id: z.string(),
-  code: z.string().nullable(),
-  container_id: z.string(),
-  outputs: z
-    .array(
-      z.discriminatedUnion('type', [
-        z.object({ type: z.literal('logs'), logs: z.string() }),
-        z.object({ type: z.literal('image'), url: z.string() }),
-      ]),
-    )
-    .nullable(),
-});
-
-const localShellCallItem = z.object({
-  type: z.literal('local_shell_call'),
-  id: z.string(),
-  call_id: z.string(),
-  action: z.object({
-    type: z.literal('exec'),
-    command: z.array(z.string()),
-    timeout_ms: z.number().optional(),
-    user: z.string().optional(),
-    working_directory: z.string().optional(),
-    env: z.record(z.string(), z.string()).optional(),
-  }),
-});
-
-const imageGenerationCallItem = z.object({
-  type: z.literal('image_generation_call'),
-  id: z.string(),
-  result: z.string(),
-});
-
-/**
- * `top_logprobs` request body argument can be set to an integer between
- * 0 and 20 specifying the number of most likely tokens to return at each
- * token position, each with an associated log probability.
- *
- * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-top_logprobs
- */
-const TOP_LOGPROBS_MAX = 20;
-
-const LOGPROBS_SCHEMA = z.array(
-  z.object({
-    token: z.string(),
-    logprob: z.number(),
-    top_logprobs: z.array(
-      z.object({
-        token: z.string(),
-        logprob: z.number(),
-      }),
-    ),
-  }),
-);
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -221,7 +134,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
     function addInclude(key: OpenAIResponsesIncludeValue) {
-      include = include != null ? [...include, key] : [key];
+      if (include == null) {
+        include = [key];
+      } else if (!include.includes(key)) {
+        include = [...include, key];
+      }
     }
 
     function hasOpenAITool(id: string) {
@@ -263,6 +180,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       addInclude('code_interpreter_call.outputs');
     }
 
+    const store = openaiOptions?.store;
+
+    // store defaults to true in the OpenAI responses API, so check for false exactly:
+    if (store === false && modelConfig.isReasoningModel) {
+      addInclude('reasoning.encrypted_content');
+    }
+
     const baseArgs = {
       model: this.modelId,
       input,
@@ -295,7 +219,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
       previous_response_id: openaiOptions?.previousResponseId,
-      store: openaiOptions?.store,
+      store,
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
@@ -303,6 +227,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       prompt_cache_key: openaiOptions?.promptCacheKey,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
+      truncation: openaiOptions?.truncation,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -317,9 +242,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             }),
           },
         }),
-      ...(modelConfig.requiredAutoTruncation && {
-        truncation: 'auto',
-      }),
     };
 
     if (modelConfig.isReasoningModel) {
@@ -394,7 +316,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
       toolWarnings,
-    } = prepareResponsesTools({
+    } = await prepareResponsesTools({
       tools,
       toolChoice,
       strictJsonSchema,
@@ -408,6 +330,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         tool_choice: openaiToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      store,
     };
   }
 
@@ -434,87 +357,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        z.object({
-          id: z.string(),
-          created_at: z.number(),
-          error: z
-            .object({
-              code: z.string(),
-              message: z.string(),
-            })
-            .nullish(),
-          model: z.string(),
-          output: z.array(
-            z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('message'),
-                role: z.literal('assistant'),
-                id: z.string(),
-                content: z.array(
-                  z.object({
-                    type: z.literal('output_text'),
-                    text: z.string(),
-                    logprobs: LOGPROBS_SCHEMA.nullish(),
-                    annotations: z.array(
-                      z.discriminatedUnion('type', [
-                        z.object({
-                          type: z.literal('url_citation'),
-                          start_index: z.number(),
-                          end_index: z.number(),
-                          url: z.string(),
-                          title: z.string(),
-                        }),
-                        z.object({
-                          type: z.literal('file_citation'),
-                          file_id: z.string(),
-                          filename: z.string().nullish(),
-                          index: z.number().nullish(),
-                          start_index: z.number().nullish(),
-                          end_index: z.number().nullish(),
-                          quote: z.string().nullish(),
-                        }),
-                        z.object({
-                          type: z.literal('container_file_citation'),
-                        }),
-                      ]),
-                    ),
-                  }),
-                ),
-              }),
-              webSearchCallItem,
-              fileSearchCallItem,
-              codeInterpreterCallItem,
-              imageGenerationCallItem,
-              localShellCallItem,
-              z.object({
-                type: z.literal('function_call'),
-                call_id: z.string(),
-                name: z.string(),
-                arguments: z.string(),
-                id: z.string(),
-              }),
-              z.object({
-                type: z.literal('computer_call'),
-                id: z.string(),
-                status: z.string().optional(),
-              }),
-              z.object({
-                type: z.literal('reasoning'),
-                id: z.string(),
-                encrypted_content: z.string().nullish(),
-                summary: z.array(
-                  z.object({
-                    type: z.literal('summary_text'),
-                    text: z.string(),
-                  }),
-                ),
-              }),
-            ]),
-          ),
-          service_tier: z.string().nullish(),
-          incomplete_details: z.object({ reason: z.string() }).nullish(),
-          usage: usageSchema,
-        }),
+        openaiResponsesResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -533,7 +376,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     }
 
     const content: Array<LanguageModelV3Content> = [];
-    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
+    const logprobs: Array<OpenAIResponsesLogprobs> = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -577,8 +420,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: 'image_generation',
             result: {
               result: part.result,
-            } satisfies z.infer<typeof imageGenerationOutputSchema>,
-            providerExecuted: true,
+            } satisfies InferSchema<typeof imageGenerationOutputSchema>,
           });
 
           break;
@@ -589,9 +431,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-call',
             toolCallId: part.call_id,
             toolName: 'local_shell',
-            input: JSON.stringify({ action: part.action } satisfies z.infer<
-              typeof localShellInputSchema
-            >),
+            input: JSON.stringify({
+              action: part.action,
+            } satisfies InferSchema<typeof localShellInputSchema>),
             providerMetadata: {
               openai: {
                 itemId: part.id,
@@ -638,6 +480,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   mediaType: 'text/plain',
                   title: annotation.quote ?? annotation.filename ?? 'Document',
                   filename: annotation.filename ?? annotation.file_id,
+                  ...(annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          openai: {
+                            fileId: annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
                 });
               }
             }
@@ -668,7 +519,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-call',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            input: JSON.stringify({ action: part.action }),
+            input: JSON.stringify({}),
             providerExecuted: true,
           });
 
@@ -676,8 +527,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-result',
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
-            result: { status: part.status },
-            providerExecuted: true,
+            result: mapWebSearchOutput(part.action),
           });
 
           break;
@@ -700,7 +550,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'computer_use_tool_result',
               status: part.status || 'completed',
             },
-            providerExecuted: true,
           });
           break;
         }
@@ -728,8 +577,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   score: result.score,
                   text: result.text,
                 })) ?? null,
-            } satisfies z.infer<typeof fileSearchOutputSchema>,
-            providerExecuted: true,
+            } satisfies InferSchema<typeof fileSearchOutputSchema>,
           });
           break;
         }
@@ -742,7 +590,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             input: JSON.stringify({
               code: part.code,
               containerId: part.container_id,
-            } satisfies z.infer<typeof codeInterpreterInputSchema>),
+            } satisfies InferSchema<typeof codeInterpreterInputSchema>),
             providerExecuted: true,
           });
 
@@ -752,15 +600,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: 'code_interpreter',
             result: {
               outputs: part.outputs,
-            } satisfies z.infer<typeof codeInterpreterOutputSchema>,
-            providerExecuted: true,
+            } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
           });
           break;
         }
       }
     }
 
-    const providerMetadata: SharedV2ProviderMetadata = {
+    const providerMetadata: SharedV3ProviderMetadata = {
       openai: { responseId: response.id },
     };
 
@@ -807,6 +654,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       args: body,
       warnings,
       webSearchToolName,
+      store,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -835,7 +683,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
+    const logprobs: Array<OpenAIResponsesLogprobs> = [];
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
@@ -856,7 +704,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       string,
       {
         encryptedContent?: string | null;
-        summaryParts: number[];
+        // summary index as string to reasoning part state:
+        summaryParts: Record<string, 'active' | 'can-conclude' | 'concluded'>;
       }
     > = {};
 
@@ -865,7 +714,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
+          ParseResult<OpenAIResponsesChunk>,
           LanguageModelV3StreamPart
         >({
           start(controller) {
@@ -908,6 +757,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: webSearchToolName ?? 'web_search',
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'web_search',
+                  input: JSON.stringify({}),
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -919,6 +782,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: 'computer_use',
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -933,6 +797,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.id,
                   toolName: 'code_interpreter',
+                  providerExecuted: true,
                 });
 
                 controller.enqueue({
@@ -966,10 +831,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     },
                   },
                 });
-              } else if (isResponseOutputItemAddedReasoningChunk(value)) {
+              } else if (
+                isResponseOutputItemAddedChunk(value) &&
+                value.item.type === 'reasoning'
+              ) {
                 activeReasoning[value.item.id] = {
                   encryptedContent: value.item.encrypted_content,
-                  summaryParts: [0],
+                  summaryParts: { 0: 'active' },
                 };
 
                 controller.enqueue({
@@ -1009,24 +877,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = undefined;
 
                 controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'web_search',
-                  input: JSON.stringify({ action: value.item.action }),
-                  providerExecuted: true,
-                });
-
-                controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
                   toolName: 'web_search',
-                  result: { status: value.item.status },
-                  providerExecuted: true,
+                  result: mapWebSearchOutput(value.item.action),
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1052,7 +906,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     type: 'computer_use_tool_result',
                     status: value.item.status || 'completed',
                   },
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'file_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1071,8 +924,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         score: result.score,
                         text: result.text,
                       })) ?? null,
-                  } satisfies z.infer<typeof fileSearchOutputSchema>,
-                  providerExecuted: true,
+                  } satisfies InferSchema<typeof fileSearchOutputSchema>,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1083,8 +935,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: 'code_interpreter',
                   result: {
                     outputs: value.item.outputs,
-                  } satisfies z.infer<typeof codeInterpreterOutputSchema>,
-                  providerExecuted: true,
+                  } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
                 });
               } else if (value.item.type === 'image_generation_call') {
                 controller.enqueue({
@@ -1093,8 +944,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: 'image_generation',
                   result: {
                     result: value.item.result,
-                  } satisfies z.infer<typeof imageGenerationOutputSchema>,
-                  providerExecuted: true,
+                  } satisfies InferSchema<typeof imageGenerationOutputSchema>,
                 });
               } else if (value.item.type === 'local_shell_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1112,7 +962,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       workingDirectory: value.item.action.working_directory,
                       env: value.item.action.env,
                     },
-                  } satisfies z.infer<typeof localShellInputSchema>),
+                  } satisfies InferSchema<typeof localShellInputSchema>),
                   providerMetadata: {
                     openai: { itemId: value.item.id },
                   },
@@ -1122,10 +972,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'text-end',
                   id: value.item.id,
                 });
-              } else if (isResponseOutputItemDoneReasoningChunk(value)) {
+              } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
 
-                for (const summaryIndex of activeReasoningPart.summaryParts) {
+                // get all active or can-conclude summary parts' ids
+                // to conclude ongoing reasoning parts:
+                const summaryPartIndices = Object.entries(
+                  activeReasoningPart.summaryParts,
+                )
+                  .filter(
+                    ([_, status]) =>
+                      status === 'active' || status === 'can-conclude',
+                  )
+                  .map(([summaryIndex]) => summaryIndex);
+
+                for (const summaryIndex of summaryPartIndices) {
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: `${value.item.id}:${summaryIndex}`,
@@ -1151,6 +1012,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   delta: value.delta,
                 });
               }
+            } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
+              controller.enqueue({
+                type: 'tool-result',
+                toolCallId: value.item_id,
+                toolName: 'image_generation',
+                result: {
+                  result: value.partial_image_b64,
+                } satisfies InferSchema<typeof imageGenerationOutputSchema>,
+                preliminary: true,
+              });
             } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
 
@@ -1186,7 +1057,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   input: JSON.stringify({
                     code: value.code,
                     containerId: toolCall.codeInterpreter!.containerId,
-                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
+                  } satisfies InferSchema<typeof codeInterpreterInputSchema>),
                   providerExecuted: true,
                 });
               }
@@ -1208,12 +1079,31 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               if (options.providerOptions?.openai?.logprobs && value.logprobs) {
                 logprobs.push(value.logprobs);
               }
-            } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
-              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk.
+            } else if (value.type === 'response.reasoning_summary_part.added') {
+              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
-                activeReasoning[value.item_id]?.summaryParts.push(
-                  value.summary_index,
-                );
+                const activeReasoningPart = activeReasoning[value.item_id]!;
+
+                activeReasoningPart.summaryParts[value.summary_index] =
+                  'active';
+
+                // since there is a new active summary part, we can conclude all can-conclude summary parts
+                for (const summaryIndex of Object.keys(
+                  activeReasoningPart.summaryParts,
+                )) {
+                  if (
+                    activeReasoningPart.summaryParts[summaryIndex] ===
+                    'can-conclude'
+                  ) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: `${value.item_id}:${summaryIndex}`,
+                      providerMetadata: { openai: { itemId: value.item_id } },
+                    });
+                    activeReasoningPart.summaryParts[summaryIndex] =
+                      'concluded';
+                  }
+                }
 
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -1228,7 +1118,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
-            } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+            } else if (value.type === 'response.reasoning_summary_text.delta') {
               controller.enqueue({
                 type: 'reasoning-delta',
                 id: `${value.item_id}:${value.summary_index}`,
@@ -1239,6 +1129,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 },
               });
+            } else if (value.type === 'response.reasoning_summary_part.done') {
+              // when OpenAI stores the message data, we can immediately conclude the reasoning part
+              // since we do not need to send the encrypted content.
+              if (store) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: `${value.item_id}:${value.summary_index}`,
+                  providerMetadata: {
+                    openai: { itemId: value.item_id },
+                  },
+                });
+
+                // mark the summary part as concluded
+                activeReasoning[value.item_id]!.summaryParts[
+                  value.summary_index
+                ] = 'concluded';
+              } else {
+                // mark the summary part as can-conclude only
+                // because we need to have a final summary part with the encrypted content
+                activeReasoning[value.item_id]!.summaryParts[
+                  value.summary_index
+                ] = 'can-conclude';
+              }
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
@@ -1279,6 +1192,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     'Document',
                   filename:
                     value.annotation.filename ?? value.annotation.file_id,
+                  ...(value.annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          openai: {
+                            fileId: value.annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
                 });
               }
             } else if (isErrorChunk(value)) {
@@ -1287,7 +1209,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            const providerMetadata: SharedV2ProviderMetadata = {
+            const providerMetadata: SharedV3ProviderMetadata = {
               openai: {
                 responseId,
               },
@@ -1316,326 +1238,88 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 }
 
-const usageSchema = z.object({
-  input_tokens: z.number(),
-  input_tokens_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-  output_tokens: z.number(),
-  output_tokens_details: z
-    .object({ reasoning_tokens: z.number().nullish() })
-    .nullish(),
-});
-
-const textDeltaChunkSchema = z.object({
-  type: z.literal('response.output_text.delta'),
-  item_id: z.string(),
-  delta: z.string(),
-  logprobs: LOGPROBS_SCHEMA.nullish(),
-});
-
-const errorChunkSchema = z.object({
-  type: z.literal('error'),
-  code: z.string(),
-  message: z.string(),
-  param: z.string().nullish(),
-  sequence_number: z.number(),
-});
-
-const responseFinishedChunkSchema = z.object({
-  type: z.enum(['response.completed', 'response.incomplete']),
-  response: z.object({
-    incomplete_details: z.object({ reason: z.string() }).nullish(),
-    usage: usageSchema,
-    service_tier: z.string().nullish(),
-  }),
-});
-
-const responseCreatedChunkSchema = z.object({
-  type: z.literal('response.created'),
-  response: z.object({
-    id: z.string(),
-    created_at: z.number(),
-    model: z.string(),
-    service_tier: z.string().nullish(),
-  }),
-});
-
-const responseOutputItemAddedSchema = z.object({
-  type: z.literal('response.output_item.added'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
-      encrypted_content: z.string().nullish(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-    }),
-    z.object({
-      type: z.literal('web_search_call'),
-      id: z.string(),
-      status: z.string(),
-      action: z
-        .object({
-          type: z.literal('search'),
-          query: z.string().optional(),
-        })
-        .nullish(),
-    }),
-    z.object({
-      type: z.literal('computer_call'),
-      id: z.string(),
-      status: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_search_call'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('image_generation_call'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('code_interpreter_call'),
-      id: z.string(),
-      container_id: z.string(),
-      code: z.string().nullable(),
-      outputs: z
-        .array(
-          z.discriminatedUnion('type', [
-            z.object({ type: z.literal('logs'), logs: z.string() }),
-            z.object({ type: z.literal('image'), url: z.string() }),
-          ]),
-        )
-        .nullable(),
-      status: z.string(),
-    }),
-  ]),
-});
-
-const responseOutputItemDoneSchema = z.object({
-  type: z.literal('response.output_item.done'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
-      encrypted_content: z.string().nullish(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-      status: z.literal('completed'),
-    }),
-    codeInterpreterCallItem,
-    imageGenerationCallItem,
-    webSearchCallItem,
-    fileSearchCallItem,
-    localShellCallItem,
-    z.object({
-      type: z.literal('computer_call'),
-      id: z.string(),
-      status: z.literal('completed'),
-    }),
-  ]),
-});
-
-const responseFunctionCallArgumentsDeltaSchema = z.object({
-  type: z.literal('response.function_call_arguments.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  delta: z.string(),
-});
-
-const responseCodeInterpreterCallCodeDeltaSchema = z.object({
-  type: z.literal('response.code_interpreter_call_code.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  delta: z.string(),
-});
-
-const responseCodeInterpreterCallCodeDoneSchema = z.object({
-  type: z.literal('response.code_interpreter_call_code.done'),
-  item_id: z.string(),
-  output_index: z.number(),
-  code: z.string(),
-});
-
-const responseAnnotationAddedSchema = z.object({
-  type: z.literal('response.output_text.annotation.added'),
-  annotation: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('url_citation'),
-      url: z.string(),
-      title: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_citation'),
-      file_id: z.string(),
-      filename: z.string().nullish(),
-      index: z.number().nullish(),
-      start_index: z.number().nullish(),
-      end_index: z.number().nullish(),
-      quote: z.string().nullish(),
-    }),
-  ]),
-});
-
-const responseReasoningSummaryPartAddedSchema = z.object({
-  type: z.literal('response.reasoning_summary_part.added'),
-  item_id: z.string(),
-  summary_index: z.number(),
-});
-
-const responseReasoningSummaryTextDeltaSchema = z.object({
-  type: z.literal('response.reasoning_summary_text.delta'),
-  item_id: z.string(),
-  summary_index: z.number(),
-  delta: z.string(),
-});
-
-const openaiResponsesChunkSchema = z.union([
-  textDeltaChunkSchema,
-  responseFinishedChunkSchema,
-  responseCreatedChunkSchema,
-  responseOutputItemAddedSchema,
-  responseOutputItemDoneSchema,
-  responseFunctionCallArgumentsDeltaSchema,
-  responseCodeInterpreterCallCodeDeltaSchema,
-  responseCodeInterpreterCallCodeDoneSchema,
-  responseAnnotationAddedSchema,
-  responseReasoningSummaryPartAddedSchema,
-  responseReasoningSummaryTextDeltaSchema,
-  errorChunkSchema,
-  z.object({ type: z.string() }).loose(), // fallback for unknown chunks
-]);
-
-type ExtractByType<
-  T,
-  K extends T extends { type: infer U } ? U : never,
-> = T extends { type: K } ? T : never;
-
 function isTextDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof textDeltaChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_text.delta' } {
   return chunk.type === 'response.output_text.delta';
 }
 
 function isResponseOutputItemDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemDoneSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_item.done' } {
   return chunk.type === 'response.output_item.done';
 }
 
-function isResponseOutputItemDoneReasoningChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemDoneSchema> & {
-  item: ExtractByType<
-    z.infer<typeof responseOutputItemDoneSchema>['item'],
-    'reasoning'
-  >;
-} {
-  return (
-    isResponseOutputItemDoneChunk(chunk) && chunk.item.type === 'reasoning'
-  );
-}
-
 function isResponseFinishedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseFinishedChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.completed' | 'response.incomplete';
+} {
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
 }
 
 function isResponseCreatedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCreatedChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.created' } {
   return chunk.type === 'response.created';
 }
 
 function isResponseFunctionCallArgumentsDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseFunctionCallArgumentsDeltaSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.function_call_arguments.delta';
+} {
   return chunk.type === 'response.function_call_arguments.delta';
+}
+function isResponseImageGenerationCallPartialImageChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.image_generation_call.partial_image';
+} {
+  return chunk.type === 'response.image_generation_call.partial_image';
 }
 
 function isResponseCodeInterpreterCallCodeDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCodeInterpreterCallCodeDeltaSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.code_interpreter_call_code.delta';
+} {
   return chunk.type === 'response.code_interpreter_call_code.delta';
 }
 
 function isResponseCodeInterpreterCallCodeDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCodeInterpreterCallCodeDoneSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.code_interpreter_call_code.done';
+} {
   return chunk.type === 'response.code_interpreter_call_code.done';
 }
 
 function isResponseOutputItemAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemAddedSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_item.added' } {
   return chunk.type === 'response.output_item.added';
 }
 
-function isResponseOutputItemAddedReasoningChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemAddedSchema> & {
-  item: ExtractByType<
-    z.infer<typeof responseOutputItemAddedSchema>['item'],
-    'reasoning'
-  >;
-} {
-  return (
-    isResponseOutputItemAddedChunk(chunk) && chunk.item.type === 'reasoning'
-  );
-}
-
 function isResponseAnnotationAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseAnnotationAddedSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.output_text.annotation.added';
+} {
   return chunk.type === 'response.output_text.annotation.added';
 }
 
-function isResponseReasoningSummaryPartAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryPartAddedSchema> {
-  return chunk.type === 'response.reasoning_summary_part.added';
-}
-
-function isResponseReasoningSummaryTextDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
-  return chunk.type === 'response.reasoning_summary_text.delta';
-}
-
 function isErrorChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof errorChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'error' } {
   return chunk.type === 'error';
 }
 
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
-  requiredAutoTruncation: boolean;
   supportsFlexProcessing: boolean;
   supportsPriorityProcessing: boolean;
 };
@@ -1654,7 +1338,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini');
   const defaults = {
-    requiredAutoTruncation: false,
     systemMessageMode: 'system' as const,
     supportsFlexProcessing,
     supportsPriorityProcessing,
@@ -1697,56 +1380,21 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
-// TODO AI SDK 6: use optional here instead of nullish
-const openaiResponsesProviderOptionsSchema = z.object({
-  include: z
-    .array(
-      z.enum([
-        'reasoning.encrypted_content',
-        'file_search_call.results',
-        'message.output_text.logprobs',
-      ]),
-    )
-    .nullish(),
-  instructions: z.string().nullish(),
-
-  /**
-   * Return the log probabilities of the tokens.
-   *
-   * Setting to true will return the log probabilities of the tokens that
-   * were generated.
-   *
-   * Setting to a number will return the log probabilities of the top n
-   * tokens that were generated.
-   *
-   * @see https://platform.openai.com/docs/api-reference/responses/create
-   * @see https://cookbook.openai.com/examples/using_logprobs
-   */
-  logprobs: z
-    .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
-    .optional(),
-
-  /**
-   * The maximum number of total calls to built-in tools that can be processed in a response.
-   * This maximum number applies across all built-in tool calls, not per individual tool.
-   * Any further attempts to call a tool by the model will be ignored.
-   */
-  maxToolCalls: z.number().nullish(),
-
-  metadata: z.any().nullish(),
-  parallelToolCalls: z.boolean().nullish(),
-  previousResponseId: z.string().nullish(),
-  promptCacheKey: z.string().nullish(),
-  reasoningEffort: z.string().nullish(),
-  reasoningSummary: z.string().nullish(),
-  safetyIdentifier: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
-  store: z.boolean().nullish(),
-  strictJsonSchema: z.boolean().nullish(),
-  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
-  user: z.string().nullish(),
-});
-
-export type OpenAIResponsesProviderOptions = z.infer<
-  typeof openaiResponsesProviderOptionsSchema
->;
+function mapWebSearchOutput(
+  action: OpenAIResponsesWebSearchAction,
+): InferSchema<typeof webSearchOutputSchema> {
+  switch (action.type) {
+    case 'search':
+      return {
+        action: { type: 'search', query: action.query ?? undefined },
+        // include sources when provided by the Responses API (behind include flag)
+        ...(action.sources != null && { sources: action.sources }),
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: action.url } };
+    case 'find':
+      return {
+        action: { type: 'find', url: action.url, pattern: action.pattern },
+      };
+  }
+}

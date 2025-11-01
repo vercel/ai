@@ -68,6 +68,7 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
     });
 
   return {
+    specificationVersion: 'v3' as const,
     image: createImageModel,
     imageModel: createImageModel,
     languageModel: () => {

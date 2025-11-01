@@ -2,7 +2,7 @@ import {
   JSONObject,
   LanguageModelV3Message,
   LanguageModelV3Prompt,
-  SharedV2ProviderMetadata,
+  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
@@ -24,13 +24,13 @@ import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
 
 function getCachePoint(
-  providerMetadata: SharedV2ProviderMetadata | undefined,
+  providerMetadata: SharedV3ProviderMetadata | undefined,
 ): BedrockCachePoint | undefined {
   return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
 }
 
 async function shouldEnableCitations(
-  providerMetadata: SharedV2ProviderMetadata | undefined,
+  providerMetadata: SharedV3ProviderMetadata | undefined,
 ): Promise<boolean> {
   const bedrockOptions = await parseProviderOptions({
     provider: 'bedrock',
@@ -128,7 +128,7 @@ export async function convertToBedrockChatMessages(
                       bedrockContent.push({
                         document: {
                           format: getBedrockDocumentFormat(part.mediaType),
-                          name: generateDocumentName(),
+                          name: part.filename ?? generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                           ...(enableCitations && {
                             citations: { enabled: true },
@@ -155,7 +155,7 @@ export async function convertToBedrockChatMessages(
                       switch (contentPart.type) {
                         case 'text':
                           return { text: contentPart.text };
-                        case 'media':
+                        case 'image-data':
                           if (!contentPart.mediaType.startsWith('image/')) {
                             throw new UnsupportedFunctionalityError({
                               functionality: `media type: ${contentPart.mediaType}`,
@@ -172,6 +172,11 @@ export async function convertToBedrockChatMessages(
                               source: { bytes: contentPart.data },
                             },
                           };
+                        default: {
+                          throw new UnsupportedFunctionalityError({
+                            functionality: `unsupported tool content part type: ${contentPart.type}`,
+                          });
+                        }
                       }
                     });
                     break;
@@ -179,6 +184,11 @@ export async function convertToBedrockChatMessages(
                   case 'text':
                   case 'error-text':
                     toolResultContent = [{ text: output.value }];
+                    break;
+                  case 'execution-denied':
+                    toolResultContent = [
+                      { text: output.reason ?? 'Tool execution denied.' },
+                    ];
                     break;
                   case 'json':
                   case 'error-json':

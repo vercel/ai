@@ -12,8 +12,8 @@ import {
   LanguageModelV3,
   ProviderV3,
   ImageModelV3,
-  SpeechModelV2,
-  TranscriptionModelV2,
+  SpeechModelV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -72,12 +72,12 @@ Creates an Azure OpenAI model for text embeddings.
   /**
    * Creates an Azure OpenAI model for audio transcription.
    */
-  transcription(deploymentId: string): TranscriptionModelV2;
+  transcription(deploymentId: string): TranscriptionModelV3;
 
   /**
    * Creates an Azure OpenAI model for speech generation.
    */
-  speech(deploymentId: string): SpeechModelV2;
+  speech(deploymentId: string): SpeechModelV3;
 
   /**
    * AzureOpenAI-specific tools.
@@ -123,8 +123,8 @@ Custom api version to use. Defaults to `preview`.
   apiVersion?: string;
 
   /**
-Use deployment-based URLs for specific model types. Set to true to use legacy deployment format: 
-`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of 
+Use deployment-based URLs for specific model types. Set to true to use legacy deployment format:
+`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of
 `{baseURL}/v1{path}?api-version={apiVersion}`.
    */
   useDeploymentBasedUrls?: boolean;
@@ -156,7 +156,7 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion ?? 'preview';
+  const apiVersion = options.apiVersion ?? 'v1';
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
     const baseUrlPrefix =
@@ -242,6 +242,7 @@ export function createAzure(
     return createChatModel(deploymentId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;

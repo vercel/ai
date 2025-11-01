@@ -93,13 +93,13 @@ const { text } = await generateText({
 Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-<Note>
-  The Anthropic API returns streaming tool calls all at once after a delay. This
-  causes the `streamObject` function to generate the object fully after a delay
-  instead of streaming it incrementally.
-</Note>
-
 The following optional provider options are available for Anthropic models:
+
+- `disableParallelToolUse` _boolean_
+
+  Optional. Disables the use of parallel tool calls. Defaults to `false`.
+
+  When set to `true`, the model will only call one tool at a time instead of potentially calling multiple tools in parallel.
 
 - `sendReasoning` _boolean_
 
@@ -112,6 +112,39 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Reasoning section](#reasoning) for more details.
 
+- `toolStreaming` _boolean_
+
+  Whether to enable tool streaming (and structured output streaming). Default to `true`.
+
+### Structured Outputs and Tool Input Streaming
+
+Tool call streaming is enabled by default. You can opt out by setting the
+`toolStreaming` provider option to `false`.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: anthropic('claude-sonnet-4-20250514'),
+  tools: {
+    writeFile: tool({
+      description: 'Write content to a file',
+      inputSchema: z.object({
+        path: z.string(),
+        content: z.string(),
+      }),
+      execute: async ({ path, content }) => {
+        // Implementation
+        return { success: true };
+      },
+    }),
+  },
+  prompt: 'Write a short story to story.txt',
+});
+```
+
 ### Reasoning
 
 Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-3-7-sonnet-20250219` models.
@@ -119,7 +152,7 @@ Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-2
 You can enable it using the `thinking` provider option
 and specifying a thinking budget in tokens.
 
-```ts
+```ts highlight="4,8-10"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -297,6 +330,30 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
+<Note>
+  The bash tool must have the name `bash`. Only certain Claude versions are
+  supported.
+</Note>
+
+### Memory Tool
+
+The [Memory Tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/memory-tool) allows Claude to use a local memory, e.g. in the filesystem.
+Here's how to create it:
+
+```ts
+const memory = anthropic.tools.memory_20250818({
+  execute: async action => {
+    // Implement your memory command execution logic here
+    // Return the result of the command execution
+  },
+});
+```
+
+<Note>
+  The memory tool must have the name `memory`. Only certain Claude versions are
+  supported.
+</Note>
+
 ### Text Editor Tool
 
 The Text Editor Tool provides functionality for viewing and editing text files.
@@ -470,6 +527,42 @@ const result = await generateText({
 });
 ```
 
+### MCP Connectors
+
+Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/agents-and-tools/mcp-connector) as part of their execution.
+
+You can enable this feature with the `mcpServers` provider option:
+
+```ts
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: `Call the echo tool with "hello world". what does it respond with back?`,
+  providerOptions: {
+    anthropic: {
+      mcpServers: [
+        {
+          type: 'url',
+          name: 'echo',
+          url: 'https://echo.mcp.inevitable.fyi/mcp',
+          // optional: authorization token
+          authorizationToken: mcpAuthToken,
+          // optional: tool configuration
+          toolConfiguration: {
+            enabled: true,
+            allowedTools: ['echo'],
+          },
+        },
+      ],
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+The tool calls and results are dynamic, i.e. the input and output schemas are not known.
+
 #### Configuration Options
 
 The web fetch tool supports several configuration options:
@@ -547,7 +640,9 @@ You can enable code execution using the provider-defined code execution tool:
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-const codeExecutionTool = anthropic.tools.codeExecution_20250522();
+
+const codeExecutionTool = anthropic.tools.codeExecution_20250825();
+
 const result = await generateText({
   model: anthropic('claude-opus-4-20250514'),
   prompt:
@@ -605,6 +700,82 @@ for await (const part of result.textStream) {
   }
 }
 ```
+
+## Agent Skills
+
+[Anthropic Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) enable Claude to perform specialized tasks like document processing (PPTX, DOCX, PDF, XLSX) and data analysis. Skills run in a sandboxed container and require the code execution tool to be enabled.
+
+### Using Built-in Skills
+
+Anthropic provides several built-in skills:
+
+- **pptx** - Create and edit PowerPoint presentations
+- **docx** - Create and edit Word documents
+- **pdf** - Process and analyze PDF files
+- **xlsx** - Work with Excel spreadsheets
+
+To use skills, you need to:
+
+1. Enable the code execution tool
+2. Specify the container with skills in `providerOptions`
+
+```ts highlight="4,9-17,19-23"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+  },
+  prompt: 'Create a presentation about renewable energy with 5 slides',
+  providerOptions: {
+    anthropic: {
+      container: {
+        skills: [
+          {
+            type: 'anthropic',
+            skillId: 'pptx',
+            version: 'latest', // optional
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+### Custom Skills
+
+You can also use custom skills by specifying `type: 'custom'`:
+
+```ts highlight="9-11"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+  },
+  prompt: 'Use my custom skill to process this data',
+  providerOptions: {
+    anthropic: {
+      container: {
+        skills: [
+          {
+            type: 'custom',
+            skillId: 'my-custom-skill-id',
+            version: '1.0', // optional
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+<Note>
+  Skills use progressive context loading and execute within a sandboxed
+  container with code execution capabilities.
+</Note>
 
 ### PDF support
 
@@ -670,6 +841,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

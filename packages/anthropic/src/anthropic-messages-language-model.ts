@@ -1,79 +1,50 @@
 import {
   JSONObject,
-  JSONValue,
   LanguageModelV3,
   LanguageModelV3CallWarning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
+  LanguageModelV3Source,
   LanguageModelV3StreamPart,
+  LanguageModelV3ToolCall,
   LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
-  Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   generateId,
+  InferSchema,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
+  Resolvable,
   resolve,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import {
+  AnthropicContainer,
+  anthropicMessagesChunkSchema,
+  anthropicMessagesResponseSchema,
+  AnthropicReasoningMetadata,
+  Citation,
+} from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
   anthropicProviderOptions,
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
-const citationSchemas = {
-  webSearchResult: z.object({
-    type: z.literal('web_search_result_location'),
-    cited_text: z.string(),
-    url: z.string(),
-    title: z.string(),
-    encrypted_index: z.string(),
-  }),
-  pageLocation: z.object({
-    type: z.literal('page_location'),
-    cited_text: z.string(),
-    document_index: z.number(),
-    document_title: z.string().nullable(),
-    start_page_number: z.number(),
-    end_page_number: z.number(),
-  }),
-  charLocation: z.object({
-    type: z.literal('char_location'),
-    cited_text: z.string(),
-    document_index: z.number(),
-    document_title: z.string().nullable(),
-    start_char_index: z.number(),
-    end_char_index: z.number(),
-  }),
-};
-
-const citationSchema = z.discriminatedUnion('type', [
-  citationSchemas.webSearchResult,
-  citationSchemas.pageLocation,
-  citationSchemas.charLocation,
-]);
-
-const documentCitationSchema = z.discriminatedUnion('type', [
-  citationSchemas.pageLocation,
-  citationSchemas.charLocation,
-]);
-
-type Citation = z.infer<typeof citationSchema>;
-export type DocumentCitation = z.infer<typeof documentCitationSchema>;
-
-function processCitation(
+function createCitationSource(
   citation: Citation,
   citationDocuments: Array<{
     title: string;
@@ -81,46 +52,16 @@ function processCitation(
     mediaType: string;
   }>,
   generateId: () => string,
-  onSource: (source: any) => void,
-) {
-  if (citation.type === 'page_location' || citation.type === 'char_location') {
-    const source = createCitationSource(
-      citation,
-      citationDocuments,
-      generateId,
-    );
-    if (source) {
-      onSource(source);
-    }
+): LanguageModelV3Source | undefined {
+  if (citation.type !== 'page_location' && citation.type !== 'char_location') {
+    return;
   }
-}
 
-function createCitationSource(
-  citation: DocumentCitation,
-  citationDocuments: Array<{
-    title: string;
-    filename?: string;
-    mediaType: string;
-  }>,
-  generateId: () => string,
-) {
   const documentInfo = citationDocuments[citation.document_index];
-  if (!documentInfo) {
-    return null;
-  }
 
-  const providerMetadata =
-    citation.type === 'page_location'
-      ? {
-          citedText: citation.cited_text,
-          startPageNumber: citation.start_page_number,
-          endPageNumber: citation.end_page_number,
-        }
-      : {
-          citedText: citation.cited_text,
-          startCharIndex: citation.start_char_index,
-          endCharIndex: citation.end_char_index,
-        };
+  if (!documentInfo) {
+    return;
+  }
 
   return {
     type: 'source' as const,
@@ -130,8 +71,19 @@ function createCitationSource(
     title: citation.document_title ?? documentInfo.title,
     filename: documentInfo.filename,
     providerMetadata: {
-      anthropic: providerMetadata,
-    },
+      anthropic:
+        citation.type === 'page_location'
+          ? {
+              citedText: citation.cited_text,
+              startPageNumber: citation.start_page_number,
+              endPageNumber: citation.end_page_number,
+            }
+          : {
+              citedText: citation.cited_text,
+              startCharIndex: citation.start_char_index,
+              endCharIndex: citation.end_char_index,
+            },
+    } satisfies SharedV3ProviderMetadata,
   };
 }
 
@@ -177,7 +129,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
   private async getArgs({
     prompt,
-    maxOutputTokens = 4096, // 4096: max model output tokens TODO update default in v5
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -189,7 +141,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    stream,
+  }: Parameters<LanguageModelV3['doGenerate']>[0] & { stream: boolean }) {
     const warnings: LanguageModelV3CallWarning[] = [];
 
     if (frequencyPenalty != null) {
@@ -222,14 +175,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             'JSON response format requires a schema. ' +
             'The response format is ignored.',
         });
-      } else if (tools != null) {
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'tools',
-          details:
-            'JSON response format does not support tools. ' +
-            'The provided tools are ignored.',
-        });
       }
     }
 
@@ -249,22 +194,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       schema: anthropicProviderOptions,
     });
 
-    const { prompt: messagesPrompt, betas: messagesBetas } =
+    // Create a shared cache control validator to track breakpoints across tools and messages
+    const cacheControlValidator = new CacheControlValidator();
+
+    const { prompt: messagesPrompt, betas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
+        cacheControlValidator,
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+
+    const { maxOutputTokens: maxOutputTokensForModel, knownModel } =
+      getMaxOutputTokensForModel(this.modelId);
+    const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
     const baseArgs = {
       // model id:
       model: this.modelId,
 
       // standardized settings:
-      max_tokens: maxOutputTokens,
+      max_tokens: maxTokens,
       temperature,
       top_k: topK,
       top_p: topP,
@@ -273,6 +226,35 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       // provider specific settings:
       ...(isThinking && {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
+      }),
+
+      // mcp servers:
+      ...(anthropicOptions?.mcpServers &&
+        anthropicOptions.mcpServers.length > 0 && {
+          mcp_servers: anthropicOptions.mcpServers.map(server => ({
+            type: server.type,
+            name: server.name,
+            url: server.url,
+            authorization_token: server.authorizationToken,
+            tool_configuration: server.toolConfiguration
+              ? {
+                  allowed_tools: server.toolConfiguration.allowedTools,
+                  enabled: server.toolConfiguration.enabled,
+                }
+              : undefined,
+          })),
+        }),
+
+      // container with agent skills:
+      ...(anthropicOptions?.container && {
+        container: {
+          id: anthropicOptions.container.id,
+          skills: anthropicOptions.container.skills?.map(skill => ({
+            type: skill.type,
+            skill_id: skill.skillId,
+            version: skill.version,
+          })),
+        } satisfies AnthropicContainer,
       }),
 
       // prompt:
@@ -315,7 +297,57 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
 
       // adjust max tokens to account for thinking:
-      baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
+      baseArgs.max_tokens = maxTokens + thinkingBudget;
+    }
+
+    // limit to max output tokens for known models to enable model switching without breaking it:
+    if (knownModel && baseArgs.max_tokens > maxOutputTokensForModel) {
+      // only warn if max output tokens is provided as input:
+      if (maxOutputTokens != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'maxOutputTokens',
+          details:
+            `${baseArgs.max_tokens} (maxOutputTokens + thinkingBudget) is greater than ${this.modelId} ${maxOutputTokensForModel} max output tokens. ` +
+            `The max output tokens have been limited to ${maxOutputTokensForModel}.`,
+        });
+      }
+      baseArgs.max_tokens = maxOutputTokensForModel;
+    }
+
+    if (
+      anthropicOptions?.mcpServers &&
+      anthropicOptions.mcpServers.length > 0
+    ) {
+      betas.add('mcp-client-2025-04-04');
+    }
+
+    if (
+      anthropicOptions?.container &&
+      anthropicOptions.container.skills &&
+      anthropicOptions.container.skills.length > 0
+    ) {
+      betas.add('code-execution-2025-08-25');
+      betas.add('skills-2025-10-02');
+      betas.add('files-api-2025-04-14');
+
+      if (
+        !tools?.some(
+          tool =>
+            tool.type === 'provider-defined' &&
+            tool.id === 'anthropic.code_execution_20250825',
+        )
+      ) {
+        warnings.push({
+          type: 'other',
+          message: 'code execution tool is required when using skills',
+        });
+      }
+    }
+
+    // only when streaming: enable fine-grained tool streaming
+    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
+      betas.add('fine-grained-tool-streaming-2025-05-14');
     }
 
     const {
@@ -323,28 +355,34 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       toolChoice: anthropicToolChoice,
       toolWarnings,
       betas: toolsBetas,
-    } = prepareTools(
+    } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: [jsonResponseTool],
-            toolChoice: { type: 'tool', toolName: jsonResponseTool.name },
+            tools: [...(tools ?? []), jsonResponseTool],
+            toolChoice: { type: 'required' },
             disableParallelToolUse: true,
+            cacheControlValidator,
           }
         : {
             tools: tools ?? [],
             toolChoice,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+            cacheControlValidator,
           },
     );
+
+    // Extract cache control warnings once at the end
+    const cacheWarnings = cacheControlValidator.getWarnings();
 
     return {
       args: {
         ...baseArgs,
         tools: anthropicTools,
         tool_choice: anthropicToolChoice,
+        stream: stream === true ? true : undefined, // do not send when not streaming
       },
-      warnings: [...warnings, ...toolWarnings],
-      betas: new Set([...messagesBetas, ...toolsBetas]),
+      warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
+      betas: new Set([...betas, ...toolsBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
     };
   }
@@ -420,8 +458,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
+    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
+      ...options,
+      stream: false,
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
@@ -443,25 +483,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     });
 
     const content: Array<LanguageModelV3Content> = [];
+    const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    let isJsonResponseFromTool = false;
 
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          // when a json response tool is used, the tool call is returned as text,
-          // so we ignore the text content:
           if (!usesJsonResponseTool) {
             content.push({ type: 'text', text: part.text });
 
             // Process citations if present
             if (part.citations) {
               for (const citation of part.citations) {
-                processCitation(
+                const source = createCitationSource(
                   citation,
                   citationDocuments,
                   this.generateId,
-                  source => content.push(source),
                 );
+
+                if (source) {
+                  content.push(source);
+                }
               }
             }
           }
@@ -492,25 +535,42 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           break;
         }
         case 'tool_use': {
-          content.push(
+          const isJsonResponseTool =
+            usesJsonResponseTool && part.name === 'json';
+
+          if (isJsonResponseTool) {
+            isJsonResponseFromTool = true;
+
             // when a json response tool is used, the tool call becomes the text:
-            usesJsonResponseTool
-              ? {
-                  type: 'text',
-                  text: JSON.stringify(part.input),
-                }
-              : {
-                  type: 'tool-call',
-                  toolCallId: part.id,
-                  toolName: part.name,
-                  input: JSON.stringify(part.input),
-                },
-          );
+            content.push({
+              type: 'text',
+              text: JSON.stringify(part.input),
+            });
+          } else {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: part.name,
+              input: JSON.stringify(part.input),
+            });
+          }
 
           break;
         }
         case 'server_tool_use': {
+          // code execution 20250825 needs mapping:
           if (
+            part.name === 'text_editor_code_execution' ||
+            part.name === 'bash_code_execution'
+          ) {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: 'code_execution',
+              input: JSON.stringify({ type: part.name, ...part.input }),
+              providerExecuted: true,
+            });
+          } else if (
             part.name === 'web_search' ||
             part.name === 'code_execution' ||
             part.name === 'web_fetch'
@@ -524,6 +584,36 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             });
           }
 
+          break;
+        }
+        case 'mcp_tool_use': {
+          mcpToolCalls[part.id] = {
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: part.name,
+            input: JSON.stringify(part.input),
+            providerExecuted: true,
+            dynamic: true,
+            providerMetadata: {
+              anthropic: {
+                type: 'mcp-tool-use',
+                serverName: part.server_name,
+              },
+            },
+          };
+          content.push(mcpToolCalls[part.id]);
+          break;
+        }
+        case 'mcp_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: mcpToolCalls[part.tool_use_id].toolName,
+            isError: part.is_error,
+            result: part.content,
+            dynamic: true,
+            providerMetadata: mcpToolCalls[part.tool_use_id].providerMetadata,
+          });
           break;
         }
         case 'web_fetch_tool_result': {
@@ -547,7 +637,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   },
                 },
               },
-              providerExecuted: true,
             });
           } else if (part.content.type === 'web_fetch_tool_result_error') {
             content.push({
@@ -559,7 +648,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'web_fetch_tool_result_error',
                 errorCode: part.content.error_code,
               },
-              providerExecuted: true,
             });
           }
           break;
@@ -577,7 +665,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 encryptedContent: result.encrypted_content,
                 type: result.type,
               })),
-              providerExecuted: true,
             });
 
             for (const result of part.content) {
@@ -604,11 +691,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'web_search_tool_result_error',
                 errorCode: part.content.error_code,
               },
-              providerExecuted: true,
             });
           }
           break;
         }
+
+        // code execution 20250522:
         case 'code_execution_tool_result': {
           if (part.content.type === 'code_execution_result') {
             content.push({
@@ -621,7 +709,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 stderr: part.content.stderr,
                 return_code: part.content.return_code,
               },
-              providerExecuted: true,
             });
           } else if (part.content.type === 'code_execution_tool_result_error') {
             content.push({
@@ -633,9 +720,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: 'code_execution_tool_result_error',
                 errorCode: part.content.error_code,
               },
-              providerExecuted: true,
             });
           }
+          break;
+        }
+
+        // code execution 20250825:
+        case 'bash_code_execution_tool_result':
+        case 'text_editor_code_execution_tool_result': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.tool_use_id,
+            toolName: 'code_execution',
+            result: part.content,
+          });
           break;
         }
       }
@@ -645,7 +743,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       content,
       finishReason: mapAnthropicStopReason({
         finishReason: response.stop_reason,
-        isJsonResponseFromTool: usesJsonResponseTool,
+        isJsonResponseFromTool,
       }),
       usage: {
         inputTokens: response.usage.input_tokens,
@@ -666,7 +764,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           usage: response.usage as JSONObject,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
-        },
+          stopSequence: response.stop_sequence ?? null,
+          container: response.container
+            ? {
+                expiresAt: response.container.expires_at,
+                id: response.container.id,
+                skills:
+                  response.container.skills?.map(skill => ({
+                    type: skill.type,
+                    skillId: skill.skill_id,
+                    version: skill.version,
+                  })) ?? null,
+              }
+            : null,
+        } satisfies AnthropicMessageMetadata,
       },
     };
   }
@@ -674,13 +785,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doStream(
     options: Parameters<LanguageModelV3['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
+    const {
+      args: body,
+      warnings,
+      betas,
+      usesJsonResponseTool,
+    } = await this.getArgs({
+      ...options,
+      stream: true,
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
-
-    const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.buildRequestUrl(true),
@@ -709,12 +825,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           toolName: string;
           input: string;
           providerExecuted?: boolean;
+          firstDelta: boolean;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
+    const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
 
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
+    let stopSequence: string | null = null;
+    let container: AnthropicMessageMetadata['container'] | null = null;
+    let isJsonResponseFromTool = false;
 
     let blockType:
       | 'text'
@@ -725,6 +846,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | 'web_fetch_tool_result'
       | 'web_search_tool_result'
       | 'code_execution_tool_result'
+      | 'text_editor_code_execution_tool_result'
+      | 'bash_code_execution_tool_result'
+      | 'mcp_tool_use'
+      | 'mcp_tool_result'
       | undefined = undefined;
 
     const generateId = this.generateId;
@@ -732,7 +857,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>,
+          ParseResult<InferSchema<typeof anthropicMessagesChunkSchema>>,
           LanguageModelV3StreamPart
         >({
           start(controller) {
@@ -757,12 +882,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               }
 
               case 'content_block_start': {
-                const contentBlockType = value.content_block.type;
-
+                const part = value.content_block;
+                const contentBlockType = part.type;
                 blockType = contentBlockType;
 
                 switch (contentBlockType) {
                   case 'text': {
+                    // when a json response tool is used, the tool call is returned as text,
+                    // so we ignore the text content:
+                    if (usesJsonResponseTool) {
+                      return;
+                    }
+
                     contentBlocks[value.index] = { type: 'text' };
                     controller.enqueue({
                       type: 'text-start',
@@ -787,7 +918,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       id: String(value.index),
                       providerMetadata: {
                         anthropic: {
-                          redactedData: value.content_block.data,
+                          redactedData: part.data,
                         } satisfies AnthropicReasoningMetadata,
                       },
                     });
@@ -795,44 +926,69 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   case 'tool_use': {
-                    contentBlocks[value.index] = usesJsonResponseTool
-                      ? { type: 'text' }
-                      : {
-                          type: 'tool-call',
-                          toolCallId: value.content_block.id,
-                          toolName: value.content_block.name,
-                          input: '',
-                        };
+                    const isJsonResponseTool =
+                      usesJsonResponseTool && part.name === 'json';
 
-                    controller.enqueue(
-                      usesJsonResponseTool
-                        ? { type: 'text-start', id: String(value.index) }
-                        : {
-                            type: 'tool-input-start',
-                            id: value.content_block.id,
-                            toolName: value.content_block.name,
-                          },
-                    );
+                    if (isJsonResponseTool) {
+                      isJsonResponseFromTool = true;
+
+                      contentBlocks[value.index] = { type: 'text' };
+
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: String(value.index),
+                      });
+                    } else {
+                      contentBlocks[value.index] = {
+                        type: 'tool-call',
+                        toolCallId: part.id,
+                        toolName: part.name,
+                        input: '',
+                        firstDelta: true,
+                      };
+
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: part.id,
+                        toolName: part.name,
+                      });
+                    }
                     return;
                   }
 
                   case 'server_tool_use': {
                     if (
-                      value.content_block.name === 'web_fetch' ||
-                      value.content_block.name === 'web_search' ||
-                      value.content_block.name === 'code_execution'
+                      [
+                        'web_fetch',
+                        'web_search',
+                        // code execution 20250825:
+                        'code_execution',
+                        // code execution 20250825 text editor:
+                        'text_editor_code_execution',
+                        // code execution 20250825 bash:
+                        'bash_code_execution',
+                      ].includes(part.name)
                     ) {
                       contentBlocks[value.index] = {
                         type: 'tool-call',
-                        toolCallId: value.content_block.id,
-                        toolName: value.content_block.name,
+                        toolCallId: part.id,
+                        toolName: part.name,
                         input: '',
                         providerExecuted: true,
+                        firstDelta: true,
                       };
+
+                      // map tool names for the code execution 20250825 tool:
+                      const mappedToolName =
+                        part.name === 'text_editor_code_execution' ||
+                        part.name === 'bash_code_execution'
+                          ? 'code_execution'
+                          : part.name;
+
                       controller.enqueue({
                         type: 'tool-input-start',
-                        id: value.content_block.id,
-                        toolName: value.content_block.name,
+                        id: part.id,
+                        toolName: mappedToolName,
                         providerExecuted: true,
                       });
                     }
@@ -841,8 +997,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   case 'web_fetch_tool_result': {
-                    const part = value.content_block;
-
                     if (part.content.type === 'web_fetch_result') {
                       controller.enqueue({
                         type: 'tool-result',
@@ -876,7 +1030,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           type: 'web_fetch_tool_result_error',
                           errorCode: part.content.error_code,
                         },
-                        providerExecuted: true,
                       });
                     }
 
@@ -884,8 +1037,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   }
 
                   case 'web_search_tool_result': {
-                    const part = value.content_block;
-
                     if (Array.isArray(part.content)) {
                       controller.enqueue({
                         type: 'tool-result',
@@ -898,7 +1049,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           encryptedContent: result.encrypted_content,
                           type: result.type,
                         })),
-                        providerExecuted: true,
                       });
 
                       for (const result of part.content) {
@@ -925,15 +1075,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           type: 'web_search_tool_result_error',
                           errorCode: part.content.error_code,
                         },
-                        providerExecuted: true,
                       });
                     }
                     return;
                   }
 
+                  // code execution 20250522:
                   case 'code_execution_tool_result': {
-                    const part = value.content_block;
-
                     if (part.content.type === 'code_execution_result') {
                       controller.enqueue({
                         type: 'tool-result',
@@ -945,7 +1093,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           stderr: part.content.stderr,
                           return_code: part.content.return_code,
                         },
-                        providerExecuted: true,
                       });
                     } else if (
                       part.content.type === 'code_execution_tool_result_error'
@@ -959,10 +1106,54 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                           type: 'code_execution_tool_result_error',
                           errorCode: part.content.error_code,
                         },
-                        providerExecuted: true,
                       });
                     }
 
+                    return;
+                  }
+
+                  // code execution 20250825:
+                  case 'bash_code_execution_tool_result':
+                  case 'text_editor_code_execution_tool_result': {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: 'code_execution',
+                      result: part.content,
+                    });
+                    return;
+                  }
+
+                  case 'mcp_tool_use': {
+                    mcpToolCalls[part.id] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: part.name,
+                      input: JSON.stringify(part.input),
+                      providerExecuted: true,
+                      dynamic: true,
+                      providerMetadata: {
+                        anthropic: {
+                          type: 'mcp-tool-use',
+                          serverName: part.server_name,
+                        },
+                      },
+                    };
+                    controller.enqueue(mcpToolCalls[part.id]);
+                    return;
+                  }
+
+                  case 'mcp_tool_result': {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: mcpToolCalls[part.tool_use_id].toolName,
+                      isError: part.is_error,
+                      result: part.content,
+                      dynamic: true,
+                      providerMetadata:
+                        mcpToolCalls[part.tool_use_id].providerMetadata,
+                    });
                     return;
                   }
 
@@ -1000,12 +1191,31 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     case 'tool-call':
                       // when a json response tool is used, the tool call is returned as text,
                       // so we ignore the tool call content:
-                      if (!usesJsonResponseTool) {
+                      const isJsonResponseTool =
+                        usesJsonResponseTool &&
+                        contentBlock.toolName === 'json';
+
+                      if (!isJsonResponseTool) {
                         controller.enqueue({
                           type: 'tool-input-end',
                           id: contentBlock.toolCallId,
                         });
-                        controller.enqueue(contentBlock);
+
+                        // map tool names for the code execution 20250825 tool:
+                        const toolName =
+                          contentBlock.toolName ===
+                            'text_editor_code_execution' ||
+                          contentBlock.toolName === 'bash_code_execution'
+                            ? 'code_execution'
+                            : contentBlock.toolName;
+
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: contentBlock.toolCallId,
+                          toolName,
+                          input: contentBlock.input,
+                          providerExecuted: contentBlock.providerExecuted,
+                        });
                       }
                       break;
                   }
@@ -1020,12 +1230,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
               case 'content_block_delta': {
                 const deltaType = value.delta.type;
+
                 switch (deltaType) {
                   case 'text_delta': {
                     // when a json response tool is used, the tool call is returned as text,
                     // so we ignore the text content:
                     if (usesJsonResponseTool) {
-                      return;
+                      return; // excluding the text-start will also exclude the text-end
                     }
 
                     controller.enqueue({
@@ -1067,11 +1278,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   case 'input_json_delta': {
                     const contentBlock = contentBlocks[value.index];
-                    const delta = value.delta.partial_json;
+                    let delta = value.delta.partial_json;
 
-                    if (usesJsonResponseTool) {
+                    // skip empty deltas to enable replacing the first character
+                    // in the code execution 20250825 tool.
+                    if (delta.length === 0) {
+                      return;
+                    }
+
+                    if (isJsonResponseFromTool) {
                       if (contentBlock?.type !== 'text') {
-                        return;
+                        return; // exclude reasoning
                       }
 
                       controller.enqueue({
@@ -1084,6 +1301,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         return;
                       }
 
+                      // for the code execution 20250825, we need to add
+                      // the type to the delta and change the tool name.
+                      if (
+                        contentBlock.firstDelta &&
+                        (contentBlock.toolName === 'bash_code_execution' ||
+                          contentBlock.toolName ===
+                            'text_editor_code_execution')
+                      ) {
+                        delta = `{"type": "${contentBlock.toolName}",${delta.substring(1)}`;
+                      }
+
                       controller.enqueue({
                         type: 'tool-input-delta',
                         id: contentBlock.toolCallId,
@@ -1091,6 +1319,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       });
 
                       contentBlock.input += delta;
+                      contentBlock.firstDelta = false;
                     }
 
                     return;
@@ -1098,14 +1327,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   case 'citations_delta': {
                     const citation = value.delta.citation;
-
-                    processCitation(
+                    const source = createCitationSource(
                       citation,
                       citationDocuments,
                       generateId,
-                      source => controller.enqueue(source),
                     );
-                    // Web search citations are handled in web_search_tool_result content block
+
+                    if (source) {
+                      controller.enqueue(source);
+                    }
+
                     return;
                   }
 
@@ -1146,8 +1377,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 finishReason = mapAnthropicStopReason({
                   finishReason: value.delta.stop_reason,
-                  isJsonResponseFromTool: usesJsonResponseTool,
+                  isJsonResponseFromTool,
                 });
+
+                stopSequence = value.delta.stop_sequence ?? null;
+                container =
+                  value.delta.container != null
+                    ? {
+                        expiresAt: value.delta.container.expires_at,
+                        id: value.delta.container.id,
+                        skills:
+                          value.delta.container.skills?.map(skill => ({
+                            type: skill.type,
+                            skillId: skill.skill_id,
+                            version: skill.version,
+                          })) ?? null,
+                      }
+                    : null;
 
                 rawUsage = {
                   ...rawUsage,
@@ -1164,9 +1410,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   usage,
                   providerMetadata: {
                     anthropic: {
-                      usage: rawUsage ?? null,
+                      usage: (rawUsage as JSONObject) ?? null,
                       cacheCreationInputTokens,
-                    },
+                      stopSequence,
+                      container,
+                    } satisfies AnthropicMessageMetadata,
                   },
                 });
                 return;
@@ -1191,273 +1439,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   }
 }
 
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const anthropicMessagesResponseSchema = z.object({
-  type: z.literal('message'),
-  id: z.string().nullish(),
-  model: z.string().nullish(),
-  content: z.array(
-    z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('text'),
-        text: z.string(),
-        citations: z.array(citationSchema).optional(),
-      }),
-      z.object({
-        type: z.literal('thinking'),
-        thinking: z.string(),
-        signature: z.string(),
-      }),
-      z.object({
-        type: z.literal('redacted_thinking'),
-        data: z.string(),
-      }),
-      z.object({
-        type: z.literal('tool_use'),
-        id: z.string(),
-        name: z.string(),
-        input: z.unknown(),
-      }),
-      z.object({
-        type: z.literal('server_tool_use'),
-        id: z.string(),
-        name: z.string(),
-        input: z.record(z.string(), z.unknown()).nullish(),
-      }),
-      z.object({
-        type: z.literal('web_fetch_tool_result'),
-        tool_use_id: z.string(),
-        content: z.union([
-          z.object({
-            type: z.literal('web_fetch_result'),
-            url: z.string(),
-            retrieved_at: z.string(),
-            content: z.object({
-              type: z.literal('document'),
-              title: z.string().nullable(),
-              citations: z.object({ enabled: z.boolean() }).optional(),
-              source: z.object({
-                type: z.literal('text'),
-                media_type: z.string(),
-                data: z.string(),
-              }),
-            }),
-          }),
-          z.object({
-            type: z.literal('web_fetch_tool_result_error'),
-            error_code: z.string(),
-          }),
-        ]),
-      }),
-      z.object({
-        type: z.literal('web_search_tool_result'),
-        tool_use_id: z.string(),
-        content: z.union([
-          z.array(
-            z.object({
-              type: z.literal('web_search_result'),
-              url: z.string(),
-              title: z.string(),
-              encrypted_content: z.string(),
-              page_age: z.string().nullish(),
-            }),
-          ),
-          z.object({
-            type: z.literal('web_search_tool_result_error'),
-            error_code: z.string(),
-          }),
-        ]),
-      }),
-      z.object({
-        type: z.literal('code_execution_tool_result'),
-        tool_use_id: z.string(),
-        content: z.union([
-          z.object({
-            type: z.literal('code_execution_result'),
-            stdout: z.string(),
-            stderr: z.string(),
-            return_code: z.number(),
-          }),
-          z.object({
-            type: z.literal('code_execution_tool_result_error'),
-            error_code: z.string(),
-          }),
-        ]),
-      }),
-    ]),
-  ),
-  stop_reason: z.string().nullish(),
-  usage: z.looseObject({
-    input_tokens: z.number(),
-    output_tokens: z.number(),
-    cache_creation_input_tokens: z.number().nullish(),
-    cache_read_input_tokens: z.number().nullish(),
-  }),
-});
-
-// limited version of the schema, focused on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('message_start'),
-    message: z.object({
-      id: z.string().nullish(),
-      model: z.string().nullish(),
-      usage: z.looseObject({
-        input_tokens: z.number(),
-        cache_creation_input_tokens: z.number().nullish(),
-        cache_read_input_tokens: z.number().nullish(),
-      }),
-    }),
-  }),
-  z.object({
-    type: z.literal('content_block_start'),
-    index: z.number(),
-    content_block: z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('text'),
-        text: z.string(),
-      }),
-      z.object({
-        type: z.literal('thinking'),
-        thinking: z.string(),
-      }),
-      z.object({
-        type: z.literal('tool_use'),
-        id: z.string(),
-        name: z.string(),
-      }),
-      z.object({
-        type: z.literal('redacted_thinking'),
-        data: z.string(),
-      }),
-      z.object({
-        type: z.literal('server_tool_use'),
-        id: z.string(),
-        name: z.string(),
-        input: z.record(z.string(), z.unknown()).nullish(),
-      }),
-      z.object({
-        type: z.literal('web_fetch_tool_result'),
-        tool_use_id: z.string(),
-        content: z.union([
-          z.object({
-            type: z.literal('web_fetch_result'),
-            url: z.string(),
-            retrieved_at: z.string(),
-            content: z.object({
-              type: z.literal('document'),
-              title: z.string().nullable(),
-              citations: z.object({ enabled: z.boolean() }).optional(),
-              source: z.object({
-                type: z.literal('text'),
-                media_type: z.string(),
-                data: z.string(),
-              }),
-            }),
-          }),
-          z.object({
-            type: z.literal('web_fetch_tool_result_error'),
-            error_code: z.string(),
-          }),
-        ]),
-      }),
-      z.object({
-        type: z.literal('web_search_tool_result'),
-        tool_use_id: z.string(),
-        content: z.union([
-          z.array(
-            z.object({
-              type: z.literal('web_search_result'),
-              url: z.string(),
-              title: z.string(),
-              encrypted_content: z.string(),
-              page_age: z.string().nullish(),
-            }),
-          ),
-          z.object({
-            type: z.literal('web_search_tool_result_error'),
-            error_code: z.string(),
-          }),
-        ]),
-      }),
-      z.object({
-        type: z.literal('code_execution_tool_result'),
-        tool_use_id: z.string(),
-        content: z.union([
-          z.object({
-            type: z.literal('code_execution_result'),
-            stdout: z.string(),
-            stderr: z.string(),
-            return_code: z.number(),
-          }),
-          z.object({
-            type: z.literal('code_execution_tool_result_error'),
-            error_code: z.string(),
-          }),
-        ]),
-      }),
-    ]),
-  }),
-  z.object({
-    type: z.literal('content_block_delta'),
-    index: z.number(),
-    delta: z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('input_json_delta'),
-        partial_json: z.string(),
-      }),
-      z.object({
-        type: z.literal('text_delta'),
-        text: z.string(),
-      }),
-      z.object({
-        type: z.literal('thinking_delta'),
-        thinking: z.string(),
-      }),
-      z.object({
-        type: z.literal('signature_delta'),
-        signature: z.string(),
-      }),
-      z.object({
-        type: z.literal('citations_delta'),
-        citation: citationSchema,
-      }),
-    ]),
-  }),
-  z.object({
-    type: z.literal('content_block_stop'),
-    index: z.number(),
-  }),
-  z.object({
-    type: z.literal('error'),
-    error: z.object({
-      type: z.string(),
-      message: z.string(),
-    }),
-  }),
-  z.object({
-    type: z.literal('message_delta'),
-    delta: z.object({ stop_reason: z.string().nullish() }),
-    usage: z.looseObject({
-      output_tokens: z.number(),
-      cache_creation_input_tokens: z.number().nullish(),
-    }),
-  }),
-  z.object({
-    type: z.literal('message_stop'),
-  }),
-  z.object({
-    type: z.literal('ping'),
-  }),
-]);
-
-export const anthropicReasoningMetadataSchema = z.object({
-  signature: z.string().optional(),
-  redactedData: z.string().optional(),
-});
-
-export type AnthropicReasoningMetadata = z.infer<
-  typeof anthropicReasoningMetadataSchema
->;
+// see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
+function getMaxOutputTokensForModel(modelId: string): {
+  maxOutputTokens: number;
+  knownModel: boolean;
+} {
+  if (
+    modelId.includes('claude-sonnet-4-') ||
+    modelId.includes('claude-3-7-sonnet') ||
+    modelId.includes('claude-haiku-4-5')
+  ) {
+    return { maxOutputTokens: 64000, knownModel: true };
+  } else if (modelId.includes('claude-opus-4-')) {
+    return { maxOutputTokens: 32000, knownModel: true };
+  } else if (modelId.includes('claude-3-5-haiku')) {
+    return { maxOutputTokens: 8192, knownModel: true };
+  } else if (modelId.includes('claude-3-haiku')) {
+    return { maxOutputTokens: 4096, knownModel: true };
+  } else {
+    return { maxOutputTokens: 4096, knownModel: false };
+  }
+}

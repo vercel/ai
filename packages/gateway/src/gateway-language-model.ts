@@ -86,7 +86,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         warnings,
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
@@ -159,7 +159,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 

@@ -1,6 +1,6 @@
 import {
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV3,
+  TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -146,10 +146,6 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   summaryType: z.string().nullish(),
   /**
-   * List of topics to identify in the transcription.
-   */
-  topics: z.array(z.string()).nullish(),
-  /**
    * Name of the authentication header for webhook requests.
    */
   webhookAuthHeaderName: z.string().nullish(),
@@ -177,8 +173,8 @@ interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   };
 }
 
-export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
@@ -191,8 +187,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV3CallWarning[] = [];
 
     // Parse provider options
     const assemblyaiOptions = await parseProviderOptions({
@@ -247,7 +243,6 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
       body.summary_model =
         (assemblyaiOptions.summaryModel as never) ?? undefined;
       body.summary_type = (assemblyaiOptions.summaryType as never) ?? undefined;
-      body.topics = assemblyaiOptions.topics ?? undefined;
       body.webhook_auth_header_name =
         assemblyaiOptions.webhookAuthHeaderName ?? undefined;
       body.webhook_auth_header_value =
@@ -263,8 +258,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { value: uploadResponse } = await postToApi({

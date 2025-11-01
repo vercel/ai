@@ -1,5 +1,5 @@
 import {
-  TranscriptionModelV2,
+  TranscriptionModelV3,
   ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
@@ -23,7 +23,7 @@ export interface DeepgramProvider extends ProviderV3 {
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV3;
 }
 
 export interface DeepgramProviderSettings {
@@ -77,6 +77,7 @@ export function createDeepgram(
     };
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 

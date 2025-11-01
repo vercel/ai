@@ -1,9 +1,5 @@
-import {
-  getErrorMessage,
-  JSONValue,
-  LanguageModelV3ToolResultOutput,
-} from '@ai-sdk/provider';
-import { Tool } from '@ai-sdk/provider-utils';
+import { getErrorMessage, JSONValue } from '@ai-sdk/provider';
+import { Tool, ToolResultOutput } from '@ai-sdk/provider-utils';
 
 export function createToolModelOutput({
   output,
@@ -13,7 +9,7 @@ export function createToolModelOutput({
   output: unknown;
   tool: Tool | undefined;
   errorMode: 'none' | 'text' | 'json';
-}): LanguageModelV3ToolResultOutput {
+}): ToolResultOutput {
   if (errorMode === 'text') {
     return { type: 'error-text', value: getErrorMessage(output) };
   } else if (errorMode === 'json') {

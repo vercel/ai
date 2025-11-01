@@ -9,15 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "workspace:*",
-    "@ai-sdk/react": "workspace:*",
+    "@ai-sdk/openai": "3.0.0-beta.47",
+    "@ai-sdk/react": "3.0.0-beta.92",
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",
     "@opentelemetry/sdk-logs": "0.55.0",
-    "@sentry/nextjs": "^8.42.0",
+    "@sentry/nextjs": "^10.17.0",
     "@sentry/opentelemetry": "8.22.0",
     "@vercel/otel": "1.10.0",
-    "ai": "workspace:*",
+    "ai": "6.0.0-beta.92",
     "next": "^15.5.4",
     "react": "^18",
     "react-dom": "^18",
@@ -32,7 +32,6 @@
     "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "typescript": "5.8.3",
-    "@vercel/ai-tsconfig": "workspace:*"
+    "typescript": "5.8.3"
   }
 }
