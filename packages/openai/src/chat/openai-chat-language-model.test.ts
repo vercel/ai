@@ -3182,7 +3182,7 @@ describe('isReasoningModel', () => {
     ['gpt-5-pro', 'true'],
     ['gpt-5-pro-2025-10-06', 'true'],
     ['new-unknown-model', 'false'],
-  ])('should return expected for %s', (modelId, expectedStr) => {
+  ])('%s supports reasoning: %s', (modelId, expectedStr) => {
     expect(isReasoningModel(modelId)).toBe(expectedStr === 'true');
   });
 });
