@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 4f16c37: chore(provider-utils): upgrade eventsource-parser to 3.0.6
+
 ## 4.0.0-beta.29
 
 ### Patch Changes
