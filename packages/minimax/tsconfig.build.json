@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Disable project configuration for tsup builds
+    "composite": false
+  },
+  "include": ["src/**/*"]
+}
+
