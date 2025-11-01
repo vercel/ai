@@ -657,6 +657,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   title: toolInvocation.title,
                 });
+
+                // 🔧 Clear yields for error state to comply with type contract
+                const part = state.message.parts.find(
+                  part =>
+                    part.type === 'dynamic-tool' &&
+                    part.toolCallId === chunk.toolCallId,
+                ) as any;
+                if (part) {
+                  delete part.yields;
+                }
               } else {
                 updateToolPart({
                   toolCallId: chunk.toolCallId,
@@ -668,6 +678,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   title: toolInvocation.title,
                 });
+
+                const part = state.message.parts.find(
+                  part =>
+                    isToolUIPart(part) && part.toolCallId === chunk.toolCallId,
+                ) as any;
+                if (part) {
+                  delete part.yields;
+                }
               }
 
               write();

@@ -302,6 +302,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
+      yields?: never;
       approval?: {
         id: string;
         approved: true;
