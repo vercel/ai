@@ -699,10 +699,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 }
 
 export function isReasoningModel(modelId: string) {
-  return (
-    (modelId.startsWith('o') || modelId.startsWith('gpt-5')) &&
-    !modelId.startsWith('gpt-5-chat')
-  );
+  if (modelId.startsWith('gpt-4o')) return true;
+  if (modelId.startsWith('codex')) return true;
+  if (modelId.startsWith('computer-use')) return true;
+
+  if (modelId.startsWith('gpt-4')) return false;
+  if (modelId.startsWith('gpt-3')) return false;
+  if (modelId.startsWith('gpt-5-chat')) return false;
+
+  return true;
 }
 
 function supportsFlexProcessing(modelId: string) {
