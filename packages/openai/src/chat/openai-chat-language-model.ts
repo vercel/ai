@@ -698,7 +698,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 }
 
-function isReasoningModel(modelId: string) {
+export function isReasoningModel(modelId: string) {
   return (
     (modelId.startsWith('o') || modelId.startsWith('gpt-5')) &&
     !modelId.startsWith('gpt-5-chat')
