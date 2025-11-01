@@ -1,0 +1,116 @@
+---
+title: OVHcloud AI Endpoints
+description: Use a OVHcloud AI Endpoints OpenAI compatible API with the AI SDK.
+---
+
+# OVHcloud AI Endpoints Provider
+
+[OVHcloud AI Endpoints](https://endpoints.ai.cloud.ovh.net) is a cloud provider that does inference which allows you to access world-renowned pre-trained AI models compatible with the OpenAI API specification.
+As a leading European cloud provider, OVHcloud ensures data sovereignty and full GDPR compliance.
+
+## Setup
+
+The OVHcloud AI Endpoints provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+Don't forget to install the core `ai` package if you haven't already:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai" dark />
+  </Tab>
+</Tabs>
+
+### OVHcloud AI Endpoints Setup
+
+1. **Sign Up/Sign In:** Go to the [OVHcloud manager](https://ovh.com/manager). Create an account or sign in.
+
+2. **Navigate to Public Cloud:** Go to the `Public Cloud` section, and create a new project. Navigate to `AI Endpoints` in the AI & Machine Learning section.
+
+3. **Create a Key:** Click to `API keys` and create a new key.
+
+## Provider Instance
+
+To use OVHcloud AI Endpoints, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const ovhcloud = createOpenAICompatible({
+  name: 'ovhcloud',
+  baseURL: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1',
+  apiKey: 'your-api-key',
+});
+```
+
+## Language Models
+
+The first argument is the choosen model name, e.g. `gpt-oss-120b`.
+
+```ts
+const model = ovhcloud('gpt-oss-120b');
+```
+
+### Example
+
+You can use OVHcloud AI Endpoints LLMs to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const ovhcloud = createOpenAICompatible({
+  name: 'ovhcloud',
+  baseURL: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1',
+  apiKey: 'your-api-key',
+});
+
+const { text } = await generateText({
+  model: ovhcloud('gpt-oss-120b'),
+  prompt: 'Tell me about yourself in one sentence',
+});
+
+console.log(text);
+```
+
+OVHcloud AI Endpoints LLMs are also able to generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const ovhcloud = createOpenAICompatible({
+  name: 'ovhcloud',
+  baseURL: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1',
+  apiKey: 'your-api-key',
+});
+
+const result = streamText({
+  model: ovhcloud('gpt-oss-120b'),
+  prompt: 'Tell me about yourself in one sentence',
+});
+
+for await (const message of result.textStream) {
+  console.log(message);
+}
+```
+
+OVHcloud AI Endpoints LLMs can also be used in the `generateObject`, and `streamObject` functions.
