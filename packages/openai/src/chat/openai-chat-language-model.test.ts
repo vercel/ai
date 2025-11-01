@@ -3181,6 +3181,7 @@ describe('isReasoningModel', () => {
     ['gpt-5-nano-2025-08-07', 'true'],
     ['gpt-5-pro', 'true'],
     ['gpt-5-pro-2025-10-06', 'true'],
+    ['new-unknown-model', 'false'],
   ])('should return expected for %s', (modelId, expectedStr) => {
     expect(isReasoningModel(modelId)).toBe(expectedStr === 'true');
   });
