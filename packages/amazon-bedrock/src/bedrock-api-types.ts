@@ -63,8 +63,14 @@ export interface BedrockTool {
   };
 }
 
+export interface BedrockSystemTool {
+  systemTool: {
+    name: string;
+  };
+}
+
 export interface BedrockToolConfiguration {
-  tools?: Array<BedrockTool | BedrockCachePoint>;
+  tools?: Array<BedrockTool | BedrockSystemTool | BedrockCachePoint>;
   toolChoice?:
     | { tool: { name: string } }
     | { auto: {} }
