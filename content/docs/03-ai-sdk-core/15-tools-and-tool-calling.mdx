@@ -802,6 +802,9 @@ const result = await generateText({
 });
 ```
 
+In order to have tool results from previous messages converted before sending them to the model, remember that you must pass the tools to `convertToModelMessages`.
+See the [convertToModelMessages documentation](/docs/reference/ai-sdk-ui/convert-to-model-messages#multi-modal-tool-responses) for more details.
+
 ## Extracting Tools
 
 Once you start having many tools, you might want to extract them into separate files.
