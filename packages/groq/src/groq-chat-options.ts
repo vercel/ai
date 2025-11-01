@@ -28,7 +28,16 @@ export type GroqChatModelId =
 
 export const groqProviderOptions = z.object({
   reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
-  reasoningEffort: z.string().optional(),
+  
+  /**
+   * Specifies the reasoning effort level for model inference.
+   * - 'none': No reasoning
+   * - 'default': Default reasoning level
+   * - 'low': Low reasoning effort
+   * - 'medium': Medium reasoning effort
+   * - 'high': High reasoning effort
+   */
+  reasoningEffort: z.enum(['none', 'default', 'low', 'medium', 'high']).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use. Default to true.
