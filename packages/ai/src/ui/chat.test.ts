@@ -271,6 +271,29 @@ describe('Chat', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -390,6 +413,35 @@ describe('Chat', () => {
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
                   "text": "Hello, world.",
                   "type": "text",
                 },
@@ -585,6 +637,29 @@ describe('Chat', () => {
                 },
               ],
               "role": "user",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
             },
           ],
           [
@@ -841,6 +916,29 @@ describe('Chat', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -1018,6 +1116,31 @@ describe('Chat', () => {
               {
                 "type": "step-start",
               },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": {
+              "someData": true,
+            },
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
               {
                 "providerMetadata": undefined,
                 "state": "streaming",
@@ -1052,6 +1175,37 @@ describe('Chat', () => {
               {
                 "providerMetadata": undefined,
                 "state": "streaming",
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": {
+              "someData": true,
+            },
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
               },
@@ -1260,6 +1414,29 @@ describe('Chat', () => {
               {
                 "type": "step-start",
               },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "newid-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
               {
                 "providerMetadata": undefined,
                 "state": "streaming",
@@ -1379,6 +1556,35 @@ describe('Chat', () => {
               {
                 "providerMetadata": undefined,
                 "state": "streaming",
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "newid-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "done",
                 "text": "Hello, world.",
                 "type": "text",
               },
@@ -1539,6 +1745,7 @@ describe('Chat', () => {
                 "state": "output-available",
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
+                "yields": undefined,
               },
             ],
             "role": "assistant",
@@ -1690,6 +1897,7 @@ describe('Chat', () => {
                 "state": "output-available",
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
+                "yields": undefined,
               },
             ],
             "role": "assistant",
@@ -1833,6 +2041,7 @@ describe('Chat', () => {
                 "state": "output-error",
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
+                "yields": undefined,
               },
             ],
             "role": "assistant",
@@ -1976,6 +2185,7 @@ describe('Chat', () => {
                 "toolCallId": "tool-call-0",
                 "toolName": "test-tool",
                 "type": "dynamic-tool",
+                "yields": undefined,
               },
             ],
             "role": "assistant",

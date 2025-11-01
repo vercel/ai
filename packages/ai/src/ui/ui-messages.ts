@@ -226,9 +226,19 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       callProviderMetadata?: ProviderMetadata;
     }
   | {
+      state: 'output-streaming';
+      input: asUITool<TOOL>['input'];
+      yields: Array<asUITool<TOOL>['output']>;
+      output?: never;
+      errorText?: never;
+      providerExecuted?: boolean;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
       state: 'output-available';
       input: asUITool<TOOL>['input'];
       output: asUITool<TOOL>['output'];
+      yields?: Array<asUITool<TOOL>['output']>;
       errorText?: never;
       providerExecuted?: boolean;
       callProviderMetadata?: ProviderMetadata;
@@ -270,9 +280,18 @@ export type DynamicToolUIPart = {
       callProviderMetadata?: ProviderMetadata;
     }
   | {
+      state: 'output-streaming';
+      input: unknown;
+      yields: unknown[];
+      output?: never;
+      errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+    }
+  | {
       state: 'output-available';
       input: unknown;
       output: unknown;
+      yields?: unknown[];
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
@@ -282,6 +301,7 @@ export type DynamicToolUIPart = {
       input: unknown;
       output?: never;
       errorText: string;
+      yields?: never;
       callProviderMetadata?: ProviderMetadata;
     }
 );

@@ -72,6 +72,14 @@ export const uiMessageChunkSchema = z.union([
     preliminary: z.boolean().optional(),
   }),
   z.strictObject({
+    type: z.literal('tool-output-streaming'),
+    toolCallId: z.string(),
+    output: z.unknown(),
+    providerExecuted: z.boolean().optional(),
+    dynamic: z.boolean().optional(),
+    preliminary: z.boolean().optional(),
+  }),
+  z.strictObject({
     type: z.literal('tool-output-error'),
     toolCallId: z.string(),
     errorText: z.string(),
@@ -216,6 +224,14 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       errorText: string;
+    }
+  | {
+      type: 'tool-output-streaming';
+      toolCallId: string;
+      output: unknown;
+      providerExecuted?: boolean;
+      dynamic?: boolean;
+      preliminary?: boolean;
     }
   | {
       type: 'tool-output-available';
