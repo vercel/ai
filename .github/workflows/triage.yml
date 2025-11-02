@@ -125,9 +125,8 @@ jobs:
             echo "No labels to apply"
           fi
 
-          # Write reasoning to file to avoid command injection
-          printf '%s\n' "$REASONING" > reasoning.txt
-          echo "Reasoning written to reasoning.txt"
+          # Use printf with environment variable to safely log reasoning and prevent command injection
+          printf 'Reasoning: %s\n' "$REASONING"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REASONING: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}
@@ -250,9 +249,8 @@ jobs:
             echo "No labels to apply"
           fi
 
-          # Write reasoning to file to avoid command injection
-          printf '%s\n' "$REASONING" > reasoning.txt
-          echo "Reasoning written to reasoning.txt"
+          # Use printf with environment variable to safely log reasoning and prevent command injection
+          printf 'Reasoning: %s\n' "$REASONING"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REASONING: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}
