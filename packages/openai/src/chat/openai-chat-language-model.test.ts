@@ -471,7 +471,7 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -481,7 +481,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o3-mini',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'low',
     });
@@ -490,7 +490,7 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from settings', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -500,7 +500,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o3-mini',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
     });
@@ -1202,7 +1202,7 @@ describe('doGenerate', () => {
     it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
       prepareJsonResponse();
 
-      const model = provider.chat('o3-mini');
+      const model = provider.chat('o4-mini');
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1213,7 +1213,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'o3-mini',
+        model: 'o4-mini',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
@@ -1244,7 +1244,7 @@ describe('doGenerate', () => {
     it('should convert maxOutputTokens to max_completion_tokens', async () => {
       prepareJsonResponse();
 
-      const model = provider.chat('o3-mini');
+      const model = provider.chat('o4-mini');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1252,7 +1252,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'o3-mini',
+        model: 'o4-mini',
         messages: [{ role: 'user', content: 'Hello' }],
         max_completion_tokens: 1000,
       });
@@ -1294,7 +1294,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1312,9 +1312,9 @@ describe('doGenerate', () => {
   });
 
   it('should send max_completion_tokens extension setting', async () => {
-    prepareJsonResponse({ model: 'o3-mini' });
+    prepareJsonResponse({ model: 'o4-mini' });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1326,7 +1326,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o3-mini',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       max_completion_tokens: 255,
     });
@@ -1506,7 +1506,7 @@ describe('doGenerate', () => {
   it('should send serviceTier flex processing setting', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1525,7 +1525,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "o3-mini",
+        "model": "o4-mini",
         "service_tier": "flex",
       }
     `);
@@ -1650,7 +1650,7 @@ describe('doGenerate', () => {
   it('should allow priority processing with o3 model without warnings', async () => {
     prepareJsonResponse();
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2802,7 +2802,7 @@ describe('doStream', () => {
   it('should send serviceTier flex processing setting in streaming', async () => {
     prepareStreamResponse({ content: [] });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -2822,7 +2822,7 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "o3-mini",
+        "model": "o4-mini",
         "service_tier": "flex",
         "stream": true,
         "stream_options": {
@@ -2869,10 +2869,10 @@ describe('doStream', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
-        model: 'o3-mini',
+        model: 'o4-mini',
       });
 
-      const model = provider.chat('o3-mini');
+      const model = provider.chat('o4-mini');
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -2887,7 +2887,7 @@ describe('doStream', () => {
           },
           {
             "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
-            "modelId": "o3-mini",
+            "modelId": "o4-mini",
             "timestamp": 2023-12-15T16:17:00.000Z,
             "type": "response-metadata",
           },
@@ -2930,7 +2930,7 @@ describe('doStream', () => {
     it('should send reasoning tokens', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
-        model: 'o3-mini',
+        model: 'o4-mini',
         usage: {
           prompt_tokens: 15,
           completion_tokens: 20,
@@ -2941,7 +2941,7 @@ describe('doStream', () => {
         },
       });
 
-      const model = provider.chat('o3-mini');
+      const model = provider.chat('o4-mini');
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -2956,7 +2956,7 @@ describe('doStream', () => {
           },
           {
             "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
-            "modelId": "o3-mini",
+            "modelId": "o4-mini",
             "timestamp": 2023-12-15T16:17:00.000Z,
             "type": "response-metadata",
           },
