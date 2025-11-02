@@ -1,6 +1,6 @@
-# AI SDK, Next.js, and FastAPI Examples
+# AI SDK, Next.js, and FastAPI Example
 
-These examples show you how to use the [AI SDK](https://ai-sdk.dev/docs) with [Next.js](https://nextjs.org) and [FastAPI](https://fastapi.tiangolo.com).
+This example show you how to use the [AI SDK](https://ai-sdk.dev/docs) with [Next.js](https://nextjs.org) and [FastAPI](https://fastapi.tiangolo.com).
 
 ## How to use
 
@@ -18,18 +18,19 @@ yarn create next-app --example https://github.com/vercel/ai/tree/main/examples/n
 pnpm create next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
 ```
 
-You will also need [Python 3.6+](https://www.python.org/downloads) and [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html) installed to run the FastAPI server.
+You will also need [Python 3.6+](https://www.python.org/downloads) and create venv to run the FastAPI server.
 
 To run the example locally you need to:
 
 1. Sign up at [OpenAI's Developer Platform](https://platform.openai.com/signup).
 2. Go to [OpenAI's dashboard](https://platform.openai.com/account/api-keys) and create an API KEY.
 3. Set the required environment variables as shown in [the example env file](./.env.local.example) but in a new file called `.env.local`.
-4. `virtualenv venv` to create a python virtual environment.
-5. `source venv/bin/activate` to activate the python virtual environment.
+4. `python -m venv venv` to create a python virtual environment.
+5. `venv\Scripts\activate` to activate the python virtual environment.
 6. `pip install -r requirements.txt` to install the required python dependencies.
+7. `uvicorn api.index:app --host 0.0.0.0 --port 8000 --reload` to run the FastAPI Server.
 7. `pnpm install` to install the required dependencies.
-8. `pnpm dev` to launch the development server.
+8. `pnpm dev` to launch the Next.js development server on port 3000.
 
 ## Learn More
 
