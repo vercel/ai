@@ -264,9 +264,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             { role: 'developer', content: 'You are a helpful assistant.' },
             {
               role: 'user',
-              content: [
-                { type: 'input_text', text: 'Hello' },
-              ],
+              content: [{ type: 'input_text', text: 'Hello' }],
             },
           ],
         });
