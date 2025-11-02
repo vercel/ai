@@ -125,9 +125,12 @@ jobs:
             echo "No labels to apply"
           fi
 
-          echo "Reasoning: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}"
+          # Write reasoning to file to avoid command injection
+          printf '%s\n' "$REASONING" > reasoning.txt
+          echo "Reasoning written to reasoning.txt"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REASONING: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}
 
   triage_issue:
     name: Auto-triage Issue
@@ -247,6 +250,9 @@ jobs:
             echo "No labels to apply"
           fi
 
-          echo "Reasoning: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}"
+          # Write reasoning to file to avoid command injection
+          printf '%s\n' "$REASONING" > reasoning.txt
+          echo "Reasoning written to reasoning.txt"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REASONING: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}
