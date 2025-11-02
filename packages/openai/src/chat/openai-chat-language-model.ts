@@ -21,6 +21,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { isReasoningModel } from '../openai-is-reasoning-model';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -698,18 +699,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 }
 
-export function isReasoningModel(modelId: string) {
-  if (modelId.startsWith('gpt-4o')) return true;
-  if (modelId.startsWith('codex')) return true;
-  if (modelId.startsWith('computer-use')) return true;
-
-  if (modelId.startsWith('gpt-4')) return false;
-  if (modelId.startsWith('gpt-3')) return false;
-  if (modelId.startsWith('gpt-5-chat')) return false;
-
-  return true;
-}
-
 function supportsFlexProcessing(modelId: string) {
   return (
     modelId.startsWith('o3') ||
@@ -731,33 +720,5 @@ function supportsPriorityProcessing(modelId: string) {
 }
 
 function getSystemMessageMode(modelId: string) {
-  if (!isReasoningModel(modelId)) {
-    return 'system';
-  }
-
-  return (
-    reasoningModels[modelId as keyof typeof reasoningModels]
-      ?.systemMessageMode ?? 'developer'
-  );
+  return isReasoningModel(modelId) ? 'developer' : 'system';
 }
-
-const reasoningModels = {
-  o3: {
-    systemMessageMode: 'developer',
-  },
-  'o3-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
-  'o3-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o3-mini-2025-01-31': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
-} as const;
