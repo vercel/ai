@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 60f4775: fix: remove code for unsuported o1-mini and o1-preview models
+
 ## 3.0.0-beta.47
 
 ### Patch Changes
