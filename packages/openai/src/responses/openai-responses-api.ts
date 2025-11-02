@@ -261,6 +261,13 @@ export type OpenaiResponsesOutputTextCodeInterpreterAnnotation = Extract<
   { type: 'container_file_citation' } | { type: 'file_path' }
 >;
 
+export type OpenaiResponsesOutputTextProviderMetadata={
+  openai:{
+    itemId: string;
+    annotations: Array<OpenaiResponsesOutputTextCodeInterpreterAnnotation>;
+  }
+};
+
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
