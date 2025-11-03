@@ -1,5 +1,31 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- b82987c: feat(openai): support openai code-interpreter annotations
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- 0273b74: fix(openai): add support for sources type 'api'
+
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 60f4775: fix: remove code for unsuported o1-mini and o1-preview models
+
 ## 3.0.0-beta.47
 
 ### Patch Changes
