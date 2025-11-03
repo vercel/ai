@@ -9,8 +9,7 @@ on:
       - 'main'
       - 'release-v*'
 
-permissions:
-  issues: write
+permissions: {}
 
 jobs:
   triage_pull_request:
@@ -25,9 +24,15 @@ jobs:
         with:
           app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
           private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
+          # check out repository and fetch repository labels
+          permission-contents: read
+          # update labels for pull request (the "issues" permission is required even for pull requests)
+          permission-issues: write
 
       - name: Checkout Repository
         uses: actions/checkout@v5
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Fetch existing labels
         id: fetch-labels
@@ -143,9 +148,15 @@ jobs:
         with:
           app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
           private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
+          # check out repository and fetch repository labels
+          permission-contents: read
+          # update labels for issue
+          permission-issues: write
 
       - name: Checkout Repository
         uses: actions/checkout@v5
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Fetch existing labels
         id: fetch-labels
