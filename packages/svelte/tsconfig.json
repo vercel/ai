@@ -28,6 +28,9 @@
     },
     {
       "path": "../ai"
+    },
+    {
+      "path": "../test-server"
     }
   ],
   "include": [
