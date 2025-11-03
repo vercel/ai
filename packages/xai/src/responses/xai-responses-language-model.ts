@@ -208,13 +208,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           providerExecuted: true,
         });
 
-        content.push({
-          type: 'tool-result',
-          toolCallId: part.id,
-          toolName,
-          result: undefined,
-        });
-
         continue;
       }
 
@@ -493,13 +486,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     toolName,
                     input: part.arguments,
                     providerExecuted: true,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-result',
-                    toolCallId: part.id,
-                    toolName,
-                    result: undefined,
                   });
                 }
 

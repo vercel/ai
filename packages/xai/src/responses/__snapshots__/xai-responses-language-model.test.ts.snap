@@ -10,12 +10,6 @@ exports[`XaiResponsesLanguageModel > doGenerate > code_interpreter tool > should
     "type": "tool-call",
   },
   {
-    "result": undefined,
-    "toolCallId": "fc_5138abcf-4c4e-b0ab-7e0b-f4c81b98f455_us-east-1_0",
-    "toolName": "code_execution",
-    "type": "tool-result",
-  },
-  {
     "text": "55",
     "type": "text",
   },
@@ -30,12 +24,6 @@ exports[`XaiResponsesLanguageModel > doGenerate > web_search tool > should inclu
     "toolCallId": "fc_c25a6e1c-a324-6a96-df49-9866618255cd_us-east-1_0",
     "toolName": "web_search",
     "type": "tool-call",
-  },
-  {
-    "result": undefined,
-    "toolCallId": "fc_c25a6e1c-a324-6a96-df49-9866618255cd_us-east-1_0",
-    "toolName": "web_search",
-    "type": "tool-result",
   },
   {
     "text": "xAI is an American artificial intelligence company founded by Elon Musk in July 2023. Its mission is to "understand the true nature of the universe" by advancing scientific discovery through AI. The company develops large language models and AI tools, including the Grok chatbot (which powers interactions like this one), and aims to compete with other major AI players like OpenAI. xAI is headquartered in the San Francisco Bay Area and has raised significant funding, including from investors like Andreessen Horowitz.
@@ -89,12 +77,6 @@ exports[`XaiResponsesLanguageModel > doGenerate > x_search tool > should include
     "toolCallId": "fc_84c1a8ea-1f29-4a33-1049-0ed3561b0f64_us-east-1_0",
     "toolName": "x_search",
     "type": "tool-call",
-  },
-  {
-    "result": undefined,
-    "toolCallId": "fc_84c1a8ea-1f29-4a33-1049-0ed3561b0f64_us-east-1_0",
-    "toolName": "x_search",
-    "type": "tool-result",
   },
   {
     "text": "### What People Are Saying About AI on X (as of Late October 2025)

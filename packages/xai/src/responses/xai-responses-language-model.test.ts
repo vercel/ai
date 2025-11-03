@@ -514,9 +514,9 @@ describe('XaiResponsesLanguageModel', () => {
           ],
         });
 
-        expect(result.content).toHaveLength(4);
+        expect(result.content).toHaveLength(2);
         expect(result.content[0].type).toBe('tool-call');
-        expect(result.content[2].type).toBe('tool-call');
+        expect(result.content[1].type).toBe('tool-call');
       });
     });
   });
@@ -692,12 +692,6 @@ describe('XaiResponsesLanguageModel', () => {
           providerExecuted: true,
         });
 
-        expect(parts).toContainEqual({
-          type: 'tool-result',
-          toolCallId: 'ws_123',
-          toolName: 'web_search',
-          result: undefined,
-        });
       });
     });
 
