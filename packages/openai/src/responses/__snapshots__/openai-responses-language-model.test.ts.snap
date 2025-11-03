@@ -4271,3 +4271,45 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
   },
 ]
 `;
+
+exports[`OpenAIResponsesLanguageModel > web search sources schema resilience > should accept api-type sources without throwing 1`] = `
+[
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_api_sources",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": {
+        "query": "current price of BTC",
+        "type": "search",
+      },
+      "sources": [
+        {
+          "type": "url",
+          "url": "https://example.com?a=1&utm_source=openai",
+        },
+        {
+          "name": "oai-finance",
+          "type": "api",
+        },
+      ],
+    },
+    "toolCallId": "ws_api_sources",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_done",
+      },
+    },
+    "text": "BTC is trading at ...",
+    "type": "text",
+  },
+]
+`;
