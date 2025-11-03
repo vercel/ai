@@ -1,8 +1,9 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
-  createTestServer,
-} from '@ai-sdk/test-server/with-vitest';
-import { convertReadableStreamToArray, isNodeVersion } from '@ai-sdk/provider-utils/test';
+  convertReadableStreamToArray,
+  isNodeVersion,
+} from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';
 

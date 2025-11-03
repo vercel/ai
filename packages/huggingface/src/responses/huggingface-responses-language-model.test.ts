@@ -1,8 +1,9 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
-  createTestServer,
-} from '@ai-sdk/test-server/with-vitest';
-import { convertReadableStreamToArray, mockId } from '@ai-sdk/provider-utils/test';
+  convertReadableStreamToArray,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HuggingFaceResponsesLanguageModel } from './huggingface-responses-language-model';
 
