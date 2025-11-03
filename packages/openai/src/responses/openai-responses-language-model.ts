@@ -453,7 +453,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               logprobs.push(contentPart.logprobs);
             }
 
-            const textProviderMetadata: SharedV3ProviderMetadata[string] = {
+            const providerMetadata: SharedV3ProviderMetadata[string] = {
               itemId: part.id,
               ...(contentPart.annotations.length > 0 && {
                 annotations: contentPart.annotations,
@@ -464,7 +464,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                openai: textProviderMetadata,
+                openai: providerMetadata,
               },
             });
 
