@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- 348fd10: fix(openai): treat unknown models as reasoning
+
 ## 3.0.0-beta.51
 
 ### Patch Changes
