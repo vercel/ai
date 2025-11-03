@@ -240,7 +240,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             outcome: part.codeExecutionResult.outcome,
             output: part.codeExecutionResult.output,
           },
-          providerExecuted: true,
         });
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
@@ -450,7 +449,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         outcome: part.codeExecutionResult.outcome,
                         output: part.codeExecutionResult.output,
                       },
-                      providerExecuted: true,
                     });
                     // Clear the ID after use.
                     lastCodeExecutionToolCallId = undefined;

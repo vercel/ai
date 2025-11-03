@@ -1632,7 +1632,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "tool-call",
             },
             {
-              "providerExecuted": true,
               "result": [
                 {
                   "encryptedContent": "encrypted_content_123",
@@ -1706,7 +1705,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "isError": true,
-              "providerExecuted": true,
               "result": {
                 "errorCode": "max_uses_exceeded",
                 "type": "web_search_tool_result_error",
@@ -2473,14 +2471,13 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "{\"code\":\"print(\\\"Hello, World!\\\")\"}",
+              "input": "{"code":"print(\\"Hello, World!\\")"}",
               "providerExecuted": true,
               "toolCallId": "tool_1",
               "toolName": "code_execution",
               "type": "tool-call",
             },
             {
-              "providerExecuted": true,
               "result": {
                 "return_code": 0,
                 "stderr": "",
@@ -2538,7 +2535,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "isError": true,
-              "providerExecuted": true,
               "result": {
                 "errorCode": "unavailable",
                 "type": "code_execution_tool_result_error",

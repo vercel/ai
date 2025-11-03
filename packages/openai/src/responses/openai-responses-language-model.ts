@@ -421,7 +421,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             result: {
               result: part.result,
             } satisfies InferSchema<typeof imageGenerationOutputSchema>,
-            providerExecuted: true,
           });
 
           break;
@@ -570,7 +569,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolCallId: part.id,
             toolName: webSearchToolName ?? 'web_search',
             result: mapWebSearchOutput(part.action),
-            providerExecuted: true,
           });
 
           break;
@@ -593,7 +591,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'computer_use_tool_result',
               status: part.status || 'completed',
             },
-            providerExecuted: true,
           });
           break;
         }
@@ -622,7 +619,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   text: result.text,
                 })) ?? null,
             } satisfies InferSchema<typeof fileSearchOutputSchema>,
-            providerExecuted: true,
           });
           break;
         }
@@ -646,7 +642,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             result: {
               outputs: part.outputs,
             } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
-            providerExecuted: true,
           });
           break;
         }
@@ -927,7 +922,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: value.item.id,
                   toolName: 'web_search',
                   result: mapWebSearchOutput(value.item.action),
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -953,7 +947,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     type: 'computer_use_tool_result',
                     status: value.item.status || 'completed',
                   },
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'file_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -973,7 +966,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         text: result.text,
                       })) ?? null,
                   } satisfies InferSchema<typeof fileSearchOutputSchema>,
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -985,7 +977,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   result: {
                     outputs: value.item.outputs,
                   } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'image_generation_call') {
                 controller.enqueue({
@@ -995,7 +986,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   result: {
                     result: value.item.result,
                   } satisfies InferSchema<typeof imageGenerationOutputSchema>,
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'local_shell_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1071,7 +1061,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 result: {
                   result: value.partial_image_b64,
                 } satisfies InferSchema<typeof imageGenerationOutputSchema>,
-                providerExecuted: true,
                 preliminary: true,
               });
             } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
@@ -1449,14 +1438,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     modelId.startsWith('codex-') ||
     modelId.startsWith('computer-use')
   ) {
-    if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
-      return {
-        ...defaults,
-        isReasoningModel: true,
-        systemMessageMode: 'remove',
-      };
-    }
-
     return {
       ...defaults,
       isReasoningModel: true,
