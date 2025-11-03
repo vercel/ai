@@ -1,5 +1,13 @@
 # @ai-sdk/gladia
 
+## 1.0.17
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
 ## 1.0.16
 
 ### Patch Changes

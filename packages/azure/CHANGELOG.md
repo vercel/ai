@@ -1,5 +1,14 @@
 # @ai-sdk/azure
 
+## 2.0.63
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - @ai-sdk/openai@2.0.62
+
 ## 2.0.62
 
 ### Patch Changes

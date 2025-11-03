@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 2.0.27
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
 ## 2.0.26
 
 ### Patch Changes

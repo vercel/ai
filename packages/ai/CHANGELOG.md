@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.87
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - @ai-sdk/gateway@2.0.6
+
 ## 5.0.86
 
 ### Patch Changes

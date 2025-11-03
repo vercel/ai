@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.16
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+
 ## 3.0.15
 
 ### Patch Changes

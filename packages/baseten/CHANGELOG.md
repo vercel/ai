@@ -1,5 +1,14 @@
 # @ai-sdk/baseten
 
+## 0.0.8
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/openai-compatible@1.0.26
+  - @ai-sdk/provider-utils@3.0.16
+
 ## 0.0.7
 
 ### Patch Changes

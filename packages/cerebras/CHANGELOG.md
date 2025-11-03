@@ -1,5 +1,14 @@
 # @ai-sdk/cerebras
 
+## 1.0.29
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/openai-compatible@1.0.26
+  - @ai-sdk/provider-utils@3.0.16
+
 ## 1.0.28
 
 ### Patch Changes
