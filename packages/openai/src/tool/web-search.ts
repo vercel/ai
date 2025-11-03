@@ -110,7 +110,9 @@ export const webSearchToolFactory =
       /**
        * Optional sources cited by the model for the web search call.
        */
-      sources?: Array<{ type: 'url'; url: string } | { type: 'api'; name: string }>;
+      sources?: Array<
+        { type: 'url'; url: string } | { type: 'api'; name: string }
+      >;
     },
     {
       /**

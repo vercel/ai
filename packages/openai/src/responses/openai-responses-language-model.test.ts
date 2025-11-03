@@ -4741,7 +4741,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 type: 'search',
                 query: 'current price of BTC',
                 sources: [
-                  { type: 'url', url: 'https://example.com?a=1&utm_source=openai' },
+                  {
+                    type: 'url',
+                    url: 'https://example.com?a=1&utm_source=openai',
+                  },
                   { type: 'api', name: 'oai-finance' },
                 ],
               },
@@ -4792,7 +4795,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         ],
       });
 
-      expect(result.content).toMatchSnapshot()
+      expect(result.content).toMatchSnapshot();
     });
   });
 });
