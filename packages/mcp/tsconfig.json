@@ -17,6 +17,9 @@
   "references": [
       {
       "path": "../provider"
+      },
+      {
+      "path": "../test-server"
       }
   ]
 }
