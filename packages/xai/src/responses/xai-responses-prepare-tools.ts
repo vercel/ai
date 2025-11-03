@@ -15,6 +15,8 @@ type XaiResponsesToolChoice =
   | { type: 'web_search' }
   | { type: 'x_search' }
   | { type: 'code_interpreter' }
+  | { type: 'view_image' }
+  | { type: 'view_x_video' }
   | { type: 'file_search' }
   | { type: 'mcp' }
   | { type: 'function'; name: string };
@@ -82,6 +84,20 @@ export async function prepareResponsesTools({
         case 'xai.code_execution': {
           xaiTools.push({
             type: 'code_interpreter',
+          });
+          break;
+        }
+
+        case 'xai.view_image': {
+          xaiTools.push({
+            type: 'view_image',
+          });
+          break;
+        }
+
+        case 'xai.view_x_video': {
+          xaiTools.push({
+            type: 'view_x_video',
           });
           break;
         }
@@ -158,6 +174,18 @@ export async function prepareResponsesTools({
             return {
               tools: xaiTools,
               toolChoice: { type: 'code_interpreter' },
+              toolWarnings,
+            };
+          case 'xai.view_image':
+            return {
+              tools: xaiTools,
+              toolChoice: { type: 'view_image' },
+              toolWarnings,
+            };
+          case 'xai.view_x_video':
+            return {
+              tools: xaiTools,
+              toolChoice: { type: 'view_x_video' },
               toolWarnings,
             };
           case 'xai.file_search':

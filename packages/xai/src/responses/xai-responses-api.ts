@@ -73,6 +73,8 @@ export type XaiResponsesTool =
       enable_video_understanding?: boolean;
     }
   | { type: 'code_interpreter' }
+  | { type: 'view_image' }
+  | { type: 'view_x_video' }
   | { type: 'file_search' }
   | { type: 'mcp' }
   | {
