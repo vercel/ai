@@ -4282,6 +4282,7 @@ exports[`OpenAIResponsesLanguageModel > web search sources schema resilience > s
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "query": "current price of BTC",
