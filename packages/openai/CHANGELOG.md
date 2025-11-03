@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- 0273b74: fix(openai): add support for sources type 'api'
+
 ## 3.0.0-beta.48
 
 ### Patch Changes
