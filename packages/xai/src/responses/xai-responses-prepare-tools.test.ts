@@ -259,6 +259,40 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('view_image', () => {
+    it('should prepare view_image tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'xai.view_image',
+            name: 'view_image',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.tools).toEqual([{ type: 'view_image' }]);
+    });
+  });
+
+  describe('view_x_video', () => {
+    it('should prepare view_x_video tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'xai.view_x_video',
+            name: 'view_x_video',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.tools).toEqual([{ type: 'view_x_video' }]);
+    });
+  });
+
   describe('function tools', () => {
     it('should prepare function tools', async () => {
       const result = await prepareResponsesTools({
