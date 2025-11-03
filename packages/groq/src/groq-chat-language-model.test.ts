@@ -1,9 +1,8 @@
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
-  convertReadableStreamToArray,
   createTestServer,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { isNodeVersion, convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createGroq } from './groq-provider';
 import { describe, it, expect, vi } from 'vitest';
 

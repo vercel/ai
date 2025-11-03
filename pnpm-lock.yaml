@@ -1373,6 +1373,9 @@ importers:
         specifier: 1.9.0
         version: 1.9.0
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -1428,6 +1431,9 @@ importers:
         specifier: ^1.0.20
         version: 1.0.20
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1459,6 +1465,9 @@ importers:
         specifier: ^3.25.76 || ^4.1.8
         version: 3.25.76
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1493,6 +1502,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1518,6 +1530,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1546,6 +1561,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1682,6 +1700,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1707,6 +1728,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1735,6 +1759,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1788,6 +1815,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1813,6 +1843,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1841,6 +1874,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1869,6 +1905,9 @@ importers:
         specifier: 3.0.3
         version: 3.0.3
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 18.15.11
         version: 18.15.11
@@ -1894,6 +1933,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1919,6 +1961,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1953,6 +1998,9 @@ importers:
         specifier: ^9.15.0
         version: 9.15.0(encoding@0.1.13)
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1978,6 +2026,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2006,6 +2057,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2031,6 +2085,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2094,6 +2151,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2119,6 +2179,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2147,6 +2210,9 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2172,6 +2238,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2197,6 +2266,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2222,6 +2294,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2247,6 +2322,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2389,6 +2467,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2414,6 +2495,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2524,6 +2608,9 @@ importers:
         specifier: workspace:*
         version: link:../ai
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@eslint/compat':
         specifier: ^1.2.5
         version: 1.2.7(eslint@9.21.0(jiti@2.4.0))
@@ -2585,6 +2672,24 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/test-server:
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      msw:
+        specifier: ^2.7.0
+        version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
@@ -2597,6 +2702,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2684,6 +2792,9 @@ importers:
         specifier: ^3.25.76 || ^4.1.8
         version: 3.25.76
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.6.3
@@ -2736,6 +2847,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -22371,13 +22485,6 @@ snapshots:
       '@inquirer/type': 3.0.1(@types/node@20.17.24)
       '@types/node': 20.17.24
 
-  '@inquirer/confirm@5.0.2(@types/node@22.7.4)':
-    dependencies:
-      '@inquirer/core': 10.1.0(@types/node@22.7.4)
-      '@inquirer/type': 3.0.1(@types/node@22.7.4)
-      '@types/node': 22.7.4
-    optional: true
-
   '@inquirer/confirm@5.1.14(@types/node@20.17.24)':
     dependencies:
       '@inquirer/core': 10.2.2(@types/node@20.17.24)
@@ -22391,6 +22498,14 @@ snapshots:
       '@inquirer/type': 3.0.8(@types/node@20.17.24)
     optionalDependencies:
       '@types/node': 20.17.24
+
+  '@inquirer/confirm@5.1.18(@types/node@22.7.4)':
+    dependencies:
+      '@inquirer/core': 10.2.2(@types/node@22.7.4)
+      '@inquirer/type': 3.0.8(@types/node@22.7.4)
+    optionalDependencies:
+      '@types/node': 22.7.4
+    optional: true
 
   '@inquirer/core@10.1.0(@types/node@20.17.24)':
     dependencies:
@@ -22406,21 +22521,6 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@inquirer/core@10.1.0(@types/node@22.7.4)':
-    dependencies:
-      '@inquirer/figures': 1.0.8
-      '@inquirer/type': 3.0.1(@types/node@22.7.4)
-      ansi-escapes: 4.3.2
-      cli-width: 4.1.0
-      mute-stream: 2.0.0
-      signal-exit: 4.1.0
-      strip-ansi: 6.0.1
-      wrap-ansi: 6.2.0
-      yoctocolors-cjs: 2.1.2
-    transitivePeerDependencies:
-      - '@types/node'
-    optional: true
-
   '@inquirer/core@10.2.2(@types/node@20.17.24)':
     dependencies:
       '@inquirer/ansi': 1.0.0
@@ -22433,6 +22533,20 @@ snapshots:
       yoctocolors-cjs: 2.1.2
     optionalDependencies:
       '@types/node': 20.17.24
+
+  '@inquirer/core@10.2.2(@types/node@22.7.4)':
+    dependencies:
+      '@inquirer/ansi': 1.0.0
+      '@inquirer/figures': 1.0.13
+      '@inquirer/type': 3.0.8(@types/node@22.7.4)
+      cli-width: 4.1.0
+      mute-stream: 2.0.0
+      signal-exit: 4.1.0
+      wrap-ansi: 6.2.0
+      yoctocolors-cjs: 2.1.2
+    optionalDependencies:
+      '@types/node': 22.7.4
+    optional: true
 
   '@inquirer/editor@4.2.20(@types/node@20.17.24)':
     dependencies:
@@ -22529,11 +22643,6 @@ snapshots:
     dependencies:
       '@types/node': 20.17.24
 
-  '@inquirer/type@3.0.1(@types/node@22.7.4)':
-    dependencies:
-      '@types/node': 22.7.4
-    optional: true
-
   '@inquirer/type@3.0.7(@types/node@20.17.24)':
     optionalDependencies:
       '@types/node': 20.17.24
@@ -22541,6 +22650,11 @@ snapshots:
   '@inquirer/type@3.0.8(@types/node@20.17.24)':
     optionalDependencies:
       '@types/node': 20.17.24
+
+  '@inquirer/type@3.0.8(@types/node@22.7.4)':
+    optionalDependencies:
+      '@types/node': 22.7.4
+    optional: true
 
   '@internationalized/date@3.7.0':
     dependencies:
@@ -34402,7 +34516,7 @@ snapshots:
       '@bundled-es-modules/cookie': 2.0.1
       '@bundled-es-modules/statuses': 1.0.1
       '@bundled-es-modules/tough-cookie': 0.1.6
-      '@inquirer/confirm': 5.0.2(@types/node@20.17.24)
+      '@inquirer/confirm': 5.1.18(@types/node@20.17.24)
       '@mswjs/interceptors': 0.37.5
       '@open-draft/deferred-promise': 2.2.0
       '@open-draft/until': 2.1.0
@@ -34428,7 +34542,7 @@ snapshots:
       '@bundled-es-modules/cookie': 2.0.1
       '@bundled-es-modules/statuses': 1.0.1
       '@bundled-es-modules/tough-cookie': 0.1.6
-      '@inquirer/confirm': 5.0.2(@types/node@20.17.24)
+      '@inquirer/confirm': 5.1.18(@types/node@20.17.24)
       '@mswjs/interceptors': 0.37.5
       '@open-draft/deferred-promise': 2.2.0
       '@open-draft/until': 2.1.0
@@ -34453,7 +34567,7 @@ snapshots:
       '@bundled-es-modules/cookie': 2.0.1
       '@bundled-es-modules/statuses': 1.0.1
       '@bundled-es-modules/tough-cookie': 0.1.6
-      '@inquirer/confirm': 5.0.2(@types/node@22.7.4)
+      '@inquirer/confirm': 5.1.18(@types/node@22.7.4)
       '@mswjs/interceptors': 0.37.5
       '@open-draft/deferred-promise': 2.2.0
       '@open-draft/until': 2.1.0

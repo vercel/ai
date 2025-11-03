@@ -40,6 +40,7 @@
     "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.3.0",

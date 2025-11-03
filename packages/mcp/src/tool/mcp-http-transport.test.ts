@@ -1,7 +1,7 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';

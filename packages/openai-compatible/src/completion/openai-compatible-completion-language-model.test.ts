@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
-  convertReadableStreamToArray,
   createTestServer,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray, isNodeVersion } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from '../openai-compatible-provider';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 

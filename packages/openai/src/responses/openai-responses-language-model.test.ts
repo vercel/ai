@@ -4,10 +4,9 @@ import {
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
 import {
-  convertReadableStreamToArray,
   createTestServer,
-  mockId,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray, mockId } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';

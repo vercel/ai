@@ -1,8 +1,7 @@
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
 import { UIMessage } from './ui-messages';
@@ -11,6 +10,7 @@ import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { delay } from '@ai-sdk/provider-utils';
+import { mockId } from '@ai-sdk/provider-utils/test';
 
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>

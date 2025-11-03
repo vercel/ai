@@ -4,9 +4,9 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';

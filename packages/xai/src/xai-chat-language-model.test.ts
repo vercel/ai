@@ -2,9 +2,9 @@ import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
 
 import {
-  convertReadableStreamToArray,
   createTestServer,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { createXai } from './xai-provider';
 

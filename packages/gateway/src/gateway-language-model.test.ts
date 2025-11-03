@@ -2,10 +2,8 @@ import type {
   LanguageModelV2Prompt,
   LanguageModelV2FilePart,
 } from '@ai-sdk/provider';
-import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
 import {
