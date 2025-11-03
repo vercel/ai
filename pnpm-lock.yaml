@@ -804,7 +804,7 @@ importers:
         specifier: 3.0.0-beta.31
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 1.0.0-beta.12
+        specifier: 1.0.0-beta.13
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 3.0.0-beta.32
