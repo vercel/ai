@@ -1,14 +1,14 @@
 import { UIToolInvocation, tool } from 'ai';
-import * as v from 'valibot';
+import { z } from 'zod';
 
 function randomWeather() {
   const weatherOptions = ['sunny', 'cloudy', 'rainy', 'windy'];
   return weatherOptions[Math.floor(Math.random() * weatherOptions.length)];
 }
 
-export const weatherToolValibot = tool({
+export const weatherTool = tool({
   description: 'Get the weather in a location',
-  inputSchema: v.object({ city: v.string() }),
+  inputSchema: z.object({ city: z.string() }),
   async *execute() {
     yield { state: 'loading' as const };
 
@@ -25,6 +25,4 @@ export const weatherToolValibot = tool({
   },
 });
 
-export type WeatherUIToolValibotInvocation = UIToolInvocation<
-  typeof weatherToolValibot
->;
+export type WeatherUIToolInvocation = UIToolInvocation<typeof weatherTool>;
