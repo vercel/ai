@@ -403,7 +403,10 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             results: z
               .array(
                 z.object({
-                  attributes: z.record(z.string(), z.unknown()),
+                  attributes: z.record(
+                    z.string(),
+                    z.union([z.string(), z.number(), z.boolean()]),
+                  ),
                   file_id: z.string(),
                   filename: z.string(),
                   score: z.number(),
@@ -649,7 +652,10 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
             results: z
               .array(
                 z.object({
-                  attributes: z.record(z.string(), z.unknown()),
+                  attributes: z.record(
+                    z.string(),
+                    z.union([z.string(), z.number(), z.boolean()]),
+                  ),
                   file_id: z.string(),
                   filename: z.string(),
                   score: z.number(),
