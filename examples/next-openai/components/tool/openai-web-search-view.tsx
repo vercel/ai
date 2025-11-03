@@ -44,14 +44,20 @@ export default function OpenAIWebSearchView({
                   <ul className="mt-1 list-disc pl-5 break-all">
                     {output.sources.map((s, i) => (
                       <li key={i}>
-                        <a
-                          href={s.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline hover:text-blue-700"
-                        >
-                          {s.url}
-                        </a>
+                        {s.type === 'url' ? (
+                          <a
+                            href={s.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-blue-700"
+                          >
+                            {s.url}
+                          </a>
+                        ) : (
+                          <span className="inline-block bg-blue-100 text-blue-900 rounded px-2 py-0.5 text-xs font-mono">
+                            API: {s.name}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

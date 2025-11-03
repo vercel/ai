@@ -454,13 +454,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               logprobs.push(contentPart.logprobs);
             }
 
+            const providerMetadata: SharedV3ProviderMetadata[string] = {
+              itemId: part.id,
+              ...(contentPart.annotations.length > 0 && {
+                annotations: contentPart.annotations,
+              }),
+            };
+
             content.push({
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                openai: {
-                  itemId: part.id,
-                },
+                openai: providerMetadata,
               },
             });
 
@@ -490,6 +495,42 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         },
                       }
                     : {}),
+                });
+              } else if (annotation.type === 'container_file_citation') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title:
+                    annotation.filename ?? annotation.file_id ?? 'Document',
+                  filename: annotation.filename ?? annotation.file_id,
+                  providerMetadata: {
+                    openai: {
+                      fileId: annotation.file_id,
+                      containerId: annotation.container_id,
+                      ...(annotation.index != null
+                        ? { index: annotation.index }
+                        : {}),
+                    },
+                  },
+                });
+              } else if (annotation.type === 'file_path') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'application/octet-stream',
+                  title: annotation.file_id,
+                  filename: annotation.file_id,
+                  providerMetadata: {
+                    openai: {
+                      fileId: annotation.file_id,
+                      ...(annotation.index != null
+                        ? { index: annotation.index }
+                        : {}),
+                    },
+                  },
                 });
               }
             }
@@ -1202,6 +1243,45 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         },
                       }
                     : {}),
+                });
+              } else if (value.annotation.type === 'container_file_citation') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: self.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title:
+                    value.annotation.filename ??
+                    value.annotation.file_id ??
+                    'Document',
+                  filename:
+                    value.annotation.filename ?? value.annotation.file_id,
+                  providerMetadata: {
+                    openai: {
+                      fileId: value.annotation.file_id,
+                      containerId: value.annotation.container_id,
+                      ...(value.annotation.index != null
+                        ? { index: value.annotation.index }
+                        : {}),
+                    },
+                  },
+                });
+              } else if (value.annotation.type === 'file_path') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: self.config.generateId?.() ?? generateId(),
+                  mediaType: 'application/octet-stream',
+                  title: value.annotation.file_id,
+                  filename: value.annotation.file_id,
+                  providerMetadata: {
+                    openai: {
+                      fileId: value.annotation.file_id,
+                      ...(value.annotation.index != null
+                        ? { index: value.annotation.index }
+                        : {}),
+                    },
+                  },
                 });
               }
             } else if (isErrorChunk(value)) {
