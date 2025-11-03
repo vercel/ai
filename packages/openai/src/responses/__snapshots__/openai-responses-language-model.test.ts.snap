@@ -50,7 +50,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "outputs": [],
     },
