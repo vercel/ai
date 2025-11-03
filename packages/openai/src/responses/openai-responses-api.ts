@@ -377,7 +377,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 type: z.literal('search'),
                 query: z.string().nullish(),
                 sources: z
-                  .array(z.object({ type: z.literal('url'), url: z.string() }))
+                  .array(
+                    z.discriminatedUnion('type', [
+                      z.object({ type: z.literal('url'), url: z.string() }),
+                      z.object({ type: z.literal('api'), name: z.string() }),
+                    ]),
+                  )
                   .nullish(),
               }),
               z.object({
@@ -398,7 +403,10 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             results: z
               .array(
                 z.object({
-                  attributes: z.record(z.string(), z.unknown()),
+                  attributes: z.record(
+                    z.string(),
+                    z.union([z.string(), z.number(), z.boolean()]),
+                  ),
                   file_id: z.string(),
                   filename: z.string(),
                   score: z.number(),
@@ -593,7 +601,12 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                 type: z.literal('search'),
                 query: z.string().nullish(),
                 sources: z
-                  .array(z.object({ type: z.literal('url'), url: z.string() }))
+                  .array(
+                    z.discriminatedUnion('type', [
+                      z.object({ type: z.literal('url'), url: z.string() }),
+                      z.object({ type: z.literal('api'), name: z.string() }),
+                    ]),
+                  )
                   .nullish(),
               }),
               z.object({
@@ -614,7 +627,10 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
             results: z
               .array(
                 z.object({
-                  attributes: z.record(z.string(), z.unknown()),
+                  attributes: z.record(
+                    z.string(),
+                    z.union([z.string(), z.number(), z.boolean()]),
+                  ),
                   file_id: z.string(),
                   filename: z.string(),
                   score: z.number(),
