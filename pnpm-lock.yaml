@@ -2709,6 +2709,10 @@ importers:
         version: 3.25.76
 
   packages/test-server:
+    dependencies:
+      msw:
+        specifier: ^2.7.0
+        version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -2716,9 +2720,6 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
-      msw:
-        specifier: ^2.7.0
-        version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
       tsup:
         specifier: ^8
         version: 8.3.0(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
