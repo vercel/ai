@@ -1,5 +1,39 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 60f4775: fix: remove code for unsuported o1-mini and o1-preview models
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- fd47df5: fix(openai): revised_prompt sometimes returns null, causing errors
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+
 ## 3.0.0-beta.43
 
 ### Patch Changes

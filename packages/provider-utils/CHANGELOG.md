@@ -1,5 +1,24 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 4f16c37: chore(provider-utils): upgrade eventsource-parser to 3.0.6
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- 016b111: fix(provider-utils): make ReadableStream.cancel() properly finalize async iterators
+
 ## 4.0.0-beta.27
 
 ### Patch Changes
