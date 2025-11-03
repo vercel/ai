@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- bb36798: fix(spec): `LanguageModelV3ToolResult["result"]` change from `unknown` to `NonNullable<JSONValue>`
+
 ## 3.0.0-beta.14
 
 ### Patch Changes
