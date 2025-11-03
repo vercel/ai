@@ -691,7 +691,6 @@ describe('XaiResponsesLanguageModel', () => {
           input: '{"query":"test"}',
           providerExecuted: true,
         });
-
       });
     });
 
