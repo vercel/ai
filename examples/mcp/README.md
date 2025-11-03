@@ -20,12 +20,19 @@ pnpm build
 
 ## Running Examples
 
-To run an example, use the following pattern:
+Start the server for a specific example
 
-- `pnpm server:<folder-name>` - Start the server for a specific example
-- `pnpm client:<folder-name>` - Run the client for a specific example
+```sh
+pnpm server:<folder-name>
+```
 
-Available examples:
+Run the client for a specific example
+
+```sh
+pnpm client:<folder-name>
+```
+
+Available examples/folders:
 
 - `sse` - SSE Transport (Legacy)
 - `http` - Streamable HTTP Transport (Stateful)
@@ -39,7 +46,10 @@ Example usage:
 ```sh
 # Start the HTTP server
 pnpm server:http
+```
 
-# In another terminal, run the HTTP client
+In another terminal, run the HTTP client:
+
+```sh
 pnpm client:http
 ```
