@@ -46,6 +46,7 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import { isReasoningModel as modelSupportsReasoning } from '../openai-is-reasoning-model';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -1417,38 +1418,14 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
       !modelId.startsWith('gpt-5-chat')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini');
-  const defaults = {
-    systemMessageMode: 'system' as const,
+  const isReasoningModel = modelSupportsReasoning(modelId);
+  const systemMessageMode = isReasoningModel ? 'developer' : 'system';
+
+  return {
+    systemMessageMode,
     supportsFlexProcessing,
     supportsPriorityProcessing,
-  };
-
-  // gpt-5-chat models are non-reasoning
-  if (modelId.startsWith('gpt-5-chat')) {
-    return {
-      ...defaults,
-      isReasoningModel: false,
-    };
-  }
-
-  // o series reasoning models:
-  if (
-    modelId.startsWith('o') ||
-    modelId.startsWith('gpt-5') ||
-    modelId.startsWith('codex-') ||
-    modelId.startsWith('computer-use')
-  ) {
-    return {
-      ...defaults,
-      isReasoningModel: true,
-      systemMessageMode: 'developer',
-    };
-  }
-
-  // gpt models:
-  return {
-    ...defaults,
-    isReasoningModel: false,
+    isReasoningModel,
   };
 }
 
