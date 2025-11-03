@@ -213,7 +213,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           toolCallId: part.id,
           toolName,
           result: undefined,
-          providerExecuted: true,
         });
 
         continue;
@@ -501,7 +500,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     toolCallId: part.id,
                     toolName,
                     result: undefined,
-                    providerExecuted: true,
                   });
                 }
 

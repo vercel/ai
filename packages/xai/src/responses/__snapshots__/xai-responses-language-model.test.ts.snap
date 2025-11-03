@@ -10,7 +10,6 @@ exports[`XaiResponsesLanguageModel > doGenerate > code_interpreter tool > should
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": undefined,
     "toolCallId": "fc_5138abcf-4c4e-b0ab-7e0b-f4c81b98f455_us-east-1_0",
     "toolName": "code_execution",
@@ -33,7 +32,6 @@ exports[`XaiResponsesLanguageModel > doGenerate > web_search tool > should inclu
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": undefined,
     "toolCallId": "fc_c25a6e1c-a324-6a96-df49-9866618255cd_us-east-1_0",
     "toolName": "web_search",
@@ -93,7 +91,6 @@ exports[`XaiResponsesLanguageModel > doGenerate > x_search tool > should include
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": undefined,
     "toolCallId": "fc_84c1a8ea-1f29-4a33-1049-0ed3561b0f64_us-east-1_0",
     "toolName": "x_search",

@@ -697,7 +697,6 @@ describe('XaiResponsesLanguageModel', () => {
           toolCallId: 'ws_123',
           toolName: 'web_search',
           result: undefined,
-          providerExecuted: true,
         });
       });
     });
