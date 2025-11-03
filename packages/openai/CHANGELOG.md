@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.61
+
+### Patch Changes
+
+- 28ce89a: fix(openai): add support for sources type 'api'
+
 ## 2.0.60
 
 ### Patch Changes
