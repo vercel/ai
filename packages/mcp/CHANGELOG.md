@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 0.0.6
+
+### Patch Changes
+
+- 1cba565: feat(packages/mcp): add support for MCP server prompts exposed
+
 ## 0.0.5
 
 ### Patch Changes
