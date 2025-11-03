@@ -1,5 +1,13 @@
 # @ai-sdk/langchain
 
+## 1.0.87
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - ai@5.0.87
+
 ## 1.0.86
 
 ### Patch Changes
