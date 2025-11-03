@@ -26,6 +26,7 @@ To run an example, use the following pattern:
 - `pnpm client:<folder-name>` - Run the client for a specific example
 
 Available examples:
+
 - `sse` - SSE Transport (Legacy)
 - `http` - Streamable HTTP Transport (Stateful)
 - `mcp-with-auth` - MCP with authentication
