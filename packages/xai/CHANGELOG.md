@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- 5ad1bbe: feat: xai server-side tool calling
+
 ## 3.0.0-beta.33
 
 ### Patch Changes
