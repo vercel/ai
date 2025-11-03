@@ -20,7 +20,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "outputs": [
         {
@@ -54,7 +53,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "outputs": [
         {
@@ -139,7 +137,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > with res
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "queries": [
         "What is an embedding model according to this document?",
@@ -254,7 +251,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "queries": [
         "What is an embedding model according to this document?",
@@ -323,7 +319,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "result": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
     },
@@ -389,7 +384,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "action": {
         "query": "Vercel AI SDK next version features",
@@ -418,7 +412,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "action": {
         "query": undefined,
@@ -938,7 +931,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "outputs": [
         {
@@ -1349,7 +1341,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "outputs": [
         {
@@ -1435,7 +1426,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "outputs": [
         {
@@ -2598,7 +2588,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "queries": [
         "What is an embedding model according to this document?",
@@ -3138,7 +3127,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "queries": [
         "What is an embedding model according to this document?",
@@ -3646,7 +3634,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
   },
   {
     "preliminary": true,
-    "providerExecuted": true,
     "result": {
       "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
     },
@@ -3655,7 +3642,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     "type": "tool-result",
   },
   {
-    "providerExecuted": true,
     "result": {
       "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
     },
@@ -3789,7 +3775,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "action": {
         "query": "Vercel AI SDK next version features",
@@ -3887,7 +3872,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "action": {
         "query": "Berlin news today",
@@ -3986,7 +3970,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "action": {
         "query": undefined,
@@ -4041,7 +4024,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "action": {
         "query": undefined,
@@ -4096,7 +4078,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "action": {
         "query": undefined,

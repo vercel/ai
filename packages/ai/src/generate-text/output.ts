@@ -69,11 +69,11 @@ export const text = (): Output<string, string> => ({
  *
  * @returns An output specification for generating objects with the specified schema.
  */
-export const object = <OUTPUT>({
+export const object = <OBJECT>({
   schema: inputSchema,
 }: {
-  schema: FlexibleSchema<OUTPUT>;
-}): Output<OUTPUT, DeepPartial<OUTPUT>> => {
+  schema: FlexibleSchema<OBJECT>;
+}): Output<OBJECT, DeepPartial<OBJECT>> => {
   const schema = asSchema(inputSchema);
 
   return {
@@ -135,7 +135,7 @@ export const object = <OUTPUT>({
         case 'successful-parse': {
           return {
             // Note: currently no validation of partial results:
-            partial: result.value as DeepPartial<OUTPUT>,
+            partial: result.value as DeepPartial<OBJECT>,
           };
         }
       }
@@ -144,10 +144,11 @@ export const object = <OUTPUT>({
 };
 
 /**
- * Array output specification for text generation.
+ * Output specification for array generation.
  * When the model generates a text response, it will return an array of elements.
  *
- * @param element - The schema of the element to generate.
+ * @param element - The schema of the array elements to generate.
+ *
  * @returns An output specification for generating an array of elements.
  */
 export const array = <ELEMENT>({
@@ -288,17 +289,18 @@ export const array = <ELEMENT>({
 };
 
 /**
- * Choice output specification for text generation.
+ * Output specification for choice generation.
  * When the model generates a text response, it will return a one of the choice options.
  *
- * @param options - The options to choose from.
+ * @param options - The available choices.
+ *
  * @returns An output specification for generating a choice.
  */
-export const choice = <ELEMENT extends string>({
+export const choice = <CHOICE extends string>({
   options: choiceOptions,
 }: {
-  options: Array<ELEMENT>;
-}): Output<ELEMENT, ELEMENT> => {
+  options: Array<CHOICE>;
+}): Output<CHOICE, CHOICE> => {
   return {
     // JSON schema that describes an enumeration:
     responseFormat: Promise.resolve({
@@ -357,7 +359,7 @@ export const choice = <ELEMENT extends string>({
         });
       }
 
-      return outerValue.result as ELEMENT;
+      return outerValue.result as CHOICE;
     },
 
     async parsePartialOutput({ text }: { text: string }) {
@@ -390,12 +392,12 @@ export const choice = <ELEMENT extends string>({
           if (result.state === 'successful-parse') {
             // successful parse: exact choice value
             return potentialMatches.includes(outerValue.result as any)
-              ? { partial: outerValue.result as ELEMENT }
+              ? { partial: outerValue.result as CHOICE }
               : undefined;
           } else {
             // repaired parse: only return if not ambiguous
             return potentialMatches.length === 1
-              ? { partial: potentialMatches[0] as ELEMENT }
+              ? { partial: potentialMatches[0] as CHOICE }
               : undefined;
           }
         }
