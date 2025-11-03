@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- b82987c: feat(openai): support openai code-interpreter annotations
+
 ## 3.0.0-beta.50
 
 ### Patch Changes
