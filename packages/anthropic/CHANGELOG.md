@@ -1,5 +1,20 @@
 # @ai-sdk/anthropic
 
+## 2.0.41
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
 ## 2.0.39
 
 ### Patch Changes

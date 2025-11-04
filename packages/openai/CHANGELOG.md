@@ -1,5 +1,38 @@
 # @ai-sdk/openai
 
+## 2.0.62
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.61
+
+### Patch Changes
+
+- 28ce89a: fix(openai): add support for sources type 'api'
+
+## 2.0.60
+
+### Patch Changes
+
+- 3e42838: fix: remove code for unsuported o1-mini and o1-preview models
+
+## 2.0.59
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
+## 2.0.58
+
+### Patch Changes
+
+- 0f9d079: fix(openai): revised_prompt sometimes returns null, causing errors
+
 ## 2.0.57
 
 ### Patch Changes

@@ -104,6 +104,9 @@
       "path": "../../packages/replicate"
     },
     {
+      "path": "../../packages/test-server"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {

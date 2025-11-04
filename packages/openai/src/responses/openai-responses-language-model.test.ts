@@ -3,9 +3,9 @@ import {
   LanguageModelV2FunctionTool,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
@@ -249,7 +249,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should remove unsupported settings for o1', async () => {
-        const { warnings } = await createModel('o1-mini').doGenerate({
+        const { warnings } = await createModel('o1').doGenerate({
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -259,17 +259,17 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'o1-mini',
+          model: 'o1',
           input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+            { role: 'developer', content: 'You are a helpful assistant.' },
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
           ],
         });
 
         expect(warnings).toStrictEqual([
-          {
-            type: 'other',
-            message: 'system messages are removed for this model',
-          },
           {
             details: 'temperature is not supported for reasoning models',
             setting: 'temperature',
@@ -296,21 +296,10 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
 
           const expectedMessages = [
-            // o1 models prior to o1-2024-12-17 should remove system messages, all other models should replace
-            // them with developer messages
-            ...(![
-              'o1-mini',
-              'o1-mini-2024-09-12',
-              'o1-preview',
-              'o1-preview-2024-09-12',
-            ].includes(modelId)
-              ? [
-                  {
-                    role: 'developer',
-                    content: 'You are a helpful assistant.',
-                  },
-                ]
-              : []),
+            {
+              role: 'developer',
+              content: 'You are a helpful assistant.',
+            },
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ];
 
@@ -320,21 +309,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
 
           expect(warnings).toStrictEqual([
-            // o1 models prior to o1-2024-12-17 should remove system messages, all other models should replace
-            // them with developer messages
-            ...([
-              'o1-mini',
-              'o1-mini-2024-09-12',
-              'o1-preview',
-              'o1-preview-2024-09-12',
-            ].includes(modelId)
-              ? [
-                  {
-                    message: 'system messages are removed for this model',
-                    type: 'other',
-                  },
-                ]
-              : []),
             {
               details: 'temperature is not supported for reasoning models',
               setting: 'temperature',
@@ -4740,6 +4714,87 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('web search sources schema resilience', () => {
+    it('should accept api-type sources without throwing', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_api_sources',
+          object: 'response',
+          created_at: 1741631111,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o',
+          output: [
+            {
+              type: 'web_search_call',
+              id: 'ws_api_sources',
+              status: 'completed',
+              action: {
+                type: 'search',
+                query: 'current price of BTC',
+                sources: [
+                  {
+                    type: 'url',
+                    url: 'https://example.com?a=1&utm_source=openai',
+                  },
+                  { type: 'api', name: 'oai-finance' },
+                ],
+              },
+            },
+            {
+              type: 'message',
+              id: 'msg_done',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'BTC is trading at ...',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+            total_tokens: 15,
+          },
+          previous_response_id: null,
+          parallel_tool_calls: true,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [{ type: 'web_search', search_context_size: 'medium' }],
+          top_p: 1,
+          truncation: 'disabled',
+          user: null,
+          metadata: {},
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.content).toMatchSnapshot();
     });
   });
 });

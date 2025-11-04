@@ -1,5 +1,41 @@
 # ai
 
+## 5.0.87
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - @ai-sdk/gateway@2.0.6
+
+## 5.0.86
+
+### Patch Changes
+
+- 0f92046: fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
+
+## 5.0.85
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - @ai-sdk/gateway@2.0.5
+
+## 5.0.84
+
+### Patch Changes
+
+- a017497: fix(ai): do not mutate middleware array argument when wrapping
+
+## 5.0.83
+
+### Patch Changes
+
+- Updated dependencies [872543c]
+  - @ai-sdk/gateway@2.0.4
+
 ## 5.0.82
 
 ### Patch Changes

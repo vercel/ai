@@ -1,8 +1,7 @@
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
 import {
   DefaultChatTransport,
   isToolUIPart,
@@ -10,7 +9,7 @@ import {
 } from 'ai';
 import { Chat } from './chat.ng';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-
+import { mockId } from '@ai-sdk/provider-utils/test';
 function formatStreamPart(part: object) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }

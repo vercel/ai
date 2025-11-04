@@ -209,3 +209,45 @@ export const ReadResourceResultSchema = ResultSchema.extend({
   ),
 });
 export type ReadResourceResult = z.infer<typeof ReadResourceResultSchema>;
+
+// Prompts
+const PromptArgumentSchema = z
+  .object({
+    name: z.string(),
+    description: z.optional(z.string()),
+    required: z.optional(z.boolean()),
+  })
+  .loose();
+
+export const PromptSchema = z
+  .object({
+    name: z.string(),
+    title: z.optional(z.string()),
+    description: z.optional(z.string()),
+    arguments: z.optional(z.array(PromptArgumentSchema)),
+  })
+  .loose();
+export type MCPPrompt = z.infer<typeof PromptSchema>;
+
+export const ListPromptsResultSchema = PaginatedResultSchema.extend({
+  prompts: z.array(PromptSchema),
+});
+export type ListPromptsResult = z.infer<typeof ListPromptsResultSchema>;
+
+const PromptMessageSchema = z
+  .object({
+    role: z.union([z.literal('user'), z.literal('assistant')]),
+    content: z.union([
+      TextContentSchema,
+      ImageContentSchema,
+      EmbeddedResourceSchema,
+    ]),
+  })
+  .loose();
+export type MCPPromptMessage = z.infer<typeof PromptMessageSchema>;
+
+export const GetPromptResultSchema = ResultSchema.extend({
+  description: z.optional(z.string()),
+  messages: z.array(PromptMessageSchema),
+});
+export type GetPromptResult = z.infer<typeof GetPromptResultSchema>;

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "3.0.82",
+  "version": "3.0.87",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -56,6 +56,7 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@eslint/compat": "^1.2.5",
     "@eslint/js": "^9.18.0",

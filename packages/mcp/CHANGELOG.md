@@ -1,5 +1,26 @@
 # @ai-sdk/mcp
 
+## 0.0.7
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 0.0.6
+
+### Patch Changes
+
+- 1cba565: feat(packages/mcp): add support for MCP server prompts exposed
+
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
 ## 0.0.4
 
 ### Patch Changes

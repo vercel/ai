@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { OpenAIImageModel } from './openai-image-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -236,6 +236,38 @@ describe('doGenerate', () => {
     });
 
     expect(requestBody).not.toHaveProperty('response_format');
+  });
+
+  it('should handle null revised_prompt responses', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            revised_prompt: null,
+            b64_json: 'base64-image-1',
+          },
+        ],
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual(['base64-image-1']);
+    expect(result.warnings).toStrictEqual([]);
+    expect(result.providerMetadata).toStrictEqual({
+      openai: {
+        images: [null],
+      },
+    });
   });
 
   it('should include response_format for dall-e-3', async () => {
