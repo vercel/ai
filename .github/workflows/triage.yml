@@ -5,7 +5,7 @@ on:
     types: [opened, reopened]
   pull_request_target:
     paths: 'packages/**'
-    branches: 
+    branches:
       - 'main'
       - 'release-v*'
 
@@ -121,7 +121,7 @@ jobs:
         id: filter-labels
         run: |
           existing_labels=$(echo '${{ steps.fetch-labels.outputs.labels_json }}' | jq -r '.[]')
-          selected_labels=$(echo '${{ fromJSON(steps.classify-issue.outputs.json).labels }}' | jq -r '.[]')
+          selected_labels=$(echo '${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}' | jq -r '.[]')
 
           valid_labels=()
           for label in $selected_labels; do
@@ -267,7 +267,7 @@ jobs:
         id: filter-labels
         run: |
           existing_labels=$(echo '${{ steps.fetch-labels.outputs.labels_json }}' | jq -r '.[]')
-          selected_labels=$(echo '${{ fromJSON(steps.classify-issue.outputs.json).labels }}' | jq -r '.[]')
+          selected_labels=$(echo '${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}' | jq -r '.[]')
 
           valid_labels=()
           for label in $selected_labels; do
