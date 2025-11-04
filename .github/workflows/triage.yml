@@ -121,7 +121,7 @@ jobs:
         id: filter-labels
         run: |
           existing_labels=$(echo '${{ steps.fetch-labels.outputs.labels_json }}' | jq -r '.[]')
-          selected_labels=$(echo '${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}' | jq -r '.[]')
+          selected_labels=$(echo $USER_LABELS | jq -r '.[]')
 
           valid_labels=()
           for label in $selected_labels; do
@@ -131,6 +131,8 @@ jobs:
           done
 
           echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -c -s .)" >> $GITHUB_OUTPUT
+        env:
+          USER_LABELS: ${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}
 
       - name: Apply labels to issue
         if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
@@ -267,7 +269,7 @@ jobs:
         id: filter-labels
         run: |
           existing_labels=$(echo '${{ steps.fetch-labels.outputs.labels_json }}' | jq -r '.[]')
-          selected_labels=$(echo '${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}' | jq -r '.[]')
+          selected_labels=$(echo $USER_LABELS | jq -r '.[]')
 
           valid_labels=()
           for label in $selected_labels; do
@@ -277,6 +279,8 @@ jobs:
           done
 
           echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -c -s .)" >> $GITHUB_OUTPUT
+        env:
+          USER_LABELS: ${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}
 
       - name: Apply labels to issue
         if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
