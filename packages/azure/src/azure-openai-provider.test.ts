@@ -1,24 +1,17 @@
-import {
-<<<<<<< HEAD
-  EmbeddingModelV2Embedding,
-  LanguageModelV2Prompt,
-} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
-=======
-  EmbeddingModelV3Embedding,
-  LanguageModelV3,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3Prompt,
+import {
+  EmbeddingModelV2Embedding,
+  LanguageModelV2,
+  LanguageModelV2FunctionTool,
+  LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
->>>>>>> f1eed1c94 (chore(azure) add built-in tools tests for azure provider Responses API (#9431))
 import { createAzure } from './azure-openai-provider';
 
 vi.mock('./version', () => ({
@@ -29,7 +22,7 @@ const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
+const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
@@ -899,7 +892,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -953,7 +946,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -1108,7 +1101,7 @@ describe('responses', () => {
   });
 
   describe('image generation tool', () => {
-    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+    let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
     beforeEach(async () => {
       prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -1133,30 +1126,29 @@ describe('responses', () => {
 
     it('should send request body with include and tool', async () => {
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "test-deployment",
-            "tools": [
-              {
-                "output_format": "webp",
-                "partial_images": 2,
-                "quality": "low",
-                "size": "1024x1024",
-                "type": "image_generation",
-              },
-            ],
-          }
-        `);
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "test-deployment",
+          "tools": [
+            {
+              "output_format": "webp",
+              "quality": "low",
+              "size": "1024x1024",
+              "type": "image_generation",
+            },
+          ],
+        }
+      `);
     });
 
     it('should include generate image tool call and result in content', async () => {
