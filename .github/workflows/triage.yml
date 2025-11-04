@@ -117,10 +117,25 @@ jobs:
 
             Changed Paths: ${{ steps.get-changed-files.outputs.files }}
 
+      - name: Filter existing labels
+        id: filter-labels
+        run: |
+          existing_labels=$(echo '${{ steps.fetch-labels.outputs.labels_json }}' | jq -r '.[]')
+          selected_labels=$(echo '${{ fromJSON(steps.classify-issue.outputs.json).labels }}' | jq -r '.[]')
+
+          valid_labels=()
+          for label in $selected_labels; do
+            if echo "$existing_labels" | grep -q "^$label$"; then
+              valid_labels+=("$label")
+            fi
+          done
+
+          echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -s .)" >> $GITHUB_OUTPUT
+
       - name: Apply labels to issue
         if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
         run: |
-          labels='${{ toJSON(fromJSON(steps.classify-issue.outputs.json).labels) }}'
+          labels=$LABELS
           if [ "$labels" != "[]" ]; then
             gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels \
               --method POST \
@@ -135,6 +150,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REASONING: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}
+          LABELS: ${{ steps.filter-labels.outputs.valid_labels }}
 
   triage_issue:
     name: Auto-triage Issue
@@ -247,10 +263,25 @@ jobs:
 
             Issue Body: ${{ github.event.issue.body }}
 
+      - name: Filter existing labels
+        id: filter-labels
+        run: |
+          existing_labels=$(echo '${{ steps.fetch-labels.outputs.labels_json }}' | jq -r '.[]')
+          selected_labels=$(echo '${{ fromJSON(steps.classify-issue.outputs.json).labels }}' | jq -r '.[]')
+
+          valid_labels=()
+          for label in $selected_labels; do
+            if echo "$existing_labels" | grep -q "^$label$"; then
+              valid_labels+=("$label")
+            fi
+          done
+
+          echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -s .)" >> $GITHUB_OUTPUT
+
       - name: Apply labels to issue
         if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
         run: |
-          labels='${{ toJSON(fromJSON(steps.classify-issue.outputs.json).labels) }}'
+          labels=$LABELS
           if [ "$labels" != "[]" ]; then
             gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels \
               --method POST \
@@ -265,3 +296,4 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REASONING: ${{ fromJSON(steps.classify-issue.outputs.json).reasoning }}
+          LABELS: ${{ steps.filter-labels.outputs.valid_labels }}
