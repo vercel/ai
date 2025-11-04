@@ -95,6 +95,9 @@
       "path": "../../packages/openai-compatible"
     },
     {
+      "path": "../../packages/ovhcloud"
+    },
+    {
       "path": "../../packages/perplexity"
     },
     {

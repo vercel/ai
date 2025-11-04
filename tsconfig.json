@@ -31,6 +31,7 @@
     { "path": "packages/mistral" },
     { "path": "packages/openai" },
     { "path": "packages/openai-compatible" },
+    { "path": "packages/ovhcloud" },
     { "path": "packages/perplexity" },
     { "path": "packages/provider" },
     { "path": "packages/provider-utils" },

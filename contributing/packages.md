@@ -35,6 +35,7 @@ When adding new packages under `packages`, please ensure they are added to `/tsc
 | `vercel`            | `@ai-sdk/vercel`            | Vercel AI                   |
 | `gateway`           | `@ai-sdk/gateway`           | AI Gateway                  |
 | `openai-compatible` | `@ai-sdk/openai-compatible` | OpenAI-compatible providers |
+| `ovhcloud`          | `@ai-sdk/ovhcloud`          | OVHcloud AI Endpoints       |
 | `elevenlabs`        | `@ai-sdk/elevenlabs`        | ElevenLabs (Audio)          |
 | `assemblyai`        | `@ai-sdk/assemblyai`        | AssemblyAI (Speech)         |
 | `deepgram`          | `@ai-sdk/deepgram`          | Deepgram (Speech)           |

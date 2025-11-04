@@ -38,6 +38,7 @@
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
         "OPENAI_BASE_URL",
+        "OVHCLOUD_AI_ENPOINTS_API_KEY",
         "PERPLEXITY_API_KEY",
         "REPLICATE_API_TOKEN",
         "SENTRY_AUTH_TOKEN",

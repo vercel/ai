@@ -1,0 +1,128 @@
+---
+title: OVHcloud AI Endpoints
+description: Learn how to use OVHcloud AI Endpoints models with the AI SDK.
+---
+
+# OVHcloud AI Endpoints Provider
+
+The [OVHcloud AI Endpoints](https://endpoints.ai.cloud.ovh.net/) provider offers access to OpenAI-compatible language models, embeddings, and image generation through the OVHcloud AI Endpoints API.
+
+API keys can be obtained from the [OVHcloud panel](https://www.ovh.com/manager/), in the `Public Cloud` section under `AI & Machine Learning > AI Endpoints`.
+
+## Setup
+
+The OVHcloud provider is available via the `@ai-sdk/ovhcloud` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/ovhcloud" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/ovhcloud" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/ovhcloud" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/ovhcloud" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `ovhcloud` from `@ai-sdk/ovhcloud`:
+
+```ts
+import { ovhcloud } from '@ai-sdk/ovhcloud';
+```
+
+For custom configuration, you can import `createOVHcloud` and create a provider instance with your settings:
+
+```ts
+import { createOVHcloud } from '@ai-sdk/ovhcloud';
+
+const ovhcloud = createOVHcloud({
+  apiKey: process.env.OVHCLOUD_AI_ENPOINTS_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the OVHcloud provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://oai.endpoints.kepler.ai.cloud.ovh.net/v1`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `OVHCLOUD_AI_ENPOINTS_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { ovhcloud } from '@ai-sdk/ovhcloud';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: ovhcloud('model-name'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+OVHcloud language models can be used in the `streamText` function
+(see [AI SDK Core > streamText()](/docs/reference/ai-sdk-core/stream-text#streamtext)).
+
+You can also use the `.chat()` or `.languageModel()` factory methods:
+
+```ts
+const model = ovhcloud.chat('model-name');
+// or
+const model = ovhcloud.languageModel('model-name');
+```
+
+## Text Embeddings
+
+You can create text embedding models using the provider instance:
+
+```ts
+import { ovhcloud } from '@ai-sdk/ovhcloud';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: ovhcloud.textEmbeddingModel('embedding-model-name'),
+  value: 'The text to embed.',
+});
+```
+
+## Image Generation
+
+You can create image generation models using the provider instance:
+
+```ts
+import { ovhcloud } from '@ai-sdk/ovhcloud';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: ovhcloud.imageModel('image-model-name'),
+  prompt: 'A futuristic cityscape at sunset',
+});
+```
+
+<Note>
+  Please see the [OVHcloud AI Endpoints catalog](https://endpoints.ai.cloud.ovh.net/catalog) for a full list
+  of available models and their capabilities. You can also pass any available provider model ID as a
+  string if needed. We are available on [Discord](https://discord.gg/ovhcloud) for any questions or help regarding AI Endpoints.
+</Note>
+
