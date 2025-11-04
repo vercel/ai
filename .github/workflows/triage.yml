@@ -130,7 +130,7 @@ jobs:
             fi
           done
 
-          echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -s .)" >> $GITHUB_OUTPUT
+          echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -c -s .)" >> $GITHUB_OUTPUT
 
       - name: Apply labels to issue
         if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
@@ -276,7 +276,7 @@ jobs:
             fi
           done
 
-          echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -s .)" >> $GITHUB_OUTPUT
+          echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -c -s .)" >> $GITHUB_OUTPUT
 
       - name: Apply labels to issue
         if: fromJSON(steps.classify-issue.outputs.json).confidence > 0.6
