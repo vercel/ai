@@ -193,6 +193,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   protected state: ChatState<UI_MESSAGE>;
 
+  private isResuming: boolean = false;
   private messageMetadataSchema:
     | FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>
     | undefined;
@@ -414,7 +415,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * Attempt to resume an ongoing streaming response.
    */
   resumeStream = async (options: ChatRequestOptions = {}): Promise<void> => {
-    await this.makeRequest({ trigger: 'resume-stream', ...options });
+    if (this.isResuming) {
+      return;
+    }
+
+    this.isResuming = true;
+
+    try {
+      await this.makeRequest({ trigger: 'resume-stream', ...options });
+    } finally {
+      this.isResuming = false;
+    }
   };
 
   /**
