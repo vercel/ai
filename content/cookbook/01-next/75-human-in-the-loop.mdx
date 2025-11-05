@@ -195,7 +195,7 @@ import { DefaultChatTransport, isToolUIPart, getToolName } from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, addToolResult, sendMessage } = useChat({
+  const { messages, addToolOutput, sendMessage } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -227,7 +227,7 @@ export default function Chat() {
                       <div>
                         <button
                           onClick={async () => {
-                            await addToolResult({
+                            await addToolOutput({
                               toolCallId,
                               tool: toolName,
                               output: 'Yes, confirmed.',
@@ -239,7 +239,7 @@ export default function Chat() {
                         </button>
                         <button
                           onClick={async () => {
-                            await addToolResult({
+                            await addToolOutput({
                               toolCallId,
                               tool: toolName,
                               output: 'No, denied.',
@@ -281,13 +281,13 @@ export default function Chat() {
 ```
 
 <Note>
-  The `sendMessage()` function after `addToolResult` will trigger a call to your
+  The `sendMessage()` function after `addToolOutput` will trigger a call to your
   route handler.
 </Note>
 
 ### Handle Confirmation Response
 
-Adding a tool result and sending the message will trigger another call to your route handler. Before sending the new messages to the language model, you pull out the last message and map through the message parts to see if the tool requiring confirmation was called and whether it's in a "result" state. If those conditions are met, you check the confirmation state (the tool result state that you set on the frontend with the `addToolResult` function).
+Adding a tool result and sending the message will trigger another call to your route handler. Before sending the new messages to the language model, you pull out the last message and map through the message parts to see if the tool requiring confirmation was called and whether it's in a "result" state. If those conditions are met, you check the confirmation state (the tool result state that you set on the frontend with the `addToolOutput` function).
 
 ```ts filename="api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
@@ -388,7 +388,7 @@ async function executeWeatherTool({ city }: { city: string }) {
 }
 ```
 
-In this implementation, you use simple strings like "Yes, the user confirmed" or "No, the user declined" as states. If confirmed, you execute the tool. If declined, you do not execute the tool. In both cases, you update the tool result from the arbitrary data you sent with the `addToolResult` function to either the result of the execute function or an "Execution declined" statement. You send the updated tool result back to the frontend to maintain state synchronization.
+In this implementation, you use simple strings like "Yes, the user confirmed" or "No, the user declined" as states. If confirmed, you execute the tool. If declined, you do not execute the tool. In both cases, you update the tool result from the arbitrary data you sent with the `addToolOutput` function to either the result of the execute function or an "Execution declined" statement. You send the updated tool result back to the frontend to maintain state synchronization.
 
 After handling the tool result, your API route continues. This triggers another generation with the updated tool result, allowing the LLM to continue attempting to solve the query.
 
@@ -666,7 +666,7 @@ import { useState } from 'react';
 import { HumanInTheLoopUIMessage, MyTools } from '../api/chat/types';
 
 export default function Chat() {
-  const { messages, addToolResult, sendMessage } =
+  const { messages, addToolOutput, sendMessage } =
     useChat<HumanInTheLoopUIMessage>({
       transport: new DefaultChatTransport({
         api: '/api/chat',
@@ -716,7 +716,7 @@ export default function Chat() {
                       <button
                         className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                         onClick={async () => {
-                          await addToolResult({
+                          await addToolOutput({
                             toolCallId,
                             tool: toolName,
                             output: APPROVAL.YES,
@@ -729,7 +729,7 @@ export default function Chat() {
                       <button
                         className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                         onClick={async () => {
-                          await addToolResult({
+                          await addToolOutput({
                             toolCallId,
                             tool: toolName,
                             output: APPROVAL.NO,
