@@ -185,7 +185,7 @@ export async function POST(req: Request) {
 
 On the frontend, you map through the messages, either rendering the message content or checking for tool invocations and rendering custom UI.
 
-You can check if the tool requiring confirmation has been called and, if so, present options to either confirm or deny the proposed tool call. This confirmation is done using the `addToolResult` function to create a tool result and append it to the associated tool call.
+You can check if the tool requiring confirmation has been called and, if so, present options to either confirm or deny the proposed tool call. This confirmation is done using the `addToolOutput` function to create a tool result and append it to the associated tool call.
 
 ```tsx filename="app/page.tsx"
 'use client';
