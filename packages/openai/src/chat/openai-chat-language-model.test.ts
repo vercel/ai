@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-=======
 import fs from 'node:fs';
 
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
->>>>>>> dae218598 (fix(openai): extract meta data from first chunk that contains any (#10019))
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
