@@ -32,7 +32,12 @@ run(async () => {
       result.output.type === 'approvalRequest',
   );
 
-  if (approvalRequest && approvalRequest.output && typeof approvalRequest.output === 'object' && 'approvalRequestId' in approvalRequest.output) {
+  if (
+    approvalRequest &&
+    approvalRequest.output &&
+    typeof approvalRequest.output === 'object' &&
+    'approvalRequestId' in approvalRequest.output
+  ) {
     const approvalRequestId = (
       approvalRequest.output as { approvalRequestId: string }
     ).approvalRequestId;
@@ -76,6 +81,8 @@ run(async () => {
     console.dir(approvedResult.toolResults, { depth: Infinity });
     console.log('Text:', approvedResult.text);
   } else {
-    console.log('\nNo approval request found - tool was executed automatically');
+    console.log(
+      '\nNo approval request found - tool was executed automatically',
+    );
   }
 });

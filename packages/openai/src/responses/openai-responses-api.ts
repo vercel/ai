@@ -45,7 +45,11 @@ export type OpenAIResponsesUserMessage = {
     | { type: 'input_file'; file_url: string }
     | { type: 'input_file'; filename: string; file_data: string }
     | { type: 'input_file'; file_id: string }
-    | { type: 'mcp_approval_response'; approve: boolean; approval_request_id: string }
+    | {
+        type: 'mcp_approval_response';
+        approve: boolean;
+        approval_request_id: string;
+      }
   >;
 };
 

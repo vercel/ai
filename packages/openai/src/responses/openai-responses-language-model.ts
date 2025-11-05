@@ -1147,7 +1147,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     serverLabel: value.item.server_label,
                     name: value.item.name,
                     arguments: value.item.arguments,
-                    approvalRequestId: value.item.approval_request_id ?? value.item.id,
+                    approvalRequestId:
+                      value.item.approval_request_id ?? value.item.id,
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
               } else if (value.item.type === 'local_shell_call') {
