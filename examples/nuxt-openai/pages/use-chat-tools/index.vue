@@ -12,7 +12,7 @@ const chat = new Chat({
     if (toolCall.toolName === 'getLocation') {
       const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
       const location = cities[Math.floor(Math.random() * cities.length)];
-
+      
       await chat.addToolOutput({
         toolCallId: toolCall.toolCallId,
         tool: 'getLocation',
@@ -49,7 +49,10 @@ const handleSubmit = (e: Event) => {
         </template>
         <template v-else-if="part.type === 'tool-askForConfirmation'">
           <template v-if="part.state === 'input-available'">
-            <div :key="part.toolCallId" className="text-gray-500">
+            <div
+              :key="part.toolCallId"
+              className="text-gray-500"
+            >
               {{ (part.input as { message: string }).message }}
               <div className="flex gap-2">
                 <button
@@ -80,19 +83,28 @@ const handleSubmit = (e: Event) => {
             </div>
           </template>
           <template v-if="part.state === 'output-available'">
-            <div :key="part.toolCallId" className="text-gray-500">
+            <div
+              :key="part.toolCallId"
+              className="text-gray-500"
+            >
               Location access allowed: {{ part.output }}
             </div>
           </template>
         </template>
         <template v-else-if="part.type === 'tool-getLocation'">
           <template v-if="part.state === 'input-available'">
-            <div :key="part.toolCallId" className="text-gray-500">
+            <div
+              :key="part.toolCallId"
+              className="text-gray-500"
+            >
               Getting location...
             </div>
           </template>
           <template v-if="part.state === 'output-available'">
-            <div :key="part.toolCallId" className="text-gray-500">
+            <div
+              :key="part.toolCallId"
+              className="text-gray-500"
+            >
               Location: {{ part.output }}
             </div>
           </template>
@@ -104,13 +116,19 @@ const handleSubmit = (e: Event) => {
             </pre>
           </template>
           <template v-if="part.state === 'input-available'">
-            <div :key="part.toolCallId" className="text-gray-500">
+            <div
+              :key="part.toolCallId"
+              className="text-gray-500"
+            >
               Getting weather information for
               {{ (part.input as { city: string }).city }}...
             </div>
           </template>
           <template v-if="part.state === 'output-available'">
-            <div :key="part.toolCallId" className="text-gray-500">
+            <div
+              :key="part.toolCallId"
+              className="text-gray-500"
+            >
               Weather in {{ (part.input as { city: string }).city }}:
               {{ part.output }}
             </div>
