@@ -17,4 +17,4 @@ run(async function main() {
   console.log('--- final response ---');
   console.log('modelId:', response.modelId);
   console.log('response headers:', response.headers);
-})
+});
