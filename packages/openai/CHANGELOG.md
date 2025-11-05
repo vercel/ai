@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.63
+
+### Patch Changes
+
+- 3b62c49: fix(openai): extract meta data from first chunk that contains any
+
 ## 2.0.62
 
 ### Patch Changes
