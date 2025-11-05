@@ -24,6 +24,7 @@
     "@ai-sdk/lmnt": "workspace:*",
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
+    "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
     "@ai-sdk/openai": "3.0.0-beta.52",
     "@ai-sdk/openai-compatible": "workspace:*",
