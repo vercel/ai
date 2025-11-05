@@ -2580,7 +2580,7 @@ describe('Chat', () => {
       });
 
       // user submits the tool output
-      await chat.addToolOutput({
+      await chat.addToolResult({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
         output: 'test-output',

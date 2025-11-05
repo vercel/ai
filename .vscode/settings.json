@@ -1,4 +1,3 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "vsicons.presets.nestjs": true
+  "typescript.tsdk": "node_modules/typescript/lib"
 }
