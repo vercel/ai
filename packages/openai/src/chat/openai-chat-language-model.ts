@@ -343,6 +343,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       content.push({ type: 'text', text });
     }
 
+    // reasoning content:
+    const reasoning = choice.message.reasoning_content;
+    if (reasoning != null && reasoning.length > 0) {
+      content.push({
+        type: 'reasoning',
+        text: reasoning,
+      });
+    }
+
     // tool calls:
     for (const toolCall of choice.message.tool_calls ?? []) {
       content.push({
@@ -446,6 +455,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       totalTokens: undefined,
     };
     let isFirstChunk = true;
+    let isActiveReasoning = false;
     let isActiveText = false;
 
     const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
@@ -532,7 +542,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             const delta = choice.delta;
 
-            if (delta.content != null) {
+            // enqueue reasoning before text deltas:
+            const reasoningContent = delta.reasoning_content;
+            if (reasoningContent) {
+              if (!isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = true;
+              }
+
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: 'reasoning-0',
+                delta: reasoningContent,
+              });
+            }
+
+            if (delta.content) {
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: '0' });
                 isActiveText = true;
@@ -680,6 +708,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
+            if (isActiveReasoning) {
+              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            }
+
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
