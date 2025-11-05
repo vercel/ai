@@ -47,7 +47,7 @@ export const mcpArgsSchema = lazySchema(() =>
         serverUrl: z.string().optional(),
       })
       .refine(
-        (v) => v.serverUrl != null || v.connectorId != null,
+        v => v.serverUrl != null || v.connectorId != null,
         'One of serverUrl or connectorId must be provided.',
       ),
   ),
@@ -74,9 +74,7 @@ export const mcpOutputSchema = lazySchema(() =>
             name: z.string(),
             description: z.string().optional(),
             inputSchema: jsonValueSchema,
-            annotations: z
-              .record(z.string(), jsonValueSchema)
-              .optional(),
+            annotations: z.record(z.string(), jsonValueSchema).optional(),
           }),
         ),
         error: z.union([z.string(), jsonValueSchema]).optional(),
@@ -122,43 +120,40 @@ type McpArgs = {
   serverUrl?: string;
 };
 
-export const mcpToolFactory =
-  createProviderDefinedToolFactoryWithOutputSchema<
-    {},
-    | {
-        type: 'call';
-        serverLabel: string;
+export const mcpToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
+  {},
+  | {
+      type: 'call';
+      serverLabel: string;
+      name: string;
+      arguments: string;
+      output?: string | null;
+      error?: JSONValue;
+    }
+  | {
+      type: 'listTools';
+      serverLabel: string;
+      tools: Array<{
         name: string;
-        arguments: string;
-        output?: string | null;
-        error?: JSONValue;
-      }
-    | {
-        type: 'listTools';
-        serverLabel: string;
-        tools: Array<{
-          name: string;
-          description?: string;
-          inputSchema: unknown;
-          annotations?: unknown;
-        }>;
-        error?: JSONValue;
-      }
-    | {
-        type: 'approvalRequest';
-        serverLabel: string;
-        name: string;
-        arguments: string;
-        approvalRequestId: string;
-      },
-    McpArgs
-  >({
-    id: 'openai.mcp',
-    name: 'mcp',
-    inputSchema: mcpInputSchema,
-    outputSchema: mcpOutputSchema,
-  });
+        description?: string;
+        inputSchema: unknown;
+        annotations?: unknown;
+      }>;
+      error?: JSONValue;
+    }
+  | {
+      type: 'approvalRequest';
+      serverLabel: string;
+      name: string;
+      arguments: string;
+      approvalRequestId: string;
+    },
+  McpArgs
+>({
+  id: 'openai.mcp',
+  name: 'mcp',
+  inputSchema: mcpInputSchema,
+  outputSchema: mcpOutputSchema,
+});
 
 export const mcp = (args: McpArgs) => mcpToolFactory(args);
-
-

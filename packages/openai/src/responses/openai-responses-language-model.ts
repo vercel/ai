@@ -597,7 +597,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               arguments: part.arguments,
               ...(part.output != null ? { output: part.output } : {}),
               ...(part.error != null
-                ? { error: (part.error as unknown) as JSONValue }
+                ? { error: part.error as unknown as JSONValue }
                 : {}),
             } satisfies InferSchema<typeof mcpOutputSchema>,
           });
@@ -629,7 +629,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   undefined,
               })),
               ...(part.error != null
-                ? { error: (part.error as unknown) as JSONValue }
+                ? { error: part.error as unknown as JSONValue }
                 : {}),
             } satisfies InferSchema<typeof mcpOutputSchema>,
           });
@@ -1101,7 +1101,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       ? { output: value.item.output }
                       : {}),
                     ...(value.item.error != null
-                      ? { error: (value.item.error as unknown) as JSONValue }
+                      ? { error: value.item.error as unknown as JSONValue }
                       : {}),
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
@@ -1120,11 +1120,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       description: t.description ?? undefined,
                       inputSchema: t.input_schema,
                       annotations:
-                        (t.annotations as Record<string, JSONValue> | undefined) ??
-                        undefined,
+                        (t.annotations as
+                          | Record<string, JSONValue>
+                          | undefined) ?? undefined,
                     })),
                     ...(value.item.error != null
-                      ? { error: (value.item.error as unknown) as JSONValue }
+                      ? { error: value.item.error as unknown as JSONValue }
                       : {}),
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });

@@ -166,15 +166,14 @@ export async function prepareResponsesTools({
             openaiTools.push({
               type: 'mcp',
               server_label: args.serverLabel,
-              allowed_tools:
-                Array.isArray(args.allowedTools)
-                  ? args.allowedTools
-                  : args.allowedTools
-                    ? {
-                        read_only: args.allowedTools.readOnly,
-                        tool_names: args.allowedTools.toolNames,
-                      }
-                    : undefined,
+              allowed_tools: Array.isArray(args.allowedTools)
+                ? args.allowedTools
+                : args.allowedTools
+                  ? {
+                      read_only: args.allowedTools.readOnly,
+                      tool_names: args.allowedTools.toolNames,
+                    }
+                  : undefined,
               authorization: args.authorization,
               connector_id: args.connectorId,
               headers: args.headers,
