@@ -2884,7 +2884,7 @@ describe('doStream', () => {
     `);
   });
 
-  it.only('should set .modelId for model-router request', async () => {
+  it('should set .modelId for model-router request', async () => {
     prepareChunksFixtureResponse('azure-model-router.1');
 
     const result = await provider.chat('test-azure-model-router').doStream({
