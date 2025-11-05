@@ -39,7 +39,7 @@ class MinimalOAuthProvider implements OAuthClientProvider {
           ? `open "${authorizationUrl.toString()}"`
           : `xdg-open "${authorizationUrl.toString()}"`;
 
-    exec(cmd, (error) => {
+    exec(cmd, error => {
       if (error) {
         console.log('Please open this URL in your browser:');
         console.log(authorizationUrl.toString());
@@ -127,7 +127,9 @@ function waitForAuthorizationCode(port: number): Promise<string> {
     });
 
     server.listen(port, () => {
-      console.log(`Listening for OAuth callback on http://localhost:${port}/callback`);
+      console.log(
+        `Listening for OAuth callback on http://localhost:${port}/callback`,
+      );
     });
   });
 }
@@ -169,4 +171,3 @@ export async function getMCPToken(
   console.log('Authorization successful!\n');
   return tokens.access_token;
 }
-
