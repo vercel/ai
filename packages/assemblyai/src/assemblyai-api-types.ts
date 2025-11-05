@@ -196,6 +196,114 @@ export type AssemblyAITranscriptionAPITypes = {
     | 'yo';
 
   /**
+   * An array of language codes for code switching. One of the values must be 'en'.
+   */
+  language_codes?: Array<
+    | 'en'
+    | 'en_au'
+    | 'en_uk'
+    | 'en_us'
+    | 'es'
+    | 'fr'
+    | 'de'
+    | 'it'
+    | 'pt'
+    | 'nl'
+    | 'af'
+    | 'sq'
+    | 'am'
+    | 'ar'
+    | 'hy'
+    | 'as'
+    | 'az'
+    | 'ba'
+    | 'eu'
+    | 'be'
+    | 'bn'
+    | 'bs'
+    | 'br'
+    | 'bg'
+    | 'my'
+    | 'ca'
+    | 'zh'
+    | 'hr'
+    | 'cs'
+    | 'da'
+    | 'et'
+    | 'fo'
+    | 'fi'
+    | 'gl'
+    | 'ka'
+    | 'el'
+    | 'gu'
+    | 'ht'
+    | 'ha'
+    | 'haw'
+    | 'he'
+    | 'hi'
+    | 'hu'
+    | 'is'
+    | 'id'
+    | 'ja'
+    | 'jw'
+    | 'kn'
+    | 'kk'
+    | 'km'
+    | 'ko'
+    | 'lo'
+    | 'la'
+    | 'lv'
+    | 'ln'
+    | 'lt'
+    | 'lb'
+    | 'mk'
+    | 'mg'
+    | 'ms'
+    | 'ml'
+    | 'mt'
+    | 'mi'
+    | 'mr'
+    | 'mn'
+    | 'ne'
+    | 'no'
+    | 'nn'
+    | 'oc'
+    | 'pa'
+    | 'ps'
+    | 'fa'
+    | 'pl'
+    | 'ro'
+    | 'ru'
+    | 'sa'
+    | 'sr'
+    | 'sn'
+    | 'sd'
+    | 'si'
+    | 'sk'
+    | 'sl'
+    | 'so'
+    | 'su'
+    | 'sw'
+    | 'sv'
+    | 'tl'
+    | 'tg'
+    | 'ta'
+    | 'tt'
+    | 'te'
+    | 'th'
+    | 'bo'
+    | 'tr'
+    | 'tk'
+    | 'uk'
+    | 'ur'
+    | 'uz'
+    | 'vi'
+    | 'cy'
+    | 'yi'
+    | 'yo'
+  >;
+
+  /**
    * The confidence threshold for the automatically detected language. An error will be returned if the language confidence is below this threshold.
    * @default 0
    */
@@ -206,6 +314,14 @@ export type AssemblyAITranscriptionAPITypes = {
    * @default false
    */
   language_detection?: boolean;
+
+  /**
+   * Options for Automatic language detection.
+   */
+  language_detection_options?: {
+    code_switching?: boolean | null;
+    code_switching_confidence_threshold?: number | null;
+  } | null;
 
   /**
    * Enable Multichannel transcription, can be true or false.

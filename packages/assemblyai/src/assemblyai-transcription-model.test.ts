@@ -24,6 +24,20 @@ const server = createTestServer({
       },
     },
   },
+  'https://api.assemblyai.com/v2/transcript/9ea68fd3-f953-42c1-9742-976c447fb463':
+    {
+      response: {
+        type: 'json-value',
+        body: {
+          id: '9ea68fd3-f953-42c1-9742-976c447fb463',
+          status: 'queued',
+          speech_model: 'best',
+          text: null,
+          words: null,
+          audio_duration: null,
+        },
+      },
+    },
 });
 
 describe('doGenerate', () => {
@@ -242,6 +256,25 @@ describe('doGenerate', () => {
         speed_boost: true,
       },
     };
+
+    server.urls[
+      'https://api.assemblyai.com/v2/transcript/9ea68fd3-f953-42c1-9742-976c447fb463'
+    ].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        id: 'test-id',
+        status: 'completed',
+        speech_model: 'best',
+        language_code: 'en_us',
+        text: 'Hello, world!',
+        words: [
+          { start: 0, end: 500, text: 'Hello,' },
+          { start: 500, end: 900, text: 'world!' },
+        ],
+        audio_duration: 1.1,
+      },
+    };
   }
 
   it('should pass the model', async () => {
@@ -276,15 +309,37 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(server.calls[0].requestHeaders).toMatchObject({
+    expect(server.calls[1].requestHeaders).toMatchObject({
       authorization: 'test-api-key',
-      'content-type': 'application/octet-stream',
+      'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/assemblyai/0.0.0-test`,
     );
+  });
+
+  it('should wait until the transcript is completed', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.text).toBe('Hello, world!');
+    expect(result.segments).toEqual([
+      { text: 'Hello,', startSecond: 0, endSecond: 500 },
+      { text: 'world!', startSecond: 500, endSecond: 900 },
+    ]);
+    expect(result.durationInSeconds).toBe(1.1);
+    expect(result.response).toMatchObject({
+      modelId: 'best',
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
   });
 
   it('should extract the transcription text', async () => {
@@ -352,5 +407,101 @@ describe('doGenerate', () => {
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('best');
+  });
+
+  it('should pass language_codes for code switching', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          languageCodes: ['en', 'es', 'fr'],
+        },
+      },
+    });
+
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      audio_url: 'https://storage.assemblyai.com/mock-upload-url',
+      speech_model: 'best',
+      language_codes: ['en', 'es', 'fr'],
+    });
+  });
+
+  it('should pass language_detection as boolean', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          languageDetection: true,
+        },
+      },
+    });
+
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      audio_url: 'https://storage.assemblyai.com/mock-upload-url',
+      speech_model: 'best',
+      language_detection: true,
+    });
+  });
+
+  it('should pass language_detection with code switching configuration', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          languageDetection: {
+            codeSwitching: true,
+            codeSwitchingConfidenceThreshold: 0.5,
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      audio_url: 'https://storage.assemblyai.com/mock-upload-url',
+      speech_model: 'best',
+      language_detection: true,
+      language_detection_options: {
+        code_switching: true,
+        code_switching_confidence_threshold: 0.5,
+      },
+    });
+  });
+
+  it('should pass combined language_codes and language_detection for code switching', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          languageCodes: ['en', 'es'],
+          languageDetection: {
+            codeSwitching: true,
+            codeSwitchingConfidenceThreshold: 0.5,
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      audio_url: 'https://storage.assemblyai.com/mock-upload-url',
+      speech_model: 'best',
+      language_codes: ['en', 'es'],
+      language_detection: true,
+      language_detection_options: {
+        code_switching: true,
+        code_switching_confidence_threshold: 0.5,
+      },
+    });
   });
 });
