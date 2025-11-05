@@ -1,5 +1,70 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`chat > doStream > should set .modelId for model-router request 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "chatcmpl-CYPS1lijGoK8gd9lYzY3r9Sx50nbt",
+    "modelId": "gpt-5-nano-2025-08-07",
+    "timestamp": 2025-11-05T04:30:21.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Capital",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Denmark",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "acceptedPredictionTokens": 0,
+        "rejectedPredictionTokens": 0,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 15,
+      "outputTokens": 78,
+      "reasoningTokens": 64,
+      "totalTokens": 93,
+    },
+  },
+]
+`;
+
 exports[`responses > doGenerate > code interpreter tool > should include code interpreter tool call and result in content 1`] = `
 [
   {

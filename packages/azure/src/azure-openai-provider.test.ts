@@ -57,7 +57,10 @@ function prepareJsonFixtureResponse(filename: string) {
   return;
 }
 
-function prepareChunksFixtureResponse(filename: string) {
+function prepareChunksFixtureResponse(
+  filename: string,
+  path: 'responses' | 'chat/completions' = 'responses',
+) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
     .split('\n')
@@ -65,7 +68,7 @@ function prepareChunksFixtureResponse(filename: string) {
   chunks.push('data: [DONE]\n\n');
 
   server.urls[
-    'https://test-resource.openai.azure.com/openai/v1/responses'
+    `https://test-resource.openai.azure.com/openai/v1/${path}`
   ].response = {
     type: 'stream-chunks',
     chunks,
@@ -206,6 +209,20 @@ describe('chat', () => {
       expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1',
       );
+    });
+  });
+
+  describe('doStream', () => {
+    it('should set .modelId for model-router request', async () => {
+      prepareChunksFixtureResponse('azure-model-router.1', 'chat/completions');
+
+      const result = await provider('model-router').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
   });
 });
