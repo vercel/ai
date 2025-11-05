@@ -122,18 +122,14 @@ const server = createTestServer({
   'https://api.openai.com/v1/chat/completions': {},
 });
 
-function prepareChunksFixtureResponse(
-  filename: string
-) {
+function prepareChunksFixtureResponse(filename: string) {
   const chunks = fs
     .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
     .split('\n')
     .map(line => `data: ${line}\n\n`);
   chunks.push('data: [DONE]\n\n');
 
-  server.urls[
-    'https://api.openai.com/v1/chat/completions'
-  ].response = {
+  server.urls['https://api.openai.com/v1/chat/completions'].response = {
     type: 'stream-chunks',
     chunks,
   };
@@ -2891,9 +2887,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(
-      await convertReadableStreamToArray(result.stream),
-    ).toMatchSnapshot();
+    expect(await convertReadableStreamToArray(result.stream)).toMatchSnapshot();
   });
 
   describe('reasoning models', () => {
