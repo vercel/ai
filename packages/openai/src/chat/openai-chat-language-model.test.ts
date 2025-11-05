@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -119,6 +121,19 @@ const model = provider.chat('gpt-3.5-turbo');
 const server = createTestServer({
   'https://api.openai.com/v1/chat/completions': {},
 });
+
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['https://api.openai.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
@@ -2863,6 +2878,16 @@ describe('doStream', () => {
         },
       }
     `);
+  });
+
+  it('should set .modelId for model-router request', async () => {
+    prepareChunksFixtureResponse('azure-model-router.1');
+
+    const result = await provider.chat('test-azure-model-router').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(result.stream)).toMatchSnapshot();
   });
 
   describe('reasoning models', () => {
