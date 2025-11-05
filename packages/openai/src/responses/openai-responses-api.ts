@@ -14,7 +14,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
   | OpenAIResponsesReasoning
-  | OpenAIResponsesItemReference;
+  | OpenAIResponsesItemReference
+  | OpenAIResponsesMCPApprovalResponse;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -44,6 +45,7 @@ export type OpenAIResponsesUserMessage = {
     | { type: 'input_file'; file_url: string }
     | { type: 'input_file'; filename: string; file_data: string }
     | { type: 'input_file'; file_id: string }
+    | { type: 'mcp_approval_response'; approve: boolean; approval_request_id: string }
   >;
 };
 
@@ -102,6 +104,12 @@ export type OpenAIResponsesLocalShellCallOutput = {
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
+};
+
+export type OpenAIResponsesMCPApprovalResponse = {
+  type: 'mcp_approval_response';
+  approve: boolean;
+  approval_request_id: string;
 };
 
 /**
@@ -522,7 +530,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             server_label: z.string(),
             name: z.string(),
             arguments: z.string(),
-            approval_request_id: z.string(),
+            approval_request_id: z.string().optional(),
           }),
         ]),
       }),
@@ -862,7 +870,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
             server_label: z.string(),
             name: z.string(),
             arguments: z.string(),
-            approval_request_id: z.string(),
+            approval_request_id: z.string().optional(),
           }),
         ]),
       ),
