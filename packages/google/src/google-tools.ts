@@ -1,4 +1,5 @@
 import { codeExecution } from './tool/code-execution';
+import { fileSearch } from './tool/file-search';
 import { googleSearch } from './tool/google-search';
 import { urlContext } from './tool/url-context';
 
@@ -14,6 +15,17 @@ export const googleTools = {
    * Must have name "url_context".
    */
   urlContext,
+  /**
+   * Enables Retrieval Augmented Generation (RAG) via the Gemini File Search tool.
+   * Must have name "file_search".
+   *
+   * @param fileSearchStoreNames - Fully-qualified File Search store resource names.
+   * @param metadataFilter - Optional filter expression to restrict the files that can be retrieved.
+   * @param maxResults - Optional result limit for the number of chunks returned from File Search.
+   *
+   * @see https://ai.google.dev/gemini-api/docs/file-search
+   */
+  fileSearch,
   /**
    * A tool that enables the model to generate and run Python code.
    * Must have name "code_execution".
