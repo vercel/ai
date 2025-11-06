@@ -32,11 +32,7 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'stop'
   | 'resumeStream'
   | 'addToolResult'
-<<<<<<< HEAD
-=======
   | 'addToolOutput'
-  | 'addToolApprovalResponse'
->>>>>>> ab1087bac (feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()` (#10039))
   | 'status'
   | 'messages'
   | 'clearError'
@@ -132,15 +128,10 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     error,
     resumeStream: chatRef.current.resumeStream,
     status,
-<<<<<<< HEAD
-    addToolResult: chatRef.current.addToolResult,
-=======
     /**
      * @deprecated Use `addToolOutput` instead.
      */
     addToolResult: chatRef.current.addToolOutput,
     addToolOutput: chatRef.current.addToolOutput,
-    addToolApprovalResponse: chatRef.current.addToolApprovalResponse,
->>>>>>> ab1087bac (feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()` (#10039))
   };
 }
