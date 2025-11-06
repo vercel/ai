@@ -4,9 +4,11 @@ import { run } from '../lib/run';
 import 'dotenv/config';
 
 if (!process.env.GOOGLE_TEMP_OAUTH_KEY) {
-    console.log('Access token not found!')
-    console.log('Access oauth token by following the steps mentioned here: https://platform.openai.com/docs/guides/tools-connectors-mcp#authorizing-a-connector');
-    process.exit(1);
+  console.log('Access token not found!');
+  console.log(
+    'Access oauth token by following the steps mentioned here: https://platform.openai.com/docs/guides/tools-connectors-mcp#authorizing-a-connector',
+  );
+  process.exit(1);
 }
 
 run(async () => {
@@ -17,7 +19,7 @@ run(async () => {
       mcp: openai.tools.mcp({
         serverLabel: 'google_calendar',
         connectorId: 'connector_googlecalendar',
-        authorization: process.env.GOOGLE_TEMP_OAUTH_KEY, 
+        authorization: process.env.GOOGLE_TEMP_OAUTH_KEY,
         serverDescription: 'A connector to access the google calendar',
       }),
     },

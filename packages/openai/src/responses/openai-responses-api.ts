@@ -212,9 +212,9 @@ export type OpenAIResponsesTool =
       size: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | undefined;
     }
 
-    /**
-     * Official OpenAI API Specifications: https://platform.openai.com/docs/api-reference/responses/create#responses_create-tools-mcp_tool
-     */
+  /**
+   * Official OpenAI API Specifications: https://platform.openai.com/docs/api-reference/responses/create#responses_create-tools-mcp_tool
+   */
   | {
       type: 'mcp';
       server_label: string;
