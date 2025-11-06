@@ -129,9 +129,10 @@ for await (const partialObject of partialObjectStream) {
 ```
 
 <Note>
-  Not all models support all modes. When using `mode: 'tool'`, the model will use function calling
-  to stream the structured output. When using `mode: 'json'`, the model will use JSON mode.
-  The default `mode: 'auto'` lets the provider choose the best mode.
+  Not all models support all modes. When using `mode: 'tool'`, the model will
+  use function calling to stream the structured output. When using `mode:
+  'json'`, the model will use JSON mode. The default `mode: 'auto'` lets the
+  provider choose the best mode.
 </Note>
 
 To see `streamObject` in action, check out the [additional examples](#more-examples).
