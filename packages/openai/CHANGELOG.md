@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.64
+
+### Patch Changes
+
+- d251e53: feat(openai): add `o3-deep-research` and `o4-mini-deep-research` models
+
 ## 2.0.63
 
 ### Patch Changes
