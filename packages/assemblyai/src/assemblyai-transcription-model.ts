@@ -265,6 +265,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
 
   /**
    * Polls the given transcript until we have a status other than `processing` or `queued`.
+   *
+   * @see https://www.assemblyai.com/docs/getting-started/transcribe-an-audio-file#step-33
    */
   private async waitForCompletion(
     transcriptId: string,
