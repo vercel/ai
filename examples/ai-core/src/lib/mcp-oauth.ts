@@ -5,7 +5,6 @@ import type {
   OAuthTokens,
 } from '@ai-sdk/mcp';
 import { createServer } from 'node:http';
-import { exec } from 'node:child_process';
 
 /**
  * Minimal OAuth client provider for MCP Server
@@ -29,22 +28,9 @@ class MinimalOAuthProvider implements OAuthClientProvider {
   }
 
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
-    console.log('\nOpening browser for MCP authorization...');
-    console.log(`Callback server: ${this._redirectUrl}\n`);
-
-    const cmd =
-      process.platform === 'win32'
-        ? `start ${authorizationUrl.toString()}`
-        : process.platform === 'darwin'
-          ? `open "${authorizationUrl.toString()}"`
-          : `xdg-open "${authorizationUrl.toString()}"`;
-
-    exec(cmd, error => {
-      if (error) {
-        console.log('Please open this URL in your browser:');
-        console.log(authorizationUrl.toString());
-      }
-    });
+    console.log('\nPlease open this URL in your browser to authorize:');
+    console.log(authorizationUrl.toString());
+    console.log(`\nCallback server: ${this._redirectUrl}\n`);
   }
 
   async saveCodeVerifier(codeVerifier: string): Promise<void> {

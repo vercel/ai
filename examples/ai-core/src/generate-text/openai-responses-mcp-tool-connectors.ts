@@ -3,6 +3,12 @@ import { generateText } from 'ai';
 import { run } from '../lib/run';
 import 'dotenv/config';
 
+if (!process.env.GOOGLE_TEMP_OAUTH_KEY) {
+    console.log('Access token not found!')
+    console.log('Access oauth token by following the steps mentioned here: https://platform.openai.com/docs/guides/tools-connectors-mcp#authorizing-a-connector');
+    process.exit(1);
+}
+
 run(async () => {
   const result = await generateText({
     model: openai.responses('gpt-5-mini'),
@@ -11,14 +17,16 @@ run(async () => {
       mcp: openai.tools.mcp({
         serverLabel: 'google_calendar',
         connectorId: 'connector_googlecalendar',
-        authorization: process.env.GOOGLE_TEMP_OAUTH_KEY, // access oauth token by following the steps mentioned [here](https://platform.openai.com/docs/guides/tools-connectors-mcp#authorizing-a-connector)
+        authorization: process.env.GOOGLE_TEMP_OAUTH_KEY, 
         serverDescription: 'A connector to access the google calendar',
       }),
     },
   });
 
-  console.dir(result.response.body, { depth: Infinity });
+  console.log('\nTOOL CALLS:\n');
   console.dir(result.toolCalls, { depth: Infinity });
+  console.log('\nTOOL RESULTS:\n');
   console.dir(result.toolResults, { depth: Infinity });
+  console.log('\nTEXT RESULT:\n');
   console.log(result.text);
 });

@@ -22,7 +22,8 @@ run(async () => {
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
-  console.log('\n=== Other Outputs ===');
+  console.log('\nTOOL CALLS:\n');
   console.log(await result.toolCalls);
+  console.log('\nTOOL RESULTS:\n');
   console.log(await result.toolResults);
 });

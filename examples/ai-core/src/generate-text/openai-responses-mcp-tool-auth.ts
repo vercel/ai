@@ -22,8 +22,10 @@ run(async () => {
     },
   });
 
-  console.dir(result.response.body, { depth: Infinity });
+  console.log('\nTOOL CALLS:\n');
   console.dir(result.toolCalls, { depth: Infinity });
+  console.log('\nTOOL RESULTS:\n');
   console.dir(result.toolResults, { depth: Infinity });
+  console.log('\nTEXT RESULT:\n');
   console.log(result.text);
 });
