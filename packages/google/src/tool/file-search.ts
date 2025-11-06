@@ -5,34 +5,39 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+/** Tool to retrieve knowledge from the File Search Stores. */
 const fileSearchArgsBaseSchema = z
   .object({
+    /** The names of the file_search_stores to retrieve from.
+     *  Example: `fileSearchStores/my-file-search-store-123`
+     */
     fileSearchStoreNames: z
       .array(z.string())
-      .min(1, 'At least one File Search store name must be provided.')
       .describe(
-        'Fully-qualified names of the File Search stores to retrieve context from.',
-      ),
-    metadataFilter: z
-      .string()
-      .describe(
-        'Optional metadata filter expression used to narrow the set of files searched.',
+        'The names of the file_search_stores to retrieve from. Example: `fileSearchStores/my-file-search-store-123`',
       )
       .optional(),
-    maxResults: z
+    /** The number of file search retrieval chunks to retrieve. */
+    topK: z
       .number()
       .int()
       .positive()
+      .describe('The number of file search retrieval chunks to retrieve.')
+      .optional(),
+
+    /** Metadata filter to apply to the file search retrieval documents.
+     *  See https://google.aip.dev/160 for the syntax of the filter expression.
+     */
+    metadataFilter: z
+      .string()
       .describe(
-        'Optional limit for the number of chunks that File Search should return across all stores.',
+        'Metadata filter to apply to the file search retrieval documents. See https://google.aip.dev/160 for the syntax of the filter expression.',
       )
       .optional(),
   })
   .passthrough();
 
-export type GoogleFileSearchToolArgs = z.infer<
-  typeof fileSearchArgsBaseSchema
->;
+export type GoogleFileSearchToolArgs = z.infer<typeof fileSearchArgsBaseSchema>;
 
 const fileSearchArgsSchema = lazySchema(() =>
   zodSchema(fileSearchArgsBaseSchema),
