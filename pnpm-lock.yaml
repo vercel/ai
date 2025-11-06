@@ -226,7 +226,7 @@ importers:
   examples/angular:
     dependencies:
       '@ai-sdk/angular':
-        specifier: 2.0.0-beta.93
+        specifier: 2.0.0-beta.94
         version: link:../../packages/angular
       '@ai-sdk/openai':
         specifier: 3.0.0-beta.54
@@ -253,7 +253,7 @@ importers:
         specifier: ^20.3.2
         version: 20.3.2(@angular/common@20.3.2(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.2(@angular/common@20.3.2(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1)))(rxjs@7.8.2)
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -305,7 +305,7 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -333,7 +333,7 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -361,7 +361,7 @@ importers:
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -389,7 +389,7 @@ importers:
         specifier: ^1.10.2
         version: 1.17.3
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -432,7 +432,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.9(@nestjs/common@10.4.15(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.2)
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -508,13 +508,13 @@ importers:
   examples/next:
     dependencies:
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       next:
         specifier: ^15.5.4
@@ -572,13 +572,13 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       next:
         specifier: ^15.5.4
@@ -630,10 +630,10 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -685,7 +685,7 @@ importers:
         specifier: 4.0.0-beta.59
         version: link:../../packages/google-vertex
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -725,10 +725,10 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/langchain':
-        specifier: 2.0.0-beta.93
+        specifier: 2.0.0-beta.94
         version: link:../../packages/langchain
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
@@ -737,7 +737,7 @@ importers:
         specifier: 0.0.28
         version: 0.0.28(encoding@0.1.13)
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
@@ -822,10 +822,10 @@ importers:
         specifier: 4.0.0-beta.31
         version: link:../../packages/provider-utils
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@ai-sdk/rsc':
-        specifier: 2.0.0-beta.93
+        specifier: 2.0.0-beta.94
         version: link:../../packages/rsc
       '@ai-sdk/xai':
         specifier: 3.0.0-beta.35
@@ -849,7 +849,7 @@ importers:
         specifier: ^0.0.21
         version: 0.0.21
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       class-variance-authority:
         specifier: ^0.7.1
@@ -928,13 +928,13 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@vercel/functions':
         specifier: ^3.1.0
         version: 3.1.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       next:
         specifier: ^15.5.4
@@ -983,10 +983,10 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       next:
         specifier: ^15.5.4
@@ -1035,7 +1035,7 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1050,7 +1050,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       next:
         specifier: ^15.5.4
@@ -1099,7 +1099,7 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1120,7 +1120,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       next:
         specifier: ^15.5.4
@@ -1169,7 +1169,7 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -1178,7 +1178,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       next:
         specifier: ^15.5.4
@@ -1227,7 +1227,7 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -1252,10 +1252,10 @@ importers:
         specifier: 3.0.0-beta.54
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 3.0.0-beta.93
+        specifier: 3.0.0-beta.94
         version: link:../../packages/vue
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       zod:
         specifier: 3.25.76
@@ -1310,7 +1310,7 @@ importers:
         specifier: 4.0.0-beta.31
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 4.0.0-beta.93
+        specifier: 4.0.0-beta.94
         version: link:../../packages/svelte
       '@eslint/compat':
         specifier: ^1.2.5
@@ -1328,7 +1328,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.3(svelte@5.32.1)(vite@6.2.7(@types/node@22.7.4)(jiti@2.4.0)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.7.0))
       ai:
-        specifier: 6.0.0-beta.93
+        specifier: 6.0.0-beta.94
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
