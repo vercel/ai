@@ -2400,7 +2400,6 @@ describe('Chat', () => {
                 "providerExecuted": undefined,
                 "rawInput": undefined,
                 "state": "output-available",
-                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
               },
