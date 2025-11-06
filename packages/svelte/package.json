@@ -25,7 +25,8 @@
     "src",
     "!src/**/*.test.*",
     "!src/**/*.spec.*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "sideEffects": [
     "**/*.css"
