@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.89
+
+### Patch Changes
+
+- 7cfada6: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+
 ## 5.0.88
 
 ### Patch Changes
