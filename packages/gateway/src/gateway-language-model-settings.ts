@@ -90,6 +90,7 @@ export type GatewayModelId =
   | 'openai/gpt-oss-safeguard-20b'
   | 'openai/o1'
   | 'openai/o3'
+  | 'openai/o3-deep-research'
   | 'openai/o3-mini'
   | 'openai/o4-mini'
   | 'perplexity/sonar'

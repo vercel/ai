@@ -444,7 +444,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let isFirstChunk = true;
+    let metadataExtracted = false;
     let isActiveText = false;
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
@@ -480,13 +480,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               return;
             }
 
-            if (isFirstChunk) {
-              isFirstChunk = false;
-
-              controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
+            // extract and emit response metadata once. Usually it comes in the first chunk.
+            // Azure may prepend a chunk with a `"prompt_filter_results"` key which does not contain other metadata,
+            // https://learn.microsoft.com/en-us/azure/ai-foundry/openai/concepts/content-filter-annotations?tabs=powershell
+            if (!metadataExtracted) {
+              const metadata = getResponseMetadata(value);
+              if (Object.values(metadata).some(Boolean)) {
+                metadataExtracted = true;
+                controller.enqueue({
+                  type: 'response-metadata',
+                  ...getResponseMetadata(value),
+                });
+              }
             }
 
             if (value.usage != null) {
@@ -737,18 +742,6 @@ function getSystemMessageMode(modelId: string) {
 }
 
 const reasoningModels = {
-  'o1-mini': {
-    systemMessageMode: 'remove',
-  },
-  'o1-mini-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
   o3: {
     systemMessageMode: 'developer',
   },

@@ -1,5 +1,26 @@
 # @ai-sdk/gateway
 
+## 2.0.7
+
+### Patch Changes
+
+- 46dcc02: feat(provider/gateway): Add o3-deep-research to gateway model string autocomplete
+
+## 2.0.6
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
 ## 2.0.4
 
 ### Patch Changes

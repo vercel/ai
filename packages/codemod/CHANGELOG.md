@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.12
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+
 ## 2.0.11
 
 ### Patch Changes

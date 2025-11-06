@@ -1373,6 +1373,9 @@ importers:
         specifier: 1.9.0
         version: 1.9.0
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -1428,6 +1431,9 @@ importers:
         specifier: ^1.0.20
         version: 1.0.20
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1459,6 +1465,9 @@ importers:
         specifier: ^3.25.76 || ^4.1.8
         version: 3.25.76
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1493,6 +1502,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1518,6 +1530,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1546,6 +1561,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1682,6 +1700,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1707,6 +1728,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1735,6 +1759,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1788,6 +1815,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1813,6 +1843,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1841,6 +1874,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1869,6 +1905,9 @@ importers:
         specifier: 3.0.3
         version: 3.0.3
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 18.15.11
         version: 18.15.11
@@ -1894,6 +1933,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1919,6 +1961,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1953,6 +1998,9 @@ importers:
         specifier: ^9.15.0
         version: 9.15.0(encoding@0.1.13)
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1978,6 +2026,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2006,6 +2057,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2031,6 +2085,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2094,6 +2151,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2119,6 +2179,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2147,6 +2210,9 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2172,6 +2238,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2197,6 +2266,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2222,6 +2294,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2247,6 +2322,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2294,8 +2372,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       eventsource-parser:
-        specifier: ^3.0.5
-        version: 3.0.5
+        specifier: ^3.0.6
+        version: 3.0.6
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -2389,6 +2467,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2414,6 +2495,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2524,6 +2608,9 @@ importers:
         specifier: workspace:*
         version: link:../ai
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@eslint/compat':
         specifier: ^1.2.5
         version: 1.2.7(eslint@9.21.0(jiti@2.4.0))
@@ -2585,6 +2672,25 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/test-server:
+    dependencies:
+      msw:
+        specifier: ^2.7.0
+        version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
@@ -2597,6 +2703,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -2684,6 +2793,9 @@ importers:
         specifier: ^3.25.76 || ^4.1.8
         version: 3.25.76
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.6.3
@@ -2736,6 +2848,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -12089,6 +12204,10 @@ packages:
   eventsource-parser@3.0.5:
     resolution: {integrity: sha512-bSRG85ZrMdmWtm7qkF9He9TNRzc/Bm99gEJMaQoHJ9E6Kv9QBbsldh2oMj7iXmYNEAVvNgvv5vPorG6W+XtBhQ==}
     engines: {node: '>=20.0.0'}
+
+  eventsource-parser@3.0.6:
+    resolution: {integrity: sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg==}
+    engines: {node: '>=18.0.0'}
 
   eventsource@3.0.5:
     resolution: {integrity: sha512-LT/5J605bx5SNyE+ITBDiM3FxffBiq9un7Vx0EwMDM3vg8sWKx/tO2zC+LMqZ+smAM0F2hblaDZUVZF0te2pSw==}
@@ -30939,9 +31058,11 @@ snapshots:
 
   eventsource-parser@3.0.5: {}
 
+  eventsource-parser@3.0.6: {}
+
   eventsource@3.0.5:
     dependencies:
-      eventsource-parser: 3.0.5
+      eventsource-parser: 3.0.6
 
   execa@5.1.1:
     dependencies:

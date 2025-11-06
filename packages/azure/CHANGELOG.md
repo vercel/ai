@@ -1,5 +1,50 @@
 # @ai-sdk/azure
 
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [d251e53]
+  - @ai-sdk/openai@2.0.64
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [3b62c49]
+  - @ai-sdk/openai@2.0.63
+
+## 2.0.63
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - @ai-sdk/openai@2.0.62
+
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [28ce89a]
+  - @ai-sdk/openai@2.0.61
+
+## 2.0.61
+
+### Patch Changes
+
+- Updated dependencies [3e42838]
+  - @ai-sdk/openai@2.0.60
+
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - @ai-sdk/openai@2.0.59
+
 ## 2.0.59
 
 ### Patch Changes

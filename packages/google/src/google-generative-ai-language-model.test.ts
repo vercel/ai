@@ -2,10 +2,8 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
-import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
   GoogleGenerativeAILanguageModel,
   getGroundingMetadataSchema,
@@ -90,6 +88,22 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].web with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          web: {
+            // Missing `title`
+            uri: 'https://example.com/weather',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates complete grounding metadata with Vertex AI Search results', () => {
     const metadata = {
       retrievalQueries: ['How to make appointment to renew driving license?'],
@@ -110,6 +124,22 @@ describe('groundingMetadataSchema', () => {
           segment_text: 'ipsum lorem ...',
           supportChunkIndices: [1, 2],
           confidenceScore: [0.9541752, 0.97726375],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            // Missing `title`
+            uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+          },
         },
       ],
     };

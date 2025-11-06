@@ -1,5 +1,22 @@
 # @ai-sdk/deepseek
 
+## 1.0.27
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/openai-compatible@1.0.26
+  - @ai-sdk/provider-utils@3.0.16
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - @ai-sdk/openai-compatible@1.0.25
+
 ## 1.0.25
 
 ### Patch Changes

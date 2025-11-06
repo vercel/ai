@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "1.0.83",
+  "version": "1.0.88",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
   "main": "dist/index.cjs",
@@ -34,6 +34,7 @@
     "ai": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "8.57.1",

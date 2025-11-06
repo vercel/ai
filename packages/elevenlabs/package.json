@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/elevenlabs",
-  "version": "1.0.16",
+  "version": "1.0.18",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -36,6 +36,7 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",

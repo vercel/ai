@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "2.0.83",
+  "version": "2.0.88",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -35,6 +35,7 @@
     "swrv": "^1.0.4"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
     "@testing-library/vue": "^8.1.0",

@@ -1,5 +1,44 @@
 # @ai-sdk/openai
 
+## 2.0.64
+
+### Patch Changes
+
+- d251e53: feat(openai): add `o3-deep-research` and `o4-mini-deep-research` models
+
+## 2.0.63
+
+### Patch Changes
+
+- 3b62c49: fix(openai): extract meta data from first chunk that contains any
+
+## 2.0.62
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.61
+
+### Patch Changes
+
+- 28ce89a: fix(openai): add support for sources type 'api'
+
+## 2.0.60
+
+### Patch Changes
+
+- 3e42838: fix: remove code for unsuported o1-mini and o1-preview models
+
+## 2.0.59
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
 ## 2.0.58
 
 ### Patch Changes

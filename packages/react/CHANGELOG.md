@@ -1,5 +1,42 @@
 # @ai-sdk/react
 
+## 2.0.88
+
+### Patch Changes
+
+- ai@5.0.88
+
+## 2.0.87
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - ai@5.0.87
+
+## 2.0.86
+
+### Patch Changes
+
+- Updated dependencies [0f92046]
+  - ai@5.0.86
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - ai@5.0.85
+
+## 2.0.84
+
+### Patch Changes
+
+- Updated dependencies [a017497]
+  - ai@5.0.84
+
 ## 2.0.83
 
 ### Patch Changes
