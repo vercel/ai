@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 2.0.89
+
+### Patch Changes
+
+- 7cfada6: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+- Updated dependencies [7cfada6]
+  - ai@5.0.89
+
 ## 2.0.88
 
 ### Patch Changes
