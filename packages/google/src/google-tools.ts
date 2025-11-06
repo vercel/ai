@@ -21,7 +21,7 @@ export const googleTools = {
    *
    * @param fileSearchStoreNames - Fully-qualified File Search store resource names.
    * @param metadataFilter - Optional filter expression to restrict the files that can be retrieved.
-   * @param maxResults - Optional result limit for the number of chunks returned from File Search.
+   * @param topK - Optional result limit for the number of chunks returned from File Search.
    *
    * @see https://ai.google.dev/gemini-api/docs/file-search
    */

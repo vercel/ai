@@ -505,7 +505,7 @@ const { text, sources } = await generateText({
         'projects/my-project/locations/us/fileSearchStores/my-store',
       ],
       metadataFilter: 'author = "Robert Graves"',
-      maxResults: 8,
+      topK: 8,
     }),
   },
   prompt: "Summarise the key themes of 'I, Claudius'.",

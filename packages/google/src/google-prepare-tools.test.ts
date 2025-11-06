@@ -174,7 +174,7 @@ it('should correctly prepare file search tool', () => {
         args: {
           fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
           metadataFilter: 'author=Robert Graves',
-          maxResults: 5,
+          topK: 5,
         },
       },
     ],
@@ -186,7 +186,7 @@ it('should correctly prepare file search tool', () => {
       fileSearch: {
         fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
         metadataFilter: 'author=Robert Graves',
-        maxResults: 5,
+        topK: 5,
       },
     },
   ]);
