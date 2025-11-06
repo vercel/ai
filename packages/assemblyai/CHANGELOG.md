@@ -1,5 +1,11 @@
 # @ai-sdk/assemblyai
 
+## 1.0.19
+
+### Patch Changes
+
+- 6d9f40c: adding polling to assemblyai transcribe async
+
 ## 1.0.18
 
 ### Patch Changes
