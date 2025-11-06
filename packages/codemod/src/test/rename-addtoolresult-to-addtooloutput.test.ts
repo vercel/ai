@@ -8,10 +8,6 @@ describe('rename-addtoolresult-to-addtooloutput', () => {
   });
 
   it('does not transform from other packages', () => {
-    testTransform(
-      transformer,
-      'rename-addtoolresult-to-addtooloutput-not-ai',
-    );
+    testTransform(transformer, 'rename-addtoolresult-to-addtooloutput-not-ai');
   });
 });
-
