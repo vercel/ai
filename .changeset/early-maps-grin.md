@@ -3,5 +3,4 @@
 'ai': patch
 ---
 
-rename chat.addToolResult() to addToolOutput();
-mark addToolResult() as deprecated.
+feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
