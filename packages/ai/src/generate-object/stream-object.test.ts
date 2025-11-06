@@ -1367,12 +1367,7 @@ describe('streamObject', () => {
       `);
 
       expect(mockModel.doStreamCalls[0].responseFormat).toMatchInlineSnapshot(`
-        {
-          "description": undefined,
-          "name": undefined,
-          "schema": undefined,
-          "type": "json",
-        }
+        undefined
       `);
     });
   });

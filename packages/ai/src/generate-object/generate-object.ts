@@ -236,6 +236,7 @@ Default and recommended: 'auto' (best mode for the model).
     schema: inputSchema,
     schemaDescription,
     schemaName,
+    mode = 'auto',
   } = 'schema' in options ? options : {};
 
   validateObjectGenerationInput({
@@ -350,13 +351,34 @@ Default and recommended: 'auto' (best mode for the model).
             }),
             tracer,
             fn: async span => {
+              const useToolMode = mode === 'tool';
+              const toolName = schemaName ?? 'json';
+
               const result = await model.doGenerate({
-                responseFormat: {
-                  type: 'json',
-                  schema: jsonSchema,
-                  name: schemaName,
-                  description: schemaDescription,
-                },
+                responseFormat:
+                  useToolMode || jsonSchema == null
+                    ? undefined
+                    : {
+                        type: 'json',
+                        schema: jsonSchema,
+                        name: schemaName,
+                        description: schemaDescription,
+                      },
+                tools:
+                  useToolMode && jsonSchema != null
+                    ? [
+                        {
+                          type: 'function' as const,
+                          name: toolName,
+                          description:
+                            schemaDescription ?? 'Respond with a JSON object.',
+                          inputSchema: jsonSchema,
+                        },
+                      ]
+                    : undefined,
+                toolChoice: useToolMode
+                  ? { type: 'tool' as const, toolName }
+                  : undefined,
                 ...prepareCallSettings(settings),
                 prompt: promptMessages,
                 providerOptions,
@@ -372,8 +394,30 @@ Default and recommended: 'auto' (best mode for the model).
                 body: result.response?.body,
               };
 
-              const text = extractTextContent(result.content);
+              let text: string | undefined;
               const reasoning = extractReasoningContent(result.content);
+
+              if (useToolMode) {
+                const toolCall = result.content.find(
+                  (part): part is Extract<typeof part, { type: 'tool-call' }> =>
+                    part.type === 'tool-call' && part.toolName === toolName,
+                );
+
+                if (toolCall == null) {
+                  throw new NoObjectGeneratedError({
+                    message:
+                      'No object generated: the model did not call the function.',
+                    response: responseData,
+                    usage: result.usage,
+                    finishReason: result.finishReason,
+                  });
+                }
+
+                text =
+                  toolCall.type === 'tool-call' ? toolCall.input : undefined;
+              } else {
+                text = extractTextContent(result.content);
+              }
 
               if (text === undefined) {
                 throw new NoObjectGeneratedError({

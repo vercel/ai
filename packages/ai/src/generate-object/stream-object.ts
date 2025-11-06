@@ -324,6 +324,7 @@ Callback that is called when the LLM response and the final object validation ar
     schema: inputSchema,
     schemaDescription,
     schemaName,
+    mode = 'auto',
   } = 'schema' in options ? options : {};
 
   validateObjectGenerationInput({
@@ -353,6 +354,7 @@ Callback that is called when the LLM response and the final object validation ar
     messages,
     schemaName,
     schemaDescription,
+    mode,
     providerOptions,
     repairText,
     onError,
@@ -400,6 +402,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     messages,
     schemaName,
     schemaDescription,
+    mode = 'auto',
     providerOptions,
     repairText,
     onError,
@@ -421,6 +424,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     messages: Prompt['messages'];
     schemaName: string | undefined;
     schemaDescription: string | undefined;
+    mode?: 'auto' | 'json' | 'tool';
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
     onError: StreamObjectOnErrorCallback;
@@ -499,13 +503,35 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           messages,
         } as Prompt);
 
+        const jsonSchema = await outputStrategy.jsonSchema();
+        const useToolMode = mode === 'tool';
+        const toolName = schemaName ?? 'json';
+
         const callOptions = {
-          responseFormat: {
-            type: 'json' as const,
-            schema: await outputStrategy.jsonSchema(),
-            name: schemaName,
-            description: schemaDescription,
-          },
+          responseFormat:
+            useToolMode || jsonSchema == null
+              ? undefined
+              : {
+                  type: 'json' as const,
+                  schema: jsonSchema,
+                  name: schemaName,
+                  description: schemaDescription,
+                },
+          tools:
+            useToolMode && jsonSchema != null
+              ? [
+                  {
+                    type: 'function' as const,
+                    name: toolName,
+                    description:
+                      schemaDescription ?? 'Respond with a JSON object.',
+                    inputSchema: jsonSchema,
+                  },
+                ]
+              : undefined,
+          toolChoice: useToolMode
+            ? { type: 'tool' as const, toolName }
+            : undefined,
           ...prepareCallSettings(settings),
           prompt: await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
@@ -526,6 +552,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             switch (chunk.type) {
               case 'text-delta':
                 controller.enqueue(chunk.delta);
+                break;
+              case 'tool-input-delta':
+                if (useToolMode) {
+                  controller.enqueue(chunk.delta);
+                }
                 break;
               case 'response-metadata':
               case 'finish':

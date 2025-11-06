@@ -994,12 +994,7 @@ describe('generateObject', () => {
       ]
     `);
       expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
-      {
-        "description": undefined,
-        "name": undefined,
-        "schema": undefined,
-        "type": "json",
-      }
+      undefined
     `);
     });
   });
