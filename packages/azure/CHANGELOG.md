@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 2.0.66
+
+### Patch Changes
+
+- 98054a7: Support idempotent doGenerate/doStream with pre-supplied result chunks in Responses API tests.
+
 ## 2.0.65
 
 ### Patch Changes
