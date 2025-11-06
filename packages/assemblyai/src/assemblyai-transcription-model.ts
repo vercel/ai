@@ -178,14 +178,9 @@ interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   pollingInterval?: number;
 }
 
-<<<<<<< HEAD
 export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
   readonly specificationVersion = 'v2';
-=======
-export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
   private readonly POLLING_INTERVAL_MS = 3000;
->>>>>>> b400d6743 (feat(assemblyai): add polling mechanism for async transcription (#10052))
 
   get provider(): string {
     return this.config.provider;
