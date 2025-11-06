@@ -31,7 +31,7 @@ the error is thrown as a regular error.
 You can handle these errors using the `try/catch` block.
 
 ```ts highlight="3,12-14"
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 
 try {
   const { textStream } = streamText({
@@ -55,7 +55,7 @@ It is recommended to also add a try-catch block for errors that
 happen outside of the streaming.
 
 ```ts highlight="13-21"
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 
 try {
   const { fullStream } = streamText({

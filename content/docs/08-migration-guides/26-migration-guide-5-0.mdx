@@ -9,11 +9,38 @@ description: Learn how to upgrade AI SDK 4.0 to 5.0.
 
 1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
 1. Upgrade to AI SDK 5.0.
-1. Automatically migrate your code using [codemods](#codemods).
-   > If you don't want to use codemods, we recommend resolving all deprecation warnings before upgrading to AI SDK 5.0.
+1. Automatically migrate your code using one of these approaches:
+   - Use the [AI SDK 5 Migration MCP Server](#ai-sdk-5-migration-mcp-server) for AI-assisted migration in Cursor or other MCP-compatible coding agents
+   - Use [codemods](#codemods) to automatically transform your code
 1. Follow the breaking changes guide below.
 1. Verify your project is working as expected.
 1. Commit your changes.
+
+## AI SDK 5 Migration MCP Server
+
+The [AI SDK 5 Migration Model Context Protocol (MCP) Server](https://github.com/vercel-labs/ai-sdk-5-migration-mcp-server) provides an automated way to migrate your project using a coding agent. This server has been designed for Cursor, but should work with any coding agent that supports MCP.
+
+To get started, create or edit `.cursor/mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "ai-sdk-5-migration": {
+      "url": "https://ai-sdk-5-migration-mcp-server.vercel.app/api/mcp"
+    }
+  }
+}
+```
+
+After saving, open the command palette (Cmd+Shift+P on macOS, Ctrl+Shift+P on Windows/Linux) and search for "View: Open MCP Settings". Verify the new server appears and is toggled on.
+
+Then use this prompt:
+
+```
+Please migrate this project to AI SDK 5 using the ai-sdk-5-migration mcp server. Start by creating a checklist.
+```
+
+For more information, see the [AI SDK 5 Migration MCP Server repository](https://github.com/vercel-labs/ai-sdk-5-migration-mcp-server).
 
 ## AI SDK 5.0 Package Versions
 
@@ -880,6 +907,74 @@ Tool UI parts now use more granular states that better represent the streaming l
 - `result` → `output-available` (tool execution successful)
 - New: `output-error` (tool execution failed)
 
+#### Rendering Tool Invocations (Catch-All Pattern)
+
+In v4, you typically rendered tool invocations using a catch-all `tool-invocation` type. In v5, the **recommended approach is to handle each tool specifically using its typed part name (e.g., `tool-getWeather`)**. However, if you need a catch-all pattern for rendering all tool invocations the same way, you can use the `isToolUIPart` and `getToolName` helper functions as a fallback.
+
+```tsx filename="AI SDK 4.0"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'text':
+        return <div key={index}>{part.text}</div>;
+      case 'tool-invocation':
+        const { toolInvocation } = part;
+        return (
+          <details key={`tool-${toolInvocation.toolCallId}`}>
+            <summary>
+              <span>{toolInvocation.toolName}</span>
+              {toolInvocation.state === 'result' ? (
+                <span>Click to expand</span>
+              ) : (
+                <span>calling...</span>
+              )}
+            </summary>
+            {toolInvocation.state === 'result' ? (
+              <div>
+                <pre>{JSON.stringify(toolInvocation.result, null, 2)}</pre>
+              </div>
+            ) : null}
+          </details>
+        );
+    }
+  });
+}
+```
+
+```tsx filename="AI SDK 5.0"
+import { isToolUIPart, getToolName } from 'ai';
+
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'text':
+        return <div key={index}>{part.text}</div>;
+      default:
+        if (isToolUIPart(part)) {
+          const toolInvocation = part;
+          return (
+            <details key={`tool-${toolInvocation.toolCallId}`}>
+              <summary>
+                <span>{getToolName(toolInvocation)}</span>
+                {toolInvocation.state === 'output-available' ? (
+                  <span>Click to expand</span>
+                ) : (
+                  <span>calling...</span>
+                )}
+              </summary>
+              {toolInvocation.state === 'output-available' ? (
+                <div>
+                  <pre>{JSON.stringify(toolInvocation.output, null, 2)}</pre>
+                </div>
+              ) : null}
+            </details>
+          );
+        }
+    }
+  });
+}
+```
+
 #### Media Type Standardization
 
 `mimeType` has been renamed to `mediaType` for consistency. Both image and file types are supported in model messages.
@@ -1199,15 +1294,15 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 
-const { messages, sendMessage, addToolResult } = useChat({
+const { messages, sendMessage, addToolOutput } = useChat({
   // Automatically submit when all tool results are available
   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
   async onToolCall({ toolCall }) {
     const result = await executeToolCall(toolCall);
 
-    // Important: Don't await addToolResult inside onToolCall to avoid deadlocks
-    addToolResult({
+    // Important: Don't await addToolOutput inside onToolCall to avoid deadlocks
+    addToolOutput({
       tool: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
       output: result,
@@ -1218,7 +1313,7 @@ const { messages, sendMessage, addToolResult } = useChat({
 
 <Note>
   Important: When using `sendAutomaticallyWhen`, don't use `await` with
-  `addToolResult` inside `onToolCall` as it can cause deadlocks. The `await` is
+  `addToolOutput` inside `onToolCall` as it can cause deadlocks. The `await` is
   useful when you're not using automatic submission and need to ensure the
   messages are updated before manually calling `sendMessage()`.
 </Note>
@@ -1518,9 +1613,9 @@ import type { RequestOptions } from 'ai';
 import type { CompletionRequestOptions } from 'ai';
 ```
 
-#### addToolResult Changes
+#### addToolResult Renamed to addToolOutput
 
-In the `addToolResult` function, the `result` parameter has been renamed to `output` for consistency with other tool-related APIs.
+The `addToolResult` method has been renamed to `addToolOutput`. Additionally, the `result` parameter has been renamed to `output` for consistency with other tool-related APIs.
 
 ```tsx filename="AI SDK 4.0"
 const { addToolResult } = useChat();
@@ -1533,24 +1628,29 @@ addToolResult({
 ```
 
 ```tsx filename="AI SDK 5.0"
-const { addToolResult } = useChat();
+const { addToolOutput } = useChat();
 
-// Add tool result with 'output' parameter and 'tool' name for type safety
-addToolResult({
+// Add tool output with 'output' parameter and 'tool' name for type safety
+addToolOutput({
   tool: 'getWeather',
   toolCallId: 'tool-call-123',
   output: 'Weather: 72°F, sunny',
 });
 ```
 
+<Note>
+  `addToolResult` is still available but deprecated. It will be removed in
+  version 6.
+</Note>
+
 #### Tool Result Submission Changes
 
 The automatic tool result submission behavior has been updated in `useChat` and the `Chat` component. You now have more control and flexibility over when tool results are submitted.
 
 - `onToolCall` no longer supports returning values to automatically submit tool results
-- You must explicitly call `addToolResult` to provide tool results
+- You must explicitly call `addToolOutput` to provide tool results
 - Use `sendAutomaticallyWhen` with `lastAssistantMessageIsCompleteWithToolCalls` helper for automatic submission
-- Important: Don't use `await` with `addToolResult` inside `onToolCall` to avoid deadlocks
+- Important: Don't use `await` with `addToolOutput` inside `onToolCall` to avoid deadlocks
 - The `maxSteps` parameter has been removed from the `Chat` component and `useChat` hook
 - For multi-step tool execution, use server-side `stopWhen` conditions instead (see [maxSteps Removal](#maxsteps-removal))
 
@@ -1575,7 +1675,7 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 
-const { messages, sendMessage, addToolResult } = useChat({
+const { messages, sendMessage, addToolOutput } = useChat({
   // Automatic submission with helper
   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
@@ -1584,7 +1684,7 @@ const { messages, sendMessage, addToolResult } = useChat({
       const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
       // Important: Don't await inside onToolCall to avoid deadlocks
-      addToolResult({
+      addToolOutput({
         tool: 'getLocation',
         toolCallId: toolCall.toolCallId,
         output: cities[Math.floor(Math.random() * cities.length)],
@@ -2807,6 +2907,12 @@ await generateText({
 
 ## Message Persistence Changes
 
+<Note>
+  If you have persisted messages in a database, see the [Data Migration
+  Guide](/docs/migration-guides/migration-guide-5-0-data) for comprehensive
+  guidance on migrating your stored message data to the v5 format.
+</Note>
+
 In v4, you would typically use helper functions like `appendResponseMessages` or `appendClientMessage` to format messages in the `onFinish` callback of `streamText`:
 
 ```tsx filename="AI SDK 4.0"
@@ -2857,8 +2963,8 @@ const result = streamText({
 });
 
 return result.toUIMessageStreamResponse({
-  originalMessages: messages, // Pass original messages for context
-  generateMessageId: () => generateId(), // ID generation moved here for UI messages
+  originalMessages: messages, // IMPORTANT: Required to prevent duplicate messages
+  generateMessageId: () => generateId(), // IMPORTANT: Required for proper message ID generation
   onFinish: ({ messages, responseMessage }) => {
     // messages contains all messages (original + response) in UIMessage format
     saveChat({ chatId, messages });
@@ -2868,6 +2974,14 @@ return result.toUIMessageStreamResponse({
   },
 });
 ```
+
+<Note>
+  **Important:** When using `toUIMessageStreamResponse`, you should always
+  provide both `originalMessages` and `generateMessageId` parameters. Without
+  these, you may experience duplicate or repeated assistant messages in your UI.
+  For more details, see [Troubleshooting: Repeated Assistant
+  Messages](/docs/troubleshooting/repeated-assistant-messages).
+</Note>
 
 ### Message ID Generation
 
@@ -2911,6 +3025,7 @@ import { openai } from '@ai-sdk/openai';
 
 const stream = createUIMessageStream({
   originalMessages: messages,
+  generateId: generateId, // Required for proper message ID generation
   execute: ({ writer }) => {
     // Write custom data parts
     writer.write({
@@ -2939,29 +3054,101 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs
+#### Default Provider Instance Uses Responses API
 
-The `structuredOutputs` parameter has been replaced with the `strictJsonSchema` provider option. It is now disabled by default.
+In AI SDK 5, the default OpenAI provider instance uses the Responses API, while AI SDK 4 used the Chat Completions API. The Chat Completions API remains fully supported and you can use it with `openai.chat(...)`.
 
 ```tsx filename="AI SDK 4.0"
 import { openai } from '@ai-sdk/openai';
 
+const defaultModel = openai('gpt-4.1-mini'); // Chat Completions API
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+
+const defaultModel = openai('gpt-4.1-mini'); // Responses API
+
+// Specify a specific API when needed:
+const chatCompletionsModel = openai.chat('gpt-4.1-mini');
+const responsesModel = openai.responses('gpt-4.1-mini');
+```
+
+<Note>
+  The Responses and Chat Completions APIs have different behavior and defaults.
+  If you depend on the Chat Completions API, switch your model instance to
+  `openai.chat(...)` and audit your configuration.
+</Note>
+
+#### Strict Schemas (`strictSchemas`) with Responses API
+
+In AI SDK 4.0, you could set the `strictSchemas` option on Responses models (which defaulted to `true`). This option has been renamed to `strictJsonSchema` in AI SDK 5.0 and now defaults to `false`.
+
+```tsx filename="AI SDK 4.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
 const result = await generateObject({
-  model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
-  schema: z.object({ name: z.string() }),
+  model: openai.responses('gpt-4.1'),
+  schema: z.object({
+    // ...
+  }),
+  providerOptions: {
+    openai: {
+      strictSchemas: true, // default behaviour in AI SDK 4
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
 import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 
 const result = await generateObject({
-  model: openai('gpt-4.1-2024-08-06'),
+  model: openai('gpt-4.1-2024'), // uses Responses API
+  schema: z.object({
+    // ...
+  }),
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // defaults to false, opt back in to the AI SDK 4 strict behaviour
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+```
+
+If you call `openai.chat(...)` to use the Chat Completions API directly, you can type it with `OpenAIChatLanguageModelOptions`. AI SDK 5 adds the same `strictJsonSchema` option there as well.
+
+#### Structured Outputs
+
+The `structuredOutputs` option is now configured using provider options rather than as a setting on the model instance.
+
+```tsx filename="AI SDK 4.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai('gpt-4.1', { structuredOutputs: true }), // use Chat Completions API
+  schema: z.object({ name: z.string() }),
+});
+```
+
+```tsx filename="AI SDK 5.0 (Chat Completions API)"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai.chat('gpt-4.1'), // use Chat Completions API
   schema: z.object({ name: z.string() }),
   providerOptions: {
     openai: {
-      strictJsonSchema: true, // renamed and opt-in via provider options
-    } satisfies OpenAIResponsesProviderOptions,
+      structuredOutputs: true,
+    } satisfies OpenAIChatLanguageModelOptions,
   },
 });
 ```

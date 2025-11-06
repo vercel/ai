@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   InferUITools,
@@ -93,10 +93,18 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-5-mini'),
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5), // multi-steps for server-side tools
     tools,
+    providerOptions: {
+      openai: {
+        // store: false,
+      } satisfies OpenAIResponsesProviderOptions,
+    },
+    onStepFinish({ request }) {
+      console.dir(request.body, { depth: Infinity });
+    },
   });
 
   return result.toUIMessageStreamResponse({

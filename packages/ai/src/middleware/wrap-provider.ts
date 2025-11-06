@@ -1,6 +1,7 @@
-import type { ProviderV3 } from '@ai-sdk/provider';
+import type { ProviderV2, ProviderV3 } from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { wrapLanguageModel } from './wrap-language-model';
+import { asProviderV3 } from '../model/as-provider-v3';
 
 /**
  * Wraps a ProviderV3 instance with middleware functionality.
@@ -17,23 +18,21 @@ export function wrapProvider({
   provider,
   languageModelMiddleware,
 }: {
-  provider: ProviderV3;
+  provider: ProviderV3 | ProviderV2;
   languageModelMiddleware: LanguageModelMiddleware | LanguageModelMiddleware[];
 }): ProviderV3 {
-  const wrappedProvider = {
-    languageModel(modelId: string) {
-      let model = provider.languageModel(modelId);
-      model = wrapLanguageModel({
-        model,
+  const providerV3 = asProviderV3(provider);
+  return {
+    specificationVersion: 'v3',
+    languageModel: (modelId: string) =>
+      wrapLanguageModel({
+        model: providerV3.languageModel(modelId),
         middleware: languageModelMiddleware,
-      });
-      return model;
-    },
-    textEmbeddingModel: provider.textEmbeddingModel,
-    imageModel: provider.imageModel,
-    transcriptionModel: provider.transcriptionModel,
-    speechModel: provider.speechModel,
+      }),
+    textEmbeddingModel: providerV3.textEmbeddingModel,
+    imageModel: providerV3.imageModel,
+    transcriptionModel: providerV3.transcriptionModel,
+    speechModel: providerV3.speechModel,
+    rerankingModel: providerV3.rerankingModel,
   };
-
-  return wrappedProvider;
 }

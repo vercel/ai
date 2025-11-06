@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV3,
+  TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -220,8 +220,8 @@ interface RevaiTranscriptionModelConfig extends RevaiConfig {
   };
 }
 
-export class RevaiTranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class RevaiTranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
@@ -236,8 +236,8 @@ export class RevaiTranscriptionModel implements TranscriptionModelV2 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV3CallWarning[] = [];
 
     // Parse provider options
     const revaiOptions = await parseProviderOptions({
@@ -314,8 +314,8 @@ export class RevaiTranscriptionModel implements TranscriptionModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 

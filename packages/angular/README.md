@@ -163,7 +163,7 @@ await chat.regenerate(options?: {
 });
 
 // Add tool execution result
-chat.addToolResult({
+chat.addToolOutput({
   toolCallId: string;
   output: string;
 });

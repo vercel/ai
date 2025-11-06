@@ -370,7 +370,7 @@ describe('assistant messages', () => {
                   text: 'Here is the generated image:',
                 },
                 {
-                  type: 'media',
+                  type: 'image-data',
                   data: 'base64encodedimagedata',
                   mediaType: 'image/jpeg',
                 },

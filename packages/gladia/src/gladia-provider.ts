@@ -1,5 +1,5 @@
 import {
-  TranscriptionModelV2,
+  TranscriptionModelV3,
   ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
@@ -19,7 +19,7 @@ export interface GladiaProvider extends ProviderV3 {
   /**
 Creates a model for transcription.
    */
-  transcription(): TranscriptionModelV2;
+  transcription(): TranscriptionModelV3;
 }
 
 export interface GladiaProviderSettings {
@@ -73,6 +73,7 @@ export function createGladia(
     };
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 

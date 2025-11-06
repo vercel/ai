@@ -11,6 +11,7 @@ import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { delay } from '@ai-sdk/provider-utils';
+import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 
 class TestChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -1450,7 +1451,7 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
-    it('should delay tool result submission until the stream is finished', async () => {
+    it('should delay tool output submission until the stream is finished', async () => {
       const controller1 = new TestResponseController();
 
       server.urls['http://localhost:3000/api/chat'].response = [
@@ -1499,14 +1500,14 @@ describe('Chat', () => {
 
       await toolCallPromise.promise;
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1532,11 +1533,12 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "rawInput": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
               },
@@ -1586,7 +1588,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
@@ -1600,7 +1602,7 @@ describe('Chat', () => {
       `);
     });
 
-    it('should send message when a tool result is submitted', async () => {
+    it('should send message when a tool output is submitted', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
         {
           type: 'stream-chunks',
@@ -1650,14 +1652,14 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1683,11 +1685,12 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "rawInput": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
               },
@@ -1728,7 +1731,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
@@ -1792,15 +1795,15 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         state: 'output-error',
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
         errorText: 'test-error',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1831,6 +1834,7 @@ describe('Chat', () => {
                 "providerExecuted": undefined,
                 "rawInput": undefined,
                 "state": "output-error",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
               },
@@ -1885,7 +1889,7 @@ describe('Chat', () => {
       `);
     });
 
-    it('should send message when a dynamic tool result is submitted', async () => {
+    it('should send message when a dynamic tool output is submitted', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
         {
           type: 'stream-chunks',
@@ -1908,6 +1912,13 @@ describe('Chat', () => {
           chunks: [
             formatChunk({ type: 'start' }),
             formatChunk({ type: 'start-step' }),
+            formatChunk({ type: 'text-start', id: 'id-1' }),
+            formatChunk({
+              type: 'text-delta',
+              id: 'id-1',
+              delta: 'test-delta',
+            }),
+            formatChunk({ type: 'text-end', id: 'id-1' }),
             formatChunk({ type: 'finish-step' }),
             formatChunk({ type: 'finish' }),
           ],
@@ -1936,15 +1947,15 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         state: 'output-available',
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1970,9 +1981,11 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
+                "providerExecuted": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "toolName": "test-tool",
                 "type": "dynamic-tool",
@@ -2014,7 +2027,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "toolName": "test-tool",
@@ -2027,6 +2040,245 @@ describe('Chat', () => {
           "trigger": "submit-message",
         }
       `);
+
+      // UI should show the response
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-output",
+                "preliminary": undefined,
+                "providerExecuted": undefined,
+                "state": "output-available",
+                "title": undefined,
+                "toolCallId": "tool-call-0",
+                "toolName": "test-tool",
+                "type": "dynamic-tool",
+              },
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "done",
+                "text": "test-delta",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should not send message when the server responded with an error', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              dynamic: true,
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+        {
+          type: 'error',
+          status: 500,
+          body: 'Internal Server Error',
+        },
+      ];
+
+      let callCount = 0;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => {
+          callCount++;
+          if (callCount === 2) {
+            onFinishPromise.resolve();
+          }
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      // user submits the tool output
+      await chat.addToolOutput({
+        state: 'output-available',
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+
+      // UI should show the tool output
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-output",
+                "preliminary": undefined,
+                "providerExecuted": undefined,
+                "state": "output-available",
+                "title": undefined,
+                "toolCallId": "tool-call-0",
+                "toolName": "test-tool",
+                "type": "dynamic-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      await onFinishPromise.promise;
+
+      // 2nd call should happen after the stream is finished
+      expect(server.calls.length).toBe(2);
+
+      // check details of the 2nd call
+      expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "123",
+          "messageId": "id-1",
+          "messages": [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "input": {
+                    "testArg": "test-value",
+                  },
+                  "output": "test-output",
+                  "state": "output-available",
+                  "toolCallId": "tool-call-0",
+                  "toolName": "test-tool",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "trigger": "submit-message",
+        }
+      `);
+
+      // UI should not show the response
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-output",
+                "preliminary": undefined,
+                "providerExecuted": undefined,
+                "state": "output-available",
+                "title": undefined,
+                "toolCallId": "tool-call-0",
+                "toolName": "test-tool",
+                "type": "dynamic-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      // UI should be in error state
+      expect(chat.status).toBe('error');
+      expect(chat.error).toMatchInlineSnapshot(
+        `[Error: Internal Server Error]`,
+      );
     });
   });
 
@@ -2064,6 +2316,360 @@ describe('Chat', () => {
 
       expect(chat.error).toBeUndefined();
       expect(chat.status).toBe('ready');
+    });
+  });
+
+  describe('addToolApprovalResponse', () => {
+    describe('approved', () => {
+      let chat: TestChat;
+
+      beforeEach(async () => {
+        chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+      });
+
+      it('should update tool invocation to show the approval response', () => {
+        expect(chat.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "What is the weather in Tokyo?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": undefined,
+                  },
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "state": "approval-responded",
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('approved with automatic sending', () => {
+      let chat: TestChat;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      beforeEach(async () => {
+        server.urls['http://localhost:3000/api/chat'].response = [
+          {
+            type: 'stream-chunks',
+            chunks: [
+              formatChunk({ type: 'start' }),
+              formatChunk({ type: 'start-step' }),
+              formatChunk({
+                type: 'tool-output-available',
+                toolCallId: 'call-1',
+                output: { temperature: 72, weather: 'sunny' },
+              }),
+              formatChunk({ type: 'text-start', id: 'txt-1' }),
+              formatChunk({
+                type: 'text-delta',
+                id: 'txt-1',
+                delta: 'The weather in Tokyo is sunny.',
+              }),
+              formatChunk({ type: 'text-end', id: 'txt-1' }),
+              formatChunk({ type: 'finish-step' }),
+              formatChunk({ type: 'finish' }),
+            ],
+          },
+        ];
+
+        chat = new TestChat({
+          id: '123',
+          generateId: mockId({ prefix: 'newid' }),
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                { type: 'step-start' },
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+          sendAutomaticallyWhen:
+            lastAssistantMessageIsCompleteWithApprovalResponses,
+          onFinish: () => {
+            onFinishPromise.resolve();
+          },
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+
+        await onFinishPromise.promise;
+      });
+
+      it('should update tool invocation to show the approval response', () => {
+        expect(chat.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "What is the weather in Tokyo?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": undefined,
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "city": "Tokyo",
+                  },
+                  "output": {
+                    "temperature": 72,
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in Tokyo is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+  });
+
+  describe('addToolResult', () => {
+    it('should send message when a tool result is submitted', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+      ];
+
+      let callCount = 0;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => {
+          callCount++;
+          if (callCount === 2) {
+            onFinishPromise.resolve();
+          }
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      // user submits the tool output
+      await chat.addToolResult({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+
+      // UI should show the tool output
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-output",
+                "preliminary": undefined,
+                "providerExecuted": undefined,
+                "rawInput": undefined,
+                "state": "output-available",
+                "title": undefined,
+                "toolCallId": "tool-call-0",
+                "type": "tool-test-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      await onFinishPromise.promise;
+
+      // 2nd call should happen after the stream is finished
+      expect(server.calls.length).toBe(2);
+
+      // check details of the 2nd call
+      expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "123",
+          "messageId": "id-1",
+          "messages": [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "input": {
+                    "testArg": "test-value",
+                  },
+                  "output": "test-output",
+                  "state": "output-available",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "trigger": "submit-message",
+        }
+      `);
     });
   });
 });
