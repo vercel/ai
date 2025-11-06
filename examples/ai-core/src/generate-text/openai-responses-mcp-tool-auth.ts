@@ -17,7 +17,6 @@ run(async () => {
         serverLabel: 'vercel',
         serverUrl,
         authorization: `${accessToken}`,
-        requireApproval: 'never',
         serverDescription: 'A project management tool / API for AI agents',
       }),
     },

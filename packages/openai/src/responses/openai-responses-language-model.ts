@@ -121,7 +121,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
-    const { input: convertedInput, warnings: inputWarnings } =
+    const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
         systemMessageMode: modelConfig.systemMessageMode,
@@ -131,12 +131,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
 
     warnings.push(...inputWarnings);
-
-    // Append additional input items (e.g., MCP approval responses)
-    const input = [
-      ...convertedInput,
-      ...(openaiOptions?.additionalInput ?? []),
-    ];
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
@@ -660,7 +654,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               serverLabel: part.server_label,
               name: part.name,
               arguments: part.arguments,
-              approvalRequestId: part.approval_request_id ?? part.id,
+              approvalRequestId: part.approval_request_id,
             } satisfies InferSchema<typeof mcpOutputSchema>,
           });
           break;
@@ -1147,8 +1141,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     serverLabel: value.item.server_label,
                     name: value.item.name,
                     arguments: value.item.arguments,
-                    approvalRequestId:
-                      value.item.approval_request_id ?? value.item.id,
+                    approvalRequestId: value.item.approval_request_id,
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
               } else if (value.item.type === 'local_shell_call') {

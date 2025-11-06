@@ -163,19 +163,6 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
       textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
       truncation: z.enum(['auto', 'disabled']).nullish(),
       user: z.string().nullish(),
-      /**
-       * Additional input items to append to the converted input.
-       * Useful for passing MCP approval responses and other raw input items.
-       */
-      additionalInput: z
-        .array(
-          z.object({
-            type: z.literal('mcp_approval_response'),
-            approve: z.boolean(),
-            approval_request_id: z.string(),
-          }),
-        )
-        .nullish(),
     }),
   ),
 );

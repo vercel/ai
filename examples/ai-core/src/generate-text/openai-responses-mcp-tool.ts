@@ -10,8 +10,6 @@ run(async () => {
       mcp: openai.tools.mcp({
         serverLabel: 'dmcp',
         serverUrl: 'https://mcp.exa.ai/mcp',
-        // connectorId: process.env.MCP_CONNECTOR_ID,
-        requireApproval: 'never',
         serverDescription: 'A web-search API for AI agents',
       }),
     },

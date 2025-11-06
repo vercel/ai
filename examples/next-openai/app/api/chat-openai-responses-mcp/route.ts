@@ -12,7 +12,6 @@ const tools = {
   mcp: openai.tools.mcp({
     serverLabel: 'exaMCP',
     serverUrl: 'https://mcp.exa.ai/mcp',
-    requireApproval: 'never',
     serverDescription: 'A project management tool / API for AI agents',
   }),
 } as const;

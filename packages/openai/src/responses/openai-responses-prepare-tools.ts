@@ -177,15 +177,16 @@ export async function prepareResponsesTools({
               authorization: args.authorization,
               connector_id: args.connectorId,
               headers: args.headers,
-              require_approval:
-                typeof args.requireApproval === 'string'
-                  ? args.requireApproval
-                  : args.requireApproval
-                    ? {
-                        read_only: args.requireApproval.readOnly,
-                        tool_names: args.requireApproval.toolNames,
-                      }
-                    : undefined,
+              // require_approval:
+              //   typeof args.requireApproval === 'string'
+              //     ? args.requireApproval
+              //     : args.requireApproval
+              //       ? {
+              //           read_only: args.requireApproval.readOnly,
+              //           tool_names: args.requireApproval.toolNames,
+              //         }
+              //       : undefined,
+              require_approval: 'never',
               server_description: args.serverDescription,
               server_url: args.serverUrl,
             });

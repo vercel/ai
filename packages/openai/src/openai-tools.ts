@@ -98,7 +98,7 @@ export const openaiTools = {
    * @param authorization - OAuth access token for the MCP server/connector.
    * @param connectorId - Identifier for a service connector.
    * @param headers - Optional headers to include in MCP requests.
-   * @param requireApproval - Approval policy ('always'|'never'|filter object).
+   * // param requireApproval - Approval policy ('always'|'never'|filter object). (Removed - always 'never')
    * @param serverDescription - Optional description of the server.
    * @param serverUrl - URL for the MCP server.
    */

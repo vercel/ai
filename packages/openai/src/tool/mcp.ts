@@ -34,15 +34,15 @@ export const mcpArgsSchema = lazySchema(() =>
         authorization: z.string().optional(),
         connectorId: z.string().optional(),
         headers: z.record(z.string(), z.string()).optional(),
-        requireApproval: z
-          .union([
-            z.enum(['always', 'never']),
-            z.object({
-              readOnly: z.boolean().optional(),
-              toolNames: z.array(z.string()).optional(),
-            }),
-          ])
-          .optional(),
+        // requireApproval: z
+        //   .union([
+        //     z.enum(['always', 'never']),
+        //     z.object({
+        //       readOnly: z.boolean().optional(),
+        //       toolNames: z.array(z.string()).optional(),
+        //     }),
+        //   ])
+        //   .optional(),
         serverDescription: z.string().optional(),
         serverUrl: z.string().optional(),
       })
@@ -106,14 +106,14 @@ type McpArgs = {
   connectorId?: string;
   /** Optional HTTP headers to send to the MCP server. */
   headers?: Record<string, string>;
-  /** Which tools require approval: 'always' | 'never' | filter object. */
-  requireApproval?:
-    | 'always'
-    | 'never'
-    | {
-        readOnly?: boolean;
-        toolNames?: string[];
-      };
+  // /** Which tools require approval: 'always' | 'never' | filter object. */
+  // requireApproval?:
+  //   | 'always'
+  //   | 'never'
+  //   | {
+  //       readOnly?: boolean;
+  //       toolNames?: string[];
+  //     };
   /** Optional description of the MCP server. */
   serverDescription?: string;
   /** URL for the MCP server. One of serverUrl or connectorId must be provided. */
