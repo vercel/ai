@@ -15,8 +15,7 @@ const fileSearchArgsBaseSchema = z
       .array(z.string())
       .describe(
         'The names of the file_search_stores to retrieve from. Example: `fileSearchStores/my-file-search-store-123`',
-      )
-      .optional(),
+      ),
     /** The number of file search retrieval chunks to retrieve. */
     topK: z
       .number()
