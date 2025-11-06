@@ -86,6 +86,36 @@ const { object } = await generateObject({
 });
 ```
 
+#### Example: using tool mode for structured output
+
+Some providers (like Groq, Google, and OpenRouter) work better with tool calling for structured output
+instead of JSON mode. You can use `mode: 'tool'` to generate objects using function calling:
+
+```ts highlight="8"
+import { groq } from '@ai-sdk/groq';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: groq('llama-3.3-70b-versatile'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+  mode: 'tool',
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
+<Note>
+  Not all models support all modes. When using `mode: 'tool'`, the model will use function calling
+  to generate the structured output. When using `mode: 'json'`, the model will use JSON mode.
+  The default `mode: 'auto'` lets the provider choose the best mode.
+</Note>
+
 To see `generateObject` in action, check out the [additional examples](#more-examples).
 
 ## Import
