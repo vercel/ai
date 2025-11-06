@@ -9,6 +9,7 @@
   "files": [
     "dist/**/*",
     "CHANGELOG.md",
+    "README.md",
     "test.d.ts"
   ],
   "scripts": {

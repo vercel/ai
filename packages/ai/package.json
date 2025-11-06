@@ -11,6 +11,7 @@
     "dist/**/*",
     "CHANGELOG.md",
     "internal.d.ts",
+    "README.md",
     "test.d.ts"
   ],
   "scripts": {
