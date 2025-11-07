@@ -422,7 +422,7 @@ describe('onToolCall', () => {
       async onToolCall({ toolCall }) {
         await toolCallPromise;
 
-        chat.addToolResult({
+        chat.addToolOutput({
           tool: 'test-tool',
           toolCallId: toolCall.toolCallId,
           output: `test-tool-response: ${toolCall.toolName} ${
@@ -700,7 +700,7 @@ describe('tool invocations', () => {
     ]);
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolOutput is called', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
@@ -734,7 +734,7 @@ describe('tool invocations', () => {
       ]);
     });
 
-    chat.addToolResult({
+    chat.addToolOutput({
       tool: 'test-tool',
       toolCallId: 'tool-call-0',
       output: 'test-result',

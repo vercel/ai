@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- 831b6cc: feat(openai): adding provider mcp tool for openai
+
 ## 3.0.0-beta.54
 
 ### Patch Changes

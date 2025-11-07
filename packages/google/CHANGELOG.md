@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- 2825757: Add Google File search tool
+
 ## 3.0.0-beta.39
 
 ### Patch Changes

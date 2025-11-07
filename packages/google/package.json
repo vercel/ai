@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google",
-  "version": "3.0.0-beta.39",
+  "version": "3.0.0-beta.40",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -9,6 +9,7 @@
   "files": [
     "dist/**/*",
     "CHANGELOG.md",
+    "README.md",
     "internal.d.ts"
   ],
   "scripts": {
