@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.42
+
+### Patch Changes
+
+- 035b927: fix: set providerExecuted on Anthropic web_fetch tool results
+
 ## 2.0.41
 
 ### Patch Changes
