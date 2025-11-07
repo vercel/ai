@@ -1,5 +1,9 @@
 import { prepareTools } from './google-prepare-tools';
+<<<<<<< HEAD
 import { it, expect } from 'vitest';
+=======
+import { LanguageModelV3ProviderDefinedTool } from '@ai-sdk/provider';
+>>>>>>> 2825757a6 (feat(google): Adding new Google File search tool (#10051))
 
 it('should return undefined tools and tool_choice when tools are null', () => {
   const result = prepareTools({
@@ -62,10 +66,24 @@ it('should correctly prepare provider-defined tools as array', () => {
         name: 'url_context',
         args: {},
       },
+      {
+        type: 'provider-defined',
+        id: 'google.file_search',
+        name: 'file_search',
+        args: { fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'] },
+      },
     ],
     modelId: 'gemini-2.5-flash',
   });
-  expect(result.tools).toEqual([{ googleSearch: {} }, { urlContext: {} }]);
+  expect(result.tools).toEqual([
+    { googleSearch: {} },
+    { urlContext: {} },
+    {
+      fileSearch: {
+        fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+      },
+    },
+  ]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
@@ -114,6 +132,69 @@ it('should add warnings for unsupported tools', () => {
       },
     ]
   `);
+});
+
+it('should add warnings for file search on unsupported models', () => {
+  const tool: LanguageModelV3ProviderDefinedTool = {
+    type: 'provider-defined' as const,
+    id: 'google.file_search',
+    name: 'file_search',
+    args: { fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'] },
+  };
+
+  const result = prepareTools({
+    tools: [tool],
+    modelId: 'gemini-1.5-flash-8b',
+  });
+
+  expect(result.tools).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "The file search tool is only supported with Gemini 2.5 models.",
+        "tool": {
+          "args": {
+            "fileSearchStoreNames": [
+              "projects/foo/fileSearchStores/bar",
+            ],
+          },
+          "id": "google.file_search",
+          "name": "file_search",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
+      },
+    ]
+  `);
+});
+
+it('should correctly prepare file search tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.file_search',
+        name: 'file_search',
+        args: {
+          fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+          metadataFilter: 'author=Robert Graves',
+          topK: 5,
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-pro',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      fileSearch: {
+        fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+        metadataFilter: 'author=Robert Graves',
+        topK: 5,
+      },
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
 });
 
 it('should handle tool choice "auto"', () => {
