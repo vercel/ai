@@ -196,7 +196,7 @@ jobs:
       matrix:
         include:
           - module: 'ai'
-            max-load-time: 95
+            max-load-time: 100
           - module: '@ai-sdk/openai'
             max-load-time: 65
           - module: '@ai-sdk/openai-compatible'

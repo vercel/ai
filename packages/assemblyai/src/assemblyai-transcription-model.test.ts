@@ -15,6 +15,8 @@ const model = provider.transcription('best');
 
 const server = createTestServer({
   'https://api.assemblyai.com/v2/transcript': {},
+  'https://api.assemblyai.com/v2/transcript/9ea68fd3-f953-42c1-9742-976c447fb463':
+    {},
   'https://api.assemblyai.com/v2/upload': {
     response: {
       type: 'json-value',
@@ -33,6 +35,16 @@ describe('doGenerate', () => {
     headers?: Record<string, string>;
   } = {}) {
     server.urls['https://api.assemblyai.com/v2/transcript'].response = {
+      type: 'json-value',
+      body: {
+        id: '9ea68fd3-f953-42c1-9742-976c447fb463',
+        status: 'queued',
+      },
+    };
+
+    server.urls[
+      'https://api.assemblyai.com/v2/transcript/9ea68fd3-f953-42c1-9742-976c447fb463'
+    ].response = {
       type: 'json-value',
       headers,
       body: {
@@ -220,7 +232,6 @@ describe('doGenerate', () => {
         summary_type: 'bullets',
         summary_model: 'informative',
         summary: '- Hello, world!',
-        topics: ['topics'],
         sentiment_analysis: true,
         entity_detection: true,
         entities: [
@@ -241,7 +252,6 @@ describe('doGenerate', () => {
         error: 'error',
         dual_channel: false,
         speed_boost: true,
-        custom_topics: true,
       },
     };
   }

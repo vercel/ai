@@ -1,21 +1,19 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { Agent, BasicAgent, InferAgentUIMessage, ToolSet } from 'ai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-const tools = {
-  web_search: openai.tools.webSearch({
-    searchContextSize: 'low',
-    userLocation: {
-      type: 'approximate',
-      city: 'San Francisco',
-      region: 'California',
-      country: 'US',
-    },
-  }),
-} satisfies ToolSet;
-
-export const openaiWebSearchAgent: Agent<typeof tools> = new BasicAgent({
+export const openaiWebSearchAgent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),
-  tools,
+  tools: {
+    web_search: openai.tools.webSearch({
+      searchContextSize: 'low',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+        country: 'US',
+      },
+    }),
+  },
   providerOptions: {
     openai: {
       reasoningEffort: 'medium',

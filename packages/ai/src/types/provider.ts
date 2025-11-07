@@ -1,6 +1,7 @@
 import { EmbeddingModel } from './embedding-model';
 import { LanguageModel } from './language-model';
 import { ImageModel } from './image-model';
+import { RerankingModel } from './reranking-model';
 
 /**
  * Provider for language, text embedding, and image models.
@@ -39,4 +40,16 @@ export type Provider = {
   @returns {ImageModel} The image model associated with the id
   */
   imageModel(modelId: string): ImageModel;
+
+  /**
+   Returns the reranking model with the given id.
+   The model id is then passed to the provider function to get the model.
+
+  @param {string} id - The id of the model to return.
+
+  @return {RerankingModel<VALUE>} The reranking model associated with the id
+
+  @throws {NoSuchModelError} If no such model exists.
+   */
+  rerankingModel(modelId: string): RerankingModel;
 };

@@ -165,6 +165,7 @@ export function createGoogleGenerativeAI(
     return createChatModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;

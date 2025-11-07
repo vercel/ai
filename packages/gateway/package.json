@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "2.0.0-beta.31",
+  "version": "2.0.0-beta.50",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -9,7 +9,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -35,7 +36,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@vercel/oidc": "3.0.2"
+    "@vercel/oidc": "3.0.3"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",

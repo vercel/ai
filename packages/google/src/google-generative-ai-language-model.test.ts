@@ -88,6 +88,22 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].web with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          web: {
+            // Missing `title`
+            uri: 'https://example.com/weather',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates complete grounding metadata with Vertex AI Search results', () => {
     const metadata = {
       retrievalQueries: ['How to make appointment to renew driving license?'],
@@ -108,6 +124,22 @@ describe('groundingMetadataSchema', () => {
           segment_text: 'ipsum lorem ...',
           supportChunkIndices: [1, 2],
           confidenceScore: [0.9541752, 0.97726375],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            // Missing `title`
+            uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+          },
         },
       ],
     };
@@ -1071,25 +1103,26 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toEqual([{ codeExecution: {} }]);
 
-    expect(content).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        input: '{"language":"PYTHON","code":"print(1+1)"}',
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        result: {
-          outcome: 'OUTCOME_OK',
-          output: '2',
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(1+1)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
         },
-        providerExecuted: true,
-      },
-    ]);
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "2",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
   });
 
   describe('search tool selection', () => {
@@ -2141,25 +2174,27 @@ describe('doStream', () => {
       e => e.type === 'tool-call' || e.type === 'tool-result',
     );
 
-    expect(toolEvents).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        input: '{"language":"PYTHON","code":"print(\\"hello\\")"}',
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        result: {
-          outcome: 'OUTCOME_OK',
-          output: 'hello\n',
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(\\"hello\\")"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
         },
-        providerExecuted: true,
-      },
-    ]);
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "hello
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
   });
 
   describe('search tool selection', () => {

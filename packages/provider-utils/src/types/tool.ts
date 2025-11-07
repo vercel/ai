@@ -2,6 +2,7 @@ import { JSONValue, LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
+import { ToolResultOutput } from './content-part';
 
 /**
  * Additional options that are sent into each tool call.
@@ -110,6 +111,11 @@ Not used for provider-defined tools.
   description?: string;
 
   /**
+   * An optional title of the tool.
+   */
+  title?: string;
+
+  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -164,7 +170,7 @@ If not provided, the tool result will be sent as a JSON object.
         : [OUTPUT] extends [never]
           ? any
           : NoInfer<OUTPUT>,
-    ) => LanguageModelV3ToolResultPart['output'];
+    ) => ToolResultOutput;
   } & (
     | {
         /**
@@ -233,10 +239,11 @@ export function tool(tool: any): any {
  */
 export function dynamicTool(tool: {
   description?: string;
+  title?: string;
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
-  toModelOutput?: (output: unknown) => LanguageModelV3ToolResultPart['output'];
+  toModelOutput?: (output: unknown) => ToolResultOutput;
 
   /**
    * Whether the tool needs approval before it can be executed.

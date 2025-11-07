@@ -1704,7 +1704,7 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'media',
+                      type: 'image-data',
                       mediaType: 'image/png',
                       data: 'base64_data',
                     },
@@ -1749,9 +1749,10 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'media',
+                      type: 'file-data',
                       mediaType: 'application/pdf',
                       data: base64Data,
+                      filename: 'document.pdf',
                     },
                   ],
                 },
@@ -1770,7 +1771,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "output": [
               {
                 "file_data": "data:application/pdf;base64,AQIDBAU=",
-                "filename": "data",
+                "filename": "document.pdf",
                 "type": "input_file",
               },
             ],
@@ -1799,12 +1800,12 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'The weather in San Francisco is 72°F',
                     },
                     {
-                      type: 'media',
+                      type: 'image-data',
                       mediaType: 'image/png',
                       data: 'base64_data',
                     },
                     {
-                      type: 'media',
+                      type: 'file-data',
                       mediaType: 'application/pdf',
                       data: base64Data,
                     },
@@ -1955,11 +1956,18 @@ describe('convertToOpenAIResponsesInput', () => {
                 toolName: 'web_search',
                 output: {
                   type: 'json',
-                  value: [
-                    {
-                      url: 'https://patch.com/california/san-francisco/calendar',
+                  value: {
+                    action: {
+                      type: 'search',
+                      query: 'San Francisco major news events June 22 2025',
                     },
-                  ],
+                    sources: [
+                      {
+                        type: 'url',
+                        url: 'https://patch.com/california/san-francisco/calendar',
+                      },
+                    ],
+                  },
                 },
               },
               {

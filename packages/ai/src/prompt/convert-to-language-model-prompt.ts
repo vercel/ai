@@ -3,6 +3,7 @@ import {
   LanguageModelV3Message,
   LanguageModelV3Prompt,
   LanguageModelV3TextPart,
+  LanguageModelV3ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
   DataContent,
@@ -13,6 +14,7 @@ import {
   ReasoningPart,
   TextPart,
   ToolCallPart,
+  ToolResultOutput,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import {
@@ -190,7 +192,7 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: part.output,
+                  output: mapToolResultOutput(part.output),
                   providerOptions,
                 };
               }
@@ -209,7 +211,7 @@ export function convertToLanguageModelMessage({
             type: 'tool-result' as const,
             toolCallId: part.toolCallId,
             toolName: part.toolName,
-            output: part.output,
+            output: mapToolResultOutput(part.output),
             providerOptions: part.providerOptions,
           })),
         providerOptions: message.providerOptions,
@@ -379,4 +381,37 @@ function convertPartToLanguageModelPart(
       };
     }
   }
+}
+
+function mapToolResultOutput(
+  output: ToolResultOutput,
+): LanguageModelV3ToolResultOutput {
+  if (output.type !== 'content') {
+    return output;
+  }
+
+  return {
+    type: 'content',
+    value: output.value.map(item => {
+      if (item.type !== 'media') {
+        return item;
+      }
+
+      // AI SDK 5 tool backwards compatibility:
+      // map media type to image-data or file-data
+      if (item.mediaType.startsWith('image/')) {
+        return {
+          type: 'image-data' as const,
+          data: item.data,
+          mediaType: item.mediaType,
+        };
+      }
+
+      return {
+        type: 'file-data' as const,
+        data: item.data,
+        mediaType: item.mediaType,
+      };
+    }),
+  };
 }

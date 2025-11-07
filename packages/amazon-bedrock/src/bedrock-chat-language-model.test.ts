@@ -1827,7 +1827,9 @@ describe('doGenerate', () => {
   it('should handle Anthropic provider-defined tools', async () => {
     mockPrepareAnthropicTools.mockReturnValue(
       Promise.resolve({
-        tools: [{ name: 'bash', type: 'bash_20241022' }],
+        tools: [
+          { name: 'bash', type: 'bash_20241022', cache_control: undefined },
+        ],
         toolChoice: { type: 'auto' },
         toolWarnings: [],
         betas: new Set(['computer-use-2024-10-22']),

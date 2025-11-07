@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "2.0.0-beta.49",
+  "version": "2.0.0-beta.94",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
   "main": "dist/index.cjs",
@@ -27,7 +27,8 @@
   },
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",

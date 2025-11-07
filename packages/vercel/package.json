@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vercel",
-  "version": "2.0.0-beta.18",
+  "version": "2.0.0-beta.32",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",

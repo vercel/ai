@@ -235,6 +235,7 @@ export function createOpenAI(
     return createLanguageModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;

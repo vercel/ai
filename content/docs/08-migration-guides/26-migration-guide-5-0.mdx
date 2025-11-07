@@ -1294,15 +1294,15 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 
-const { messages, sendMessage, addToolResult } = useChat({
+const { messages, sendMessage, addToolOutput } = useChat({
   // Automatically submit when all tool results are available
   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
   async onToolCall({ toolCall }) {
     const result = await executeToolCall(toolCall);
 
-    // Important: Don't await addToolResult inside onToolCall to avoid deadlocks
-    addToolResult({
+    // Important: Don't await addToolOutput inside onToolCall to avoid deadlocks
+    addToolOutput({
       tool: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
       output: result,
@@ -1313,7 +1313,7 @@ const { messages, sendMessage, addToolResult } = useChat({
 
 <Note>
   Important: When using `sendAutomaticallyWhen`, don't use `await` with
-  `addToolResult` inside `onToolCall` as it can cause deadlocks. The `await` is
+  `addToolOutput` inside `onToolCall` as it can cause deadlocks. The `await` is
   useful when you're not using automatic submission and need to ensure the
   messages are updated before manually calling `sendMessage()`.
 </Note>
@@ -1613,9 +1613,9 @@ import type { RequestOptions } from 'ai';
 import type { CompletionRequestOptions } from 'ai';
 ```
 
-#### addToolResult Changes
+#### addToolResult Renamed to addToolOutput
 
-In the `addToolResult` function, the `result` parameter has been renamed to `output` for consistency with other tool-related APIs.
+The `addToolResult` method has been renamed to `addToolOutput`. Additionally, the `result` parameter has been renamed to `output` for consistency with other tool-related APIs.
 
 ```tsx filename="AI SDK 4.0"
 const { addToolResult } = useChat();
@@ -1628,24 +1628,29 @@ addToolResult({
 ```
 
 ```tsx filename="AI SDK 5.0"
-const { addToolResult } = useChat();
+const { addToolOutput } = useChat();
 
-// Add tool result with 'output' parameter and 'tool' name for type safety
-addToolResult({
+// Add tool output with 'output' parameter and 'tool' name for type safety
+addToolOutput({
   tool: 'getWeather',
   toolCallId: 'tool-call-123',
   output: 'Weather: 72°F, sunny',
 });
 ```
 
+<Note>
+  `addToolResult` is still available but deprecated. It will be removed in
+  version 6.
+</Note>
+
 #### Tool Result Submission Changes
 
 The automatic tool result submission behavior has been updated in `useChat` and the `Chat` component. You now have more control and flexibility over when tool results are submitted.
 
 - `onToolCall` no longer supports returning values to automatically submit tool results
-- You must explicitly call `addToolResult` to provide tool results
+- You must explicitly call `addToolOutput` to provide tool results
 - Use `sendAutomaticallyWhen` with `lastAssistantMessageIsCompleteWithToolCalls` helper for automatic submission
-- Important: Don't use `await` with `addToolResult` inside `onToolCall` to avoid deadlocks
+- Important: Don't use `await` with `addToolOutput` inside `onToolCall` to avoid deadlocks
 - The `maxSteps` parameter has been removed from the `Chat` component and `useChat` hook
 - For multi-step tool execution, use server-side `stopWhen` conditions instead (see [maxSteps Removal](#maxsteps-removal))
 
@@ -1670,7 +1675,7 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 
-const { messages, sendMessage, addToolResult } = useChat({
+const { messages, sendMessage, addToolOutput } = useChat({
   // Automatic submission with helper
   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
@@ -1679,7 +1684,7 @@ const { messages, sendMessage, addToolResult } = useChat({
       const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
       // Important: Don't await inside onToolCall to avoid deadlocks
-      addToolResult({
+      addToolOutput({
         tool: 'getLocation',
         toolCallId: toolCall.toolCallId,
         output: cities[Math.floor(Math.random() * cities.length)],
@@ -3049,29 +3054,101 @@ return createUIMessageStreamResponse({ stream });
 
 ### OpenAI
 
-#### Structured Outputs
+#### Default Provider Instance Uses Responses API
 
-The `structuredOutputs` parameter has been replaced with the `strictJsonSchema` provider option. It is now disabled by default.
+In AI SDK 5, the default OpenAI provider instance uses the Responses API, while AI SDK 4 used the Chat Completions API. The Chat Completions API remains fully supported and you can use it with `openai.chat(...)`.
 
 ```tsx filename="AI SDK 4.0"
 import { openai } from '@ai-sdk/openai';
 
+const defaultModel = openai('gpt-4.1-mini'); // Chat Completions API
+```
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+
+const defaultModel = openai('gpt-4.1-mini'); // Responses API
+
+// Specify a specific API when needed:
+const chatCompletionsModel = openai.chat('gpt-4.1-mini');
+const responsesModel = openai.responses('gpt-4.1-mini');
+```
+
+<Note>
+  The Responses and Chat Completions APIs have different behavior and defaults.
+  If you depend on the Chat Completions API, switch your model instance to
+  `openai.chat(...)` and audit your configuration.
+</Note>
+
+#### Strict Schemas (`strictSchemas`) with Responses API
+
+In AI SDK 4.0, you could set the `strictSchemas` option on Responses models (which defaulted to `true`). This option has been renamed to `strictJsonSchema` in AI SDK 5.0 and now defaults to `false`.
+
+```tsx filename="AI SDK 4.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+
 const result = await generateObject({
-  model: openai('gpt-4.1-2024-08-06', { structuredOutputs: true }),
-  schema: z.object({ name: z.string() }),
+  model: openai.responses('gpt-4.1'),
+  schema: z.object({
+    // ...
+  }),
+  providerOptions: {
+    openai: {
+      strictSchemas: true, // default behaviour in AI SDK 4
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
 ```tsx filename="AI SDK 5.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
 import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 
 const result = await generateObject({
-  model: openai('gpt-4.1-2024-08-06'),
+  model: openai('gpt-4.1-2024'), // uses Responses API
+  schema: z.object({
+    // ...
+  }),
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // defaults to false, opt back in to the AI SDK 4 strict behaviour
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+```
+
+If you call `openai.chat(...)` to use the Chat Completions API directly, you can type it with `OpenAIChatLanguageModelOptions`. AI SDK 5 adds the same `strictJsonSchema` option there as well.
+
+#### Structured Outputs
+
+The `structuredOutputs` option is now configured using provider options rather than as a setting on the model instance.
+
+```tsx filename="AI SDK 4.0"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai('gpt-4.1', { structuredOutputs: true }), // use Chat Completions API
+  schema: z.object({ name: z.string() }),
+});
+```
+
+```tsx filename="AI SDK 5.0 (Chat Completions API)"
+import { z } from 'zod';
+import { generateObject } from 'ai';
+import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+
+const result = await generateObject({
+  model: openai.chat('gpt-4.1'), // use Chat Completions API
   schema: z.object({ name: z.string() }),
   providerOptions: {
     openai: {
-      strictJsonSchema: true, // renamed and opt-in via provider options
-    } satisfies OpenAIResponsesProviderOptions,
+      structuredOutputs: true,
+    } satisfies OpenAIChatLanguageModelOptions,
   },
 });
 ```
