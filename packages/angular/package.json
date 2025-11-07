@@ -27,7 +27,8 @@
   },
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",

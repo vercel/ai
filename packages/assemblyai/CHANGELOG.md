@@ -1,5 +1,11 @@
 # @ai-sdk/assemblyai
 
+## 2.0.0-beta.33
+
+### Patch Changes
+
+- b400d67: adding polling to assemblyai transcribe async
+
 ## 2.0.0-beta.32
 
 ### Patch Changes
