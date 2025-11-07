@@ -2279,6 +2279,62 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('mcp tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool.1');
+
+        result = await createModel('gpt-5-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'mcp',
+              args: {
+                serverLabel: 'dmcp',
+                serverUrl: 'https://mcp.exa.ai/mcp',
+                serverDescription: 'A web-search API for AI agents',
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-mini",
+            "tools": [
+              {
+                "require_approval": "never",
+                "server_description": "A web-search API for AI agents",
+                "server_label": "dmcp",
+                "server_url": "https://mcp.exa.ai/mcp",
+                "type": "mcp",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include mcp tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
     describe('file search tool', () => {
       let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
@@ -3798,6 +3854,30 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('mcp tool', () => {
+      it('should stream mcp tool results (list tools, tool calls, tool results)', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool.1');
+
+        const { stream } = await createModel('gpt-5-mini').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'mcp',
+              args: {
+                serverLabel: 'dmcp',
+                serverUrl: 'https://mcp.exa.ai/mcp',
+                serverDescription: 'A web-search API for AI agents',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
     });
 
