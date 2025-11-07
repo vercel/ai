@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.59
+
+### Patch Changes
+
+- a929a32: Add Google File search tool
+- Updated dependencies [a929a32]
+  - @ai-sdk/google@2.0.29
+
 ## 3.0.58
 
 ### Patch Changes

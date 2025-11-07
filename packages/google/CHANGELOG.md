@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.29
+
+### Patch Changes
+
+- a929a32: Add Google File search tool
+
 ## 2.0.28
 
 ### Patch Changes
