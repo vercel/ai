@@ -943,6 +943,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                             },
                           },
                         },
+                        providerExecuted: true,
                       });
                     } else if (
                       part.content.type === 'web_fetch_tool_result_error'
