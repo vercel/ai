@@ -211,7 +211,7 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
       if (deepgramOptions.encoding) {
         const newEncoding = deepgramOptions.encoding.toLowerCase();
 
-        // If encoding changes, we may need to clear container
+        // If encoding changes, we may need to clear incompatible parameters
         queryParams.encoding = newEncoding;
 
         // Validate container based on encoding
@@ -230,15 +230,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
               queryParams.container = deepgramOptions.container.toLowerCase();
             }
           } else if (newEncoding === 'opus') {
-            if (deepgramOptions.container.toLowerCase() !== 'ogg') {
-              warnings.push({
-                type: 'unsupported-setting',
-                setting: 'providerOptions',
-                details: `Encoding "opus" only supports container "ogg". Container "${deepgramOptions.container}" was ignored.`,
-              });
-            } else {
-              queryParams.container = 'ogg';
-            }
+            // opus requires ogg container, override any previous container setting
+            queryParams.container = 'ogg';
           } else if (['mp3', 'flac', 'aac'].includes(newEncoding)) {
             warnings.push({
               type: 'unsupported-setting',
@@ -259,24 +252,47 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
               queryParams.container = 'wav'; // Default for these encodings
             }
           } else if (newEncoding === 'opus') {
-            // Set default container if not already set
-            if (!queryParams.container) {
-              queryParams.container = 'ogg'; // Default for opus
-            }
+            // opus requires ogg container, override any previous container setting
+            queryParams.container = 'ogg';
           }
+        }
+
+        // Clean up sample_rate and bit_rate if they're incompatible with the new encoding
+        // Fixed sample rate encodings (mp3, opus, aac) don't support sample_rate parameter
+        if (['mp3', 'opus', 'aac'].includes(newEncoding)) {
+          delete queryParams.sample_rate;
+        }
+        // Lossless encodings without bitrate support (linear16, mulaw, alaw, flac) don't support bit_rate
+        if (['linear16', 'mulaw', 'alaw', 'flac'].includes(newEncoding)) {
+          delete queryParams.bit_rate;
         }
       } else if (deepgramOptions.container) {
         // Container specified without encoding - set default encoding
         const container = deepgramOptions.container.toLowerCase();
+        const oldEncoding = queryParams.encoding?.toLowerCase();
+        let newEncoding: string | undefined;
+        
         if (container === 'wav') {
           queryParams.container = 'wav';
-          queryParams.encoding = 'linear16'; // Default encoding for wav
+          newEncoding = 'linear16'; // Default encoding for wav
         } else if (container === 'ogg') {
           queryParams.container = 'ogg';
-          queryParams.encoding = 'opus'; // Default encoding for ogg
+          newEncoding = 'opus'; // Default encoding for ogg
         } else if (container === 'none') {
           queryParams.container = 'none';
-          queryParams.encoding = 'linear16'; // Default encoding for raw audio
+          newEncoding = 'linear16'; // Default encoding for raw audio
+        }
+        
+        // If encoding changed, clean up incompatible parameters
+        if (newEncoding && newEncoding !== oldEncoding) {
+          queryParams.encoding = newEncoding;
+          // Clean up sample_rate and bit_rate if they're incompatible with the new encoding
+          if (['mp3', 'opus', 'aac'].includes(newEncoding)) {
+            delete queryParams.sample_rate;
+          }
+          if (['linear16', 'mulaw', 'alaw', 'flac'].includes(newEncoding)) {
+            delete queryParams.bit_rate;
+          }
         }
       }
 

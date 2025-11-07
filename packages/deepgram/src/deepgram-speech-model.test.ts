@@ -264,4 +264,76 @@ describe('doGenerate', () => {
       JSON.stringify({ text: 'Hello, welcome to Deepgram!' }),
     );
   });
+
+  it('should clean up incompatible parameters when encoding changes via providerOptions', async () => {
+    prepareAudioResponse();
+
+    // Test case 1: outputFormat sets sample_rate, encoding changed to mp3 (fixed sample rate)
+    await model.doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      outputFormat: 'linear16_16000', // Sets: encoding=linear16, sample_rate=16000
+      providerOptions: {
+        deepgram: {
+          encoding: 'mp3', // Changes encoding to mp3
+        },
+      },
+    });
+
+    const url1 = new URL(server.calls[0].requestUrl);
+    expect(url1.searchParams.get('encoding')).toBe('mp3');
+    expect(url1.searchParams.get('sample_rate')).toBeNull(); // Should be removed
+
+    // Test case 2: outputFormat sets container for linear16, encoding changed to opus
+    await model.doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      outputFormat: 'linear16_16000', // Sets: encoding=linear16, container=wav
+      providerOptions: {
+        deepgram: {
+          encoding: 'opus', // Changes encoding to opus
+        },
+      },
+    });
+
+    const url2 = new URL(server.calls[1].requestUrl);
+    expect(url2.searchParams.get('encoding')).toBe('opus');
+    expect(url2.searchParams.get('container')).toBe('ogg'); // Should be ogg, not wav
+    expect(url2.searchParams.get('sample_rate')).toBeNull(); // Should be removed
+
+    // Test case 3: outputFormat sets bit_rate, encoding changed to linear16 (no bitrate support)
+    await model.doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      outputFormat: 'mp3', // Sets: encoding=mp3
+      providerOptions: {
+        deepgram: {
+          encoding: 'linear16', // Changes encoding to linear16
+          bitRate: 48000, // Try to set bitrate
+        },
+      },
+    });
+
+    const url3 = new URL(server.calls[2].requestUrl);
+    expect(url3.searchParams.get('encoding')).toBe('linear16');
+    expect(url3.searchParams.get('bit_rate')).toBeNull(); // Should be removed
+  });
+
+  it('should clean up incompatible parameters when container changes encoding implicitly', async () => {
+    prepareAudioResponse();
+
+    // Test case: outputFormat sets sample_rate, container changes encoding to opus
+    await model.doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      outputFormat: 'linear16_16000', // Sets: encoding=linear16, sample_rate=16000
+      providerOptions: {
+        deepgram: {
+          container: 'ogg', // Changes encoding to opus implicitly
+        },
+      },
+    });
+
+    const callIndex = server.calls.length - 1;
+    const url = new URL(server.calls[callIndex].requestUrl);
+    expect(url.searchParams.get('encoding')).toBe('opus');
+    expect(url.searchParams.get('container')).toBe('ogg');
+    expect(url.searchParams.get('sample_rate')).toBeNull(); // Should be removed (opus has fixed sample rate)
+  });
 });
