@@ -8,7 +8,7 @@
     "build:server": "tsc -p tsconfig.server.json",
     "build": "pnpm run build:app && pnpm run build:server",
     "watch": "ng build --watch --configuration development",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "del-cli dist *.tsbuildinfo"
   },
   "private": true,
   "dependencies": {
