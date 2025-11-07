@@ -3,20 +3,19 @@ import {
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
 import {
-  executeTool,
-  generateId,
   getErrorMessage,
+  IdGenerator,
   ModelMessage,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
+import { executeToolCall } from './execute-tool-call';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { isApprovalNeeded } from './is-approval-needed';
 import { parseToolCall } from './parse-tool-call';
+import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
@@ -66,6 +65,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       id: string;
       toolName: string;
       providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-delta';
@@ -78,6 +79,9 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       id: string;
       providerMetadata?: ProviderMetadata;
     }
+  | ToolApprovalRequestOutput<TOOLS>
+
+  // Other types:
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
@@ -110,6 +114,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   abortSignal,
   repairToolCall,
   experimental_context,
+  generateId,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
@@ -120,6 +125,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   experimental_context: unknown;
+  generateId: IdGenerator;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -225,7 +231,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             controller.enqueue(toolCall);
 
-            // handle invalid tool calls:
             if (toolCall.invalid) {
               toolResultsStreamController!.enqueue({
                 type: 'tool-error',
@@ -234,14 +239,18 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 input: toolCall.input,
                 error: getErrorMessage(toolCall.error!),
                 dynamic: true,
+                title: toolCall.title,
               });
-
               break;
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
 
-            toolInputs.set(toolCall.toolCallId, toolCall.input);
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              break;
+            }
 
             if (tool.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -253,6 +262,24 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               });
             }
 
+            if (
+              await isApprovalNeeded({
+                tool,
+                toolCall,
+                messages,
+                experimental_context,
+              })
+            ) {
+              toolResultsStreamController!.enqueue({
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall,
+              });
+              break;
+            }
+
+            toolInputs.set(toolCall.toolCallId, toolCall.input);
+
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
@@ -261,87 +288,21 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
               // because we want to process the next chunk as soon as possible.
               // This is important for the case where the tool execution takes a long time.
-              recordSpan({
-                name: 'ai.toolCall',
-                attributes: selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    ...assembleOperationName({
-                      operationId: 'ai.toolCall',
-                      telemetry,
-                    }),
-                    'ai.toolCall.name': toolCall.toolName,
-                    'ai.toolCall.id': toolCall.toolCallId,
-                    'ai.toolCall.args': {
-                      output: () => JSON.stringify(toolCall.input),
-                    },
-                  },
-                }),
+              executeToolCall({
+                toolCall,
+                tools,
                 tracer,
-                fn: async span => {
-                  let output: unknown;
-
-                  try {
-                    const stream = executeTool({
-                      execute: tool.execute!.bind(tool),
-                      input: toolCall.input,
-                      options: {
-                        toolCallId: toolCall.toolCallId,
-                        messages,
-                        abortSignal,
-                        experimental_context,
-                      },
-                    });
-
-                    for await (const part of stream) {
-                      toolResultsStreamController!.enqueue({
-                        ...toolCall,
-                        type: 'tool-result',
-                        output: part.output,
-                        ...(part.type === 'preliminary' && {
-                          preliminary: true,
-                        }),
-                      });
-
-                      if (part.type === 'final') {
-                        output = part.output;
-                      }
-                    }
-                  } catch (error) {
-                    recordErrorOnSpan(span, error);
-                    toolResultsStreamController!.enqueue({
-                      ...toolCall,
-                      type: 'tool-error',
-                      error,
-                    } satisfies TypedToolError<TOOLS>);
-
-                    outstandingToolResults.delete(toolExecutionId);
-                    attemptClose();
-                    return;
-                  }
-
-                  outstandingToolResults.delete(toolExecutionId);
-                  attemptClose();
-
-                  // record telemetry
-                  try {
-                    span.setAttributes(
-                      selectTelemetryAttributes({
-                        telemetry,
-                        attributes: {
-                          'ai.toolCall.result': {
-                            output: () => JSON.stringify(output),
-                          },
-                        },
-                      }),
-                    );
-                  } catch (ignored) {
-                    // JSON stringify might fail if the result is not serializable,
-                    // in which case we just ignore it. In the future we might want to
-                    // add an optional serialize method to the tool interface and warn
-                    // if the result is not serializable.
-                  }
+                telemetry,
+                messages,
+                abortSignal,
+                experimental_context,
+                onPreliminaryToolResult: result => {
+                  toolResultsStreamController!.enqueue(result);
                 },
+              }).then(result => {
+                toolResultsStreamController!.enqueue(result);
+                outstandingToolResults.delete(toolExecutionId);
+                attemptClose();
               });
             }
           } catch (error) {
@@ -360,8 +321,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolCallId: chunk.toolCallId,
               toolName,
               input: toolInputs.get(chunk.toolCallId),
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
               error: chunk.result,
+              dynamic: chunk.dynamic,
             } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
@@ -370,7 +332,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolName,
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
+              dynamic: chunk.dynamic,
             } as TypedToolResult<TOOLS>);
           }
           break;

@@ -63,12 +63,12 @@ export interface BasetenProviderSettings {
 
 export interface BasetenProvider extends ProviderV3 {
   /**
-Creates a chat model for text generation. 
+Creates a chat model for text generation.
 */
   (modelId?: BasetenChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation. 
+Creates a chat model for text generation.
 */
   chatModel(modelId?: BasetenChatModelId): LanguageModelV3;
 
@@ -228,6 +228,8 @@ export function createBaseten(
   };
 
   const provider = (modelId?: BasetenChatModelId) => createChatModel(modelId);
+
+  provider.specificationVersion = 'v3' as const;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
   provider.imageModel = (modelId: string) => {

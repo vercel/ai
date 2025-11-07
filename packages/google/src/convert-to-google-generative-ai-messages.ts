@@ -165,7 +165,7 @@ export function convertToGoogleGenerativeAIMessages(
                     },
                   });
                   break;
-                case 'media':
+                case 'image-data':
                   parts.push(
                     {
                       inlineData: {
@@ -189,7 +189,10 @@ export function convertToGoogleGenerativeAIMessages(
                 name: part.toolName,
                 response: {
                   name: part.toolName,
-                  content: output.value,
+                  content:
+                    output.type === 'execution-denied'
+                      ? (output.reason ?? 'Tool execution denied.')
+                      : output.value,
                 },
               },
             });

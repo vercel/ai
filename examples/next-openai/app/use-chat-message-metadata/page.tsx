@@ -1,6 +1,6 @@
 'use client';
 
-import ChatInput from '@/component/chat-input';
+import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, UIMessage } from 'ai';
 import { ExampleMetadata } from '../api/use-chat-message-metadata/example-metadata-schema';

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/test-server",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -37,11 +38,13 @@
       "require": "./dist/with-vitest.js"
     }
   },
+  "dependencies": {
+    "msw": "^2.7.0"
+  },
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
-    "msw": "^2.7.0",
     "typescript": "5.8.3"
   },
   "engines": {

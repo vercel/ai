@@ -4,7 +4,7 @@ import {
   LanguageModelV3,
   ProviderV3,
   SpeechModelV3,
-  TranscriptionModelV2,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -23,7 +23,7 @@ import { OpenAIImageModel } from './image/openai-image-model';
 import { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
-import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
+import { OpenAIResponsesModelId } from './responses/openai-responses-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
@@ -81,7 +81,7 @@ Creates a model for image generation.
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV3;
 
   /**
 Creates a model for speech generation.
@@ -235,6 +235,7 @@ export function createOpenAI(
     return createLanguageModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;

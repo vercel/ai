@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "3.1.0-beta.21",
+  "version": "4.0.0-beta.94",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -16,7 +16,7 @@
     "test": "vitest --run",
     "test:update": "vitest --run -u",
     "test:watch": "vitest",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "del-cli dist *.tsbuildinfo"
   },
   "files": [
     "dist",
@@ -25,7 +25,8 @@
     "src",
     "!src/**/*.test.*",
     "!src/**/*.spec.*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "sideEffects": [
     "**/*.css"
@@ -43,13 +44,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "svelte": "^5.31.0",
-    "zod": "^3.25.76 || ^4.1.8"
-  },
-  "peerDependenciesMeta": {
-    "zod": {
-      "optional": true
-    }
+    "svelte": "^5.31.0"
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",

@@ -1,196 +1,84 @@
-import { IdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
-import {
-  generateText,
-  GenerateTextOnStepFinishCallback,
-} from '../generate-text/generate-text';
+import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
-import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { stepCountIs, StopCondition } from '../generate-text/stop-condition';
-import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import { ToolSet } from '../generate-text/tool-set';
-import { CallSettings } from '../prompt/call-settings';
-import { Prompt } from '../prompt/prompt';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
 
-export type AgentSettings<
-  TOOLS extends ToolSet,
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
-> = CallSettings & {
-  /**
-   * The name of the agent.
-   */
-  name?: string;
-
-  /**
-   * The system prompt to use.
-   */
-  system?: string;
-
-  /**
-The language model to use.
-   */
-  model: LanguageModel;
-
-  /**
-The tools that the model can call. The model needs to support calling tools.
-*/
-  tools?: TOOLS;
-
-  /**
-The tool choice strategy. Default: 'auto'.
-   */
-  toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-
-  /**
-Condition for stopping the generation when there are tool results in the last step.
-When the condition is an array, any of the conditions can be met to stop the generation.
-
-@default stepCountIs(20)
-   */
-  stopWhen?:
-    | StopCondition<NoInfer<TOOLS>>
-    | Array<StopCondition<NoInfer<TOOLS>>>;
-
-  /**
-Optional telemetry configuration (experimental).
-   */
-  experimental_telemetry?: TelemetrySettings;
-
-  /**
-Limits the tools that are available for the model to call without
-changing the tool call and result types in the result.
-   */
-  activeTools?: Array<keyof NoInfer<TOOLS>>;
-
-  /**
-Optional specification for parsing structured outputs from the LLM response.
-   */
-  experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
-
-  /**
-   * @deprecated Use `prepareStep` instead.
-   */
-  experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
-
-  /**
-Optional function that you can use to provide different settings for a step.
-  */
-  prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
-
-  /**
-A function that attempts to repair a tool call that failed to parse.
-   */
-  experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
-
-  /**
-  Callback that is called when each step (LLM call) is finished, including intermediate steps.
-  */
-  onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
-
-  /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
+export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
+  ? { options?: never }
+  : { options: CALL_OPTIONS }) &
+  (
+    | {
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
          */
-  providerOptions?: ProviderOptions;
+        prompt: string | Array<ModelMessage>;
 
-  /**
-   * Context that is passed into tool calls.
-   *
-   * Experimental (can break in patch releases).
-   *
-   * @default undefined
-   */
-  experimental_context?: unknown;
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages?: never;
+      }
+    | {
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages: Array<ModelMessage>;
 
-  /**
-   * Internal. For test use only. May change without notice.
-   */
-  _internal?: {
-    generateId?: IdGenerator;
-    currentDate?: () => Date;
-  };
-};
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt?: never;
+      }
+  );
 
 /**
- * The Agent class provides a structured way to encapsulate LLM configuration, tools,
- * and behavior into reusable components.
+ * An Agent receives a prompt (text or messages) and generates or streams an output
+ * that consists of steps, tool calls, data parts, etc.
  *
- * It handles the agent loop for you, allowing the LLM to call tools multiple times in
- * sequence to accomplish complex tasks.
- *
- * Define agents once and use them across your application.
+ * You can implement your own Agent by implementing the `Agent` interface,
+ * or use the `ToolLoopAgent` class.
  */
-export class Agent<
-  TOOLS extends ToolSet,
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+export interface Agent<
+  CALL_OPTIONS = never,
+  TOOLS extends ToolSet = {},
+  OUTPUT extends Output = never,
 > {
-  private readonly settings: AgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>;
-
-  constructor(settings: AgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>) {
-    this.settings = settings;
-  }
+  /**
+   * The specification version of the agent interface. This will enable
+   * us to evolve the agent interface and retain backwards compatibility.
+   */
+  readonly version: 'agent-v1';
 
   /**
-   * The name of the agent.
+   * The id of the agent.
    */
-  get name(): string | undefined {
-    return this.settings.name;
-  }
+  readonly id: string | undefined;
 
   /**
    * The tools that the agent can use.
    */
-  get tools(): TOOLS {
-    return this.settings.tools as TOOLS;
-  }
-
-  async generate(options: Prompt): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-    return generateText({
-      ...this.settings,
-      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
-      ...options,
-    });
-  }
-
-  stream(options: Prompt): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
-    return streamText({
-      ...this.settings,
-      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
-      ...options,
-    });
-  }
+  readonly tools: TOOLS;
 
   /**
-   * Creates a response object that streams UI messages to the client.
+   * Generates an output from the agent (non-streaming).
    */
-  respond(options: {
-    messages: UIMessage<never, never, InferUITools<TOOLS>>[];
-  }): Response {
-    return this.stream({
-      prompt: convertToModelMessages(options.messages),
-    }).toUIMessageStreamResponse<
-      UIMessage<never, never, InferUITools<TOOLS>>
-    >();
-  }
+  generate(
+    options: AgentCallParameters<CALL_OPTIONS>,
+  ): PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>;
+
+  /**
+   * Streams an output from the agent (streaming).
+   */
+  stream(
+    options: AgentCallParameters<CALL_OPTIONS>,
+  ): PromiseLike<StreamTextResult<TOOLS, OUTPUT>>;
 }
-
-type InferAgentTools<AGENT> =
-  AGENT extends Agent<infer TOOLS, any, any> ? TOOLS : never;
-
-/**
- * Infer the UI message type of an agent.
- */
-export type InferAgentUIMessage<AGENT> = UIMessage<
-  never,
-  never,
-  InferUITools<InferAgentTools<AGENT>>
->;

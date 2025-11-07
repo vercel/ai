@@ -3,18 +3,22 @@ import { describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
+import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
+import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV3();
 const mockEmbeddingModel = new MockEmbeddingModelV3();
+const mockRerankingModel = new MockRerankingModelV3();
 const mockFallbackProvider = {
+  specificationVersion: 'v3' as const,
   languageModel: vi.fn(),
   textEmbeddingModel: vi.fn(),
   imageModel: vi.fn(),
   transcriptionModel: vi.fn(),
   speechModel: vi.fn(),
+  rerankingModel: vi.fn(),
 };
 
 describe('languageModel', () => {
@@ -108,7 +112,7 @@ describe('imageModel', () => {
 });
 
 describe('transcriptionModel', () => {
-  const mockTranscriptionModel = new MockTranscriptionModelV2();
+  const mockTranscriptionModel = new MockTranscriptionModelV3();
 
   it('should return the transcription model if it exists', () => {
     const provider = customProvider({
@@ -172,5 +176,36 @@ describe('speechModel', () => {
     const provider = customProvider({});
 
     expect(() => provider.speechModel('test-model')).toThrow(NoSuchModelError);
+  });
+});
+
+describe('rerankingModel', () => {
+  it('should return the reranking model if it exists', () => {
+    const provider = customProvider({
+      rerankingModels: { 'test-model': mockRerankingModel },
+    });
+
+    expect(provider.rerankingModel('test-model')).toBe(mockRerankingModel);
+  });
+
+  it('should use fallback provider if model not found and fallback exists', () => {
+    mockFallbackProvider.rerankingModel.mockReturnValue(mockRerankingModel);
+
+    const provider = customProvider({
+      fallbackProvider: mockFallbackProvider,
+    });
+
+    expect(provider.rerankingModel('test-model')).toBe(mockRerankingModel);
+    expect(mockFallbackProvider.rerankingModel).toHaveBeenCalledWith(
+      'test-model',
+    );
+  });
+
+  it('should throw NoSuchModelError if model not found and no fallback', () => {
+    const provider = customProvider({});
+
+    expect(() => provider.rerankingModel('test-model')).toThrow(
+      NoSuchModelError,
+    );
   });
 });

@@ -111,6 +111,47 @@ describe('user messages', () => {
     `);
   });
 
+  it('should be converted with actual filename when provided', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'file',
+            data: Buffer.from(fileData).toString('base64'),
+            mediaType: 'application/pdf',
+            filename: 'custom-filename',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+            },
+            {
+              "document": {
+                "format": "pdf",
+                "name": "custom-filename",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should use consistent document names for prompt cache effectiveness', async () => {
     const fileData1 = new Uint8Array([0, 1, 2, 3]);
     const fileData2 = new Uint8Array([4, 5, 6, 7]);
@@ -631,7 +672,7 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'media',
+                  type: 'image-data',
                   data: 'base64data',
                   mediaType: 'image/jpeg',
                 },
@@ -676,7 +717,7 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'media',
+                    type: 'image-data',
                     data: 'base64data',
                     mediaType: 'image/avif', // unsupported format
                   },
@@ -705,7 +746,7 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'media',
+                    type: 'image-data',
                     data: 'base64data',
                     mediaType: 'unsupported/mime-type',
                   },

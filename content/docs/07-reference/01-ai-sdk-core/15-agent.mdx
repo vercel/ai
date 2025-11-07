@@ -1,0 +1,154 @@
+---
+title: Agent (Interface)
+description: API Reference for the Agent interface.
+---
+
+# `Agent` (interface)
+
+The `Agent` interface defines a contract for agents that can generate or stream AI-generated responses in response to prompts. Agents may encapsulate advanced logic such as tool usage, multi-step workflows, or prompt handling, enabling both simple and autonomous AI agents.
+
+Implementations of the `Agent` interface—such as `ToolLoopAgent`—fulfill the same contract and integrate seamlessly with all SDK APIs and utilities that expect an agent. This design allows users to supply custom agent classes or wrappers for third-party chains, while maximizing compatibility with AI SDK features.
+
+## Interface Definition
+
+```ts
+import { ToolSet } from '../generate-text/tool-set';
+import {
+  Output,
+  InferGenerateOutput,
+  InferStreamOutput,
+} from '../generate-text/output';
+import { GenerateTextResult } from '../generate-text/generate-text-result';
+import { StreamTextResult } from '../generate-text/stream-text-result';
+
+/**
+ * Agents process prompts (text or list of messages) and generate/stream results
+ * including steps, tool calls, and/or other data.
+ */
+export interface Agent<
+  TOOLS extends ToolSet = {},
+  OUTPUT extends Output = never,
+> {
+  /**
+   * The specification version of the agent interface,
+   * enabling versioned compatibility with SDK utilities.
+   */
+  readonly version: 'agent-v1';
+
+  /**
+   * The id of the agent, if present.
+   */
+  readonly id: string | undefined;
+
+  /**
+   * The set of tools that the agent can use.
+   */
+  readonly tools: TOOLS;
+
+  /**
+   * Generates a response (non-streaming) for the provided prompt or messages.
+   * @param options The input prompt or messages.
+   * @returns A Promise resolving to the generated result.
+   */
+  generate(
+    options:
+      | {
+          prompt: string | Array<any>;
+          messages?: never;
+        }
+      | {
+          messages: Array<any>;
+          prompt?: never;
+        },
+  ): PromiseLike<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>>;
+
+  /**
+   * Streams a response incrementally for the provided prompt or messages.
+   * @param options The input prompt or messages.
+   * @returns An object representing the text or tool call stream.
+   */
+  stream(
+    options:
+      | {
+          prompt: string | Array<any>;
+          messages?: never;
+        }
+      | {
+          messages: Array<any>;
+          prompt?: never;
+        },
+  ): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>;
+}
+```
+
+## Core Properties & Methods
+
+| Name         | Type                                                 | Description                                                         |
+| ------------ | ---------------------------------------------------- | ------------------------------------------------------------------- |
+| `version`    | `'agent-v1'`                                         | Interface version for compatibility.                                |
+| `id`         | `string \| undefined`                                | Optional agent identifier.                                          |
+| `tools`      | `ToolSet`                                            | The set of tools available to this agent.                           |
+| `generate()` | `PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>`     | Generates full, non-streaming output for a text prompt or messages. |
+| `stream()`   | `StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>` | Streams output (chunks or steps) for a text prompt or messages.     |
+
+## Example: Custom Agent Implementation
+
+Here's how you might implement your own Agent:
+
+```ts
+import { Agent, GenerateTextResult, StreamTextResult } from 'ai';
+
+class MyEchoAgent implements Agent {
+  version = 'agent-v1';
+  id = 'echo';
+  tools = {};
+
+  async generate({ prompt, messages }) {
+    const text = prompt ?? JSON.stringify(messages);
+    return { text, steps: [] };
+  }
+
+  stream({ prompt, messages }) {
+    const text = prompt ?? JSON.stringify(messages);
+    return {
+      textStream: (async function* () {
+        yield text;
+      })(),
+    };
+  }
+}
+```
+
+## Usage: Interacting with Agents
+
+All SDK utilities that accept an agent—including [`createAgentUIStream`](/docs/reference/ai-sdk-core/create-agent-ui-stream), [`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response), and [`pipeAgentUIStreamToResponse`](/docs/reference/ai-sdk-core/pipe-agent-ui-stream-to-response)—expect an object adhering to the `Agent` interface.
+
+You can use the official [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent) (recommended for multi-step AI workflows with tool use), or supply your own implementation:
+
+```ts
+import { ToolLoopAgent, createAgentUIStream } from "ai";
+
+const agent = new ToolLoopAgent({ ... });
+
+const stream = await createAgentUIStream({
+  agent,
+  messages: [{ role: "user", content: "What is the weather in NYC?" }]
+});
+
+for await (const chunk of stream) {
+  console.log(chunk);
+}
+```
+
+## See Also
+
+- [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent) &mdash; Official multi-step agent implementation
+- [`createAgentUIStream`](/docs/reference/ai-sdk-core/create-agent-ui-stream)
+- [`GenerateTextResult`](/docs/reference/ai-sdk-core/generate-text)
+- [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text)
+
+## Notes
+
+- Agents should define their `tools` property, even if empty (`{}`), for compatibility with SDK utilities.
+- The interface accepts both plain prompts and message arrays as input, but only one at a time.
+- This design is extensible for both complex autonomous agents and simple LLM wrappers.

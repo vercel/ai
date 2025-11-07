@@ -106,7 +106,7 @@ export function createVertex(
 
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${baseHost}/v1/projects/${project}/locations/${region}/publishers/google`
+      `https://${baseHost}/v1beta1/projects/${project}/locations/${region}/publishers/google`
     );
   };
 
@@ -159,6 +159,7 @@ export function createVertex(
     return createChatModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;

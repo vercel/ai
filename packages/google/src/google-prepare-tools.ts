@@ -40,9 +40,17 @@ export function prepareTools({
 
   const toolWarnings: LanguageModelV3CallWarning[] = [];
 
-  const isGemini2 = modelId.includes('gemini-2');
+  const isLatest = (
+    [
+      'gemini-flash-latest',
+      'gemini-flash-lite-latest',
+      'gemini-pro-latest',
+    ] as const satisfies GoogleGenerativeAIModelId[]
+  ).some(id => id === modelId);
+  const isGemini2 = modelId.includes('gemini-2') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
+  const supportsFileSearch = modelId.includes('gemini-2.5');
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
@@ -64,7 +72,7 @@ export function prepareTools({
   }
 
   if (hasProviderDefinedTools) {
-    const googleTools: Record<string, any> = {};
+    const googleTools: any[] = [];
 
     const providerDefinedTools = tools.filter(
       tool => tool.type === 'provider-defined',
@@ -73,27 +81,29 @@ export function prepareTools({
       switch (tool.id) {
         case 'google.google_search':
           if (isGemini2) {
-            googleTools.googleSearch = {};
+            googleTools.push({ googleSearch: {} });
           } else if (supportsDynamicRetrieval) {
             // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
-            googleTools.googleSearchRetrieval = {
-              dynamicRetrievalConfig: {
-                mode: tool.args.mode as
-                  | 'MODE_DYNAMIC'
-                  | 'MODE_UNSPECIFIED'
-                  | undefined,
-                dynamicThreshold: tool.args.dynamicThreshold as
-                  | number
-                  | undefined,
+            googleTools.push({
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: tool.args.mode as
+                    | 'MODE_DYNAMIC'
+                    | 'MODE_UNSPECIFIED'
+                    | undefined,
+                  dynamicThreshold: tool.args.dynamicThreshold as
+                    | number
+                    | undefined,
+                },
               },
-            };
+            });
           } else {
-            googleTools.googleSearchRetrieval = {};
+            googleTools.push({ googleSearchRetrieval: {} });
           }
           break;
         case 'google.url_context':
           if (isGemini2) {
-            googleTools.urlContext = {};
+            googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported-tool',
@@ -105,13 +115,25 @@ export function prepareTools({
           break;
         case 'google.code_execution':
           if (isGemini2) {
-            googleTools.codeExecution = {};
+            googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported-tool',
               tool,
               details:
                 'The code execution tools is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
+        case 'google.file_search':
+          if (supportsFileSearch) {
+            googleTools.push({ fileSearch: { ...tool.args } });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The file search tool is only supported with Gemini 2.5 models.',
             });
           }
           break;
@@ -122,7 +144,7 @@ export function prepareTools({
     });
 
     return {
-      tools: Object.keys(googleTools).length > 0 ? googleTools : undefined,
+      tools: googleTools.length > 0 ? googleTools : undefined,
       toolConfig: undefined,
       toolWarnings,
     };

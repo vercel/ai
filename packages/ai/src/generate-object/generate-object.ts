@@ -1,13 +1,11 @@
 import { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  FlexibleSchema,
   InferSchema,
   ProviderOptions,
-  Schema,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';
@@ -38,12 +36,12 @@ import { LanguageModelUsage } from '../types/usage';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
+import { VERSION } from '../version';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { VERSION } from '../version';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -112,10 +110,7 @@ functionality that can be fully encapsulated in the provider.
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  SCHEMA extends
-    | z3.Schema
-    | z4.core.$ZodType
-    | Schema = z4.core.$ZodType<JSONValue>,
+  SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
   OUTPUT extends
     | 'object'
     | 'array'
@@ -277,6 +272,7 @@ Default and recommended: 'auto' (best mode for the model).
   });
 
   const tracer = getTracer(telemetry);
+  const jsonSchema = await outputStrategy.jsonSchema();
 
   try {
     return await recordSpan({
@@ -294,8 +290,8 @@ Default and recommended: 'auto' (best mode for the model).
             input: () => JSON.stringify({ system, prompt, messages }),
           },
           'ai.schema':
-            outputStrategy.jsonSchema != null
-              ? { input: () => JSON.stringify(outputStrategy.jsonSchema) }
+            jsonSchema != null
+              ? { input: () => JSON.stringify(jsonSchema) }
               : undefined,
           'ai.schema.name': schemaName,
           'ai.schema.description': schemaDescription,
@@ -357,7 +353,7 @@ Default and recommended: 'auto' (best mode for the model).
               const result = await model.doGenerate({
                 responseFormat: {
                   type: 'json',
-                  schema: outputStrategy.jsonSchema,
+                  schema: jsonSchema,
                   name: schemaName,
                   description: schemaDescription,
                 },
@@ -391,7 +387,7 @@ Default and recommended: 'auto' (best mode for the model).
 
               // Add response information to the span:
               span.setAttributes(
-                selectTelemetryAttributes({
+                await selectTelemetryAttributes({
                   telemetry,
                   attributes: {
                     'ai.response.finishReason': result.finishReason,
@@ -437,7 +433,11 @@ Default and recommended: 'auto' (best mode for the model).
         response = generateResult.responseData;
         reasoning = generateResult.reasoning;
 
-        logWarnings(warnings);
+        logWarnings({
+          warnings,
+          provider: model.provider,
+          model: model.modelId,
+        });
 
         const object = await parseAndValidateObjectResultWithRepair(
           result,
@@ -452,7 +452,7 @@ Default and recommended: 'auto' (best mode for the model).
 
         // Add response information to the span:
         span.setAttributes(
-          selectTelemetryAttributes({
+          await selectTelemetryAttributes({
             telemetry,
             attributes: {
               'ai.response.finishReason': finishReason,

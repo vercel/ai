@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { prepareTools } from './anthropic-prepare-tools';
+import { CacheControlValidator } from './get-cache-control';
 
 describe('prepareTools', () => {
-  it('should return undefined tools and tool_choice when tools are null', () => {
-    const result = prepareTools({ tools: undefined });
+  it('should return undefined tools and tool_choice when tools are null', async () => {
+    const result = await prepareTools({ tools: undefined });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -12,8 +13,8 @@ describe('prepareTools', () => {
     });
   });
 
-  it('should return undefined tools and tool_choice when tools are empty', () => {
-    const result = prepareTools({ tools: [] });
+  it('should return undefined tools and tool_choice when tools are empty', async () => {
+    const result = await prepareTools({ tools: [] });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -22,8 +23,8 @@ describe('prepareTools', () => {
     });
   });
 
-  it('should correctly prepare function tools', () => {
-    const result = prepareTools({
+  it('should correctly prepare function tools', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -46,8 +47,8 @@ describe('prepareTools', () => {
 
   describe('provider-defined tools', () => {
     describe('computer_20241022', () => {
-      it('should correctly prepare computer_20241022 tool', () => {
-        const result = prepareTools({
+      it('should correctly prepare computer_20241022 tool', async () => {
+        const result = await prepareTools({
           tools: [
             {
               type: 'provider-defined',
@@ -71,6 +72,7 @@ describe('prepareTools', () => {
             "toolWarnings": [],
             "tools": [
               {
+                "cache_control": undefined,
                 "display_height_px": 600,
                 "display_number": 1,
                 "display_width_px": 800,
@@ -84,8 +86,8 @@ describe('prepareTools', () => {
     });
 
     describe('text_editor_20241022', () => {
-      it('should correctly prepare text_editor_20241022 tool', () => {
-        const result = prepareTools({
+      it('should correctly prepare text_editor_20241022 tool', async () => {
+        const result = await prepareTools({
           tools: [
             {
               type: 'provider-defined',
@@ -104,6 +106,7 @@ describe('prepareTools', () => {
             "toolWarnings": [],
             "tools": [
               {
+                "cache_control": undefined,
                 "name": "str_replace_editor",
                 "type": "text_editor_20241022",
               },
@@ -113,8 +116,8 @@ describe('prepareTools', () => {
       });
     });
 
-    it('should correctly prepare bash_20241022 tool', () => {
-      const result = prepareTools({
+    it('should correctly prepare bash_20241022 tool', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'provider-defined',
@@ -134,6 +137,7 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "cache_control": undefined,
               "name": "bash",
               "type": "bash_20241022",
             },
@@ -142,8 +146,8 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should correctly prepare text_editor_20250728 with max_characters', () => {
-      const result = prepareTools({
+    it('should correctly prepare text_editor_20250728 with max_characters', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'provider-defined',
@@ -160,6 +164,7 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "cache_control": undefined,
               "max_characters": 10000,
               "name": "str_replace_based_edit_tool",
               "type": "text_editor_20250728",
@@ -169,8 +174,8 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should correctly prepare text_editor_20250728 without max_characters', () => {
-      const result = prepareTools({
+    it('should correctly prepare text_editor_20250728 without max_characters', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'provider-defined',
@@ -187,6 +192,7 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "cache_control": undefined,
               "max_characters": undefined,
               "name": "str_replace_based_edit_tool",
               "type": "text_editor_20250728",
@@ -196,8 +202,8 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should correctly prepare web_search_20250305', () => {
-      const result = prepareTools({
+    it('should correctly prepare web_search_20250305', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'provider-defined',
@@ -222,6 +228,7 @@ describe('prepareTools', () => {
                 "https://www.google.com",
               ],
               "blocked_domains": undefined,
+              "cache_control": undefined,
               "max_uses": 10,
               "name": "web_search",
               "type": "web_search_20250305",
@@ -235,8 +242,8 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should correctly prepare web_fetch_20250910', () => {
-      const result = prepareTools({
+    it('should correctly prepare web_fetch_20250910', async () => {
+      const result = await prepareTools({
         tools: [
           {
             type: 'provider-defined',
@@ -265,6 +272,7 @@ describe('prepareTools', () => {
                 "https://www.google.com",
               ],
               "blocked_domains": undefined,
+              "cache_control": undefined,
               "citations": {
                 "enabled": true,
               },
@@ -279,8 +287,8 @@ describe('prepareTools', () => {
     });
   });
 
-  it('should add warnings for unsupported tools', () => {
-    const result = prepareTools({
+  it('should add warnings for unsupported tools', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'provider-defined',
@@ -307,8 +315,8 @@ describe('prepareTools', () => {
   `);
   });
 
-  it('should handle tool choice "auto"', () => {
-    const result = prepareTools({
+  it('should handle tool choice "auto"', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -322,8 +330,8 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual({ type: 'auto' });
   });
 
-  it('should handle tool choice "required"', () => {
-    const result = prepareTools({
+  it('should handle tool choice "required"', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -337,8 +345,8 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual({ type: 'any' });
   });
 
-  it('should handle tool choice "none"', () => {
-    const result = prepareTools({
+  it('should handle tool choice "none"', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -353,8 +361,8 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toBeUndefined();
   });
 
-  it('should handle tool choice "tool"', () => {
-    const result = prepareTools({
+  it('should handle tool choice "tool"', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -368,8 +376,8 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
   });
 
-  it('should set cache control', () => {
-    const result = prepareTools({
+  it('should set cache control', async () => {
+    const result = await prepareTools({
       tools: [
         {
           type: 'function',
@@ -397,5 +405,83 @@ describe('prepareTools', () => {
         },
       ]
     `);
+  });
+
+  it('should limit cache breakpoints to 4', async () => {
+    const cacheControlValidator = new CacheControlValidator();
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'tool1',
+          description: 'Test 1',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool2',
+          description: 'Test 2',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool3',
+          description: 'Test 3',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool4',
+          description: 'Test 4',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool5',
+          description: 'Test 5 (should be rejected)',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+      ],
+      cacheControlValidator,
+    });
+
+    // First 4 should have cache_control
+    expect(result.tools?.[0]).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+    expect(result.tools?.[1]).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+    expect(result.tools?.[2]).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+    expect(result.tools?.[3]).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+
+    // 5th should be rejected (cache_control should be undefined)
+    expect(result.tools?.[4]).toHaveProperty('cache_control', undefined);
+
+    // Should have warning
+    expect(cacheControlValidator.getWarnings()).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'cacheControl',
+      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
+    });
   });
 });

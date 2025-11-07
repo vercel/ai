@@ -1,9 +1,8 @@
-import { JSONValue, SpeechModelV3 } from '@ai-sdk/provider';
+import { JSONObject } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import { logWarnings } from '../logger/log-warnings';
-import { SpeechWarning } from '../types/speech-model';
+import { SpeechWarning, SpeechModel } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import {
   audioMediaTypeSignatures,
@@ -16,6 +15,7 @@ import {
   GeneratedAudioFile,
 } from './generated-audio-file';
 import { VERSION } from '../version';
+import { resolveSpeechModel } from '../model/resolve-model';
 /**
 Generates speech audio using a speech model.
 
@@ -49,7 +49,7 @@ export async function generateSpeech({
   /**
 The speech model to use.
      */
-  model: SpeechModelV3;
+  model: SpeechModel;
 
   /**
 The text to convert to speech.
@@ -114,12 +114,9 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<SpeechResult> {
-  if (model.specificationVersion !== 'v3') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
+  const resolvedModel = resolveSpeechModel(model);
+  if (!resolvedModel) {
+    throw new Error('Model could not be resolved');
   }
 
   const headersWithUserAgent = withUserAgentSuffix(
@@ -133,7 +130,7 @@ Only applicable for HTTP-based providers.
   });
 
   const result = await retry(() =>
-    model.doGenerate({
+    resolvedModel.doGenerate({
       text,
       voice,
       outputFormat,
@@ -150,7 +147,11 @@ Only applicable for HTTP-based providers.
     throw new NoSpeechGeneratedError({ responses: [result.response] });
   }
 
-  logWarnings(result.warnings);
+  logWarnings({
+    warnings: result.warnings,
+    provider: resolvedModel.provider,
+    model: resolvedModel.modelId,
+  });
 
   return new DefaultSpeechResult({
     audio: new DefaultGeneratedAudioFile({
@@ -171,13 +172,13 @@ class DefaultSpeechResult implements SpeechResult {
   readonly audio: GeneratedAudioFile;
   readonly warnings: Array<SpeechWarning>;
   readonly responses: Array<SpeechModelResponseMetadata>;
-  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+  readonly providerMetadata: Record<string, JSONObject>;
 
   constructor(options: {
     audio: GeneratedAudioFile;
     warnings: Array<SpeechWarning>;
     responses: Array<SpeechModelResponseMetadata>;
-    providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
+    providerMetadata: Record<string, JSONObject> | undefined;
   }) {
     this.audio = options.audio;
     this.warnings = options.warnings;
