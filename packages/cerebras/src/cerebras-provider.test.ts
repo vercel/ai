@@ -11,10 +11,18 @@ vi.mock('@ai-sdk/openai-compatible', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
-  withoutTrailingSlash: vi.fn(url => url),
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
 }));
+
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    ...actual,
+    loadApiKey: vi.fn().mockReturnValue('mock-api-key'),
+    withoutTrailingSlash: vi.fn(url => url),
+  };
+});
 
 describe('CerebrasProvider', () => {
   beforeEach(() => {
@@ -57,6 +65,29 @@ describe('CerebrasProvider', () => {
         environmentVariableName: 'CEREBRAS_API_KEY',
         description: 'Cerebras API key',
       });
+    });
+
+    it('should pass header', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(new Response('{}', { status: 200 }));
+
+      const provider = createCerebras({ fetch: fetchMock });
+      provider('model-id');
+
+      const constructorCall = vi.mocked(OpenAICompatibleChatLanguageModel).mock
+        .calls[0];
+      const config = constructorCall[1];
+      const headers = config.headers();
+
+      await fetchMock('https://api.cerebras.ai/v1/test', {
+        method: 'POST',
+        headers,
+      });
+
+      expect(fetchMock.mock.calls[0][1].headers['user-agent']).toContain(
+        'ai-sdk/cerebras/0.0.0-test',
+      );
     });
 
     it('should return a chat model when called as a function', () => {

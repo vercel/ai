@@ -11,8 +11,8 @@ and calling them is slow and expensive.
 To enable you to unit test your code that uses the AI SDK, the AI SDK Core
 includes mock providers and test helpers. You can import the following helpers from `ai/test`:
 
-- `MockEmbeddingModelV2`: A mock embedding model using the [embedding model v2 specification](https://github.com/vercel/ai/blob/v5/packages/provider/src/embedding-model/v2/embedding-model-v2.ts).
-- `MockLanguageModelV2`: A mock language model using the [language model v2 specification](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v2/language-model-v2.ts).
+- `MockEmbeddingModelV3`: A mock embedding model using the [embedding model v3 specification](https://github.com/vercel/ai/blob/v5/packages/provider/src/embedding-model/v3/embedding-model-v3.ts).
+- `MockLanguageModelV3`: A mock language model using the [language model v3 specification](https://github.com/vercel/ai/blob/v5/packages/provider/src/language-model/v3/language-model-v3.ts).
 - `mockId`: Provides an incrementing integer ID.
 - `mockValues`: Iterates over an array of values with each call. Returns the last value when the array is exhausted.
 - [`simulateReadableStream`](/docs/reference/ai-sdk-core/simulate-readable-stream): Simulates a readable stream with delays.
@@ -29,10 +29,10 @@ You can use the test helpers with the AI Core functions in your unit tests:
 
 ```ts
 import { generateText } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 
 const result = await generateText({
-  model: new MockLanguageModelV2({
+  model: new MockLanguageModelV3({
     doGenerate: async () => ({
       finishReason: 'stop',
       usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
@@ -48,10 +48,10 @@ const result = await generateText({
 
 ```ts
 import { streamText, simulateReadableStream } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 
 const result = streamText({
-  model: new MockLanguageModelV2({
+  model: new MockLanguageModelV3({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [
@@ -78,11 +78,11 @@ const result = streamText({
 
 ```ts
 import { generateObject } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
 
 const result = await generateObject({
-  model: new MockLanguageModelV2({
+  model: new MockLanguageModelV3({
     doGenerate: async () => ({
       finishReason: 'stop',
       usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
@@ -99,11 +99,11 @@ const result = await generateObject({
 
 ```ts
 import { streamObject, simulateReadableStream } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
 
 const result = streamObject({
-  model: new MockLanguageModelV2({
+  model: new MockLanguageModelV3({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [

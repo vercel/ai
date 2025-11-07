@@ -1,14 +1,88 @@
 import {
-  EmbeddingModelV2Embedding,
-  LanguageModelV2Prompt,
+  EmbeddingModelV3Embedding,
+  LanguageModelV3,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import {
+  convertReadableStreamToArray,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
 import { createAzure } from './azure-openai-provider';
-import { describe, it, expect } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
+
+const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
+  {
+    type: 'function',
+    name: 'weather',
+    inputSchema: {
+      type: 'object',
+      properties: { location: { type: 'string' } },
+      required: ['location'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'cityAttractions',
+    inputSchema: {
+      type: 'object',
+      properties: { city: { type: 'string' } },
+      required: ['city'],
+      additionalProperties: false,
+    },
+  },
+];
+
+function prepareJsonFixtureResponse(filename: string) {
+  server.urls[
+    'https://test-resource.openai.azure.com/openai/v1/responses'
+  ].response = {
+    type: 'json-value',
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+  return;
+}
+
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls[
+    'https://test-resource.openai.azure.com/openai/v1/responses'
+  ].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
+
+function createModel(modelId: string) {
+  return new OpenAIResponsesLanguageModel(modelId, {
+    provider: 'azure.responses',
+    url: ({ path }) =>
+      `https://test-resource.openai.azure.com/openai/v1${path}`,
+    //headers: () => ({ Authorization: `Bearer APIKEY` }),
+    headers: () => ({ Authorization: `Bearer APIKEY` }),
+    generateId: mockId(),
+    fileIdPrefixes: ['assistant-'],
+  });
+}
 
 const provider = createAzure({
   resourceName: 'test-resource',
@@ -18,7 +92,7 @@ const provider = createAzure({
 const providerApiVersionChanged = createAzure({
   resourceName: 'test-resource',
   apiKey: 'test-api-key',
-  apiVersion: '2024-08-01-preview',
+  apiVersion: '2025-04-01-preview',
 });
 
 const server = createTestServer({
@@ -44,7 +118,7 @@ describe('chat', () => {
           id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
           object: 'chat.completion',
           created: 1711115037,
-          model: 'gpt-3.5-turbo-0125',
+          model: 'test-deployment',
           choices: [
             {
               index: 0,
@@ -74,7 +148,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should set the correct modified api version', async () => {
@@ -86,7 +160,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2024-08-01-preview');
+      ).toStrictEqual('2025-04-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -113,6 +187,9 @@ describe('chat', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
 
     it('should use the baseURL correctly', async () => {
@@ -127,7 +204,7 @@ describe('chat', () => {
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1',
       );
     });
   });
@@ -160,7 +237,7 @@ describe('completion', () => {
           id: 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
           object: 'text_completion',
           created: 1711363706,
-          model: 'gpt-35-turbo-instruct',
+          model: 'test-deployment',
           choices: [
             {
               text: content,
@@ -176,12 +253,12 @@ describe('completion', () => {
     it('should set the correct api version', async () => {
       prepareJsonCompletionResponse({ content: 'Hello World!' });
 
-      await provider.completion('gpt-35-turbo-instruct').doGenerate({
+      await provider.completion('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -195,7 +272,7 @@ describe('completion', () => {
         },
       });
 
-      await provider.completion('gpt-35-turbo-instruct').doGenerate({
+      await provider.completion('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -208,6 +285,9 @@ describe('completion', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
   });
 });
@@ -233,7 +313,7 @@ describe('transcription', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=v1',
       );
     });
 
@@ -262,7 +342,7 @@ describe('transcription', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=v1',
       );
     });
   });
@@ -283,7 +363,7 @@ describe('speech', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=v1',
       );
     });
   });
@@ -302,7 +382,7 @@ describe('embedding', () => {
     function prepareJsonResponse({
       embeddings = dummyEmbeddings,
     }: {
-      embeddings?: EmbeddingModelV2Embedding[];
+      embeddings?: EmbeddingModelV3Embedding[];
     } = {}) {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/embeddings'
@@ -329,7 +409,7 @@ describe('embedding', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -356,6 +436,9 @@ describe('embedding', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
   });
 });
@@ -399,7 +482,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should set the correct modified api version', async () => {
@@ -418,7 +501,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2024-08-01-preview');
+      ).toStrictEqual('2025-04-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -450,6 +533,9 @@ describe('image', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
 
     it('should use the baseURL correctly', async () => {
@@ -470,7 +556,7 @@ describe('image', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=v1',
       );
     });
 
@@ -573,7 +659,7 @@ describe('responses', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('preview');
+      ).toStrictEqual('v1');
     });
 
     it('should pass headers', async () => {
@@ -600,6 +686,9 @@ describe('responses', () => {
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
     });
 
     it('should use the baseURL correctly', async () => {
@@ -615,14 +704,14 @@ describe('responses', () => {
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=preview',
+        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1',
       );
     });
 
     it('should handle Azure file IDs with assistant- prefix', async () => {
       prepareJsonResponse({ content: 'I can see the image.' });
 
-      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -655,7 +744,7 @@ describe('responses', () => {
     it('should handle PDF files with assistant- prefix', async () => {
       prepareJsonResponse({ content: 'I can analyze the PDF.' });
 
-      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -688,7 +777,7 @@ describe('responses', () => {
     it('should fall back to base64 for non-assistant file IDs', async () => {
       prepareJsonResponse({ content: 'I can see the image.' });
 
-      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV2Prompt = [
+      const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV3Prompt = [
         {
           role: 'user',
           content: [
@@ -719,6 +808,712 @@ describe('responses', () => {
           ],
         },
       ]);
+    });
+
+    it('should send include provider option for file search results', async () => {
+      prepareJsonResponse();
+
+      const { warnings } = await provider
+        .responses('test-deployment')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_123', 'vs_456'],
+                maxNumResults: 10,
+                ranking: {
+                  ranker: 'auto',
+                },
+              },
+            },
+          ],
+        });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "test-deployment",
+          "tools": [
+            {
+              "max_num_results": 10,
+              "ranking_options": {
+                "ranker": "auto",
+              },
+              "type": "file_search",
+              "vector_store_ids": [
+                "vs_123",
+                "vs_456",
+              ],
+            },
+          ],
+        }
+      `);
+
+      expect(warnings).toStrictEqual([]);
+    });
+
+    it('should forward include provider options to request body', async () => {
+      prepareJsonResponse();
+
+      const { warnings } = await provider
+        .responses('test-deployment')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
+            },
+          },
+        });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'test-deployment',
+        input: [
+          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+        ],
+        include: ['file_search_call.results'],
+      });
+
+      expect(warnings).toStrictEqual([]);
+    });
+
+    describe('code interpreter tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.code_interpreter',
+              name: 'code_interpreter',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "code_interpreter_call.outputs",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "test-deployment",
+            "tools": [
+              {
+                "container": {
+                  "type": "auto",
+                },
+                "type": "code_interpreter",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include code interpreter tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('file search tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      describe('without results include', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.1');
+
+          result = await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 5,
+                  filters: {
+                    key: 'author',
+                    type: 'eq',
+                    value: 'Jane Smith',
+                  },
+                  ranking: {
+                    ranker: 'auto',
+                    scoreThreshold: 0.5,
+                  },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "test-deployment",
+            "tools": [
+              {
+                "filters": {
+                  "key": "author",
+                  "type": "eq",
+                  "value": "Jane Smith",
+                },
+                "max_num_results": 5,
+                "ranking_options": {
+                  "ranker": "auto",
+                  "score_threshold": 0.5,
+                },
+                "type": "file_search",
+                "vector_store_ids": [
+                  "vs_68caad8bd5d88191ab766cf043d89a18",
+                ],
+              },
+            ],
+          }
+        `);
+        });
+
+        it('should include file search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
+      describe('with results include', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.2');
+
+          result = await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.file_search',
+                name: 'file_search',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 5,
+                  filters: {
+                    key: 'author',
+                    type: 'eq',
+                    value: 'Jane Smith',
+                  },
+                  ranking: {
+                    ranker: 'auto',
+                    scoreThreshold: 0.5,
+                  },
+                },
+              },
+            ],
+            providerOptions: {
+              openai: {
+                include: ['file_search_call.results'],
+              },
+            },
+          });
+        });
+
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "include": [
+                "file_search_call.results",
+              ],
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "test-deployment",
+              "tools": [
+                {
+                  "filters": {
+                    "key": "author",
+                    "type": "eq",
+                    "value": "Jane Smith",
+                  },
+                  "max_num_results": 5,
+                  "ranking_options": {
+                    "ranker": "auto",
+                    "score_threshold": 0.5,
+                  },
+                  "type": "file_search",
+                  "vector_store_ids": [
+                    "vs_68caad8bd5d88191ab766cf043d89a18",
+                  ],
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include file search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+    });
+  });
+
+  describe('image generation tool', () => {
+    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('openai-image-generation-tool.1');
+
+      result = await createModel('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {
+              outputFormat: 'webp',
+              quality: 'low',
+              size: '1024x1024',
+              partialImages: 2,
+            },
+          },
+        ],
+      });
+    });
+
+    it('should send request body with include and tool', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "test-deployment",
+            "tools": [
+              {
+                "output_format": "webp",
+                "partial_images": 2,
+                "quality": "low",
+                "size": "1024x1024",
+                "type": "image_generation",
+              },
+            ],
+          }
+        `);
+    });
+
+    it('should include generate image tool call and result in content', async () => {
+      expect(result.content).toMatchSnapshot();
+    });
+  });
+
+  describe('doStream', () => {
+    it('should stream text deltas', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/responses'
+      ].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
+          `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[],"logprobs": []}}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello,","logprobs": []}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":" World!","logprobs": []}\n\n`,
+          `data:{"type":"response.output_text.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"text":"Hello, World!"}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello, World!","annotations":[],"logprobs": []}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[],"logprobs": []}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":123},"total_tokens":512},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "test-deployment",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello,",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "delta": " World!",
+            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 234,
+              "inputTokens": 543,
+              "outputTokens": 478,
+              "reasoningTokens": 123,
+              "totalTokens": 1021,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should send streaming tool calls', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/responses'
+      ].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_6KxSghkb4MVnunFH2TxPErLP","name":"currentLocation","arguments":"","status":"completed"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"delta":"{}"}\n\n`,
+          `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"arguments":"{}"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_pgjcAI4ZegMkP6bsAV7sfrJA","name":"currentLocation","arguments":"{}","status":"completed"}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_Dg6WUmFHNeR5JxX1s53s1G4b","name":"weather","arguments":"","status":"in_progress"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"{"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"location"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\":"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"Rome"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"}"}\n\n`,
+          `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"arguments":"{\\"location\\":\\"Rome\\"}"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_KsVqaVAf3alAtCCkQe4itE7W","name":"currentLocation","arguments":"{}","status":"completed"},{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('test-deployment').doStream({
+        tools: TEST_TOOLS,
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67cb13a755c08190acbe3839a49632fc",
+            "modelId": "test-deployment",
+            "timestamp": 2025-03-07T15:41:27.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "toolName": "currentLocation",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{}",
+            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "fc_67cb13a838088190be08eb3927c87501",
+              },
+            },
+            "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+            "toolName": "currentLocation",
+            "type": "tool-call",
+          },
+          {
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolName": "weather",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""location",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "":",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""Rome",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""}",
+            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "call_X2PAkDJInno9VVnNkDrfhboW",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"location":"Rome"}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "fc_67cb13a858f081908a600343fa040f47",
+              },
+            },
+            "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_citation annotations without optional fields in streaming', async () => {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/responses'
+      ].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.content_part.added","item_id":"msg_456","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_456","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"file_citation","file_id":"assistant-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_456","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"assistant-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_456","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"assistant-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"assistant-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_456","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"assistant-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"assistant-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_456","object":"response","created_at":1234567890,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[{"id":"msg_456","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Answer for the specified years....","annotations":[{"type":"file_citation","file_id":"assistant-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":145},{"type":"file_citation","file_id":"assistant-YRcoCqn3Fo2K4JgraG","filename":"resource1.json","index":192}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":50,"input_tokens_details":{"cached_tokens":0},"output_tokens":25,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":75},"user":null,"metadata":{}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+              },
+            },
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+              },
+            },
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
+          },
+          {
+            "id": "msg_456",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 0,
+              "inputTokens": 50,
+              "outputTokens": 25,
+              "reasoningTokens": 0,
+              "totalTokens": 75,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should send code interpreter calls', async () => {
+      prepareChunksFixtureResponse('azure-code-interpreter-tool.1');
+
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {},
+          },
+        ],
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('file search tool', () => {
+    it('should stream file search results without results include', async () => {
+      prepareChunksFixtureResponse('openai-file-search-tool.1');
+
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+            },
+          },
+        ],
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+
+    it('should stream file search results with results include', async () => {
+      prepareChunksFixtureResponse('openai-file-search-tool.2');
+
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+            },
+          },
+        ],
+        providerOptions: {
+          openai: {
+            include: ['file_search_call.results'],
+          },
+        },
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
   });
 });

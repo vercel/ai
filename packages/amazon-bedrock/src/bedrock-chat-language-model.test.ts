@@ -1,8 +1,6 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import {
-  createTestServer,
-  convertReadableStreamToArray,
-} from '@ai-sdk/provider-utils/test';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
@@ -37,7 +35,7 @@ vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
   };
 });
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -1443,6 +1441,39 @@ describe('doStream', () => {
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
+  it('merges user additionalModelRequestFields with derived thinking (stream)', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: { type: 'enabled', budgetTokens: 500 },
+          additionalModelRequestFields: { foo: 'bar', custom: 42 },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('reasoningConfig');
+    expect(body.additionalModelRequestFields).toMatchObject({
+      foo: 'bar',
+      custom: 42,
+      thinking: { type: 'enabled', budget_tokens: 500 },
+    });
+  });
+
   it('should handle JSON response format in streaming', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1794,12 +1825,16 @@ describe('doGenerate', () => {
   });
 
   it('should handle Anthropic provider-defined tools', async () => {
-    mockPrepareAnthropicTools.mockReturnValue({
-      tools: [{ name: 'bash', type: 'bash_20241022' }],
-      toolChoice: { type: 'auto' },
-      toolWarnings: [],
-      betas: new Set(['computer-use-2024-10-22']),
-    });
+    mockPrepareAnthropicTools.mockReturnValue(
+      Promise.resolve({
+        tools: [
+          { name: 'bash', type: 'bash_20241022', cache_control: undefined },
+        ],
+        toolChoice: { type: 'auto' },
+        toolWarnings: [],
+        betas: new Set(['computer-use-2024-10-22']),
+      }),
+    );
 
     // Set up the mock response for this specific URL and test case
     server.urls[anthropicGenerateUrl].response = {
@@ -2052,6 +2087,28 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
+  it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: { type: 'enabled', budgetTokens: 1234 },
+          additionalModelRequestFields: { foo: 'bar', custom: 42 },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('reasoningConfig');
+    expect(body.additionalModelRequestFields).toMatchObject({
+      foo: 'bar',
+      custom: 42,
+      thinking: { type: 'enabled', budget_tokens: 1234 },
+    });
+  });
+
   it('should extract reasoning text with signature', async () => {
     const reasoningText = 'I need to think about this problem carefully...';
     const signature = 'abc123signature';
@@ -2221,7 +2278,7 @@ describe('doGenerate', () => {
   it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
     prepareJsonResponse({});
 
-    const conversationWithToolCalls: LanguageModelV2Prompt = [
+    const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
@@ -2408,7 +2465,7 @@ describe('doGenerate', () => {
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
     prepareJsonResponse({});
 
-    const conversationWithToolCalls: LanguageModelV2Prompt = [
+    const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather in Toronto?' }],

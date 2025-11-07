@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV3CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import { CacheControlValidator } from './get-cache-control';
 
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
@@ -372,7 +373,7 @@ describe('tool messages', () => {
     });
   });
 
-  it('should combine tool and user messages with tool_result first', async () => {
+  it('should combine user and tool messages', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -409,13 +410,8 @@ describe('tool messages', () => {
                 tool_use_id: 'tool-call-1',
                 is_error: undefined,
                 content: JSON.stringify({ test: 'This is a tool message' }),
-                cache_control: undefined,
               },
-              {
-                type: 'text',
-                text: 'This is a user message',
-                cache_control: undefined,
-              },
+              { type: 'text', text: 'This is a user message' },
             ],
           },
         ],
@@ -423,84 +419,6 @@ describe('tool messages', () => {
       },
       betas: new Set(),
     });
-  });
-
-  it('should place tool_result before user text in combined messages', async () => {
-    // Ensures tool_result parts appear first in combined user messages
-    const result = await convertToAnthropicMessagesPrompt({
-      prompt: [
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'generate 10 items' }],
-        },
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool-call',
-              toolCallId: 'tool-example-123',
-              toolName: 'json',
-              input: {
-                message: 'generate 10 items',
-              },
-            },
-            {
-              type: 'text',
-              text: 'I generated code for 10 items.',
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'tool-example-123',
-              toolName: 'json',
-              output: {
-                type: 'json',
-                value: {
-                  code: 'export const code = () => [...]',
-                  packageJson: '{}',
-                },
-              },
-            },
-          ],
-        },
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'generate 100 items' }],
-        },
-      ],
-      sendReasoning: true,
-      warnings: [],
-    });
-
-    // The key fix: tool_result and user content are combined in a single message
-    // but tool_result appears FIRST to satisfy Claude's validation requirements
-    expect(result.prompt.messages).toHaveLength(3);
-    expect(result.prompt.messages[0].role).toBe('user');
-    expect(result.prompt.messages[1].role).toBe('assistant');
-    expect(result.prompt.messages[2].role).toBe('user'); // combined tool_result + user message
-
-    // Verify tool_result comes before user text in the combined message
-    expect(result.prompt.messages[2].content).toEqual([
-      {
-        type: 'tool_result',
-        tool_use_id: 'tool-example-123',
-        is_error: undefined,
-        content: JSON.stringify({
-          code: 'export const code = () => [...]',
-          packageJson: '{}',
-        }),
-        cache_control: undefined,
-      },
-      {
-        type: 'text',
-        text: 'generate 100 items',
-        cache_control: undefined,
-      },
-    ]);
   });
 
   it('should handle tool result with content parts', async () => {
@@ -521,7 +439,7 @@ describe('tool messages', () => {
                     text: 'Image generated successfully',
                   },
                   {
-                    type: 'media',
+                    type: 'image-data',
                     data: 'AAECAw==',
                     mediaType: 'image/png',
                   },
@@ -546,12 +464,10 @@ describe('tool messages', () => {
                   "cache_control": undefined,
                   "content": [
                     {
-                      "cache_control": undefined,
                       "text": "Image generated successfully",
                       "type": "text",
                     },
                     {
-                      "cache_control": undefined,
                       "source": {
                         "data": "AAECAw==",
                         "media_type": "image/png",
@@ -574,10 +490,7 @@ describe('tool messages', () => {
     `);
   });
 
-  it('should place tool_result before user text in combined message', async () => {
-    // Combines tool_result and user text in a single message (preserving role alternation)
-    // but tool_result parts appear first, satisfying Claude's validation requirements
-
+  it('should handle tool result with PDF content', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -585,19 +498,23 @@ describe('tool messages', () => {
           content: [
             {
               type: 'tool-result',
-              toolName: 'analyze-tool',
-              toolCallId: 'tool-call-123',
+              toolName: 'pdf-generator',
+              toolCallId: 'pdf-gen-1',
               output: {
-                type: 'json',
-                value: { analysis: 'Tool execution completed' },
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'PDF generated successfully',
+                  },
+                  {
+                    type: 'file-data',
+                    data: 'JVBERi0xLjQKJeLjz9MKNCAwIG9iago=', // Sample PDF base64
+                    mediaType: 'application/pdf',
+                  },
+                ],
               },
             },
-          ],
-        },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Thanks! Now please provide more details.' },
           ],
         },
       ],
@@ -605,38 +522,45 @@ describe('tool messages', () => {
       warnings: [],
     });
 
-    // Fixed behavior: still combines in single message, but tool_result comes first
-    // This satisfies Claude's "tool_result immediately after tool_use" requirement
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'tool_result',
-                tool_use_id: 'tool-call-123',
-                is_error: undefined,
-                content: JSON.stringify({
-                  analysis: 'Tool execution completed',
-                }),
-              },
-              {
-                type: 'text',
-                text: 'Thanks! Now please provide more details.',
-              },
-            ],
-          },
-        ],
-        system: undefined,
-      },
-      betas: new Set(),
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "pdfs-2024-09-25",
+        },
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "text": "PDF generated successfully",
+                      "type": "text",
+                    },
+                    {
+                      "source": {
+                        "data": "JVBERi0xLjQKJeLjz9MKNCAwIG9iago=",
+                        "media_type": "application/pdf",
+                        "type": "base64",
+                      },
+                      "type": "document",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "pdf-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
   });
-
-  it('should place multiple tool_result parts before user text in correct order', async () => {
-    // Test multiple tool_use scenario: tool_result parts should appear first
-    // and maintain the same order as their corresponding tool_use ids
+  it('should handle tool result with url-based PDF content', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -644,55 +568,58 @@ describe('tool messages', () => {
           content: [
             {
               type: 'tool-result',
-              toolName: 'search-tool',
-              toolCallId: 'search-123',
-              output: { type: 'text', value: 'Search result' },
-            },
-            {
-              type: 'tool-result',
-              toolName: 'analyze-tool',
-              toolCallId: 'analyze-456',
-              output: { type: 'json', value: { status: 'complete' } },
-            },
-          ],
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Great! What do you think about these results?',
+              toolName: 'get-pdf',
+              toolCallId: 'get-pdf-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: 'https://example.com/document.pdf',
+                  },
+                ],
+              },
             },
           ],
         },
       ],
-      sendReasoning: false,
+      sendReasoning: true,
       warnings: [],
     });
 
-    expect(result.prompt.messages).toHaveLength(1);
-    expect(result.prompt.messages[0]).toEqual({
-      role: 'user',
-      content: [
-        {
-          type: 'tool_result',
-          tool_use_id: 'search-123',
-          content: 'Search result',
-          is_error: undefined,
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.com/document.pdf",
+                      },
+                      "type": "document",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "get-pdf-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
         },
-        {
-          type: 'tool_result',
-          tool_use_id: 'analyze-456',
-          content: JSON.stringify({ status: 'complete' }),
-          is_error: undefined,
-        },
-        { type: 'text', text: 'Great! What do you think about these results?' },
-      ],
-    });
+      }
+    `);
   });
 
-  it('should place error tool_result parts before user text', async () => {
-    // Test error tool results: should also appear first even when is_error: true
+  it('should handle tool result with url-based image content', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -700,42 +627,55 @@ describe('tool messages', () => {
           content: [
             {
               type: 'tool-result',
-              toolName: 'failing-tool',
-              toolCallId: 'fail-789',
-              output: { type: 'error-text', value: 'Tool execution failed' },
-            },
-          ],
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'The tool failed. Can you try a different approach?',
+              toolName: 'image-generator',
+              toolCallId: 'image-gen-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'image-url',
+                    url: 'https://example.com/image.png',
+                  },
+                ],
+              },
             },
           ],
         },
       ],
-      sendReasoning: false,
+      sendReasoning: true,
       warnings: [],
     });
 
-    expect(result.prompt.messages).toHaveLength(1);
-    expect(result.prompt.messages[0]).toEqual({
-      role: 'user',
-      content: [
-        {
-          type: 'tool_result',
-          tool_use_id: 'fail-789',
-          content: 'Tool execution failed',
-          is_error: true,
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "source": {
+                        "type": "url",
+                        "url": "https://example.com/image.png",
+                      },
+                      "type": "image",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "image-gen-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
         },
-        {
-          type: 'text',
-          text: 'The tool failed. Can you try a different approach?',
-        },
-      ],
-    });
+      }
+    `);
   });
 });
 
@@ -884,7 +824,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -936,7 +876,7 @@ describe('assistant messages', () => {
   });
 
   it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -988,7 +928,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1039,7 +979,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1085,7 +1025,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1109,7 +1049,7 @@ describe('assistant messages', () => {
                     title: 'San Francisco Calendar',
                     pageAge: null,
                     encryptedContent: 'encrypted-content',
-                    type: 'event',
+                    type: 'web_search_result',
                   },
                 ],
               },
@@ -1147,7 +1087,7 @@ describe('assistant messages', () => {
                       "encrypted_content": "encrypted-content",
                       "page_age": null,
                       "title": "San Francisco Calendar",
-                      "type": "event",
+                      "type": "web_search_result",
                       "url": "https://patch.com/california/san-francisco/calendar",
                     },
                   ],
@@ -1165,8 +1105,8 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
-  it('should convert anthropic code_execution tool call and result parts', async () => {
-    const warnings: LanguageModelV2CallWarning[] = [];
+  it('should convert anthropic web_fetch tool call and result parts', async () => {
+    const warnings: LanguageModelV3CallWarning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1174,25 +1114,34 @@ describe('assistant messages', () => {
           content: [
             {
               input: {
-                code: 'print("Hello, world!")',
+                url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
               },
               providerExecuted: true,
-              toolCallId: 'srvtoolu_01XyZ1234567890',
-              toolName: 'code_execution',
+              toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+              toolName: 'web_fetch',
               type: 'tool-call',
             },
             {
               output: {
                 type: 'json',
                 value: {
-                  type: 'code_execution_result',
-                  stdout: 'Hello, world!',
-                  stderr: '',
-                  return_code: 0,
+                  type: 'web_fetch_result',
+                  url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+                  retrievedAt: '2025-01-01T00:00:00.000Z',
+                  content: {
+                    type: 'document',
+                    title: 'AI.pdf',
+                    citations: { enabled: true },
+                    source: {
+                      type: 'text',
+                      mediaType: 'text/plain',
+                      data: 'The PDF says about AI.',
+                    },
+                  },
                 },
               },
-              toolCallId: 'srvtoolu_01XyZ1234567890',
-              toolName: 'code_execution',
+              toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
+              toolName: 'web_fetch',
               type: 'tool-result',
             },
           ],
@@ -1203,6 +1152,93 @@ describe('assistant messages', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                  "input": {
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                  },
+                  "name": "web_fetch",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "content": {
+                      "citations": {
+                        "enabled": true,
+                      },
+                      "source": {
+                        "data": "The PDF says about AI.",
+                        "media_type": "text/plain",
+                        "type": "text",
+                      },
+                      "title": "AI.pdf",
+                      "type": "document",
+                    },
+                    "retrieved_at": "2025-01-01T00:00:00.000Z",
+                    "type": "web_fetch_result",
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                  },
+                  "tool_use_id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
+                  "type": "web_fetch_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  describe('code_execution 20250522', () => {
+    it('should convert anthropic code_execution tool call and result parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: {
+                  code: 'print("Hello, world!")',
+                },
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_01XyZ1234567890',
+                toolName: 'code_execution',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'code_execution_result',
+                    stdout: 'Hello, world!',
+                    stderr: '',
+                    return_code: 0,
+                  },
+                },
+                toolCallId: 'srvtoolu_01XyZ1234567890',
+                toolName: 'code_execution',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
       {
         "betas": Set {},
         "prompt": {
@@ -1237,7 +1273,227 @@ describe('assistant messages', () => {
         },
       }
     `);
-    expect(warnings).toMatchInlineSnapshot(`[]`);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  describe('code_execution 20250825', () => {
+    it('should convert anthropic code_execution tool call and result parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                input: {
+                  type: 'text_editor_code_execution',
+                  command: 'create',
+                  path: '/tmp/fibonacci.py',
+                  file_text: 'def..',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'text_editor_code_execution_create_result',
+                    is_file_update: false,
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                input: {
+                  type: 'bash_code_execution',
+                  command: 'python /tmp/fibonacci.py',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'bash_code_execution_result',
+                    content: [],
+                    stdout: 'The 10th Fibonacci number is: 34\n',
+                    stderr: '',
+                    return_code: 0,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "input": {
+                      "command": "create",
+                      "file_text": "def..",
+                      "path": "/tmp/fibonacci.py",
+                      "type": "text_editor_code_execution",
+                    },
+                    "name": "text_editor_code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "is_file_update": false,
+                      "type": "text_editor_code_execution_create_result",
+                    },
+                    "tool_use_id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "type": "text_editor_code_execution_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "input": {
+                      "command": "python /tmp/fibonacci.py",
+                      "type": "bash_code_execution",
+                    },
+                    "name": "bash_code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "The 10th Fibonacci number is: 34
+        ",
+                      "type": "bash_code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "type": "bash_code_execution_tool_result",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  describe('mcp tool use', () => {
+    it('should convert anthropic mcp tool use parts', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'mcptoolu_01HXPYHs79HH36fBbKHysCrp',
+                toolName: 'echo',
+                input: {},
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: { type: 'mcp-tool-use', serverName: 'echo' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'mcptoolu_01HXPYHs79HH36fBbKHysCrp',
+                toolName: 'echo',
+                output: {
+                  type: 'json',
+                  value: [{ type: 'text', text: 'Tool echo: hello world' }],
+                },
+                providerOptions: undefined,
+              },
+              {
+                type: 'text',
+                text: 'The echo tool responded back with "hello world" - it simply echoed the message I sent to it!',
+                providerOptions: undefined,
+              },
+            ],
+            providerOptions: undefined,
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "mcptoolu_01HXPYHs79HH36fBbKHysCrp",
+                    "input": {},
+                    "name": "echo",
+                    "server_name": "echo",
+                    "type": "mcp_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": [
+                      {
+                        "text": "Tool echo: hello world",
+                        "type": "text",
+                      },
+                    ],
+                    "is_error": false,
+                    "tool_use_id": "mcptoolu_01HXPYHs79HH36fBbKHysCrp",
+                    "type": "mcp_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "text": "The echo tool responded back with "hello world" - it simply echoed the message I sent to it!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "provider executed tool result for tool echo is not supported",
+            "type": "other",
+          },
+        ]
+      `);
+    });
   });
 });
 
@@ -1603,6 +1859,184 @@ describe('cache control', () => {
       });
     });
   });
+
+  describe('cache control validation', () => {
+    it('should reject cache_control on thinking blocks', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const cacheControlValidator = new CacheControlValidator();
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'thinking content',
+                providerOptions: {
+                  anthropic: {
+                    signature: 'test-sig',
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        cacheControlValidator,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: 'thinking content',
+                  signature: 'test-sig',
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+
+      expect(cacheControlValidator.getWarnings()).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'cacheControl',
+        details:
+          'cache_control cannot be set on thinking block. It will be ignored.',
+      });
+    });
+
+    it('should reject cache_control on redacted thinking blocks', async () => {
+      const warnings: LanguageModelV3CallWarning[] = [];
+      const cacheControlValidator = new CacheControlValidator();
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'redacted',
+                providerOptions: {
+                  anthropic: {
+                    redactedData: 'abc123',
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        cacheControlValidator,
+      });
+
+      expect(result.prompt.messages[0].content[0]).not.toHaveProperty(
+        'cache_control',
+      );
+
+      expect(cacheControlValidator.getWarnings()).toContainEqual({
+        type: 'unsupported-setting',
+        setting: 'cacheControl',
+        details:
+          'cache_control cannot be set on redacted thinking block. It will be ignored.',
+      });
+    });
+  });
+
+  it('should limit cache breakpoints to 4', async () => {
+    const warnings: LanguageModelV3CallWarning[] = [];
+    const cacheControlValidator = new CacheControlValidator();
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'system',
+          content: 'system 1',
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          role: 'system',
+          content: 'system 2',
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'user 1',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'assistant 1',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'user 2 (should be rejected)',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      cacheControlValidator,
+    });
+
+    // First 4 should have cache_control
+    expect(result.prompt.system?.[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.system?.[1].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.messages[0].content[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+    expect(result.prompt.messages[1].content[0].cache_control).toEqual({
+      type: 'ephemeral',
+    });
+
+    // 5th should be rejected
+    expect(result.prompt.messages[2].content[0].cache_control).toBeUndefined();
+
+    // Should have warning about exceeding limit
+    expect(cacheControlValidator.getWarnings()).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'cacheControl',
+      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
+    });
+  });
 });
 
 describe('citations', () => {
@@ -1858,5 +2292,195 @@ describe('citations', () => {
         },
       }
     `);
+  });
+
+  describe('message sequences', () => {
+    it('should convert user-assistant-tool-assistant-user message sequence with multiple tool calls', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'weather for berlin, london and paris' },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I will use the weather tool to get the weather for berlin, london and paris',
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-1',
+                input: { location: 'berlin' },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-2',
+                input: { location: 'london' },
+              },
+              {
+                type: 'tool-call',
+                toolName: 'weather',
+                toolCallId: 'weather-call-3',
+                input: { location: 'paris' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-1',
+                output: {
+                  type: 'json',
+                  value: { weather: 'sunny' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-2',
+                output: {
+                  type: 'json',
+                  value: { weather: 'cloudy' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolName: 'weather',
+                toolCallId: 'weather-call-3',
+                output: {
+                  type: 'json',
+                  value: { weather: 'rainy' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'The weather for berlin is sunny, the weather for london is cloudy, and the weather for paris is rainy',
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'and for new york?' }],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+      });
+
+      expect(result.prompt).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "weather for berlin, london and paris",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "I will use the weather tool to get the weather for berlin, london and paris",
+                  "type": "text",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-1",
+                  "input": {
+                    "location": "berlin",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-2",
+                  "input": {
+                    "location": "london",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "id": "weather-call-3",
+                  "input": {
+                    "location": "paris",
+                  },
+                  "name": "weather",
+                  "type": "tool_use",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"sunny"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-1",
+                  "type": "tool_result",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"cloudy"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-2",
+                  "type": "tool_result",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": "{"weather":"rainy"}",
+                  "is_error": undefined,
+                  "tool_use_id": "weather-call-3",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "The weather for berlin is sunny, the weather for london is cloudy, and the weather for paris is rainy",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "and for new york?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        }
+      `);
+    });
   });
 });

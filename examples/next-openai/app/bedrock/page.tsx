@@ -1,8 +1,8 @@
 'use client';
 
+import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import ChatInput from '@/component/chat-input';
 
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
@@ -10,7 +10,7 @@ export default function Chat() {
   });
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
@@ -27,7 +27,7 @@ export default function Chat() {
           {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
             onClick={stop}
           >
             Stop
@@ -40,7 +40,7 @@ export default function Chat() {
           <div className="text-red-500">An error occurred.</div>
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
             onClick={() => regenerate()}
           >
             Retry

@@ -1,7 +1,10 @@
 import { codeInterpreter } from './tool/code-interpreter';
 import { fileSearch } from './tool/file-search';
+import { imageGeneration } from './tool/image-generation';
+import { localShell } from './tool/local-shell';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
+import { mcp } from './tool/mcp';
 
 export const openaiTools = {
   /**
@@ -30,6 +33,36 @@ export const openaiTools = {
   fileSearch,
 
   /**
+   * The image generation tool allows you to generate images using a text prompt,
+   * and optionally image inputs. It leverages the GPT Image model,
+   * and automatically optimizes text inputs for improved performance.
+   *
+   * Must have name `image_generation`.
+   *
+   * @param background - Background type for the generated image. One of 'auto', 'opaque', or 'transparent'.
+   * @param inputFidelity - Input fidelity for the generated image. One of 'low' or 'high'.
+   * @param inputImageMask - Optional mask for inpainting. Contains fileId and/or imageUrl.
+   * @param model - The image generation model to use. Default: gpt-image-1.
+   * @param moderation - Moderation level for the generated image. Default: 'auto'.
+   * @param outputCompression - Compression level for the output image (0-100).
+   * @param outputFormat - The output format of the generated image. One of 'png', 'jpeg', or 'webp'.
+   * @param partialImages - Number of partial images to generate in streaming mode (0-3).
+   * @param quality - The quality of the generated image. One of 'auto', 'low', 'medium', or 'high'.
+   * @param size - The size of the generated image. One of 'auto', '1024x1024', '1024x1536', or '1536x1024'.
+   */
+  imageGeneration,
+
+  /**
+   * Local shell is a tool that allows agents to run shell commands locally
+   * on a machine you or the user provides.
+   *
+   * Supported models: `gpt-5-codex` and `codex-mini-latest`
+   *
+   * Must have name `local_shell`.
+   */
+  localShell,
+
+  /**
    * Web search allows models to access up-to-date information from the internet
    * and provide answers with sourced citations.
    *
@@ -53,4 +86,21 @@ export const openaiTools = {
    * @param userLocation - The user location to use for the web search.
    */
   webSearch,
+
+  /**
+   * MCP (Model Context Protocol) allows models to call tools exposed by
+   * remote MCP servers or service connectors.
+   *
+   * Must have name `mcp`.
+   *
+   * @param serverLabel - Label to identify the MCP server.
+   * @param allowedTools - Allowed tool names or filter object.
+   * @param authorization - OAuth access token for the MCP server/connector.
+   * @param connectorId - Identifier for a service connector.
+   * @param headers - Optional headers to include in MCP requests.
+   * // param requireApproval - Approval policy ('always'|'never'|filter object). (Removed - always 'never')
+   * @param serverDescription - Optional description of the server.
+   * @param serverUrl - URL for the MCP server.
+   */
+  mcp,
 };

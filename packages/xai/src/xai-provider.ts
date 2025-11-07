@@ -3,52 +3,67 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  ImageModelV2,
-  LanguageModelV2,
+  ImageModelV3,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { XaiChatModelId } from './xai-chat-options';
 import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
 import { XaiImageModelId } from './xai-image-settings';
+import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
+import { XaiResponsesModelId } from './responses/xai-responses-options';
+import { xaiTools } from './tool';
+import { VERSION } from './version';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorDataSchema,
   errorToMessage: data => data.error.message,
 };
 
-export interface XaiProvider extends ProviderV2 {
+export interface XaiProvider extends ProviderV3 {
   /**
 Creates an Xai chat model for text generation.
    */
-  (modelId: XaiChatModelId): LanguageModelV2;
+  (modelId: XaiChatModelId): LanguageModelV3;
 
   /**
 Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiChatModelId): LanguageModelV2;
+  languageModel(modelId: XaiChatModelId): LanguageModelV3;
 
   /**
 Creates an Xai chat model for text generation.
    */
-  chat: (modelId: XaiChatModelId) => LanguageModelV2;
+  chat: (modelId: XaiChatModelId) => LanguageModelV3;
+
+  /**
+Creates an Xai responses model for agentic tool calling.
+   */
+  responses: (modelId: XaiResponsesModelId) => LanguageModelV3;
 
   /**
 Creates an Xai image model for image generation.
    */
-  image(modelId: XaiImageModelId): ImageModelV2;
+  image(modelId: XaiImageModelId): ImageModelV3;
 
   /**
 Creates an Xai image model for image generation.
    */
-  imageModel(modelId: XaiImageModelId): ImageModelV2;
+  imageModel(modelId: XaiImageModelId): ImageModelV3;
+
+  /**
+Server-side agentic tools for use with the responses API.
+   */
+  tools: typeof xaiTools;
 }
 
 export interface XaiProviderSettings {
@@ -78,18 +93,32 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.x.ai/v1',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'XAI_API_KEY',
-      description: 'xAI API key',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'XAI_API_KEY',
+          description: 'xAI API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/xai/${VERSION}`,
+    );
 
-  const createLanguageModel = (modelId: XaiChatModelId) => {
+  const createChatLanguageModel = (modelId: XaiChatModelId) => {
     return new XaiChatLanguageModel(modelId, {
       provider: 'xai.chat',
+      baseURL,
+      headers: getHeaders,
+      generateId,
+      fetch: options.fetch,
+    });
+  };
+
+  const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {
+    return new XaiResponsesLanguageModel(modelId, {
+      provider: 'xai.responses',
       baseURL,
       headers: getHeaders,
       generateId,
@@ -107,15 +136,19 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const provider = (modelId: XaiChatModelId) => createLanguageModel(modelId);
+  const provider = (modelId: XaiChatModelId) =>
+    createChatLanguageModel(modelId);
 
-  provider.languageModel = createLanguageModel;
-  provider.chat = createLanguageModel;
+  provider.specificationVersion = 'v3' as const;
+  provider.languageModel = createChatLanguageModel;
+  provider.chat = createChatLanguageModel;
+  provider.responses = createResponsesLanguageModel;
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
   provider.imageModel = createImageModel;
   provider.image = createImageModel;
+  provider.tools = xaiTools;
 
   return provider;
 }

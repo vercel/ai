@@ -1,6 +1,6 @@
 import { google } from '@ai-sdk/google';
 import { generateText, stepCountIs, tool } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import 'dotenv/config';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -36,7 +36,7 @@ const imageAnalysisTool = tool({
       type: 'content',
       value: [
         {
-          type: 'media',
+          type: 'image-data',
           mediaType: 'image/png',
           data: output.base64Image!,
         },

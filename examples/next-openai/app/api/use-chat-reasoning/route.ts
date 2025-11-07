@@ -15,9 +15,10 @@ export async function POST(req: Request) {
         reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
       } satisfies OpenAIResponsesProviderOptions,
     },
+    onFinish: ({ request }) => {
+      console.dir(request.body, { depth: null });
+    },
   });
 
-  return result.toUIMessageStreamResponse({
-    sendReasoning: true,
-  });
+  return result.toUIMessageStreamResponse();
 }

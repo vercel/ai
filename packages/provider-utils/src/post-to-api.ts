@@ -3,8 +3,10 @@ import { extractResponseHeaders } from './extract-response-headers';
 import { FetchFunction } from './fetch-function';
 import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
-import { removeUndefinedEntries } from './remove-undefined-entries';
 import { ResponseHandler } from './response-handler';
+import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
+import { withUserAgentSuffix } from './with-user-agent-suffix';
+import { VERSION } from './version';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => globalThis.fetch;
@@ -95,7 +97,11 @@ export const postToApi = async <T>({
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: removeUndefinedEntries(headers),
+      headers: withUserAgentSuffix(
+        headers,
+        `ai-sdk/provider-utils/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       body: body.content,
       signal: abortSignal,
     });

@@ -1,4 +1,3 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
 import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -6,6 +5,9 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { Output } from './output';
+import { InferCompleteOutput } from './output-utils';
+import { ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
@@ -20,10 +22,14 @@ import { ToolSet } from './tool-set';
 The result of a `generateText` call.
 It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
-export interface GenerateTextResult<TOOLS extends ToolSet, OUTPUT> {
+export interface GenerateTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output,
+> {
   /**
 The content that was generated in the last step.
    */
+  // TODO AI SDK 5.1 / AI SDK 6: consider renaming to output
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
@@ -34,7 +40,7 @@ The text that was generated in the last step.
   /**
 The full reasoning that the model has generated in the last step.
    */
-  readonly reasoning: Array<ReasoningPart>;
+  readonly reasoning: Array<ReasoningOutput>;
 
   /**
 The reasoning text that the model has generated in the last step. Can be undefined if the model
@@ -144,7 +150,15 @@ such as the tool calls or the response headers.
   readonly steps: Array<StepResult<TOOLS>>;
 
   /**
-The generated structured output. It uses the `experimental_output` specification.
+The generated structured output. It uses the `output` specification.
+
+@deprecated Use `output` instead.
    */
-  readonly experimental_output: OUTPUT;
+  readonly experimental_output: InferCompleteOutput<OUTPUT>;
+
+  /**
+The generated structured output. It uses the `output` specification.
+
+   */
+  readonly output: InferCompleteOutput<OUTPUT>;
 }

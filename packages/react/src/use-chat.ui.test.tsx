@@ -2,9 +2,9 @@
 /* eslint-disable @next/next/no-img-element */
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -721,10 +721,10 @@ describe('onToolCall', () => {
   let toolCallPromise: Promise<void>;
 
   setupTestComponent(() => {
-    const { messages, sendMessage, addToolResult } = useChat({
+    const { messages, sendMessage, addToolOutput } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
-        addToolResult({
+        addToolOutput({
           tool: 'test-tool',
           toolCallId: toolCall.toolCallId,
           output: `test-tool-response: ${toolCall.toolName} ${
@@ -808,7 +808,7 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   setupTestComponent(() => {
-    const { messages, sendMessage, addToolResult } = useChat({
+    const { messages, sendMessage, addToolOutput } = useChat({
       generateId: mockId(),
     });
 
@@ -826,7 +826,7 @@ describe('tool invocations', () => {
                     <button
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
-                        addToolResult({
+                        addToolOutput({
                           tool: 'test-tool',
                           toolCallId: toolPart.toolCallId,
                           output: 'test-result',
@@ -1020,7 +1020,7 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolOutput is called', async () => {
     const controller = new TestResponseController();
     server.urls['/api/chat'].response = {
       type: 'controlled-stream',

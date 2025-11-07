@@ -7,6 +7,7 @@
       "env": [
         "AI_GATEWAY_API_KEY",
         "ANTHROPIC_API_KEY",
+        "ANTHROPIC_BASE_URL",
         "ASSISTANT_ID",
         "AWS_REGION",
         "AWS_ACCESS_KEY_ID",
@@ -36,6 +37,7 @@
         "NODE_ENV",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
+        "OPENAI_BASE_URL",
         "PERPLEXITY_API_KEY",
         "REPLICATE_API_TOKEN",
         "SENTRY_AUTH_TOKEN",
