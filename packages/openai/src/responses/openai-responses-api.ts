@@ -605,10 +605,13 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('error'),
-        code: z.string(),
-        message: z.string(),
-        param: z.string().nullish(),
         sequence_number: z.number(),
+        error: z.object({
+          type: z.string(),
+          code: z.string(),
+          message: z.string(),
+          param: z.string().nullish(),
+        }),
       }),
       z
         .object({ type: z.string() })
