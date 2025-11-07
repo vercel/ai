@@ -1,5 +1,20 @@
 # ai
 
+## 6.0.0-beta.94
+
+### Patch Changes
+
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+
+## 6.0.0-beta.93
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/gateway@2.0.0-beta.50
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
 ## 6.0.0-beta.92
 
 ### Patch Changes
