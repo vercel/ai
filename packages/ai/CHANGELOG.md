@@ -1,5 +1,88 @@
 # ai
 
+## 6.0.0-beta.94
+
+### Patch Changes
+
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+
+## 6.0.0-beta.93
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/gateway@2.0.0-beta.50
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 6.0.0-beta.92
+
+### Patch Changes
+
+- 97b1d77: fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
+
+## 6.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+  - @ai-sdk/gateway@2.0.0-beta.49
+
+## 6.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/gateway@2.0.0-beta.48
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 6.0.0-beta.89
+
+### Patch Changes
+
+- d59ce25: fix(ai): do not mutate middleware array argument when wrapping
+
+## 6.0.0-beta.88
+
+### Patch Changes
+
+- 22ef5c6: feat(ai): Output.text() is default output mode
+
+## 6.0.0-beta.87
+
+### Patch Changes
+
+- ca13d26: feat(ai): add output to StreamTextResult
+
+## 6.0.0-beta.86
+
+### Patch Changes
+
+- 36b175c: chore(ai): change output generics
+
+## 6.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [96322b7]
+  - @ai-sdk/gateway@2.0.0-beta.47
+
+## 6.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.46
+
+## 6.0.0-beta.83
+
+### Patch Changes
+
+- e1f6e8e: feat(ai): add Output.json()
+
 ## 6.0.0-beta.82
 
 ### Patch Changes

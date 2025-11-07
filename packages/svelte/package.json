@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "4.0.0-beta.82",
+  "version": "4.0.0-beta.94",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -16,7 +16,7 @@
     "test": "vitest --run",
     "test:update": "vitest --run -u",
     "test:watch": "vitest",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "del-cli dist *.tsbuildinfo"
   },
   "files": [
     "dist",
@@ -25,7 +25,8 @@
     "src",
     "!src/**/*.test.*",
     "!src/**/*.spec.*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "sideEffects": [
     "**/*.css"

@@ -1,3 +1,5 @@
+export type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+
 export type { BedrockProviderOptions } from './bedrock-chat-options';
 export { bedrock, createAmazonBedrock } from './bedrock-provider';
 export type {

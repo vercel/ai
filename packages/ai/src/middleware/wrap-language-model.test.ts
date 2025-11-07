@@ -1,4 +1,8 @@
-import { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import {
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Middleware,
+} from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { describe, it, expect, vi } from 'vitest';
@@ -483,6 +487,32 @@ describe('wrapLanguageModel', () => {
       expect(result).toBe('wrapStream1(wrapStream2(final stream result))');
       expect(wrapStream1).toHaveBeenCalled();
       expect(wrapStream2).toHaveBeenCalled();
+    });
+
+    it('should not mutate the middleware array argument', async () => {
+      const middleware1 = {
+        specificationVersion: 'v3',
+        wrapStream: vi.fn(),
+      };
+
+      const middleware2 = {
+        specificationVersion: 'v3',
+        wrapStream: vi.fn(),
+      };
+
+      const middlewares = [
+        middleware1,
+        middleware2,
+      ] as LanguageModelV3Middleware[];
+
+      wrapLanguageModel({
+        model: new MockLanguageModelV3(),
+        middleware: middlewares,
+      });
+
+      expect(middlewares.length).toBe(2);
+      expect(middlewares[0]).toBe(middleware1);
+      expect(middlewares[1]).toBe(middleware2);
     });
   });
 });
