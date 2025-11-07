@@ -489,6 +489,31 @@ Example response:
 }
 ```
 
+### File Search
+
+The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets Gemini retrieve context from your own documents that you have indexed in File Search stores. Only Gemini 2.5 models support this feature.
+
+```ts highlight="9-13"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: google('gemini-2.5-pro'),
+  tools: {
+    file_search: google.tools.fileSearch({
+      fileSearchStoreNames: [
+        'projects/my-project/locations/us/fileSearchStores/my-store',
+      ],
+      metadataFilter: 'author = "Robert Graves"',
+      topK: 8,
+    }),
+  },
+  prompt: "Summarise the key themes of 'I, Claudius'.",
+});
+```
+
+File Search responses include citations via the normal `sources` field and expose raw [grounding metadata](#google-search) in `providerMetadata.google.groundingMetadata`.
+
 ### URL Context
 
 Google provides a provider-defined URL context tool.
