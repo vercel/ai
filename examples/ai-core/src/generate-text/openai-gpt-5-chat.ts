@@ -10,7 +10,7 @@ run(async () => {
     providerOptions: {
       openai: {
         store: false,
-        include: ['reasoning.encrypted_content']
+        include: ['reasoning.encrypted_content'],
       } satisfies OpenAIResponsesProviderOptions,
     },
   });
