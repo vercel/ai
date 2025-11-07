@@ -1,6 +1,6 @@
 ---
-'@ai-sdk/google': minor
-'@ai-sdk/google-vertex': minor
+'@ai-sdk/google': patch
+'@ai-sdk/google-vertex': patch
 ---
 
 Add Google File search tool
