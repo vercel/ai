@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- 68cedbf: Update default Azure Provider to use Responses API
+
 ## 3.0.0-beta.56
 
 ### Patch Changes
