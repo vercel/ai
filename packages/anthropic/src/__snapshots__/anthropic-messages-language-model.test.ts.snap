@@ -11262,6 +11262,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "content": {
         "citations": undefined,
