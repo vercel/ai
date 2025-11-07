@@ -5,7 +5,7 @@ import { print } from '../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5-chat'),
+    model: openai('gpt-5-chat-latest'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
       openai: {
