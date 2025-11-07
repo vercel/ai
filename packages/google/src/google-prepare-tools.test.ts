@@ -1,9 +1,6 @@
 import { prepareTools } from './google-prepare-tools';
-<<<<<<< HEAD
 import { it, expect } from 'vitest';
-=======
-import { LanguageModelV3ProviderDefinedTool } from '@ai-sdk/provider';
->>>>>>> 2825757a6 (feat(google): Adding new Google File search tool (#10051))
+import { LanguageModelV2ProviderDefinedTool } from '@ai-sdk/provider';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
   const result = prepareTools({
@@ -135,7 +132,7 @@ it('should add warnings for unsupported tools', () => {
 });
 
 it('should add warnings for file search on unsupported models', () => {
-  const tool: LanguageModelV3ProviderDefinedTool = {
+  const tool: LanguageModelV2ProviderDefinedTool = {
     type: 'provider-defined' as const,
     id: 'google.file_search',
     name: 'file_search',
