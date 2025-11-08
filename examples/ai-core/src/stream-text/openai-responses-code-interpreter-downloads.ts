@@ -1,0 +1,122 @@
+import 'dotenv/config';
+import {
+  openai,
+  OpenaiResponsesOutputTextProviderMetadata,
+} from '@ai-sdk/openai';
+import { streamText } from 'ai';
+import * as fs from 'fs';
+
+async function main() {
+  // Stream text generation
+  const result = streamText({
+    model: openai.responses('gpt-4.1-mini'),
+    prompt:
+      'Create an Excel file with the names of 10 historical figures. Run it immediately. No questions allowed.',
+    tools: {
+      code_interpreter: openai.tools.codeInterpreter(),
+    },
+  });
+
+  console.log('\n=== Basic Text Generation ===');
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
+  console.log('\n=== Other Outputs ===');
+  console.dir(await result.toolCalls, { depth: Infinity });
+  console.dir(await result.toolResults, { depth: Infinity });
+  const resultContent = await result.content;
+  console.dir(resultContent, { depth: Infinity });
+
+  const annotations = resultContent
+    .filter(c => c.type === 'text')
+    .flatMap(m=>{
+      const{
+        openai:{
+          annotations
+        }
+      }=m.providerMetadata as OpenaiResponsesOutputTextProviderMetadata;
+      return annotations
+    })
+
+  await Promise.all(
+    annotations.map(async annotation => {
+      if(annotation.type==='container_file_citation'){
+        await downloadContainerFile(
+          annotation.container_id,
+          annotation.file_id,
+        );
+      }
+    }),
+  );
+}
+
+async function downloadContainerFile(container: string, file: string) {
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY is not set');
+    }
+
+    const infoUrl = `https://api.openai.com/v1/containers/${container}/files/${file}`;
+    const infoResponse = await fetch(infoUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+    if (!infoResponse.ok) {
+      throw new Error(
+        `HTTP Error: ${infoResponse.status} ${infoResponse.statusText}`,
+      );
+    }
+    const {
+      path,
+    }: {
+      id: string;
+      object: string;
+      created_at: number;
+      bytes: number;
+      container_id: string;
+      path: string;
+      source: string;
+    } = await infoResponse.json();
+
+    const filename = path.split('/').at(-1) || 'result-file';
+
+    const downloadUrl = `https://api.openai.com/v1/containers/${container}/files/${file}/content`;
+    const downloadResponse = await fetch(downloadUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!downloadResponse.ok) {
+      throw new Error(
+        `HTTP Error: ${downloadResponse.status} ${downloadResponse.statusText}`,
+      );
+    }
+
+    // get as binary data
+    const arrayBuffer = await downloadResponse.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const outputPath = `output/${filename}`;
+
+    fs.writeFileSync(outputPath, buffer);
+
+    console.log(`file saved: ${outputPath}`);
+    console.log(`file size: ${buffer.length} bytes`);
+
+    return {
+      path: outputPath,
+      size: buffer.length,
+    };
+  } catch (error) {
+    console.error('error:', error);
+    throw error;
+  }
+}
+
+main().catch(console.error);
