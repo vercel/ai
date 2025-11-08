@@ -150,6 +150,23 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "reasoning",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 350,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_0365d26c32c64c650068cabb0e66b081949f66f61dacef39f3",
+      },
+    },
+    "text": "According to the document, an embedding model converts complex data (like words or images) into a dense vector — a list of numbers — called an embedding. It does not generate new text or data; instead it encodes semantic and syntactic relationships between entities so those vector representations can be used as inputs for other models or NLP tasks .",
+    "type": "text",
+  },
+  {
     "filename": "ai.pdf",
     "id": "id-0",
     "mediaType": "text/plain",
@@ -217,6 +234,23 @@ exports[`responses > doGenerate > file search tool > without results include > s
     },
     "text": "",
     "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 438,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_0a098396a8feca410068caae457c508196b2fcd079d1d3ec74",
+      },
+    },
+    "text": "According to the document, an embedding model is used to convert complex data (like words or images) into a dense vector (a list of numbers) representation called an embedding, which captures semantic and syntactic relationships. Unlike generative models, embedding models do not generate new text or data; instead, they provide these vector representations to be used as input for other models or other natural language processing tasks .",
+    "type": "text",
   },
   {
     "filename": "ai.pdf",
