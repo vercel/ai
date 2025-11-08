@@ -20,12 +20,14 @@ import {
 
 const uiMessagesSchema = lazySchema(() =>
   zodSchema(
-    z.array(
+    z
+      .array(
         z.object({
           id: z.string(),
           role: z.enum(['system', 'user', 'assistant']),
           metadata: z.unknown().optional(),
-          parts: z.array(
+          parts: z
+            .array(
               z.union([
                 z.object({
                   type: z.literal('text'),
@@ -279,9 +281,11 @@ const uiMessagesSchema = lazySchema(() =>
                   }),
                 }),
               ]),
-            ).nonempty('Message must contain at least one part'),
+            )
+            .nonempty('Message must contain at least one part'),
         }),
-      ).nonempty('Messages array must not be empty'),
+      )
+      .nonempty('Messages array must not be empty'),
   ),
 );
 
