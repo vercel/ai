@@ -1,5 +1,11 @@
 # @ai-sdk/cerebras
 
+## 1.0.30
+
+### Patch Changes
+
+- 228b3f2: fix(cerebras): update model IDs based on https://inference-docs.cerebras.ai/models/overview
+
 ## 1.0.29
 
 ### Patch Changes
