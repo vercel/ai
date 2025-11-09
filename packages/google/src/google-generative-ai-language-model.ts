@@ -3,6 +3,7 @@ import {
   LanguageModelV3CallWarning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3FunctionTool,
   LanguageModelV3Source,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
@@ -118,13 +119,29 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       { isGemmaModel },
     );
 
+    const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools != null &&
+      tools.length > 0
+        ? {
+            type: 'function',
+            name: 'json',
+            description: 'Respond with a JSON object.',
+            inputSchema: responseFormat.schema,
+          }
+        : undefined;
+
     const {
       tools: googleTools,
       toolConfig: googleToolConfig,
       toolWarnings,
     } = prepareTools({
-      tools,
-      toolChoice,
+      tools:
+        jsonResponseTool != null
+          ? [...(tools ?? []), jsonResponseTool]
+          : tools,
+      toolChoice: jsonResponseTool != null ? { type: 'required' } : toolChoice,
       modelId: this.modelId,
     });
 
@@ -143,10 +160,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
           // response format:
           responseMimeType:
-            responseFormat?.type === 'json' ? 'application/json' : undefined,
+            responseFormat?.type === 'json' && jsonResponseTool == null
+              ? 'application/json'
+              : undefined,
           responseSchema:
             responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
+            jsonResponseTool == null &&
             // Google GenAI does not support all OpenAPI Schema features,
             // so this is needed as an escape hatch:
             // TODO convert into provider option
@@ -176,13 +196,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         labels: googleOptions?.labels,
       },
       warnings: [...warnings, ...toolWarnings],
+      usesJsonResponseTool: jsonResponseTool != null,
     };
   }
 
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, usesJsonResponseTool } = await this.getArgs(
+      options,
+    );
     const body = JSON.stringify(args);
 
     const mergedHeaders = combineHeaders(
@@ -244,23 +267,35 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null && part.text.length > 0) {
-        content.push({
-          type: part.thought === true ? 'reasoning' : 'text',
-          text: part.text,
-          providerMetadata: part.thoughtSignature
-            ? { google: { thoughtSignature: part.thoughtSignature } }
-            : undefined,
-        });
+        if (!usesJsonResponseTool) {
+          content.push({
+            type: part.thought === true ? 'reasoning' : 'text',
+            text: part.text,
+            providerMetadata: part.thoughtSignature
+              ? { google: { thoughtSignature: part.thoughtSignature } }
+              : undefined,
+          });
+        }
       } else if ('functionCall' in part) {
-        content.push({
-          type: 'tool-call' as const,
-          toolCallId: this.config.generateId(),
-          toolName: part.functionCall.name,
-          input: JSON.stringify(part.functionCall.args),
-          providerMetadata: part.thoughtSignature
-            ? { google: { thoughtSignature: part.thoughtSignature } }
-            : undefined,
-        });
+        const isJsonResponseTool =
+          usesJsonResponseTool && part.functionCall.name === 'json';
+
+        if (isJsonResponseTool) {
+          content.push({
+            type: 'text',
+            text: JSON.stringify(part.functionCall.args),
+          });
+        } else {
+          content.push({
+            type: 'tool-call' as const,
+            toolCallId: this.config.generateId(),
+            toolName: part.functionCall.name,
+            input: JSON.stringify(part.functionCall.args),
+            providerMetadata: part.thoughtSignature
+              ? { google: { thoughtSignature: part.thoughtSignature } }
+              : undefined,
+          });
+        }
       } else if ('inlineData' in part) {
         content.push({
           type: 'file' as const,
@@ -314,7 +349,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   async doStream(
     options: Parameters<LanguageModelV3['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, usesJsonResponseTool } = await this.getArgs(
+      options,
+    );
 
     const body = JSON.stringify(args);
     const headers = combineHeaders(
@@ -458,6 +495,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   part.text != null &&
                   part.text.length > 0
                 ) {
+                  if (usesJsonResponseTool) {
+                    return;
+                  }
+
                   if (part.thought === true) {
                     // End any active text block before starting reasoning
                     if (currentTextBlockId !== null) {
@@ -548,39 +589,59 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               const toolCallDeltas = getToolCallsFromParts({
                 parts: content.parts,
                 generateId,
+                usesJsonResponseTool,
               });
 
               if (toolCallDeltas != null) {
                 for (const toolCall of toolCallDeltas) {
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                  const isJsonResponseTool =
+                    usesJsonResponseTool && toolCall.toolName === 'json';
 
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCall.toolCallId,
-                    delta: toolCall.args,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                  if (isJsonResponseTool) {
+                    if (currentTextBlockId === null) {
+                      currentTextBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: currentTextBlockId,
+                      });
+                    }
 
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.toolCallId,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: currentTextBlockId,
+                      delta: toolCall.args,
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                      providerMetadata: toolCall.providerMetadata,
+                    });
 
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    input: toolCall.args,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCall.toolCallId,
+                      delta: toolCall.args,
+                      providerMetadata: toolCall.providerMetadata,
+                    });
 
-                  hasToolCalls = true;
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCall.toolCallId,
+                      providerMetadata: toolCall.providerMetadata,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                      input: toolCall.args,
+                      providerMetadata: toolCall.providerMetadata,
+                    });
+
+                    hasToolCalls = true;
+                  }
                 }
               }
             }
@@ -638,9 +699,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 function getToolCallsFromParts({
   parts,
   generateId,
+  usesJsonResponseTool,
 }: {
   parts: ContentSchema['parts'];
   generateId: () => string;
+  usesJsonResponseTool?: boolean;
 }) {
   const functionCallParts = parts?.filter(
     part => 'functionCall' in part,
