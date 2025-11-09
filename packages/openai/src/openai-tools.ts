@@ -4,6 +4,7 @@ import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
+import { mcp } from './tool/mcp';
 
 export const openaiTools = {
   /**
@@ -85,4 +86,21 @@ export const openaiTools = {
    * @param userLocation - The user location to use for the web search.
    */
   webSearch,
+
+  /**
+   * MCP (Model Context Protocol) allows models to call tools exposed by
+   * remote MCP servers or service connectors.
+   *
+   * Must have name `mcp`.
+   *
+   * @param serverLabel - Label to identify the MCP server.
+   * @param allowedTools - Allowed tool names or filter object.
+   * @param authorization - OAuth access token for the MCP server/connector.
+   * @param connectorId - Identifier for a service connector.
+   * @param headers - Optional headers to include in MCP requests.
+   * // param requireApproval - Approval policy ('always'|'never'|filter object). (Removed - always 'never')
+   * @param serverDescription - Optional description of the server.
+   * @param serverUrl - URL for the MCP server.
+   */
+  mcp,
 };

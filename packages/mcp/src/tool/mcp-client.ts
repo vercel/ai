@@ -26,11 +26,21 @@ import {
   Configuration as ClientConfiguration,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
+  ListResourceTemplatesResult,
+  ListResourceTemplatesResultSchema,
+  ListResourcesResult,
+  ListResourcesResultSchema,
+  ListPromptsResult,
+  ListPromptsResultSchema,
   ListToolsResult,
   ListToolsResultSchema,
   McpToolSet,
   Notification,
   PaginatedRequest,
+  ReadResourceResult,
+  ReadResourceResultSchema,
+  GetPromptResult,
+  GetPromptResultSchema,
   Request,
   RequestOptions,
   ServerCapabilities,
@@ -61,6 +71,31 @@ export interface MCPClient {
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
+
+  listResources(options?: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  }): Promise<ListResourcesResult>;
+
+  readResource(args: {
+    uri: string;
+    options?: RequestOptions;
+  }): Promise<ReadResourceResult>;
+
+  listResourceTemplates(options?: {
+    options?: RequestOptions;
+  }): Promise<ListResourceTemplatesResult>;
+
+  listPrompts(options?: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  }): Promise<ListPromptsResult>;
+
+  getPrompt(args: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<GetPromptResult>;
 
   close: () => Promise<void>;
 }
@@ -192,6 +227,23 @@ class DefaultMCPClient implements MCPClient {
           });
         }
         break;
+      case 'resources/list':
+      case 'resources/read':
+      case 'resources/templates/list':
+        if (!this.serverCapabilities.resources) {
+          throw new MCPClientError({
+            message: `Server does not support resources`,
+          });
+        }
+        break;
+      case 'prompts/list':
+      case 'prompts/get':
+        if (!this.serverCapabilities.prompts) {
+          throw new MCPClientError({
+            message: `Server does not support prompts`,
+          });
+        }
+        break;
       default:
         throw new MCPClientError({
           message: `Unsupported method: ${method}`,
@@ -306,6 +358,96 @@ class DefaultMCPClient implements MCPClient {
     }
   }
 
+  private async listResourcesInternal({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListResourcesResult> {
+    try {
+      return this.request({
+        request: { method: 'resources/list', params },
+        resultSchema: ListResourcesResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async readResourceInternal({
+    uri,
+    options,
+  }: {
+    uri: string;
+    options?: RequestOptions;
+  }): Promise<ReadResourceResult> {
+    try {
+      return this.request({
+        request: { method: 'resources/read', params: { uri } },
+        resultSchema: ReadResourceResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async listResourceTemplatesInternal({
+    options,
+  }: {
+    options?: RequestOptions;
+  } = {}): Promise<ListResourceTemplatesResult> {
+    try {
+      return this.request({
+        request: { method: 'resources/templates/list' },
+        resultSchema: ListResourceTemplatesResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async listPromptsInternal({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListPromptsResult> {
+    try {
+      return this.request({
+        request: { method: 'prompts/list', params },
+        resultSchema: ListPromptsResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async getPromptInternal({
+    name,
+    args,
+    options,
+  }: {
+    name: string;
+    args?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<GetPromptResult> {
+    try {
+      return this.request({
+        request: { method: 'prompts/get', params: { name, arguments: args } },
+        resultSchema: GetPromptResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   private async notification(notification: Notification): Promise<void> {
     const jsonrpcNotification: JSONRPCNotification = {
       ...notification,
@@ -327,8 +469,13 @@ class DefaultMCPClient implements MCPClient {
 
     try {
       const listToolsResult = await this.listTools();
-
-      for (const { name, description, inputSchema } of listToolsResult.tools) {
+      for (const {
+        name,
+        description,
+        inputSchema,
+        annotations,
+      } of listToolsResult.tools) {
+        const title = annotations?.title;
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
@@ -347,6 +494,7 @@ class DefaultMCPClient implements MCPClient {
           schemas === 'automatic'
             ? dynamicTool({
                 description,
+                title,
                 inputSchema: jsonSchema({
                   ...inputSchema,
                   properties: inputSchema.properties ?? {},
@@ -356,6 +504,7 @@ class DefaultMCPClient implements MCPClient {
               })
             : tool({
                 description,
+                title,
                 inputSchema: schemas[name].inputSchema,
                 execute,
               });
@@ -367,6 +516,56 @@ class DefaultMCPClient implements MCPClient {
     } catch (error) {
       throw error;
     }
+  }
+
+  listResources({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListResourcesResult> {
+    return this.listResourcesInternal({ params, options });
+  }
+
+  readResource({
+    uri,
+    options,
+  }: {
+    uri: string;
+    options?: RequestOptions;
+  }): Promise<ReadResourceResult> {
+    return this.readResourceInternal({ uri, options });
+  }
+
+  listResourceTemplates({
+    options,
+  }: {
+    options?: RequestOptions;
+  } = {}): Promise<ListResourceTemplatesResult> {
+    return this.listResourceTemplatesInternal({ options });
+  }
+
+  listPrompts({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListPromptsResult> {
+    return this.listPromptsInternal({ params, options });
+  }
+
+  getPrompt({
+    name,
+    arguments: args,
+    options,
+  }: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    options?: RequestOptions;
+  }): Promise<GetPromptResult> {
+    return this.getPromptInternal({ name, args, options });
   }
 
   private onClose(): void {

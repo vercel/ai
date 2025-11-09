@@ -1,6 +1,7 @@
 import { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
 import { ImageModelV3 } from '../../image-model/v3/image-model-v3';
 import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
+import { RerankingModelV3 } from '../../reranking-model/v3/reranking-model-v3';
 import { SpeechModelV3 } from '../../speech-model/v3/speech-model-v3';
 import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription-model-v3';
 
@@ -8,6 +9,8 @@ import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription
  * Provider for language, text embedding, and image generation models.
  */
 export interface ProviderV3 {
+  readonly specificationVersion: 'v3';
+
   /**
 Returns the language model with the given id.
 The model id is then passed to the provider function to get the model.
@@ -61,4 +64,16 @@ The model id is then passed to the provider function to get the model.
 @returns {SpeechModel} The speech model associated with the id
   */
   speechModel?(modelId: string): SpeechModelV3;
+
+  /**
+Returns the reranking model with the given id.
+The model id is then passed to the provider function to get the model.
+
+@param {string} modelId - The id of the model to return.
+
+@returns {RerankingModel} The reranking model associated with the id
+
+@throws {NoSuchModelError} If no such model exists.
+   */
+  rerankingModel?(modelId: string): RerankingModelV3;
 }

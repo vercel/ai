@@ -4,6 +4,7 @@ import {
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
+  RerankingModelV3,
   SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
@@ -65,6 +66,15 @@ export interface ProviderRegistryProvider<
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): SpeechModelV3;
+
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['rerankingModel']>>[0]>}`
+      : never,
+  ): RerankingModelV3;
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): RerankingModelV3;
 }
 
 /**
@@ -155,7 +165,8 @@ class DefaultProviderRegistry<
       | 'textEmbeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel',
+      | 'speechModel'
+      | 'rerankingModel',
   ): ProviderV3 {
     const provider = this.providers[id as keyof PROVIDERS];
 
@@ -178,7 +189,8 @@ class DefaultProviderRegistry<
       | 'textEmbeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel',
+      | 'speechModel'
+      | 'rerankingModel',
   ): [string, string] {
     const index = id.indexOf(this.separator);
 
@@ -278,6 +290,21 @@ class DefaultProviderRegistry<
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'speechModel' });
+    }
+
+    return model;
+  }
+
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): RerankingModelV3 {
+    const [providerId, modelId] = this.splitId(id, 'rerankingModel');
+    const provider = this.getProvider(providerId, 'rerankingModel');
+
+    const model = provider.rerankingModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'rerankingModel' });
     }
 
     return model;

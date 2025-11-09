@@ -2,7 +2,14 @@ import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
-import { CallToolResult } from './types';
+import {
+  CallToolResult,
+  ListResourceTemplatesResult,
+  ListResourcesResult,
+  ReadResourceResult,
+  ListPromptsResult,
+  GetPromptResult,
+} from './types';
 import {
   beforeEach,
   afterEach,
@@ -78,6 +85,143 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should list resources from the server', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const resources = await client.listResources();
+
+    expectTypeOf(resources).toEqualTypeOf<ListResourcesResult>();
+
+    expect(resources.resources).toMatchInlineSnapshot(`
+      [
+        {
+          "description": "Mock resource",
+          "mimeType": "text/plain",
+          "name": "resource.txt",
+          "uri": "file:///mock/resource.txt",
+        },
+      ]
+    `);
+  });
+
+  it('should read resource contents', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const result = await client.readResource({
+      uri: 'file:///mock/resource.txt',
+    });
+
+    expectTypeOf(result).toEqualTypeOf<ReadResourceResult>();
+
+    expect(result.contents).toMatchInlineSnapshot(`
+      [
+        {
+          "mimeType": "text/plain",
+          "text": "Mock resource content",
+          "uri": "file:///mock/resource.txt",
+        },
+      ]
+    `);
+  });
+
+  it('should list resource templates', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const templates = await client.listResourceTemplates();
+
+    expectTypeOf(templates).toEqualTypeOf<ListResourceTemplatesResult>();
+
+    expect(templates.resourceTemplates).toMatchInlineSnapshot(`
+      [
+        {
+          "description": "Mock template",
+          "name": "mock-template",
+          "uriTemplate": "file:///{path}",
+        },
+      ]
+    `);
+  });
+
+  it('should list prompts from the server', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const prompts = await client.listPrompts();
+
+    expectTypeOf(prompts).toEqualTypeOf<ListPromptsResult>();
+
+    expect(prompts.prompts).toMatchInlineSnapshot(`
+      [
+        {
+          "arguments": [
+            {
+              "description": "The code to review",
+              "name": "code",
+              "required": true,
+            },
+          ],
+          "description": "Asks the LLM to analyze code quality and suggest improvements",
+          "name": "code_review",
+          "title": "Request Code Review",
+        },
+      ]
+    `);
+  });
+
+  it('should get a prompt by name', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const prompt = await client.getPrompt({
+      name: 'code_review',
+      arguments: { code: 'print(42)' },
+    });
+
+    expectTypeOf(prompt).toEqualTypeOf<GetPromptResult>();
+
+    expect(prompt).toMatchInlineSnapshot(`
+      {
+        "description": "Code review prompt",
+        "messages": [
+          {
+            "content": {
+              "text": "Please review this code:\nfunction add(a, b) { return a + b; }",
+              "type": "text",
+            },
+            "role": "user",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should throw if the server does not support prompts', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          resources: [],
+          prompts: [],
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    await expect(client.listPrompts()).rejects.toThrow(MCPClientError);
+    await expect(client.getPrompt({ name: 'code_review' })).rejects.toThrow(
+      MCPClientError,
+    );
   });
 
   it('should return typed AI SDK compatible tool set when schemas are provided', async () => {
@@ -216,6 +360,7 @@ describe('MCPClient', () => {
       () =>
         new MockMCPTransport({
           overrideTools: [],
+          resources: [],
         }),
     );
 
