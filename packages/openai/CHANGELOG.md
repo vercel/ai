@@ -1,5 +1,49 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- 831b6cc: feat(openai): adding provider mcp tool for openai
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- 40d5419: feat(openai): add `o3-deep-research` and `o4-mini-deep-research` models
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- dae2185: fix(openai): extract meta data from first chunk that contains any
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- 348fd10: fix(openai): treat unknown models as reasoning
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- b82987c: feat(openai): support openai code-interpreter annotations
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- 0273b74: fix(openai): add support for sources type 'api'
+
 ## 3.0.0-beta.48
 
 ### Patch Changes

@@ -8,6 +8,7 @@ import {
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -29,6 +30,7 @@ import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
 import { webSearchOutputSchema } from '../tool/web-search';
+import { mcpOutputSchema } from '../tool/mcp';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -46,6 +48,7 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import { isReasoningModel as modelSupportsReasoning } from '../openai-is-reasoning-model';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -453,13 +456,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               logprobs.push(contentPart.logprobs);
             }
 
+            const providerMetadata: SharedV3ProviderMetadata[string] = {
+              itemId: part.id,
+              ...(contentPart.annotations.length > 0 && {
+                annotations: contentPart.annotations,
+              }),
+            };
+
             content.push({
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                openai: {
-                  itemId: part.id,
-                },
+                openai: providerMetadata,
               },
             });
 
@@ -489,6 +497,42 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         },
                       }
                     : {}),
+                });
+              } else if (annotation.type === 'container_file_citation') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title:
+                    annotation.filename ?? annotation.file_id ?? 'Document',
+                  filename: annotation.filename ?? annotation.file_id,
+                  providerMetadata: {
+                    openai: {
+                      fileId: annotation.file_id,
+                      containerId: annotation.container_id,
+                      ...(annotation.index != null
+                        ? { index: annotation.index }
+                        : {}),
+                    },
+                  },
+                });
+              } else if (annotation.type === 'file_path') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'application/octet-stream',
+                  title: annotation.file_id,
+                  filename: annotation.file_id,
+                  providerMetadata: {
+                    openai: {
+                      fileId: annotation.file_id,
+                      ...(annotation.index != null
+                        ? { index: annotation.index }
+                        : {}),
+                    },
+                  },
                 });
               }
             }
@@ -530,6 +574,89 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             result: mapWebSearchOutput(part.action),
           });
 
+          break;
+        }
+
+        case 'mcp_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'mcp',
+            input: JSON.stringify({}),
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'mcp',
+            result: {
+              type: 'call',
+              serverLabel: part.server_label,
+              name: part.name,
+              arguments: part.arguments,
+              ...(part.output != null ? { output: part.output } : {}),
+              ...(part.error != null
+                ? { error: part.error as unknown as JSONValue }
+                : {}),
+            } satisfies InferSchema<typeof mcpOutputSchema>,
+          });
+          break;
+        }
+
+        case 'mcp_list_tools': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'mcp',
+            input: JSON.stringify({}),
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'mcp',
+            result: {
+              type: 'listTools',
+              serverLabel: part.server_label,
+              tools: part.tools.map(t => ({
+                name: t.name,
+                description: t.description ?? undefined,
+                inputSchema: t.input_schema,
+                annotations:
+                  (t.annotations as Record<string, JSONValue> | undefined) ??
+                  undefined,
+              })),
+              ...(part.error != null
+                ? { error: part.error as unknown as JSONValue }
+                : {}),
+            } satisfies InferSchema<typeof mcpOutputSchema>,
+          });
+          break;
+        }
+
+        case 'mcp_approval_request': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: 'mcp',
+            input: JSON.stringify({}),
+            providerExecuted: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: 'mcp',
+            result: {
+              type: 'approvalRequest',
+              serverLabel: part.server_label,
+              name: part.name,
+              arguments: part.arguments,
+              approvalRequestId: part.approval_request_id,
+            } satisfies InferSchema<typeof mcpOutputSchema>,
+          });
           break;
         }
 
@@ -821,6 +948,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   input: '{}',
                   providerExecuted: true,
                 });
+              } else if (
+                value.item.type === 'mcp_call' ||
+                value.item.type === 'mcp_list_tools' ||
+                value.item.type === 'mcp_approval_request'
+              ) {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: 'mcp',
+                  input: '{}',
+                  providerExecuted: true,
+                });
               } else if (value.item.type === 'message') {
                 controller.enqueue({
                   type: 'text-start',
@@ -945,6 +1084,65 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   result: {
                     result: value.item.result,
                   } satisfies InferSchema<typeof imageGenerationOutputSchema>,
+                });
+              } else if (value.item.type === 'mcp_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'mcp',
+                  result: {
+                    type: 'call',
+                    serverLabel: value.item.server_label,
+                    name: value.item.name,
+                    arguments: value.item.arguments,
+                    ...(value.item.output != null
+                      ? { output: value.item.output }
+                      : {}),
+                    ...(value.item.error != null
+                      ? { error: value.item.error as unknown as JSONValue }
+                      : {}),
+                  } satisfies InferSchema<typeof mcpOutputSchema>,
+                });
+              } else if (value.item.type === 'mcp_list_tools') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'mcp',
+                  result: {
+                    type: 'listTools',
+                    serverLabel: value.item.server_label,
+                    tools: value.item.tools.map(t => ({
+                      name: t.name,
+                      description: t.description ?? undefined,
+                      inputSchema: t.input_schema,
+                      annotations:
+                        (t.annotations as
+                          | Record<string, JSONValue>
+                          | undefined) ?? undefined,
+                    })),
+                    ...(value.item.error != null
+                      ? { error: value.item.error as unknown as JSONValue }
+                      : {}),
+                  } satisfies InferSchema<typeof mcpOutputSchema>,
+                });
+              } else if (value.item.type === 'mcp_approval_request') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: 'mcp',
+                  result: {
+                    type: 'approvalRequest',
+                    serverLabel: value.item.server_label,
+                    name: value.item.name,
+                    arguments: value.item.arguments,
+                    approvalRequestId: value.item.approval_request_id,
+                  } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
               } else if (value.item.type === 'local_shell_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1202,6 +1400,45 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       }
                     : {}),
                 });
+              } else if (value.annotation.type === 'container_file_citation') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: self.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title:
+                    value.annotation.filename ??
+                    value.annotation.file_id ??
+                    'Document',
+                  filename:
+                    value.annotation.filename ?? value.annotation.file_id,
+                  providerMetadata: {
+                    openai: {
+                      fileId: value.annotation.file_id,
+                      containerId: value.annotation.container_id,
+                      ...(value.annotation.index != null
+                        ? { index: value.annotation.index }
+                        : {}),
+                    },
+                  },
+                });
+              } else if (value.annotation.type === 'file_path') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: self.config.generateId?.() ?? generateId(),
+                  mediaType: 'application/octet-stream',
+                  title: value.annotation.file_id,
+                  filename: value.annotation.file_id,
+                  providerMetadata: {
+                    openai: {
+                      fileId: value.annotation.file_id,
+                      ...(value.annotation.index != null
+                        ? { index: value.annotation.index }
+                        : {}),
+                    },
+                  },
+                });
               }
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
@@ -1337,38 +1574,14 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
       !modelId.startsWith('gpt-5-chat')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini');
-  const defaults = {
-    systemMessageMode: 'system' as const,
+  const isReasoningModel = modelSupportsReasoning(modelId);
+  const systemMessageMode = isReasoningModel ? 'developer' : 'system';
+
+  return {
+    systemMessageMode,
     supportsFlexProcessing,
     supportsPriorityProcessing,
-  };
-
-  // gpt-5-chat models are non-reasoning
-  if (modelId.startsWith('gpt-5-chat')) {
-    return {
-      ...defaults,
-      isReasoningModel: false,
-    };
-  }
-
-  // o series reasoning models:
-  if (
-    modelId.startsWith('o') ||
-    modelId.startsWith('gpt-5') ||
-    modelId.startsWith('codex-') ||
-    modelId.startsWith('computer-use')
-  ) {
-    return {
-      ...defaults,
-      isReasoningModel: true,
-      systemMessageMode: 'developer',
-    };
-  }
-
-  // gpt models:
-  return {
-    ...defaults,
-    isReasoningModel: false,
+    isReasoningModel,
   };
 }
 

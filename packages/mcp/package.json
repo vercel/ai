@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "1.0.0-beta.11",
+  "version": "1.0.0-beta.13",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -9,6 +9,7 @@
   "files": [
     "dist/**/*",
     "CHANGELOG.md",
+    "README.md",
     "internal.d.ts"
   ],
   "scripts": {

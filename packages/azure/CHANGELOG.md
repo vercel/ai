@@ -1,5 +1,62 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- 68cedbf: Update default Azure Provider to use Responses API
+
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [831b6cc]
+  - @ai-sdk/openai@3.0.0-beta.55
+
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [40d5419]
+  - @ai-sdk/openai@3.0.0-beta.54
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [dae2185]
+  - @ai-sdk/openai@3.0.0-beta.53
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [348fd10]
+  - @ai-sdk/openai@3.0.0-beta.52
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [b82987c]
+  - @ai-sdk/openai@3.0.0-beta.51
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/openai@3.0.0-beta.50
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [0273b74]
+  - @ai-sdk/openai@3.0.0-beta.49
+
 ## 3.0.0-beta.49
 
 ### Patch Changes

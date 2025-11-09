@@ -1,5 +1,23 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- 2825757: Add Google File search tool
+- Updated dependencies [2825757]
+  - @ai-sdk/google@3.0.0-beta.40
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/anthropic@3.0.0-beta.50
+  - @ai-sdk/google@3.0.0-beta.39
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
 ## 4.0.0-beta.58
 
 ### Patch Changes
