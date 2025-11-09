@@ -147,7 +147,7 @@ We've built [templates](https://vercel.com/templates?type=ai) that include AI SD
 
 ## Community
 
-The AI SDK community can be found on [GitHub Discussions](https://github.com/vercel/ai/discussions) where you can ask questions, voice ideas, and share your projects with other people.
+The AI SDK community can be found on [the Vercel Community](https://community.vercel.com/c/ai-sdk/62) where you can ask questions, voice ideas, and share your projects with other people.
 
 ## Contributing
 
