@@ -145,7 +145,7 @@ jobs:
         run: |
           labels=$LABELS
           if [ "$labels" != "[]" ]; then
-            gh api /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels \
+            gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
               --method POST \
               --input - <<< "{\"labels\": $labels}"
             echo "Applied labels: $labels"
