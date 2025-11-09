@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "4.0.0-beta.60",
+  "version": "4.0.0-beta.61",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
