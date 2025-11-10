@@ -151,7 +151,7 @@ describe('PerplexityLanguageModel', () => {
 
     it('should handle PDF files with base64 encoding', async () => {
       const mockPdfData = 'mock-pdf-data';
-      const prompt: LanguageModelV3Prompt = [
+      const prompt: LanguageModelV2Prompt = [
         {
           role: 'user',
           content: [
@@ -200,7 +200,7 @@ describe('PerplexityLanguageModel', () => {
 
     it('should handle PDF files with URLs', async () => {
       const pdfUrl = 'https://example.com/test.pdf';
-      const prompt: LanguageModelV3Prompt = [
+      const prompt: LanguageModelV2Prompt = [
         {
           role: 'user',
           content: [
