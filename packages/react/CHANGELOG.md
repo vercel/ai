@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.96
+
+### Patch Changes
+
+- a322efa: Added finishReason on useChat onFinish callbck
+- Updated dependencies [a322efa]
+  - ai@6.0.0-beta.96
+
 ## 3.0.0-beta.95
 
 ### Patch Changes
