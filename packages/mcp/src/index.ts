@@ -18,3 +18,4 @@ export type {
   OAuthTokens,
 } from './tool/oauth-types';
 export type { MCPTransport } from './tool/mcp-transport';
+export type { MCPClient } from './tool/mcp-client';
