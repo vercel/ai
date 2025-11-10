@@ -157,10 +157,10 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_TITLE: "Backport: ${{ github.event.pull_request.title }}"
-          PR_BODY_NO_CONFLICTS: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch."
+          PR_BODY_NO_CONFLICTS: "This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ github.event.pull_request.user.login }}"
           PR_BODY_CONFLICTS: |
           
-            This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch.
+            This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ github.event.pull_request.user.login }}
             This backport has conflicts that need to be resolved manually.
 
             ### `git cherry-pick` output
