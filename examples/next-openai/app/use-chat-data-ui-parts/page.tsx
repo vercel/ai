@@ -17,7 +17,9 @@ type MyMessage = UIMessage<
 >;
 
 export default function Chat() {
-  const [lastFinishReason, setLastFinishReason] = useState<FinishReason | undefined>(undefined);
+  const [lastFinishReason, setLastFinishReason] = useState<
+    FinishReason | undefined
+  >(undefined);
   const { error, status, sendMessage, messages, regenerate, stop } =
     useChat<MyMessage>({
       transport: new DefaultChatTransport({
@@ -99,7 +101,11 @@ export default function Chat() {
         </div>
       )}
 
-      {messages.length > 0 && <div className="mt-4 text-gray-500">Finish reason: {String(lastFinishReason)}</div>}
+      {messages.length > 0 && (
+        <div className="mt-4 text-gray-500">
+          Finish reason: {String(lastFinishReason)}
+        </div>
+      )}
 
       <ChatInput status={status} onSubmit={text => sendMessage({ text })} />
     </div>
