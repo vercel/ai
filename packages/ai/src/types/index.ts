@@ -27,4 +27,4 @@ export type {
   TranscriptionWarning,
 } from './transcription-model';
 export type { TranscriptionModelResponseMetadata } from './transcription-model-response-metadata';
-export type { EmbeddingModelUsage, LanguageModelUsage } from './usage';
+export type { EmbeddingModelUsage, LanguageModelUsage, ImageModelUsage } from './usage';
