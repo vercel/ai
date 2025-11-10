@@ -20,206 +20,6 @@ import {
 
 const uiMessagesSchema = lazyValidator(() =>
   zodSchema(
-<<<<<<< HEAD
-    z.array(
-      z.object({
-        id: z.string(),
-        role: z.enum(['system', 'user', 'assistant']),
-        metadata: z.unknown().optional(),
-        parts: z.array(
-          z.union([
-            z.object({
-              type: z.literal('text'),
-              text: z.string(),
-              state: z.enum(['streaming', 'done']).optional(),
-              providerMetadata: providerMetadataSchema.optional(),
-            }),
-            z.object({
-              type: z.literal('reasoning'),
-              text: z.string(),
-              state: z.enum(['streaming', 'done']).optional(),
-              providerMetadata: providerMetadataSchema.optional(),
-            }),
-            z.object({
-              type: z.literal('source-url'),
-              sourceId: z.string(),
-              url: z.string(),
-              title: z.string().optional(),
-              providerMetadata: providerMetadataSchema.optional(),
-            }),
-            z.object({
-              type: z.literal('source-document'),
-              sourceId: z.string(),
-              mediaType: z.string(),
-              title: z.string(),
-              filename: z.string().optional(),
-              providerMetadata: providerMetadataSchema.optional(),
-            }),
-            z.object({
-              type: z.literal('file'),
-              mediaType: z.string(),
-              filename: z.string().optional(),
-              url: z.string(),
-              providerMetadata: providerMetadataSchema.optional(),
-            }),
-            z.object({
-              type: z.literal('step-start'),
-            }),
-            z.object({
-              type: z.string().startsWith('data-'),
-              id: z.string().optional(),
-              data: z.unknown(),
-            }),
-            z.object({
-              type: z.literal('dynamic-tool'),
-              toolName: z.string(),
-              toolCallId: z.string(),
-              state: z.literal('input-streaming'),
-              input: z.unknown().optional(),
-              providerExecuted: z.boolean().optional(),
-              output: z.never().optional(),
-              errorText: z.never().optional(),
-            }),
-            z.object({
-              type: z.literal('dynamic-tool'),
-              toolName: z.string(),
-              toolCallId: z.string(),
-              state: z.literal('input-available'),
-              input: z.unknown(),
-              providerExecuted: z.boolean().optional(),
-              output: z.never().optional(),
-              errorText: z.never().optional(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-            }),
-            z.object({
-              type: z.literal('dynamic-tool'),
-              toolName: z.string(),
-              toolCallId: z.string(),
-              state: z.literal('output-available'),
-              input: z.unknown(),
-              providerExecuted: z.boolean().optional(),
-              output: z.unknown(),
-              errorText: z.never().optional(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-              preliminary: z.boolean().optional(),
-            }),
-            z.object({
-              type: z.literal('dynamic-tool'),
-              toolName: z.string(),
-              toolCallId: z.string(),
-              state: z.literal('output-error'),
-              input: z.unknown(),
-              providerExecuted: z.boolean().optional(),
-              output: z.never().optional(),
-              errorText: z.string(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-            }),
-            z.object({
-              type: z.string().startsWith('tool-'),
-              toolCallId: z.string(),
-              state: z.literal('input-streaming'),
-              providerExecuted: z.boolean().optional(),
-              input: z.unknown().optional(),
-              output: z.never().optional(),
-              errorText: z.never().optional(),
-              approval: z.never().optional(),
-            }),
-            z.object({
-              type: z.string().startsWith('tool-'),
-              toolCallId: z.string(),
-              state: z.literal('input-available'),
-              providerExecuted: z.boolean().optional(),
-              input: z.unknown(),
-              output: z.never().optional(),
-              errorText: z.never().optional(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-              approval: z.never().optional(),
-            }),
-            z.object({
-              type: z.string().startsWith('tool-'),
-              toolCallId: z.string(),
-              state: z.literal('approval-requested'),
-              input: z.unknown(),
-              providerExecuted: z.boolean().optional(),
-              output: z.never().optional(),
-              errorText: z.never().optional(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-              approval: z.object({
-                id: z.string(),
-                approved: z.never().optional(),
-                reason: z.never().optional(),
-              }),
-            }),
-            z.object({
-              type: z.string().startsWith('tool-'),
-              toolCallId: z.string(),
-              state: z.literal('approval-responded'),
-              input: z.unknown(),
-              providerExecuted: z.boolean().optional(),
-              output: z.never().optional(),
-              errorText: z.never().optional(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-              approval: z.object({
-                id: z.string(),
-                approved: z.boolean(),
-                reason: z.string().optional(),
-              }),
-            }),
-            z.object({
-              type: z.string().startsWith('tool-'),
-              toolCallId: z.string(),
-              state: z.literal('output-available'),
-              providerExecuted: z.boolean().optional(),
-              input: z.unknown(),
-              output: z.unknown(),
-              errorText: z.never().optional(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-              preliminary: z.boolean().optional(),
-              approval: z
-                .object({
-                  id: z.string(),
-                  approved: z.literal(true),
-                  reason: z.string().optional(),
-                })
-                .optional(),
-            }),
-            z.object({
-              type: z.string().startsWith('tool-'),
-              toolCallId: z.string(),
-              state: z.literal('output-error'),
-              providerExecuted: z.boolean().optional(),
-              input: z.unknown(),
-              output: z.never().optional(),
-              errorText: z.string(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-              approval: z
-                .object({
-                  id: z.string(),
-                  approved: z.literal(true),
-                  reason: z.string().optional(),
-                })
-                .optional(),
-            }),
-            z.object({
-              type: z.string().startsWith('tool-'),
-              toolCallId: z.string(),
-              state: z.literal('output-denied'),
-              providerExecuted: z.boolean().optional(),
-              input: z.unknown(),
-              output: z.never().optional(),
-              errorText: z.never().optional(),
-              callProviderMetadata: providerMetadataSchema.optional(),
-              approval: z.object({
-                id: z.string(),
-                approved: z.literal(false),
-                reason: z.string().optional(),
-              }),
-            }),
-          ]),
-        ),
-      }),
-    ),
-=======
     z
       .array(
         z.object({
@@ -280,7 +80,6 @@ const uiMessagesSchema = lazyValidator(() =>
                   providerExecuted: z.boolean().optional(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
-                  approval: z.never().optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -292,39 +91,6 @@ const uiMessagesSchema = lazyValidator(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.never().optional(),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  state: z.literal('approval-requested'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.never().optional(),
-                    reason: z.never().optional(),
-                  }),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  state: z.literal('approval-responded'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.boolean(),
-                    reason: z.string().optional(),
-                  }),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -337,13 +103,6 @@ const uiMessagesSchema = lazyValidator(() =>
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      reason: z.string().optional(),
-                    })
-                    .optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -355,29 +114,6 @@ const uiMessagesSchema = lazyValidator(() =>
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      reason: z.string().optional(),
-                    })
-                    .optional(),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  state: z.literal('output-denied'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.literal(false),
-                    reason: z.string().optional(),
-                  }),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -486,7 +222,6 @@ const uiMessagesSchema = lazyValidator(() =>
         }),
       )
       .nonempty('Messages array must not be empty'),
->>>>>>> eb8d1cb35 (Fix(ai): correctly valiate empty arrays (#10093))
   ),
 );
 
