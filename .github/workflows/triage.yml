@@ -135,12 +135,16 @@ jobs:
 
           valid_labels=()
           for label in $selected_labels; do
-            if echo "$existing_labels" | grep -q "^$label$"; then
+            if [ -n "$label" ] && echo "$existing_labels" | grep -q "^$label$"; then
               valid_labels+=("$label")
             fi
           done
 
-          echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -c -s .)" >> $GITHUB_OUTPUT
+          if [ ${#valid_labels[@]} -eq 0 ]; then
+            echo "valid_labels=[]" >> $GITHUB_OUTPUT
+          else
+            echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -c -s .)" >> $GITHUB_OUTPUT
+          fi
         env:
           REPO_LABELS: ${{ steps.fetch-labels.outputs.labels_json }}
           USER_LABELS: ${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}
@@ -281,17 +285,18 @@ jobs:
       - name: Filter existing labels
         id: filter-labels
         run: |
-          existing_labels=$(echo '${{ steps.fetch-labels.outputs.labels_json }}' | jq -r '.[]')
-          selected_labels=$(echo $USER_LABELS | jq -r '.[]')
+          labels=$LABELS
+          if [ "$labels" != "[]" ]; then
+            gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
+              --method POST \
+              --input - <<< "{\"labels\": $labels}"
+            echo "Applied labels: $labels"
+          else
+            echo "No labels to apply"
+          fi
 
-          valid_labels=()
-          for label in $selected_labels; do
-            if echo "$existing_labels" | grep -q "^$label$"; then
-              valid_labels+=("$label")
-            fi
-          done
-
-          echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -c -s .)" >> $GITHUB_OUTPUT
+          # Use printf with environment variable to safely log reasoning and prevent command injection
+          printf 'Reasoning: %s\n' "$REASONING"
         env:
           USER_LABELS: ${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}
 
