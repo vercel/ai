@@ -1,5 +1,36 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - ai@6.0.0-beta.97
+
+## 3.0.0-beta.96
+
+### Patch Changes
+
+- a322efa: Added finishReason on useChat onFinish callbck
+- Updated dependencies [a322efa]
+  - ai@6.0.0-beta.96
+
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [eb8d1cb]
+  - ai@6.0.0-beta.95
+
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+- Updated dependencies [ab1087b]
+  - ai@6.0.0-beta.94
+
 ## 3.0.0-beta.93
 
 ### Patch Changes

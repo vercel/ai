@@ -78,6 +78,7 @@ const bundle = [
   'v5/rsc-package',
   'v5/move-tool-invocations-to-parts',
   'v5/not-implemented/pattern',
+  'v5/rename-addtoolresult-to-addtooloutput',
 ];
 
 const log = debug('codemod:upgrade');

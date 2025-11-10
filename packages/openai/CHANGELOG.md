@@ -1,5 +1,30 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- 831b6cc: feat(openai): adding provider mcp tool for openai
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- 40d5419: feat(openai): add `o3-deep-research` and `o4-mini-deep-research` models
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- dae2185: fix(openai): extract meta data from first chunk that contains any
+
 ## 3.0.0-beta.52
 
 ### Patch Changes

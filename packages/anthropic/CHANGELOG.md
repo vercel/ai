@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- 1742445: Support for custom provider name in google and anthropic providers
+
 ## 3.0.0-beta.50
 
 ### Patch Changes

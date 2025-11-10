@@ -7,12 +7,12 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "clean": "rm -rf .nuxt"
+    "clean": "del-cli .nuxt"
   },
   "dependencies": {
-    "@ai-sdk/vue": "3.0.0-beta.93",
-    "@ai-sdk/openai": "3.0.0-beta.52",
-    "ai": "6.0.0-beta.93",
+    "@ai-sdk/vue": "3.0.0-beta.97",
+    "@ai-sdk/openai": "3.0.0-beta.56",
+    "ai": "6.0.0-beta.97",
     "zod": "3.25.76"
   },
   "devDependencies": {
