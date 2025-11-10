@@ -434,7 +434,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -457,7 +457,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should support cust
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -580,6 +580,7 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
     "type": "finish-step",
   },
   {
+    "finishReason": "error",
     "type": "finish",
   },
 ]
@@ -625,6 +626,7 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "type": "finish-step",
   },
   {
+    "finishReason": "stop",
     "type": "finish",
   },
 ]
@@ -646,6 +648,7 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
     "type": "finish-step",
   },
   {
+    "finishReason": "error",
     "type": "finish",
   },
 ]
@@ -665,7 +668,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -688,7 +691,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should support custom e
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
