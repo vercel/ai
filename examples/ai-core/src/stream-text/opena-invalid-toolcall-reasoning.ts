@@ -7,7 +7,11 @@ import 'dotenv/config';
 // Minimal reproduction example for GPT-5 invalid tool-call + looped agent
 const extractTags = tool({
   inputSchema: z.object({
-    tags: z.array(z.string().describe(
+    tags: z
+      .array(
+        z
+          .string()
+          .describe(
             'The exact text of the request as it appears in the document, without any additional explanations or definitions. This should be ONLY the request text itself.',
           ),
       )
