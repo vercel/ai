@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 3.0.0-beta.32
+
+### Patch Changes
+
+- 4b06776: Add PDF support to Perplexity provider
+
 ## 3.0.0-beta.31
 
 ### Patch Changes
