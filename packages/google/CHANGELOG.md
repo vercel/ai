@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.30
+
+### Patch Changes
+
+- e2dac8b: Support for custom provider name in google and anthropic providers
+
 ## 2.0.29
 
 ### Patch Changes
