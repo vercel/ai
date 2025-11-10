@@ -3,6 +3,7 @@ import {
   ProviderMetadata,
   providerMetadataSchema,
 } from '../types/provider-metadata';
+import { FinishReason } from '../types/language-model';
 import {
   InferUIMessageData,
   InferUIMessageMetadata,
@@ -153,6 +154,17 @@ export const uiMessageChunkSchema = lazySchema(() =>
       }),
       z.strictObject({
         type: z.literal('finish'),
+        finishReason: z
+          .enum([
+            'stop',
+            'length',
+            'content-filter',
+            'tool-calls',
+            'error',
+            'other',
+            'unknown',
+          ] as const satisfies readonly FinishReason[])
+          .optional(),
         messageMetadata: z.unknown().optional(),
       }),
       z.strictObject({
@@ -308,6 +320,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'finish';
+      finishReason?: FinishReason;
       messageMetadata?: METADATA;
     }
   | {
