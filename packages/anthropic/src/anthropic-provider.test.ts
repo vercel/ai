@@ -103,3 +103,28 @@ describe('createAnthropic', () => {
     });
   });
 });
+
+describe('anthropic provider - custom provider name', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should use custom provider name when specified', () => {
+    const provider = createAnthropic({
+      name: 'my-claude-proxy',
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    expect(model.provider).toBe('my-claude-proxy');
+  });
+
+  it('should default to anthropic.messages when name not specified', () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    expect(model.provider).toBe('anthropic.messages');
+  });
+});

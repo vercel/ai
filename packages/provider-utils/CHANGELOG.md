@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 32d8dbb: fix(provider-utils): compatibility with V8 readonly execution environment
+
 ## 4.0.0-beta.31
 
 ### Patch Changes
