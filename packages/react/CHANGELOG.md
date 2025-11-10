@@ -1,5 +1,49 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+- Updated dependencies [ab1087b]
+  - ai@6.0.0-beta.94
+
+## 3.0.0-beta.93
+
+### Patch Changes
+
+- ai@6.0.0-beta.93
+- @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [97b1d77]
+  - ai@6.0.0-beta.92
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+  - ai@6.0.0-beta.91
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- ai@6.0.0-beta.90
+- @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [d59ce25]
+  - ai@6.0.0-beta.89
+
 ## 3.0.0-beta.88
 
 ### Patch Changes

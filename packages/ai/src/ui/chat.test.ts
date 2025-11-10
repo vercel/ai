@@ -1454,7 +1454,7 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
-    it('should delay tool result submission until the stream is finished', async () => {
+    it('should delay tool output submission until the stream is finished', async () => {
       const controller1 = new TestResponseController();
 
       server.urls['http://localhost:3000/api/chat'].response = [
@@ -1503,14 +1503,14 @@ describe('Chat', () => {
 
       await toolCallPromise.promise;
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1536,7 +1536,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "rawInput": undefined,
@@ -1591,7 +1591,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
@@ -1605,7 +1605,7 @@ describe('Chat', () => {
       `);
     });
 
-    it('should send message when a tool result is submitted', async () => {
+    it('should send message when a tool output is submitted', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
         {
           type: 'stream-chunks',
@@ -1655,14 +1655,14 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1688,7 +1688,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "rawInput": undefined,
@@ -1734,7 +1734,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
@@ -1798,15 +1798,15 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         state: 'output-error',
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
         errorText: 'test-error',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1892,7 +1892,7 @@ describe('Chat', () => {
       `);
     });
 
-    it('should send message when a dynamic tool result is submitted', async () => {
+    it('should send message when a dynamic tool output is submitted', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
         {
           type: 'stream-chunks',
@@ -1950,15 +1950,15 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         state: 'output-available',
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1984,7 +1984,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "state": "output-available",
@@ -2030,7 +2030,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "toolName": "test-tool",
@@ -2070,7 +2070,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "state": "output-available",
@@ -2142,15 +2142,15 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         state: 'output-available',
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -2176,7 +2176,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "state": "output-available",
@@ -2222,7 +2222,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "toolName": "test-tool",
@@ -2262,7 +2262,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "state": "output-available",
@@ -2528,6 +2528,151 @@ describe('Chat', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('addToolResult', () => {
+    it('should send message when a tool result is submitted', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+      ];
+
+      let callCount = 0;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => {
+          callCount++;
+          if (callCount === 2) {
+            onFinishPromise.resolve();
+          }
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      // user submits the tool output
+      await chat.addToolResult({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+
+      // UI should show the tool output
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-output",
+                "preliminary": undefined,
+                "providerExecuted": undefined,
+                "rawInput": undefined,
+                "state": "output-available",
+                "title": undefined,
+                "toolCallId": "tool-call-0",
+                "type": "tool-test-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      await onFinishPromise.promise;
+
+      // 2nd call should happen after the stream is finished
+      expect(server.calls.length).toBe(2);
+
+      // check details of the 2nd call
+      expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "123",
+          "messageId": "id-1",
+          "messages": [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "input": {
+                    "testArg": "test-value",
+                  },
+                  "output": "test-output",
+                  "state": "output-available",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "trigger": "submit-message",
+        }
+      `);
     });
   });
 });

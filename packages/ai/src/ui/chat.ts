@@ -19,7 +19,6 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
-  isToolUIPart,
   UIMessagePart,
   UITools,
   type DataUIPart,
@@ -478,7 +477,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       }
     });
 
-  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+  addToolOutput = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     state = 'output-available',
     tool,
     toolCallId,
@@ -535,6 +534,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         });
       }
     });
+
+  /** @deprecated Use addToolOutput */
+  addToolResult = this.addToolOutput;
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.

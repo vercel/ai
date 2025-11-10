@@ -240,7 +240,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             outcome: part.codeExecutionResult.outcome,
             output: part.codeExecutionResult.output,
           },
-          providerExecuted: true,
         });
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
@@ -450,7 +449,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         outcome: part.codeExecutionResult.outcome,
                         output: part.codeExecutionResult.output,
                       },
-                      providerExecuted: true,
                     });
                     // Clear the ID after use.
                     lastCodeExecutionToolCallId = undefined;
@@ -711,9 +709,15 @@ export const getGroundingMetadataSchema = () =>
           web: z
             .object({ uri: z.string(), title: z.string().nullish() })
             .nullish(),
-          retrievedContext: z
-            .object({ uri: z.string(), title: z.string().nullish() })
-            .nullish(),
+          retrievedContext: z.union([
+            z
+              .object({ uri: z.string(), title: z.string().nullish() })
+              .nullish(),
+            z.object({
+              title: z.string().nullish(),
+              text: z.string().nullish(),
+            }),
+          ]),
         }),
       )
       .nullish(),
