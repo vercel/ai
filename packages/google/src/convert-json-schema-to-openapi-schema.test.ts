@@ -581,3 +581,47 @@ it('should convert nullable string enum', () => {
     },
   });
 });
+
+it('should convert array of multiple types to anyOf', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      mixedField: {
+        type: ['string', 'number'],
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      mixedField: {
+        anyOf: [{ type: 'string' }, { type: 'number' }],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should handle single type array by extracting the type', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      singleTypeArray: {
+        type: ['string'],
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      singleTypeArray: {
+        type: 'string',
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
