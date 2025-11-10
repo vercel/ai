@@ -45,6 +45,7 @@ async function main() {
       providerOptions: {
         openai: {
           reasoningEffort: 'medium',
+          store: false,
         } satisfies OpenAIResponsesProviderOptions,
       },
     });
