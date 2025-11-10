@@ -1,4 +1,5 @@
 import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { ImageModelV3Usage } from '@ai-sdk/provider';
 
 /**
 Represents the number of tokens used in a prompt and completion.
@@ -47,11 +48,7 @@ function addTokenCounts(
 /**
 Usage information for an image model call.
  */
-export type ImageModelUsage = {
-  inputTokens: number | undefined;
-  outputTokens: number | undefined;
-  totalTokens: number | undefined;
-};
+export type ImageModelUsage = ImageModelV3Usage;
 
 export function addImageModelUsage(
   usage1: ImageModelUsage,
