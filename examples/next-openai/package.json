@@ -23,7 +23,7 @@
     "@ai-sdk/perplexity": "3.0.0-beta.31",
     "@ai-sdk/provider-utils": "4.0.0-beta.31",
     "@ai-sdk/react": "3.0.0-beta.94",
-    "@ai-sdk/rsc": "2.0.0-beta.94",
+    "@ai-sdk/rsc": "2.0.0-beta.95",
     "@ai-sdk/xai": "3.0.0-beta.35",
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@radix-ui/react-collapsible": "^1.1.12",
