@@ -275,6 +275,13 @@ Allows you to easily create a conversational user interface for your chatbot app
               type: 'boolean',
               description: `True if errors during streaming caused the response to stop early.`,
             },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              isOptional: true,
+              description:
+                'The reason why the model finished generating the response. Undefined if the finish reason was not provided by the model.',
+            },
           ],
         },
       ],
