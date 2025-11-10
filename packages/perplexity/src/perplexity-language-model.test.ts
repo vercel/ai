@@ -171,9 +171,10 @@ describe('PerplexityLanguageModel', () => {
       });
 
       const result = await perplexityModel.doGenerate({ prompt });
-      
+
       // Verify the request contains the correct PDF format
-      const requestBody = await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
+      const requestBody =
+        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
       expect(requestBody.messages[0].content).toEqual([
         {
           type: 'text',
@@ -219,9 +220,10 @@ describe('PerplexityLanguageModel', () => {
       });
 
       const result = await perplexityModel.doGenerate({ prompt });
-      
+
       // Verify the request contains the correct PDF URL format
-      const requestBody = await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
+      const requestBody =
+        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
       expect(requestBody.messages[0].content).toEqual([
         {
           type: 'text',
