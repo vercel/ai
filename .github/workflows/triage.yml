@@ -5,6 +5,9 @@ on:
     types: [opened, reopened]
   pull_request_target: 
     types: [opened]
+    branches:
+      - main
+      - release-v*
 
 permissions: {}
 
