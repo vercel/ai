@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 2.0.18
+
+### Patch Changes
+
+- ee28981: Add PDF support to Perplexity provider
+
 ## 2.0.17
 
 ### Patch Changes
