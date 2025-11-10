@@ -204,6 +204,7 @@ describe('doGenerate', () => {
       },
     });
 
+    // @ts-ignore - Property 'file' does not exist on type 'Record<string, any> | null'
     const { file, ...rest } = await server.calls[0].requestBodyMultipart;
     expect(rest).toMatchInlineSnapshot(`
       {
@@ -232,6 +233,7 @@ describe('doGenerate', () => {
       },
     });
 
+    // @ts-ignore - Property 'file' does not exist on type 'Record<string, any> | null'
     const { file, ...rest } = await server.calls[0].requestBodyMultipart;
     expect(rest).toMatchInlineSnapshot(`
       {
@@ -259,6 +261,7 @@ describe('doGenerate', () => {
       },
     });
 
+    // @ts-ignore - Property 'file' does not exist on type 'Record<string, any> | null'
     const { file, ...rest } = await server.calls[0].requestBodyMultipart;
     expect(rest).toMatchInlineSnapshot(`
       {
