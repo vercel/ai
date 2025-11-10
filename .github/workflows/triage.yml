@@ -25,6 +25,8 @@ jobs:
           permission-contents: read
           # update labels for pull request (the "issues" permission is required even for pull requests)
           permission-issues: write
+          # in order to add labels to pull requests. Unfortunately, `issues:write` is not sufficient
+          permission-pull-requests: write
 
       - name: Checkout Repository
         uses: actions/checkout@v5
