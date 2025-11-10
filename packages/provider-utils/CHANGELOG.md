@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.17
+
+### Patch Changes
+
+- 056c471: fix(provider-utils): compatibility with V8 readonly execution environment
+
 ## 3.0.16
 
 ### Patch Changes
