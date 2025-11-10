@@ -1,0 +1,160 @@
+---
+title: Exa
+description: Add web search tool to your LLMs with Exa.
+---
+
+# Exa Provider
+
+[Exa](https://exa.ai) is a web search API for AI. The [@exalabs/ai-sdk](https://github.com/exa-labs/ai-sdk) lets you add web search to your LLMs. Your AI decides when to search, gets results, and uses them to answer your questions.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @exalabs/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @exalabs/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @exalabs/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @exalabs/ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+## API Key
+
+Get your API key from the [Exa Dashboard](https://dashboard.exa.ai/api-keys) and add it to your environment variables:
+
+```bash
+EXA_API_KEY=your-api-key-here
+```
+
+The package will automatically read the API key from your environment.
+
+## Quick Start
+
+Add Exa websearch tool to your LLMs with the `webSearch()` tool:
+
+```typescript
+import { generateText, stepCountIs } from 'ai';
+import { webSearch } from '@exalabs/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-5-nano'),
+  prompt: 'Tell me the latest developments in AI',
+  tools: {
+    webSearch: webSearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+**Defaults**: Auto search, 10 results, 1000 chars per result, live crawl when needed.
+
+## Examples
+
+### Basic Search
+
+```typescript
+webSearch({
+  type: 'auto', // Best search (default)
+  numResults: 10, // Number of results
+});
+```
+
+### Search with Filters
+
+```typescript
+webSearch({
+  type: 'auto',
+  numResults: 6,
+  includeDomains: ['linkedin.com'], // Only these domains
+  excludeDomains: ['wikipedia.com'], // Skip these domains
+});
+```
+
+### Fresh Content Search
+
+```typescript
+webSearch({
+  type: 'auto',
+  numResults: 10,
+  contents: {
+    text: true,
+    livecrawl: 'preferred', // Get fresh content
+    summary: true, // AI summary for each result
+  },
+});
+```
+
+### Time-Based Search
+
+```typescript
+webSearch({
+  type: 'auto',
+  category: 'news',
+  startPublishedDate: '2025-01-01T00:00:00.000Z', // After this date
+  endPublishedDate: '2025-12-31T23:59:59.999Z', // Before this date
+});
+```
+
+## All Options
+
+```typescript
+webSearch({
+  // Search settings
+  type: 'auto', // "auto", "keyword", "neural", "fast", "deep"
+  category: 'news', // "company", "research paper", "news", "pdf",
+  // "github", "personal site", "linkedin profile", "financial report"
+  numResults: 10,
+
+  // Filter by domain
+  includeDomains: ['linkedin.com', 'github.com'],
+  excludeDomains: ['wikipedia.com'],
+
+  // Filter by date (ISO 8601)
+  startPublishedDate: '2025-01-01T00:00:00.000Z',
+  endPublishedDate: '2025-12-31T23:59:59.999Z',
+  startCrawlDate: '2025-01-01T00:00:00.000Z',
+  endCrawlDate: '2025-12-31T23:59:59.999Z',
+
+  // Filter by text
+  includeText: ['AI'], // Must contain
+  excludeText: ['spam'], // Must not contain
+
+  // Location
+  userLocation: 'US', // Two-letter country code
+
+  // Content options
+  contents: {
+    text: {
+      maxCharacters: 1000,
+      includeHtmlTags: false,
+    },
+    summary: {
+      query: 'Main points',
+    },
+    livecrawl: 'fallback', // "never", "fallback", "always", "preferred"
+    livecrawlTimeout: 10000,
+    subpages: 5,
+    subpageTarget: 'about',
+    extras: {
+      links: 5,
+      imageLinks: 3,
+    },
+  },
+});
+```
+
+## Links
+
+- [Exa Website](https://exa.ai)
+- [Get API Keys](https://dashboard.exa.ai/api-keys)
+- [Exa Documentation](https://docs.exa.ai)
+- [GitHub Repository](https://github.com/exa-labs/ai-sdk)
