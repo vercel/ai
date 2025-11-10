@@ -828,7 +828,7 @@ importers:
         specifier: 3.0.0-beta.94
         version: link:../../packages/react
       '@ai-sdk/rsc':
-        specifier: 2.0.0-beta.94
+        specifier: 2.0.0-beta.95
         version: link:../../packages/rsc
       '@ai-sdk/xai':
         specifier: 3.0.0-beta.35
