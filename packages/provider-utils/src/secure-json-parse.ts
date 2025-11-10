@@ -75,12 +75,17 @@ function filter(obj: any) {
 }
 
 export function secureJsonParse(text: string) {
-  // Performance optimization, see https://github.com/fastify/secure-json-parse/pull/90
-  const { stackTraceLimit } = Error;
-  Error.stackTraceLimit = 0;
   try {
+    // Performance optimization, see https://github.com/fastify/secure-json-parse/pull/90
+    const { stackTraceLimit } = Error;
+    Error.stackTraceLimit = 0;
+    try {
+      return _parse(text);
+    } finally {
+      Error.stackTraceLimit = stackTraceLimit;
+    }
+  } catch (e) {
+    // If we can't use the optimization, parse without the global modification
     return _parse(text);
-  } finally {
-    Error.stackTraceLimit = stackTraceLimit;
   }
 }
