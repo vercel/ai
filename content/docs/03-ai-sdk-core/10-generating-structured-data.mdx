@@ -444,6 +444,29 @@ You can provide any set of string options, and the output will always be a singl
 
 This is especially useful for making classification-style generations or forcing valid values for API compatibility.
 
+#### `Output.json()`
+
+Use `Output.json()` when you want to generate and parse unstructured JSON values from the model, without enforcing a specific schema. This is useful if you want to capture arbitrary objects, flexible structures, or when you want to rely on the model's natural output rather than rigid validation.
+
+```ts
+const { output } = await generateText({
+  // ...
+  output: Output.json(),
+  prompt:
+    'For each city, return the current temperature and weather condition as a JSON object.',
+});
+
+// output could be any valid JSON, for example:
+// {
+//   "San Francisco": { "temperature": 70, "condition": "Sunny" },
+//   "Paris": { "temperature": 65, "condition": "Cloudy" }
+// }
+```
+
+With `Output.json`, the SDK only checks that the response is valid JSON; it doesn't validate the structure or types of the values. If you need schema validation, use the `.object` or `.array` outputs instead.
+
+This makes `Output.json()` ideal for custom or dynamic data structures, prototyping, working with unpredictable model output, or extracting information when you don't have a strict schema.
+
 ## More Examples
 
 You can see `generateObject` and `streamObject` in action using various frameworks in the following examples:

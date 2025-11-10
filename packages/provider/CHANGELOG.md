@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- bb36798: fix(spec): `LanguageModelV3ToolResult["result"]` change from `unknown` to `NonNullable<JSONValue>`
+
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- af3780b: chore(provider): remove providerExecuted from LanguageModelV3ToolResult
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+
 ## 3.0.0-beta.12
 
 ### Patch Changes

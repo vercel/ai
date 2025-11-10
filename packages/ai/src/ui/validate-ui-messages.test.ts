@@ -27,6 +27,55 @@ describe('validateUIMessages', () => {
         [AI_InvalidArgumentError: Invalid argument for parameter messages: messages parameter must be provided]
       `);
     });
+
+    it('should throw TypeValidationError when messages array is empty', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [].
+        Error message: [
+          {
+            "origin": "array",
+            "code": "too_small",
+            "minimum": 1,
+            "inclusive": true,
+            "path": [],
+            "message": "Messages array must not be empty"
+          }
+        ]]
+      `);
+    });
+
+    it('should throw TypeValidationError when message has empty parts array', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'user',
+              parts: [],
+            },
+          ],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"user","parts":[]}].
+        Error message: [
+          {
+            "origin": "array",
+            "code": "too_small",
+            "minimum": 1,
+            "inclusive": true,
+            "path": [
+              0,
+              "parts"
+            ],
+            "message": "Message must contain at least one part"
+          }
+        ]]
+      `);
+    });
   });
 
   describe('metadata', () => {
@@ -1192,6 +1241,33 @@ describe('safeValidateUIMessages', () => {
     expect(result.error.message).toBe(
       'Invalid argument for parameter messages: messages parameter must be provided',
     );
+  });
+
+  it('should return failure result when messages array is empty', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [],
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
+    expect(result.error.message).toContain('Messages array must not be empty');
+  });
+
+  it('should return failure result when message has empty parts array', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          parts: [],
+        },
+      ],
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
   });
 
   it('should return failure result when metadata validation fails', async () => {

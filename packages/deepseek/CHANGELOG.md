@@ -1,5 +1,48 @@
 # @ai-sdk/deepseek
 
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/openai-compatible@2.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+  - @ai-sdk/openai-compatible@2.0.0-beta.31
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/openai-compatible@2.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+  - @ai-sdk/openai-compatible@2.0.0-beta.29
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/openai-compatible@2.0.0-beta.28
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
 ## 2.0.0-beta.27
 
 ### Patch Changes

@@ -18,44 +18,38 @@ pnpm install
 pnpm build
 ```
 
-## Streamable HTTP Transport (Stateful)
+## Running Examples
 
-Start server
+Start the server for a specific example
 
 ```sh
-pnpm http:server
+pnpm server:<folder-name>
 ```
 
-Run example:
+Run the client for a specific example
 
 ```sh
-pnpm http:client
+pnpm client:<folder-name>
 ```
 
-## Stdio Transport
+Available examples/folders:
 
-Build
+- `sse` - SSE Transport (Legacy)
+- `http` - Streamable HTTP Transport (Stateful)
+- `mcp-with-auth` - MCP with authentication
+- `mcp-prompts` - MCP prompts example
+- `mcp-resources` - MCP resources example
+- `stdio` - Stdio Transport (requires `pnpm stdio:build` first)
+
+Example usage:
 
 ```sh
-pnpm stdio:build
+# Start the HTTP server
+pnpm server:http
 ```
 
-Run example:
+In another terminal, run the HTTP client:
 
 ```sh
-pnpm stdio:client
-```
-
-## SSE Transport (Legacy)
-
-Start server
-
-```sh
-pnpm sse:server
-```
-
-Run example:
-
-```sh
-pnpm sse:client
+pnpm client:http
 ```
