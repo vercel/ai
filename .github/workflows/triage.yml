@@ -47,7 +47,7 @@ jobs:
       - name: Get changed file paths
         id: get-changed-files
         run: |
-          changed_files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          changed_files=$(git diff --name-only ${{ github.event.pull_request.base.ref }})
           echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
 
       - name: Determine appropriate labels
