@@ -149,7 +149,7 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
-        node-version: [20, 22, lts/*]
+        node-version: [20, 22, 24]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
