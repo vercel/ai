@@ -48,6 +48,7 @@ jobs:
         id: get-changed-files
         run: |
           changed_files=$(git diff --name-only ${{ github.event.pull_request.base.ref }})
+          echo $changed_files
           echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
 
       - name: Determine appropriate labels
