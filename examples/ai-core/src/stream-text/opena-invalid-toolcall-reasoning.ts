@@ -7,47 +7,18 @@ import 'dotenv/config';
 // Minimal reproduction example for GPT-5 invalid tool-call + looped agent
 const extractTags = tool({
   inputSchema: z.object({
-    tags: z
-      .array(
-        z
-          .string()
-          .describe(
-            'The exact text of the request as it appears in the document, without any additional explanations or definitions. This should be ONLY the request text itself.',
-          ),
-      )
-      .describe('The tags that were extracted from the document'),
+    tags: z.array(
+      z.string().describe('the keywords or tags referenced in the document'),
+    ),
     definitions: z
       .record(z.string(), z.string())
       .describe('The definitions that were extracted from the document'),
   }),
+  async execute({ tags, definitions }) {
+    // Return the provided tags and definitions so the model sees a concrete result.
+    return { tags, definitions };
+  },
 });
-
-// Utility: detect whether the model produced any tool calls in its messages
-function responseHasToolCalls(messages: ModelMessage[]): boolean {
-  return messages.some((m: any) => {
-    const content = m?.content;
-    if (!Array.isArray(content)) return false;
-    return content.some((c: any) => c?.type === 'tool-call');
-  });
-}
-
-// Utility: simulate invalid tool input by stripping `definitions` from any extractTags tool-call args
-function stripDefinitionsFromToolCalls(
-  messages: ModelMessage[],
-): ModelMessage[] {
-  return messages.map((m: any) => {
-    if (!Array.isArray(m?.content)) return m;
-    const newContent = m.content.map((c: any) => {
-      if (c?.type === 'tool-call' && c?.toolName === 'extractTags' && c?.args) {
-        const newArgs = { ...c.args };
-        delete newArgs.definitions; // force invalid input for the tool
-        return { ...c, args: newArgs };
-      }
-      return c;
-    });
-    return { ...m, content: newContent };
-  });
-}
 
 async function main() {
   let _messages: ModelMessage[] = [
@@ -63,6 +34,8 @@ async function main() {
   ];
 
   for (let i = 0; i < 5; i++) {
+    console.log('==================== ITERATION START ====================');
+    console.log('Iteration:', i + 1);
     const result = await generateText({
       model: openai('gpt-5'),
       messages: _messages,
@@ -76,25 +49,32 @@ async function main() {
       },
     });
 
-    console.log('Iteration:', i + 1);
+    console.log('--- RESULT SUMMARY ---');
     console.log('Finish reason:', result.finishReason);
-    console.log('Token usage:', result.usage);
     console.log('Text:', result.text);
+    console.log('--- RESULT CONTENT ---');
+    console.log('Content parts:', JSON.stringify(result.content, null, 2));
 
-    const hadToolCalls = responseHasToolCalls(result.response.messages);
+    console.log('--- TOOL CALLS/RESULTS ---');
+    console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+    console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
 
-    // Simulate an invalid tool input on responses that include tool calls
-    const responseMessages = hadToolCalls
-      ? stripDefinitionsFromToolCalls(result.response.messages)
-      : result.response.messages;
+    console.log('--- REQUEST/RESPONSE ---');
+    console.log('Request body:', JSON.stringify(result.request?.body, null, 2));
+    console.log(
+      'Response body:',
+      JSON.stringify(result.response?.body, null, 2),
+    );
+    console.log(
+      'Response messages:',
+      JSON.stringify(result.response?.messages, null, 2),
+    );
 
     // Feed model responses back into the next turn (simulating the user's repro loop)
-    _messages.push(...(responseMessages as ModelMessage[]));
-
-    if (!hadToolCalls) {
-      console.log('No tool calls in response. Exiting loop.');
-      break;
-    }
+    _messages.push(...(result.response.messages as ModelMessage[]));
+    console.log('OUTPUT messages (fed to next turn):');
+    console.log(JSON.stringify(_messages, null, 2));
+    console.log('==================== ITERATION END ======================');
   }
 
   console.log();
