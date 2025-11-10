@@ -1,5 +1,55 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- 1742445: Support for custom provider name in google and anthropic providers
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- f4e4a95: feat(provider/anthropic): enable fine grained tool streaming by default
+
 ## 3.0.0-beta.44
 
 ### Patch Changes

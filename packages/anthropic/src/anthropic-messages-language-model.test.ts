@@ -903,6 +903,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               ],
               "model": "claude-3-haiku-20240307",
               "stop_sequences": undefined,
+              "stream": undefined,
               "system": undefined,
               "temperature": undefined,
               "tool_choice": undefined,
@@ -1043,6 +1044,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               ],
               "model": "claude-3-haiku-20240307",
               "stop_sequences": undefined,
+              "stream": undefined,
               "system": undefined,
               "temperature": undefined,
               "tool_choice": undefined,
@@ -1119,6 +1121,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
             "model": "claude-3-haiku-20240307",
             "stop_sequences": undefined,
+            "stream": undefined,
             "system": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
@@ -1629,7 +1632,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "tool-call",
             },
             {
-              "providerExecuted": true,
               "result": [
                 {
                   "encryptedContent": "encrypted_content_123",
@@ -1703,7 +1705,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "isError": true,
-              "providerExecuted": true,
               "result": {
                 "errorCode": "max_uses_exceeded",
                 "type": "web_search_tool_result_error",
@@ -2387,15 +2388,38 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.tools).toHaveLength(1);
-        expect(requestBody.tools[0]).toEqual({
-          type: 'code_execution_20250522',
-          name: 'code_execution',
-        });
-        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
-          'code-execution-2025-05-22',
-        );
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Write a Python function to calculate factorial",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250522",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "code-execution-2025-05-22",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
       });
 
       it('should handle server-side code execution results', async () => {
@@ -2447,14 +2471,13 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "{\"code\":\"print(\\\"Hello, World!\\\")\"}",
+              "input": "{"code":"print(\\"Hello, World!\\")"}",
               "providerExecuted": true,
               "toolCallId": "tool_1",
               "toolName": "code_execution",
               "type": "tool-call",
             },
             {
-              "providerExecuted": true,
               "result": {
                 "return_code": 0,
                 "stderr": "",
@@ -2512,7 +2535,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "isError": true,
-              "providerExecuted": true,
               "result": {
                 "errorCode": "unavailable",
                 "type": "code_execution_tool_result_error",
@@ -2558,23 +2580,46 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.tools).toHaveLength(2);
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Write a Python function to calculate factorial",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "description": "Calculate math expressions",
+                "input_schema": {
+                  "properties": {},
+                  "type": "object",
+                },
+                "name": "calculator",
+              },
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250522",
+              },
+            ],
+          }
+        `);
 
-        expect(requestBody.tools[0]).toMatchObject({
-          name: 'calculator',
-          description: 'Calculate math expressions',
-          input_schema: { type: 'object', properties: {} },
-        });
-        expect(requestBody.tools[0]).not.toHaveProperty('type');
-
-        expect(requestBody.tools[1]).toEqual({
-          type: 'code_execution_20250522',
-          name: 'code_execution',
-        });
-        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
-          'code-execution-2025-05-22',
-        );
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "code-execution-2025-05-22",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
       });
     });
 
@@ -3623,6 +3668,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
+          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",

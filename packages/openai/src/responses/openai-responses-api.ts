@@ -211,6 +211,34 @@ export type OpenAIResponsesTool =
       quality: 'auto' | 'low' | 'medium' | 'high' | undefined;
       size: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | undefined;
     }
+
+  /**
+   * Official OpenAI API Specifications: https://platform.openai.com/docs/api-reference/responses/create#responses_create-tools-mcp_tool
+   */
+  | {
+      type: 'mcp';
+      server_label: string;
+      allowed_tools:
+        | string[]
+        | {
+            read_only?: boolean;
+            tool_names?: string[];
+          }
+        | undefined;
+      authorization: string | undefined;
+      connector_id: string | undefined;
+      headers: Record<string, string> | undefined;
+      require_approval:
+        | 'always'
+        | 'never'
+        | {
+            read_only?: boolean;
+            tool_names?: string[];
+          }
+        | undefined;
+      server_description: string | undefined;
+      server_url: string | undefined;
+    }
   | {
       type: 'local_shell';
     };
@@ -326,6 +354,19 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               .nullable(),
             status: z.string(),
           }),
+          z.object({
+            type: z.literal('mcp_call'),
+            id: z.string(),
+            status: z.string(),
+          }),
+          z.object({
+            type: z.literal('mcp_list_tools'),
+            id: z.string(),
+          }),
+          z.object({
+            type: z.literal('mcp_approval_request'),
+            id: z.string(),
+          }),
         ]),
       }),
       z.object({
@@ -377,7 +418,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 type: z.literal('search'),
                 query: z.string().nullish(),
                 sources: z
-                  .array(z.object({ type: z.literal('url'), url: z.string() }))
+                  .array(
+                    z.discriminatedUnion('type', [
+                      z.object({ type: z.literal('url'), url: z.string() }),
+                      z.object({ type: z.literal('api'), name: z.string() }),
+                    ]),
+                  )
                   .nullish(),
               }),
               z.object({
@@ -398,7 +444,10 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             results: z
               .array(
                 z.object({
-                  attributes: z.record(z.string(), z.unknown()),
+                  attributes: z.record(
+                    z.string(),
+                    z.union([z.string(), z.number(), z.boolean()]),
+                  ),
                   file_id: z.string(),
                   filename: z.string(),
                   score: z.number(),
@@ -424,6 +473,60 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('computer_call'),
             id: z.string(),
             status: z.literal('completed'),
+          }),
+          z.object({
+            type: z.literal('mcp_call'),
+            id: z.string(),
+            status: z.string(),
+            arguments: z.string(),
+            name: z.string(),
+            server_label: z.string(),
+            output: z.string().nullish(),
+            error: z
+              .union([
+                z.string(),
+                z
+                  .object({
+                    type: z.string().optional(),
+                    code: z.union([z.number(), z.string()]).optional(),
+                    message: z.string().optional(),
+                  })
+                  .loose(),
+              ])
+              .nullish(),
+          }),
+          z.object({
+            type: z.literal('mcp_list_tools'),
+            id: z.string(),
+            server_label: z.string(),
+            tools: z.array(
+              z.object({
+                name: z.string(),
+                description: z.string().optional(),
+                input_schema: z.any(),
+                annotations: z.record(z.string(), z.unknown()).optional(),
+              }),
+            ),
+            error: z
+              .union([
+                z.string(),
+                z
+                  .object({
+                    type: z.string().optional(),
+                    code: z.union([z.number(), z.string()]).optional(),
+                    message: z.string().optional(),
+                  })
+                  .loose(),
+              ])
+              .optional(),
+          }),
+          z.object({
+            type: z.literal('mcp_approval_request'),
+            id: z.string(),
+            server_label: z.string(),
+            name: z.string(),
+            arguments: z.string(),
+            approval_request_id: z.string(),
           }),
         ]),
       }),
@@ -467,6 +570,20 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             start_index: z.number().nullish(),
             end_index: z.number().nullish(),
             quote: z.string().nullish(),
+          }),
+          z.object({
+            type: z.literal('container_file_citation'),
+            container_id: z.string(),
+            file_id: z.string(),
+            filename: z.string().nullish(),
+            start_index: z.number().nullish(),
+            end_index: z.number().nullish(),
+            index: z.number().nullish(),
+          }),
+          z.object({
+            type: z.literal('file_path'),
+            file_id: z.string(),
+            index: z.number().nullish(),
           }),
         ]),
       }),
@@ -578,6 +695,17 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                     }),
                     z.object({
                       type: z.literal('container_file_citation'),
+                      container_id: z.string(),
+                      file_id: z.string(),
+                      filename: z.string().nullish(),
+                      start_index: z.number().nullish(),
+                      end_index: z.number().nullish(),
+                      index: z.number().nullish(),
+                    }),
+                    z.object({
+                      type: z.literal('file_path'),
+                      file_id: z.string(),
+                      index: z.number().nullish(),
                     }),
                   ]),
                 ),
@@ -593,7 +721,12 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                 type: z.literal('search'),
                 query: z.string().nullish(),
                 sources: z
-                  .array(z.object({ type: z.literal('url'), url: z.string() }))
+                  .array(
+                    z.discriminatedUnion('type', [
+                      z.object({ type: z.literal('url'), url: z.string() }),
+                      z.object({ type: z.literal('api'), name: z.string() }),
+                    ]),
+                  )
                   .nullish(),
               }),
               z.object({
@@ -614,7 +747,10 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
             results: z
               .array(
                 z.object({
-                  attributes: z.record(z.string(), z.unknown()),
+                  attributes: z.record(
+                    z.string(),
+                    z.union([z.string(), z.number(), z.boolean()]),
+                  ),
                   file_id: z.string(),
                   filename: z.string(),
                   score: z.number(),
@@ -677,6 +813,60 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                 text: z.string(),
               }),
             ),
+          }),
+          z.object({
+            type: z.literal('mcp_call'),
+            id: z.string(),
+            status: z.string(),
+            arguments: z.string(),
+            name: z.string(),
+            server_label: z.string(),
+            output: z.string().nullish(),
+            error: z
+              .union([
+                z.string(),
+                z
+                  .object({
+                    type: z.string().optional(),
+                    code: z.union([z.number(), z.string()]).optional(),
+                    message: z.string().optional(),
+                  })
+                  .loose(),
+              ])
+              .nullish(),
+          }),
+          z.object({
+            type: z.literal('mcp_list_tools'),
+            id: z.string(),
+            server_label: z.string(),
+            tools: z.array(
+              z.object({
+                name: z.string(),
+                description: z.string().optional(),
+                input_schema: z.any(),
+                annotations: z.record(z.string(), z.unknown()).optional(),
+              }),
+            ),
+            error: z
+              .union([
+                z.string(),
+                z
+                  .object({
+                    type: z.string().optional(),
+                    code: z.union([z.number(), z.string()]).optional(),
+                    message: z.string().optional(),
+                  })
+                  .loose(),
+              ])
+              .optional(),
+          }),
+          z.object({
+            type: z.literal('mcp_approval_request'),
+            id: z.string(),
+            server_label: z.string(),
+            name: z.string(),
+            arguments: z.string(),
+            approval_request_id: z.string(),
           }),
         ]),
       ),

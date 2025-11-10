@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/rsc",
-  "version": "2.0.0-beta.81",
+  "version": "2.0.0-beta.96",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/rsc-client.mjs",
@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm build --watch",
-    "clean": "rm -rf dist",
+    "clean": "del-cli dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -35,13 +35,14 @@
   },
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "dependencies": {
     "ai": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "jsondiffpatch": "0.6.0"
+    "jsondiffpatch": "0.7.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",

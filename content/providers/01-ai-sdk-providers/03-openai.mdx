@@ -337,8 +337,17 @@ const result = await generateText({
   toolChoice: { type: 'tool', toolName: 'web_search' },
 });
 
-// URL sources
+// URL sources directly from `results`
 const sources = result.sources;
+
+// Or access sources from tool results
+for (const toolResult of result.toolResults) {
+  if (toolResult.toolName === 'web_search') {
+    console.log('Query:', toolResult.output.action.query);
+    console.log('Sources:', toolResult.output.sources);
+    // `sources` is an array of object: { type: 'url', url: string }
+  }
+}
 ```
 
 #### File Search Tool
