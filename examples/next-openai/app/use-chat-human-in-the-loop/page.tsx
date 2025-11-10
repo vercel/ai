@@ -15,7 +15,7 @@ import {
 
 export default function Chat() {
   const [input, setInput] = useState('');
-  const { messages, sendMessage, addToolResult } =
+  const { messages, sendMessage, addToolOutput } =
     useChat<HumanInTheLoopUIMessage>({
       transport: new DefaultChatTransport({
         api: '/api/use-chat-human-in-the-loop',
@@ -64,7 +64,7 @@ export default function Chat() {
                       <button
                         className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                         onClick={async () => {
-                          await addToolResult({
+                          await addToolOutput({
                             toolCallId,
                             tool: toolName,
                             output: APPROVAL.YES,
@@ -79,7 +79,7 @@ export default function Chat() {
                       <button
                         className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                         onClick={async () => {
-                          await addToolResult({
+                          await addToolOutput({
                             toolCallId,
                             tool: toolName,
                             output: APPROVAL.NO,

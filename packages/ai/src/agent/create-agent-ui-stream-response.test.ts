@@ -237,7 +237,7 @@ describe('createAgentUIStreamResponse', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish"}
+          "data: {"type":"finish","finishReason":"stop"}
 
         ",
           "data: [DONE]

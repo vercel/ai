@@ -486,6 +486,80 @@ The code interpreter tool can be configured with:
   be customized.
 </Note>
 
+#### MCP Tool
+
+The OpenAI responses API supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers through the `openai.tools.mcp` tool. This allows models to call tools exposed by remote MCP servers or service connectors.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt: 'Search the web for the latest news about AI developments',
+  tools: {
+    mcp: openai.tools.mcp({
+      serverLabel: 'web-search',
+      serverUrl: 'https://mcp.exa.ai/mcp',
+      serverDescription: 'A web-search API for AI agents',
+    }),
+  },
+});
+```
+
+The MCP tool can be configured with:
+
+- **serverLabel** _string_ (required)
+
+  A label to identify the MCP server. This label is used in tool calls to distinguish between multiple MCP servers.
+
+- **serverUrl** _string_ (required if `connectorId` is not provided)
+
+  The URL for the MCP server. Either `serverUrl` or `connectorId` must be provided.
+
+- **connectorId** _string_ (required if `serverUrl` is not provided)
+
+  Identifier for a service connector. Either `serverUrl` or `connectorId` must be provided.
+
+- **serverDescription** _string_ (optional)
+
+  Optional description of the MCP server that helps the model understand its purpose.
+
+- **allowedTools** _string[] | object_ (optional)
+
+  Controls which tools from the MCP server are available. Can be:
+
+  - An array of tool names: `['tool1', 'tool2']`
+  - An object with filters:
+    ```ts
+    {
+      readOnly: true, // Only allow read-only tools
+      toolNames: ['tool1', 'tool2'] // Specific tool names
+    }
+    ```
+
+- **authorization** _string_ (optional)
+
+  OAuth access token for authenticating with the MCP server or connector.
+
+- **headers** _Record&lt;string, string&gt;_ (optional)
+
+  Optional HTTP headers to include in requests to the MCP server.
+
+<Note>
+  The tool calls made by the model when using the OpenAI MCP tool are approved
+  by default. Be sure to connect to only trusted MCP servers, who you trust to
+  share your data with.
+</Note>
+
+<Note>
+  The OpenAI MCP tool is different from the general MCP client approach
+  documented in [MCP Tools](/docs/ai-sdk-core/mcp-tools). The OpenAI MCP tool is
+  a built-in provider-defined tool that allows OpenAI models to directly connect
+  to MCP servers, while the general MCP client requires you to convert MCP tools
+  to AI SDK tools first.
+</Note>
+
 #### Local Shell Tool
 
 The OpenAI responses API support the local shell tool for Codex models through the `openai.tools.localShell` tool.
