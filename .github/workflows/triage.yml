@@ -95,7 +95,7 @@ jobs:
 
             Here are the rules to follow when assigning labels:
 
-            - If the pull request title includes "Version Packages" or begins with "Backport:", return "maintenance"
+            - If the pull request title includes "Version Packages" or begins with "Backport:", return "maintenance" and no other labels. Important: do not return any other labels in this case.
             - If the pull request is about a UI problem (Vue, Angular, React, AI Elements), return ai/ui
             - If the pull request is about the AI gateway, return ai/gateway
             - If the pull request is about MCP functionality, return ai/mcp
