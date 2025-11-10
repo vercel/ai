@@ -3,7 +3,7 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   
   // Extend from recommended base configuration
-  extends: ["config:recommended"],
+  extends: ["config:recommended", ":disableDependencyDashboard"],
   
   // Timezone for schedules (adjust as needed)
   timezone: "America/Los_Angeles",
