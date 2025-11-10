@@ -43,21 +43,19 @@ export function convertJSONSchemaToOpenAPISchema(
   // Handle type
   if (type) {
     if (Array.isArray(type)) {
-      if (type.includes('null')) {
-        result.type = type.filter(t => t !== 'null')[0];
-        result.nullable = true;
-      } else if (type.length === 1) {
-        // Single type in array, extract it
-        result.type = type[0];
+      const hasNull = type.includes('null');
+      const nonNullTypes = type.filter(t => t !== 'null');
+
+      if (nonNullTypes.length === 0) {
+        // Only null type
+        result.type = 'null';
       } else {
-        // Multiple types: convert to anyOf
-        // Note: anyOf is supported by Gemini API as of November 2025.
-        // Array types (e.g., type: ["string", "number"]) are not supported
-        // by Google's Protocol Buffer API and will cause errors.
-        result.anyOf = type.map(t => ({ type: t }));
+        // One or more non-null types: always use anyOf
+        result.anyOf = nonNullTypes.map(t => ({ type: t }));
+        if (hasNull) {
+          result.nullable = true;
+        }
       }
-    } else if (type === 'null') {
-      result.type = 'null';
     } else {
       result.type = type;
     }
