@@ -482,4 +482,3 @@ describe('asTranscriptionModelV3', () => {
     });
   });
 });
-

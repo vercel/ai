@@ -302,7 +302,15 @@ describe('asLanguageModelV3', () => {
     });
 
     it('should handle response with different finish reasons', async () => {
-      const finishReasons: Array<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'> = [
+      const finishReasons: Array<
+        | 'stop'
+        | 'length'
+        | 'content-filter'
+        | 'tool-calls'
+        | 'error'
+        | 'other'
+        | 'unknown'
+      > = [
         'stop',
         'length',
         'content-filter',

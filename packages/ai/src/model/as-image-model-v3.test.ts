@@ -348,4 +348,3 @@ describe('asImageModelV3', () => {
     });
   });
 });
-

@@ -221,7 +221,9 @@ describe('asEmbeddingModelV3', () => {
         values: ['test text'],
       });
 
-      expect(response.response?.headers).toEqual({ 'x-custom': 'header-value' });
+      expect(response.response?.headers).toEqual({
+        'x-custom': 'header-value',
+      });
     });
 
     it('should handle doEmbed with response body', async () => {
@@ -288,4 +290,3 @@ describe('asEmbeddingModelV3', () => {
     });
   });
 });
-
