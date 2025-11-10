@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.92
+
+### Patch Changes
+
+- 250edbd: Added finishReason on useChat onFinish callbck
+
 ## 5.0.91
 
 ### Patch Changes
