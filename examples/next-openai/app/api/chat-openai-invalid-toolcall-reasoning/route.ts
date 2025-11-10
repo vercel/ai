@@ -46,23 +46,26 @@ export async function POST(req: Request) {
         reasoningEffort: 'medium',
       } satisfies OpenAIResponsesProviderOptions,
     },
-    onError: (error) => {
-      console.error('============ ERROR IN API ROUTE ==========================');
+    onError: error => {
+      console.error(
+        '============ ERROR IN API ROUTE ==========================',
+      );
       console.error('Error:', error);
-      console.error('================ STATE OF MESSAGES ==========================');
+      console.error(
+        '================ STATE OF MESSAGES ==========================',
+      );
       console.dir(uiMessages, { depth: null });
-      console.error('============ HERE FINISHES THE ERROR ==========================');
+      console.error(
+        '============ HERE FINISHES THE ERROR ==========================',
+      );
     },
-    onFinish: ( event ) => {
+    onFinish: event => {
       console.log('Request body:', JSON.stringify(event.request.body, null, 2));
-      console.log("Messages body: ", JSON.stringify(uiMessages, null, 2))
+      console.log('Messages body: ', JSON.stringify(uiMessages, null, 2));
     },
   });
 
-  
-  
   return result.toUIMessageStreamResponse({
     sendSources: true,
   });
 }
-

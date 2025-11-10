@@ -1,57 +1,96 @@
-import { openai } from "@ai-sdk/openai";
-import type { OpenAIResponsesProviderOptions } from "@ai-sdk/openai/";
-import { streamText, type ModelMessage, type Tool } from "ai";
-import "dotenv/config";
+import { openai } from '@ai-sdk/openai';
+import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai/';
+import { generateText, type ModelMessage, tool } from 'ai';
+import { z } from 'zod';
+import 'dotenv/config';
 
-// Minimal reproduction example for GPT-5-mini streamText configuration
+// Minimal reproduction example for GPT-5 invalid tool-call + looped agent
+const extractTags = tool({
+  inputSchema: z.object({
+    tags: z.array(z.string().describe(
+            'The exact text of the request as it appears in the document, without any additional explanations or definitions. This should be ONLY the request text itself.',
+          ),
+      )
+      .describe('The tags that were extracted from the document'),
+    definitions: z
+      .record(z.string(), z.string())
+      .describe('The definitions that were extracted from the document'),
+  }),
+});
+
+// Utility: detect whether the model produced any tool calls in its messages
+function responseHasToolCalls(messages: ModelMessage[]): boolean {
+  return messages.some((m: any) => {
+    const content = m?.content;
+    if (!Array.isArray(content)) return false;
+    return content.some((c: any) => c?.type === 'tool-call');
+  });
+}
+
+// Utility: simulate invalid tool input by stripping `definitions` from any extractTags tool-call args
+function stripDefinitionsFromToolCalls(
+  messages: ModelMessage[],
+): ModelMessage[] {
+  return messages.map((m: any) => {
+    if (!Array.isArray(m?.content)) return m;
+    const newContent = m.content.map((c: any) => {
+      if (c?.type === 'tool-call' && c?.toolName === 'extractTags' && c?.args) {
+        const newArgs = { ...c.args };
+        delete newArgs.definitions; // force invalid input for the tool
+        return { ...c, args: newArgs };
+      }
+      return c;
+    });
+    return { ...m, content: newContent };
+  });
+}
+
 async function main() {
-  const messages: ModelMessage[] = [
-    { role: "system", content: "You are a helpful assistant." },
+  let _messages: ModelMessage[] = [
     {
-      role: "user",
-      content: "How are you?",
+      role: 'system',
+      content: 'You are a helpful assistant. Always use tools when requested.',
+    },
+    {
+      role: 'user',
+      content:
+        "Given the following document text, extract the 'tags' and their 'definitions'. Use the extractTags tool.\n\nDocument:\n\"Build a chatbot with React. The chatbot should support streaming and function calling. Also add unit tests and CI.\"\n\nReturn all tags you identify and a definition for each.",
     },
   ];
-  let iterations = 0;
-  while (iterations < 3) {
-    iterations++;
-    const result = streamText({
-      // Model configuration
-      model: openai("gpt-5"),
 
-      // Messages array (your messages here)
-      messages,
-
+  for (let i = 0; i < 5; i++) {
+    const result = await generateText({
+      model: openai('gpt-5'),
+      messages: _messages,
       tools: {
-        web_search_preview: openai.tools.webSearch({}) as Tool<{}, unknown>,
+        extractTags,
       },
       providerOptions: {
         openai: {
-          reasoningEffort: "medium",
+          reasoningEffort: 'medium',
         } satisfies OpenAIResponsesProviderOptions,
-      },
-      onError: (error) => {
-        console.error("============ HERE COMES THE ERROR ==========================");
-        console.error("Error:", error);
-        console.error("================ STATE OF MESSAGES ==========================");
-        console.dir(messages, { depth: null });
-        console.error("============ HERE FINISHES THE ERROR ==========================");
-      },
-      onFinish: (event) => {
-        messages.push(...event.response.messages);
-        console.log('Request body:', JSON.stringify(event.request.body, null, 2));
-        console.log('Message body:', JSON.stringify(messages, null, 2));
       },
     });
 
-    console.log("Iteration:", iterations);
-    console.log("Token usage:", await result.usage);
-    console.log("Finish reason:", await result.finishReason);
-    console.log("Result:", await result.text);
-    messages.push({
-      role: "user",
-      content: "Can you find one news article about React (js framework) and return the headline?",
-    });
+    console.log('Iteration:', i + 1);
+    console.log('Finish reason:', result.finishReason);
+    console.log('Token usage:', result.usage);
+    console.log('Text:', result.text);
+
+    const hadToolCalls = responseHasToolCalls(result.response.messages);
+
+    // Simulate an invalid tool input on responses that include tool calls
+    const responseMessages = hadToolCalls
+      ? stripDefinitionsFromToolCalls(result.response.messages)
+      : result.response.messages;
+
+    // Feed model responses back into the next turn (simulating the user's repro loop)
+    _messages.push(...(responseMessages as ModelMessage[]));
+
+    if (!hadToolCalls) {
+      console.log('No tool calls in response. Exiting loop.');
+      break;
+    }
   }
 
   console.log();
