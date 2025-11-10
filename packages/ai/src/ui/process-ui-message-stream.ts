@@ -4,6 +4,7 @@ import {
   Validator,
 } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
+import { FinishReason } from '../types/language-model';
 import {
   DataUIMessageChunk,
   InferUIMessageChunk,
@@ -38,6 +39,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
     string,
     { text: string; index: number; toolName: string; dynamic?: boolean }
   >;
+  finishReason?: FinishReason;
 };
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
@@ -623,6 +625,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'finish': {
+              if (chunk.finishReason != null) {
+                state.finishReason = chunk.finishReason;
+              }
               await updateMessageMetadata(chunk.messageMetadata);
               if (chunk.messageMetadata != null) {
                 write();
