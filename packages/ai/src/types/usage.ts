@@ -43,3 +43,23 @@ function addTokenCounts(
     ? undefined
     : (tokenCount1 ?? 0) + (tokenCount2 ?? 0);
 }
+
+/**
+Usage information for an image model call.
+ */
+export type ImageModelUsage = {
+  inputTokens: number | undefined;
+  outputTokens: number | undefined;
+  totalTokens: number | undefined;
+};
+
+export function addImageModelUsage(
+  usage1: ImageModelUsage,
+  usage2: ImageModelUsage,
+): ImageModelUsage {
+  return {
+    inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
+    outputTokens: addTokenCounts(usage1.outputTokens, usage2.outputTokens),
+    totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
+  };
+}
