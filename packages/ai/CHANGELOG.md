@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.90
+
+### Patch Changes
+
+- 818b144: fix not catching of empty arrays in validateUIMessage
+
 ## 5.0.89
 
 ### Patch Changes
