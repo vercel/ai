@@ -369,14 +369,10 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
+    expect(rest).toMatchInlineSnapshot(`
       {
         "diarize": "true",
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "file_format": "pcm_s16le_16",
         "language_code": "en",
         "model_id": "scribe_v1",
@@ -385,5 +381,8 @@ describe('doGenerate', () => {
         "timestamps_granularity": "character",
       }
     `);
+    expect(file).toBeInstanceOf(File);
+    expect(file.type).toEqual('audio/wav');
+    expect(file.name).toEqual('audio.wav');
   });
 });
