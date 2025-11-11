@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.0-beta.98
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/gateway@2.0.0-beta.52
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
 ## 6.0.0-beta.97
 
 ### Patch Changes
