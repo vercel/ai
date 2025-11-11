@@ -1,6 +1,7 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import {
   FlexibleSchema,
+  getErrorMessage,
   lazySchema,
   StandardSchemaV1,
   Tool,
@@ -336,17 +337,42 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
       };
     }
 
-    const validatedMessages = await validateTypes({
-      value: messages,
-      schema: uiMessagesSchema,
-    });
+    let validatedMessages;
+    try {
+      validatedMessages = await validateTypes({
+        value: messages,
+        schema: uiMessagesSchema,
+      });
+    } catch (error) {
+      if (TypeValidationError.isInstance(error)) {
+        // Enhance the error message with context about what's being validated
+        const enhancedError = new TypeValidationError({
+          value: error.value,
+          cause: `Messages structure validation failed: ${getErrorMessage(error.cause)}`,
+        });
+        throw enhancedError;
+      }
+      throw error;
+    }
 
     if (metadataSchema) {
       for (const message of validatedMessages) {
-        await validateTypes({
-          value: message.metadata,
-          schema: metadataSchema,
-        });
+        try {
+          await validateTypes({
+            value: message.metadata,
+            schema: metadataSchema,
+          });
+        } catch (error) {
+          if (TypeValidationError.isInstance(error)) {
+            // Enhance the error message with context about what's being validated
+            const enhancedError = new TypeValidationError({
+              value: error.value,
+              cause: `Metadata validation failed for message with ID "${message.id}": ${getErrorMessage(error.cause)}`,
+            });
+            throw enhancedError;
+          }
+          throw error;
+        }
       }
     }
 
@@ -370,10 +396,22 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             };
           }
 
-          await validateTypes({
-            value: dataPart.data,
-            schema: dataSchema,
-          });
+          try {
+            await validateTypes({
+              value: dataPart.data,
+              schema: dataSchema,
+            });
+          } catch (error) {
+            if (TypeValidationError.isInstance(error)) {
+              // Enhance the error message with context about what's being validated
+              const enhancedError = new TypeValidationError({
+                value: error.value,
+                cause: `Data part "${dataPart.type}" validation failed for message with ID "${message.id}": ${getErrorMessage(error.cause)}`,
+              });
+              throw enhancedError;
+            }
+            throw error;
+          }
         }
       }
     }
@@ -404,17 +442,41 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             toolPart.state === 'output-available' ||
             toolPart.state === 'output-error'
           ) {
-            await validateTypes({
-              value: toolPart.input,
-              schema: tool.inputSchema,
-            });
+            try {
+              await validateTypes({
+                value: toolPart.input,
+                schema: tool.inputSchema,
+              });
+            } catch (error) {
+              if (TypeValidationError.isInstance(error)) {
+                // Enhance the error message with context about what's being validated
+                const enhancedError = new TypeValidationError({
+                  value: error.value,
+                  cause: `Tool "${toolName}" input validation failed for message with ID "${message.id}": ${getErrorMessage(error.cause)}`,
+                });
+                throw enhancedError;
+              }
+              throw error;
+            }
           }
 
           if (toolPart.state === 'output-available' && tool.outputSchema) {
-            await validateTypes({
-              value: toolPart.output,
-              schema: tool.outputSchema,
-            });
+            try {
+              await validateTypes({
+                value: toolPart.output,
+                schema: tool.outputSchema,
+              });
+            } catch (error) {
+              if (TypeValidationError.isInstance(error)) {
+                // Enhance the error message with context about what's being validated
+                const enhancedError = new TypeValidationError({
+                  value: error.value,
+                  cause: `Tool "${toolName}" output validation failed for message with ID "${message.id}": ${getErrorMessage(error.cause)}`,
+                });
+                throw enhancedError;
+              }
+              throw error;
+            }
           }
         }
       }
