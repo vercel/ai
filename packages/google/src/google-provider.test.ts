@@ -268,3 +268,40 @@ describe('google-provider', () => {
     `);
   });
 });
+
+describe('google provider - custom provider name', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should use custom provider name when specified', () => {
+    const provider = createGoogleGenerativeAI({
+      name: 'my-gemini-proxy',
+      apiKey: 'test-api-key',
+    });
+
+    provider('gemini-pro');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'gemini-pro',
+      expect.objectContaining({
+        provider: 'my-gemini-proxy',
+      }),
+    );
+  });
+
+  it('should default to google.generative-ai when name not specified', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+
+    provider('gemini-pro');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'gemini-pro',
+      expect.objectContaining({
+        provider: 'google.generative-ai',
+      }),
+    );
+  });
+});

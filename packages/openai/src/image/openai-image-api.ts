@@ -12,6 +12,19 @@ export const openaiImageResponseSchema = lazySchema(() =>
           revised_prompt: z.string().nullish(),
         }),
       ),
+      usage: z
+        .object({
+          input_tokens: z.number().nullish(),
+          output_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+          input_tokens_details: z
+            .object({
+              image_tokens: z.number().nullish(),
+              text_tokens: z.number().nullish(),
+            })
+            .nullish(),
+        })
+        .nullish(),
     }),
   ),
 );

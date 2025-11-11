@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+
 ## 3.0.0-beta.15
 
 ### Patch Changes
