@@ -47,7 +47,8 @@ jobs:
       - name: Get changed file paths
         id: get-changed-files
         run: |
-          changed_files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          changed_files=$(git diff --name-only ${{ github.event.pull_request.base.ref }})
+          echo $changed_files
           echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
 
       - name: Determine appropriate labels
@@ -285,19 +286,23 @@ jobs:
       - name: Filter existing labels
         id: filter-labels
         run: |
-          labels=$LABELS
-          if [ "$labels" != "[]" ]; then
-            gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels \
-              --method POST \
-              --input - <<< "{\"labels\": $labels}"
-            echo "Applied labels: $labels"
-          else
-            echo "No labels to apply"
-          fi
+          existing_labels=$(echo $REPO_LABELS | jq -r '.[]')
+          selected_labels=$(echo $USER_LABELS | jq -r '.[]')
 
-          # Use printf with environment variable to safely log reasoning and prevent command injection
-          printf 'Reasoning: %s\n' "$REASONING"
+          valid_labels=()
+          for label in $selected_labels; do
+            if [ -n "$label" ] && echo "$existing_labels" | grep -q "^$label$"; then
+              valid_labels+=("$label")
+            fi
+          done
+
+          if [ ${#valid_labels[@]} -eq 0 ]; then
+            echo "valid_labels=[]" >> $GITHUB_OUTPUT
+          else
+            echo "valid_labels=$(printf '%s\n' "${valid_labels[@]}" | jq -R . | jq -c -s .)" >> $GITHUB_OUTPUT
+          fi
         env:
+          REPO_LABELS: ${{ steps.fetch-labels.outputs.labels_json }}
           USER_LABELS: ${{ toJson(fromJSON(steps.classify-issue.outputs.json).labels) }}
 
       - name: Apply labels to issue

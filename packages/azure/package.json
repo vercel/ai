@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/azure",
-  "version": "3.0.0-beta.57",
+  "version": "3.0.0-beta.59",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

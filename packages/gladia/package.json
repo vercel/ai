@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/gladia",
-  "version": "2.0.0-beta.31",
+  "version": "2.0.0-beta.33",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

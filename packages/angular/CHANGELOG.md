@@ -1,5 +1,28 @@
 # @ai-sdk/angular
 
+## 2.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - ai@6.0.0-beta.98
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 2.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - ai@6.0.0-beta.97
+
+## 2.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [a322efa]
+  - ai@6.0.0-beta.96
+
 ## 2.0.0-beta.95
 
 ### Patch Changes
