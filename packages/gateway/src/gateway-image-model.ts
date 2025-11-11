@@ -105,6 +105,16 @@ export class GatewayImageModel implements ImageModelV2 {
   }
 }
 
+const providerMetadataEntrySchema = z
+  .object({
+    images: z.array(z.unknown()).optional(),
+  })
+  .catchall(z.unknown())
+  .transform(entry => ({
+    images: entry.images ?? [],
+    ...entry,
+  }));
+
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
   warnings: z
@@ -116,13 +126,6 @@ const gatewayImageResponseSchema = z.object({
     )
     .optional(),
   providerMetadata: z
-    .record(
-      z.string(),
-      z
-        .object({
-          images: z.array(z.unknown()),
-        })
-        .and(z.record(z.string(), z.unknown())),
-    )
+    .record(z.string(), providerMetadataEntrySchema)
     .optional(),
 });
