@@ -16,6 +16,7 @@ async function main() {
   console.log({
     prompt,
     revisedPrompt,
+    usage: result.usage,
   });
 
   await presentImages([result.image]);

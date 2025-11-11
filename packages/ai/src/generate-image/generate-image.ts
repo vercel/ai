@@ -16,6 +16,7 @@ import { ImageModelResponseMetadata } from '../types/image-model-response-metada
 import { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
 import { VERSION } from '../version';
+import { addImageModelUsage, ImageModelUsage } from '../types/usage';
 
 /**
 Generates images using an image model.
@@ -172,6 +173,11 @@ Only applicable for HTTP-based providers.
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
   const providerMetadata: ImageModelV3ProviderMetadata = {};
+  let totalUsage: ImageModelUsage = {
+    inputTokens: undefined,
+    outputTokens: undefined,
+    totalTokens: undefined,
+  };
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -187,6 +193,10 @@ Only applicable for HTTP-based providers.
       ),
     );
     warnings.push(...result.warnings);
+
+    if (result.usage != null) {
+      totalUsage = addImageModelUsage(totalUsage, result.usage);
+    }
 
     if (result.providerMetadata) {
       for (const [providerName, metadata] of Object.entries<{
@@ -213,6 +223,7 @@ Only applicable for HTTP-based providers.
     warnings,
     responses,
     providerMetadata,
+    usage: totalUsage,
   });
 }
 
@@ -221,17 +232,20 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   readonly warnings: Array<ImageGenerationWarning>;
   readonly responses: Array<ImageModelResponseMetadata>;
   readonly providerMetadata: ImageModelV3ProviderMetadata;
+  readonly usage: ImageModelUsage;
 
   constructor(options: {
     images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
     providerMetadata: ImageModelV3ProviderMetadata;
+    usage: ImageModelUsage;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata;
+    this.usage = options.usage;
   }
 
   get image() {

@@ -90,6 +90,14 @@ export class OpenAIImageModel implements ImageModelV3 {
     return {
       images: response.data.map(item => item.b64_json),
       warnings,
+      usage:
+        response.usage != null
+          ? {
+              inputTokens: response.usage.input_tokens ?? undefined,
+              outputTokens: response.usage.output_tokens ?? undefined,
+              totalTokens: response.usage.total_tokens ?? undefined,
+            }
+          : undefined,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
