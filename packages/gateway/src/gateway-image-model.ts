@@ -89,7 +89,7 @@ export class GatewayImageModel implements ImageModelV2 {
         },
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
