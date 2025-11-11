@@ -116,6 +116,7 @@ export type OpenAIResponsesModelId =
 export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      conversation: z.string().nullish(),
       include: z
         .array(
           z.enum([
