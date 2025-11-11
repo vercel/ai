@@ -14,7 +14,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
-  combineHeaders,
+  combineAndMergeMergeableHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
@@ -394,11 +394,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     betas: Set<string>;
     headers: Record<string, string | undefined> | undefined;
   }) {
-    return combineHeaders(
-      await resolve(this.config.headers),
-      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
-      headers,
-    );
+    return combineAndMergeMergeableHeaders({
+      headers: [
+        await resolve(this.config.headers),
+        betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
+        headers,
+      ],
+      mergeableKeys: ['anthropic-beta'],
+    });
   }
 
   private buildRequestUrl(isStreaming: boolean): string {
