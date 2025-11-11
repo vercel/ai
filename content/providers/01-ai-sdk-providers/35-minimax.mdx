@@ -5,9 +5,9 @@ description: Learn how to use MiniMax's models with the AI SDK.
 
 # MiniMax Provider
 
-The [MiniMax](https://www.minimaxi.com) provider offers access to powerful language models through the MiniMax API, including their latest [MiniMax-M2 model](https://platform.minimaxi.com/docs/guides/text-generation).
+The [MiniMax](https://www.minimaxi.com) provider offers access to powerful language models through the MiniMax API, including their latest [MiniMax-M2 model](https://platform.minimax.io/docs/guides/text-generation).
 
-API keys can be obtained from the [MiniMax Platform](https://platform.minimaxi.com).
+API keys can be obtained from the [MiniMax Platform](https://platform.minimax.io/user-center/basic-information/interface-key).
 
 ## Setup
 
@@ -65,8 +65,7 @@ For custom configuration, you can use the `createMinimax` (Anthropic-compatible)
 import { createMinimax } from '@ai-sdk/minimax';
 
 const minimax = createMinimax({
-  apiKey: process.env.MINIMAX_API_KEY ?? '',
-  baseURL: 'https://api.minimax.io/anthropic/v1', // optional, this is the default
+  apiKey: process.env.MINIMAX_API_KEY ?? ''
 });
 ```
 
@@ -76,8 +75,7 @@ const minimax = createMinimax({
 import { createMinimaxOpenAI } from '@ai-sdk/minimax';
 
 const minimaxOpenAI = createMinimaxOpenAI({
-  apiKey: process.env.MINIMAX_API_KEY ?? '',
-  baseURL: 'https://api.minimax.io/v1', // optional, this is the default
+  apiKey: process.env.MINIMAX_API_KEY ?? ''
 });
 ```
 
@@ -167,14 +165,26 @@ The main difference is the API request/response format:
 
 Both formats access the same MiniMax models with the same capabilities.
 
+## Available Models
+
+MiniMax offers two model variants:
+
+| Model Name | Description |
+| ---------- | ----------- |
+| `MiniMax-M2` | Agentic capabilities, Advanced reasoning |
+| `MiniMax-M2-Stable` | High concurrency and commercial use |
+
+Both models share the same API interface and usage patterns.
+
 ## Model Capabilities
 
 | Model         | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      |
 | ------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `MiniMax-M2`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `MiniMax-M2`  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `MiniMax-M2-Stable`  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  Please see the [MiniMax docs](https://platform.minimaxi.com/docs) for a full list
+  Please see the [MiniMax docs](https://platform.minimax.io/docs/api-reference/text-intro) for a full list
   of available models and their capabilities. The provider accepts any model ID as a
   string for forward compatibility.
 </Note>
@@ -207,57 +217,19 @@ const result = streamText({
 });
 
 for await (const chunk of result.textStream) {
-  process.stdout.write(chunk);
+  console.log(chunk);
 }
 ```
 
-### With Tools
-
-```ts
-import { minimax } from '@ai-sdk/minimax';
-import { generateText } from 'ai';
-import { z } from 'zod';
-
-const result = await generateText({
-  model: minimax('MiniMax-M2'),
-  tools: {
-    weather: {
-      description: 'Get the weather in a location',
-      parameters: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    },
-  },
-  prompt: 'What is the weather in San Francisco?',
-});
-
-console.log(result.text);
-```
-
-### With Image Input
+### Using MiniMax-M2-Stable for Production
 
 ```ts
 import { minimax } from '@ai-sdk/minimax';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: minimax('MiniMax-M2'),
-  messages: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'What is in this image?' },
-        {
-          type: 'image',
-          image: 'https://example.com/image.jpg',
-        },
-      ],
-    },
-  ],
+  model: minimax('MiniMax-M2-Stable'),
+  prompt: 'Write a short story about a robot learning to paint.',
 });
 
 console.log(result.text);

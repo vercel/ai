@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/minimax",
-  "version": "0.0.1",
+  "version": "2.0.0-beta.21",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -62,8 +62,7 @@
     "url": "https://github.com/vercel/ai/issues"
   },
   "keywords": [
-    "ai",
-    "minimax"
+    "ai"
   ]
 }
 
