@@ -6,7 +6,7 @@ import ChatInput from '@/components/chat-input';
 import { AzureOpenAICodeInterpreterMessage } from '@/app/api/chat-azure-code-interpreter-annotation-download/route';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
 
-export default function TestAzureOpenAIWebSearch() {
+export default function TestAzureOpenAICodeInterpreter() {
   const { status, sendMessage, messages } =
     useChat<AzureOpenAICodeInterpreterMessage>({
       transport: new DefaultChatTransport({
