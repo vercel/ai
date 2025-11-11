@@ -9,11 +9,11 @@ tags: ['node', 'tool use', 'agent', 'web']
 There are two approaches you can take to building a web search agent with the AI SDK:
 
 1. Use a model that has native web-searching capabilities
-2. Create a tool to access the web and return search results.
+2. Use a tool to access the web and return search results.
 
 Both approaches have their advantages and disadvantages. Models with native search capabilities tend to be faster and there is no additional cost to make the search. The disadvantage is that you have less control over what is being searched, and the functionality is limited to models that support it.
 
-instead, by creating a tool, you can achieve more flexibility and greater control over your search queries. It allows you to customize your search strategy, specify search parameters, and you can use it with any LLM that supports tool calling. This approach will incur additional costs for the search API you use, but gives you complete control over the search experience.
+instead, by using a tool, you can achieve more flexibility and greater control over your search queries. It allows you to customize your search strategy, specify search parameters, and you can use it with any LLM that supports tool calling. This approach will incur additional costs for the search API you use, but gives you complete control over the search experience.
 
 ## Using native web-search
 
@@ -115,13 +115,37 @@ const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 ```
 
-## Using a web search tool
+## Using tools
 
-If you prefer a ready-to-use web search tool without building one from scratch, [Exa](https://exa.ai/) provides an SDK that integrates directly with the AI SDK. This is the fastest way to add web search to your AI applications.
+When using tools for web search, you have two options: use ready-made tools that integrate directly with the AI SDK, or build custom tools tailored to your specific needs.
 
-### Exa
+Unlike the native web search examples where searching is built into the model, using web search tools requires multiple steps. The language model will make two generations - the first to call the relevant web search tool (extracting search queries from the context), and the second to process the results and generate a response. This multi-step process is handled automatically when you set `stopWhen: stepCountIs(n)` to a value greater than 1.
 
-[Exa](https://exa.ai/) is a web search API designed for AI applications:
+<Note>
+  By using `stopWhen`, you can automatically send tool results back to the
+  language model alongside the original question, enabling the model to respond
+  with information relevant to the user's query based on the search results.
+  This creates a seamless experience where the agent can search the web and
+  incorporate those findings into its response.
+</Note>
+
+### Use ready-made tools
+
+If you prefer a ready-to-use web search tool without building one from scratch, [Exa](https://exa.ai/)(a web search API designed for AI applications) provides a tool that integrates directly with the AI SDK.
+
+#### Exa
+
+<Note>
+  Get your API key from the [Exa Dashboard](https://dashboard.exa.ai/api-keys).
+</Note>
+
+First, install the Exa `webSearch` tool:
+
+```bash
+pnpm install @exalabs/ai-sdk
+```
+
+Then, you can import and pass it into `generateText`, `streamText`, or your agent:
 
 ```ts
 import { generateText, stepCountIs } from 'ai';
@@ -140,25 +164,63 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-Get your API key from the [Exa Dashboard](https://dashboard.exa.ai/api-keys). For more configuration options and customization, see the [Exa AI SDK documentation](https://docs.exa.ai/reference/vercel).
+For more configuration options and customization, see the [Exa AI SDK documentation](https://docs.exa.ai/reference/vercel).
 
-## Building a web search tool
+### Build and use custom tools
 
-Let's look at how you can build tools that search the web and return results. These tools can be used with any model that supports tool calling, giving you maximum flexibility and control over your search experience. We'll examine several search API options that can be integrated as tools in your agent.
+For more control over your web search functionality, you can build custom tools using web scraping and crawling APIs. This approach allows you to customize search parameters, handle specific data formats, and integrate with specialized search services.
 
-Unlike the native web search examples where searching is built into the model, using web search tools requires multiple steps. The language model will make two generations - the first to call the relevant web search tool (extracting search queries from the context), and the second to process the results and generate a response. This multi-step process is handled automatically when you set `stopWhen: stepCountIs()` to a value greater than 1.
+#### Exa
 
-<Note>
-  By using `stopWhen`, you can automatically send tool results back to the
-  language model alongside the original question, enabling the model to respond
-  with information relevant to the user's query based on the search results.
-  This creates a seamless experience where the agent can search the web and
-  incorporate those findings into its response.
-</Note>
+Let's look at how you could implement a search tool using Exa:
 
-### Firecrawl
+```bash
+pnpm install exa-js
+```
 
-[Firecrawl](https://firecrawl.dev) provides an API for web scraping and crawling. Let's look at how you could implement a scraping tool using Firecrawl:
+```ts
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+import Exa from 'exa-js';
+
+export const exa = new Exa(process.env.EXA_API_KEY);
+
+export const webSearch = tool({
+  description: 'Search the web for up-to-date information',
+  inputSchema: z.object({
+    query: z.string().min(1).max(100).describe('The search query'),
+  }),
+  execute: async ({ query }) => {
+    const { results } = await exa.searchAndContents(query, {
+      livecrawl: 'always',
+      numResults: 3,
+    });
+    return results.map(result => ({
+      title: result.title,
+      url: result.url,
+      content: result.text.slice(0, 1000), // take just the first 1000 characters
+      publishedDate: result.publishedDate,
+    }));
+  },
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-4o-mini', // can be any model that supports tools
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    webSearch,
+  },
+  stopWhen: stepCountIs(5),
+});
+```
+
+#### Firecrawl
+
+[Firecrawl](https://firecrawl.dev) provides an API for web scraping and crawling. Let's look at how you can build a custom scraping tool using Firecrawl:
+
+```bash
+pnpm install @mendable/firecrawl-js
+```
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
