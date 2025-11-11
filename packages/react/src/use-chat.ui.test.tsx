@@ -10,6 +10,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
+  FinishReason,
   isToolUIPart,
   TextStreamChatTransport,
   UIMessage,
@@ -19,6 +20,7 @@ import React, { act, useRef, useState } from 'react';
 import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -83,7 +85,14 @@ describe('initial messages', () => {
 });
 
 describe('data protocol stream', () => {
-  let onFinishCalls: Array<{ message: UIMessage }> = [];
+  let onFinishCalls: Array<{
+    message: UIMessage;
+    messages: UIMessage[];
+    isAbort: boolean;
+    isDisconnect: boolean;
+    isError: boolean;
+    finishReason?: FinishReason;
+  }> = [];
 
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
@@ -303,6 +312,7 @@ describe('data protocol stream', () => {
     controller.write(
       formatChunk({
         type: 'finish',
+        finishReason: 'stop',
         messageMetadata: {
           example: 'metadata',
         },
@@ -345,6 +355,10 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": "stop",
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-1",
             "metadata": {
@@ -360,6 +374,34 @@ describe('data protocol stream', () => {
             ],
             "role": "assistant",
           },
+          "messages": [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": {
+                "example": "metadata",
+              },
+              "parts": [
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         },
       ]
     `);
@@ -404,7 +446,14 @@ describe('data protocol stream', () => {
 });
 
 describe('text stream', () => {
-  let onFinishCalls: Array<{ message: UIMessage }> = [];
+  let onFinishCalls: Array<{
+    message: UIMessage;
+    messages: UIMessage[];
+    isAbort: boolean;
+    isDisconnect: boolean;
+    isError: boolean;
+    finishReason?: FinishReason;
+  }> = [];
 
   setupTestComponent(() => {
     const { messages, sendMessage } = useChat({
@@ -505,6 +554,10 @@ describe('text stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": undefined,
+          "isAbort": false,
+          "isDisconnect": false,
+          "isError": false,
           "message": {
             "id": "id-2",
             "metadata": undefined,
@@ -521,6 +574,35 @@ describe('text stream', () => {
             ],
             "role": "assistant",
           },
+          "messages": [
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-2",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         },
       ]
     `);
@@ -657,10 +739,10 @@ describe('onToolCall', () => {
   let toolCallPromise: Promise<void>;
 
   setupTestComponent(() => {
-    const { messages, sendMessage, addToolResult } = useChat({
+    const { messages, sendMessage, addToolOutput } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
-        addToolResult({
+        addToolOutput({
           tool: 'test-tool',
           toolCallId: toolCall.toolCallId,
           output: `test-tool-response: ${toolCall.toolName} ${
@@ -744,7 +826,7 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   setupTestComponent(() => {
-    const { messages, sendMessage, addToolResult } = useChat({
+    const { messages, sendMessage, addToolOutput } = useChat({
       generateId: mockId(),
     });
 
@@ -762,7 +844,7 @@ describe('tool invocations', () => {
                     <button
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
-                        addToolResult({
+                        addToolOutput({
                           tool: 'test-tool',
                           toolCallId: toolPart.toolCallId,
                           output: 'test-result',
@@ -956,7 +1038,7 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolOutput is called', async () => {
     const controller = new TestResponseController();
     server.urls['/api/chat'].response = {
       type: 'controlled-stream',

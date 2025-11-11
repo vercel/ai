@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { UIMessageChunk } from './ui-message-chunks';
 import { readUIMessageStream } from './read-ui-message-stream';
+import { describe, it, expect } from 'vitest';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);

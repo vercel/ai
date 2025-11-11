@@ -4,7 +4,6 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   test: {
     environment: 'edge-runtime',
-    globals: true,
     include: ['**/*.test.ts{,x}'],
     exclude: [
       '**/*.ui.test.ts{,x}',

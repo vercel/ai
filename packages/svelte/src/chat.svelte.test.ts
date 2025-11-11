@@ -1,8 +1,8 @@
 import {
   createTestServer,
-  mockId,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   DefaultChatTransport,
   isToolUIPart,
@@ -12,6 +12,7 @@ import {
 import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
 import { promiseWithResolvers } from './utils.svelte.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -177,6 +178,9 @@ describe('data protocol stream', () => {
     });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      isAbort: false,
+      isDisconnect: false,
+      isError: false,
       message: {
         id: 'id-2',
         metadata: {
@@ -191,6 +195,33 @@ describe('data protocol stream', () => {
         ],
         role: 'assistant',
       },
+      messages: [
+        {
+          id: 'id-1',
+          metadata: undefined,
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          id: 'id-2',
+          metadata: {
+            example: 'metadata',
+          },
+          parts: [
+            {
+              text: 'Hello, world.',
+              type: 'text',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ],
     });
   });
 
@@ -346,6 +377,9 @@ describe('text stream', () => {
     });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      isAbort: false,
+      isDisconnect: false,
+      isError: false,
       message: {
         id: expect.any(String),
         role: 'assistant',
@@ -355,6 +389,23 @@ describe('text stream', () => {
           { text: 'Hello, world.', type: 'text', state: 'done' },
         ],
       },
+      messages: [
+        {
+          id: expect.any(String),
+          role: 'user',
+          metadata: undefined,
+          parts: [{ text: 'hi', type: 'text' }],
+        },
+        {
+          id: expect.any(String),
+          role: 'assistant',
+          metadata: undefined,
+          parts: [
+            { type: 'step-start' },
+            { text: 'Hello, world.', type: 'text', state: 'done' },
+          ],
+        },
+      ],
     });
   });
 });
@@ -371,7 +422,7 @@ describe('onToolCall', () => {
       async onToolCall({ toolCall }) {
         await toolCallPromise;
 
-        chat.addToolResult({
+        chat.addToolOutput({
           tool: 'test-tool',
           toolCallId: toolCall.toolCallId,
           output: `test-tool-response: ${toolCall.toolName} ${
@@ -640,7 +691,7 @@ describe('tool invocations', () => {
     ]);
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolOutput is called', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
@@ -673,7 +724,7 @@ describe('tool invocations', () => {
       ]);
     });
 
-    chat.addToolResult({
+    chat.addToolOutput({
       tool: 'test-tool',
       toolCallId: 'tool-call-0',
       output: 'test-result',

@@ -81,11 +81,12 @@ export default createTransformer((fileInfo, api, options, context) => {
   });
 
   // Transform object literals that represent file stream parts
+  // (not file objects in message content)
   root
     .find(j.ObjectExpression)
     .filter(path => {
-      // Look for objects with type: 'file' property
-      return path.node.properties.some(prop => {
+      // Must have type: 'file' property
+      const hasFileType = path.node.properties.some(prop => {
         if (
           (prop.type === 'ObjectProperty' || prop.type === 'Property') &&
           prop.key.type === 'Identifier' &&
@@ -97,6 +98,28 @@ export default createTransformer((fileInfo, api, options, context) => {
         }
         return false;
       });
+
+      if (!hasFileType) {
+        return false;
+      }
+
+      // Must have at least one file stream part specific property
+      // Only transform objects that have stream-specific properties like base64 or uint8Array
+      // This excludes message content files which typically only have mediaType + data
+      const fileStreamProperties = ['base64', 'uint8Array', 'mimeType'];
+
+      const hasStreamProperty = path.node.properties.some(prop => {
+        if (
+          (prop.type === 'ObjectProperty' || prop.type === 'Property') &&
+          prop.key.type === 'Identifier'
+        ) {
+          return fileStreamProperties.includes(prop.key.name);
+        }
+        return false;
+      });
+
+      // Only transform if it has file stream-specific properties
+      return hasStreamProperty;
     })
     .forEach(path => {
       const properties = path.node.properties;
@@ -114,6 +137,17 @@ export default createTransformer((fileInfo, api, options, context) => {
 
       // Only transform if we have file properties to move
       if (fileProperties.length > 0) {
+        // Transform mimeType to mediaType in the file properties
+        fileProperties.forEach(prop => {
+          if (
+            (prop.type === 'ObjectProperty' || prop.type === 'Property') &&
+            prop.key.type === 'Identifier' &&
+            prop.key.name === 'mimeType'
+          ) {
+            prop.key.name = 'mediaType';
+          }
+        });
+
         // Create new file object with the file properties
         const fileObject = j.objectExpression(fileProperties);
 
@@ -220,6 +254,14 @@ export default createTransformer((fileInfo, api, options, context) => {
     })
     .forEach(path => {
       // Transform part.mediaType to part.file.mediaType
+      // Also rename mimeType to mediaType
+      if (
+        path.node.property.type === 'Identifier' &&
+        path.node.property.name === 'mimeType'
+      ) {
+        path.node.property.name = 'mediaType';
+      }
+
       path.node.object = j.memberExpression(
         path.node.object,
         j.identifier('file'),

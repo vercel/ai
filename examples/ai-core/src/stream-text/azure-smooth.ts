@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: azure('gpt-4o'), // use your own deployment
+    model: azure('gpt-4.1-mini'), // use your own deployment
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_transform: smoothStream(),
   });

@@ -1,5 +1,255 @@
 # @ai-sdk/gateway
 
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+
+## 2.0.7
+
+### Patch Changes
+
+- 46dcc02: feat(provider/gateway): Add o3-deep-research to gateway model string autocomplete
+
+## 2.0.6
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
+## 2.0.4
+
+### Patch Changes
+
+- 872543c: feat(provider/gateway): Add GPT OSS Safeguard 20B to Gateway model string autocomplete
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+
+## 2.0.1
+
+### Patch Changes
+
+- f1a8734: feat (provider/gateway): add models provider option for model routing
+
+## 2.0.0
+
+### Major Changes
+
+- 76678cd: fix(gateway): bump `@vercel/oidc` to latest
+
+## 1.0.41
+
+### Patch Changes
+
+- 11a8867: feat (provider/gateway): improve auth error messages
+
+## 1.0.40
+
+### Patch Changes
+
+- f6a9bf3: feat (provider/gateway): add user and tags provider options
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+
+## 1.0.38
+
+### Patch Changes
+
+- 227ca94: fix: revert zod import change
+
+## 1.0.37
+
+### Patch Changes
+
+- ec5a0a0: chore(provider/gateway): lazy schema loading
+
+## 1.0.36
+
+### Patch Changes
+
+- 638a561: feat (provider/gateway): add 'only' to provider options
+
+## 1.0.35
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+
+## 1.0.34
+
+### Patch Changes
+
+- 143f65b: fix(provider/gateway): add "react-native" as export condition for browser behavior
+
+  This avoids the use of native Node APIs in bundles created for React Native / Expo apps
+
+## 1.0.33
+
+### Patch Changes
+
+- cffad55: feat(gateway): oidc refresh with `@vercel/oidc`
+
+## 1.0.32
+
+### Patch Changes
+
+- bcdba23: feat(provider/gateway): Update DeepSeek model string autocomplete
+
+## 1.0.31
+
+### Patch Changes
+
+- 094685f: feat(provider/gateway): Add DeepSeek V3.2 Exp to Gateway language model settings
+
+## 1.0.30
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+
+## 1.0.29
+
+### Patch Changes
+
+- 7ca78f1: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
+
+## 1.0.28
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
+## 1.0.27
+
+### Patch Changes
+
+- c5f403a: feat(provider/gateway): Add gpt-5-codex to Gateway model string autocomplete
+
+## 1.0.26
+
+### Patch Changes
+
+- e304478: feat(provider/gateway): Add LongCat Thinking model to Gateway autocomplete
+
+## 1.0.25
+
+### Patch Changes
+
+- 4d3ff64: feat(provider/gateway): Add new xAI models
+
+## 1.0.24
+
+### Patch Changes
+
+- c86e0f7: add getCredits() gateway method
+- 6bbae01: getCredits style improvements
+
+## 1.0.23
+
+### Patch Changes
+
+- f49f924: feat (provider/gateway): add qwen3 next model ids
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 1.0.21
+
+### Patch Changes
+
+- 4ee3719: feat(provider/gateway): Add Meituan LongCat Flash Chat to autocomplete
+
+## 1.0.20
+
+### Patch Changes
+
+- 350a328: feat(provider/gateway): Add stealth models to Gateway autocomplete
+
+## 1.0.19
+
+### Patch Changes
+
+- 034287f: feat (provider/gateway): add qwen3-max model id
+- dee1afe: feat(provider/gateway): Fix embeddings `providerOptions`
+
+## 1.0.18
+
+### Patch Changes
+
+- 5d59a8c: feat (provider/gateway): add moonshotai/kimi-k2-0905 model id
+
+## 1.0.17
+
+### Patch Changes
+
+- b6005cd: feat(provider/gateway): Add Voyage embedding models
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 1.0.15
+
+### Patch Changes
+
+- 980633d: feat(provider/gateway): Add xAI Grok Code Fast 1
+- 1c5b88d: feat (provider/gateway): add new model ids
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 1.0.13
+
+### Patch Changes
+
+- c9994f9: feat(provider/gateway): Add cache pricing fields to model metadata
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 1.0.12
 
 ### Patch Changes

@@ -1,5 +1,6 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import { describe, it, expect } from 'vitest';
 
 const prompt = 'A cute baby sea otter';
 

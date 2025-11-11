@@ -1,5 +1,78 @@
 # @ai-sdk/provider-utils
 
+## 3.0.17
+
+### Patch Changes
+
+- 056c471: fix(provider-utils): compatibility with V8 readonly execution environment
+
+## 3.0.16
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+
+## 3.0.15
+
+### Patch Changes
+
+- f2da310: chore(provider-utils): upgrade eventsource-parser to 3.0.6
+
+## 3.0.14
+
+### Patch Changes
+
+- 949718b: fix(provider-utils): make ReadableStream.cancel() properly finalize async iterators
+
+## 3.0.13
+
+### Patch Changes
+
+- 1e05490: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+
+## 3.0.12
+
+### Patch Changes
+
+- 17f9872: fix: revert zod import change
+
+## 3.0.11
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- 6f0644c: chore: load zod schemas lazily
+
+## 3.0.10
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+
+## 3.0.9
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+
+## 3.0.8
+
+### Patch Changes
+
+- 99964ed: fix(provider-utils): fix type inference for toModelOutput
+
+## 3.0.7
+
+### Patch Changes
+
+- 886e7cd: chore(provider-utils): upgrade event-source parser to 3.0.5
+
+## 3.0.6
+
+### Patch Changes
+
+- 1b5a3d3: chore(provider-util): integrate zod-to-json-schema
+
 ## 3.0.5
 
 ### Patch Changes

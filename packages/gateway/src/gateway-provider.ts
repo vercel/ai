@@ -11,6 +11,7 @@ import {
 import {
   GatewayFetchMetadata,
   type GatewayFetchMetadataResponse,
+  type GatewayCreditsResponse,
 } from './gateway-fetch-metadata';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
@@ -25,6 +26,8 @@ import type {
   ImageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
+import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV2 {
   (modelId: GatewayModelId): LanguageModelV2;
@@ -38,6 +41,11 @@ Creates a model for text generation.
 Returns available providers and models for use with the remote provider.
  */
   getAvailableModels(): Promise<GatewayFetchMetadataResponse>;
+
+  /**
+Returns credit information for the authenticated user.
+ */
+  getCredits(): Promise<GatewayCreditsResponse>;
 
   /**
 Creates a model for generating text embeddings.
@@ -108,12 +116,15 @@ export function createGatewayProvider(
   const getHeaders = async () => {
     const auth = await getGatewayAuthToken(options);
     if (auth) {
-      return {
-        Authorization: `Bearer ${auth.token}`,
-        'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
-        [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
-        ...options.headers,
-      };
+      return withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${auth.token}`,
+          'ai-gateway-protocol-version': AI_GATEWAY_PROTOCOL_VERSION,
+          [GATEWAY_AUTH_METHOD_HEADER]: auth.authMethod,
+          ...options.headers,
+        },
+        `ai-sdk/gateway/${VERSION}`,
+      );
     }
 
     throw GatewayAuthenticationError.createContextualError({
@@ -174,11 +185,29 @@ export function createGatewayProvider(
           return metadata;
         })
         .catch(async (error: unknown) => {
-          throw asGatewayError(error, parseAuthMethod(await getHeaders()));
+          throw await asGatewayError(
+            error,
+            await parseAuthMethod(await getHeaders()),
+          );
         });
     }
 
     return metadataCache ? Promise.resolve(metadataCache) : pendingMetadata;
+  };
+
+  const getCredits = async () => {
+    return new GatewayFetchMetadata({
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+      .getCredits()
+      .catch(async (error: unknown) => {
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
+      });
   };
 
   const provider = function (modelId: GatewayModelId) {
@@ -192,6 +221,7 @@ export function createGatewayProvider(
   };
 
   provider.getAvailableModels = getAvailableModels;
+  provider.getCredits = getCredits;
   provider.imageModel = (modelId: GatewayImageModelId) => {
     return new GatewayImageModel(modelId, {
       provider: 'gateway',

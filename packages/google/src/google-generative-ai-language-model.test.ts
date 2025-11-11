@@ -2,19 +2,24 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
 } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+  GoogleGenerativeAILanguageModel,
+  getGroundingMetadataSchema,
+  getUrlContextMetadataSchema,
+} from './google-generative-ai-language-model';
 
 import {
   GoogleGenerativeAIGroundingMetadata,
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
-import { groundingMetadataSchema } from './tool/google-search';
-import { urlContextMetadataSchema } from './tool/url-context';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -44,6 +49,9 @@ const provider = createGoogleGenerativeAI({
   generateId: () => 'test-id',
 });
 const model = provider.chat('gemini-pro');
+
+const groundingMetadataSchema = getGroundingMetadataSchema();
+const urlContextMetadataSchema = getUrlContextMetadataSchema();
 
 describe('groundingMetadataSchema', () => {
   it('validates complete grounding metadata with web search results', () => {
@@ -80,6 +88,22 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].web with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          web: {
+            // Missing `title`
+            uri: 'https://example.com/weather',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates complete grounding metadata with Vertex AI Search results', () => {
     const metadata = {
       retrievalQueries: ['How to make appointment to renew driving license?'],
@@ -100,6 +124,22 @@ describe('groundingMetadataSchema', () => {
           segment_text: 'ipsum lorem ...',
           supportChunkIndices: [1, 2],
           confidenceScore: [0.9541752, 0.97726375],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            // Missing `title`
+            uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+          },
         },
       ],
     };
@@ -674,6 +714,9 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
       'x-goog-api-key': 'test-api-key',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/google/0.0.0-test`,
+    );
   });
 
   it('should pass response format', async () => {
@@ -924,6 +967,35 @@ describe('doGenerate', () => {
     ]);
   });
 
+  it('should expose PromptFeedback in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'No' }], role: 'model' },
+            finishReason: 'SAFETY',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: {
+          blockReason: 'SAFETY',
+          safetyRatings: SAFETY_RATINGS,
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.promptFeedback).toStrictEqual({
+      blockReason: 'SAFETY',
+      safetyRatings: SAFETY_RATINGS,
+    });
+  });
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
@@ -1029,7 +1101,7 @@ describe('doGenerate', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.tools).toEqual({ codeExecution: {} });
+    expect(requestBody.tools).toEqual([{ codeExecution: {} }]);
 
     expect(content).toEqual([
       {
@@ -1077,7 +1149,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -1100,7 +1172,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -1123,7 +1195,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearchRetrieval: {} },
+        tools: [{ googleSearchRetrieval: {} }],
       });
     });
 
@@ -1150,14 +1222,16 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: {
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+        tools: [
+          {
+            googleSearchRetrieval: {
+              dynamicRetrievalConfig: {
+                mode: 'MODE_DYNAMIC',
+                dynamicThreshold: 1,
+              },
             },
           },
-        },
+        ],
       });
     });
     it('should use urlContextTool for gemini-2.0-pro', async () => {
@@ -1179,7 +1253,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { urlContext: {} },
+        tools: [{ urlContext: {} }],
       });
     });
   });
@@ -1325,6 +1399,48 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+  });
+
+  it('should pass mediaResolution in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          mediaResolution: 'MEDIA_RESOLUTION_LOW',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        mediaResolution: 'MEDIA_RESOLUTION_LOW',
+      },
+    });
+  });
+
+  it('should pass imageConfig.aspectRatio in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          aspectRatio: '16:9',
+        },
       },
     });
   });
@@ -1899,6 +2015,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -1970,6 +2087,36 @@ describe('doStream', () => {
         blocked: false,
       },
     ]);
+  });
+
+  it('should expose PromptFeedback in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"candidates": [{"content": {"parts": [{"text": "No"}],"role": "model"},` +
+          `"finishReason": "PROHIBITED_CONTENT","index": 0}],` +
+          `"promptFeedback": {"blockReason": "PROHIBITED_CONTENT","safetyRatings": [` +
+          `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
+          `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.promptFeedback,
+    ).toStrictEqual({
+      blockReason: 'PROHIBITED_CONTENT',
+      safetyRatings: SAFETY_RATINGS,
+    });
   });
 
   it('should stream code execution tool calls and results', async () => {
@@ -2074,7 +2221,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -2100,7 +2247,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -2125,7 +2272,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearchRetrieval: {} },
+        tools: [{ googleSearchRetrieval: {} }],
       });
     });
 
@@ -2154,14 +2301,16 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: {
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+        tools: [
+          {
+            googleSearchRetrieval: {
+              dynamicRetrievalConfig: {
+                mode: 'MODE_DYNAMIC',
+                dynamicThreshold: 1,
+              },
             },
           },
-        },
+        ],
       });
     });
   });
@@ -2386,6 +2535,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -2665,6 +2815,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": null,
               "urlContextMetadata": null,
               "usageMetadata": {
@@ -2793,6 +2944,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
+              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",

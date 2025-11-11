@@ -15,4 +15,11 @@ export type PerplexityMessageContent =
       image_url: {
         url: string;
       };
+    }
+  | {
+      type: 'file_url';
+      file_url: {
+        url: string;
+      };
+      file_name?: string;
     };

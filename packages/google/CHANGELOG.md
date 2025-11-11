@@ -1,5 +1,162 @@
 # @ai-sdk/google
 
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+
+## 2.0.30
+
+### Patch Changes
+
+- e2dac8b: Support for custom provider name in google and anthropic providers
+
+## 2.0.29
+
+### Patch Changes
+
+- a929a32: Add Google File search tool
+
+## 2.0.28
+
+### Patch Changes
+
+- 9a999c4: fix(@ai-sdk/google): Make title field optional in grounding metadata schema
+
+## 2.0.27
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+
+## 2.0.23
+
+### Patch Changes
+
+- 8a1d648: Fix adding google search along with url context in vertex ai
+
+## 2.0.22
+
+### Patch Changes
+
+- f8da995: The mediaResolution option has been added and is now passed to the Google API.
+
+## 2.0.21
+
+### Patch Changes
+
+- 53f53c1: Support `imageConfig.aspectRatio` configuration for Gemini models
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+
+## 2.0.19
+
+### Patch Changes
+
+- a107843: fix(provider/google): lazy schema loading
+
+  import time improved by 12.5% (22.3ms ➡️ 19.5ms)
+
+## 2.0.18
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+
+## 2.0.17
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- 356c1f2: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+
+## 2.0.16
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
+## 2.0.15
+
+### Patch Changes
+
+- 967c463: add promptFeedback outputs
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.13
+
+### Patch Changes
+
+- 5a3ef3a: Fixed handling of image response in the tool call result.
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.11
+
+### Patch Changes
+
+- a14fc2b: feat(provider/google): add gemini 2.5 flash image preview model support
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 2.0.8
 
 ### Patch Changes

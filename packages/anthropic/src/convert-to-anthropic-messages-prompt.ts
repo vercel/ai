@@ -6,18 +6,25 @@ import {
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  parseProviderOptions,
+  validateTypes,
+} from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
   AnthropicMessagesPrompt,
+  anthropicReasoningMetadataSchema,
   AnthropicToolResultContent,
   AnthropicUserMessage,
-} from './anthropic-api-types';
-import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
+  AnthropicWebFetchToolResultContent,
+} from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
-import { getCacheControl } from './get-cache-control';
-import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
+import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
+import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
+import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
+import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV2DataContent): string {
   if (typeof data === 'string') {
@@ -43,16 +50,19 @@ export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
+  cacheControlValidator,
 }: {
   prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
   warnings: LanguageModelV2CallWarning[];
+  cacheControlValidator?: CacheControlValidator;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
 }> {
   const betas = new Set<string>();
   const blocks = groupIntoBlocks(prompt);
+  const validator = cacheControlValidator || new CacheControlValidator();
 
   let system: AnthropicMessagesPrompt['system'] = undefined;
   const messages: AnthropicMessagesPrompt['messages'] = [];
@@ -101,7 +111,10 @@ export async function convertToAnthropicMessagesPrompt({
         system = block.messages.map(({ content, providerOptions }) => ({
           type: 'text',
           text: content,
-          cache_control: getCacheControl(providerOptions),
+          cache_control: validator.getCacheControl(providerOptions, {
+            type: 'system message',
+            canCache: true,
+          }),
         }));
 
         break;
@@ -124,9 +137,15 @@ export async function convertToAnthropicMessagesPrompt({
                 const isLastPart = j === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerOptions) ??
+                  validator.getCacheControl(part.providerOptions, {
+                    type: 'user message part',
+                    canCache: true,
+                  }) ??
                   (isLastPart
-                    ? getCacheControl(message.providerOptions)
+                    ? validator.getCacheControl(message.providerOptions, {
+                        type: 'user message',
+                        canCache: true,
+                      })
                     : undefined);
 
                 switch (part.type) {
@@ -242,9 +261,15 @@ export async function convertToAnthropicMessagesPrompt({
                 const isLastPart = i === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerOptions) ??
+                  validator.getCacheControl(part.providerOptions, {
+                    type: 'tool result part',
+                    canCache: true,
+                  }) ??
                   (isLastPart
-                    ? getCacheControl(message.providerOptions)
+                    ? validator.getCacheControl(message.providerOptions, {
+                        type: 'tool result message',
+                        canCache: true,
+                      })
                     : undefined);
 
                 const output = part.output;
@@ -257,7 +282,6 @@ export async function convertToAnthropicMessagesPrompt({
                           return {
                             type: 'text',
                             text: contentPart.text,
-                            cache_control: undefined,
                           };
                         case 'media': {
                           if (contentPart.mediaType.startsWith('image/')) {
@@ -268,7 +292,19 @@ export async function convertToAnthropicMessagesPrompt({
                                 media_type: contentPart.mediaType,
                                 data: contentPart.data,
                               },
-                              cache_control: undefined,
+                            };
+                          }
+
+                          if (contentPart.mediaType === 'application/pdf') {
+                            betas.add('pdfs-2024-09-25');
+
+                            return {
+                              type: 'document',
+                              source: {
+                                type: 'base64',
+                                media_type: contentPart.mediaType,
+                                data: contentPart.data,
+                              },
                             };
                           }
 
@@ -333,9 +369,15 @@ export async function convertToAnthropicMessagesPrompt({
             // for the last part of a message,
             // check also if the message has cache control.
             const cacheControl =
-              getCacheControl(part.providerOptions) ??
+              validator.getCacheControl(part.providerOptions, {
+                type: 'assistant message part',
+                canCache: true,
+              }) ??
               (isLastContentPart
-                ? getCacheControl(message.providerOptions)
+                ? validator.getCacheControl(message.providerOptions, {
+                    type: 'assistant message',
+                    canCache: true,
+                  })
                 : undefined);
 
             switch (part.type) {
@@ -365,17 +407,29 @@ export async function convertToAnthropicMessagesPrompt({
 
                   if (reasoningMetadata != null) {
                     if (reasoningMetadata.signature != null) {
+                      // Note: thinking blocks cannot have cache_control directly
+                      // They are cached implicitly when in previous assistant turns
+                      // Validate to provide helpful error message
+                      validator.getCacheControl(part.providerOptions, {
+                        type: 'thinking block',
+                        canCache: false,
+                      });
                       anthropicContent.push({
                         type: 'thinking',
                         thinking: part.text,
                         signature: reasoningMetadata.signature,
-                        cache_control: cacheControl,
                       });
                     } else if (reasoningMetadata.redactedData != null) {
+                      // Note: redacted thinking blocks cannot have cache_control directly
+                      // They are cached implicitly when in previous assistant turns
+                      // Validate to provide helpful error message
+                      validator.getCacheControl(part.providerOptions, {
+                        type: 'redacted thinking block',
+                        canCache: false,
+                      });
                       anthropicContent.push({
                         type: 'redacted_thinking',
                         data: reasoningMetadata.redactedData,
-                        cache_control: cacheControl,
                       });
                     } else {
                       warnings.push({
@@ -401,34 +455,41 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
-                  if (part.toolName === 'web_search') {
+                  // code execution 20250825:
+                  if (
+                    part.toolName === 'code_execution' &&
+                    part.input != null &&
+                    typeof part.input === 'object' &&
+                    'type' in part.input &&
+                    typeof part.input.type === 'string' &&
+                    (part.input.type === 'bash_code_execution' ||
+                      part.input.type === 'text_editor_code_execution')
+                  ) {
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: 'web_search',
+                      name: part.input.type, // map back to subtool name
                       input: part.input,
                       cache_control: cacheControl,
                     });
-
-                    break;
-                  }
-
-                  if (part.toolName === 'code_execution') {
+                  } else if (
+                    part.toolName === 'code_execution' || // code execution 20250522
+                    part.toolName === 'web_fetch' ||
+                    part.toolName === 'web_search'
+                  ) {
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: 'code_execution',
+                      name: part.toolName,
                       input: part.input,
                       cache_control: cacheControl,
                     });
-
-                    break;
+                  } else {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool call for tool ${part.toolName} is not supported`,
+                    });
                   }
-
-                  warnings.push({
-                    type: 'other',
-                    message: `provider executed tool call for tool ${part.toolName} is not supported`,
-                  });
 
                   break;
                 }
@@ -444,38 +505,6 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-result': {
-                if (part.toolName === 'web_search') {
-                  const output = part.output;
-
-                  if (output.type !== 'json') {
-                    warnings.push({
-                      type: 'other',
-                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
-                    });
-
-                    break;
-                  }
-
-                  const webSearchOutput = webSearch_20250305OutputSchema.parse(
-                    output.value,
-                  );
-
-                  anthropicContent.push({
-                    type: 'web_search_tool_result',
-                    tool_use_id: part.toolCallId,
-                    content: webSearchOutput.map(result => ({
-                      url: result.url,
-                      title: result.title,
-                      page_age: result.pageAge,
-                      encrypted_content: result.encryptedContent,
-                      type: result.type,
-                    })),
-                    cache_control: cacheControl,
-                  });
-
-                  break;
-                }
-
                 if (part.toolName === 'code_execution') {
                   const output = part.output;
 
@@ -488,18 +517,136 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const codeExecutionOutput =
-                    codeExecution_20250522OutputSchema.parse(output.value);
+                  if (
+                    output.value == null ||
+                    typeof output.value !== 'object' ||
+                    !('type' in output.value) ||
+                    typeof output.value.type !== 'string'
+                  ) {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output value is not a valid code execution result for tool ${part.toolName}`,
+                    });
+                    break;
+                  }
+
+                  // to distinguish between code execution 20250522 and 20250825,
+                  // we check if a type property is present in the output.value
+                  if (output.value.type === 'code_execution_result') {
+                    // code execution 20250522
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20250522OutputSchema,
+                    });
+
+                    anthropicContent.push({
+                      type: 'code_execution_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: codeExecutionOutput.type,
+                        stdout: codeExecutionOutput.stdout,
+                        stderr: codeExecutionOutput.stderr,
+                        return_code: codeExecutionOutput.return_code,
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else {
+                    // code execution 20250825
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20250825OutputSchema,
+                    });
+
+                    anthropicContent.push(
+                      codeExecutionOutput.type ===
+                        'bash_code_execution_result' ||
+                        codeExecutionOutput.type ===
+                          'bash_code_execution_tool_result_error'
+                        ? {
+                            type: 'bash_code_execution_tool_result',
+                            tool_use_id: part.toolCallId,
+                            cache_control: cacheControl,
+                            content: codeExecutionOutput,
+                          }
+                        : {
+                            type: 'text_editor_code_execution_tool_result',
+                            tool_use_id: part.toolCallId,
+                            cache_control: cacheControl,
+                            content: codeExecutionOutput,
+                          },
+                    );
+                  }
+                  break;
+                }
+
+                if (part.toolName === 'web_fetch') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const webFetchOutput = await validateTypes({
+                    value: output.value,
+                    schema: webFetch_20250910OutputSchema,
+                  });
 
                   anthropicContent.push({
-                    type: 'code_execution_tool_result',
+                    type: 'web_fetch_tool_result',
                     tool_use_id: part.toolCallId,
                     content: {
-                      type: codeExecutionOutput.type,
-                      stdout: codeExecutionOutput.stdout,
-                      stderr: codeExecutionOutput.stderr,
-                      return_code: codeExecutionOutput.return_code,
+                      type: 'web_fetch_result',
+                      url: webFetchOutput.url,
+                      retrieved_at: webFetchOutput.retrievedAt,
+                      content: {
+                        type: 'document',
+                        title: webFetchOutput.content.title,
+                        citations: webFetchOutput.content.citations,
+                        source: {
+                          type: webFetchOutput.content.source.type,
+                          media_type: webFetchOutput.content.source.mediaType,
+                          data: webFetchOutput.content.source.data,
+                        } as AnthropicWebFetchToolResultContent['content']['content']['source'],
+                      },
                     },
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
+                if (part.toolName === 'web_search') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const webSearchOutput = await validateTypes({
+                    value: output.value,
+                    schema: webSearch_20250305OutputSchema,
+                  });
+
+                  anthropicContent.push({
+                    type: 'web_search_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: webSearchOutput.map(result => ({
+                      url: result.url,
+                      title: result.title,
+                      page_age: result.pageAge,
+                      encrypted_content: result.encryptedContent,
+                      type: result.type,
+                    })),
                     cache_control: cacheControl,
                   });
 

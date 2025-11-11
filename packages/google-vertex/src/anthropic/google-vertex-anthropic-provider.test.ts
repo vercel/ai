@@ -4,6 +4,7 @@ import {
   AnthropicMessagesLanguageModel,
   anthropicTools,
 } from '@ai-sdk/anthropic/internal';
+import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -14,6 +15,8 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   createJsonErrorResponseHandler: vi.fn(),
   createProviderDefinedToolFactory: vi.fn(),
   createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+  lazySchema: vi.fn(),
+  zodSchema: vi.fn(),
 }));
 
 vi.mock('@ai-sdk/anthropic/internal', async () => {

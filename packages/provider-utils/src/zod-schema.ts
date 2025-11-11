@@ -1,7 +1,7 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import zodToJsonSchema from 'zod-to-json-schema';
+import zodToJsonSchema from './zod-to-json-schema';
 import { jsonSchema, Schema } from './schema';
 
 export function zod3Schema<OBJECT>(
@@ -20,10 +20,11 @@ export function zod3Schema<OBJECT>(
   const useReferences = options?.useReferences ?? false;
 
   return jsonSchema(
-    zodToJsonSchema(zodSchema, {
-      $refStrategy: useReferences ? 'root' : 'none',
-      target: 'jsonSchema7', // note: openai mode breaks various gemini conversions
-    }) as JSONSchema7,
+    // defer json schema creation to avoid unnecessary computation when only validation is needed
+    () =>
+      zodToJsonSchema(zodSchema, {
+        $refStrategy: useReferences ? 'root' : 'none',
+      }) as JSONSchema7,
     {
       validate: async value => {
         const result = await zodSchema.safeParseAsync(value);
@@ -50,20 +51,23 @@ export function zod4Schema<OBJECT>(
   // default to no references (to support openapi conversion for google)
   const useReferences = options?.useReferences ?? false;
 
-  const z4JSONSchema = z4.toJSONSchema(zodSchema, {
-    target: 'draft-7',
-    io: 'output',
-    reused: useReferences ? 'ref' : 'inline',
-  }) as JSONSchema7;
-
-  return jsonSchema(z4JSONSchema, {
-    validate: async value => {
-      const result = await z4.safeParseAsync(zodSchema, value);
-      return result.success
-        ? { success: true, value: result.data }
-        : { success: false, error: result.error };
+  return jsonSchema(
+    // defer json schema creation to avoid unnecessary computation when only validation is needed
+    () =>
+      z4.toJSONSchema(zodSchema, {
+        target: 'draft-7',
+        io: 'output',
+        reused: useReferences ? 'ref' : 'inline',
+      }) as JSONSchema7,
+    {
+      validate: async value => {
+        const result = await z4.safeParseAsync(zodSchema, value);
+        return result.success
+          ? { success: true, value: result.data }
+          : { success: false, error: result.error };
+      },
     },
-  });
+  );
 }
 
 export function isZod4Schema(

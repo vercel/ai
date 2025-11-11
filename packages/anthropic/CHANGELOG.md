@@ -1,5 +1,258 @@
 # @ai-sdk/anthropic
 
+## 2.0.44
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+
+## 2.0.43
+
+### Patch Changes
+
+- e2dac8b: Support for custom provider name in google and anthropic providers
+
+## 2.0.42
+
+### Patch Changes
+
+- 035b927: fix: set providerExecuted on Anthropic web_fetch tool results
+
+## 2.0.41
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+
+## 2.0.38
+
+### Patch Changes
+
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+
+## 2.0.37
+
+### Patch Changes
+
+- de1d309: fix(provider/anthropic): do not limit maxTokens when model id is unknown
+
+## 2.0.36
+
+### Patch Changes
+
+- 5a46f11: add return `file_id` property for anthropic code-execution-20250825 to download output files.
+
+## 2.0.35
+
+### Patch Changes
+
+- 1091a20: support ANTHROPIC_BASE_URL
+
+## 2.0.34
+
+### Patch Changes
+
+- 65f2628: feat(provider/anthropic): expose container from response in provider metadata
+
+## 2.0.33
+
+### Patch Changes
+
+- 28c9c6a: feat(anthropic): add prompt caching validation
+
+## 2.0.32
+
+### Patch Changes
+
+- 492b1ee: feat(provider/anthropic): add support for Agent Skills
+
+## 2.0.31
+
+### Patch Changes
+
+- b73ba90: feat(provider/anthropic): default and limit maxTokens based on model
+
+## 2.0.30
+
+### Patch Changes
+
+- 650287f: chore: add model ID for Haiku 4.5
+
+## 2.0.29
+
+### Patch Changes
+
+- 4dd53dd: feat(provider/anthropic): memory tool
+
+## 2.0.28
+
+### Patch Changes
+
+- 07274ad: Add support for 2025-08-25 code execution tool
+
+## 2.0.27
+
+### Patch Changes
+
+- 069b370: Add support for pdf file in tool result in anthropic
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+
+## 2.0.25
+
+### Patch Changes
+
+- b2b4837: chore(provider/anthropic): lazy schema loading
+
+## 2.0.24
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+
+## 2.0.23
+
+### Patch Changes
+
+- d78faa7: feat(provider/anthropic): expose stop_sequence in provider metadata
+
+## 2.0.22
+
+### Patch Changes
+
+- f969579: chore: add model ID for Sonnet 4.5
+
+## 2.0.21
+
+### Patch Changes
+
+- 62b5f1a: fix(provider/anthropic): support null title in web fetch tool
+
+## 2.0.20
+
+### Patch Changes
+
+- 8e08229: feat(provider/anthropic): web search tool updates
+- f77cc8c: feat(provider/anthropic): add text_editor_20250728 tool support
+
+  Add text_editor_20250728 tool for Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) with optional max_characters parameter and no undo_edit command support.
+
+- 9398a72: fix(provider/anthropic): correct raw usage information
+- a80ea09: feat(provider/anthropic): add web fetch tool
+- 53afb19: chore(provider/anthropic): update anthropic model ids
+
+## 2.0.19
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+
+## 2.0.18
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
+## 2.0.17
+
+### Patch Changes
+
+- da92132: fix(provider/anthorpic): add cacheControl to AnthropicProviderOptions
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.15
+
+### Patch Changes
+
+- c8aab0a: fix (provider/anthropic): revert cd458a8c1667df86e6987a1f2e06159823453864
+
+## 2.0.14
+
+### Patch Changes
+
+- 2338c79: feat (provider/anthropic): update jsdoc of anthropic tools
+
+## 2.0.13
+
+### Patch Changes
+
+- cd458a8: fix(anthropic): reorder tool_result parts to front of combined user messages
+
+  Reorders tool_result content to appear before user text within combined user messages, ensuring Claude API validation requirements are met while preserving the intentional message combining behavior that prevents role alternation errors. Fixes #8318.
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.11
+
+### Patch Changes
+
+- c7fee29: feat(anthropic): handle `pause_turn` as value for `stop_reason`
+
+## 2.0.10
+
+### Patch Changes
+
+- c152ef7: feat(providers/anthropic): map 'refusal' stop reason to 'content-filter' finishReason
+
+## 2.0.9
+
+### Patch Changes
+
+- cdc6b7a: fix(provider/anthropic): disable parallel tool use when using json output tool for structured responses
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 2.0.6
 
 ### Patch Changes

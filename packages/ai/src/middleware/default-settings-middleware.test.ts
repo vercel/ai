@@ -1,6 +1,7 @@
 import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { defaultSettingsMiddleware } from './default-settings-middleware';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { describe, it, expect } from 'vitest';
 
 const BASE_PARAMS: LanguageModelV2CallOptions = {
   prompt: [

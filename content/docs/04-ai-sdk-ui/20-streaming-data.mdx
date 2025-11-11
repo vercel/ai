@@ -54,7 +54,7 @@ import {
   streamText,
   convertToModelMessages,
 } from 'ai';
-import { MyUIMessage } from '@/ai/types';
+import type { MyUIMessage } from '@/ai/types';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -199,7 +199,7 @@ The `onData` callback is essential for handling streaming data, especially trans
 
 ```tsx filename="page.tsx"
 import { useChat } from '@ai-sdk/react';
-import { MyUIMessage } from '@/ai/types';
+import type { MyUIMessage } from '@/ai/types';
 
 const { messages } = useChat<MyUIMessage>({
   api: '/api/chat',
@@ -274,7 +274,7 @@ const result = (
 
 import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
-import { MyUIMessage } from '@/ai/types';
+import type { MyUIMessage } from '@/ai/types';
 
 export default function Chat() {
   const [input, setInput] = useState('');

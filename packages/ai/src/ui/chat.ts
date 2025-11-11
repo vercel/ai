@@ -4,6 +4,7 @@ import {
   StandardSchemaV1,
   Validator,
 } from '@ai-sdk/provider-utils';
+import { FinishReason } from '../types/language-model';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
@@ -18,6 +19,9 @@ import {
 import {
   InferUIMessageToolCall,
   isToolOrDynamicToolUIPart,
+  ToolUIPart,
+  UIMessagePart,
+  UITools,
   type DataUIPart,
   type FileUIPart,
   type InferUIMessageData,
@@ -97,8 +101,24 @@ export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
   dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
 ) => void;
 
+/**
+ * Function that is called when the assistant response has finished streaming.
+ *
+ * @param message The assistant message that was streamed.
+ * @param messages The full chat history, including the assistant message.
+ *
+ * @param isAbort Indicates whether the request has been aborted.
+ * @param isDisconnect Indicates whether the request has been ended by a network error.
+ * @param isError Indicates whether the request has been ended by an error.
+ * @param finishReason The reason why the generation finished.
+ */
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   message: UI_MESSAGE;
+  messages: UI_MESSAGE[];
+  isAbort: boolean;
+  isDisconnect: boolean;
+  isError: boolean;
+  finishReason?: FinishReason;
 }) => void;
 
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
@@ -136,10 +156,9 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   either synchronously or asynchronously.
      */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
+
   /**
-   * Optional callback function that is called when the assistant message is finished streaming.
-   *
-   * @param message The message that was streamed.
+   * Function that is called when the assistant response has finished streaming.
    */
   onFinish?: ChatOnFinishCallback<UI_MESSAGE>;
 
@@ -400,15 +419,27 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
-  addToolResult = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+  addToolOutput = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+    state = 'output-available',
     tool,
     toolCallId,
     output,
-  }: {
-    tool: TOOL;
-    toolCallId: string;
-    output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
-  }) =>
+    errorText,
+  }:
+    | {
+        state?: 'output-available';
+        tool: TOOL;
+        toolCallId: string;
+        output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+        errorText?: never;
+      }
+    | {
+        state: 'output-error';
+        tool: TOOL;
+        toolCallId: string;
+        output?: never;
+        errorText: string;
+      }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
@@ -417,7 +448,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ...lastMessage,
         parts: lastMessage.parts.map(part =>
           isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-            ? { ...part, state: 'output-available', output }
+            ? { ...part, state, output, errorText }
             : part,
         ),
       });
@@ -427,12 +458,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.activeResponse.state.message.parts =
           this.activeResponse.state.message.parts.map(part =>
             isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-              ? {
+              ? ({
                   ...part,
-                  state: 'output-available',
+                  state,
                   output,
-                  errorText: undefined,
-                }
+                  errorText,
+                } as typeof part)
               : part,
           );
       }
@@ -450,6 +481,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         });
       }
     });
+
+  /** @deprecated Use addToolOutput */
+  addToolResult = this.addToolOutput;
 
   /**
    * Abort the current request immediately, keep the generated tokens if any.
@@ -476,6 +510,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     const lastMessage = this.lastMessage;
 
+    let isAbort = false;
+    let isDisconnect = false;
+    let isError = false;
+
     try {
       const activeResponse = {
         state: createStreamingUIMessageState({
@@ -484,6 +522,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         }),
         abortController: new AbortController(),
       } as ActiveResponse<UI_MESSAGE>;
+
+      activeResponse.abortController.signal.addEventListener('abort', () => {
+        isAbort = true;
+      });
 
       this.activeResponse = activeResponse;
 
@@ -562,14 +604,24 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         },
       });
 
-      this.onFinish?.({ message: activeResponse.state.message });
-
       this.setStatus({ status: 'ready' });
     } catch (err) {
       // Ignore abort errors as they are expected.
-      if ((err as any).name === 'AbortError') {
+      if (isAbort || (err as any).name === 'AbortError') {
+        isAbort = true;
         this.setStatus({ status: 'ready' });
         return null;
+      }
+
+      isError = true;
+
+      // Network errors such as disconnected, timeout, etc.
+      if (
+        err instanceof TypeError &&
+        (err.message.toLowerCase().includes('fetch') ||
+          err.message.toLowerCase().includes('network'))
+      ) {
+        isDisconnect = true;
       }
 
       if (this.onError && err instanceof Error) {
@@ -578,11 +630,27 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
+      try {
+        this.onFinish?.({
+          message: this.activeResponse!.state.message,
+          messages: this.state.messages,
+          isAbort,
+          isDisconnect,
+          isError,
+          finishReason: this.activeResponse?.state.finishReason,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+
       this.activeResponse = undefined;
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (this.sendAutomaticallyWhen?.({ messages: this.state.messages })) {
+    if (
+      this.sendAutomaticallyWhen?.({ messages: this.state.messages }) &&
+      !isError
+    ) {
       await this.makeRequest({
         trigger: 'submit-message',
         messageId: this.lastMessage?.id,

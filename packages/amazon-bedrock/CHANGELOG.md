@@ -1,5 +1,330 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+  - @ai-sdk/anthropic@2.0.44
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [e2dac8b]
+  - @ai-sdk/anthropic@2.0.43
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [035b927]
+  - @ai-sdk/anthropic@2.0.42
+
+## 3.0.51
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - @ai-sdk/anthropic@2.0.41
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - @ai-sdk/anthropic@2.0.40
+
+## 3.0.49
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+  - @ai-sdk/anthropic@2.0.39
+
+## 3.0.48
+
+### Patch Changes
+
+- 1e05490: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+  - @ai-sdk/anthropic@2.0.38
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [de1d309]
+  - @ai-sdk/anthropic@2.0.37
+
+## 3.0.46
+
+### Patch Changes
+
+- Updated dependencies [5a46f11]
+  - @ai-sdk/anthropic@2.0.36
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [1091a20]
+  - @ai-sdk/anthropic@2.0.35
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [65f2628]
+  - @ai-sdk/anthropic@2.0.34
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [28c9c6a]
+  - @ai-sdk/anthropic@2.0.33
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [492b1ee]
+  - @ai-sdk/anthropic@2.0.32
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [b73ba90]
+  - @ai-sdk/anthropic@2.0.31
+
+## 3.0.40
+
+### Patch Changes
+
+- b53d8fc: chore: add model ID for Haiku 4.5
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [650287f]
+  - @ai-sdk/anthropic@2.0.30
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [4dd53dd]
+  - @ai-sdk/anthropic@2.0.29
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [07274ad]
+  - @ai-sdk/anthropic@2.0.28
+
+## 3.0.36
+
+### Patch Changes
+
+- 8107334: Fix reasoning with Bedrock when additionalModelRequestFields is used
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [069b370]
+  - @ai-sdk/anthropic@2.0.27
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - @ai-sdk/anthropic@2.0.26
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [b2b4837]
+  - @ai-sdk/anthropic@2.0.25
+
+## 3.0.32
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - @ai-sdk/anthropic@2.0.24
+
+## 3.0.31
+
+### Patch Changes
+
+- 02ebf54: Support user provided filenames in amazon-bedrock-provider
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [d78faa7]
+  - @ai-sdk/anthropic@2.0.23
+
+## 3.0.29
+
+### Patch Changes
+
+- 62d43ff: Support citations in amazon-bedrock-provider
+- 559eef3: Add Claude Sonnet 4.5 (claude-sonnet-4-5-20250929-v1:0) model support
+
+## 3.0.28
+
+### Patch Changes
+
+- ba7f149: fix(provider/amazon-bedrock): normalise headers and body if input is of instance Request
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [f969579]
+  - @ai-sdk/anthropic@2.0.22
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [62b5f1a]
+  - @ai-sdk/anthropic@2.0.21
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [8e08229]
+- Updated dependencies [f77cc8c]
+- Updated dependencies [9398a72]
+- Updated dependencies [a80ea09]
+- Updated dependencies [53afb19]
+  - @ai-sdk/anthropic@2.0.20
+
+## 3.0.24
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+  - @ai-sdk/anthropic@2.0.19
+
+## 3.0.23
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+- Updated dependencies [322901b]
+  - @ai-sdk/anthropic@2.0.18
+
+## 3.0.22
+
+### Patch Changes
+
+- 32f3cef: feat: adding user-agent to all packages that use global fetch directly
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [da92132]
+  - @ai-sdk/anthropic@2.0.17
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/anthropic@2.0.16
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [c8aab0a]
+  - @ai-sdk/anthropic@2.0.15
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [2338c79]
+  - @ai-sdk/anthropic@2.0.14
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [cd458a8]
+  - @ai-sdk/anthropic@2.0.13
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/anthropic@2.0.12
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [c7fee29]
+  - @ai-sdk/anthropic@2.0.11
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [c152ef7]
+  - @ai-sdk/anthropic@2.0.10
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [cdc6b7a]
+  - @ai-sdk/anthropic@2.0.9
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/anthropic@2.0.8
+
+## 3.0.11
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/anthropic@2.0.7
+
 ## 3.0.10
 
 ### Patch Changes

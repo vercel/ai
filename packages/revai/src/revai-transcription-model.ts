@@ -7,6 +7,7 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  mediaTypeToExtension,
   delay,
   getFromApi,
   parseProviderOptions,
@@ -252,7 +253,12 @@ export class RevaiTranscriptionModel implements TranscriptionModelV2 {
         ? new Blob([audio])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
-    formData.append('media', new File([blob], 'audio', { type: mediaType }));
+    const fileExtension = mediaTypeToExtension(mediaType);
+    formData.append(
+      'media',
+      new File([blob], 'audio', { type: mediaType }),
+      `audio.${fileExtension}`,
+    );
     const transcriptionModelOptions: RevaiTranscriptionAPITypes = {
       transcriber: this.modelId,
     };

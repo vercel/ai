@@ -3,12 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "sse:server": "tsx src/sse/server.ts",
-    "sse:client": "tsx src/sse/client.ts",
+    "server:sse": "tsx src/sse/server.ts",
+    "client:sse": "tsx src/sse/client.ts",
+    "server:http": "tsx src/http/server.ts",
+    "client:http": "tsx src/http/client.ts",
+    "server:mcp-with-auth": "tsx src/mcp-with-auth/server.ts",
+    "client:mcp-with-auth": "tsx src/mcp-with-auth/client.ts",
+    "server:mcp-prompts": "tsx src/mcp-prompts/server.ts",
+    "client:mcp-prompts": "tsx src/mcp-prompts/client.ts",
+    "server:mcp-resources": "tsx src/mcp-resources/server.ts",
+    "client:mcp-resources": "tsx src/mcp-resources/client.ts",
     "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
-    "stdio:client": "tsx src/stdio/client.ts",
-    "http:server": "tsx src/http/server.ts",
-    "http:client": "tsx src/http/client.ts",
+    "client:stdio": "tsx src/stdio/client.ts",
     "custom-transport:build": "tsc src/custom-transport/server.ts --outDir src/custom-transport/dist --target es2023 --module nodenext",
     "custom-transport:client": "tsx src/custom-transport/client.ts",
     "type-check": "tsc --build"
@@ -22,10 +28,10 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@ai-sdk/mcp": "workspace:*",
     "@types/express": "5.0.0",
     "@types/node": "20.17.24",
     "tsx": "4.19.2",
-    "typescript": "5.8.3",
-    "@vercel/ai-tsconfig": "workspace:*"
+    "typescript": "5.8.3"
   }
 }

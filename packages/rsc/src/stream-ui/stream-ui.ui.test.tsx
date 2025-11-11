@@ -4,6 +4,7 @@ import { LanguageModelUsage } from 'ai';
 import { MockLanguageModelV2 } from 'ai/test';
 import { z } from 'zod/v4';
 import { streamUI } from './stream-ui';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {

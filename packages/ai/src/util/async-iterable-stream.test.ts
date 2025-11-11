@@ -4,6 +4,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createAsyncIterableStream } from './async-iterable-stream';
+import { describe, it, expect } from 'vitest';
 
 describe('createAsyncIterableStream()', () => {
   it('should read all chunks from a non-empty stream using async iteration', async () => {

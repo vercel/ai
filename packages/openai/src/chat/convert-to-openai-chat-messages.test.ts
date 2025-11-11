@@ -1,4 +1,5 @@
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('system messages', () => {
   it('should forward system messages', async () => {

@@ -20,17 +20,18 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import {
-  openaiErrorDataSchema,
-  openaiFailedResponseHandler,
-} from '../openai-error';
+import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
+  OpenAIChatChunk,
+  openaiChatChunkSchema,
+  openaiChatResponseSchema,
+} from './openai-chat-api';
+import {
   OpenAIChatModelId,
-  openaiProviderOptions,
+  openaiChatLanguageModelOptions,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
@@ -83,7 +84,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiProviderOptions,
+        schema: openaiChatLanguageModelOptions,
       })) ?? {};
 
     const structuredOutputs = openaiOptions.structuredOutputs ?? true;
@@ -443,7 +444,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let isFirstChunk = true;
+    let metadataExtracted = false;
     let isActiveText = false;
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
@@ -451,7 +452,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiChatChunkSchema>>,
+          ParseResult<OpenAIChatChunk>,
           LanguageModelV2StreamPart
         >({
           start(controller) {
@@ -479,13 +480,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               return;
             }
 
-            if (isFirstChunk) {
-              isFirstChunk = false;
-
-              controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
+            // extract and emit response metadata once. Usually it comes in the first chunk.
+            // Azure may prepend a chunk with a `"prompt_filter_results"` key which does not contain other metadata,
+            // https://learn.microsoft.com/en-us/azure/ai-foundry/openai/concepts/content-filter-annotations?tabs=powershell
+            if (!metadataExtracted) {
+              const metadata = getResponseMetadata(value);
+              if (Object.values(metadata).some(Boolean)) {
+                metadataExtracted = true;
+                controller.enqueue({
+                  type: 'response-metadata',
+                  ...getResponseMetadata(value),
+                });
+              }
             }
 
             if (value.usage != null) {
@@ -697,152 +703,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   }
 }
 
-const openaiTokenUsageSchema = z
-  .object({
-    prompt_tokens: z.number().nullish(),
-    completion_tokens: z.number().nullish(),
-    total_tokens: z.number().nullish(),
-    prompt_tokens_details: z
-      .object({
-        cached_tokens: z.number().nullish(),
-      })
-      .nullish(),
-    completion_tokens_details: z
-      .object({
-        reasoning_tokens: z.number().nullish(),
-        accepted_prediction_tokens: z.number().nullish(),
-        rejected_prediction_tokens: z.number().nullish(),
-      })
-      .nullish(),
-  })
-  .nullish();
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-        annotations: z
-          .array(
-            z.object({
-              type: z.literal('url_citation'),
-              start_index: z.number(),
-              end_index: z.number(),
-              url: z.string(),
-              title: z.string(),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      logprobs: z
-        .object({
-          content: z
-            .array(
-              z.object({
-                token: z.string(),
-                logprob: z.number(),
-                top_logprobs: z.array(
-                  z.object({
-                    token: z.string(),
-                    logprob: z.number(),
-                  }),
-                ),
-              }),
-            )
-            .nullish(),
-        })
-        .nullish(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  usage: openaiTokenUsageSchema,
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiChatChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        delta: z
-          .object({
-            role: z.enum(['assistant']).nullish(),
-            content: z.string().nullish(),
-            tool_calls: z
-              .array(
-                z.object({
-                  index: z.number(),
-                  id: z.string().nullish(),
-                  type: z.literal('function').nullish(),
-                  function: z.object({
-                    name: z.string().nullish(),
-                    arguments: z.string().nullish(),
-                  }),
-                }),
-              )
-              .nullish(),
-            annotations: z
-              .array(
-                z.object({
-                  type: z.literal('url_citation'),
-                  start_index: z.number(),
-                  end_index: z.number(),
-                  url: z.string(),
-                  title: z.string(),
-                }),
-              )
-              .nullish(),
-          })
-          .nullish(),
-        logprobs: z
-          .object({
-            content: z
-              .array(
-                z.object({
-                  token: z.string(),
-                  logprob: z.number(),
-                  top_logprobs: z.array(
-                    z.object({
-                      token: z.string(),
-                      logprob: z.number(),
-                    }),
-                  ),
-                }),
-              )
-              .nullish(),
-          })
-          .nullish(),
-        finish_reason: z.string().nullish(),
-        index: z.number(),
-      }),
-    ),
-    usage: openaiTokenUsageSchema,
-  }),
-  openaiErrorDataSchema,
-]);
-
 function isReasoningModel(modelId: string) {
   return (
     (modelId.startsWith('o') || modelId.startsWith('gpt-5')) &&
@@ -882,18 +742,6 @@ function getSystemMessageMode(modelId: string) {
 }
 
 const reasoningModels = {
-  'o1-mini': {
-    systemMessageMode: 'remove',
-  },
-  'o1-mini-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
   o3: {
     systemMessageMode: 'developer',
   },

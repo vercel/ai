@@ -2,10 +2,8 @@ import type {
   LanguageModelV2Prompt,
   LanguageModelV2FilePart,
 } from '@ai-sdk/provider';
-import {
-  convertReadableStreamToArray,
-  createTestServer,
-} from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
 import {
@@ -16,6 +14,7 @@ import {
   GatewayModelNotFoundError,
   GatewayResponseError,
 } from './errors';
+import { describe, it, expect, vi } from 'vitest';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -214,7 +213,8 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toContain('Invalid API key provided');
+        expect(authError.message).toContain('Invalid API key');
+        expect(authError.message).toContain('vercel.com/d?to=');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }
@@ -756,7 +756,8 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toContain('Invalid API key provided');
+        expect(authError.message).toContain('Invalid API key');
+        expect(authError.message).toContain('vercel.com/d?to=');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }

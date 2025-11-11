@@ -1,8 +1,7 @@
 import { dynamicTool, tool } from '@ai-sdk/provider-utils';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
-import { NoSuchToolError } from '../error/no-such-tool-error';
-import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { parseToolCall } from './parse-tool-call';
 
 describe('parseToolCall', () => {

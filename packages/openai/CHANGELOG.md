@@ -1,5 +1,321 @@
 # @ai-sdk/openai
 
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+
+## 2.0.64
+
+### Patch Changes
+
+- d251e53: feat(openai): add `o3-deep-research` and `o4-mini-deep-research` models
+
+## 2.0.63
+
+### Patch Changes
+
+- 3b62c49: fix(openai): extract meta data from first chunk that contains any
+
+## 2.0.62
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.61
+
+### Patch Changes
+
+- 28ce89a: fix(openai): add support for sources type 'api'
+
+## 2.0.60
+
+### Patch Changes
+
+- 3e42838: fix: remove code for unsuported o1-mini and o1-preview models
+
+## 2.0.59
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+
+## 2.0.58
+
+### Patch Changes
+
+- 0f9d079: fix(openai): revised_prompt sometimes returns null, causing errors
+
+## 2.0.57
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+
+## 2.0.56
+
+### Patch Changes
+
+- b82d23b: feat(openai): preserve file_id when converting file citations
+
+## 2.0.55
+
+### Patch Changes
+
+- 2f4a59a: feat(openai): add sources in web-search actions
+
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+
+## 2.0.53
+
+### Patch Changes
+
+- 5464bf0: fix(provider/openai): add truncation parameter support for Responses API
+
+## 2.0.52
+
+### Patch Changes
+
+- 8de8de5: fix(provider/openai): end reasoning parts earlier
+
+## 2.0.51
+
+### Patch Changes
+
+- cad5c1d: fix(provider/openai): fix web search tool input types
+
+## 2.0.50
+
+### Patch Changes
+
+- c336b43: feat(provider/openai): send assistant text and tool call parts as reference ids when store: true
+
+## 2.0.49
+
+### Patch Changes
+
+- f4287d0: feat(provider/openai): automatically add reasoning.encrypted_content include when store = false
+
+## 2.0.48
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+
+## 2.0.47
+
+### Patch Changes
+
+- 99e2a2a: feat(provider/openai): support file and image tool results
+
+## 2.0.46
+
+### Patch Changes
+
+- 66f69e7: Add 'default' as service tier
+
+## 2.0.45
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- 6f0644c: chore: load zod schemas lazily
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+
+## 2.0.44
+
+### Patch Changes
+
+- 28215ca: fix(provider/openai): add providerExecuted flag to tool start chunks
+
+## 2.0.43
+
+### Patch Changes
+
+- fd46da1: feat(provider/openai): add new model IDs `gpt-image-1-mini`, `gpt-5-pro`, `gpt-5-pro-2025-10-06`
+
+## 2.0.42
+
+### Patch Changes
+
+- 2a5edd3: enables image_generation capabilities in the Azure provider through the Responses API.
+
+## 2.0.41
+
+### Patch Changes
+
+- 110c735: support OPENAI_BASE_URL env
+
+## 2.0.40
+
+### Patch Changes
+
+- 8c74f47: feat(provider/openai): add gpt-5-codex model id
+- adca087: feat(provider/openai): local shell tool
+
+## 2.0.39
+
+### Patch Changes
+
+- 5428a0d: The built in Code Interpreter tool input code is streamed in `tool-input-<start/delta/end>` chunks.
+
+## 2.0.38
+
+### Patch Changes
+
+- 0bda600: enables code_interpreter and file_search capabilities in the Azure provider through the Responses API
+
+## 2.0.37
+
+### Patch Changes
+
+- 6075c91: feat(provider/openai): only send item references for reasoning when store: true
+
+## 2.0.36
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+
+## 2.0.35
+
+### Patch Changes
+
+- 1cfc209: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
+
+  ```ts
+  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+  import { generateText } from 'ai';
+
+  await generateText({
+    model: openai.chat('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      openai: {
+        user: 'user-123',
+      } satisfies OpenAIChatLanguageModelOptions,
+    },
+  });
+  ```
+
+## 2.0.34
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
+## 2.0.33
+
+### Patch Changes
+
+- a617948: fix the "incomplete_details" key from nullable to nullish for openai compatibility
+
+## 2.0.32
+
+### Patch Changes
+
+- 1cf857d: fix(provider/openai): remove provider-executed tools from chat completions model
+- 01de47f: feat(provider/openai): rework file search tool
+
+## 2.0.31
+
+### Patch Changes
+
+- bb94467: feat(provider/openai): add maxToolCalls provider option
+- 4a2b70e: feat(provider/openai): send item references for provider-executed tool results
+- 643711d: feat (provider/openai): provider defined image generation tool support
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+
+## 2.0.29
+
+### Patch Changes
+
+- 4235eb3: feat(provider/openai): code interpreter tool calls and results
+
+## 2.0.28
+
+### Patch Changes
+
+- 4c2bb77: fix (provider/openai): send sources action as include
+- 561e8b0: fix (provider/openai): fix code interpreter tool in doGenerate
+
+## 2.0.27
+
+### Patch Changes
+
+- 2338c79: feat (provider/openai): add jsdoc for openai tools
+
+## 2.0.26
+
+### Patch Changes
+
+- 5819aec: fix (provider/openai): only send tool calls finish reason for tools that are not provider-executed
+- af8c6bb: feat (provider/openai): add web_search tool
+
+## 2.0.25
+
+### Patch Changes
+
+- fb45ade: fix timestamp granularities support for openai transcription
+
+## 2.0.24
+
+### Patch Changes
+
+- ad57512: fix(provider/openai): safe practice to include filename and fileExtension to avoid `experimental_transcribe` fails with valid Buffer
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+
+## 2.0.23
+
+### Patch Changes
+
+- a9a61b7: Add serviceTier to provider metadata for OpenAI responses
+
+## 2.0.22
+
+### Patch Changes
+
+- 0e272ae: fix(provider/openai): make file_citation annotation fields optional for responses api compatibility
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+
+## 2.0.21
+
+### Patch Changes
+
+- d18856a: fix(provider/openai): support websearch tool results without query property
+- 15271d6: fix(provider/openai): do not set `response_format` to `verbose_json` if model is `gpt-4o-transcribe` or `gpt-4o-mini-transcribe`
+
+  These two models do not support it:
+  https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+
 ## 2.0.20
 
 ### Patch Changes

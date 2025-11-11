@@ -1,4 +1,4 @@
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
@@ -11,6 +11,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { EmbedManyResult } from './embed-many-result';
+import { VERSION } from '../version';
 
 /**
 Embed several values using an embedding model. The type of the value is defined
@@ -92,10 +93,15 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
-    headers,
+    headers: headersWithUserAgent,
     settings: { maxRetries },
   });
 
@@ -148,7 +154,7 @@ Only applicable for HTTP-based providers.
                 const modelResponse = await model.doEmbed({
                   values,
                   abortSignal,
-                  headers,
+                  headers: headersWithUserAgent,
                   providerOptions,
                 });
 
@@ -249,7 +255,7 @@ Only applicable for HTTP-based providers.
                   const modelResponse = await model.doEmbed({
                     values: chunk,
                     abortSignal,
-                    headers,
+                    headers: headersWithUserAgent,
                     providerOptions,
                   });
 

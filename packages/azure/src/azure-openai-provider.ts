@@ -15,7 +15,14 @@ import {
   SpeechModelV2,
   TranscriptionModelV2,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  loadSetting,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
+import { azureOpenaiTools } from './azure-openai-tools';
+import { VERSION } from './version';
 
 export interface AzureOpenAIProvider extends ProviderV2 {
   (deploymentId: string): LanguageModelV2;
@@ -71,6 +78,11 @@ Creates an Azure OpenAI model for text embeddings.
    * Creates an Azure OpenAI model for speech generation.
    */
   speech(deploymentId: string): SpeechModelV2;
+
+  /**
+   * AzureOpenAI-specific tools.
+   */
+  tools: typeof azureOpenaiTools;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -124,14 +136,17 @@ Create an Azure OpenAI provider instance.
 export function createAzure(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
-  const getHeaders = () => ({
-    'api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'AZURE_API_KEY',
-      description: 'Azure OpenAI',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () => {
+    const baseHeaders = {
+      'api-key': loadApiKey({
+        apiKey: options.apiKey,
+        environmentVariableName: 'AZURE_API_KEY',
+        description: 'Azure OpenAI',
+      }),
+      ...options.headers,
+    };
+    return withUserAgentSuffix(baseHeaders, `ai-sdk/azure/${VERSION}`);
+  };
 
   const getResourceName = () =>
     loadSetting({
@@ -141,7 +156,7 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion ?? 'preview';
+  const apiVersion = options.apiVersion ?? 'v1';
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
     const baseUrlPrefix =
@@ -238,6 +253,7 @@ export function createAzure(
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
   provider.speech = createSpeechModel;
+  provider.tools = azureOpenaiTools;
   return provider;
 }
 

@@ -1,20 +1,21 @@
 import { JSONValue, SpeechModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
+import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import { logWarnings } from '../logger/log-warnings';
+import { SpeechWarning } from '../types/speech-model';
+import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import { SpeechWarning } from '../types/speech-model';
-import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
 import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
-
+import { VERSION } from '../version';
 /**
 Generates speech audio using a speech model.
 
@@ -121,6 +122,11 @@ Only applicable for HTTP-based providers.
     });
   }
 
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
@@ -135,7 +141,7 @@ Only applicable for HTTP-based providers.
       speed,
       language,
       abortSignal,
-      headers,
+      headers: headersWithUserAgent,
       providerOptions,
     }),
   );
@@ -143,6 +149,8 @@ Only applicable for HTTP-based providers.
   if (!result.audio || result.audio.length === 0) {
     throw new NoSpeechGeneratedError({ responses: [result.response] });
   }
+
+  logWarnings(result.warnings);
 
   return new DefaultSpeechResult({
     audio: new DefaultGeneratedAudioFile({

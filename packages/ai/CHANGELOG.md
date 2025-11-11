@@ -1,5 +1,510 @@
 # ai
 
+## 5.0.92
+
+### Patch Changes
+
+- 250edbd: Added finishReason on useChat onFinish callbck
+
+## 5.0.91
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+  - @ai-sdk/gateway@2.0.8
+
+## 5.0.90
+
+### Patch Changes
+
+- 818b144: fix not catching of empty arrays in validateUIMessage
+
+## 5.0.89
+
+### Patch Changes
+
+- 7cfada6: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+
+## 5.0.88
+
+### Patch Changes
+
+- Updated dependencies [46dcc02]
+  - @ai-sdk/gateway@2.0.7
+
+## 5.0.87
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - @ai-sdk/gateway@2.0.6
+
+## 5.0.86
+
+### Patch Changes
+
+- 0f92046: fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
+
+## 5.0.85
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - @ai-sdk/gateway@2.0.5
+
+## 5.0.84
+
+### Patch Changes
+
+- a017497: fix(ai): do not mutate middleware array argument when wrapping
+
+## 5.0.83
+
+### Patch Changes
+
+- Updated dependencies [872543c]
+  - @ai-sdk/gateway@2.0.4
+
+## 5.0.82
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+  - @ai-sdk/gateway@2.0.3
+
+## 5.0.81
+
+### Patch Changes
+
+- 1e05490: fix(ai): do not drop custom headers in HttpChatTransport
+- 1e05490: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+  - @ai-sdk/gateway@2.0.2
+
+## 5.0.80
+
+### Patch Changes
+
+- c7688ec: fix(ai): correct type field in arrayOutputStrategy from 'enum' to 'array'
+
+## 5.0.79
+
+### Patch Changes
+
+- 22ab538: feat(ai): add OAuth for MCP clients + refactor to new package
+
+  This change replaces
+
+  ```ts
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  ```
+
+  with
+
+  ```ts
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  ```
+
+## 5.0.78
+
+### Patch Changes
+
+- Updated dependencies [f1a8734]
+  - @ai-sdk/gateway@2.0.1
+
+## 5.0.77
+
+### Patch Changes
+
+- 3568ebc: feat(ai): add convertDataPart option to convertToModelMessages
+
+  Add optional convertDataPart callback for converting custom data parts (URLs, code files, etc.) to text or file parts that models can process. Fully type-safe using existing UIMessage generics.
+
+## 5.0.76
+
+### Patch Changes
+
+- 87b03d5: feat(ui): add isDataUIPart helper
+
+## 5.0.75
+
+### Patch Changes
+
+- Updated dependencies [76678cd]
+  - @ai-sdk/gateway@2.0.0
+
+## 5.0.74
+
+### Patch Changes
+
+- Updated dependencies [11a8867]
+  - @ai-sdk/gateway@1.0.41
+
+## 5.0.73
+
+### Patch Changes
+
+- 734c4c3: fix(ai): add missing export for `LoadSettingError`
+
+## 5.0.72
+
+### Patch Changes
+
+- 1b94257: fix(ui): do not submit automatically when server return with error
+
+## 5.0.71
+
+### Patch Changes
+
+- bc90c3c: feat(ai): add pruneMessages helper function
+
+## 5.0.70
+
+### Patch Changes
+
+- Updated dependencies [f6a9bf3]
+  - @ai-sdk/gateway@1.0.40
+
+## 5.0.69
+
+### Patch Changes
+
+- 1bacc1f: fix(ai): handle backpressure in `writeToServerResponse`
+
+## 5.0.68
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - @ai-sdk/gateway@1.0.39
+
+## 5.0.67
+
+### Patch Changes
+
+- Updated dependencies [227ca94]
+  - @ai-sdk/gateway@1.0.38
+
+## 5.0.66
+
+### Patch Changes
+
+- Updated dependencies [ec5a0a0]
+  - @ai-sdk/gateway@1.0.37
+
+## 5.0.65
+
+### Patch Changes
+
+- Updated dependencies [638a561]
+  - @ai-sdk/gateway@1.0.36
+
+## 5.0.64
+
+### Patch Changes
+
+- e33947b: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+
+## 5.0.63
+
+### Patch Changes
+
+- 22609f8: fix(ai): only parse experimental_output in generateText when finishReason is stop
+- b552c94: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+
+## 5.0.62
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- 6f0644c: chore: load zod schemas lazily
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - @ai-sdk/gateway@1.0.35
+
+## 5.0.61
+
+### Patch Changes
+
+- Updated dependencies [143f65b]
+  - @ai-sdk/gateway@1.0.34
+
+## 5.0.60
+
+### Patch Changes
+
+- Updated dependencies [cffad55]
+  - @ai-sdk/gateway@1.0.33
+
+## 5.0.59
+
+### Patch Changes
+
+- Updated dependencies [bcdba23]
+  - @ai-sdk/gateway@1.0.32
+
+## 5.0.58
+
+### Patch Changes
+
+- Updated dependencies [094685f]
+  - @ai-sdk/gateway@1.0.31
+
+## 5.0.57
+
+### Patch Changes
+
+- c319849: fixed docs and exported NoSpeechGeneratedError
+
+## 5.0.56
+
+### Patch Changes
+
+- b1d8458: fix(ai): align logic of text-end with reasoning-end
+
+## 5.0.55
+
+### Patch Changes
+
+- 85da29e: fix(ai): remove outdated jsdoc param descriptions
+
+## 5.0.54
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+  - @ai-sdk/gateway@1.0.30
+
+## 5.0.53
+
+### Patch Changes
+
+- d335191: Extend addToolResult to support error results
+
+## 5.0.52
+
+### Patch Changes
+
+- c56822d: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+- 930399b: fix(ai): download files when intermediate file cannot be downloaded
+- Updated dependencies [7ca78f1]
+  - @ai-sdk/gateway@1.0.29
+
+## 5.0.51
+
+### Patch Changes
+
+- 27645bb: Export `parseJsonEventStream` and `uiMessageChunkSchema` from "ai" package
+- Updated dependencies [322901b]
+  - @ai-sdk/gateway@1.0.28
+
+## 5.0.50
+
+### Patch Changes
+
+- Updated dependencies [c5f403a]
+  - @ai-sdk/gateway@1.0.27
+
+## 5.0.49
+
+### Patch Changes
+
+- Updated dependencies [e304478]
+  - @ai-sdk/gateway@1.0.26
+
+## 5.0.48
+
+### Patch Changes
+
+- Updated dependencies [4d3ff64]
+  - @ai-sdk/gateway@1.0.25
+
+## 5.0.47
+
+### Patch Changes
+
+- Updated dependencies [c86e0f7]
+- Updated dependencies [6bbae01]
+  - @ai-sdk/gateway@1.0.24
+
+## 5.0.46
+
+### Patch Changes
+
+- c580fbd: Add safeValidateUIMessages utility to validate UI messages without throwing, returning a success/failure result object like Zod’s safeParse
+
+## 5.0.45
+
+### Patch Changes
+
+- 76024fc: fix(ai): fix static tool call and result detection when dynamic is undefined
+- 93d8b60: fix(ai): do not filter zero-length text parts that have provider options
+- d8eb31f: fix(ai): fix webp image detection from base64
+
+## 5.0.44
+
+### Patch Changes
+
+- Updated dependencies [f49f924]
+  - @ai-sdk/gateway@1.0.23
+
+## 5.0.43
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/gateway@1.0.22
+
+## 5.0.42
+
+### Patch Changes
+
+- de5c066: fix(ai): forwarded providerExecuted flag in validateUIMessages
+
+## 5.0.41
+
+### Patch Changes
+
+- cd91e4b: fix(ai): use correct type for reasoning outputs
+
+## 5.0.40
+
+### Patch Changes
+
+- Updated dependencies [4ee3719]
+  - @ai-sdk/gateway@1.0.21
+
+## 5.0.39
+
+### Patch Changes
+
+- a0a725f: feat (ai): export createGateway
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [350a328]
+  - @ai-sdk/gateway@1.0.20
+
+## 5.0.37
+
+### Patch Changes
+
+- d6785d7: feat (ai): add tool and agent helpers
+
+## 5.0.36
+
+### Patch Changes
+
+- ccc2ded: feat (ai): export gateway provider
+
+## 5.0.35
+
+### Patch Changes
+
+- 99c946a: export missing type
+
+## 5.0.34
+
+### Patch Changes
+
+- Updated dependencies [034287f]
+- Updated dependencies [dee1afe]
+  - @ai-sdk/gateway@1.0.19
+
+## 5.0.33
+
+### Patch Changes
+
+- Updated dependencies [5d59a8c]
+  - @ai-sdk/gateway@1.0.18
+
+## 5.0.32
+
+### Patch Changes
+
+- Updated dependencies [b6005cd]
+  - @ai-sdk/gateway@1.0.17
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/gateway@1.0.16
+
+## 5.0.30
+
+### Patch Changes
+
+- 7fcc6be: feat(ai): throw InvalidArgumentError when messages is not provided
+
+## 5.0.29
+
+### Patch Changes
+
+- e0e9449: feat(ui): sent isAbort, isDisconnect, isError in useChat onFinish callback
+
+## 5.0.28
+
+### Patch Changes
+
+- 4b81e7d: fix(ai): remove vitest dependency from test exports
+- d68a4f2: feat(ai): log warnings
+
+## 5.0.27
+
+### Patch Changes
+
+- ca40fac: feat(ai): support custom download functions (experimental)
+
+## 5.0.26
+
+### Patch Changes
+
+- 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
+- Updated dependencies [980633d]
+- Updated dependencies [1c5b88d]
+  - @ai-sdk/gateway@1.0.15
+
+## 5.0.25
+
+### Patch Changes
+
+- ca65923: fix(ai): remove use of `expect()` from production code
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/gateway@1.0.14
+
+## 5.0.24
+
+### Patch Changes
+
+- f8f3682: fix: call onFinish when stream is cancelled in toUIMessageStream
+
+  Previously, onFinish was only called on normal stream completion. Now it's also called when the reader is cancelled (e.g., browser close, navigation), ensuring partial messages are persisted.
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [c9994f9]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/gateway@1.0.13
+
 ## 5.0.23
 
 ### Patch Changes

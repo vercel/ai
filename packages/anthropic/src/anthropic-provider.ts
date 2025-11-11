@@ -7,8 +7,11 @@ import {
   FetchFunction,
   generateId,
   loadApiKey,
+  loadOptionalSetting,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { VERSION } from './version';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
@@ -59,6 +62,12 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 
   generateId?: () => string;
+
+  /**
+   * Custom provider name
+   * Defaults to 'anthropic.messages'.
+   */
+  name?: string;
 }
 
 /**
@@ -68,21 +77,32 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.anthropic.com/v1';
+    withoutTrailingSlash(
+      loadOptionalSetting({
+        settingValue: options.baseURL,
+        environmentVariableName: 'ANTHROPIC_BASE_URL',
+      }),
+    ) ?? 'https://api.anthropic.com/v1';
 
-  const getHeaders = () => ({
-    'anthropic-version': '2023-06-01',
-    'x-api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'ANTHROPIC_API_KEY',
-      description: 'Anthropic',
-    }),
-    ...options.headers,
-  });
+  const providerName = options.name ?? 'anthropic.messages';
+
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'anthropic-version': '2023-06-01',
+        'x-api-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'ANTHROPIC_API_KEY',
+          description: 'Anthropic',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/anthropic/${VERSION}`,
+    );
 
   const createChatModel = (modelId: AnthropicMessagesModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {
-      provider: 'anthropic.messages',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,

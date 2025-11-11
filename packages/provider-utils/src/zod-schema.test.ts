@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 import { zodSchema } from './zod-schema';
 import { safeParseJSON } from './parse-json';
+import { describe, expect, it } from 'vitest';
 
 describe('zodSchema', () => {
   describe('json schema conversion', () => {

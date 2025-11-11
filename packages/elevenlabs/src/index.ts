@@ -7,3 +7,4 @@ export type {
   ElevenLabsSpeechModelId,
   ElevenLabsSpeechVoiceId,
 } from './elevenlabs-speech-options';
+export { VERSION } from './version';

@@ -1,8 +1,9 @@
 import { API, FileInfo } from 'jscodeshift';
 import jscodeshift from 'jscodeshift';
 import { join } from 'path';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import ts from 'typescript';
+import { expect } from 'vitest';
 
 /**
  * Applies a codemod transform to the input code.
@@ -235,6 +236,16 @@ export function testTransform(
   // Validate that output code is syntactically correct
   validateSyntax(actualOutput, outputExt);
 
-  // Compare actual output to expected output
-  expect(actualOutput).toBe(expectedOutput);
+  if (process.env.UPDATE_SNAPSHOT) {
+    // Update the expected output fixture if the environment variable is set
+    const outputPath = join(
+      __dirname,
+      '__testfixtures__',
+      `${fixtureName}.output${outputExt}`,
+    );
+    writeFileSync(outputPath, actualOutput, 'utf8');
+  } else {
+    // Compare actual output to expected output
+    expect(actualOutput).toBe(expectedOutput);
+  }
 }

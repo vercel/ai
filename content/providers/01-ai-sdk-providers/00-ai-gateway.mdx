@@ -18,23 +18,7 @@ The [AI Gateway](https://vercel.com/docs/ai-gateway) provider connects you to mo
 
 ## Setup
 
-The AI Gateway provider is available in the `@ai-sdk/gateway` module. You can install it with
-
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/gateway" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/gateway" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/gateway" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/gateway" dark />
-  </Tab>
-</Tabs>
+The Vercel AI Gateway provider is part of the AI SDK.
 
 ## Basic Usage
 
@@ -45,18 +29,17 @@ For most use cases, you can use the AI Gateway directly with a model string:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5',
   prompt: 'Hello world',
 });
 ```
 
 ```ts
-// use provider instance
-import { generateText } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
+// use provider instance (requires version 5.0.36 or later)
+import { generateText, gateway } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o'),
+  model: gateway('openai/gpt-5'),
   prompt: 'Hello world',
 });
 ```
@@ -65,10 +48,15 @@ The AI SDK automatically uses the AI Gateway when you pass a model string in the
 
 ## Provider Instance
 
-You can also import the default provider instance `gateway` from `@ai-sdk/gateway`:
+<Note>
+  The `gateway` provider instance is available from the `ai` package in version
+  5.0.36 and later.
+</Note>
+
+You can also import the default provider instance `gateway` from `ai`:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
+import { gateway } from 'ai';
 ```
 
 You may want to create a custom provider instance when you need to:
@@ -78,10 +66,10 @@ You may want to create a custom provider instance when you need to:
 - Wrap the provider with [middleware](/docs/ai-sdk-core/middleware)
 - Use different settings for different parts of your application
 
-To create a custom provider instance, import `createGateway` from `@ai-sdk/gateway`:
+To create a custom provider instance, import `createGateway` from `ai`:
 
 ```ts
-import { createGateway } from '@ai-sdk/gateway';
+import { createGateway } from 'ai';
 
 const gateway = createGateway({
   apiKey: process.env.AI_GATEWAY_API_KEY ?? '',
@@ -129,7 +117,7 @@ AI_GATEWAY_API_KEY=your_api_key_here
 Or pass it directly to the provider:
 
 ```ts
-import { createGateway } from '@ai-sdk/gateway';
+import { createGateway } from 'ai';
 
 const gateway = createGateway({
   apiKey: 'your_api_key_here',
@@ -165,16 +153,23 @@ tokens](https://vercel.com/docs/oidc) without API Keys.
 
 Read more about using OIDC tokens in the [Vercel AI Gateway docs](https://vercel.com/docs/ai-gateway#using-the-ai-gateway-with-a-vercel-oidc-token).
 
+## Bring Your Own Key (BYOK)
+
+You can connect your own provider credentials to use with Vercel AI Gateway. This lets you use your existing provider accounts and access private resources.
+
+To set up BYOK, add your provider credentials in your Vercel team's AI Gateway settings. Once configured, AI Gateway automatically uses your credentials. No code changes are needed.
+
+Learn more in the [BYOK documentation](https://vercel.com/docs/ai-gateway/byok).
+
 ## Language Models
 
 You can create language models using a provider instance. The first argument is the model ID in the format `creator/model-name`:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o'),
+  model: 'openai/gpt-5',
   prompt: 'Explain quantum computing in simple terms',
 });
 ```
@@ -192,8 +187,7 @@ For the complete list of available models, see the [AI Gateway documentation](ht
 You can discover available models programmatically:
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
-import { generateText } from 'ai';
+import { gateway, generateText } from 'ai';
 
 const availableModels = await gateway.getAvailableModels();
 
@@ -206,6 +200,16 @@ availableModels.models.forEach(model => {
   if (model.pricing) {
     console.log(`  Input: $${model.pricing.input}/token`);
     console.log(`  Output: $${model.pricing.output}/token`);
+    if (model.pricing.cachedInputTokens) {
+      console.log(
+        `  Cached input (read): $${model.pricing.cachedInputTokens}/token`,
+      );
+    }
+    if (model.pricing.cacheCreationInputTokens) {
+      console.log(
+        `  Cache creation (write): $${model.pricing.cacheCreationInputTokens}/token`,
+      );
+    }
   }
 });
 
@@ -216,16 +220,33 @@ const { text } = await generateText({
 });
 ```
 
+## Credit Usage
+
+You can check your team's current credit balance and usage:
+
+```ts
+import { gateway } from 'ai';
+
+const credits = await gateway.getCredits();
+
+console.log(`Team balance: ${credits.balance} credits`);
+console.log(`Team total used: ${credits.total_used} credits`);
+```
+
+The `getCredits()` method returns your team's credit information based on the authenticated API key or OIDC token:
+
+- **balance** _number_ - Your team's current available credit balance
+- **total_used** _number_ - Total credits consumed by your team
+
 ## Examples
 
 ### Basic Text Generation
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-3.5-sonnet'),
+  model: 'anthropic/claude-sonnet-4',
   prompt: 'Write a haiku about programming',
 });
 
@@ -235,11 +256,10 @@ console.log(text);
 ### Streaming
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 
 const { textStream } = await streamText({
-  model: gateway('openai/gpt-4o'),
+  model: 'openai/gpt-5',
   prompt: 'Explain the benefits of serverless architecture',
 });
 
@@ -251,12 +271,11 @@ for await (const textPart of textStream) {
 ### Tool Usage
 
 ```ts
-import { gateway } from '@ai-sdk/gateway';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: gateway('meta/llama-3.3-70b'),
+  model: 'xai/grok-4',
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({
@@ -273,42 +292,187 @@ const { text } = await generateText({
 });
 ```
 
+### Provider-Executed Tools
+
+Some providers offer tools that are executed by the provider itself, such as [OpenAI's web search tool](/providers/ai-sdk-providers/openai#web-search-tool). To use these tools through AI Gateway, import the provider to access the tool definitions:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What is the Vercel AI Gateway?',
+  stopWhen: stepCountIs(10),
+  tools: {
+    web_search: openai.tools.webSearch({}),
+  },
+});
+
+console.dir(result.text);
+```
+
+<Note>
+  Some provider-executed tools require account-specific configuration (such as
+  Claude Agent Skills) and may not work through AI Gateway. To use these tools,
+  you must bring your own key (BYOK) directly to the provider.
+</Note>
+
+### Usage Tracking with User and Tags
+
+Track usage per end-user and categorize requests with tags:
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5',
+  prompt: 'Summarize this document...',
+  providerOptions: {
+    gateway: {
+      user: 'user-abc-123', // Track usage for this specific end-user
+      tags: ['document-summary', 'premium-feature'], // Categorize for reporting
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+This allows you to:
+
+- View usage and costs broken down by end-user in your analytics
+- Filter and analyze spending by feature or use case using tags
+- Track which users or features are driving the most AI usage
+
 ## Provider Options
 
-When using provider-specific options, use the actual provider name (e.g. `anthropic` not `gateway`) as the key:
+The AI Gateway provider accepts provider options that control routing behavior and provider-specific configurations.
+
+### Gateway Provider Options
+
+You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests:
 
 ```ts
-// with model string
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-3-5-sonnet',
+  model: 'anthropic/claude-sonnet-4',
   prompt: 'Explain quantum computing',
   providerOptions: {
-    anthropic: {
-      thinking: { type: 'enabled', budgetTokens: 12000 },
-    },
+    gateway: {
+      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic
+      only: ['vertex', 'anthropic'], // Only use these providers
+    } satisfies GatewayProviderOptions,
   },
 });
 ```
 
+The following gateway provider options are available:
+
+- **order** _string[]_
+
+  Specifies the sequence of providers to attempt when routing requests. The gateway will try providers in the order specified. If a provider fails or is unavailable, it will move to the next provider in the list.
+
+  Example: `order: ['bedrock', 'anthropic']` will attempt Amazon Bedrock first, then fall back to Anthropic.
+
+- **only** _string[]_
+
+  Restricts routing to only the specified providers. When set, the gateway will never route to providers not in this list, even if they would otherwise be available.
+
+  Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
+
+- **models** _string[]_
+
+  Specifies fallback models to use when the primary model fails or is unavailable. The gateway will try the primary model first (specified in the `model` parameter), then try each model in this array in order until one succeeds.
+
+  Example: `models: ['openai/gpt-5-nano', 'gemini-2.0-flash']` will try the fallback models in order if the primary model fails.
+
+- **user** _string_
+
+  Optional identifier for the end user on whose behalf the request is being made. This is used for spend tracking and attribution purposes, allowing you to track usage per end-user in your application.
+
+  Example: `user: 'user-123'` will associate this request with end-user ID "user-123" in usage reports.
+
+- **tags** _string[]_
+
+  Optional array of tags for categorizing and filtering usage in reports. Useful for tracking spend by feature, prompt version, or any other dimension relevant to your application.
+
+  Example: `tags: ['chat', 'v2']` will tag this request with "chat" and "v2" for filtering in usage analytics.
+
+You can combine these options to have fine-grained control over routing and tracking:
+
 ```ts
-// with provider instance
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
-import { gateway } from '@ai-sdk/gateway';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-3-5-sonnet'),
-  prompt: 'Explain quantum computing',
+  model: 'anthropic/claude-sonnet-4',
+  prompt: 'Write a haiku about programming',
   providerOptions: {
-    anthropic: {
-      thinking: { type: 'enabled', budgetTokens: 12000 },
-    },
+    gateway: {
+      order: ['vertex'], // Prefer Vertex AI
+      only: ['anthropic', 'vertex'], // Only allow these providers
+    } satisfies GatewayProviderOptions,
   },
 });
 ```
 
-The AI Gateway provider also accepts its own set of options. Refer to the [AI Gateway provider options documentation](https://vercel.com/docs/ai-gateway/provider-options).
+#### Model Fallbacks Example
+
+The `models` option enables automatic fallback to alternative models when the primary model fails:
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-4o', // Primary model
+  prompt: 'Write a TypeScript haiku',
+  providerOptions: {
+    gateway: {
+      models: ['openai/gpt-5-nano', 'gemini-2.0-flash'], // Fallback models
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+// This will:
+// 1. Try openai/gpt-4o first
+// 2. If it fails, try openai/gpt-5-nano
+// 3. If that fails, try gemini-2.0-flash
+// 4. Return the result from the first model that succeeds
+```
+
+### Provider-Specific Options
+
+When using provider-specific options through AI Gateway, use the actual provider name (e.g. `anthropic`, `openai`, not `gateway`) as the key:
+
+```ts
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4',
+  prompt: 'Explain quantum computing',
+  providerOptions: {
+    gateway: {
+      order: ['vertex', 'anthropic'],
+    } satisfies GatewayProviderOptions,
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+This works with any provider supported by AI Gateway. Each provider has its own set of options - see the individual [provider documentation pages](/providers/ai-sdk-providers) for details on provider-specific options.
+
+### Available Providers
+
+AI Gateway supports routing to 20+ providers.
+
+For a complete list of available providers and their slugs, see the [AI Gateway documentation](https://vercel.com/docs/ai-gateway/provider-options#available-providers).
 
 ## Model Capabilities
 

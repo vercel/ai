@@ -1,5 +1,393 @@
 # @ai-sdk/google-vertex
 
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+  - @ai-sdk/anthropic@2.0.44
+  - @ai-sdk/google@2.0.31
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [e2dac8b]
+  - @ai-sdk/anthropic@2.0.43
+  - @ai-sdk/google@2.0.30
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [035b927]
+  - @ai-sdk/anthropic@2.0.42
+
+## 3.0.59
+
+### Patch Changes
+
+- a929a32: Add Google File search tool
+- Updated dependencies [a929a32]
+  - @ai-sdk/google@2.0.29
+
+## 3.0.58
+
+### Patch Changes
+
+- Updated dependencies [9a999c4]
+  - @ai-sdk/google@2.0.28
+
+## 3.0.57
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - @ai-sdk/anthropic@2.0.41
+  - @ai-sdk/google@2.0.27
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - @ai-sdk/anthropic@2.0.40
+  - @ai-sdk/google@2.0.26
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+  - @ai-sdk/anthropic@2.0.39
+  - @ai-sdk/google@2.0.25
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+  - @ai-sdk/anthropic@2.0.38
+  - @ai-sdk/google@2.0.24
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [de1d309]
+  - @ai-sdk/anthropic@2.0.37
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [5a46f11]
+  - @ai-sdk/anthropic@2.0.36
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [1091a20]
+  - @ai-sdk/anthropic@2.0.35
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [65f2628]
+  - @ai-sdk/anthropic@2.0.34
+
+## 3.0.49
+
+### Patch Changes
+
+- Updated dependencies [28c9c6a]
+  - @ai-sdk/anthropic@2.0.33
+
+## 3.0.48
+
+### Patch Changes
+
+- Updated dependencies [492b1ee]
+  - @ai-sdk/anthropic@2.0.32
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [b73ba90]
+  - @ai-sdk/anthropic@2.0.31
+
+## 3.0.46
+
+### Patch Changes
+
+- Updated dependencies [650287f]
+  - @ai-sdk/anthropic@2.0.30
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [4dd53dd]
+  - @ai-sdk/anthropic@2.0.29
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [07274ad]
+  - @ai-sdk/anthropic@2.0.28
+
+## 3.0.43
+
+### Patch Changes
+
+- 8a1d648: Fix adding google search along with url context in vertex ai
+- Updated dependencies [8a1d648]
+  - @ai-sdk/google@2.0.23
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [f8da995]
+  - @ai-sdk/google@2.0.22
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [53f53c1]
+  - @ai-sdk/google@2.0.21
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [069b370]
+  - @ai-sdk/anthropic@2.0.27
+
+## 3.0.39
+
+### Patch Changes
+
+- d66a7c5: Add claude sonnet 4.5 in google vertex anthropic provider
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - @ai-sdk/anthropic@2.0.26
+  - @ai-sdk/google@2.0.20
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [a107843]
+  - @ai-sdk/google@2.0.19
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [b2b4837]
+  - @ai-sdk/anthropic@2.0.25
+
+## 3.0.35
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - @ai-sdk/anthropic@2.0.24
+  - @ai-sdk/google@2.0.18
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [d78faa7]
+  - @ai-sdk/anthropic@2.0.23
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [f969579]
+  - @ai-sdk/anthropic@2.0.22
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [62b5f1a]
+  - @ai-sdk/anthropic@2.0.21
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [8e08229]
+- Updated dependencies [f77cc8c]
+- Updated dependencies [9398a72]
+- Updated dependencies [a80ea09]
+- Updated dependencies [53afb19]
+  - @ai-sdk/anthropic@2.0.20
+
+## 3.0.30
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- 356c1f2: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+- Updated dependencies [bc5ed71]
+- Updated dependencies [356c1f2]
+  - @ai-sdk/provider-utils@3.0.10
+  - @ai-sdk/anthropic@2.0.19
+  - @ai-sdk/google@2.0.17
+
+## 3.0.29
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+- Updated dependencies [322901b]
+  - @ai-sdk/anthropic@2.0.18
+  - @ai-sdk/google@2.0.16
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [967c463]
+  - @ai-sdk/google@2.0.15
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [da92132]
+  - @ai-sdk/anthropic@2.0.17
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/anthropic@2.0.16
+  - @ai-sdk/google@2.0.14
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [c8aab0a]
+  - @ai-sdk/anthropic@2.0.15
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [2338c79]
+  - @ai-sdk/anthropic@2.0.14
+
+## 3.0.23
+
+### Patch Changes
+
+- 1887c53: feat(provider/google-vertex): add support for urlContext, googleSearch and codeExecution tools
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [cd458a8]
+- Updated dependencies [5a3ef3a]
+  - @ai-sdk/anthropic@2.0.13
+  - @ai-sdk/google@2.0.13
+
+## 3.0.21
+
+### Patch Changes
+
+- e2b7558: added the title parameter for embeddings through the google vertex provider
+
+## 3.0.20
+
+### Patch Changes
+
+- 921186b: chore (provider/vertex): update GoogleVertexModelId
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/anthropic@2.0.12
+  - @ai-sdk/google@2.0.12
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [c7fee29]
+  - @ai-sdk/anthropic@2.0.11
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [c152ef7]
+  - @ai-sdk/anthropic@2.0.10
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [cdc6b7a]
+  - @ai-sdk/anthropic@2.0.9
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [a14fc2b]
+  - @ai-sdk/google@2.0.11
+
+## 3.0.14
+
+### Patch Changes
+
+- a8a73c5: Update Claude model IDs in Google Vertex Anthropic provider and documentation link
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/anthropic@2.0.8
+  - @ai-sdk/google@2.0.10
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/anthropic@2.0.7
+  - @ai-sdk/google@2.0.9
+
 ## 3.0.12
 
 ### Patch Changes

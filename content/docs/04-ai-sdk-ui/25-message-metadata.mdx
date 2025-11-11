@@ -43,7 +43,7 @@ Use the `messageMetadata` callback in `toUIMessageStreamResponse` to send metada
 ```ts filename="app/api/chat/route.ts" highlight="11-20"
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
-import { MyUIMessage } from '@/types';
+import type { MyUIMessage } from '@/types';
 
 export async function POST(req: Request) {
   const { messages }: { messages: MyUIMessage[] } = await req.json();
@@ -89,7 +89,7 @@ Access metadata through the `message.metadata` property:
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { MyUIMessage } from '@/types';
+import type { MyUIMessage } from '@/types';
 
 export default function Chat() {
   const { messages } = useChat<MyUIMessage>({

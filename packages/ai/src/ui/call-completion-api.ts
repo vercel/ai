@@ -1,10 +1,16 @@
-import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
+import {
+  parseJsonEventStream,
+  ParseResult,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
 import {
   UIMessageChunk,
   uiMessageChunkSchema,
 } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { processTextStream } from './process-text-stream';
+import { VERSION } from '../version';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -55,10 +61,14 @@ export async function callCompletionApi({
         ...body,
       }),
       credentials,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
+      headers: withUserAgentSuffix(
+        {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       signal: abortController.signal,
     }).catch(err => {
       throw err;

@@ -1,6 +1,11 @@
 import { SpeechModelV2, ProviderV2 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { HumeSpeechModel } from './hume-speech-model';
+import { VERSION } from './version';
 
 export interface HumeProvider extends Pick<ProviderV2, 'speechModel'> {
   (settings?: {}): {
@@ -35,14 +40,18 @@ or to provide a custom fetch implementation for e.g. testing.
 Create an Hume provider instance.
  */
 export function createHume(options: HumeProviderSettings = {}): HumeProvider {
-  const getHeaders = () => ({
-    'X-Hume-Api-Key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'HUME_API_KEY',
-      description: 'Hume',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'X-Hume-Api-Key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'HUME_API_KEY',
+          description: 'Hume',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/hume/${VERSION}`,
+    );
 
   const createSpeechModel = () =>
     new HumeSpeechModel('', {

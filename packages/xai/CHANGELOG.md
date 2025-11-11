@@ -1,5 +1,163 @@
 # @ai-sdk/xai
 
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+  - @ai-sdk/openai-compatible@1.0.27
+
+## 2.0.31
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/openai-compatible@1.0.26
+  - @ai-sdk/provider-utils@3.0.16
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - @ai-sdk/openai-compatible@1.0.25
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+  - @ai-sdk/openai-compatible@1.0.24
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [1e05490]
+  - @ai-sdk/provider-utils@3.0.13
+  - @ai-sdk/openai-compatible@1.0.23
+
+## 2.0.27
+
+### Patch Changes
+
+- d6a831f: feat(xai): Support `parallel_function_calling` provider option for XAI provider
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [f02b7ab]
+  - @ai-sdk/openai-compatible@1.0.22
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - @ai-sdk/openai-compatible@1.0.21
+
+## 2.0.24
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/openai-compatible@1.0.20
+  - @ai-sdk/provider-utils@3.0.11
+
+## 2.0.23
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/openai-compatible@1.0.19
+  - @ai-sdk/provider-utils@3.0.10
+
+## 2.0.22
+
+### Patch Changes
+
+- 322901b: feat: add provider version to user-agent header
+
+## 2.0.21
+
+### Patch Changes
+
+- 52c4606: feat(xai) add grok-4-fast model ids
+
+## 2.0.20
+
+### Patch Changes
+
+- 3a10095: added new xai x live search fields
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [28363da]
+  - @ai-sdk/openai-compatible@1.0.18
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [3aed04c]
+  - @ai-sdk/openai-compatible@1.0.17
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - @ai-sdk/openai-compatible@1.0.16
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - @ai-sdk/openai-compatible@1.0.15
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [818f021]
+  - @ai-sdk/openai-compatible@1.0.14
+
+## 2.0.14
+
+### Patch Changes
+
+- ddb70ed: feat(xai) add grok-code-fast-1 model id
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+  - @ai-sdk/provider-utils@3.0.7
+  - @ai-sdk/openai-compatible@1.0.13
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+  - @ai-sdk/provider-utils@3.0.6
+  - @ai-sdk/openai-compatible@1.0.12
+
 ## 2.0.11
 
 ### Patch Changes

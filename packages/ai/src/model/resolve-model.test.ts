@@ -2,6 +2,7 @@ import { customProvider } from '../registry/custom-provider';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { resolveEmbeddingModel, resolveLanguageModel } from './resolve-model';
+import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 
 describe('resolveLanguageModel', () => {
   describe('when a language model v2 is provided', () => {

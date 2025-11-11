@@ -8,10 +8,12 @@ import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
+import { VERSION } from './version';
 
 // Add error schema and structure
 const cerebrasErrorSchema = z.object({
@@ -71,14 +73,18 @@ export function createCerebras(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.cerebras.ai/v1',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'CEREBRAS_API_KEY',
-      description: 'Cerebras API key',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'CEREBRAS_API_KEY',
+          description: 'Cerebras API key',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/cerebras/${VERSION}`,
+    );
 
   const createLanguageModel = (modelId: CerebrasChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {
@@ -87,6 +93,7 @@ export function createCerebras(
       headers: getHeaders,
       fetch: options.fetch,
       errorStructure: cerebrasErrorStructure,
+      supportsStructuredOutputs: true,
     });
   };
 

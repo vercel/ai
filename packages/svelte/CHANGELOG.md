@@ -1,5 +1,489 @@
 # @ai-sdk/svelte
 
+## 3.0.92
+
+### Patch Changes
+
+- Updated dependencies [250edbd]
+  - ai@5.0.92
+
+## 3.0.91
+
+### Patch Changes
+
+- Updated dependencies [056c471]
+  - @ai-sdk/provider-utils@3.0.17
+  - ai@5.0.91
+
+## 3.0.90
+
+### Patch Changes
+
+- Updated dependencies [818b144]
+  - ai@5.0.90
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [7cfada6]
+  - ai@5.0.89
+
+## 3.0.88
+
+### Patch Changes
+
+- ai@5.0.88
+
+## 3.0.87
+
+### Patch Changes
+
+- 51aa5de: backport: test server
+- Updated dependencies [51aa5de]
+  - @ai-sdk/provider-utils@3.0.16
+  - ai@5.0.87
+
+## 3.0.86
+
+### Patch Changes
+
+- Updated dependencies [0f92046]
+  - ai@5.0.86
+
+## 3.0.85
+
+### Patch Changes
+
+- Updated dependencies [f2da310]
+  - @ai-sdk/provider-utils@3.0.15
+  - ai@5.0.85
+
+## 3.0.84
+
+### Patch Changes
+
+- Updated dependencies [a017497]
+  - ai@5.0.84
+
+## 3.0.83
+
+### Patch Changes
+
+- ai@5.0.83
+
+## 3.0.82
+
+### Patch Changes
+
+- Updated dependencies [949718b]
+  - @ai-sdk/provider-utils@3.0.14
+  - ai@5.0.82
+
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [1e05490]
+- Updated dependencies [1e05490]
+  - ai@5.0.81
+  - @ai-sdk/provider-utils@3.0.13
+
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [c7688ec]
+  - ai@5.0.80
+
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [22ab538]
+  - ai@5.0.79
+
+## 3.0.78
+
+### Patch Changes
+
+- ai@5.0.78
+
+## 3.0.77
+
+### Patch Changes
+
+- Updated dependencies [3568ebc]
+  - ai@5.0.77
+
+## 3.0.76
+
+### Patch Changes
+
+- Updated dependencies [87b03d5]
+  - ai@5.0.76
+
+## 3.0.75
+
+### Patch Changes
+
+- ai@5.0.75
+
+## 3.0.74
+
+### Patch Changes
+
+- ai@5.0.74
+
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [734c4c3]
+  - ai@5.0.73
+
+## 3.0.72
+
+### Patch Changes
+
+- Updated dependencies [1b94257]
+  - ai@5.0.72
+
+## 3.0.71
+
+### Patch Changes
+
+- Updated dependencies [bc90c3c]
+  - ai@5.0.71
+
+## 3.0.70
+
+### Patch Changes
+
+- ai@5.0.70
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [1bacc1f]
+  - ai@5.0.69
+
+## 3.0.68
+
+### Patch Changes
+
+- Updated dependencies [17f9872]
+  - @ai-sdk/provider-utils@3.0.12
+  - ai@5.0.68
+
+## 3.0.67
+
+### Patch Changes
+
+- ai@5.0.67
+
+## 3.0.66
+
+### Patch Changes
+
+- ai@5.0.66
+
+## 3.0.65
+
+### Patch Changes
+
+- ai@5.0.65
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [e33947b]
+  - ai@5.0.64
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [22609f8]
+- Updated dependencies [b552c94]
+  - ai@5.0.63
+
+## 3.0.62
+
+### Patch Changes
+
+- 6f0644c: chore: use import \* from zod/v4
+- Updated dependencies [6f0644c]
+- Updated dependencies [6f0644c]
+  - @ai-sdk/provider-utils@3.0.11
+  - ai@5.0.62
+
+## 3.0.61
+
+### Patch Changes
+
+- ai@5.0.61
+
+## 3.0.60
+
+### Patch Changes
+
+- ai@5.0.60
+
+## 3.0.59
+
+### Patch Changes
+
+- ai@5.0.59
+
+## 3.0.58
+
+### Patch Changes
+
+- ai@5.0.58
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [c319849]
+  - ai@5.0.57
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [b1d8458]
+  - ai@5.0.56
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [85da29e]
+  - ai@5.0.55
+
+## 3.0.54
+
+### Patch Changes
+
+- bc5ed71: chore: update zod peer depenedency version
+- Updated dependencies [bc5ed71]
+  - @ai-sdk/provider-utils@3.0.10
+  - ai@5.0.54
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [d335191]
+  - ai@5.0.53
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [c56822d]
+- Updated dependencies [930399b]
+  - ai@5.0.52
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [27645bb]
+  - ai@5.0.51
+
+## 3.0.50
+
+### Patch Changes
+
+- ai@5.0.50
+
+## 3.0.49
+
+### Patch Changes
+
+- ai@5.0.49
+
+## 3.0.48
+
+### Patch Changes
+
+- ai@5.0.48
+
+## 3.0.47
+
+### Patch Changes
+
+- ai@5.0.47
+
+## 3.0.46
+
+### Patch Changes
+
+- Updated dependencies [c580fbd]
+  - ai@5.0.46
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [76024fc]
+- Updated dependencies [93d8b60]
+- Updated dependencies [d8eb31f]
+  - ai@5.0.45
+
+## 3.0.44
+
+### Patch Changes
+
+- ai@5.0.44
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [0294b58]
+  - @ai-sdk/provider-utils@3.0.9
+  - ai@5.0.43
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [de5c066]
+  - ai@5.0.42
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [cd91e4b]
+  - ai@5.0.41
+
+## 3.0.40
+
+### Patch Changes
+
+- ai@5.0.40
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [a0a725f]
+  - ai@5.0.39
+
+## 3.0.38
+
+### Patch Changes
+
+- ai@5.0.38
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [d6785d7]
+  - ai@5.0.37
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [ccc2ded]
+  - ai@5.0.36
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [99c946a]
+  - ai@5.0.35
+
+## 3.0.34
+
+### Patch Changes
+
+- ai@5.0.34
+
+## 3.0.33
+
+### Patch Changes
+
+- ai@5.0.33
+
+## 3.0.32
+
+### Patch Changes
+
+- ai@5.0.32
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [99964ed]
+  - @ai-sdk/provider-utils@3.0.8
+  - ai@5.0.31
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [7fcc6be]
+  - ai@5.0.30
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [e0e9449]
+  - ai@5.0.29
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [4b81e7d]
+- Updated dependencies [d68a4f2]
+  - ai@5.0.28
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [ca40fac]
+  - ai@5.0.27
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [33cf848]
+  - ai@5.0.26
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [886e7cd]
+- Updated dependencies [ca65923]
+  - @ai-sdk/provider-utils@3.0.7
+  - ai@5.0.25
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [1b5a3d3]
+- Updated dependencies [f8f3682]
+  - @ai-sdk/provider-utils@3.0.6
+  - ai@5.0.24
+
 ## 3.0.23
 
 ### Patch Changes

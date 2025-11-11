@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { UIMessageChunk } from 'ai';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;

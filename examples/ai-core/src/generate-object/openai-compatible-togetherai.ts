@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateObject } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const togetherai = createOpenAICompatible({
@@ -10,6 +10,7 @@ async function main() {
     headers: {
       Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
     },
+    supportsStructuredOutputs: true,
   });
   const model = togetherai.chatModel('mistralai/Mistral-7B-Instruct-v0.1');
   const result = await generateObject({

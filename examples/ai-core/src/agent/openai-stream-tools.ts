@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Experimental_Agent as Agent, stepCountIs, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const agent = new Agent({
