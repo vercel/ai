@@ -1,4 +1,4 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   FetchFunction,
   combineHeaders,
@@ -19,8 +19,8 @@ interface DeepInfraImageModelConfig {
   };
 }
 
-export class DeepInfraImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v2';
+export class DeepInfraImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -41,10 +41,10 @@ export class DeepInfraImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
+  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     // Some deepinfra models support size while others support aspect ratio.
     // Allow passing either and leave it up to the server to validate.

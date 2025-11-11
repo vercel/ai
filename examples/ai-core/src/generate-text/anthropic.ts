@@ -1,10 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-sonnet-4-0'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -12,6 +12,4 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});

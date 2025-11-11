@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { StaticToolCall, StaticToolResult, generateText, tool } from 'ai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const myToolSet = {
   firstTool: tool({

@@ -8,8 +8,8 @@ import {
   UIDataTypes,
   UIMessage,
 } from 'ai';
-import { convertArrayToReadableStream, MockLanguageModelV2 } from 'ai/test';
-import { z } from 'zod/v4';
+import { convertArrayToReadableStream, MockLanguageModelV3 } from 'ai/test';
+import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       // inject invalid tool call in first step:
       if (stepNumber === 0) {
         return {
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'stream-start', warnings: [] },

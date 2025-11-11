@@ -8,3 +8,4 @@ export type {
   GoogleGenerativeAIProvider,
   GoogleGenerativeAIProviderSettings,
 } from './google-provider';
+export { VERSION } from './version';

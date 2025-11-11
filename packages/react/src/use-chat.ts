@@ -32,6 +32,8 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'stop'
   | 'resumeStream'
   | 'addToolResult'
+  | 'addToolOutput'
+  | 'addToolApprovalResponse'
   | 'status'
   | 'messages'
   | 'clearError'
@@ -127,6 +129,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     error,
     resumeStream: chatRef.current.resumeStream,
     status,
-    addToolResult: chatRef.current.addToolResult,
+    /**
+     * @deprecated Use `addToolOutput` instead.
+     */
+    addToolResult: chatRef.current.addToolOutput,
+    addToolOutput: chatRef.current.addToolOutput,
+    addToolApprovalResponse: chatRef.current.addToolApprovalResponse,
   };
 }

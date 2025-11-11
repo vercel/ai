@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createAmazonBedrock } from './bedrock-provider';
 import { BedrockImageModel } from './bedrock-image-model';
 import { injectFetchHeaders } from './inject-fetch-headers';

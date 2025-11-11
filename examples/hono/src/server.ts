@@ -1,54 +1,95 @@
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
-import { JsonToSseTransformStream, streamText } from 'ai';
+import {
+  createAgentUIStreamResponse,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 import { Hono } from 'hono';
-import { stream } from 'hono/streaming';
+import { cors } from 'hono/cors';
+import { openaiWebSearchAgent } from './openai-web-search-agent';
 
 const app = new Hono();
 
+// CORS setup to allow calls from localhost:3000
+app.use(
+  '/chat/*',
+  cors({
+    origin: 'http://localhost:3000',
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400,
+  }),
+);
+
 app.post('/', async c => {
+  console.log('POST /');
   const result = streamText({
     model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
+  return result.toUIMessageStreamResponse();
+});
 
-  // Mark the response as a v1 data stream:
-  c.header('X-Vercel-AI-Data-Stream', 'v1');
-  c.header('Content-Type', 'text/plain; charset=utf-8');
-
-  return stream(c, stream => stream.pipe(result.toUIMessageStream()));
+app.post('/text', async c => {
+  console.log('POST /text');
+  const result = streamText({
+    model: openai('gpt-4o'),
+    prompt: 'Write a short poem about coding.',
+  });
+  return result.toTextStreamResponse();
 });
 
 app.post('/stream-data', async c => {
-  // immediately start streaming the response
-  const result = streamText({
-    model: openai('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
-  });
+  console.log('POST /stream-data');
 
-  const dataStream = result.toUIMessageStream({
-    onError: error => {
-      // Error messages are masked by default for security reasons.
-      // If you want to expose the error message to the client, you can do so here:
-      return error instanceof Error ? error.message : String(error);
+  // immediately start streaming the response
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      writer.write({ type: 'start' });
+
+      writer.write({
+        type: 'data-custom',
+        data: {
+          custom: 'Hello, world!',
+        },
+      });
+
+      const result = streamText({
+        model: openai('gpt-4o'),
+        prompt: 'Invent a new holiday and describe its traditions.',
+      });
+
+      writer.merge(
+        result.toUIMessageStream({
+          sendStart: false,
+          onError: error => {
+            // Error messages are masked by default for security reasons.
+            // If you want to expose the error message to the client, you can do so here:
+            return error instanceof Error ? error.message : String(error);
+          },
+        }),
+      );
     },
   });
-
-  // Mark the response as a v2 data stream:
-  c.header('content-type', 'text/event-stream');
-  c.header('cache-control', 'no-cache');
-  c.header('connection', 'keep-alive');
-  c.header('x-vercel-ai-data-stream', 'v2');
-  c.header('x-accel-buffering', 'no'); // disable nginx buffering
-
-  return stream(c, stream =>
-    stream.pipe(
-      dataStream
-        .pipeThrough(new JsonToSseTransformStream())
-        .pipeThrough(new TextEncoderStream()),
-    ),
-  );
+  return createUIMessageStreamResponse({ stream });
 });
 
+// useChat example using Agent
+app.post('/chat', async c => {
+  console.log('POST /chat');
+
+  const { messages } = await c.req.json();
+
+  return createAgentUIStreamResponse({
+    agent: openaiWebSearchAgent,
+    messages,
+  });
+});
+
+app.get('/health', c => c.text('Hono AI SDK example server is running!'));
+
+console.log('Server starting on http://localhost:8080');
 serve({ fetch: app.fetch, port: 8080 });

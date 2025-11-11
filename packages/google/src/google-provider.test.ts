@@ -25,7 +25,9 @@ vi.mock('./google-generative-ai-embedding-model', () => ({
 vi.mock('./google-generative-ai-image-model', () => ({
   GoogleGenerativeAIImageModel: vi.fn(),
 }));
-
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 describe('google-provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,7 +94,8 @@ describe('google-provider', () => {
     const headers = options.headers();
     expect(headers).toEqual({
       'x-goog-api-key': 'test-api-key',
-      'Custom-Header': 'custom-value',
+      'custom-header': 'custom-value',
+      'user-agent': 'ai-sdk/google/0.0.0-test',
     });
   });
 
@@ -263,5 +266,42 @@ describe('google-provider', () => {
         ],
       }
     `);
+  });
+});
+
+describe('google provider - custom provider name', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should use custom provider name when specified', () => {
+    const provider = createGoogleGenerativeAI({
+      name: 'my-gemini-proxy',
+      apiKey: 'test-api-key',
+    });
+
+    provider('gemini-pro');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'gemini-pro',
+      expect.objectContaining({
+        provider: 'my-gemini-proxy',
+      }),
+    );
+  });
+
+  it('should default to google.generative-ai when name not specified', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+
+    provider('gemini-pro');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'gemini-pro',
+      expect.objectContaining({
+        provider: 'google.generative-ai',
+      }),
+    );
   });
 });

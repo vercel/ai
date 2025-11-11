@@ -19,22 +19,19 @@
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
+import { FlexibleSchema, InferSchema } from '@ai-sdk/provider-utils';
 
 /**
 Create a type from an object with all keys and nested keys set to optional.
-The helper supports normal objects and Zod schemas (which are resolved automatically).
+The helper supports normal objects and schemas (which are resolved automatically).
 It always recurses into arrays.
 
 Adopted from [type-fest](https://github.com/sindresorhus/type-fest/tree/main) PartialDeep.
  */
 
-export type DeepPartial<T> = T extends z3.ZodTypeAny
-  ? DeepPartialInternal<z3.infer<T>> // resolve Zod schemas first to prevent infinite recursion
-  : T extends z4.core.$ZodType
-    ? DeepPartialInternal<z4.infer<T>>
-    : DeepPartialInternal<T>;
+export type DeepPartial<T> = T extends FlexibleSchema
+  ? DeepPartialInternal<InferSchema<T>> // resolve schemas first to prevent infinite recursion
+  : DeepPartialInternal<T>;
 
 type DeepPartialInternal<T> = T extends
   | null

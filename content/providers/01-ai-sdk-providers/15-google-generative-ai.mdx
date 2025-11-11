@@ -110,7 +110,6 @@ await generateText({
           threshold: 'BLOCK_LOW_AND_ABOVE',
         },
       ],
-      responseModalities: ['TEXT', 'IMAGE'],
     },
   },
 });
@@ -172,6 +171,25 @@ The following optional provider options are available for Google Generative AI m
   - **includeThoughts** _boolean_
 
     Optional. If set to true, thought summaries are returned, which are synthisized versions of the model's raw thoughts and offer insights into the model's internal reasoning process.
+
+- **imageConfig** _\{ aspectRatio: string \}_
+
+  Optional. Configuration for the models image generation. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/image-generation).
+
+  - **aspectRatio** _string_
+
+  Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
+
+  - 1:1
+  - 2:3
+  - 3:2
+  - 3:4
+  - 4:3
+  - 4:5
+  - 5:4
+  - 9:16
+  - 16:9
+  - 21:9
 
 ### Thinking
 
@@ -471,6 +489,31 @@ Example response:
 }
 ```
 
+### File Search
+
+The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets Gemini retrieve context from your own documents that you have indexed in File Search stores. Only Gemini 2.5 models support this feature.
+
+```ts highlight="9-13"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: google('gemini-2.5-pro'),
+  tools: {
+    file_search: google.tools.fileSearch({
+      fileSearchStoreNames: [
+        'projects/my-project/locations/us/fileSearchStores/my-store',
+      ],
+      metadataFilter: 'author = "Robert Graves"',
+      topK: 8,
+    }),
+  },
+  prompt: "Summarise the key themes of 'I, Claudius'.",
+});
+```
+
+File Search responses include citations via the normal `sources` field and expose raw [grounding metadata](#google-search) in `providerMetadata.google.groundingMetadata`.
+
 ### URL Context
 
 Google provides a provider-defined URL context tool.
@@ -582,7 +625,6 @@ const urlContextMetadata = metadata?.urlContextMetadata;
 ### Image Outputs
 
 Gemini models with image generation capabilities (`gemini-2.5-flash-image-preview`) support image generation. Images are exposed as files in the response.
-You need to enable image output in the provider options using the `responseModalities` option.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -590,9 +632,6 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: google('gemini-2.5-flash-image-preview'),
-  providerOptions: {
-    google: { responseModalities: ['TEXT', 'IMAGE'] },
-  },
   prompt:
     'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
 });

@@ -1,5 +1,5 @@
-import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { ImageModelV3, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   detectMediaType,
@@ -15,6 +15,8 @@ import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
+import { VERSION } from '../version';
+import { addImageModelUsage, ImageModelUsage } from '../types/usage';
 
 /**
 Generates images using an image model.
@@ -49,7 +51,7 @@ export async function generateImage({
   /**
 The image model to use.
      */
-  model: ImageModelV2;
+  model: ImageModelV3;
 
   /**
 The prompt that should be used to generate the image.
@@ -115,13 +117,18 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
-  if (model.specificationVersion !== 'v2') {
+  if (model.specificationVersion !== 'v3') {
     throw new UnsupportedModelVersionError({
       version: model.specificationVersion,
       provider: model.provider,
       modelId: model.modelId,
     });
   }
+
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
 
   const { retry } = prepareRetries({
     maxRetries: maxRetriesArg,
@@ -151,7 +158,7 @@ Only applicable for HTTP-based providers.
           prompt,
           n: callImageCount,
           abortSignal,
-          headers,
+          headers: headersWithUserAgent,
           size,
           aspectRatio,
           seed,
@@ -165,7 +172,12 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: ImageModelV2ProviderMetadata = {};
+  const providerMetadata: ImageModelV3ProviderMetadata = {};
+  let totalUsage: ImageModelUsage = {
+    inputTokens: undefined,
+    outputTokens: undefined,
+    totalTokens: undefined,
+  };
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -182,6 +194,10 @@ Only applicable for HTTP-based providers.
     );
     warnings.push(...result.warnings);
 
+    if (result.usage != null) {
+      totalUsage = addImageModelUsage(totalUsage, result.usage);
+    }
+
     if (result.providerMetadata) {
       for (const [providerName, metadata] of Object.entries<{
         images: unknown;
@@ -196,7 +212,7 @@ Only applicable for HTTP-based providers.
     responses.push(result.response);
   }
 
-  logWarnings(warnings);
+  logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
   if (!images.length) {
     throw new NoImageGeneratedError({ responses });
@@ -207,6 +223,7 @@ Only applicable for HTTP-based providers.
     warnings,
     responses,
     providerMetadata,
+    usage: totalUsage,
   });
 }
 
@@ -214,18 +231,21 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
   readonly warnings: Array<ImageGenerationWarning>;
   readonly responses: Array<ImageModelResponseMetadata>;
-  readonly providerMetadata: ImageModelV2ProviderMetadata;
+  readonly providerMetadata: ImageModelV3ProviderMetadata;
+  readonly usage: ImageModelUsage;
 
   constructor(options: {
     images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
-    providerMetadata: ImageModelV2ProviderMetadata;
+    providerMetadata: ImageModelV3ProviderMetadata;
+    usage: ImageModelUsage;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata;
+    this.usage = options.usage;
   }
 
   get image() {
@@ -233,7 +253,7 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   }
 }
 
-async function invokeModelMaxImagesPerCall(model: ImageModelV2) {
+async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
   const isFunction = model.maxImagesPerCall instanceof Function;
 
   if (!isFunction) {

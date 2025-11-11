@@ -1,14 +1,17 @@
+import { EventEmitter } from 'node:events';
 import { ServerResponse } from 'node:http';
 
-class MockServerResponse {
+class MockServerResponse extends EventEmitter {
   writtenChunks: any[] = [];
   headers = {};
   statusCode = 0;
   statusMessage = '';
   ended = false;
 
-  write(chunk: any): void {
+  write(chunk: any): boolean {
     this.writtenChunks.push(chunk);
+    // Return true to indicate the buffer is not full (no backpressure by default in tests)
+    return true;
   }
 
   end(): void {

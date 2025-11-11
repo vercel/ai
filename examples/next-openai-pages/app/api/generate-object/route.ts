@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();

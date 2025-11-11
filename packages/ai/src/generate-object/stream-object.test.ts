@@ -1,7 +1,7 @@
 import {
   JSONParseError,
-  LanguageModelV2CallWarning,
-  LanguageModelV2StreamPart,
+  LanguageModelV3CallWarning,
+  LanguageModelV3StreamPart,
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
@@ -16,7 +16,7 @@ import { z } from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -66,12 +66,12 @@ function createTestModel({
   request = undefined,
   response = undefined,
 }: {
-  stream?: ReadableStream<LanguageModelV2StreamPart>;
+  stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV2CallWarning[];
+  warnings?: LanguageModelV3CallWarning[];
 } = {}) {
-  return new MockLanguageModelV2({
+  return new MockLanguageModelV3({
     doStream: async () => ({ stream, request, response, warnings }),
   });
 }
@@ -202,7 +202,7 @@ describe('streamObject', () => {
 
       it('should suppress error in partialObjectStream', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => {
               throw new Error('test error');
             },
@@ -221,7 +221,7 @@ describe('streamObject', () => {
         const result: Array<{ error: unknown }> = [];
 
         const resultObject = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => {
               throw new Error('test error');
             },
@@ -440,7 +440,7 @@ describe('streamObject', () => {
     describe('result.request', () => {
       it('should contain request information', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -481,7 +481,7 @@ describe('streamObject', () => {
     describe('result.object', () => {
       it('should resolve with typed object', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -514,7 +514,7 @@ describe('streamObject', () => {
 
       it('should reject object promise when the streamed object does not match the schema', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -545,7 +545,7 @@ describe('streamObject', () => {
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -578,7 +578,7 @@ describe('streamObject', () => {
     describe('result.finishReason', () => {
       it('should resolve with finish reason', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -715,7 +715,7 @@ describe('streamObject', () => {
         >[0];
 
         const { partialObjectStream } = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -761,7 +761,7 @@ describe('streamObject', () => {
         >[0];
 
         const { partialObjectStream, object } = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -806,7 +806,7 @@ describe('streamObject', () => {
     describe('options.headers', () => {
       it('should pass headers to model', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async ({ headers }) => {
               expect(headers).toStrictEqual({
                 'custom-request-header': 'request-header-value',
@@ -844,7 +844,7 @@ describe('streamObject', () => {
     describe('options.providerOptions', () => {
       it('should pass provider options to model', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async ({ providerOptions }) => {
               expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
@@ -938,7 +938,7 @@ describe('streamObject', () => {
     describe('error handling', () => {
       it('should throw NoObjectGeneratedError when schema validation fails', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -982,7 +982,7 @@ describe('streamObject', () => {
 
       it('should throw NoObjectGeneratedError when parsing fails', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -1026,7 +1026,7 @@ describe('streamObject', () => {
 
       it('should throw NoObjectGeneratedError when no text is generated', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
+          model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -1323,7 +1323,7 @@ describe('streamObject', () => {
     });
 
     it('should not stream incorrect values', async () => {
-      const mockModel = new MockLanguageModelV2({
+      const mockModel = new MockLanguageModelV3({
         doStream: {
           stream: convertArrayToReadableStream([
             { type: 'text-start', id: '1' },
@@ -1486,7 +1486,7 @@ describe('streamObject', () => {
 
     it('should not record any telemetry data when not explicitly enabled', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1585,7 +1585,7 @@ describe('streamObject', () => {
 
     it('should not record telemetry inputs / outputs when disabled', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1631,7 +1631,7 @@ describe('streamObject', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
         constructor() {
           super({
             supportedUrls: () => {
@@ -1682,7 +1682,7 @@ describe('streamObject', () => {
   describe('options.experimental_repairText', () => {
     it('should be able to repair a JSONParseError', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1725,7 +1725,7 @@ describe('streamObject', () => {
 
     it('should be able to repair a TypeValidationError', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1770,7 +1770,7 @@ describe('streamObject', () => {
 
     it('should be able to handle repair that returns null', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1815,7 +1815,7 @@ describe('streamObject', () => {
 
     it('should be able to repair JSON wrapped with markdown code blocks', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1865,7 +1865,7 @@ describe('streamObject', () => {
 
     it('should throw NoObjectGeneratedError when parsing fails with repairText', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV2({
+        model: new MockLanguageModelV3({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1931,7 +1931,7 @@ describe('streamObject', () => {
     });
 
     it('should resolve warnings promise with warnings when warnings are present', async () => {
-      const expectedWarnings: LanguageModelV2CallWarning[] = [
+      const expectedWarnings: LanguageModelV3CallWarning[] = [
         {
           type: 'unsupported-setting',
           setting: 'frequency_penalty',
@@ -1963,7 +1963,7 @@ describe('streamObject', () => {
     });
 
     it('should call logWarnings with the correct warnings', async () => {
-      const expectedWarnings: LanguageModelV2CallWarning[] = [
+      const expectedWarnings: LanguageModelV3CallWarning[] = [
         {
           type: 'other',
           message: 'Setting is not supported',
@@ -1989,7 +1989,11 @@ describe('streamObject', () => {
       await convertAsyncIterableToArray(result.partialObjectStream);
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -2007,7 +2011,11 @@ describe('streamObject', () => {
       await convertAsyncIterableToArray(result.partialObjectStream);
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
   });
 });

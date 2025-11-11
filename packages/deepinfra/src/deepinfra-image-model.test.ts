@@ -1,4 +1,4 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { DeepInfraImageModel } from './deepinfra-image-model';
 import { FetchFunction } from '@ai-sdk/provider-utils';
@@ -228,7 +228,7 @@ describe('DeepInfraImageModel', () => {
 
       expect(model.provider).toBe('deepinfra');
       expect(model.modelId).toBe('stability-ai/sdxl');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

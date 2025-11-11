@@ -1,5 +1,254 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 32d8dbb: fix(provider-utils): compatibility with V8 readonly execution environment
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 4f16c37: chore(provider-utils): upgrade eventsource-parser to 3.0.6
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- 016b111: fix(provider-utils): make ReadableStream.cancel() properly finalize async iterators
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 293a6b7: Added a title to the tools
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- fca786b: feat(provider-utils): add MaybePromiseLike type
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+- Updated dependencies [3794514]
+  - @ai-sdk/provider@3.0.0-beta.8
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- 703459a: feat: tool execution approval for dynamic tools
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 6306603: chore: replace Validator with Schema
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- f0b2157: fix: revert zod import change
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- 3b1d015: feat(ai): Effect schema support
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- d116b4b: feat(ai): arktype support
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- 7e32fea: feat(ai): valibot support
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- 95f65c2: chore: load zod schemas lazily
+
+## 4.0.0-beta.10
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Patch Changes
+
+- Updated dependencies [dee8b05]
+  - @ai-sdk/provider@3.0.0-beta.6
+
+## 3.1.0-beta.9
+
+### Patch Changes
+
+- 521c537: feat(ai): Tool.needsApproval can be a function
+
+## 3.1.0-beta.8
+
+### Patch Changes
+
+- e06565c: feat(provider-utils): add needsApproval support to provider-defined tools
+
+## 3.1.0-beta.7
+
+### Patch Changes
+
+- e8109d3: feat: tool execution approval
+- Updated dependencies [046aa3b]
+- Updated dependencies [e8109d3]
+  - @ai-sdk/provider@2.1.0-beta.5
+
+## 3.1.0-beta.6
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- Updated dependencies [0adc679]
+- Updated dependencies [2b0caef]
+  - @ai-sdk/provider@2.1.0-beta.4
+
+## 3.1.0-beta.5
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+- Updated dependencies [8dac895]
+  - @ai-sdk/provider@2.1.0-beta.3
+
+## 3.1.0-beta.4
+
+### Patch Changes
+
+- 4616b86: chore: update zod peer depenedency version
+
+## 3.1.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [ed329cb]
+- Updated dependencies [522f6b8]
+  - @ai-sdk/provider@2.1.0-beta.2
+
+## 3.1.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [0c4822d]
+  - @ai-sdk/provider@2.1.0-beta.1
+
+## 3.1.0-beta.1
+
+### Patch Changes
+
+- cbb1d35: Update for provider-util changeset after change in PR #8588
+
+## 3.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- Updated dependencies [78928cb]
+  - @ai-sdk/provider@2.1.0-beta.0
+
+## 3.0.9
+
+### Patch Changes
+
+- 0294b58: feat(ai): set `ai`, `@ai-sdk/provider-utils`, and runtime in `user-agent` header
+
+## 3.0.8
+
+### Patch Changes
+
+- 99964ed: fix(provider-utils): fix type inference for toModelOutput
+
 ## 3.0.7
 
 ### Patch Changes

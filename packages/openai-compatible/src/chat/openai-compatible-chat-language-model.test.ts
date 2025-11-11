@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from '../openai-compatible-provider';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -741,6 +741,55 @@ describe('doGenerate', () => {
 
       expect(body.reasoning_effort).toBe('high');
       expect(body.reasoningEffort).toBeUndefined();
+      expect(body.customOption).toBe('should-be-included');
+    });
+
+    it('should pass textVerbosity setting from providerOptions', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { textVerbosity: 'low' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-5',
+        messages: [{ role: 'user', content: 'Hello' }],
+        verbosity: 'low',
+      });
+    });
+
+    it('should not duplicate textVerbosity in request body', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': {
+            textVerbosity: 'medium',
+            customOption: 'should-be-included',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body.verbosity).toBe('medium');
+      expect(body.textVerbosity).toBeUndefined();
       expect(body.customOption).toBe('should-be-included');
     });
 
@@ -2132,6 +2181,7 @@ describe('doStream', () => {
           "tools": undefined,
           "top_p": undefined,
           "user": undefined,
+          "verbosity": undefined,
         },
       }
     `);
