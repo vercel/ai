@@ -72,6 +72,40 @@ describe('user messages', () => {
     expect(result).toMatchSnapshot();
   });
 
+  it('should convert messages with PDF file parts from Uint8Array', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this PDF' },
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Analyze this PDF",
+              "type": "text",
+            },
+            {
+              "document_url": "data:application/pdf;base64,AAECAw==",
+              "type": "document_url",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should convert messages with reasoning content', () => {
     const result = convertToMistralChatMessages([
       {
