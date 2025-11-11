@@ -15,7 +15,7 @@ const tools = {
   code_interpreter: azure.tools.codeInterpreter(),
 } satisfies ToolSet;
 
-export type OpenAICodeInterpreterMessage = UIMessage<
+export type AzureOpenAICodeInterpreterMessage = UIMessage<
   {
     downloadLinks?: Array<{
       filename: string;

@@ -3,12 +3,12 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/components/chat-input';
-import { OpenAICodeInterpreterMessage } from '@/app/api/chat-openai-code-interpreter-annotation-download/route';
+import { AzureOpenAICodeInterpreterMessage } from '@/app/api/chat-azure-code-interpreter-annotation-download/route';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
 
 export default function TestAzureOpenAIWebSearch() {
   const { status, sendMessage, messages } =
-    useChat<OpenAICodeInterpreterMessage>({
+    useChat<AzureOpenAICodeInterpreterMessage>({
       transport: new DefaultChatTransport({
         api: '/api/chat-azure-code-interpreter-annotation-download',
       }),
