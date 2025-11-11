@@ -2,7 +2,7 @@ import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compa
 import { describe, it, expect } from 'vitest';
 
 describe('user messages', () => {
-  it('should convert messages with only a text part to a string content', async () => {
+  it('should keep messages with only a text part to a string content', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -10,7 +10,9 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
+    expect(result).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+    ]);
   });
 
   it('should convert messages with image parts', async () => {
