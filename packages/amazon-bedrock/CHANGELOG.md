@@ -1,5 +1,168 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/anthropic@3.0.0-beta.53
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - @ai-sdk/anthropic@3.0.0-beta.52
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [1742445]
+  - @ai-sdk/anthropic@3.0.0-beta.51
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/anthropic@3.0.0-beta.50
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+  - @ai-sdk/anthropic@3.0.0-beta.49
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/anthropic@3.0.0-beta.48
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+  - @ai-sdk/anthropic@3.0.0-beta.47
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/anthropic@3.0.0-beta.46
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [f4e4a95]
+  - @ai-sdk/anthropic@3.0.0-beta.45
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [cf4e2a9]
+  - @ai-sdk/anthropic@3.0.0-beta.44
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 9524761: feat: shorthand names for reranking models
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- d1bdadb: Added support for reranking models
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/anthropic@3.0.0-beta.43
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/anthropic@3.0.0-beta.42
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/anthropic@3.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/anthropic@3.0.0-beta.40
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+  - @ai-sdk/anthropic@3.0.0-beta.39
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/anthropic@3.0.0-beta.38
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [7c4328e]
+  - @ai-sdk/anthropic@3.0.0-beta.37
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [21f378c]
+  - @ai-sdk/anthropic@3.0.0-beta.36
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [80894b3]
+  - @ai-sdk/anthropic@3.0.0-beta.35
+
 ## 4.0.0-beta.38
 
 ### Patch Changes

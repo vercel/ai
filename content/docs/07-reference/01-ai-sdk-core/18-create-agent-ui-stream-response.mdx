@@ -21,7 +21,7 @@ import { ToolLoopAgent, createAgentUIStreamResponse } from 'ai';
 
 const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
   tools: { weather: weatherTool, calculator: calculatorTool },
 });
 

@@ -1,85 +1,18 @@
 #!/usr/bin/env tsx
 
-import * as https from 'https';
-
-/**
- * Fetches the raw HTML text from the given URL using https.
- */
-function fetchPage(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    https
-      .get(url, res => {
-        if (res.statusCode !== 200) {
-          reject(
-            new Error(`Failed to fetch page. Status code: ${res.statusCode}`),
-          );
-          return;
-        }
-        let rawData = '';
-        res.on('data', chunk => (rawData += chunk));
-        res.on('end', () => resolve(rawData));
-      })
-      .on('error', err => reject(err));
-  });
-}
-
-/**
- * Extracts version + all-time downloads from the npm versions page
- * by applying a naive regex-based search on the HTML.
- *
- * Returns an array of { version, weeklyDownloads } objects.
- */
-function parseVersions(
-  html: string,
-): { version: string; weeklyDownloads: number }[] {
-  const results: { version: string; weeklyDownloads: number }[] = [];
-
-  // First find the Version History section
-  const versionHistorySection = html.split('Version History')[1];
-  if (!versionHistorySection) {
-    return results;
-  }
-
-  /**
-   * Regex matching the npm version table row structure in Version History:
-   * - Matches version number in <a> tag
-   * - Matches download count in <td class="downloads">
-   */
-  const versionRegex =
-    /<a href="\/package\/ai\/v\/([^"]+)"[^>]*>[^<]+<\/a><\/td><td class="downloads">([\d,]+)/g;
-
-  let match: RegExpExecArray | null;
-  while ((match = versionRegex.exec(versionHistorySection)) !== null) {
-    const version = match[1];
-    // Skip versions starting with 0.x or 1.x
-    if (version.startsWith('0.') || version.startsWith('1.')) {
-      continue;
-    }
-
-    const downloadsStr = match[2].replace(/[^\d]/g, ''); // remove commas, etc.
-    const downloads = parseInt(downloadsStr, 10);
-
-    if (!isNaN(downloads)) {
-      results.push({
-        version,
-        weeklyDownloads: downloads,
-      });
-    }
-  }
-
-  return results;
-}
-
 /**
  * Converts a full version string like "1.2.3" (or "1.2.3-alpha")
- * to its "major.minor" part, e.g. "1.2"
+ * to its "major.minor" or "major.minor (channel)" part, e.g. "1.2" or "1.2 (alpha)".
  */
-function toMinorVersion(fullVersion: string): string {
-  // Split on dot to handle something like "1.2.3"
-  // If the version has a pre-release, e.g. "1.2.3-alpha.1", we still
-  // only extract [major, minor] from the front.
-  const [major, minor] = fullVersion.split('.');
-  return [major ?? '0', minor ?? '0'].join('.');
+function toMinorVersion(semanticVersion: string): string {
+  const [versionPart, channelPart] = semanticVersion.split('-');
+  const [major, minor] = versionPart.split('.');
+  let minorVersion = `${major}.${minor}`;
+  if (channelPart) {
+    const [channel] = channelPart.split('.');
+    minorVersion += ` (${channel})`;
+  }
+  return minorVersion;
 }
 
 /**
@@ -89,9 +22,15 @@ function aggregateByMinor(
   data: { version: string; weeklyDownloads: number }[],
 ): Record<string, number> {
   const output: Record<string, number> = {};
-  for (const entry of data) {
-    const minor = toMinorVersion(entry.version);
-    output[minor] = (output[minor] || 0) + entry.weeklyDownloads;
+  for (const [versionString, downloads] of Object.entries(data)) {
+    const minor = toMinorVersion(versionString);
+    // ignore versions < 1.0
+    if (minor.startsWith('0.')) continue;
+
+    // ignore versions that have channel but where channel is not beta
+    if (minor.includes('(') && !minor.includes('(beta)')) continue;
+
+    output[minor] = (output[minor] || 0) + downloads;
   }
   return output;
 }
@@ -100,32 +39,36 @@ function aggregateByMinor(
  * Main execution function.
  */
 async function main() {
-  const url = 'https://www.npmjs.com/package/ai?activeTab=versions';
+  const response = await fetch(`https://api.npmjs.org/versions/ai/last-week`);
+  const { downloads } = await response.json();
+  const totalDownloads = Object.values(downloads).reduce(
+    (acc, curr) => acc + curr,
+    0,
+  );
+  console.log(`Total weekly downloads: ${totalDownloads.toLocaleString()}`);
+  console.log(
+    `For simplicity, we remove versions < 1.0 and non-beta channels from the table below.`,
+  );
 
-  try {
-    const html = await fetchPage(url);
-    const parsed = parseVersions(html);
-    const aggregated = aggregateByMinor(parsed);
-
-    // Calculate total downloads
-    const totalDownloads = Object.values(aggregated).reduce(
-      (sum, count) => sum + count,
-      0,
-    );
-
-    // Convert the aggregated data into an array of objects for console.table
-    const results = Object.entries(aggregated).map(([version, downloads]) => ({
-      version,
-      'weekly downloads': downloads,
-      percentage: ((downloads / totalDownloads) * 100).toFixed(1) + '%',
-    }));
-
-    // Show the results in a table format
-    console.log('Aggregated downloads by minor version:');
-    console.table(results);
-  } catch (err) {
-    console.error('Error:', err);
-  }
+  const aggregated = aggregateByMinor(downloads);
+  console.table(
+    Object.entries(aggregated)
+      // sort by version string
+      .sort(([a], [b]) => {
+        // sort 5.0 beta after 5.0
+        if (a === b.replace(' (beta)', '')) return -1;
+        if (b === a.replace(' (beta)', '')) return 1;
+        return b.localeCompare(a);
+      })
+      // map to objects for better console.table formatting
+      .map(([version, count]) => {
+        return {
+          version,
+          count,
+          '%': ((count / totalDownloads) * 100).toFixed(2) + '%',
+        };
+      }),
+  );
 }
 
 main();

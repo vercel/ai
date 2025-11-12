@@ -6,7 +6,7 @@ import { DefaultChatTransport } from 'ai';
 import { ReasoningToolsMessage } from '../api/use-chat-reasoning-tools/route';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolResult, status } =
+  const { messages, sendMessage, addToolOutput, status } =
     useChat<ReasoningToolsMessage>({
       transport: new DefaultChatTransport({
         api: '/api/use-chat-reasoning-tools',

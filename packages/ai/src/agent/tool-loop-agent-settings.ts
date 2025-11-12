@@ -23,7 +23,7 @@ export type ToolLoopAgentSettings<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-> = CallSettings & {
+> = Omit<CallSettings, 'abortSignal'> & {
   /**
    * The id of the agent.
    */
@@ -71,9 +71,9 @@ changing the tool call and result types in the result.
   activeTools?: Array<keyof NoInfer<TOOLS>>;
 
   /**
-Optional specification for parsing structured outputs from the LLM response.
+Optional specification for generating structured outputs.
    */
-  experimental_output?: OUTPUT;
+  output?: OUTPUT;
 
   /**
 Optional function that you can use to provide different settings for a step.

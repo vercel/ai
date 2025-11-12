@@ -232,7 +232,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
               toolCallId: part.id,
               toolName: part.name,
               result: part.output,
-              providerExecuted: true,
             });
           }
           break;
@@ -253,7 +252,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
               toolCallId: part.id,
               toolName: 'list_tools',
               result: { tools: part.tools },
-              providerExecuted: true,
             });
           }
           break;

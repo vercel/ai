@@ -9,8 +9,15 @@ description: Learn how to connect to Model Context Protocol (MCP) servers and us
   The MCP tools feature is experimental and may change in the future.
 </Note>
 
-The AI SDK supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers to access their tools.
-This enables your AI applications to discover and use tools across various services through a standardized interface.
+The AI SDK supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers to access their tools, resources, and prompts.
+This enables your AI applications to discover and use capabilities across various services through a standardized interface.
+
+<Note>
+  If you're using OpenAI's Responses API, you can also use the built-in
+  `openai.tools.mcp` tool, which provides direct MCP server integration without
+  needing to convert tools. See the [OpenAI provider
+  documentation](/providers/ai-sdk-providers/openai#mcp-tool) for details.
+</Note>
 
 ## Initializing an MCP Client
 
@@ -18,16 +25,35 @@ We recommend using HTTP transport (like `StreamableHTTPClientTransport`) for pro
 
 Create an MCP client using one of the following transport options:
 
-- **HTTP transport (Recommended)**: Use transports from MCP's official TypeScript SDK like `StreamableHTTPClientTransport` for production deployments
+- **HTTP transport (Recommended)**: Either configure HTTP directly via the client using `transport: { type: 'http', ... }`, or use MCP's official TypeScript SDK `StreamableHTTPClientTransport`
 - SSE (Server-Sent Events): An alternative HTTP-based transport
 - `stdio`: For local development only. Uses standard input/output streams for local MCP servers
 
 ### HTTP Transport (Recommended)
 
-For production deployments, we recommend using HTTP transports like `StreamableHTTPClientTransport` from MCP's official TypeScript SDK:
+For production deployments, we recommend using the HTTP transport. You can configure it directly on the client:
 
 ```typescript
-import { experimental_createMCPClient as createMCPClient } from 'ai';
+import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
+
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://your-server.com/mcp',
+
+    // optional: configure HTTP headers
+    headers: { Authorization: 'Bearer my-api-key' },
+
+    // optional: provide an OAuth client provider for automatic authorization
+    authProvider: myOAuthClientProvider,
+  },
+});
+```
+
+Alternatively, you can use `StreamableHTTPClientTransport` from MCP's official TypeScript SDK:
+
+```typescript
+import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 const url = new URL('https://your-server.com/mcp');
@@ -40,20 +66,21 @@ const mcpClient = await createMCPClient({
 
 ### SSE Transport
 
-SSE provides an alternative HTTP-based transport option. Configure it with a `type` and `url` property:
+SSE provides an alternative HTTP-based transport option. Configure it with a `type` and `url` property. You can also provide an `authProvider` for OAuth:
 
 ```typescript
-import { experimental_createMCPClient as createMCPClient } from 'ai';
+import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
 
 const mcpClient = await createMCPClient({
   transport: {
     type: 'sse',
     url: 'https://my-server.com/sse',
 
-    // optional: configure HTTP headers, e.g. for authentication
-    headers: {
-      Authorization: 'Bearer my-api-key',
-    },
+    // optional: configure HTTP headers
+    headers: { Authorization: 'Bearer my-api-key' },
+
+    // optional: provide an OAuth client provider for automatic authorization
+    authProvider: myOAuthClientProvider,
   },
 });
 ```
@@ -67,10 +94,10 @@ const mcpClient = await createMCPClient({
 The Stdio transport can be imported from either the MCP SDK or the AI SDK:
 
 ```typescript
-import { experimental_createMCPClient as createMCPClient } from 'ai';
+import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 // Or use the AI SDK's stdio transport:
-// import { Experimental_StdioMCPTransport as StdioClientTransport } from 'ai/mcp-stdio';
+// import { Experimental_StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
 
 const mcpClient = await createMCPClient({
   transport: new StdioClientTransport({
@@ -87,8 +114,12 @@ You can also bring your own transport by implementing the `MCPTransport` interfa
 <Note>
   The client returned by the `experimental_createMCPClient` function is a
   lightweight client intended for use in tool conversion. It currently does not
-  support all features of the full MCP client, such as: authorization, session
+  support all features of the full MCP client, such as: session
   management, resumable streams, and receiving notifications.
+
+Authorization via OAuth is supported when using the AI SDK MCP HTTP or SSE
+transports by providing an `authProvider`.
+
 </Note>
 
 ### Closing the MCP Client
@@ -169,6 +200,59 @@ const tools = await mcpClient.tools({
 ```
 
 This approach provides full TypeScript type safety and IDE autocompletion, letting you catch parameter mismatches during development. When you define `schemas`, the client only pulls the explicitly defined tools, keeping your application focused on the tools it needs
+
+## Using MCP Resources
+
+According to the [MCP specification](https://modelcontextprotocol.io/docs/learn/server-concepts#resources), resources are **application-driven** data sources that provide context to the model. Unlike tools (which are model-controlled), your application decides when to fetch and pass resources as context.
+
+The MCP client provides three methods for working with resources:
+
+### Listing Resources
+
+List all available resources from the MCP server:
+
+```typescript
+const resources = await mcpClient.listResources();
+```
+
+### Reading Resource Contents
+
+Read the contents of a specific resource by its URI:
+
+```typescript
+const resourceData = await mcpClient.readResource({
+  uri: 'file:///example/document.txt',
+});
+```
+
+### Listing Resource Templates
+
+Resource templates are dynamic URI patterns that allow flexible queries. List all available templates:
+
+```typescript
+const templates = await mcpClient.listResourceTemplates();
+```
+
+## Using MCP Prompts
+
+According to the MCP specification, prompts are user-controlled templates that servers expose for clients to list and retrieve with optional arguments.
+
+### Listing Prompts
+
+```typescript
+const prompts = await mcpClient.listPrompts();
+```
+
+### Getting a Prompt
+
+Retrieve prompt messages, optionally passing arguments defined by the server:
+
+```typescript
+const prompt = await mcpClient.getPrompt({
+  name: 'code_review',
+  arguments: { code: 'function add(a, b) { return a + b; }' },
+});
+```
 
 ## Examples
 

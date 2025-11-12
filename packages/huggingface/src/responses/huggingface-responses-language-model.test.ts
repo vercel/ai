@@ -434,7 +434,6 @@ describe('HuggingFaceResponsesLanguageModel', () => {
               "type": "tool-call",
             },
             {
-              "providerExecuted": true,
               "result": "Found 25 tech events in San Francisco",
               "toolCallId": "mcp_search_test",
               "toolName": "search",

@@ -45,6 +45,14 @@ export const webSearchOutputSchema = lazySchema(() =>
           pattern: z.string(),
         }),
       ]),
+      sources: z
+        .array(
+          z.discriminatedUnion('type', [
+            z.object({ type: z.literal('url'), url: z.string() }),
+            z.object({ type: z.literal('api'), name: z.string() }),
+          ]),
+        )
+        .optional(),
     }),
   ),
 );
@@ -98,6 +106,13 @@ export const webSearchToolFactory =
              */
             pattern: string;
           };
+
+      /**
+       * Optional sources cited by the model for the web search call.
+       */
+      sources?: Array<
+        { type: 'url'; url: string } | { type: 'api'; name: string }
+      >;
     },
     {
       /**
