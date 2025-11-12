@@ -176,14 +176,17 @@ export function prepareTools({
   if (toolChoice == null || toolChoice.type === 'auto') {
     // If functionCallingConfig is provided via provider options, use it
     if (functionCallingConfig != null) {
+      const mode = functionCallingConfig.mode ?? 'AUTO';
       const config: {
         mode: 'AUTO' | 'NONE' | 'ANY';
         allowedFunctionNames?: string[];
       } = {
-        mode: functionCallingConfig.mode ?? 'AUTO',
+        mode,
       };
 
+      // allowedFunctionNames is only valid when mode is 'ANY'
       if (
+        mode === 'ANY' &&
         functionCallingConfig.allowedFunctionNames != null &&
         functionCallingConfig.allowedFunctionNames.length > 0
       ) {

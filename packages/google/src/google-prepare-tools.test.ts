@@ -585,3 +585,32 @@ it('should not apply functionCallingConfig to provider-defined tools', () => {
   expect(result.tools).toEqual([{ googleSearch: {} }]);
   expect(result.toolConfig).toBeUndefined();
 });
+
+it('should ignore allowedFunctionNames when mode is not ANY', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'weather',
+        description: 'Get weather',
+        inputSchema: {},
+      },
+      {
+        type: 'function',
+        name: 'calendar',
+        description: 'Check calendar',
+        inputSchema: {},
+      },
+    ],
+    functionCallingConfig: {
+      mode: 'AUTO',
+      allowedFunctionNames: ['weather'],
+    },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  // allowedFunctionNames should be ignored when mode is AUTO
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'AUTO' },
+  });
+});
