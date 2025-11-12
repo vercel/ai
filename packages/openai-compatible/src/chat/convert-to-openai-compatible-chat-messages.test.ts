@@ -2,7 +2,7 @@ import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compa
 import { describe, it, expect } from 'vitest';
 
 describe('user messages', () => {
-  it('should keep messages with only a text part to a string content', async () => {
+  it('should keep messages with only a text part in structured array format', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
