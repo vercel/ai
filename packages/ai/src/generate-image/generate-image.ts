@@ -195,9 +195,9 @@ Only applicable for HTTP-based providers.
     warnings.push(...result.warnings);
 
     if (result.providerMetadata) {
-      const entries = Object.entries(
-        result.providerMetadata,
-      ) as Array<[string, JSONObject & { images?: JSONArray }]>;
+      const entries = Object.entries(result.providerMetadata) as Array<
+        [string, JSONObject & { images?: JSONArray }]
+      >;
 
       for (const [providerName, incoming] of entries) {
         const existing = providerMetadata[providerName] ?? { images: [] };
@@ -212,10 +212,7 @@ Only applicable for HTTP-based providers.
         const { images: _existingImages, ...existingRest } = existing;
         const { images: _incomingImages, ...incomingRest } = incoming;
 
-        const mergedImages: JSONArray = [
-          ...existingImages,
-          ...incomingImages,
-        ];
+        const mergedImages: JSONArray = [...existingImages, ...incomingImages];
         const mergedRest: JSONObject = {
           ...existingRest,
           ...incomingRest,
