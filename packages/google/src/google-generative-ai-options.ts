@@ -159,6 +159,36 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
             .optional(),
         })
         .optional(),
+      /**
+       * Optional. Configuration for function calling behavior.
+       *
+       * Controls how the model handles function calls, including:
+       * - Enabling parallel function calling (calling multiple functions in one response)
+       * - Restricting which functions can be called
+       * - Setting the overall function calling mode
+       *
+       * Note: Explicit toolChoice ('none', 'required', 'tool') takes precedence. 
+       * When toolChoice is 'auto' or unspecified, functionCallingConfig is used
+       *
+       * @see https://ai.google.dev/gemini-api/docs/function-calling#function_calling_modes
+       */
+      functionCallingConfig: z
+        .object({
+          /**
+           * The mode of function calling.
+           * - AUTO: Model decides whether to call functions or respond with text
+           * - ANY: Model must call at least one function (enables parallel calling)
+           * - NONE: Model cannot call any functions
+           */
+          mode: z.enum(['AUTO', 'NONE', 'ANY']).optional(),
+          /**
+           * Optional list of function names the model is allowed to call.
+           * Only used when mode is 'ANY'.
+           * If empty or not provided, all functions are allowed.
+           */
+          allowedFunctionNames: z.array(z.string()).optional(),
+        })
+        .optional(),
     }),
   ),
 );

@@ -10,10 +10,15 @@ export function prepareTools({
   tools,
   toolChoice,
   modelId,
+  functionCallingConfig,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: GoogleGenerativeAIModelId;
+  functionCallingConfig?: {
+    mode?: 'AUTO' | 'NONE' | 'ANY';
+    allowedFunctionNames?: string[];
+  };
 }): {
   tools:
     | {
@@ -166,7 +171,43 @@ export function prepareTools({
     }
   }
 
-  if (toolChoice == null) {
+  // When toolChoice is 'auto' or not specified, allow functionCallingConfig to take precedence
+  // This ensures that provider options can override the default 'auto' behavior
+  if (toolChoice == null || toolChoice.type === 'auto') {
+    // If functionCallingConfig is provided via provider options, use it
+    if (functionCallingConfig != null) {
+      const config: {
+        mode: 'AUTO' | 'NONE' | 'ANY';
+        allowedFunctionNames?: string[];
+      } = {
+        mode: functionCallingConfig.mode ?? 'AUTO',
+      };
+
+      if (
+        functionCallingConfig.allowedFunctionNames != null &&
+        functionCallingConfig.allowedFunctionNames.length > 0
+      ) {
+        config.allowedFunctionNames =
+          functionCallingConfig.allowedFunctionNames;
+      }
+
+      return {
+        tools: { functionDeclarations },
+        toolConfig: { functionCallingConfig: config },
+        toolWarnings,
+      };
+    }
+
+    // If toolChoice is explicitly 'auto', return the AUTO config
+    if (toolChoice?.type === 'auto') {
+      return {
+        tools: { functionDeclarations },
+        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+        toolWarnings,
+      };
+    }
+
+    // Otherwise, return undefined toolConfig (default behavior)
     return {
       tools: { functionDeclarations },
       toolConfig: undefined,
@@ -174,15 +215,10 @@ export function prepareTools({
     };
   }
 
+  // At this point, toolChoice is not null and not 'auto', so handle other explicit choices
   const type = toolChoice.type;
 
   switch (type) {
-    case 'auto':
-      return {
-        tools: { functionDeclarations },
-        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
-        toolWarnings,
-      };
     case 'none':
       return {
         tools: { functionDeclarations },
