@@ -1,31 +1,31 @@
-# AI SDK - fal Provider
+# AI SDK - Black Forest Labs Provider
 
-The **[fal provider](https://ai-sdk.dev/providers/ai-sdk-providers/fal)** for the [AI SDK](https://ai-sdk.dev/docs) contains image model support for the [fal.ai API](https://fal.ai/).
+The **[Black Forest Labs provider](https://ai-sdk.dev/providers/ai-sdk-providers/black-forest-labs)** for the [AI SDK](https://ai-sdk.dev/docs) adds image model support for the [BFL API](https://docs.bfl.ai/).
 
 ## Setup
 
-The fal provider is available in the `@ai-sdk/fal` module. You can install it with
+The Black Forest Labs provider is available in the `@ai-sdk/black-forest-labs` module. You can install it with
 
 ```bash
-npm i @ai-sdk/fal
+pnpm add @ai-sdk/black-forest-labs
 ```
 
 ## Provider Instance
 
-You can import the default provider instance `fal` from `@ai-sdk/fal`:
+You can import the default provider instance `black-forest-labs` from `@ai-sdk/black-forest-labs`:
 
 ```ts
-import { fal } from '@ai-sdk/fal';
+import { blackForestLabs as bfl } from '@ai-sdk/black-forest-labs';
 ```
 
 ## Image Generation Example
 
 ```ts
-import { fal } from '@ai-sdk/fal';
+import { blackForestLabs as bfl } from '@ai-sdk/black-forest-labs';
 import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 const { image } = await generateImage({
-  model: fal.image('fal-ai/flux/schnell'),
+  model: bfl.image('flux-pro-1.1'),
   prompt: 'A cat wearing a intricate robe',
 });
 
@@ -36,21 +36,34 @@ console.log(`Image saved to ${filename}`);
 
 ## Additional Options
 
-If you want to pass additional inputs to the model besides the prompt, use the `providerOptions.fal` property:
+If you want to pass additional inputs to the model besides the prompt, use `providerOptions.bfl` property:
 
 ```ts
 const { image } = await generateImage({
-  model: fal.image('fal-ai/recraft-v3'),
-  prompt: 'A cat wearing a intricate robe',
-  size: '1920x1080',
+  model: bfl.image('flux-pro'),
+  prompt: 'A cat wearing an intricate robe',
+  aspectRatio: '16:9',
   providerOptions: {
-    fal: {
-      style: 'digital_illustration',
-    },
+    bfl: {
+      seed: 42,
+    }
   },
+});
+```
+
+## Configuring Base URL
+
+By default, the provider uses `https://api.bfl.ai/v1`. You can override this to use regional or legacy endpoints:
+
+```ts
+import { createBlackForestLabs } from '@ai-sdk/black-forest-labs';
+
+const bfl = createBlackForestLabs({
+  baseURL: 'https://api.eu.bfl.ai/v1',
+  apiKey: process.env.BFL_API_KEY,
 });
 ```
 
 ## Documentation
 
-Please check out the **[fal provider](https://ai-sdk.dev/providers/ai-sdk-providers/fal)** for more information.
+See the [Black Forest Labs provider](https://ai-sdk.dev/providers/ai-sdk-providers/black-forest-labs) for more information.
