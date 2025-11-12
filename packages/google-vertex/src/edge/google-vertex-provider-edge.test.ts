@@ -84,4 +84,85 @@ describe('google-vertex-provider-edge', () => {
       privateKey: 'test-key',
     });
   });
+
+  describe('Express Mode', () => {
+    it('should use API key header when apiKey is provided', async () => {
+      createVertexEdge({
+        project: 'test-project',
+        apiKey: 'test-api-key',
+      });
+
+      const mockCreateVertex = vi.mocked(createVertexOriginal);
+      const passedOptions = mockCreateVertex.mock.calls[0][0];
+
+      expect(mockCreateVertex).toHaveBeenCalledTimes(1);
+      expect(await resolve(passedOptions?.headers)).toStrictEqual({
+        'x-goog-api-key': 'test-api-key',
+      });
+    });
+
+    it('should merge custom headers with API key in Express Mode', async () => {
+      createVertexEdge({
+        project: 'test-project',
+        apiKey: 'test-api-key',
+        headers: async () => ({
+          'Custom-Header': 'custom-value',
+        }),
+      });
+
+      const mockCreateVertex = vi.mocked(createVertexOriginal);
+      const passedOptions = mockCreateVertex.mock.calls[0][0];
+
+      expect(await resolve(passedOptions?.headers)).toEqual({
+        'x-goog-api-key': 'test-api-key',
+        'Custom-Header': 'custom-value',
+      });
+    });
+
+    it('should prioritize API key over OAuth when both apiKey and googleCredentials are provided', async () => {
+      createVertexEdge({
+        project: 'test-project',
+        apiKey: 'test-api-key',
+        googleCredentials: {
+          clientEmail: 'test@example.com',
+          privateKey: 'test-key',
+        },
+      });
+
+      const mockCreateVertex = vi.mocked(createVertexOriginal);
+      const passedOptions = mockCreateVertex.mock.calls[0][0];
+      const headers = await resolve(passedOptions?.headers);
+
+      expect(headers).toHaveProperty('x-goog-api-key', 'test-api-key');
+      expect(headers).not.toHaveProperty('Authorization');
+      expect(edgeAuth.generateAuthToken).not.toHaveBeenCalled();
+    });
+
+    it('should not call generateAuthToken when API key is present', async () => {
+      createVertexEdge({
+        project: 'test-project',
+        apiKey: 'test-api-key',
+      });
+
+      const mockCreateVertex = vi.mocked(createVertexOriginal);
+      const passedOptions = mockCreateVertex.mock.calls[0][0];
+      await resolve(passedOptions?.headers);
+
+      expect(edgeAuth.generateAuthToken).not.toHaveBeenCalled();
+    });
+
+    it('should use OAuth mode when apiKey is not provided', async () => {
+      createVertexEdge({
+        project: 'test-project',
+      });
+
+      const mockCreateVertex = vi.mocked(createVertexOriginal);
+      const passedOptions = mockCreateVertex.mock.calls[0][0];
+      const headers = await resolve(passedOptions?.headers);
+
+      expect(headers).toHaveProperty('Authorization', 'Bearer mock-auth-token');
+      expect(headers).not.toHaveProperty('x-goog-api-key');
+      expect(edgeAuth.generateAuthToken).toHaveBeenCalled();
+    });
+  });
 });

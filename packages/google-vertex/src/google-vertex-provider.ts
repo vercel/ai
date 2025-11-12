@@ -51,6 +51,13 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
   project?: string;
 
   /**
+   * API key for Express Mode authentication. When provided, uses simplified
+   * authentication with `x-goog-api-key` header instead of OAuth.
+   * Defaults to the environment variable `GOOGLE_VERTEX_API_KEY`.
+   */
+  apiKey?: string;
+
+  /**
    * Headers to use for requests. Can be:
    * - A headers object
    * - A Promise that resolves to a headers object
@@ -96,18 +103,42 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
-  const loadBaseURL = () => {
+  const loadApiKey = () =>
+    loadSetting({
+      settingValue: options.apiKey,
+      settingName: 'apiKey',
+      environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
+      description: 'Google Vertex API key',
+    });
+
+  const isExpressMode = () => {
+    try {
+      const apiKey = loadApiKey();
+      return apiKey != null && apiKey !== '';
+    } catch {
+      return false;
+    }
+  };
+
+  const loadBaseURL = (): string => {
     const region = loadVertexLocation();
     const project = loadVertexProject();
 
-    // For global region, use aiplatform.googleapis.com directly
+    // If baseURL is explicitly provided, use it
+    if (options.baseURL) {
+      return withoutTrailingSlash(options.baseURL) as string;
+    }
+
+    // Express Mode uses generativelanguage.googleapis.com
+    if (isExpressMode()) {
+      return `https://generativelanguage.googleapis.com/v1beta/projects/${project}/locations/${region}/publishers/google`;
+    }
+
+    // OAuth mode: For global region, use aiplatform.googleapis.com directly
     // For other regions, use region-aiplatform.googleapis.com
     const baseHost = `${region === 'global' ? '' : region + '-'}aiplatform.googleapis.com`;
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${baseHost}/v1beta1/projects/${project}/locations/${region}/publishers/google`
-    );
+    return `https://${baseHost}/v1beta1/projects/${project}/locations/${region}/publishers/google`;
   };
 
   const createConfig = (name: string): GoogleVertexConfig => {
