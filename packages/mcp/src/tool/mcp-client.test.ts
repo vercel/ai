@@ -9,6 +9,7 @@ import {
   ReadResourceResult,
   ListPromptsResult,
   GetPromptResult,
+  ElicitRequestSchema,
 } from './types';
 import {
   beforeEach,
@@ -439,6 +440,75 @@ describe('MCPClient', () => {
     ).rejects.toSatisfy(
       error => error instanceof Error && error.name === 'AbortError',
     );
+  });
+
+  describe('elicitation support', () => {
+    it('should handle elicitation requests from the server', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+        capabilities: {
+          elicitation: {},
+        },
+      });
+
+      const transportInstance = createMockTransport.mock.results.at(-1)
+        ?.value as MockMCPTransport;
+      const sendSpy = vi.spyOn(transportInstance, 'send');
+      const handler = vi.fn(async () => ({
+        action: 'accept' as const,
+        content: {
+          name: 'octocat',
+        },
+      }));
+
+      client.onRequest(ElicitRequestSchema, handler);
+
+      const elicitationRequest = {
+        jsonrpc: '2.0' as const,
+        id: 42,
+        method: 'elicitation/create' as const,
+        params: {
+          message: 'Please provide your GitHub username',
+          requestedSchema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      };
+
+      transportInstance.onmessage?.(elicitationRequest);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          params: {
+            message: elicitationRequest.params.message,
+            requestedSchema: elicitationRequest.params.requestedSchema,
+          },
+        }),
+      );
+
+      const elicitationResponse = sendSpy.mock.calls.find(
+        ([message]) =>
+          'result' in message && message.id === elicitationRequest.id,
+      );
+
+      expect(elicitationResponse?.[0]).toMatchObject({
+        jsonrpc: '2.0',
+        id: elicitationRequest.id,
+        result: {
+          action: 'accept',
+          content: {
+            name: 'octocat',
+          },
+        },
+      });
+    });
   });
 
   it('should use onUncaughtError callback if provided', async () => {
