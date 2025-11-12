@@ -245,8 +245,13 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'user',
-        content: 'Hello',
-        cacheControl: { type: 'ephemeral' },
+        content: [
+          {
+            type: 'text',
+            text: 'Hello',
+            cacheControl: { type: 'ephemeral' },
+          },
+        ],
       },
     ]);
   });
@@ -277,8 +282,14 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'user',
-        content: 'Hello',
-        contentLevel: true,
+        content: [
+          {
+            type: 'text',
+            text: 'Hello',
+            contentLevel: true,
+          },
+        ],
+        messageLevel: true,
       },
     ]);
   });
