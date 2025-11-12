@@ -28,6 +28,7 @@
     { "path": "packages/llamaindex" },
     { "path": "packages/lmnt" },
     { "path": "packages/luma" },
+    { "path": "packages/minimax" },
     { "path": "packages/mistral" },
     { "path": "packages/openai" },
     { "path": "packages/openai-compatible" },

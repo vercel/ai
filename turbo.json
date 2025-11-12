@@ -31,6 +31,7 @@
         "GOOGLE_VERTEX_PROJECT",
         "GROQ_API_KEY",
         "LUMA_API_KEY",
+        "MINIMAX_API_KEY",
         "MISTRAL_API_KEY",
         "NEXT_RUNTIME",
         "NIM_API_KEY",
