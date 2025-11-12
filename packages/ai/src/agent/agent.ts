@@ -38,7 +38,12 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
          */
         prompt?: never;
       }
-  );
+  ) & {
+    /**
+     * Abort signal.
+     */
+    abortSignal?: AbortSignal;
+  };
 
 /**
  * An Agent receives a prompt (text or messages) and generates or streams an output

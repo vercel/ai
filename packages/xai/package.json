@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/xai",
-  "version": "3.0.0-beta.35",
+  "version": "3.0.0-beta.37",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
