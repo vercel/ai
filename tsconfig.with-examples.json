@@ -62,6 +62,9 @@
     },
     {
       "path": "examples/nuxt-openai"
+    },
+    {
+      "path": "examples/scrapegraph"
     }
   ],
   "include": []
