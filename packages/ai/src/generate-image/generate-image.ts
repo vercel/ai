@@ -1,4 +1,9 @@
-import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
+import {
+  ImageModelV2,
+  ImageModelV2ProviderMetadata,
+  JSONArray,
+  JSONObject,
+} from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
@@ -171,7 +176,8 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: ImageModelV2ProviderMetadata = {};
+  const providerMetadata: Record<string, JSONObject & { images?: JSONArray }> =
+    {};
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -189,13 +195,40 @@ Only applicable for HTTP-based providers.
     warnings.push(...result.warnings);
 
     if (result.providerMetadata) {
-      for (const [providerName, metadata] of Object.entries<{
-        images: unknown;
-      }>(result.providerMetadata)) {
-        providerMetadata[providerName] ??= { images: [] };
-        providerMetadata[providerName].images.push(
-          ...result.providerMetadata[providerName].images,
-        );
+      const entries = Object.entries(
+        result.providerMetadata,
+      ) as Array<[string, JSONObject & { images?: JSONArray }]>;
+
+      for (const [providerName, incoming] of entries) {
+        const existing = providerMetadata[providerName] ?? { images: [] };
+
+        const incomingImages = Array.isArray(incoming.images)
+          ? incoming.images
+          : [];
+        const existingImages = Array.isArray(existing.images)
+          ? existing.images
+          : [];
+
+        const { images: _existingImages, ...existingRest } = existing;
+        const { images: _incomingImages, ...incomingRest } = incoming;
+
+        const mergedImages: JSONArray = [
+          ...existingImages,
+          ...incomingImages,
+        ];
+        const mergedRest: JSONObject = {
+          ...existingRest,
+          ...incomingRest,
+        };
+
+        if (providerName === 'gateway' && mergedImages.length === 0) {
+          providerMetadata[providerName] = mergedRest;
+        } else {
+          providerMetadata[providerName] = {
+            ...mergedRest,
+            images: mergedImages,
+          };
+        }
       }
     }
 
@@ -212,7 +245,7 @@ Only applicable for HTTP-based providers.
     images,
     warnings,
     responses,
-    providerMetadata,
+    providerMetadata: providerMetadata as ImageModelV2ProviderMetadata,
   });
 }
 

@@ -109,11 +109,7 @@ const providerMetadataEntrySchema = z
   .object({
     images: z.array(z.unknown()).optional(),
   })
-  .catchall(z.unknown())
-  .transform(entry => ({
-    images: entry.images ?? [],
-    ...entry,
-  }));
+  .catchall(z.unknown());
 
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
