@@ -44,7 +44,7 @@ const supportAgent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
     instructions:
-      options.instructions +
+      settings.instructions +
       `\nUser context:
 - Account type: ${options.accountType}
 - User ID: ${options.userId}
