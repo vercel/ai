@@ -175,12 +175,12 @@ export function createScrapeGraph(
 
     async markdownify(config: MarkdownifyConfig): Promise<string> {
       const result = await callApi<any>('/markdownify', config);
-      return typeof result === 'string' ? result : result.markdown || result;
+      return typeof result === 'string' ? result : result.markdown ?? result;
     },
 
     async scrape(config: ScrapeConfig): Promise<string> {
       const result = await callApi<any>('/scrape', config);
-      return typeof result === 'string' ? result : result.html || result;
+      return typeof result === 'string' ? result : result.html ?? result;
     },
 
     async crawlInitiate(config: CrawlConfig): Promise<CrawlInitiateResponse> {
