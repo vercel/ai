@@ -109,7 +109,7 @@ import { generateText, stepCountIs } from 'ai';
 import { searchTool } from 'some-tool-package';
 
 const { text } = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: 'anthropic/claude-haiku-4.5',
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
