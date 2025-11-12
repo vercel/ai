@@ -79,6 +79,11 @@ export interface Agent<
    * Streams an output from the agent (streaming).
    */
   stream(
-    options: AgentCallParameters<CALL_OPTIONS>,
+    options: AgentCallParameters<CALL_OPTIONS> & {
+      /**
+Abort signal.
+   */
+      abortSignal?: AbortSignal;
+    },
   ): PromiseLike<StreamTextResult<TOOLS, OUTPUT>>;
 }

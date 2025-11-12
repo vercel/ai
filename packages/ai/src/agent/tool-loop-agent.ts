@@ -88,9 +88,18 @@ export class ToolLoopAgent<
   /**
    * Streams an output from the agent (streaming).
    */
-  async stream(
-    options: AgentCallParameters<CALL_OPTIONS>,
-  ): Promise<StreamTextResult<TOOLS, OUTPUT>> {
-    return streamText(await this.prepareCall(options));
+  async stream({
+    abortSignal,
+    ...options
+  }: AgentCallParameters<CALL_OPTIONS> & {
+    /**
+Abort signal.
+   */
+    abortSignal?: AbortSignal;
+  }): Promise<StreamTextResult<TOOLS, OUTPUT>> {
+    return streamText({
+      ...(await this.prepareCall(options)),
+      abortSignal,
+    });
   }
 }
