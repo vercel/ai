@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.99
+
+### Patch Changes
+
+- 384142c: feat(agent): add abortSignal parameter to generate and stream
+
 ## 6.0.0-beta.98
 
 ### Patch Changes
