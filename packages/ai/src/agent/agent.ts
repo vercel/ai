@@ -38,7 +38,12 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
          */
         prompt?: never;
       }
-  );
+  ) & {
+    /**
+     * Abort signal.
+     */
+    abortSignal?: AbortSignal;
+  };
 
 /**
  * An Agent receives a prompt (text or messages) and generates or streams an output
@@ -79,11 +84,6 @@ export interface Agent<
    * Streams an output from the agent (streaming).
    */
   stream(
-    options: AgentCallParameters<CALL_OPTIONS> & {
-      /**
-Abort signal.
-   */
-      abortSignal?: AbortSignal;
-    },
+    options: AgentCallParameters<CALL_OPTIONS>,
   ): PromiseLike<StreamTextResult<TOOLS, OUTPUT>>;
 }

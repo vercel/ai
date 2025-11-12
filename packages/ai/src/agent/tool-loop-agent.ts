@@ -79,10 +79,16 @@ export class ToolLoopAgent<
   /**
    * Generates an output from the agent (non-streaming).
    */
-  async generate(
-    options: AgentCallParameters<CALL_OPTIONS>,
-  ): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-    return generateText(await this.prepareCall(options));
+  async generate({
+    abortSignal,
+    ...options
+  }: AgentCallParameters<CALL_OPTIONS>): Promise<
+    GenerateTextResult<TOOLS, OUTPUT>
+  > {
+    return generateText({
+      ...(await this.prepareCall(options)),
+      abortSignal,
+    });
   }
 
   /**
@@ -91,12 +97,9 @@ export class ToolLoopAgent<
   async stream({
     abortSignal,
     ...options
-  }: AgentCallParameters<CALL_OPTIONS> & {
-    /**
-Abort signal.
-   */
-    abortSignal?: AbortSignal;
-  }): Promise<StreamTextResult<TOOLS, OUTPUT>> {
+  }: AgentCallParameters<CALL_OPTIONS>): Promise<
+    StreamTextResult<TOOLS, OUTPUT>
+  > {
     return streamText({
       ...(await this.prepareCall(options)),
       abortSignal,
