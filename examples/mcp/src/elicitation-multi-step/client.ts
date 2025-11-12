@@ -1,6 +1,10 @@
 import { experimental_createMCPClient, ElicitRequestSchema } from '@ai-sdk/mcp';
+import { openai } from '@ai-sdk/openai';
+import { generateText, stepCountIs } from 'ai';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import 'dotenv/config'
+
 
 type ElicitationAction = 'accept' | 'decline' | 'cancel';
 
@@ -139,22 +143,28 @@ async function main() {
 
   try {
     const tools = await mcpClient.tools();
-    const createEvent = tools['create_event'];
-
-    if (!createEvent) {
+    if (!tools['create_event']) {
       console.error('create_event tool is not available on the server.');
       return;
     }
 
-    const result = await createEvent.execute(
-      {},
-      {
-        messages: [],
-        toolCallId: 'create_event',
+    const { text: response } = await generateText({
+      model: openai('gpt-4o-mini'),
+      tools,
+      stopWhen: stepCountIs(12),
+      onStepFinish: async ({ toolResults }) => {
+        if (toolResults.length > 0) {
+          console.log(
+            'TOOL RESULTS:',
+            JSON.stringify(toolResults, null, 2),
+          );
+        }
       },
-    );
+      prompt:
+        'Schedule a new calendar event by gathering any details you need via available tools.',
+    });
 
-    console.log('TOOL RESULT:', JSON.stringify(result, null, 2));
+    console.log('FINAL RESPONSE:', response);
   } finally {
     await mcpClient.close();
   }

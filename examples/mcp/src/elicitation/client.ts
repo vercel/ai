@@ -1,6 +1,9 @@
 import { experimental_createMCPClient, ElicitRequestSchema } from '@ai-sdk/mcp';
+import { openai } from '@ai-sdk/openai';
+import { generateText, stepCountIs } from 'ai';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import 'dotenv/config'
 
 type ElicitationAction = 'accept' | 'decline' | 'cancel';
 
@@ -139,22 +142,28 @@ async function main() {
 
   try {
     const tools = await mcpClient.tools();
-    const registerUser = tools['register_user'];
-
-    if (!registerUser) {
+    if (!tools['register_user']) {
       console.error('register_user tool is not available on the server.');
       return;
     }
 
-    const result = await registerUser.execute(
-      {},
-      {
-        messages: [],
-        toolCallId: 'register_user',
+    const { text: response } = await generateText({
+      model: openai('gpt-4o-mini'),
+      tools,
+      stopWhen: stepCountIs(10),
+      onStepFinish: async ({ toolResults }) => {
+        if (toolResults.length > 0) {
+          console.log(
+            'TOOL RESULTS:',
+            JSON.stringify(toolResults, null, 2),
+          );
+        }
       },
-    );
+      prompt:
+        'Please help the user register an account using the register_user tool.',
+    });
 
-    console.log('TOOL RESULT:', JSON.stringify(result, null, 2));
+    console.log('FINAL RESPONSE:', response);
   } finally {
     await mcpClient.close();
   }
