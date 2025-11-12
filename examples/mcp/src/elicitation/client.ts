@@ -3,10 +3,11 @@ import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
-import 'dotenv/config'
+import 'dotenv/config';
 
 type ElicitationAction = 'accept' | 'decline' | 'cancel';
 
+// Function to interact within the console
 async function getInputFromUser(
   message: string,
   schema: unknown,
@@ -153,10 +154,7 @@ async function main() {
       stopWhen: stepCountIs(10),
       onStepFinish: async ({ toolResults }) => {
         if (toolResults.length > 0) {
-          console.log(
-            'TOOL RESULTS:',
-            JSON.stringify(toolResults, null, 2),
-          );
+          console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));
         }
       },
       prompt:
