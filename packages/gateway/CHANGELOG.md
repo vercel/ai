@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.9
+
+### Patch Changes
+
+- 29fbd2d: feat(provider/gateway): Add Kimi K2 Thinking models to Gateway model string autocomplete
+
 ## 2.0.8
 
 ### Patch Changes
