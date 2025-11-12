@@ -6,7 +6,9 @@ import type { GatewayConfig } from './gateway-config';
 const TEST_MODEL_ID = 'google/imagen-4.0-generate';
 
 const createTestModel = (
-  config: Partial<GatewayConfig & { o11yHeaders?: Record<string, string> }> = {},
+  config: Partial<
+    GatewayConfig & { o11yHeaders?: Record<string, string> }
+  > = {},
 ) => {
   return new GatewayImageModel(TEST_MODEL_ID, {
     provider: 'gateway',
