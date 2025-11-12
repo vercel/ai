@@ -70,6 +70,8 @@ export type GatewayModelId =
   | 'mistral/pixtral-large'
   | 'moonshotai/kimi-k2'
   | 'moonshotai/kimi-k2-0905'
+  | 'moonshotai/kimi-k2-thinking'
+  | 'moonshotai/kimi-k2-thinking-turbo'
   | 'moonshotai/kimi-k2-turbo'
   | 'morph/morph-v3-fast'
   | 'morph/morph-v3-large'
