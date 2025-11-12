@@ -16042,4 +16042,33 @@ describe('streamText', () => {
       expect(await result.text).toBe('response from without-image-url-support');
     });
   });
+
+  describe('prepareStep with experimental_context', () => {
+    it('should pass experimental_context to prepareStep', async () => {
+      let capturedContext: unknown;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              { type: 'finish', finishReason: 'stop', usage: testUsage },
+            ]),
+            response: {},
+          }),
+        }),
+        experimental_context: { myData: 'test-value' },
+        prepareStep: async ({ experimental_context }) => {
+          capturedContext = experimental_context;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      await result.consumeStream();
+      expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+  });
 });
