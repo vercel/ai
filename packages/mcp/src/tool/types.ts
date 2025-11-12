@@ -258,39 +258,3 @@ export const GetPromptResultSchema = ResultSchema.extend({
   messages: z.array(PromptMessageSchema),
 });
 export type GetPromptResult = z.infer<typeof GetPromptResultSchema>;
-
-// Elicitation
-export const ElicitationRequestedSchema = z
-  .object({
-    type: z.literal('object'),
-    properties: z.optional(z.object({}).loose()),
-    required: z.optional(z.array(z.string())),
-  })
-  .loose();
-export type ElicitationRequestedSchema = z.infer<
-  typeof ElicitationRequestedSchema
->;
-
-export const ElicitationCreateParamsSchema = z.object({
-  message: z.string(),
-  requestedSchema: ElicitationRequestedSchema,
-});
-
-export type ElicitationCreateRequest = z.infer<
-  typeof ElicitationCreateParamsSchema
->;
-
-export const ElicitationActionSchema = z.union([
-  z.object({
-    action: z.literal('accept'),
-    content: z.record(z.string(), z.unknown()),
-  }),
-  z.object({
-    action: z.literal('decline'),
-  }),
-  z.object({
-    action: z.literal('cancel'),
-  }),
-]);
-
-export type ElicitationAction = z.infer<typeof ElicitationActionSchema>;
