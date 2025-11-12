@@ -19,7 +19,7 @@ server.registerTool(
   'register_user',
   {
     description: 'Register a new user account by collecting their information',
-    inputSchema: {}
+    inputSchema: {},
   },
   async () => {
     const elicitInput = server.server?.elicitInput?.bind(server.server);
@@ -72,11 +72,7 @@ server.registerTool(
       });
 
       if (result.action === 'accept' && result.content) {
-        const {
-          username,
-          email,
-          newsletter,
-        } = result.content as {
+        const { username, email, newsletter } = result.content as {
           username: string;
           email: string;
           password: string;

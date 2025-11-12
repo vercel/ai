@@ -60,7 +60,7 @@ async function getInputFromUser(
       )) {
         const title =
           propertySchema && typeof propertySchema === 'object'
-            ? propertySchema.title ?? key
+            ? (propertySchema.title ?? key)
             : key;
 
         const label = requiredFields.has(key)
@@ -133,8 +133,7 @@ async function main() {
 
     return {
       action: userResponse.action,
-      content:
-        userResponse.action === 'accept' ? userResponse.data : undefined,
+      content: userResponse.action === 'accept' ? userResponse.data : undefined,
     };
   });
 
@@ -165,4 +164,3 @@ main().catch(error => {
   console.error('Error running multi-step elicitation client example:', error);
   process.exitCode = 1;
 });
-

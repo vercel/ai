@@ -155,4 +155,3 @@ app.listen(8084, () => {
     'MCP multi-step elicitation server listening on http://localhost:8084',
   );
 });
-
