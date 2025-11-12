@@ -167,7 +167,7 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
        * - Restricting which functions can be called
        * - Setting the overall function calling mode
        *
-       * Note: Explicit toolChoice ('none', 'required', 'tool') takes precedence. 
+       * Note: Explicit toolChoice ('none', 'required', 'tool') takes precedence.
        * When toolChoice is 'auto' or unspecified, functionCallingConfig is used
        *
        * @see https://ai.google.dev/gemini-api/docs/function-calling#function_calling_modes
