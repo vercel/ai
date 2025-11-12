@@ -21,6 +21,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { isReasoningModel } from '../openai-is-reasoning-model';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -444,7 +445,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-    let isFirstChunk = true;
+    let metadataExtracted = false;
     let isActiveText = false;
 
     const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
@@ -480,13 +481,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
               return;
             }
 
-            if (isFirstChunk) {
-              isFirstChunk = false;
-
-              controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
+            // extract and emit response metadata once. Usually it comes in the first chunk.
+            // Azure may prepend a chunk with a `"prompt_filter_results"` key which does not contain other metadata,
+            // https://learn.microsoft.com/en-us/azure/ai-foundry/openai/concepts/content-filter-annotations?tabs=powershell
+            if (!metadataExtracted) {
+              const metadata = getResponseMetadata(value);
+              if (Object.values(metadata).some(Boolean)) {
+                metadataExtracted = true;
+                controller.enqueue({
+                  type: 'response-metadata',
+                  ...getResponseMetadata(value),
+                });
+              }
             }
 
             if (value.usage != null) {
@@ -698,13 +704,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 }
 
-function isReasoningModel(modelId: string) {
-  return (
-    (modelId.startsWith('o') || modelId.startsWith('gpt-5')) &&
-    !modelId.startsWith('gpt-5-chat')
-  );
-}
-
 function supportsFlexProcessing(modelId: string) {
   return (
     modelId.startsWith('o3') ||
@@ -726,45 +725,5 @@ function supportsPriorityProcessing(modelId: string) {
 }
 
 function getSystemMessageMode(modelId: string) {
-  if (!isReasoningModel(modelId)) {
-    return 'system';
-  }
-
-  return (
-    reasoningModels[modelId as keyof typeof reasoningModels]
-      ?.systemMessageMode ?? 'developer'
-  );
+  return isReasoningModel(modelId) ? 'developer' : 'system';
 }
-
-const reasoningModels = {
-  'o1-mini': {
-    systemMessageMode: 'remove',
-  },
-  'o1-mini-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
-  o3: {
-    systemMessageMode: 'developer',
-  },
-  'o3-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
-  'o3-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o3-mini-2025-01-31': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
-} as const;

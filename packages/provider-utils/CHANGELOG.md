@@ -1,5 +1,38 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 32d8dbb: fix(provider-utils): compatibility with V8 readonly execution environment
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 4f16c37: chore(provider-utils): upgrade eventsource-parser to 3.0.6
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+
 ## 4.0.0-beta.28
 
 ### Patch Changes

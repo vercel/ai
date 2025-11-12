@@ -1,5 +1,55 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 3.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 3.0.0-beta.41
+
+### Patch Changes
+
+- 1742445: Support for custom provider name in google and anthropic providers
+
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- 2825757: Add Google File search tool
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
 ## 3.0.0-beta.36
 
 ### Patch Changes
