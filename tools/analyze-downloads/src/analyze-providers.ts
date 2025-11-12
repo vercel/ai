@@ -68,13 +68,17 @@ async function main() {
 
   try {
     for (const pkg of packages) {
-      console.log(`Fetching stats from https://api.npmjs.org/downloads/point/${sevenDaysAgoTimestamp}:${yesterdayTimestamp}/${pkg} ...`);
+      console.log(
+        `Fetching stats from https://api.npmjs.org/downloads/point/${sevenDaysAgoTimestamp}:${yesterdayTimestamp}/${pkg} ...`,
+      );
       const responseLastWeek = await fetchWithRetry(
         `https://api.npmjs.org/downloads/point/${sevenDaysAgoTimestamp}:${yesterdayTimestamp}/${pkg}`,
       );
       const dataLastWeek = await responseLastWeek.json();
 
-      console.log(`Fetching stats from https://api.npmjs.org/downloads/point/${fourteenDaysAgoTimestamp}:${eightDaysAgoTimestamp}/${pkg} ...`);
+      console.log(
+        `Fetching stats from https://api.npmjs.org/downloads/point/${fourteenDaysAgoTimestamp}:${eightDaysAgoTimestamp}/${pkg} ...`,
+      );
       const responsePrevWeek = await fetchWithRetry(
         `https://api.npmjs.org/downloads/point/${fourteenDaysAgoTimestamp}:${eightDaysAgoTimestamp}/${pkg}`,
       );
@@ -129,17 +133,26 @@ async function main() {
 
 main();
 
-function fetchWithRetry(url: string, options: RequestInit = {}, retries = 3, backoff = 3000): Promise<Response> {
+function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  retries = 3,
+  backoff = 3000,
+): Promise<Response> {
   return new Promise((resolve, reject) => {
     const attemptFetch = (n: number) => {
       fetch(url, options)
         .then(response => {
           if (!response.ok) {
             if (n > 0) {
-              console.warn(`Fetch failed for ${url}. Retrying in ${backoff}ms... (${n} retries left)`);
+              console.warn(
+                `Fetch failed for ${url}. Retrying in ${backoff}ms... (${n} retries left)`,
+              );
               setTimeout(() => attemptFetch(n - 1), backoff);
             } else {
-              reject(new Error(`Failed to fetch ${url} after multiple attempts.`));
+              reject(
+                new Error(`Failed to fetch ${url} after multiple attempts.`),
+              );
             }
           } else {
             resolve(response);
@@ -147,13 +160,17 @@ function fetchWithRetry(url: string, options: RequestInit = {}, retries = 3, bac
         })
         .catch(err => {
           if (n > 0) {
-            console.warn(`Fetch error for ${url}: ${err}. Retrying in ${backoff}ms... (${n} retries left)`);
+            console.warn(
+              `Fetch error for ${url}: ${err}. Retrying in ${backoff}ms... (${n} retries left)`,
+            );
             setTimeout(() => attemptFetch(n - 1), backoff);
           } else {
-            reject(new Error(`Failed to fetch ${url} after multiple attempts.`));
+            reject(
+              new Error(`Failed to fetch ${url} after multiple attempts.`),
+            );
           }
         });
     };
     attemptFetch(retries);
   });
-} 
+}
