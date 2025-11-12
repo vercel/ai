@@ -24,6 +24,10 @@ import {
   CallToolResult,
   CallToolResultSchema,
   Configuration as ClientConfiguration,
+  ElicitationAction,
+  ElicitationActionSchema,
+  ElicitationCreateParamsSchema,
+  ElicitationCreateRequest,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
   ListResourceTemplatesResult,
@@ -57,6 +61,13 @@ export interface MCPClientConfig {
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
+  /** Optional elicitation handler for server-initiated information requests */
+  elicitation?: {
+    onCreate: (
+      request: ElicitationCreateRequest,
+      requestId?: string | number,
+    ) => Promise<ElicitationAction>;
+  };
 }
 
 export async function createMCPClient(
@@ -128,13 +139,19 @@ class DefaultMCPClient implements MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
+  private elicitationOnCreate?: (
+    request: ElicitationCreateRequest,
+    requestId?: string | number,
+  ) => Promise<ElicitationAction>;
 
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
     onUncaughtError,
+    elicitation,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
+    this.elicitationOnCreate = elicitation?.onCreate;
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -146,9 +163,35 @@ class DefaultMCPClient implements MCPClient {
     this.transport.onerror = (error: Error) => this.onError(error);
     this.transport.onmessage = message => {
       if ('method' in message) {
+        // Handle elicitation/create requests from server
+        if (
+          'id' in message &&
+          message.method === 'elicitation/create' &&
+          this.elicitationOnCreate
+        ) {
+          this.handleElicitationCreate(message as JSONRPCRequest).catch(
+            error => {
+              this.onError(error);
+            },
+          );
+          return;
+        }
+
         // This lightweight client implementation does not support
-        // receiving notifications or requests from server.
+        // receiving other notifications or requests from server.
         // If we get an unsupported message, we can safely ignore it and pass to the onError handler:
+        if ('id' in message && message.method === 'elicitation/create') {
+          // Return error response for elicitation/create when no handler configured
+          this.sendErrorResponse(
+            message.id,
+            -32000,
+            'Method not supported',
+          ).catch(error => {
+            this.onError(error);
+          });
+          return;
+        }
+
         this.onError(
           new MCPClientError({
             message: 'Unsupported message type',
@@ -176,7 +219,9 @@ class DefaultMCPClient implements MCPClient {
           method: 'initialize',
           params: {
             protocolVersion: LATEST_PROTOCOL_VERSION,
-            capabilities: {},
+            capabilities: {
+              ...(this.elicitationOnCreate ? { elicitation: {} } : {}),
+            },
             clientInfo: this.clientInfo,
           },
         },
@@ -566,6 +611,71 @@ class DefaultMCPClient implements MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  private async handleElicitationCreate(
+    request: JSONRPCRequest,
+  ): Promise<void> {
+    if (!this.elicitationOnCreate) {
+      await this.sendErrorResponse(request.id, -32000, 'Method not supported');
+      return;
+    }
+
+    try {
+      // Parse and validate the request params
+      const params = ElicitationCreateParamsSchema.parse(request.params);
+
+      // Call the user-provided callback with the request ID
+      const action = await this.elicitationOnCreate(params, request.id);
+
+      // Validate the action response
+      const validatedAction = ElicitationActionSchema.parse(action);
+
+      // Send the response back to the server
+      const response: JSONRPCResponse = {
+        jsonrpc: '2.0',
+        id: request.id,
+        result: validatedAction,
+      };
+
+      await this.transport.send(response);
+    } catch (error) {
+      // Handle validation errors or callback errors
+      if (error instanceof z.ZodError) {
+        await this.sendErrorResponse(
+          request.id,
+          -32602,
+          'Invalid params',
+          error.issues,
+        );
+      } else {
+        await this.sendErrorResponse(
+          request.id,
+          -32603,
+          'Internal error',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+  }
+
+  private async sendErrorResponse(
+    id: string | number,
+    code: number,
+    message: string,
+    data?: unknown,
+  ): Promise<void> {
+    const errorResponse: JSONRPCError = {
+      jsonrpc: '2.0',
+      id,
+      error: {
+        code,
+        message,
+        ...(data !== undefined ? { data } : {}),
+      },
+    };
+
+    await this.transport.send(errorResponse);
   }
 
   private onClose(): void {

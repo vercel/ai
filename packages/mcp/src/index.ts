@@ -18,3 +18,8 @@ export type {
   OAuthTokens,
 } from './tool/oauth-types';
 export type { MCPTransport } from './tool/mcp-transport';
+export type {
+  ElicitationAction as experimental_ElicitationAction,
+  ElicitationCreateRequest as experimental_ElicitationCreateRequest,
+  ElicitationRequestedSchema as experimental_ElicitationRequestedSchema,
+} from './tool/types';
