@@ -36,7 +36,7 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5-pro-2025-10-06',
   'gpt-5.1',
   'gpt-5.1-codex-mini',
-  'gpt-5.1-codex'
+  'gpt-5.1-codex',
 ] as const;
 
 export const openaiResponsesModelIds = [
