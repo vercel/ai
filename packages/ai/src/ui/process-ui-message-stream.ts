@@ -110,9 +110,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             );
 
             if (toolInvocation == null) {
-              throw new Error(
-                `no tool invocation found for tool call ${toolCallId}`,
-              );
+              return undefined;
             }
 
             return toolInvocation;
@@ -536,77 +534,85 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
-              toolInvocation.state = 'approval-requested';
-              toolInvocation.approval = { id: chunk.approvalId };
-              write();
+              if (toolInvocation != null) {
+                toolInvocation.state = 'approval-requested';
+                toolInvocation.approval = { id: chunk.approvalId };
+                write();
+              }
               break;
             }
 
             case 'tool-output-denied': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
-              toolInvocation.state = 'output-denied';
-              write();
+              if (toolInvocation != null) {
+                toolInvocation.state = 'output-denied';
+                write();
+              }
               break;
             }
 
             case 'tool-output-available': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
 
-              if (toolInvocation.type === 'dynamic-tool') {
-                updateDynamicToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: toolInvocation.toolName,
-                  state: 'output-available',
-                  input: (toolInvocation as any).input,
-                  output: chunk.output,
-                  preliminary: chunk.preliminary,
-                  providerExecuted: chunk.providerExecuted,
-                  title: toolInvocation.title,
-                });
-              } else {
-                updateToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
-                  state: 'output-available',
-                  input: (toolInvocation as any).input,
-                  output: chunk.output,
-                  providerExecuted: chunk.providerExecuted,
-                  preliminary: chunk.preliminary,
-                  title: toolInvocation.title,
-                });
-              }
+              if (toolInvocation != null) {
+                if (toolInvocation.type === 'dynamic-tool') {
+                  updateDynamicToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: toolInvocation.toolName,
+                    state: 'output-available',
+                    input: (toolInvocation as any).input,
+                    output: chunk.output,
+                    preliminary: chunk.preliminary,
+                    providerExecuted: chunk.providerExecuted,
+                    title: toolInvocation.title,
+                  });
+                } else {
+                  updateToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: getToolName(toolInvocation),
+                    state: 'output-available',
+                    input: (toolInvocation as any).input,
+                    output: chunk.output,
+                    providerExecuted: chunk.providerExecuted,
+                    preliminary: chunk.preliminary,
+                    title: toolInvocation.title,
+                  });
+                }
 
-              write();
+                write();
+              }
               break;
             }
 
             case 'tool-output-error': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
 
-              if (toolInvocation.type === 'dynamic-tool') {
-                updateDynamicToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: toolInvocation.toolName,
-                  state: 'output-error',
-                  input: (toolInvocation as any).input,
-                  errorText: chunk.errorText,
-                  providerExecuted: chunk.providerExecuted,
-                  title: toolInvocation.title,
-                });
-              } else {
-                updateToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
-                  state: 'output-error',
-                  input: (toolInvocation as any).input,
-                  rawInput: (toolInvocation as any).rawInput,
-                  errorText: chunk.errorText,
-                  providerExecuted: chunk.providerExecuted,
-                  title: toolInvocation.title,
-                });
-              }
+              if (toolInvocation != null) {
+                if (toolInvocation.type === 'dynamic-tool') {
+                  updateDynamicToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: toolInvocation.toolName,
+                    state: 'output-error',
+                    input: (toolInvocation as any).input,
+                    errorText: chunk.errorText,
+                    providerExecuted: chunk.providerExecuted,
+                    title: toolInvocation.title,
+                  });
+                } else {
+                  updateToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: getToolName(toolInvocation),
+                    state: 'output-error',
+                    input: (toolInvocation as any).input,
+                    rawInput: (toolInvocation as any).rawInput,
+                    errorText: chunk.errorText,
+                    providerExecuted: chunk.providerExecuted,
+                    title: toolInvocation.title,
+                  });
+                }
 
-              write();
+                write();
+              }
               break;
             }
 
