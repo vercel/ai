@@ -148,17 +148,37 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
         throw new Error(message);
       }
       const json = (await response.json()) as unknown;
-      const parsed = bflPollSchema.safeParse(json);
-      if (!parsed.success) {
-        throw new Error('Invalid BFL poll response');
+      let status: string | undefined;
+      let sampleUrl: string | undefined;
+      if (json && typeof json === 'object') {
+        const payload = json as Record<string, unknown>;
+        status =
+          typeof payload.status === 'string'
+            ? (payload.status as string)
+            : typeof (payload as Record<string, unknown>).state === 'string'
+              ? ((payload as Record<string, unknown>).state as string)
+              : undefined;
+        const result = payload.result as Record<string, unknown> | undefined;
+        if (result && typeof result.sample === 'string') {
+          sampleUrl = result.sample as string;
+        } else if (typeof (payload as Record<string, unknown>).sample === 'string') {
+          sampleUrl =
+            ((payload as Record<string, unknown>).sample as string) ?? undefined;
+        }
+      } else if (typeof json === 'string') {
+        status = json;
       }
-      const value = parsed.data;
 
-      if (value.status === 'Ready') {
-        return value.result!.sample;
+      if (status === 'Ready') {
+        if (!sampleUrl) {
+          throw new Error('BFL poll response is Ready but missing result sample.');
+        }
+        return sampleUrl;
       }
-      if (value.status === 'Error' || value.status === 'Failed') {
-        throw new Error('Black Forest Labs generation failed.');
+      if (status === 'Error' || status === 'Failed') {
+        const msg =
+          bflErrorToMessage(json) ?? 'Black Forest Labs generation failed.';
+        throw new Error(msg);
       }
 
       await delay(
@@ -216,10 +236,10 @@ const bflSubmitSchema = z.object({
 });
 
 const bflPollSchema = z.object({
-  status: z.union([z.literal('Pending'), z.literal('Ready'), z.literal('Error'), z.literal('Failed')]),
+  status: z.string(),
   result: z
     .object({
-      sample: z.string().url(),
+      sample: z.string(),
     })
     .optional(),
 });
