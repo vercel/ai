@@ -204,6 +204,36 @@ console.log(text);
 
 For more configuration options and customization, see the [Exa AI SDK documentation](https://docs.exa.ai/reference/vercel).
 
+#### Parallel Web
+
+<Note>Get your API key from the [Parallel Platform](https://parallel.ai).</Note>
+
+First, install the Parallel Web AI SDK tools:
+
+```bash
+pnpm install @parallel-web/ai-sdk-tools
+```
+
+Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. Parallel Web provides two tools: `searchTool` for web search and `extractTool` for extracting web page content:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'When was Vercel Ship AI?',
+  tools: {
+    webSearch: searchTool,
+    webExtract: extractTool,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
 ### Build and use custom tools
 
 For more control over your web search functionality, you can build custom tools using web scraping and crawling APIs. This approach allows you to customize search parameters, handle specific data formats, and integrate with specialized search services.
