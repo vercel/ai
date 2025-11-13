@@ -42,6 +42,37 @@ const { text } = await generateText({
 });
 ```
 
+## Search API
+
+The Perplexity provider includes a search tool that gives you access to Perplexity's Search API. This tool can be used with **any model that supports tool calling** (OpenAI, Anthropic, etc.) to give them web search capabilities powered by Perplexity.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { perplexity } from '@ai-sdk/perplexity';
+import { generateText, stepCountIs } from 'ai';
+
+const { text } = await generateText({
+  model: openai('gpt-5-mini'),
+  prompt: 'What are the latest AI developments? Use search.',
+  tools: {
+    search: perplexity.tools.search({
+      max_results: 5,
+      search_recency_filter: 'week',
+    }),
+  },
+  stopWhen: stepCountIs(3),
+});
+```
+
+The search tool supports:
+
+- Single or multi-query searches
+- Domain filtering (include/exclude specific domains)
+- Language filtering
+- Date range filtering
+- Recency filtering (day, week, month, year)
+- Custom result limits and token limits per page
+
 ## Documentation
 
 Please check out the **[Perplexity provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity)** for more information.
