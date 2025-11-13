@@ -35,6 +35,7 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5-pro',
   'gpt-5-pro-2025-10-06',
   'gpt-5.1',
+  'gpt-5.1-chat-latest',
   'gpt-5.1-codex-mini',
   'gpt-5.1-codex',
 ] as const;
@@ -73,7 +74,6 @@ export const openaiResponsesModelIds = [
   'gpt-3.5-turbo-1106',
   'chatgpt-4o-latest',
   'gpt-5-chat-latest',
-  'gpt-5.1-chat-latest',
   ...openaiResponsesReasoningModelIds,
 ] as const;
 
