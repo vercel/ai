@@ -11,7 +11,7 @@ The [Gladia](https://gladia.io/) provider contains language model support for th
 
 The Gladia provider is available in the `@ai-sdk/gladia` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/gladia" dark />
   </Tab>
@@ -20,6 +20,10 @@ The Gladia provider is available in the `@ai-sdk/gladia` module. You can install
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/gladia" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/gladia" dark />
   </Tab>
 </Tabs>
 
@@ -47,7 +51,7 @@ You can use the following optional settings to customize the Gladia provider ins
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header.
-  It defaults to the `DEEPGRAM_API_KEY` environment variable.
+  It defaults to the `GLADIA_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
 

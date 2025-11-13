@@ -1,7 +1,15 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
-import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import {
+  FetchFunction,
+  Resolvable,
+  normalizeHeaders,
+  resolve,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
+import { VERSION } from '../version';
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
@@ -13,10 +21,7 @@ export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
     headers: HeadersInit | undefined;
     api: string;
   } & {
-    trigger:
-      | 'submit-user-message'
-      | 'submit-tool-result'
-      | 'regenerate-assistant-message';
+    trigger: 'submit-message' | 'regenerate-message';
     messageId: string | undefined;
   },
 ) =>
@@ -52,7 +57,16 @@ export type PrepareReconnectToStreamRequest = (options: {
       api?: string;
     }>;
 
+/**
+ * Options for the `HttpChatTransport` class.
+ *
+ * @param UI_MESSAGE - The type of message to be used in the chat.
+ */
 export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
+  /**
+   * The API URL to be used for the chat transport.
+   * Defaults to '/api/chat'.
+   */
   api?: string;
 
   /**
@@ -60,12 +74,12 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    * Possible values are: 'omit', 'same-origin', 'include'.
    * Defaults to 'same-origin'.
    */
-  credentials?: RequestCredentials;
+  credentials?: Resolvable<RequestCredentials>;
 
   /**
    * HTTP headers to be sent with the API request.
    */
-  headers?: Record<string, string> | Headers;
+  headers?: Resolvable<Record<string, string> | Headers>;
 
   /**
    * Extra body object to be sent with the API request.
@@ -79,7 +93,7 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    * })
    * ```
    */
-  body?: object;
+  body?: Resolvable<object>;
 
   /**
   Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -98,6 +112,15 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    */
   prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
 
+  /**
+   * When a function is provided, it will be used
+   * to prepare the request body for the chat API. This can be useful for
+   * customizing the request body based on the messages and data in the chat.
+   *
+   * @param id The id of the chat.
+   * @param messages The current messages in the chat.
+   * @param requestBody The request body object passed in the chat request.
+   */
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };
 
@@ -105,9 +128,9 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
   implements ChatTransport<UI_MESSAGE>
 {
   protected api: string;
-  protected credentials?: RequestCredentials;
-  protected headers?: Record<string, string> | Headers;
-  protected body?: object;
+  protected credentials: HttpChatTransportInitOptions<UI_MESSAGE>['credentials'];
+  protected headers: HttpChatTransportInitOptions<UI_MESSAGE>['headers'];
+  protected body: HttpChatTransportInitOptions<UI_MESSAGE>['body'];
   protected fetch?: FetchFunction;
   protected prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
   protected prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
@@ -134,13 +157,22 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     abortSignal,
     ...options
   }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]) {
+    const resolvedBody = await resolve(this.body);
+    const resolvedHeaders = await resolve(this.headers);
+    const resolvedCredentials = await resolve(this.credentials);
+
+    const baseHeaders = {
+      ...normalizeHeaders(resolvedHeaders),
+      ...normalizeHeaders(options.headers),
+    };
+
     const preparedRequest = await this.prepareSendMessagesRequest?.({
       api: this.api,
       id: options.chatId,
       messages: options.messages,
-      body: { ...this.body, ...options.body },
-      headers: { ...this.headers, ...options.headers },
-      credentials: this.credentials,
+      body: { ...resolvedBody, ...options.body },
+      headers: baseHeaders,
+      credentials: resolvedCredentials,
       requestMetadata: options.metadata,
       trigger: options.trigger,
       messageId: options.messageId,
@@ -149,30 +181,34 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const api = preparedRequest?.api ?? this.api;
     const headers =
       preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...this.headers, ...options.headers };
+        ? normalizeHeaders(preparedRequest.headers)
+        : baseHeaders;
     const body =
       preparedRequest?.body !== undefined
         ? preparedRequest.body
         : {
-            ...this.body,
+            ...resolvedBody,
             ...options.body,
             id: options.chatId,
             messages: options.messages,
             trigger: options.trigger,
             messageId: options.messageId,
           };
-    const credentials = preparedRequest?.credentials ?? this.credentials;
+    const credentials = preparedRequest?.credentials ?? resolvedCredentials;
 
     // avoid caching globalThis.fetch in case it is patched by other libraries
     const fetch = this.fetch ?? globalThis.fetch;
 
     const response = await fetch(api, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
+      headers: withUserAgentSuffix(
+        {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       body: JSON.stringify(body),
       credentials,
       signal: abortSignal,
@@ -193,29 +229,42 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
   async reconnectToStream(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
-  ): Promise<ReadableStream<UIMessageStreamPart> | null> {
+  ): Promise<ReadableStream<UIMessageChunk> | null> {
+    const resolvedBody = await resolve(this.body);
+    const resolvedHeaders = await resolve(this.headers);
+    const resolvedCredentials = await resolve(this.credentials);
+
+    const baseHeaders = {
+      ...normalizeHeaders(resolvedHeaders),
+      ...normalizeHeaders(options.headers),
+    };
+
     const preparedRequest = await this.prepareReconnectToStreamRequest?.({
       api: this.api,
       id: options.chatId,
-      body: { ...this.body, ...options.body },
-      headers: { ...this.headers, ...options.headers },
-      credentials: this.credentials,
+      body: { ...resolvedBody, ...options.body },
+      headers: baseHeaders,
+      credentials: resolvedCredentials,
       requestMetadata: options.metadata,
     });
 
     const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
     const headers =
       preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...this.headers, ...options.headers };
-    const credentials = preparedRequest?.credentials ?? this.credentials;
+        ? normalizeHeaders(preparedRequest.headers)
+        : baseHeaders;
+    const credentials = preparedRequest?.credentials ?? resolvedCredentials;
 
     // avoid caching globalThis.fetch in case it is patched by other libraries
     const fetch = this.fetch ?? globalThis.fetch;
 
     const response = await fetch(api, {
       method: 'GET',
-      headers,
+      headers: withUserAgentSuffix(
+        headers,
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       credentials,
     });
 
@@ -239,5 +288,5 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
   protected abstract processResponseStream(
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
-  ): ReadableStream<UIMessageStreamPart>;
+  ): ReadableStream<UIMessageChunk>;
 }

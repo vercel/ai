@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/replace-nanoid';
+import transformer from '../codemods/v4/replace-nanoid';
 import { testTransform } from './test-utils';
 
 describe('replace-nanoid', () => {

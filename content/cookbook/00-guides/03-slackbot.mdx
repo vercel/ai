@@ -1,10 +1,10 @@
 ---
-title: Slackbot Guide
-description: Learn how to use the AI SDK to build an AI Slackbot.
+title: Slackbot Agent Guide
+description: Learn how to use the AI SDK to build an AI Agent in Slack.
 tags: ['agents', 'chatbot']
 ---
 
-# Building a Slack AI Chatbot with the AI SDK
+# Building an AI Agent in Slack with the AI SDK
 
 In this guide, you will learn how to build a Slackbot powered by the AI SDK. The bot will be able to respond to direct messages and mentions in channels using the full context of the thread.
 
@@ -319,8 +319,7 @@ Here's how to implement it:
 
 ```typescript filename="lib/generate-response.ts"
 import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-import type { ModelMessage } from 'ai';
+import { generateText, ModelMessage } from 'ai';
 
 export const generateResponse = async (
   messages: ModelMessage[],
@@ -351,8 +350,7 @@ The real power of the AI SDK comes from tools that enable your bot to perform ac
 
 ```typescript filename="lib/generate-response.ts"
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool } from 'ai';
-import type { ModelMessage } from 'ai';
+import { generateText, tool, ModelMessage, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { exa } from './utils';
 
@@ -367,11 +365,11 @@ export const generateResponse = async (
     - Current date is: ${new Date().toISOString().split('T')[0]}
     - Always include sources in your final response if you use web search.`,
     messages,
-    maxSteps: 10,
+    stopWhen: stepCountIs(10),
     tools: {
       getWeather: tool({
         description: 'Get the current weather at a location',
-        parameters: z.object({
+        inputSchema: z.object({
           latitude: z.number(),
           longitude: z.number(),
           city: z.string(),
@@ -394,7 +392,7 @@ export const generateResponse = async (
       }),
       searchWeb: tool({
         description: 'Use this to search the web for information',
-        parameters: z.object({
+        inputSchema: z.object({
           query: z.string(),
           specificDomain: z
             .string()
@@ -435,7 +433,7 @@ In this updated implementation:
    - `getWeather`: Fetches weather data for a specified location
    - `searchWeb`: Searches the web for information using the Exa API
 
-2. You set `maxSteps: 10` to enable multi-step conversations. This will automatically send any tool results back to the LLM to trigger additional tool calls or responses as the LLM deems necessary. This turns your LLM call from a one-off operation into a multi-step agentic flow.
+2. You set `stopWhen: stepCountIs(10)` to enable multi-step conversations. This defines the stopping conditions of your agent, when the model generates a tool call. This will automatically send any tool results back to the LLM to trigger additional tool calls or responses as the LLM deems necessary. This turns your LLM call from a one-off operation into a multi-step agentic flow.
 
 ## How It Works
 

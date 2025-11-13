@@ -1,2 +1,6 @@
-// https://vercel.com/docs/v0/api
-export type VercelChatModelId = 'v0-1.0-md' | (string & {});
+// https://v0.dev/docs/v0-model-api
+export type VercelChatModelId =
+  | 'v0-1.0-md'
+  | 'v0-1.5-md'
+  | 'v0-1.5-lg'
+  | (string & {});

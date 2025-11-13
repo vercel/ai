@@ -8,7 +8,7 @@ const chat = new Chat({
   transport: new DefaultChatTransport({
     api: '/api/use-chat-request',
     // only send the last message to the server:
-    prepareRequest({ messages, id }) {
+    prepareSendMessagesRequest({ messages, id }) {
       return { body: { message: messages[messages.length - 1], id } };
     },
   }),

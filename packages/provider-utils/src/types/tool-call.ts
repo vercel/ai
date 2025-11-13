@@ -23,4 +23,9 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
    * If this flag is not set or is false, the tool call will be executed by the client.
    */
   providerExecuted?: boolean;
+
+  /**
+   * Whether the tool is dynamic.
+   */
+  dynamic?: boolean;
 }

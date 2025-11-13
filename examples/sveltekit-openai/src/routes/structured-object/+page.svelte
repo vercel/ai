@@ -4,6 +4,7 @@
   import { Textarea } from '$lib/components/ui/textarea/index.js';
   import { Experimental_StructuredObject } from '@ai-sdk/svelte';
   import { notificationSchema } from './schema.js';
+  import Trash from '$lib/components/icons/trash.svelte';
 
   const structuredObject = new Experimental_StructuredObject({
     api: '/api/structured-object',
@@ -56,15 +57,24 @@
           }
         }}
       />
-      <Button
-        aria-label="Send message"
-        disabled={structuredObject.loading}
-        type="submit"
-        size="icon"
-        class="absolute bottom-3 right-3"
-      >
-        <ArrowUp />
-      </Button>
+      <div class="absolute bottom-3 right-3">
+        <Button
+          aria-label="Clear"
+          type="button"
+          size="icon"
+          onclick={() => structuredObject.clear()}
+        >
+          <Trash />
+        </Button>
+        <Button
+          aria-label="Send message"
+          disabled={structuredObject.loading}
+          type="submit"
+          size="icon"
+        >
+          <ArrowUp />
+        </Button>
+      </div>
     </form>
   </div>
 </main>

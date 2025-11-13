@@ -1,8 +1,8 @@
 import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
 import {
-  UIMessageStreamPart,
-  uiMessageStreamPartSchema,
-} from '../ui-message-stream/ui-message-stream-parts';
+  UIMessageChunk,
+  uiMessageChunkSchema,
+} from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
   HttpChatTransportInitOptions,
@@ -18,20 +18,17 @@ export class DefaultChatTransport<
 
   protected processResponseStream(
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
-  ): ReadableStream<UIMessageStreamPart> {
+  ): ReadableStream<UIMessageChunk> {
     return parseJsonEventStream({
       stream,
-      schema: uiMessageStreamPartSchema,
+      schema: uiMessageChunkSchema,
     }).pipeThrough(
-      new TransformStream<
-        ParseResult<UIMessageStreamPart>,
-        UIMessageStreamPart
-      >({
-        async transform(part, controller) {
-          if (!part.success) {
-            throw part.error;
+      new TransformStream<ParseResult<UIMessageChunk>, UIMessageChunk>({
+        async transform(chunk, controller) {
+          if (!chunk.success) {
+            throw chunk.error;
           }
-          controller.enqueue(part.value);
+          controller.enqueue(chunk.value);
         },
       }),
     );

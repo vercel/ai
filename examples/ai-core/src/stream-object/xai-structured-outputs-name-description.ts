@@ -1,7 +1,7 @@
 import { xai } from '@ai-sdk/xai';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = streamObject({

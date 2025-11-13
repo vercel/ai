@@ -14,7 +14,7 @@ import { experimental_transcribe as transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
-const { transcript } = await transcribe({
+const { text: transcript } = await transcribe({
   model: openai.transcription('whisper-1'),
   audio: await readFile('audio.mp3'),
 });
@@ -37,7 +37,7 @@ console.log(transcript);
   content={[
     {
       name: 'model',
-      type: 'TranscriptionModelV2',
+      type: 'TranscriptionModelV3',
       description: 'The transcription model to use.',
     },
     {
@@ -47,7 +47,7 @@ console.log(transcript);
     },
     {
       name: 'providerOptions',
-      type: 'Record<string, Record<string, JSONValue>>',
+      type: 'Record<string, JSONObject>',
       isOptional: true,
       description: 'Additional provider-specific options.',
     },

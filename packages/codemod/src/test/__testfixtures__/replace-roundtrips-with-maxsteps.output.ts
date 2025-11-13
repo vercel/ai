@@ -8,19 +8,19 @@ await generateText({
 });
 
 // Test streamText with just maxToolRoundtrips
-await streamText({
+streamText({
   model,
   maxSteps: 6
 });
 
 // Test streamText with subsequent maxToolRoundtrips
-await streamText({
+streamText({
   model,
   maxSteps: 68
 });
 
 // Test streamText with no roundtrips
-await streamText({
+streamText({
   model
 });
 

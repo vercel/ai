@@ -3,6 +3,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('createUIMessageStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {

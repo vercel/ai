@@ -1,0 +1,81 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+
+exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embed",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.tokens": 10,
+      "operation.name": "ai.embed",
+    },
+    "events": [],
+    "name": "ai.embed",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embed.doEmbed",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.tokens": 10,
+      "operation.name": "ai.embed.doEmbed",
+    },
+    "events": [],
+    "name": "ai.embed.doEmbed",
+  },
+]
+`;
+
+exports[`telemetry > should record telemetry data when enabled 1`] = `
+[
+  {
+    "attributes": {
+      "ai.embedding": "[0.1,0.2,0.3]",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embed",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.settings.maxRetries": 2,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.tokens": 10,
+      "ai.value": ""sunny day at the beach"",
+      "operation.name": "ai.embed test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.embed",
+  },
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.1,0.2,0.3]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embed.doEmbed",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.settings.maxRetries": 2,
+      "ai.telemetry.functionId": "test-function-id",
+      "ai.telemetry.metadata.test1": "value1",
+      "ai.telemetry.metadata.test2": false,
+      "ai.usage.tokens": 10,
+      "ai.values": [
+        ""sunny day at the beach"",
+      ],
+      "operation.name": "ai.embed.doEmbed test-function-id",
+      "resource.name": "test-function-id",
+    },
+    "events": [],
+    "name": "ai.embed.doEmbed",
+  },
+]
+`;

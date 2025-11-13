@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/rename-format-stream-part';
+import transformer from '../codemods/v4/rename-format-stream-part';
 import { testTransform } from './test-utils';
 
 describe('rename-format-stream-part', () => {

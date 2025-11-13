@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: azure('gpt-4o'),
+    model: azure('gpt-4.1-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
       openai: {
@@ -15,14 +15,15 @@ async function main() {
 
   for await (const part of result.fullStream) {
     switch (part.type) {
-      case 'text': {
+      case 'text-delta': {
         console.log('Text:', part.text);
         break;
       }
 
       case 'finish-step': {
         console.log(`finishReason: ${part.finishReason}`);
-        console.log('Logprobs:', part.providerMetadata?.azure.logprobs); // object: { string, number, array}
+        console.log('metadata:', JSON.stringify(part.providerMetadata)); // object: { string, number, array}
+        console.log('Logprobs:', part.providerMetadata?.openai.logprobs); // object: { string, number, array}
       }
     }
   }

@@ -1,9 +1,9 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 
 export function getLastUserMessageText({
   prompt,
 }: {
-  prompt: LanguageModelV2Prompt;
+  prompt: LanguageModelV3Prompt;
 }): string | undefined {
   const lastMessage = prompt.at(-1);
 
@@ -13,5 +13,8 @@ export function getLastUserMessageText({
 
   return lastMessage.content.length === 0
     ? undefined
-    : lastMessage.content.filter(c => c.type === 'text').join('\n');
+    : lastMessage.content
+        .filter(c => c.type === 'text')
+        .map(c => c.text)
+        .join('\n');
 }

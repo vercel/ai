@@ -37,39 +37,65 @@ a streaming HTTP response is returned.
 
 Here is a Next.js example that uses the text stream protocol:
 
-```tsx filename='app/page.tsx' highlight="7"
+```tsx filename='app/page.tsx'
 'use client';
 
-import { useCompletion } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
+import { TextStreamChatTransport } from 'ai';
+import { useState } from 'react';
 
-export default function Page() {
-  const { completion, input, handleInputChange, handleSubmit } = useCompletion({
-    streamProtocol: 'text',
+export default function Chat() {
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new TextStreamChatTransport({ api: '/api/chat' }),
   });
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input name="prompt" value={input} onChange={handleInputChange} />
-      <button type="submit">Submit</button>
-      <div>{completion}</div>
-    </form>
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, i) => {
+            switch (part.type) {
+              case 'text':
+                return <div key={`${message.id}-${i}`}>{part.text}</div>;
+            }
+          })}
+        </div>
+      ))}
+
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
+        <input
+          className="fixed dark:bg-zinc-900 bottom-0 w-full max-w-md p-2 mb-8 border border-zinc-300 dark:border-zinc-800 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.currentTarget.value)}
+        />
+      </form>
+    </div>
   );
 }
 ```
 
-```ts filename='app/api/completion/route.ts' highlight="15"
-import { streamText } from 'ai';
+```ts filename='app/api/chat/route.ts'
+import { streamText, UIMessage, convertToModelMessages } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { prompt }: { prompt: string } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    prompt,
+    messages: convertToModelMessages(messages),
   });
 
   return result.toTextStreamResponse();
@@ -80,186 +106,249 @@ export async function POST(req: Request) {
 
 A data stream follows a special protocol that the AI SDK provides to send information to the frontend.
 
-Each stream part has the format `TYPE_ID:CONTENT_JSON\n`.
-
-<MDXImage
-  srcLight="/images/data-stream-protocol.png"
-  srcDark="/images/data-stream-protocol.png"
-  width={3200}
-  height={1712}
-/>
+The data stream protocol uses Server-Sent Events (SSE) format for improved standardization, keep-alive through ping, reconnect capabilities, and better cache handling.
 
 <Note>
   When you provide data streams from a custom backend, you need to set the
-  `x-vercel-ai-data-stream` header to `v1`.
+  `x-vercel-ai-ui-message-stream` header to `v1`.
 </Note>
 
 The following stream parts are currently supported:
 
-### Text Part
+### Message Start Part
 
-The text parts are appended to the message as they are received.
+Indicates the beginning of a new message with metadata.
 
-Format: `0:string\n`
+Format: Server-Sent Event with JSON object
 
-Example: `0:"example"\n`
+Example:
 
-<MDXImage
-  srcLight="/images/text-part.png"
-  srcDark="/images/text-part.png"
-  width={3200}
-  height={1148}
-/>
+```
+data: {"type":"start","messageId":"..."}
 
-### Reasoning Part
+```
 
-The reasoning parts are appended to the message as they are received. The reasoning part is available through `reasoning`.
+### Text Parts
 
-Format: `g:string\n`
+Text content is streamed using a start/delta/end pattern with unique IDs for each text block.
 
-Example: `g:"I will open the conversation with witty banter."\n`
+#### Text Start Part
 
-### Redacted Reasoning Part
+Indicates the beginning of a text block.
 
-The redacted reasoning parts contain reasoning data that has been redacted. This is available through `redacted_reasoning`.
+Format: Server-Sent Event with JSON object
 
-Format: `i:{"data": string}\n`
+Example:
 
-Example: `i:{"data": "This reasoning has been redacted for security purposes."}\n`
+```
+data: {"type":"text-start","id":"msg_68679a454370819ca74c8eb3d04379630dd1afb72306ca5d"}
 
-### Reasoning Signature Part
+```
 
-The reasoning signature parts contain a signature associated with the reasoning. This is available through `reasoning_signature`.
+#### Text Delta Part
 
-Format: `j:{"signature": string}\n`
+Contains incremental text content for the text block.
 
-Example: `j:{"signature": "abc123xyz"}\n`
+Format: Server-Sent Event with JSON object
 
-### Source Part
+Example:
 
-The source parts are appended to the message as they are received. The source part is available through `source`.
+```
+data: {"type":"text-delta","id":"msg_68679a454370819ca74c8eb3d04379630dd1afb72306ca5d","delta":"Hello"}
 
-Format: `h:Source\n`
+```
 
-Example: `h:{"sourceType":"url","id":"source-id","url":"https://example.com","title":"Example"}\n`
+#### Text End Part
+
+Indicates the completion of a text block.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"text-end","id":"msg_68679a454370819ca74c8eb3d04379630dd1afb72306ca5d"}
+
+```
+
+### Reasoning Parts
+
+Reasoning content is streamed using a start/delta/end pattern with unique IDs for each reasoning block.
+
+#### Reasoning Start Part
+
+Indicates the beginning of a reasoning block.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"reasoning-start","id":"reasoning_123"}
+
+```
+
+#### Reasoning Delta Part
+
+Contains incremental reasoning content for the reasoning block.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"reasoning-delta","id":"reasoning_123","delta":"This is some reasoning"}
+
+```
+
+#### Reasoning End Part
+
+Indicates the completion of a reasoning block.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"reasoning-end","id":"reasoning_123"}
+
+```
+
+### Source Parts
+
+Source parts provide references to external content sources.
+
+#### Source URL Part
+
+References to external URLs.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"source-url","sourceId":"https://example.com","url":"https://example.com"}
+
+```
+
+#### Source Document Part
+
+References to documents or files.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"source-document","sourceId":"https://example.com","mediaType":"file","title":"Title"}
+
+```
 
 ### File Part
 
-The file parts contain binary data encoded as base64 strings along with their MIME type. The file part is available through `file`.
+The file parts contain references to files with their media type.
 
-Format: `k:{data:string; mimeType:string}\n`
+Format: Server-Sent Event with JSON object
 
-Example: `k:{"data":"base64EncodedData","mimeType":"image/png"}\n`
+Example:
 
-### Data Part
+```
+data: {"type":"file","url":"https://example.com/file.png","mediaType":"image/png"}
 
-The data parts are parsed as JSON and appended to the data array as they are received. The data is available through `data`.
+```
 
-Format: `2:Array<JSONValue>\n`
+### Data Parts
 
-Example: `2:[{"key":"object1"},{"anotherKey":"object2"}]\n`
+Custom data parts allow streaming of arbitrary structured data with type-specific handling.
 
-<MDXImage
-  srcLight="/images/data-part.png"
-  srcDark="/images/data-part.png"
-  width={3200}
-  height={1148}
-/>
+Format: Server-Sent Event with JSON object where the type includes a custom suffix
 
-### Message Annotation Part
+Example:
 
-The message annotation parts are appended to the message as they are received. The annotation part is available through `annotations`.
+```
+data: {"type":"data-weather","data":{"location":"SF","temperature":100}}
 
-Format: `8:Array<JSONValue>\n`
+```
 
-Example: `8:[{"id":"message-123","other":"annotation"}]\n`
+The `data-*` type pattern allows you to define custom data types that your frontend can handle specifically.
 
 ### Error Part
 
 The error parts are appended to the message as they are received.
 
-Format: `3:string\n`
+Format: Server-Sent Event with JSON object
 
-Example: `3:"error message"\n`
+Example:
 
-<MDXImage
-  srcLight="/images/error-part.png"
-  srcDark="/images/error-part.png"
-  width={3200}
-  height={1148}
-/>
+```
+data: {"type":"error","errorText":"error message"}
 
-### Tool Call Streaming Start Part
+```
 
-A part indicating the start of a streaming tool call. This part needs to be sent before any tool call delta for that tool call. Tool call streaming is optional, you can use tool call and tool result parts without it.
+### Tool Input Start Part
 
-Format: `b:{toolCallId:string; toolName:string}\n`
+Indicates the beginning of tool input streaming.
 
-Example: `b:{"toolCallId":"call-456","toolName":"streaming-tool"}\n`
+Format: Server-Sent Event with JSON object
 
-<MDXImage
-  srcLight="/images/tool-call-streaming-start-part.png"
-  srcDark="/images/tool-call-streaming-start-part.png"
-  width={3200}
-  height={1148}
-/>
+Example:
 
-### Tool Call Delta Part
+```
+data: {"type":"tool-input-start","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","toolName":"getWeatherInformation"}
 
-A part representing a delta update for a streaming tool call.
+```
 
-Format: `c:{toolCallId:string; argsTextDelta:string}\n`
+### Tool Input Delta Part
 
-Example: `c:{"toolCallId":"call-456","argsTextDelta":"partial arg"}\n`
+Incremental chunks of tool input as it's being generated.
 
-<MDXImage
-  srcLight="/images/tool-call-delta-part.png"
-  srcDark="/images/tool-call-delta-part.png"
-  width={3200}
-  height={1148}
-/>
+Format: Server-Sent Event with JSON object
 
-### Tool Call Part
+Example:
 
-A part representing a tool call. When there are streamed tool calls, the tool call part needs to come after the tool call streaming is finished.
+```
+data: {"type":"tool-input-delta","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","inputTextDelta":"San Francisco"}
 
-Format: `9:{toolCallId:string; toolName:string; args:object}\n`
+```
 
-Example: `9:{"toolCallId":"call-123","toolName":"my-tool","args":{"some":"argument"}}\n`
+### Tool Input Available Part
 
-<MDXImage
-  srcLight="/images/tool-call-part.png"
-  srcDark="/images/tool-call-part.png"
-  width={3200}
-  height={1148}
-/>
+Indicates that tool input is complete and ready for execution.
 
-### Tool Result Part
+Format: Server-Sent Event with JSON object
 
-A part representing a tool result. The result part needs to be sent after the tool call part for that tool call.
+Example:
 
-Format: `a:{toolCallId:string; result:object}\n`
+```
+data: {"type":"tool-input-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","toolName":"getWeatherInformation","input":{"city":"San Francisco"}}
 
-Example: `a:{"toolCallId":"call-123","result":"tool output"}\n`
+```
 
-<MDXImage
-  srcLight="/images/tool-result-part.png"
-  srcDark="/images/tool-result-part.png"
-  width={3200}
-  height={1148}
-/>
+### Tool Output Available Part
+
+Contains the result of tool execution.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-output-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","output":{"city":"San Francisco","weather":"sunny"}}
+
+```
 
 ### Start Step Part
 
 A part indicating the start of a step.
 
-It includes the following metadata:
+Format: Server-Sent Event with JSON object
 
-- `messageId` to indicate the id of the message that this step belongs to.
+Example:
 
-Format: `f:{messageId:string}\n`
+```
+data: {"type":"start-step"}
 
-Example: `f:{"messageId":"step_123"}\n`
+```
 
 ### Finish Step Part
 
@@ -267,76 +356,107 @@ A part indicating that a step (i.e., one LLM API call in the backend) has been c
 
 This part is necessary to correctly process multiple stitched assistant calls, e.g. when calling tools in the backend, and using steps in `useChat` at the same time.
 
-It includes the following metadata:
+Format: Server-Sent Event with JSON object
 
-- [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason)
-- [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage) for that step.
-- `isContinued` to indicate if the step text will be continued in the next step.
+Example:
 
-The finish step part needs to come at the end of a step.
+```
+data: {"type":"finish-step"}
 
-Format: `e:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;},isContinued:boolean}\n`
-
-Example: `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20},"isContinued":false}\n`
+```
 
 ### Finish Message Part
 
-A part indicating the completion of a message with additional metadata, such as [`FinishReason`](/docs/reference/ai-sdk-ui/use-chat#on-finish-finish-reason) and [`Usage`](/docs/reference/ai-sdk-ui/use-chat#on-finish-usage). This part needs to be the last part in the stream.
+A part indicating the completion of a message.
 
-Format: `d:{finishReason:'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown';usage:{promptTokens:number; completionTokens:number;}}\n`
+Format: Server-Sent Event with JSON object
 
-Example: `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`
+Example:
 
-<MDXImage
-  srcLight="/images/finish-message-part.png"
-  srcDark="/images/finish-message-part.png"
-  width={3200}
-  height={1148}
-/>
+```
+data: {"type":"finish"}
+
+```
+
+### Stream Termination
+
+The stream ends with a special `[DONE]` marker.
+
+Format: Server-Sent Event with literal `[DONE]`
+
+Example:
+
+```
+data: [DONE]
+
+```
 
 The data stream protocol is supported
 by `useChat` and `useCompletion` on the frontend and used by default.
 `useCompletion` only supports the `text` and `data` stream parts.
 
-On the backend, you can use `toDataStreamResponse()` from the `streamText` result object to return a streaming HTTP response.
+On the backend, you can use `toUIMessageStreamResponse()` from the `streamText` result object to return a streaming HTTP response.
 
-### Data Stream Example
+### UI Message Stream Example
 
-Here is a Next.js example that uses the data stream protocol:
+Here is a Next.js example that uses the UI message stream protocol:
 
-```tsx filename='app/page.tsx' highlight="7"
+```tsx filename='app/page.tsx'
 'use client';
 
-import { useCompletion } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
 
-export default function Page() {
-  const { completion, input, handleInputChange, handleSubmit } = useCompletion({
-    streamProtocol: 'data', // optional, this is the default
-  });
+export default function Chat() {
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input name="prompt" value={input} onChange={handleInputChange} />
-      <button type="submit">Submit</button>
-      <div>{completion}</div>
-    </form>
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, i) => {
+            switch (part.type) {
+              case 'text':
+                return <div key={`${message.id}-${i}`}>{part.text}</div>;
+            }
+          })}
+        </div>
+      ))}
+
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
+        <input
+          className="fixed dark:bg-zinc-900 bottom-0 w-full max-w-md p-2 mb-8 border border-zinc-300 dark:border-zinc-800 rounded shadow-xl"
+          value={input}
+          placeholder="Say something..."
+          onChange={e => setInput(e.currentTarget.value)}
+        />
+      </form>
+    </div>
   );
 }
 ```
 
-```ts filename='app/api/completion/route.ts' highlight="15"
-import { streamText } from 'ai';
+```ts filename='app/api/chat/route.ts'
 import { openai } from '@ai-sdk/openai';
+import { streamText, UIMessage, convertToModelMessages } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { prompt }: { prompt: string } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    prompt,
+    messages: convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

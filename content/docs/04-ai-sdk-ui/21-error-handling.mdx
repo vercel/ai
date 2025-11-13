@@ -3,7 +3,61 @@ title: Error Handling
 description: Learn how to handle errors in the AI SDK UI
 ---
 
-# Error Handling
+# Error Handling and warnings
+
+## Warnings
+
+The AI SDK shows warnings when something might not work as expected. These warnings help you fix problems before they cause errors.
+
+### When Warnings Appear
+
+Warnings are shown in the browser console when:
+
+- **Unsupported settings**: You use a setting that the AI model doesn't support
+- **Unsupported tools**: You use a tool that the AI model can't use
+- **Other issues**: The AI model reports other problems
+
+### Warning Messages
+
+All warnings start with "AI SDK Warning:" so you can easily find them. For example:
+
+```
+AI SDK Warning: The "temperature" setting is not supported by this model
+AI SDK Warning: The tool "calculator" is not supported by this model
+```
+
+### Turning Off Warnings
+
+By default, warnings are shown in the console. You can control this behavior:
+
+#### Turn Off All Warnings
+
+Set a global variable to turn off warnings completely:
+
+```ts
+globalThis.AI_SDK_LOG_WARNINGS = false;
+```
+
+#### Custom Warning Handler
+
+You can also provide your own function to handle warnings:
+
+```ts
+globalThis.AI_SDK_LOG_WARNINGS = warnings => {
+  // Handle warnings your own way
+  warnings.forEach(warning => {
+    // Your custom logic here
+    console.log('Custom warning:', warning);
+  });
+};
+```
+
+<Note>
+  Custom warning functions are experimental and can change in patch releases
+  without notice.
+</Note>
+
+## Error Handling
 
 ### Error Helper Object
 
@@ -20,15 +74,17 @@ You can use the error object to show an error message, disable the submit button
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, error, reload } =
-    useChat({
-      chatStore: defaultChatStoreOptions({
-        api: '/api/chat',
-      }),
-    });
+  const [input, setInput] = useState('');
+  const { messages, sendMessage, error, regenerate } = useChat();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage({ text: input });
+    setInput('');
+  };
 
   return (
     <div>
@@ -45,7 +101,7 @@ export default function Chat() {
       {error && (
         <>
           <div>An error occurred.</div>
-          <button type="button" onClick={() => reload()}>
+          <button type="button" onClick={() => regenerate()}>
             Retry
           </button>
         </>
@@ -54,7 +110,7 @@ export default function Chat() {
       <form onSubmit={handleSubmit}>
         <input
           value={input}
-          onChange={handleInputChange}
+          onChange={e => setInput(e.target.value)}
           disabled={error != null}
         />
       </form>
@@ -71,28 +127,21 @@ Alternatively you can write a custom submit handler that replaces the last messa
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
-  const {
-    handleInputChange,
-    handleSubmit,
-    error,
-    input,
-    messages,
-    setMessages,
-  } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/api/chat',
-    }),
-  });
+  const [input, setInput] = useState('');
+  const { sendMessage, error, messages, setMessages } = useChat();
 
   function customSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     if (error != null) {
       setMessages(messages.slice(0, -1)); // remove last message
     }
 
-    handleSubmit(event);
+    sendMessage({ text: input });
+    setInput('');
   }
 
   return (
@@ -110,7 +159,7 @@ export default function Chat() {
       {error && <div>An error occurred.</div>}
 
       <form onSubmit={customSubmit}>
-        <input value={input} onChange={handleInputChange} />
+        <input value={input} onChange={e => setInput(e.target.value)} />
       </form>
     </div>
   );
@@ -122,21 +171,17 @@ export default function Chat() {
 Errors can be processed by passing an [`onError`](/docs/reference/ai-sdk-ui/use-chat#on-error) callback function as an option to the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) or [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hooks.
 The callback function receives an error object as an argument.
 
-```tsx file="app/page.tsx" highlight="10-13"
+```tsx file="app/page.tsx" highlight="6-9"
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
 
 export default function Page() {
   const {
     /* ... */
   } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/api/chat',
-      // handle error:
-      onError: error => {
-        console.error(error);
-      },
-    }),
+    // handle error:
+    onError: error => {
+      console.error(error);
+    },
   });
 }
 ```

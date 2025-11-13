@@ -1,12 +1,13 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
+import { describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   {
     role: 'system',
     content: 'you are a friendly bot!',
@@ -25,7 +26,7 @@ const server = createTestServer({
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
-    text = '',
+    content = [],
     tool_calls,
     finish_reason = 'COMPLETE',
     tokens = {
@@ -35,7 +36,9 @@ describe('doGenerate', () => {
     generation_id = 'dad0c7cd-7982-42a7-acfb-706ccf598291',
     headers,
   }: {
-    text?: string;
+    content?: Array<
+      { type: 'text'; text: string } | { type: 'thinking'; thinking: string }
+    >;
     tool_calls?: any;
     finish_reason?: string;
     tokens?: {
@@ -44,7 +47,7 @@ describe('doGenerate', () => {
     };
     generation_id?: string;
     headers?: Record<string, string>;
-  }) {
+  } = {}) {
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'json-value',
       headers,
@@ -53,7 +56,7 @@ describe('doGenerate', () => {
         generation_id,
         message: {
           role: 'assistant',
-          content: [{ type: 'text', text }],
+          content,
           ...(tool_calls ? { tool_calls } : {}),
         },
         finish_reason,
@@ -66,7 +69,7 @@ describe('doGenerate', () => {
   }
 
   it('should extract text response', async () => {
-    prepareJsonResponse({ text: 'Hello, World!' });
+    prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -84,7 +87,7 @@ describe('doGenerate', () => {
 
   it('should extract tool calls', async () => {
     prepareJsonResponse({
-      text: 'Hello, World!',
+      content: [{ type: 'text', text: 'Hello, World!' }],
       tool_calls: [
         {
           id: 'test-id-1',
@@ -151,6 +154,7 @@ describe('doGenerate', () => {
 
   it('should send additional response information', async () => {
     prepareJsonResponse({
+      content: [{ type: 'text', text: '' }],
       generation_id: 'test-id',
     });
 
@@ -207,6 +211,7 @@ describe('doGenerate', () => {
 
   it('should expose the raw response headers', async () => {
     prepareJsonResponse({
+      content: [{ type: 'text', text: '' }],
       headers: { 'test-header': 'test-value' },
     });
 
@@ -225,7 +230,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass model and messages', async () => {
-    prepareJsonResponse({});
+    prepareJsonResponse();
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -242,7 +247,7 @@ describe('doGenerate', () => {
 
   describe('should pass tools', async () => {
     it('should support "none" tool choice', async () => {
-      prepareJsonResponse({});
+      prepareJsonResponse();
 
       await model.doGenerate({
         toolChoice: { type: 'none' },
@@ -296,7 +301,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse({});
+    prepareJsonResponse();
 
     const provider = createCohere({
       apiKey: 'test-api-key',
@@ -321,7 +326,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass response format', async () => {
-    prepareJsonResponse({});
+    prepareJsonResponse();
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -357,7 +362,7 @@ describe('doGenerate', () => {
   });
 
   it('should send request body', async () => {
-    prepareJsonResponse({ text: '' });
+    prepareJsonResponse({ content: [{ type: 'text', text: '' }] });
 
     const { request } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -395,6 +400,7 @@ describe('doGenerate', () => {
 
   it('should handle string "null" tool call arguments', async () => {
     prepareJsonResponse({
+      content: [],
       tool_calls: [
         {
           id: 'test-id-1',
@@ -443,7 +449,9 @@ describe('doGenerate', () => {
 
   describe('citations', () => {
     it('should extract text documents and send to API', async () => {
-      prepareJsonResponse({ text: 'Hello, World!' });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: [
@@ -484,7 +492,9 @@ describe('doGenerate', () => {
     });
 
     it('should extract multiple text documents', async () => {
-      prepareJsonResponse({ text: 'Hello, World!' });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: [
@@ -537,7 +547,9 @@ describe('doGenerate', () => {
     });
 
     it('should support JSON files', async () => {
-      prepareJsonResponse({ text: 'Hello, World!' });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: [
@@ -578,7 +590,9 @@ describe('doGenerate', () => {
     });
 
     it('should throw error for unsupported file types', async () => {
-      prepareJsonResponse({ text: 'Hello, World!' });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await expect(
         model.doGenerate({
@@ -603,7 +617,9 @@ describe('doGenerate', () => {
     });
 
     it('should successfully process supported text media types', async () => {
-      prepareJsonResponse({ text: 'Hello, World!' });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: [
@@ -749,7 +765,9 @@ describe('doGenerate', () => {
     });
 
     it('should not include documents parameter when no files present', async () => {
-      prepareJsonResponse({ text: 'Hello, World!' });
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -759,11 +777,37 @@ describe('doGenerate', () => {
       expect(requestBody.documents).toBeUndefined();
     });
   });
+
+  it('should extract reasoning from response', async () => {
+    prepareJsonResponse({
+      content: [
+        { type: 'text', text: '42' },
+        { type: 'thinking', thinking: 'So I was thinking ...' },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "42",
+          "type": "text",
+        },
+        {
+          "text": "So I was thinking ...",
+          "type": "reasoning",
+        },
+      ]
+    `);
+  });
 });
 
 describe('doStream', () => {
   function prepareStreamResponse({
-    content,
+    content = [],
     usage = {
       input_tokens: 17,
       output_tokens: 244,
@@ -771,25 +815,47 @@ describe('doStream', () => {
     finish_reason = 'COMPLETE',
     headers,
   }: {
-    content: string[];
+    content?: Array<
+      | { type: 'text'; deltas: string[] }
+      | { type: 'thinking'; deltas: string[] }
+    >;
     usage?: {
       input_tokens: number;
       output_tokens: number;
     };
     finish_reason?: string;
     headers?: Record<string, string>;
-  }) {
+  } = {}) {
+    const allEvents: string[] = [];
+
+    content.forEach(contentItem => {
+      if (contentItem.type === 'thinking') {
+        allEvents.push(
+          `event: content-start\ndata: {"type":"content-start","index":0,"delta":{"message":{"content":{"type":"thinking","thinking":""}}}}\n\n`,
+          ...contentItem.deltas.map(
+            text =>
+              `event: content-delta\ndata: {"type":"content-delta","index":0,"delta":{"message":{"content":{"thinking":"${text}"}}}}\n\n`,
+          ),
+          `event: content-end\ndata: {"type":"content-end","index":0}\n\n`,
+        );
+      } else if (contentItem.type === 'text') {
+        allEvents.push(
+          `event: content-start\ndata: {"type":"content-start","index":0,"delta":{"message":{"content":{"type":"text","text":""}}}}\n\n`,
+          ...contentItem.deltas.map(
+            text =>
+              `event: content-delta\ndata: {"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"${text}"}}}}\n\n`,
+          ),
+          `event: content-end\ndata: {"type":"content-end","index":0}\n\n`,
+        );
+      }
+    });
+
     server.urls['https://api.cohere.com/v2/chat'].response = {
       type: 'stream-chunks',
       headers,
       chunks: [
         `event: message-start\ndata: {"type":"message-start","id":"586ac33f-9c64-452c-8f8d-e5890e73b6fb","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}\n\n`,
-        `event: content-start\ndata: {"type":"content-start","index":0,"delta":{"message":{"content":{"type":"text","text":""}}}}\n\n`,
-        ...content.map(
-          text =>
-            `event: content-delta\ndata: {"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"${text}"}}}}\n\n`,
-        ),
-        `event: content-end\ndata: {"type":"content-end","index":0}\n\n`,
+        ...allEvents,
         `event: message-end\ndata: {"type":"message-end","delta":` +
           `{"finish_reason":"${finish_reason}",` +
           `"usage":{"tokens":{"input_tokens":${usage.input_tokens},"output_tokens":${usage.output_tokens}}}}}\n\n`,
@@ -800,7 +866,7 @@ describe('doStream', () => {
 
   it('should stream text deltas', async () => {
     prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
+      content: [{ type: 'text', deltas: ['Hello', ', ', 'World!'] }],
       finish_reason: 'COMPLETE',
       usage: {
         input_tokens: 34,
@@ -822,6 +888,103 @@ describe('doStream', () => {
         {
           "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
           "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ", ",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": "World!",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 34,
+            "outputTokens": 12,
+            "totalTokens": 46,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream reasoning deltas', async () => {
+    prepareStreamResponse({
+      content: [
+        { type: 'thinking', deltas: ['So', 'I ', 'was ', 'thinking ', '...'] },
+        { type: 'text', deltas: ['Hello', ', ', 'World!'] },
+      ],
+      finish_reason: 'COMPLETE',
+      usage: {
+        input_tokens: 34,
+        output_tokens: 12,
+      },
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "So",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "I ",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "was ",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "thinking ",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "...",
+          "id": "0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "0",
+          "type": "reasoning-end",
         },
         {
           "id": "0",
@@ -1062,7 +1225,7 @@ describe('doStream', () => {
   });
 
   it('should pass the messages and the model', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareStreamResponse();
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -1086,7 +1249,7 @@ describe('doStream', () => {
   });
 
   it('should pass headers', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareStreamResponse();
 
     const provider = createCohere({
       apiKey: 'test-api-key',
@@ -1112,7 +1275,7 @@ describe('doStream', () => {
   });
 
   it('should send request body', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareStreamResponse();
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -1220,7 +1383,7 @@ describe('doStream', () => {
 
   it('should include raw chunks when includeRawChunks is enabled', async () => {
     prepareStreamResponse({
-      content: ['Hello', ' World!'],
+      content: [{ type: 'text', deltas: ['Hello', ' World!'] }],
     });
 
     const { stream } = await model.doStream({
@@ -1319,7 +1482,7 @@ describe('doStream', () => {
 
   it('should not include raw chunks when includeRawChunks is false', async () => {
     prepareStreamResponse({
-      content: ['Hello', ' World!'],
+      content: [{ type: 'text', deltas: ['Hello', ' World!'] }],
     });
 
     const { stream } = await model.doStream({

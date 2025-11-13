@@ -42,7 +42,7 @@ const handleSubmit = (e: Event) => {
       <button
         type="button"
         class="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
-        @click="() => chat.reload()"
+        @click="() => chat.regenerate()"
       >
         Retry
       </button>

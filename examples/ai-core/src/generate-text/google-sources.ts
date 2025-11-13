@@ -1,25 +1,30 @@
-import { google } from '@ai-sdk/google';
+import { google, GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await generateText({
-    model: google('gemini-2.0-flash-exp'),
-    providerOptions: {
-      google: {
-        useSearchGrounding: true,
-      },
+  const { text, sources, providerMetadata } = await generateText({
+    model: google('gemini-2.5-flash'),
+    tools: {
+      google_search: google.tools.googleSearch({}),
     },
-    prompt: 'List the top 5 San Francisco news from the past week.',
+    prompt:
+      'List the top 5 San Francisco news from the past week.' +
+      'You must include the date of each article.',
   });
 
-  console.log(result.text);
+  const metadata = providerMetadata?.google as
+    | GoogleGenerativeAIProviderMetadata
+    | undefined;
+  const groundingMetadata = metadata?.groundingMetadata;
+
+  console.log(text);
   console.log();
   console.log('SOURCES');
-  console.log(result.sources);
+  console.log(sources);
   console.log();
   console.log('PROVIDER METADATA');
-  console.log(result.providerMetadata?.google);
+  console.log(groundingMetadata);
 }
 
 main().catch(console.error);

@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { ImageModelResponseMetadata } from '../../core/types/image-model-response-metadata';
+import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 
 const name = 'AI_NoImageGeneratedError';
 const marker = `vercel.ai.error.${name}`;

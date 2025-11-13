@@ -1,16 +1,18 @@
-import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import {
   RetryFunction,
-  retryWithExponentialBackoff,
-} from '../../src/util/retry-with-exponential-backoff';
+  retryWithExponentialBackoffRespectingRetryHeaders,
+} from '../util/retry-with-exponential-backoff';
 
 /**
  * Validate and prepare retries.
  */
 export function prepareRetries({
   maxRetries,
+  abortSignal,
 }: {
   maxRetries: number | undefined;
+  abortSignal: AbortSignal | undefined;
 }): {
   maxRetries: number;
   retry: RetryFunction;
@@ -37,6 +39,9 @@ export function prepareRetries({
 
   return {
     maxRetries: maxRetriesResult,
-    retry: retryWithExponentialBackoff({ maxRetries: maxRetriesResult }),
+    retry: retryWithExponentialBackoffRespectingRetryHeaders({
+      maxRetries: maxRetriesResult,
+      abortSignal,
+    }),
   };
 }

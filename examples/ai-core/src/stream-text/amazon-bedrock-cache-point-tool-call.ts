@@ -1,7 +1,7 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { streamText, tool, ModelMessage } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 const messages: ModelMessage[] = [];
 
@@ -146,7 +146,7 @@ async function main() {
 
   for await (const delta of result.fullStream) {
     switch (delta.type) {
-      case 'text': {
+      case 'text-delta': {
         fullResponse += delta.text;
         process.stdout.write(delta.text);
         break;

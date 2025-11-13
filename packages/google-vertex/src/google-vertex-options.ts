@@ -1,8 +1,13 @@
-// https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference#supported-models
+// https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions
 // Note preview and experimental models may only be detailed in AI Studio:
 // https://console.cloud.google.com/vertex-ai/studio/
 export type GoogleVertexModelId =
   // Stable models
+  | 'gemini-2.5-pro'
+  | 'gemini-2.5-flash'
+  | 'gemini-2.5-flash-lite'
+  | 'gemini-2.0-flash-lite'
+  | 'gemini-2.0-flash'
   | 'gemini-2.0-flash-001'
   | 'gemini-1.5-flash'
   | 'gemini-1.5-flash-001'
@@ -17,6 +22,8 @@ export type GoogleVertexModelId =
   | 'gemini-1.0-pro-002'
   // Preview models
   | 'gemini-2.0-flash-lite-preview-02-05'
+  | 'gemini-2.5-flash-lite-preview-09-2025'
+  | 'gemini-2.5-flash-preview-09-2025'
   // Experimental models
   | 'gemini-2.0-pro-exp-02-05'
   | 'gemini-2.0-flash-exp'

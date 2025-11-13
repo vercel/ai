@@ -1,12 +1,22 @@
 ---
-title: RAG Chatbot
-description: Learn how to build a RAG Chatbot with the AI SDK and Next.js
-tags: ['rag', 'chatbot', 'next', 'embeddings', 'database', 'retrieval']
+title: RAG Agent
+description: Learn how to build a RAG Agent with the AI SDK and Next.js
+tags:
+  [
+    'rag',
+    'chatbot',
+    'next',
+    'embeddings',
+    'database',
+    'retrieval',
+    'memory',
+    'agent',
+  ]
 ---
 
-# RAG Chatbot Guide
+# RAG Agent Guide
 
-In this guide, you will learn how to build a retrieval-augmented generation (RAG) chatbot application.
+In this guide, you will learn how to build a retrieval-augmented generation (RAG) agent.
 
 <video
   src="/images/rag-guide-demo.mp4"
@@ -102,7 +112,7 @@ Onto the project!
 
 ## Project Setup
 
-In this project, you will build a chatbot that will only respond with information that it has within its knowledge base. The chatbot will be able to both store and retrieve information. This project has many interesting use cases from customer support through to building your own second brain!
+In this project, you will build a agent that will only respond with information that it has within its knowledge base. The agent will be able to both store and retrieve information. This project has many interesting use cases from customer support through to building your own second brain!
 
 This project will use the following stack:
 
@@ -136,10 +146,32 @@ First things first, run the following command to install the project’s depende
 
 ### Create Database
 
-You will need a Postgres database to complete this tutorial. If you don’t have Postgres setup on your local machine you can:
+You will need a Postgres database to complete this tutorial. If you don't have Postgres setup on your local machine you can:
 
-- Create a free Postgres database with [Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres); or
+- Create a free Postgres database with Vercel (recommended - see instructions below); or
 - Follow [this guide](https://www.prisma.io/dataguide/postgresql/setting-up-a-local-postgresql-database) to set it up locally
+
+#### Setting up Postgres with Vercel
+
+To set up a Postgres instance on your Vercel account:
+
+1. Go to [Vercel.com](https://vercel.com) and make sure you're logged in
+1. Navigate to your team homepage
+1. Click on the **Integrations** tab
+1. Click **Browse Marketplace**
+1. Look for the **Storage** option in the sidebar
+1. Select the **Neon** option (recommended, but any other PostgreSQL database provider should work)
+1. Click **Install**, then click **Install** again in the top right corner
+1. On the "Get Started with Neon" page, click **Create Database** on the right
+1. Select your region (e.g., Washington, D.C., U.S. East)
+1. Turn off **Auth**
+1. Click **Continue**
+1. Name your database (you can use the default name or rename it to something like "RagTutorial")
+1. Click **Create** in the bottom right corner
+1. After seeing "Database created successfully", click **Done**
+1. You'll be redirected to your database instance
+1. In the Quick Start section, click **Show secrets**
+1. Copy the full `DATABASE_URL` environment variable
 
 ### Migrate Database
 
@@ -158,11 +190,8 @@ With that set up, you can now run your first database migration. Run the followi
 This will first add the `pgvector` extension to your database. Then it will create a new table for your `resources` schema that is defined in `lib/db/schema/resources.ts`. This schema has four columns: `id`, `content`, `createdAt`, and `updatedAt`.
 
 <Note>
-  If you experience an error with the migration, open your migration file
-  (`lib/db/migrations/0000_yielding_bloodaxe.sql`), cut (copy and remove) the
-  first line, and run it directly on your postgres instance. You should now be
-  able to run the updated migration. [More
-  info](https://github.com/vercel/ai-sdk-rag-starter/issues/1).
+  If you experience an error with the migration, see the [troubleshooting
+  section](#troubleshooting-migration-error) below.
 </Note>
 
 ### OpenAI API Key
@@ -177,8 +206,8 @@ Let’s build a quick task list of what needs to be done:
 
 1. Create a table in your database to store embeddings
 2. Add logic to chunk and create embeddings when creating resources
-3. Create a chatbot
-4. Give the chatbot tools to query / create resources for it’s knowledge base
+3. Create an agent
+4. Give the agent tools to query / create resources for it’s knowledge base
 
 ### Create Embeddings Table
 
@@ -253,7 +282,7 @@ This function will take an input string and split it by periods, filtering out a
 
 You will use the AI SDK to create embeddings. This will require two more dependencies, which you can install by running the following command:
 
-<Snippet text="pnpm add ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta" />
+<Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" />
 
 This will install the [AI SDK](/docs), AI SDK's React hooks, and AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai).
 
@@ -375,7 +404,7 @@ First, you call the `generateEmbeddings` function created in the previous step, 
 
 ### Create Root Page
 
-Great! Let's build the frontend. The AI SDK’s [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook allows you to easily create a conversational user interface for your chatbot application.
+Great! Let's build the frontend. The AI SDK’s [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook allows you to easily create a conversational user interface for your agent.
 
 Replace your root page (`app/page.tsx`) with the following code.
 
@@ -383,14 +412,11 @@ Replace your root page (`app/page.tsx`) with the following code.
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/api/chat',
-    }),
-  });
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <div className="space-y-4">
@@ -398,18 +424,29 @@ export default function Chat() {
           <div key={m.id} className="whitespace-pre-wrap">
             <div>
               <div className="font-bold">{m.role}</div>
-              <p>{m.content}</p>
+              {m.parts.map(part => {
+                switch (part.type) {
+                  case 'text':
+                    return <p>{part.text}</p>;
+                }
+              })}
             </div>
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
           placeholder="Say something..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.currentTarget.value)}
         />
       </form>
     </div>
@@ -456,13 +493,13 @@ export async function POST(req: Request) {
 }
 ```
 
-In this code, you declare and export an asynchronous function called POST. You retrieve the `messages` from the request body and then pass them to the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function imported from the AI SDK, alongside the model you would like to use. Finally, you return the model’s response in `AIStreamResponse` format.
+In this code, you declare and export an asynchronous function called POST. You retrieve the `messages` from the request body and then pass them to the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function imported from the AI SDK, alongside the model you would like to use. Finally, you return the model’s response in `UIMessageStreamResponse` format.
 
 Head back to the browser and try to send a message again. You should see a response from the model streamed directly in!
 
 ### Refining your prompt
 
-While you now have a working chatbot, it isn't doing anything special.
+While you now have a working agent, it isn't doing anything special.
 
 Let’s add system instructions to refine and restrict the model’s behavior. In this case, you want the model to only use information it has retrieved to generate responses. Update your route handler with the following code:
 
@@ -490,13 +527,13 @@ export async function POST(req: Request) {
 
 Head back to the browser and try to ask the model what your favorite food is. The model should now respond exactly as you instructed above (“Sorry, I don’t know”) given it doesn’t have any relevant information.
 
-In its current form, your chatbot is now, well, useless. How do you give the model the ability to add and query information?
+In its current form, your agent is now, well, useless. How do you give the model the ability to add and query information?
 
 ### Using Tools
 
 A [tool](/docs/foundations/tools) is a function that can be called by the model to perform a specific task. You can think of a tool like a program you give to the model that it can run as and when it deems necessary.
 
-Let’s see how you can create a tool to give the model the ability to create, embed and save a resource to your chatbots’ knowledge base.
+Let’s see how you can create a tool to give the model the ability to create, embed and save a resource to your agents’ knowledge base.
 
 ### Add Resource Tool
 
@@ -524,7 +561,7 @@ export async function POST(req: Request) {
       addResource: tool({
         description: `add a resource to your knowledge base.
           If the user provides a random piece of knowledge unprompted, use this tool without asking for confirmation.`,
-        parameters: z.object({
+        inputSchema: z.object({
           content: z
             .string()
             .describe('the content or resource to add to the knowledge base'),
@@ -541,10 +578,10 @@ export async function POST(req: Request) {
 In this code, you define a tool called `addResource`. This tool has three elements:
 
 - **description**: description of the tool that will influence when the tool is picked.
-- **parameters**: [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) that defines the parameters necessary for the tool to run.
+- **inputSchema**: [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) that defines the input necessary for the tool to run.
 - **execute**: An asynchronous function that is called with the arguments from the tool call.
 
-In simple terms, on each generation, the model will decide whether it should call the tool. If it deems it should call the tool, it will extract the parameters from the input and then append a new `message` to the `messages` array of type `tool-call`. The AI SDK will then run the `execute` function with the parameters provided by the `tool-call` message.
+In simple terms, on each generation, the model will decide whether it should call the tool. If it deems it should call the tool, it will extract the input and then append a new `message` to the `messages` array of type `tool-call`. The AI SDK will then run the `execute` function with the parameters provided by the `tool-call` message.
 
 Head back to the browser and tell the model your favorite food. You should see an empty response in the UI. Did anything happen? Let’s see. Run the following command in a new terminal window.
 
@@ -558,14 +595,11 @@ Let’s make a few changes in the UI to communicate to the user when a tool has 
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    chatStore: defaultChatStoreOptions({
-      api: '/api/chat',
-    }),
-  });
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <div className="space-y-4">
@@ -573,31 +607,40 @@ export default function Chat() {
           <div key={m.id} className="whitespace-pre-wrap">
             <div>
               <div className="font-bold">{m.role}</div>
-              <div>
-                {m.parts.map((part, index) => {
-                  if (part.type === 'text') {
-                    return <p key={index}>{part.text}</p>;
-                  } else if (part.type === 'tool-call') {
+              {m.parts.map(part => {
+                switch (part.type) {
+                  case 'text':
+                    return <p>{part.text}</p>;
+                  case 'tool-addResource':
+                  case 'tool-getInformation':
                     return (
-                      <span key={index} className="italic font-light">
-                        {'calling tool: ' + part.toolName}
-                      </span>
+                      <p>
+                        call{part.state === 'output-available' ? 'ed' : 'ing'}{' '}
+                        tool: {part.type}
+                        <pre className="my-4 bg-zinc-100 p-2 rounded-sm">
+                          {JSON.stringify(part.input, null, 2)}
+                        </pre>
+                      </p>
                     );
-                  }
-                  return null;
-                })}
-              </div>
+                }
+              })}
             </div>
           </div>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
         <input
           className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
           value={input}
           placeholder="Say something..."
-          onChange={handleInputChange}
+          onChange={e => setInput(e.currentTarget.value)}
         />
       </form>
     </div>
@@ -607,26 +650,60 @@ export default function Chat() {
 
 With this change, you now conditionally render the tool that has been called directly in the UI. Save the file and head back to browser. Tell the model your favorite movie. You should see which tool is called in place of the model’s typical text response.
 
+<Note>
+  Don't worry about the `tool-getInformation` tool case in the switch statement
+  - we'll add that tool in a later section.
+</Note>
+
 ### Improving UX with Multi-Step Calls
 
 It would be nice if the model could summarize the action too. However, technically, once the model calls a tool, it has completed its generation as it ‘generated’ a tool call. How could you achieve this desired behaviour?
 
-The AI SDK has a feature called [`maxSteps`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) which will automatically send tool call results back to the model!
+The AI SDK has a feature called [`stopWhen`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) which allows stopping conditions when the model generates a tool call. If those stopping conditions haven't been hit, the AI SDK will automatically send tool call results back to the model!
 
-Open your root page (`app/page.tsx`) and add the following key to the `useChat` configuration object:
+Open your root page (`api/chat/route.ts`) and add the following key to the `streamText` configuration object:
 
-```tsx filename="app/page.tsx" highlight="1,4-8"
-import { useChat } from '@ai-sdk/react';
-import { defaultChatStoreOptions } from 'ai';
+```tsx filename="api/chat/route.ts" highlight="8,24"
+import { createResource } from '@/lib/actions/resources';
+import { openai } from '@ai-sdk/openai';
+import {
+  convertToModelMessages,
+  streamText,
+  tool,
+  UIMessage,
+  stepCountIs,
+} from 'ai';
+import { z } from 'zod';
 
-const { messages, input, handleInputChange, handleSubmit } = useChat({
-  chatStore: defaultChatStoreOptions({
-    api: '/api/chat',
-    maxSteps: 3,
-  }),
-});
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
-// ... Rest of your code
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    system: `You are a helpful assistant. Check your knowledge base before answering any questions.
+    Only respond to questions using information from tool calls.
+    if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
+    tools: {
+      addResource: tool({
+        description: `add a resource to your knowledge base.
+          If the user provides a random piece of knowledge unprompted, use this tool without asking for confirmation.`,
+        inputSchema: z.object({
+          content: z
+            .string()
+            .describe('the content or resource to add to the knowledge base'),
+        }),
+        execute: async ({ content }) => createResource({ content }),
+      }),
+    },
+  });
+
+  return result.toUIMessageStreamResponse();
+}
 ```
 
 Head back to the browser and tell the model your favorite pizza topping (note: pineapple is not an option). You should see a follow-up response from the model confirming the action.
@@ -698,10 +775,16 @@ With that done, it’s onto the final step: creating the tool.
 
 Go back to your route handler (`api/chat/route.ts`) and add a new tool called `getInformation`:
 
-```ts filename="api/chat/route.ts" highlight="5,30-36"
+```ts filename="api/chat/route.ts" highlight="11,37-43"
 import { createResource } from '@/lib/actions/resources';
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, tool, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  streamText,
+  tool,
+  UIMessage,
+  stepCountIs,
+} from 'ai';
 import { z } from 'zod';
 import { findRelevantContent } from '@/lib/ai/embedding';
 
@@ -714,6 +797,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
@@ -721,7 +805,7 @@ export async function POST(req: Request) {
       addResource: tool({
         description: `add a resource to your knowledge base.
           If the user provides a random piece of knowledge unprompted, use this tool without asking for confirmation.`,
-        parameters: z.object({
+        inputSchema: z.object({
           content: z
             .string()
             .describe('the content or resource to add to the knowledge base'),
@@ -730,7 +814,7 @@ export async function POST(req: Request) {
       }),
       getInformation: tool({
         description: `get information from your knowledge base to answer questions.`,
-        parameters: z.object({
+        inputSchema: z.object({
           question: z.string().describe('the users question'),
         }),
         execute: async ({ question }) => findRelevantContent(question),
@@ -746,4 +830,15 @@ Head back to the browser, refresh the page, and ask for your favorite food. You 
 
 ## Conclusion
 
-Congratulations, you have successfully built an AI chatbot that can dynamically add and retrieve information to and from a knowledge base. Throughout this guide, you learned how to create and store embeddings, set up server actions to manage resources, and use tools to extend the capabilities of your chatbot.
+Congratulations, you have successfully built an AI agent that can dynamically add and retrieve information to and from a knowledge base. Throughout this guide, you learned how to create and store embeddings, set up server actions to manage resources, and use tools to extend the capabilities of your agent.
+
+## Troubleshooting Migration Error
+
+If you experience an error with the migration, open your migration file (`lib/db/migrations/0000_yielding_bloodaxe.sql`), cut (copy and remove) the first line, and run it directly on your postgres instance. You should now be able to run the updated migration.
+
+If you're using the Vercel setup above, you can run the command directly by either:
+
+- Going to the Neon console and entering the command there, or
+- Going back to the Vercel platform, navigating to the Quick Start section of your database, and finding the PSQL connection command (second tab). This will connect to your instance in the terminal where you can run the command directly.
+
+[More info](https://github.com/vercel/ai-sdk-rag-starter/issues/1).

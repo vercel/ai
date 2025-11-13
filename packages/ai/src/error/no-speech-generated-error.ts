@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { SpeechModelResponseMetadata } from '../../core/types/speech-model-response-metadata';
+import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 
 /**
 Error that is thrown when no speech audio was generated.

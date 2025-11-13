@@ -1,7 +1,7 @@
 import { prepareHeaders } from '../util/prepare-headers';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
-import { UIMessageStreamPart } from './ui-message-stream-parts';
+import { UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
 
 export function createUIMessageStreamResponse({
@@ -11,7 +11,7 @@ export function createUIMessageStreamResponse({
   stream,
   consumeSseStream,
 }: UIMessageStreamResponseInit & {
-  stream: ReadableStream<UIMessageStreamPart>;
+  stream: ReadableStream<UIMessageChunk>;
 }): Response {
   let sseStream = stream.pipeThrough(new JsonToSseTransformStream());
 

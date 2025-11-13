@@ -22,17 +22,15 @@ Some language models like Anthropic's Claude Sonnet 3.5 and Google's Gemini 2.0 
 Create a route handler that will use Anthropic's Claude model to process messages and PDFs:
 
 ```tsx filename="app/api/chat/route.ts"
-import { anthropic } from '@ai-sdk/anthropic';
-import { streamText } from 'ai';
-
-export const maxDuration = 30;
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-latest'),
-    messages,
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -47,59 +45,84 @@ Create a chat interface that allows uploading PDFs alongside messages:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useRef, useState } from 'react';
-import Image from 'next/image';
+
+async function convertFilesToDataURLs(
+  files: FileList,
+): Promise<
+  { type: 'file'; filename: string; mediaType: string; url: string }[]
+> {
+  return Promise.all(
+    Array.from(files).map(
+      file =>
+        new Promise<{
+          type: 'file';
+          filename: string;
+          mediaType: string;
+          url: string;
+        }>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve({
+              type: 'file',
+              filename: file.name,
+              mediaType: file.type,
+              url: reader.result as string, // Data URL
+            });
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        }),
+    ),
+  );
+}
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [input, setInput] = useState('');
+
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
-          <div>
-            {m?.experimental_attachments
-              ?.filter(
-                attachment =>
-                  attachment?.contentType?.startsWith('image/') ||
-                  attachment?.contentType?.startsWith('application/pdf'),
-              )
-              .map((attachment, index) =>
-                attachment.contentType?.startsWith('image/') ? (
-                  <Image
-                    key={`${m.id}-${index}`}
-                    src={attachment.url}
-                    width={500}
-                    height={500}
-                    alt={attachment.name ?? `attachment-${index}`}
-                  />
-                ) : attachment.contentType?.startsWith('application/pdf') ? (
-                  <iframe
-                    key={`${m.id}-${index}`}
-                    src={attachment.url}
-                    width="500"
-                    height="600"
-                    title={attachment.name ?? `attachment-${index}`}
-                  />
-                ) : null,
-              )}
-          </div>
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+
+          {message.parts.map(part => {
+            if (part.type === 'text') {
+              return <div key={`${message.id}-text`}>{part.text}</div>;
+            }
+          })}
+
+          <div></div>
         </div>
       ))}
 
       <form
         className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl space-y-2"
-        onSubmit={event => {
-          handleSubmit(event, {
-            experimental_attachments: files,
+        onSubmit={async event => {
+          event.preventDefault();
+
+          const fileParts =
+            files && files.length > 0
+              ? await convertFilesToDataURLs(files)
+              : [];
+
+          sendMessage({
+            role: 'user',
+            parts: [{ type: 'text', text: input }, ...fileParts],
           });
 
           setFiles(undefined);
+          setInput('');
 
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -108,7 +131,6 @@ export default function Chat() {
       >
         <input
           type="file"
-          className=""
           onChange={event => {
             if (event.target.files) {
               setFiles(event.target.files);
@@ -117,11 +139,14 @@ export default function Chat() {
           multiple
           ref={fileInputRef}
         />
+
         <input
           className="w-full p-2"
           value={input}
           placeholder="Say something..."
-          onChange={handleInputChange}
+          onChange={event => {
+            setInput(event.target.value);
+          }}
         />
       </form>
     </div>

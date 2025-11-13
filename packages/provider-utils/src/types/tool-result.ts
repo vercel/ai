@@ -22,4 +22,14 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
 Result of the tool call. This is the result of the tool's execution.
      */
   output: OUTPUT;
+
+  /**
+   * Whether the tool result has been executed by the provider.
+   */
+  providerExecuted?: boolean;
+
+  /**
+   * Whether the tool is dynamic.
+   */
+  dynamic?: boolean;
 }

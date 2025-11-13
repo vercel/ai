@@ -12,46 +12,55 @@ When building a chatbot, you may want to allow the user to generate an image. Th
 
 Let's create an endpoint at `/api/chat` that generates the assistant's response based on the conversation history. You will also define a tool called `generateImage` that will generate an image based on the assistant's response.
 
+```typescript filename='tools/generate-image.ts'
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateImage, tool } from 'ai';
+import z from 'zod';
+
+export const generateImage = tool({
+  description: 'Generate an image',
+  inputSchema: z.object({
+    prompt: z.string().describe('The prompt to generate the image from'),
+  }),
+  execute: async ({ prompt }) => {
+    const { image } = await experimental_generateImage({
+      model: openai.imageModel('dall-e-3'),
+      prompt,
+    });
+    // in production, save this image to blob storage and return a URL
+    return { image: image.base64, prompt };
+  },
+});
+```
+
 ```typescript filename='app/api/chat/route.ts'
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage, Message, streamText, tool } from 'ai';
-import { z } from 'zod';
+import {
+  convertToModelMessages,
+  type InferUITools,
+  stepCountIs,
+  streamText,
+  type UIMessage,
+} from 'ai';
+
+import { generateImage } from '@/tools/generate-image';
+
+const tools = {
+  generateImage,
+};
+
+export type ChatTools = InferUITools<typeof tools>;
 
 export async function POST(request: Request) {
-  const { messages }: { messages: Message[] } = await request.json();
-
-  // filter through messages and remove base64 image data to avoid sending to the model
-  const formattedMessages = messages.map(m => {
-    if (m.role === 'assistant' && m.toolInvocations) {
-      m.toolInvocations.forEach(ti => {
-        if (ti.toolName === 'generateImage' && ti.state === 'result') {
-          ti.result.image = `redacted-for-length`;
-        }
-      });
-    }
-    return m;
-  });
+  const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages: formattedMessages,
-    tools: {
-      generateImage: tool({
-        description: 'Generate an image',
-        parameters: z.object({
-          prompt: z.string().describe('The prompt to generate the image from'),
-        }),
-        execute: async ({ prompt }) => {
-          const { image } = await experimental_generateImage({
-            model: openai.image('dall-e-3'),
-            prompt,
-          });
-          // in production, save this image to blob storage and return a URL
-          return { image: image.base64, prompt };
-        },
-      }),
-    },
+    messages: convertToModelMessages(messages),
+    stopWhen: stepCountIs(5),
+    tools,
   });
+
   return result.toUIMessageStreamResponse();
 }
 ```
@@ -70,39 +79,80 @@ Let's create a simple chat interface with `useChat`. You will call the `/api/cha
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import Image from 'next/image';
+import { type FormEvent, useState } from 'react';
+import type { ChatTools } from './api/chat/route';
+
+type ChatMessage = UIMessage<never, never, ChatTools>;
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [input, setInput] = useState('');
+
+  const { messages, sendMessage } = useChat<ChatMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(event.target.value);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    sendMessage({
+      parts: [{ type: 'text', text: input }],
+    });
+
+    setInput('');
+  };
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <div className="space-y-4">
-        {messages.map(m => (
-          <div key={m.id} className="whitespace-pre-wrap">
-            <div key={m.id}>
-              <div className="font-bold">{m.role}</div>
-              {m.toolInvocations ? (
-                m.toolInvocations.map(ti =>
-                  ti.toolName === 'generateImage' ? (
-                    ti.state === 'result' ? (
+        {messages.map(message => (
+          <div key={message.id} className="whitespace-pre-wrap">
+            <div key={message.id}>
+              <div className="font-bold">{message.role}</div>
+              {message.parts.map((part, partIndex) => {
+                const { type } = part;
+
+                if (type === 'text') {
+                  return (
+                    <div key={`${message.id}-part-${partIndex}`}>
+                      {part.text}
+                    </div>
+                  );
+                }
+
+                if (type === 'tool-generateImage') {
+                  const { state, toolCallId } = part;
+
+                  if (state === 'input-available') {
+                    return (
+                      <div key={`${message.id}-part-${partIndex}`}>
+                        Generating image...
+                      </div>
+                    );
+                  }
+
+                  if (state === 'output-available') {
+                    const { input, output } = part;
+
+                    return (
                       <Image
-                        key={ti.toolCallId}
-                        src={`data:image/png;base64,${ti.result.image}`}
-                        alt={ti.result.prompt}
+                        key={toolCallId}
+                        src={`data:image/png;base64,${output.image}`}
+                        alt={input.prompt}
                         height={400}
                         width={400}
                       />
-                    ) : (
-                      <div key={ti.toolCallId} className="animate-pulse">
-                        Generating image...
-                      </div>
-                    )
-                  ) : null,
-                )
-              ) : (
-                <p>{m.content}</p>
-              )}
+                    );
+                  }
+                }
+              })}
             </div>
           </div>
         ))}

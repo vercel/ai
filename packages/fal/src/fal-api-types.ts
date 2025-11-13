@@ -147,3 +147,43 @@ export type FalTranscriptionAPITypes = {
    */
   num_speakers?: number | null;
 };
+
+export const FAL_LANGUAGE_BOOSTS = [
+  'Chinese',
+  'Chinese,Yue',
+  'English',
+  'Arabic',
+  'Russian',
+  'Spanish',
+  'French',
+  'Portuguese',
+  'German',
+  'Turkish',
+  'Dutch',
+  'Ukrainian',
+  'Vietnamese',
+  'Indonesian',
+  'Japanese',
+  'Italian',
+  'Korean',
+  'Thai',
+  'Polish',
+  'Romanian',
+  'Greek',
+  'Czech',
+  'Finnish',
+  'Hindi',
+  'auto',
+] as const;
+export type FalLanguageBoost = (typeof FAL_LANGUAGE_BOOSTS)[number];
+
+export const FAL_EMOTIONS = [
+  'happy',
+  'sad',
+  'angry',
+  'fearful',
+  'disgusted',
+  'surprised',
+  'neutral',
+] as const;
+export type FalEmotion = (typeof FAL_EMOTIONS)[number];

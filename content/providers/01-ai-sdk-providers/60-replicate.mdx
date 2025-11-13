@@ -12,15 +12,19 @@ It is a popular choice for running image generation models.
 
 The Replicate provider is available via the `@ai-sdk/replicate` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add ai@beta @ai-sdk/replicate@beta" dark />
+    <Snippet text="pnpm add @ai-sdk/replicate" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install ai @ai-sdk/replicate" dark />
+    <Snippet text="npm install @ai-sdk/replicate" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add ai @ai-sdk/replicate" dark />
+    <Snippet text="yarn add @ai-sdk/replicate" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/replicate" dark />
   </Tab>
 </Tabs>
 
@@ -84,19 +88,36 @@ The following image models are currently supported by the Replicate provider:
 - [black-forest-labs/flux-dev](https://replicate.com/black-forest-labs/flux-dev)
 - [black-forest-labs/flux-pro](https://replicate.com/black-forest-labs/flux-pro)
 - [black-forest-labs/flux-schnell](https://replicate.com/black-forest-labs/flux-schnell)
+- [bytedance/sdxl-lightning-4step](https://replicate.com/bytedance/sdxl-lightning-4step)
+- [fofr/aura-flow](https://replicate.com/fofr/aura-flow)
+- [fofr/latent-consistency-model](https://replicate.com/fofr/latent-consistency-model)
+- [fofr/realvisxl-v3-multi-controlnet-lora](https://replicate.com/fofr/realvisxl-v3-multi-controlnet-lora)
+- [fofr/sdxl-emoji](https://replicate.com/fofr/sdxl-emoji)
+- [fofr/sdxl-multi-controlnet-lora](https://replicate.com/fofr/sdxl-multi-controlnet-lora)
 - [ideogram-ai/ideogram-v2-turbo](https://replicate.com/ideogram-ai/ideogram-v2-turbo)
 - [ideogram-ai/ideogram-v2](https://replicate.com/ideogram-ai/ideogram-v2)
+- [lucataco/dreamshaper-xl-turbo](https://replicate.com/lucataco/dreamshaper-xl-turbo)
+- [lucataco/open-dalle-v1.1](https://replicate.com/lucataco/open-dalle-v1.1)
+- [lucataco/realvisxl-v2.0](https://replicate.com/lucataco/realvisxl-v2.0)
+- [lucataco/realvisxl2-lcm](https://replicate.com/lucataco/realvisxl2-lcm)
 - [luma/photon-flash](https://replicate.com/luma/photon-flash)
 - [luma/photon](https://replicate.com/luma/photon)
+- [nvidia/sana](https://replicate.com/nvidia/sana)
+- [playgroundai/playground-v2.5-1024px-aesthetic](https://replicate.com/playgroundai/playground-v2.5-1024px-aesthetic)
 - [recraft-ai/recraft-v3-svg](https://replicate.com/recraft-ai/recraft-v3-svg)
 - [recraft-ai/recraft-v3](https://replicate.com/recraft-ai/recraft-v3)
 - [stability-ai/stable-diffusion-3.5-large-turbo](https://replicate.com/stability-ai/stable-diffusion-3.5-large-turbo)
 - [stability-ai/stable-diffusion-3.5-large](https://replicate.com/stability-ai/stable-diffusion-3.5-large)
 - [stability-ai/stable-diffusion-3.5-medium](https://replicate.com/stability-ai/stable-diffusion-3.5-medium)
+- [tstramer/material-diffusion](https://replicate.com/tstramer/material-diffusion)
 
 You can also use [versioned models](https://replicate.com/docs/topics/models/versions).
 The id for versioned models is the Replicate model id followed by a colon and the version ID (`$modelId:$versionId`), e.g.
 `bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637`.
+
+<Note>
+  You can also pass any available Replicate model ID as a string if needed.
+</Note>
 
 ### Basic Usage
 

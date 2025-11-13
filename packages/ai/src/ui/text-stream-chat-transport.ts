@@ -1,4 +1,4 @@
-import { UIMessageStreamPart } from '../ui-message-stream/ui-message-stream-parts';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
   HttpChatTransportInitOptions,
@@ -15,7 +15,7 @@ export class TextStreamChatTransport<
 
   protected processResponseStream(
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
-  ): ReadableStream<UIMessageStreamPart> {
+  ): ReadableStream<UIMessageChunk> {
     return transformTextToUiMessageStream({
       stream: stream.pipeThrough(new TextDecoderStream()),
     });

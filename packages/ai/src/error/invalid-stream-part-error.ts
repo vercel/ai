@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { SingleRequestTextStreamPart } from '../../core/generate-text/run-tools-transformation';
+import { SingleRequestTextStreamPart } from '../generate-text/run-tools-transformation';
 
 const name = 'AI_InvalidStreamPartError';
 const marker = `vercel.ai.error.${name}`;

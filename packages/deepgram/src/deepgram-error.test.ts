@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { deepgramErrorDataSchema } from './deepgram-error';
+import { describe, expect, it } from 'vitest';
 
 describe('deepgramErrorDataSchema', () => {
   it('should parse Deepgram resource exhausted error', async () => {

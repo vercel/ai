@@ -1,11 +1,16 @@
-import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
 import {
-  UIMessageStreamPart,
-  uiMessageStreamPartSchema,
-} from '../ui-message-stream/ui-message-stream-parts';
+  parseJsonEventStream,
+  ParseResult,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
+import {
+  UIMessageChunk,
+  uiMessageChunkSchema,
+} from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { processTextStream } from './process-text-stream';
-import { UIDataTypes } from './ui-messages';
+import { VERSION } from '../version';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -56,10 +61,14 @@ export async function callCompletionApi({
         ...body,
       }),
       credentials,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
+      headers: withUserAgentSuffix(
+        {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       signal: abortController.signal,
     }).catch(err => {
       throw err;
@@ -92,12 +101,9 @@ export async function callCompletionApi({
         await consumeStream({
           stream: parseJsonEventStream({
             stream: response.body,
-            schema: uiMessageStreamPartSchema,
+            schema: uiMessageChunkSchema,
           }).pipeThrough(
-            new TransformStream<
-              ParseResult<UIMessageStreamPart>,
-              UIMessageStreamPart
-            >({
+            new TransformStream<ParseResult<UIMessageChunk>, UIMessageChunk>({
               async transform(part) {
                 if (!part.success) {
                   throw part.error;

@@ -1,4 +1,4 @@
-import { UIMessageStreamPart } from 'ai';
+import { UIMessageChunk } from 'ai';
 import {
   createCallbacksTransformer,
   StreamCallbacks,
@@ -88,7 +88,7 @@ export function toUIMessageStream(
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(
-      new TransformStream<string, UIMessageStreamPart>({
+      new TransformStream<string, UIMessageChunk>({
         start: async controller => {
           controller.enqueue({ type: 'text-start', id: '1' });
         },

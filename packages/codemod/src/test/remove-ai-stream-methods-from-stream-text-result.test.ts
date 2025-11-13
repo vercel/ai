@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/remove-ai-stream-methods-from-stream-text-result';
+import transformer from '../codemods/v4/remove-ai-stream-methods-from-stream-text-result';
 import { testTransform } from './test-utils';
 
 describe('remove-ai-stream-methods-from-stream-text-result', () => {

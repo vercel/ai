@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import transformer from '../codemods/remove-mistral-facade';
+import transformer from '../codemods/v4/remove-mistral-facade';
 import { testTransform } from './test-utils';
 
 describe('remove-mistral-facade', () => {

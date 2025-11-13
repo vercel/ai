@@ -27,4 +27,8 @@ pnpm dev
 
 ```sh
 curl -X POST http://localhost:8080
+curl -X POST http://localhost:8080/custom-data-parts
+curl -i http://localhost:8080/chat \
+ -H "Content-Type: application/json" \
+ --data '{ "messages":[{"role":"user","id":"msg1","parts":[{"type":"text","text":"what happened yesterday in tech?"}]}]}'
 ```

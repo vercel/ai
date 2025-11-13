@@ -1,4 +1,4 @@
-import { UIMessageStreamPart } from '../ui-message-stream';
+import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 
 export function transformTextToUiMessageStream({
   stream,
@@ -6,7 +6,7 @@ export function transformTextToUiMessageStream({
   stream: ReadableStream<string>;
 }) {
   return stream.pipeThrough(
-    new TransformStream<string, UIMessageStreamPart<never, never>>({
+    new TransformStream<string, UIMessageChunk>({
       start(controller) {
         controller.enqueue({ type: 'start' });
         controller.enqueue({ type: 'start-step' });

@@ -143,7 +143,7 @@ export async function continueConversation(
       showStockInformation: {
         description:
           'Get stock information for symbol for the last numOfMonths months',
-        parameters: z.object({
+        inputSchema: z.object({
           symbol: z
             .string()
             .describe('The stock symbol to get information for'),

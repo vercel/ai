@@ -4,27 +4,33 @@ description: Learn how to create several streamText steps with different setting
 tags: ['next', 'streaming']
 ---
 
-# Stream Text Multi-Step
+# streamText Multi-Step Agent
 
 You may want to have different steps in your stream where each step has different settings,
 e.g. models, tools, or system prompts.
 
-With `createDataStreamResponse` and `sendFinish` / `sendStart` options when merging
-into the data stream, you can control when the finish and start events are sent to the client,
+With `createUIMessageStream` and `sendFinish` / `sendStart` options when merging
+into the `UIMessageStream`, you can control when the finish and start events are sent to the client,
 allowing you to have different steps in a single assistant UI message.
 
 ## Server
 
 ```typescript filename='app/api/chat/route.ts'
 import { openai } from '@ai-sdk/openai';
-import { createDataStreamResponse, streamText, tool } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+  tool,
+} from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  return createDataStreamResponse({
-    execute: async dataStream => {
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
       // step 1 example: forced tool call
       const result1 = streamText({
         model: openai('gpt-4o-mini'),
@@ -33,16 +39,14 @@ export async function POST(req: Request) {
         toolChoice: 'required', // force the model to call a tool
         tools: {
           extractGoal: tool({
-            parameters: z.object({ goal: z.string() }),
+            inputSchema: z.object({ goal: z.string() }),
             execute: async ({ goal }) => goal, // no-op extract tool
           }),
         },
       });
 
       // forward the initial result to the client without the finish event:
-      result1.mergeIntoDataStream(dataStream, {
-        experimental_sendFinish: false, // omit the finish event
-      });
+      writer.merge(result1.toUIMessageStream({ sendFinish: false }));
 
       // note: you can use any programming construct here, e.g. if-else, loops, etc.
       // workflow programming is normal programming with this approach.
@@ -61,11 +65,11 @@ export async function POST(req: Request) {
       });
 
       // forward the 2nd result to the client (incl. the finish event):
-      result2.mergeIntoDataStream(dataStream, {
-        experimental_sendStart: false, // omit the start event
-      });
+      writer.merge(result2.toUIMessageStream({ sendStart: false }));
     },
   });
+
+  return createUIMessageStreamResponse({ stream });
 }
 ```
 
@@ -75,9 +79,11 @@ export async function POST(req: Request) {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
 
   return (
     <div>
@@ -88,19 +94,21 @@ export default function Chat() {
             switch (part.type) {
               case 'text':
                 return <span key={index}>{part.text}</span>;
-              case 'tool-invocation': {
-                return (
-                  <pre key={index}>
-                    {JSON.stringify(part.toolInvocation, null, 2)}
-                  </pre>
-                );
+              case 'tool-extractGoal': {
+                return <pre key={index}>{JSON.stringify(part, null, 2)}</pre>;
               }
             }
           })}
         </div>
       ))}
-      <form onSubmit={handleSubmit}>
-        <input value={input} onChange={handleInputChange} />
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendMessage({ text: input });
+          setInput('');
+        }}
+      >
+        <input value={input} onChange={e => setInput(e.currentTarget.value)} />
       </form>
     </div>
   );

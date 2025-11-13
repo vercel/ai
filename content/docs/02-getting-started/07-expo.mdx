@@ -42,24 +42,18 @@ Install `ai`, `@ai-sdk/react` and `@ai-sdk/openai`, the AI package, the AI React
   in the [providers](/providers) section.
 </Note>
 <div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
-      <Snippet
-        text="pnpm add ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta zod"
-        dark
-      />
+      <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="npm install ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta zod"
-        dark
-      />
+      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet
-        text="yarn add ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta zod"
-        dark
-      />
+      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/react zod" dark />
+    </Tab>
+    <Tab>
+      <Snippet text="bun add ai @ai-sdk/openai @ai-sdk/react zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -416,13 +410,13 @@ Now, when you ask about the weather, you'll see the tool call and its result dis
 
 You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using `stopWhen` in your API route. This feature will automatically send tool results back to the model to trigger an additional generation until the stopping condition you define is met. In this case, you want the model to answer your question using the results from the weather tool.
+To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `stepCountIs(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
 
 ### Update Your API Route
 
-Modify your `app/api/chat+api.ts` file to include `stopWhen`:
+Modify your `app/api/chat+api.ts` file to include the `stopWhen` condition:
 
-```tsx filename="app/api/chat+api.ts" highlight="2,11"
+```tsx filename="app/api/chat+api.ts" highlight="11"
 import { openai } from '@ai-sdk/openai';
 import {
   streamText,
@@ -642,7 +636,7 @@ Several functions that are internally used by the AI SDK might not available in 
 First, install the following packages:
 
 <div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
       <Snippet
         text="pnpm add @ungap/structured-clone @stardazed/streams-text-encoding"
@@ -658,6 +652,12 @@ First, install the following packages:
     <Tab>
       <Snippet
         text="yarn add @ungap/structured-clone @stardazed/streams-text-encoding"
+        dark
+      />
+    </Tab>
+    <Tab>
+      <Snippet
+        text="bun add @ungap/structured-clone @stardazed/streams-text-encoding"
         dark
       />
     </Tab>

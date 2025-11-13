@@ -1,8 +1,13 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { createElevenLabs } from './elevenlabs-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createElevenLabs({ apiKey: 'test-api-key' });
@@ -121,6 +126,9 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/elevenlabs/0.0.0-test`,
+    );
   });
 
   it('should extract the transcription text', async () => {
@@ -339,6 +347,42 @@ describe('doGenerate', () => {
         ],
         "text": "Hello world!",
         "warnings": [],
+      }
+    `);
+  });
+
+  it('should pass provider options correctly', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        elevenlabs: {
+          languageCode: 'en',
+          fileFormat: 'pcm_s16le_16',
+          tagAudioEvents: false,
+          numSpeakers: 2,
+          timestampsGranularity: 'character',
+          diarize: true,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "diarize": "true",
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "file_format": "pcm_s16le_16",
+        "language_code": "en",
+        "model_id": "scribe_v1",
+        "num_speakers": "2",
+        "tag_audio_events": "false",
+        "timestamps_granularity": "character",
       }
     `);
   });

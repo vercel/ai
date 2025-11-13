@@ -3,21 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/openai": "3.0.0-beta.57",
     "@hono/node-server": "1.13.7",
-    "ai": "workspace:*",
+    "ai": "6.0.0-beta.99",
     "dotenv": "16.4.5",
     "hono": "4.6.9"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "curl": "curl -i -X POST http://localhost:8080",
+    "dev:streaming": "tsx watch src/hono-streaming.ts",
+    "curl": "curl -i -X POST http://localhost:8080/text",
     "type-check": "tsc --build"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "tsx": "4.19.2",
-    "typescript": "5.8.3",
-    "@vercel/ai-tsconfig": "workspace:*"
+    "typescript": "5.8.3"
   }
 }

@@ -30,10 +30,8 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = streamText({
-  model: openai('gpt-3.5-turbo'),
+  model: openai('gpt-4o'),
   maxOutputTokens: 512,
-  temperature: 0.3,
-  maxRetries: 5,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -49,10 +47,8 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = streamText({
-  model: openai('gpt-3.5-turbo'),
+  model: openai('gpt-4o'),
   maxOutputTokens: 512,
-  temperature: 0.3,
-  maxRetries: 5,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -63,6 +59,6 @@ while (true) {
   if (done) {
     break;
   }
-  console.log(value);
+  process.stdout.write(value);
 }
 ```

@@ -11,7 +11,7 @@ The [DeepInfra](https://deepinfra.com) provider contains support for state-of-th
 
 The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @ai-sdk/deepinfra" dark />
   </Tab>
@@ -20,6 +20,10 @@ The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can 
   </Tab>
   <Tab>
     <Snippet text="yarn add @ai-sdk/deepinfra" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/deepinfra" dark />
   </Tab>
 </Tabs>
 
@@ -186,7 +190,7 @@ For more details and pricing information, see the [DeepInfra text-to-image model
 
 ## Embedding Models
 
-You can create DeepInfra embedding models using the `.textEmbeddingModel()` factory method.
+You can create DeepInfra embedding models using the `.textEmbedding()` factory method.
 For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
 
 ```ts
@@ -194,7 +198,7 @@ import { deepinfra } from '@ai-sdk/deepinfra';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: deepinfra.textEmbeddingModel('BAAI/bge-large-en-v1.5'),
+  model: deepinfra.textEmbedding('BAAI/bge-large-en-v1.5'),
   value: 'sunny day at the beach',
 });
 ```

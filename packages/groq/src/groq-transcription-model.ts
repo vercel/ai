@@ -1,11 +1,12 @@
 import {
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV3,
+  TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
@@ -34,8 +35,8 @@ interface GroqTranscriptionModelConfig extends GroqConfig {
   };
 }
 
-export class GroqTranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class GroqTranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3';
 
   get provider(): string {
     return this.config.provider;
@@ -50,8 +51,8 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV3CallWarning[] = [];
 
     // Parse provider options
     const groqOptions = await parseProviderOptions({
@@ -68,7 +69,12 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
-    formData.append('file', new File([blob], 'audio', { type: mediaType }));
+    const fileExtension = mediaTypeToExtension(mediaType);
+    formData.append(
+      'file',
+      new File([blob], 'audio', { type: mediaType }),
+      `audio.${fileExtension}`,
+    );
 
     // Add provider-specific options
     if (groqOptions) {
@@ -102,8 +108,8 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 
@@ -134,8 +140,8 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
           startSecond: segment.start,
           endSecond: segment.end,
         })) ?? [],
-      language: response.language,
-      durationInSeconds: response.duration,
+      language: response.language ?? undefined,
+      durationInSeconds: response.duration ?? undefined,
       warnings,
       response: {
         timestamp: currentDate,
@@ -148,25 +154,28 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
 }
 
 const groqTranscriptionResponseSchema = z.object({
-  task: z.string(),
-  language: z.string(),
-  duration: z.number(),
   text: z.string(),
-  segments: z.array(
-    z.object({
-      id: z.number(),
-      seek: z.number(),
-      start: z.number(),
-      end: z.number(),
-      text: z.string(),
-      tokens: z.array(z.number()),
-      temperature: z.number(),
-      avg_logprob: z.number(),
-      compression_ratio: z.number(),
-      no_speech_prob: z.number(),
-    }),
-  ),
   x_groq: z.object({
     id: z.string(),
   }),
+  // additional properties are returned when `response_format: 'verbose_json'` is
+  task: z.string().nullish(),
+  language: z.string().nullish(),
+  duration: z.number().nullish(),
+  segments: z
+    .array(
+      z.object({
+        id: z.number(),
+        seek: z.number(),
+        start: z.number(),
+        end: z.number(),
+        text: z.string(),
+        tokens: z.array(z.number()),
+        temperature: z.number(),
+        avg_logprob: z.number(),
+        compression_ratio: z.number(),
+        no_speech_prob: z.number(),
+      }),
+    )
+    .nullish(),
 });
