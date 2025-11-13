@@ -253,10 +253,10 @@ The following optional provider options are available for OpenAI chat models:
 
 ### Responses Models
 
-You can use the Azure OpenAI responses API with the `azure.responses(deploymentName)` factory method.
+Azure OpenAI uses responses API as default with the `azure(deploymentName)` factory method.
 
 ```ts
-const model = azure.responses('your-deployment-name');
+const model = azure('your-deployment-name');
 ```
 
 Further configuration can be done using OpenAI provider options.
@@ -267,7 +267,7 @@ import { azure, OpenAIResponsesProviderOptions } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: azure.responses('your-deployment-name'),
+  model: azure('your-deployment-name'),
   providerOptions: {
     openai: {
       parallelToolCalls: false,
@@ -308,11 +308,11 @@ The following provider options are available:
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `false`.
 
-The Azure OpenAI responses provider also returns provider-specific metadata:
+The Azure OpenAI provider also returns provider-specific metadata:
 
 ```ts
 const { providerMetadata } = await generateText({
-  model: azure.responses('your-deployment-name'),
+  model: azure('your-deployment-name'),
 });
 
 const openaiMetadata = providerMetadata?.openai;
@@ -329,6 +329,10 @@ The following OpenAI-specific metadata is returned:
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
 
+<Note>
+  The providerMetadata is only returned with the default responses API, and is not supported when using 'azure.chat' or 'azure.completion'
+</Note>
+
 #### File Search Tool
 
 The Azure OpenAI responses API supports file search through the `azure.tools.fileSearch` tool.
@@ -337,7 +341,7 @@ You can force the use of the file search tool by setting the `toolChoice` parame
 
 ```ts
 const result = await generateText({
-  model: azure.responses('gpt-5'),
+  model: azure('gpt-5'),
   prompt: 'What does the document say about user authentication?',
   tools: {
     file_search: azure.tools.fileSearch({
@@ -358,6 +362,10 @@ const result = await generateText({
   The tool must be named `file_search` when using Azure OpenAI's file search
   functionality. This name is required by Azure OpenAI's API specification and
   cannot be customized.
+</Note>
+
+<Note>
+  The tool is only supported with the default responses API, and is not supported when using 'azure.chat' or 'azure.completion'
 </Note>
 
 #### Image Generation Tool
@@ -385,7 +393,7 @@ const azure = createAzure({
 });
 
 const result = await generateText({
-  model: azure.responses('gpt-5'),
+  model: azure('gpt-5'),
   prompt:
     'Generate an image of an echidna swimming across the Mozambique channel.',
   tools: {
@@ -415,14 +423,14 @@ for (const toolResult of result.staticToolResults) {
 
 #### Code Interpreter Tool
 
-The Azure OpenAI responses API supports the code interpreter tool through the `azure.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+The Azure OpenAI provider supports the code interpreter tool through the `azure.tools.codeInterpreter` tool. This allows models to write and execute Python code.
 
 ```ts
 import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: azure.responses('gpt-5'),
+  model: azure('gpt-5'),
   prompt: 'Write and run Python code to calculate the factorial of 10',
   tools: {
     code_interpreter: azure.tools.codeInterpreter({
@@ -445,14 +453,18 @@ The code interpreter tool can be configured with:
   specification and cannot be customized.
 </Note>
 
+<Note>
+  The tool is only supported with the default responses API, and is not supported when using 'azure.chat' or 'azure.completion'
+<Note>
+
 #### PDF support
 
-The Azure OpenAI Responses API supports reading PDF files.
+The Azure OpenAI provider supports reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
 
 ```ts
 const result = await generateText({
-  model: azure.responses('your-deployment-name'),
+  model: azure('your-deployment-name'),
   messages: [
     {
       role: 'user',
@@ -477,6 +489,11 @@ The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
 and the `mediaType` should be set to `'application/pdf'`.
+
+<Note>
+  Reading PDF files are only supported with the default responses API, and is not supported when using 'azure.chat' or 'azure.completion'
+<Note>
+
 
 ### Completion Models
 
