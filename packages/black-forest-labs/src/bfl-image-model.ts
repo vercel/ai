@@ -149,31 +149,24 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       }
       const json = (await response.json()) as unknown;
       let status: string | undefined;
-      let sampleUrl: string | undefined;
-      if (json && typeof json === 'object') {
-        const payload = json as Record<string, unknown>;
-        status =
-          typeof payload.status === 'string'
-            ? (payload.status as string)
-            : typeof (payload as Record<string, unknown>).state === 'string'
-              ? ((payload as Record<string, unknown>).state as string)
-              : undefined;
-        const result = payload.result as Record<string, unknown> | undefined;
-        if (result && typeof result.sample === 'string') {
-          sampleUrl = result.sample as string;
-        } else if (typeof (payload as Record<string, unknown>).sample === 'string') {
-          sampleUrl =
-            ((payload as Record<string, unknown>).sample as string) ?? undefined;
-        }
-      } else if (typeof json === 'string') {
-        status = json;
-      }
+      let sample: string | undefined;
+      if (isJsonObject(json)) {
+        const statusVal = json['status'];
+        const stateVal = json['state'];
+        if (typeof statusVal === 'string') status = statusVal;
+        else if (typeof stateVal === 'string') status = stateVal;
 
-      if (status === 'Ready') {
-        if (!sampleUrl) {
-          throw new Error('BFL poll response is Ready but missing result sample.');
+        const resultVal = json['result'];
+        if (isJsonObject(resultVal)) {
+          const sampleVal = resultVal['sample'];
+          if (typeof sampleVal === 'string') sample = sampleVal;
         }
-        return sampleUrl;
+      }
+      if (status === 'Ready') {
+        if (typeof sample === 'string') {
+          return sample;
+        }
+        throw new Error('BFL poll response is Ready but missing result.sample');
       }
       if (status === 'Error' || status === 'Failed') {
         const msg =
@@ -230,16 +223,25 @@ async function delay(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
 const bflSubmitSchema = z.object({
   id: z.string(),
   polling_url: z.string().url(),
 });
 
 const bflPollSchema = z.object({
-  status: z.string(),
+  status: z.union([
+    z.literal('Pending'),
+    z.literal('Ready'),
+    z.literal('Error'),
+    z.literal('Failed'),
+  ]),
   result: z
     .object({
-      sample: z.string(),
+      sample: z.string().url(),
     })
     .optional(),
 });
