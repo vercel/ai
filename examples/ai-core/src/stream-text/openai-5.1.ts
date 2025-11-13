@@ -13,5 +13,5 @@ run(async () => {
 
   console.log();
   console.log('Token usage:', await result.usage);
-  console.log('Finish reason:', await result.reasoningText);
+  console.log('Finish reason:', await result.finishReason);
 });
