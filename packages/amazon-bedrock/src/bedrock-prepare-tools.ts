@@ -9,7 +9,12 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
-import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
+import { novaTools } from './bedrock-nova-tools';
+import {
+  BedrockTool,
+  BedrockSystemTool,
+  BedrockToolConfiguration,
+} from './bedrock-api-types';
 
 export async function prepareTools({
   tools,
@@ -62,7 +67,7 @@ export async function prepareTools({
       toolWarnings,
     };
   }
-
+  const isNovaModel = modelId.includes('nova');
   const isAnthropicModel = modelId.includes('anthropic.');
   const providerDefinedTools = supportedTools.filter(
     t => t.type === 'provider-defined',
@@ -70,10 +75,11 @@ export async function prepareTools({
   const functionTools = supportedTools.filter(t => t.type === 'function');
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
-  const bedrockTools: BedrockTool[] = [];
+  const bedrockTools: Array<BedrockTool | BedrockSystemTool> = [];
 
   const usingAnthropicTools =
     isAnthropicModel && providerDefinedTools.length > 0;
+  const usingNovaTools = isNovaModel && providerDefinedTools.length > 0;
 
   // Handle Anthropic provider-defined tools for Anthropic models on Bedrock
   if (usingAnthropicTools) {
@@ -128,29 +134,66 @@ export async function prepareTools({
         toolWarnings.push({ type: 'unsupported-tool', tool });
       }
     }
+  } else if (usingNovaTools) {
+    // Handle Nova provider-defined tools for Nova models on Bedrock
+    if (functionTools.length > 0) {
+      toolWarnings.push({
+        type: 'unsupported-setting',
+        setting: 'tools',
+        details:
+          'Mixed Nova provider-defined tools and standard function tools are not supported in a single call to Bedrock. Only Nova tools will be used.',
+      });
+    }
+
+    // Process Nova tools and convert to Bedrock system tools
+    for (const tool of providerDefinedTools) {
+      const toolFactory = Object.values(novaTools).find(factory => {
+        const instance = (factory as () => any)();
+        return instance.id === tool.id;
+      });
+
+      if (toolFactory != null) {
+        const toolInstance = (toolFactory as () => any)();
+        // Nova tools are system tools - they use a different format
+        bedrockTools.push({
+          systemTool: {
+            name: toolInstance.name,
+          },
+        });
+      } else {
+        toolWarnings.push({ type: 'unsupported-tool', tool });
+      }
+    }
   } else {
-    // Report unsupported provider-defined tools for non-anthropic models
+    // Report unsupported provider-defined tools for non-anthropic/non-nova models
     for (const tool of providerDefinedTools) {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     }
   }
 
-  // Handle standard function tools for all models
-  for (const tool of functionTools) {
-    bedrockTools.push({
-      toolSpec: {
-        name: tool.name,
-        description: tool.description,
-        inputSchema: {
-          json: tool.inputSchema as JSONObject,
+  // Handle standard function tools for all models (but NOT when using provider-defined tools)
+  if (!usingAnthropicTools && !usingNovaTools) {
+    for (const tool of functionTools) {
+      bedrockTools.push({
+        toolSpec: {
+          name: tool.name,
+          description: tool.description,
+          inputSchema: {
+            json: tool.inputSchema as JSONObject,
+          },
         },
-      },
-    });
+      });
+    }
   }
 
-  // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic provider-defined tools
+  // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic/Nova provider-defined tools
   let bedrockToolChoice: BedrockToolConfiguration['toolChoice'] = undefined;
-  if (!usingAnthropicTools && bedrockTools.length > 0 && toolChoice) {
+  if (
+    !usingAnthropicTools &&
+    !usingNovaTools &&
+    bedrockTools.length > 0 &&
+    toolChoice
+  ) {
     const type = toolChoice.type;
     switch (type) {
       case 'auto':
