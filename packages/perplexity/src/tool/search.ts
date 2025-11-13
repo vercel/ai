@@ -183,7 +183,9 @@ export function search(config: PerplexitySearchConfig = {}) {
         return data;
       } catch (error) {
         if (error instanceof Error) {
-          throw new Error(`Failed to search with Perplexity Search API: ${error.message}`);
+          throw new Error(
+            `Failed to search with Perplexity Search API: ${error.message}`,
+          );
         }
         throw error;
       }

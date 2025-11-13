@@ -8,22 +8,19 @@ describe('Perplexity Search Tool', () => {
       const searchTool = search({ apiKey: 'test-key' });
 
       expectTypeOf(searchTool).toEqualTypeOf<
-        Tool<
-          { query: string | string[] },
-          PerplexitySearchResponse
-        >
+        Tool<{ query: string | string[] }, PerplexitySearchResponse>
       >();
     });
 
     it('should accept single query string', () => {
       const searchTool = search({ apiKey: 'test-key' });
-      
+
       expectTypeOf(searchTool.inputSchema).toMatchTypeOf<any>();
     });
 
     it('should accept query array for multi-query', () => {
       const searchTool = search({ apiKey: 'test-key' });
-      
+
       expectTypeOf(searchTool.inputSchema).toMatchTypeOf<any>();
     });
   });
@@ -31,7 +28,7 @@ describe('Perplexity Search Tool', () => {
   describe('Configuration', () => {
     it('should create tool with API key from config', () => {
       const searchTool = search({ apiKey: 'test-key' });
-      
+
       expect(searchTool.description).toContain('Perplexity Search API');
       expect(searchTool.execute).toBeDefined();
     });
@@ -41,7 +38,7 @@ describe('Perplexity Search Tool', () => {
       process.env.PERPLEXITY_API_KEY = 'env-key';
 
       const searchTool = search();
-      
+
       expect(searchTool.execute).toBeDefined();
 
       process.env.PERPLEXITY_API_KEY = originalKey;
@@ -54,7 +51,10 @@ describe('Perplexity Search Tool', () => {
       const searchTool = search();
 
       await expect(
-        searchTool.execute!({ query: 'test' }, { toolCallId: 'test', messages: [] }),
+        searchTool.execute!(
+          { query: 'test' },
+          { toolCallId: 'test', messages: [] },
+        ),
       ).rejects.toThrow('Please provide an API key');
 
       process.env.PERPLEXITY_API_KEY = originalKey;
