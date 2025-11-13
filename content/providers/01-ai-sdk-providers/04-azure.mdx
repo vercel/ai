@@ -192,6 +192,12 @@ const { text } = await generateText({
   `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=v1`
 </Note>
 
+You can create models that call the Azure OpenAI chat completions API using the `.chat()` factory method:
+
+```ts
+const model = azure.chat('your-deployment-name');
+```
+
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
@@ -200,7 +206,7 @@ import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: azure('your-deployment-name'),
+  model: azure.chat('your-deployment-name'),
   prompt: 'Write a short story about a robot.',
   providerOptions: {
     openai: {
