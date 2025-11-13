@@ -151,8 +151,5 @@ app.post('/messages', async (req, res) => {
 });
 
 app.listen(8085, () => {
-  console.log(
-    'MCP elicitation UI server listening on http://localhost:8085',
-  );
+  console.log('MCP elicitation UI server listening on http://localhost:8085');
 });
-

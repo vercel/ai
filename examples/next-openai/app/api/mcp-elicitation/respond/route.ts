@@ -4,13 +4,16 @@ import { resolvePendingElicitation } from '../elicitation-store';
 export async function POST(req: Request) {
   try {
     const response: ElicitationResponse = await req.json();
-    
+
     console.log('[respond] ========================================');
     console.log('[respond] RESPONSE RECEIVED FROM FRONTEND');
     console.log('[respond] ID:', response.id);
     console.log('[respond] Action:', response.action);
     if (response.action === 'accept') {
-      console.log('[respond] Content:', JSON.stringify(response.content, null, 2));
+      console.log(
+        '[respond] Content:',
+        JSON.stringify(response.content, null, 2),
+      );
     }
     console.log('[respond] ========================================');
 
@@ -19,7 +22,9 @@ export async function POST(req: Request) {
 
     if (!resolved) {
       console.warn('[respond] ========================================');
-      console.warn('[respond] ELICITATION NOT FOUND (already resolved or expired)');
+      console.warn(
+        '[respond] ELICITATION NOT FOUND (already resolved or expired)',
+      );
       console.warn('[respond] ID:', response.id);
       console.warn('[respond] ========================================');
       return Response.json(
@@ -38,10 +43,6 @@ export async function POST(req: Request) {
     console.error('[respond] ERROR processing response');
     console.error('[respond] Error:', error);
     console.error('[respond] ========================================');
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 },
-    );
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

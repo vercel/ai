@@ -19,7 +19,7 @@ export default function MCPElicitationChat() {
     requestedSchema: unknown;
   } | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
-  
+
   // Track which elicitation IDs we've already handled
   const handledElicitationsRef = useRef<Set<string>>(new Set());
 
@@ -39,15 +39,18 @@ export default function MCPElicitationChat() {
       for (const part of message.parts) {
         if (isDataUIPart(part) && part.type === 'data-elicitation-request') {
           const elicitationId = part.data.elicitationId;
-          
+
           // Only show modal if this elicitation hasn't been handled yet
           if (!handledElicitationsRef.current.has(elicitationId)) {
-            console.log('[page] New elicitation request detected:', elicitationId);
+            console.log(
+              '[page] New elicitation request detected:',
+              elicitationId,
+            );
             handledElicitationsRef.current.add(elicitationId);
-            
+
             setCurrentElicitation(part.data);
             setShowModal(true);
-            
+
             // Initialize form data with defaults from schema
             const schema = part.data.requestedSchema as any;
             if (schema?.properties) {
@@ -76,7 +79,12 @@ export default function MCPElicitationChat() {
     }
 
     const elicitationId = currentElicitation.elicitationId;
-    console.log('[page] Submitting response for:', elicitationId, 'action:', action);
+    console.log(
+      '[page] Submitting response for:',
+      elicitationId,
+      'action:',
+      action,
+    );
 
     // Immediately close modal and clear state to prevent double-submission
     setShowModal(false);
@@ -113,11 +121,7 @@ export default function MCPElicitationChat() {
     }
   };
 
-  const renderFormField = (
-    key: string,
-    property: any,
-    isRequired: boolean,
-  ) => {
+  const renderFormField = (key: string, property: any, isRequired: boolean) => {
     const label = property.title || key;
     const description = property.description;
     const type = property.type;
@@ -162,7 +166,13 @@ export default function MCPElicitationChat() {
           />
         ) : (
           <input
-            type={property.format === 'email' ? 'email' : type === 'password' ? 'password' : 'text'}
+            type={
+              property.format === 'email'
+                ? 'email'
+                : type === 'password'
+                  ? 'password'
+                  : 'text'
+            }
             value={formData[key] || ''}
             onChange={e => setFormData({ ...formData, [key]: e.target.value })}
             className="w-full p-2 border border-gray-300 rounded"
@@ -203,7 +213,9 @@ export default function MCPElicitationChat() {
                       <div className="text-sm text-blue-600">
                         📋 Elicitation Request
                       </div>
-                      <div className="mt-1 text-gray-700">{part.data.message}</div>
+                      <div className="mt-1 text-gray-700">
+                        {part.data.message}
+                      </div>
                     </div>
                   );
                 }
@@ -307,4 +319,3 @@ export default function MCPElicitationChat() {
     </div>
   );
 }
-

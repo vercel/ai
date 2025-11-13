@@ -78,7 +78,8 @@ async function processMessages(
       // Return the response in the format expected by the MCP server
       return {
         action: userResponse.action,
-        content: userResponse.action === 'accept' ? userResponse.content : undefined,
+        content:
+          userResponse.action === 'accept' ? userResponse.content : undefined,
       };
     } catch (error) {
       console.error('[route] ========================================');
@@ -86,7 +87,7 @@ async function processMessages(
       console.error('[route] ID:', elicitationId);
       console.error('[route] Error:', error);
       console.error('[route] ========================================');
-      
+
       // Return a declined response on error
       return {
         action: 'decline' as const,
@@ -121,4 +122,3 @@ async function processMessages(
     throw error;
   }
 }
-

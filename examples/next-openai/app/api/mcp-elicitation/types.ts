@@ -34,4 +34,3 @@ export type MCPElicitationUIMessage = UIMessage<
   ElicitationDataTypes,
   never // no tools in this example (all tools come from MCP)
 >;
-
