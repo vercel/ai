@@ -226,6 +226,7 @@ const bflPollSchema = z.object({
 
 const bflErrorSchema = z.object({
   message: z.string().optional(),
+  detail: z.any().optional(),
 });
 
 const bflFailedResponseHandler = createJsonErrorResponseHandler({
@@ -235,8 +236,17 @@ const bflFailedResponseHandler = createJsonErrorResponseHandler({
 
 function bflErrorToMessage(error: unknown): string | undefined {
   const parsed = bflErrorSchema.safeParse(error);
-  if (parsed.success) return parsed.data.message;
-  return undefined;
+  if (!parsed.success) return undefined;
+  const { message, detail } = parsed.data as { message?: string; detail?: unknown };
+  if (typeof detail === 'string') return detail;
+  if (detail != null) {
+    try {
+      return JSON.stringify(detail);
+    } catch {
+      // ignore
+    }
+  }
+  return message;
 }
 
 async function safeParseJson(response: Response): Promise<unknown> {
