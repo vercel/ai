@@ -6,13 +6,7 @@ import { run } from '../lib/run';
 run(async () => {
   const result = streamText({
     model: openai('gpt-5.1'),
-    prompt: 'A ship is floating in the water. A ladder is attached to the ship. The tide comes in, and the water level rises. Will the ladder rungs go underwater?',
-
-    providerOptions: {
-        openai: {
-            reasoningEffort: 'none',
-        }
-    }
+    prompt: 'Invent a new holiday and describe its traditions.',
   });
 
   printFullStream({ result });
