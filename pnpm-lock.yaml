@@ -773,6 +773,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: workspace:*
         version: link:../../packages/anthropic
+      '@ai-sdk/azure':
+        specifier: 3.0.0-beta.59
+        version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: workspace:*
         version: link:../../packages/cohere

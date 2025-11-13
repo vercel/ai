@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
@@ -25,6 +26,25 @@
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/rsc": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
+=======
+    "@ai-sdk/amazon-bedrock": "4.0.0-beta.58",
+    "@ai-sdk/anthropic": "3.0.0-beta.53",
+    "@ai-sdk/azure": "3.0.0-beta.59",
+    "@ai-sdk/cohere": "3.0.0-beta.34",
+    "@ai-sdk/deepseek": "2.0.0-beta.34",
+    "@ai-sdk/fireworks": "2.0.0-beta.34",
+    "@ai-sdk/google": "3.0.0-beta.43",
+    "@ai-sdk/google-vertex": "4.0.0-beta.63",
+    "@ai-sdk/groq": "3.0.0-beta.33",
+    "@ai-sdk/mcp": "1.0.0-beta.15",
+    "@ai-sdk/mistral": "3.0.0-beta.34",
+    "@ai-sdk/openai": "3.0.0-beta.57",
+    "@ai-sdk/perplexity": "3.0.0-beta.34",
+    "@ai-sdk/provider-utils": "4.0.0-beta.33",
+    "@ai-sdk/react": "3.0.0-beta.99",
+    "@ai-sdk/rsc": "2.0.0-beta.100",
+    "@ai-sdk/xai": "3.0.0-beta.37",
+>>>>>>> ecdab78d2 (docs(examples): add examples for azure code interpreter (#10161))
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
