@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { perplexity } from '@ai-sdk/perplexity';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -10,6 +10,7 @@ async function main() {
     tools: {
       search: perplexity.tools.search(),
     },
+    stopWhen: stepCountIs(3),
   });
 
   console.log(result.text);

@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { perplexity } from '@ai-sdk/perplexity';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -14,6 +14,7 @@ async function main() {
         max_results: 5,
       }),
     },
+    stopWhen: stepCountIs(3),
   });
 
   console.log(result.text);
