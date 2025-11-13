@@ -122,7 +122,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       tools: googleTools,
       toolConfig: googleToolConfig,
       toolWarnings,
-    } = prepareTools({
+    } = await prepareTools({
       tools,
       toolChoice,
       modelId: this.modelId,
