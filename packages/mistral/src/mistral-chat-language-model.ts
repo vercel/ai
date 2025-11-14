@@ -338,7 +338,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
 
             const textContent = extractTextContent(delta?.content);
 
-            if (delta?.content != null && Array.isArray(delta?.content)) {
+            if (delta?.content != null && Array.isArray(delta?.content ?? '')) {
               for (const part of delta.content) {
                 if (part.type === 'thinking') {
                   const reasoningDelta = extractReasoningContent(part.thinking);
