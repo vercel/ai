@@ -133,11 +133,9 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     while (true) {
       const response = await (this.config.fetch ?? fetch)(url.toString(), {
         method: 'GET',
-        headers: Object.fromEntries(
-          Object.entries(combineHeaders(await resolve(this.config.headers))).filter(
-            ([, v]) => v !== undefined,
-          ),
-        ) as Record<string, string>,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+        ) as HeadersInit,
         signal: abortSignal,
       });
       if (!response.ok) {
