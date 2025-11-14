@@ -38,6 +38,8 @@ export type OpenAIChatModelId =
   | 'gpt-5-nano'
   | 'gpt-5-nano-2025-08-07'
   | 'gpt-5-chat-latest'
+  | 'gpt-5.1'
+  | 'gpt-5.1-chat-latest'
   | (string & {});
 
 export const openaiChatLanguageModelOptions = lazySchema(() =>
@@ -76,7 +78,9 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`.
        */
-      reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
+      reasoningEffort: z
+        .enum(['none', 'minimal', 'low', 'medium', 'high'])
+        .optional(),
 
       /**
        * Maximum number of completion tokens to generate. Useful for reasoning models.
