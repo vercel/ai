@@ -1,4 +1,7 @@
-export { createBlackForestLabs, blackForestLabs } from './black-forest-labs-provider';
+export {
+  createBlackForestLabs,
+  blackForestLabs,
+} from './black-forest-labs-provider';
 export type {
   BlackForestLabsProvider,
   BlackForestLabsProviderSettings,
