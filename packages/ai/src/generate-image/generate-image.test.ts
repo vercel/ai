@@ -727,7 +727,6 @@ describe('generateImage', () => {
 
       expect(result.providerMetadata.gateway).toStrictEqual({
         routing: { provider: 'test2' },
-        cost: '0.01',
         generationId: 'gen-123',
       });
     });
@@ -757,30 +756,6 @@ describe('generateImage', () => {
       expect(result.providerMetadata.gateway).not.toHaveProperty('images');
     });
 
-    it('should keep images array for gateway if non-empty', async () => {
-      const result = await generateImage({
-        model: new MockImageModelV2({
-          doGenerate: async () =>
-            createMockResponse({
-              images: [pngBase64],
-              providerMetaData: {
-                gateway: {
-                  images: [{ metadata: 'value' }],
-                  routing: { provider: 'vertex' },
-                  cost: '0.04',
-                },
-              },
-            }),
-        }),
-        prompt,
-      });
-
-      expect(result.providerMetadata.gateway).toStrictEqual({
-        images: [{ metadata: 'value' }],
-        routing: { provider: 'vertex' },
-        cost: '0.04',
-      });
-    });
 
     it('should not drop empty images array for non-gateway providers', async () => {
       const result = await generateImage({
@@ -801,7 +776,6 @@ describe('generateImage', () => {
 
       expect(result.providerMetadata.openai).toStrictEqual({
         images: [],
-        usage: { tokens: 100 },
       });
     });
 
@@ -953,40 +927,8 @@ describe('generateImage', () => {
           ],
         },
         gateway: {
-          routing: { provider: 'vertex' },
           cost: '0.08',
         },
-      });
-    });
-
-    it('should handle images field with non-array value gracefully', async () => {
-      const result = await generateImage({
-        model: new MockImageModelV2({
-          doGenerate: async () => {
-            const response: Awaited<ReturnType<ImageModelV2['doGenerate']>> = {
-              images: [pngBase64],
-              warnings: [],
-              providerMetadata: {
-                testProvider: {
-                  images: 'invalid',
-                  otherField: 'value',
-                },
-              } as unknown as ImageModelV2ProviderMetadata,
-              response: {
-                timestamp: new Date(),
-                modelId: 'test-model-id',
-                headers: {},
-              },
-            };
-            return response;
-          },
-        }),
-        prompt,
-      });
-
-      expect(result.providerMetadata.testProvider).toStrictEqual({
-        images: [],
-        otherField: 'value',
       });
     });
 
@@ -1096,7 +1038,6 @@ describe('generateImage', () => {
       });
 
       expect(result.providerMetadata.gateway).toStrictEqual({
-        routing: { provider: 'vertex' },
         cost: '0.04',
       });
       expect(result.providerMetadata.gateway).not.toHaveProperty('images');
