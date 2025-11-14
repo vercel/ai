@@ -18,6 +18,7 @@ import {
   InferUIMessageData,
   InferUIMessageMetadata,
   InferUIMessageToolCall,
+  InferUIMessageToolOutputs,
   InferUIMessageTools,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
@@ -78,6 +79,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   runUpdateMessageJob,
   onError,
   onToolCall,
+  onToolOutput,
   onData,
 }: {
   // input stream is not fully typed yet:
@@ -86,6 +88,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
+  }) => void | PromiseLike<void>;
+  onToolOutput?: (options: {
+    toolOutput: InferUIMessageToolOutputs<UI_MESSAGE>;
   }) => void | PromiseLike<void>;
   onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
   runUpdateMessageJob: (
@@ -577,6 +582,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               }
 
               write();
+
+              if (onToolOutput && !chunk.providerExecuted) {
+                await onToolOutput({
+                  toolOutput: chunk as InferUIMessageToolOutputs<UI_MESSAGE>,
+                });
+              }
               break;
             }
 
