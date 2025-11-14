@@ -81,8 +81,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       body: {
         prompt,
         ...(finalAspectRatio ? { aspect_ratio: finalAspectRatio } : {}),
-        ...(providerOptions.bfl ?? {}),
-        ...(providerOptions['black-forest-labs'] ?? {}),
+        ...(providerOptions?.bfl ?? {}),
       },
       failedResponseHandler: bflFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(bflSubmitSchema),
