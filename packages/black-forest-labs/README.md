@@ -1,6 +1,6 @@
 # AI SDK - Black Forest Labs Provider
 
-The **[Black Forest Labs provider](https://ai-sdk.dev/providers/ai-sdk-providers/black-forest-labs)** for the [AI SDK](https://ai-sdk.dev/docs) adds image model support for the [BFL API](https://docs.bfl.ai/).
+The **[Black Forest Labs provider](https://ai-sdk.dev/providers/ai-sdk-providers/black-forest-labs)** for the [AI SDK](https://ai-sdk.dev/docs) adds image model support for the [Black Forest Labs API](https://docs.bfl.ai/).
 
 ## Setup
 
@@ -12,20 +12,20 @@ pnpm add @ai-sdk/black-forest-labs
 
 ## Provider Instance
 
-You can import the default provider instance `black-forest-labs` from `@ai-sdk/black-forest-labs`:
+You can import the default provider instance `blackForestLabs` from `@ai-sdk/black-forest-labs`:
 
 ```ts
-import { blackForestLabs as bfl } from '@ai-sdk/black-forest-labs';
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
 ```
 
 ## Image Generation Example
 
 ```ts
-import { blackForestLabs as bfl } from '@ai-sdk/black-forest-labs';
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
 import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 const { image } = await generateImage({
-  model: bfl.image('flux-pro-1.1'),
+  model: blackForestLabs.image('flux-pro-1.1'),
   prompt: 'A cat wearing a intricate robe',
 });
 
@@ -36,15 +36,15 @@ console.log(`Image saved to ${filename}`);
 
 ## Additional Options
 
-If you want to pass additional inputs to the model besides the prompt, use `providerOptions.bfl` property:
+If you want to pass additional inputs to the model besides the prompt, use the `providerOptions.blackForestLabs` property:
 
 ```ts
 const { image } = await generateImage({
-  model: bfl.image('flux-pro'),
+  model: blackForestLabs.image('flux-pro'),
   prompt: 'A cat wearing an intricate robe',
   aspectRatio: '16:9',
   providerOptions: {
-    bfl: {
+    blackForestLabs: {
       seed: 42,
     }
   },
@@ -58,7 +58,7 @@ By default, the provider uses `https://api.bfl.ai/v1`. You can override this to 
 ```ts
 import { createBlackForestLabs } from '@ai-sdk/black-forest-labs';
 
-const bfl = createBlackForestLabs({
+const blackForestLabs = createBlackForestLabs({
   baseURL: 'https://api.eu.bfl.ai/v1',
   apiKey: process.env.BFL_API_KEY,
 });

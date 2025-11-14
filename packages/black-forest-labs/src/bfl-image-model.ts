@@ -80,7 +80,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       body: {
         prompt,
         ...(finalAspectRatio ? { aspect_ratio: finalAspectRatio } : {}),
-        ...(providerOptions?.bfl ?? {}),
+        ...(providerOptions?.blackForestLabs ?? {}),
       },
       failedResponseHandler: bflFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(bflSubmitSchema),
@@ -144,7 +144,9 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
         if (typeof value.result?.sample === 'string') {
           return value.result.sample;
         }
-        throw new Error('BFL poll response is Ready but missing result.sample');
+        throw new Error(
+          'Black Forest Labs poll response is Ready but missing result.sample',
+        );
       }
       if (status === 'Error' || status === 'Failed') {
         throw new Error('Black Forest Labs generation failed.');
@@ -209,7 +211,7 @@ const bflPollSchema = z
       .nullish(),
   })
   .refine(v => v.status != null || v.state != null, {
-    message: 'Missing status in BFL poll response',
+    message: 'Missing status in Black Forest Labs poll response',
   })
   .transform(v => ({
     status: (v.status ?? v.state)!,
@@ -223,7 +225,8 @@ const bflErrorSchema = z.object({
 
 const bflFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: bflErrorSchema,
-  errorToMessage: error => bflErrorToMessage(error) ?? 'Unknown BFL error',
+  errorToMessage: error =>
+    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
 });
 
 function bflErrorToMessage(error: unknown): string | undefined {

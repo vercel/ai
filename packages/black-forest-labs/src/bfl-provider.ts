@@ -11,7 +11,7 @@ import { VERSION } from './version';
 
 export interface BlackForestLabsProviderSettings {
   /**
-BFL API key. Default value is taken from the `BFL_API_KEY` environment variable.
+Black Forest Labs API key. Default value is taken from the `BFL_API_KEY` environment variable.
    */
   apiKey?: string;
 
@@ -56,7 +56,7 @@ export function createBlackForestLabs(
         'x-key': loadApiKey({
           apiKey: options.apiKey,
           environmentVariableName: 'BFL_API_KEY',
-          description: 'Black Forest Labs (BFL)',
+          description: 'Black Forest Labs',
         }),
         ...options.headers,
       },
