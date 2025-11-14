@@ -1,7 +1,6 @@
 ---
-title: Reading UIMessage Streams
-description: Learn how to read UIMessage streams.
----
+
+## title: Reading UIMessage Streams description: Learn how to read UIMessage streams.
 
 # Reading UI Message Streams
 
@@ -35,7 +34,7 @@ Handle streaming responses that include tool calls:
 
 ```tsx
 import { openai } from '@ai-sdk/openai';
-import { readUIMessageStream, streamText, tool } from 'ai';
+import { readUIMessageStream, streamText, tool, getToolName, stepCountIs } from 'ai';
 import { z } from 'zod';
 
 async function handleToolCalls() {
@@ -53,6 +52,7 @@ async function handleToolCalls() {
         }),
       }),
     },
+    stopWhen: stepCountIs(5),
     prompt: 'What is the weather in Tokyo?',
   });
 
@@ -65,12 +65,19 @@ async function handleToolCalls() {
         case 'text':
           console.log('Text:', part.text);
           break;
-        case 'tool-call':
-          console.log('Tool called:', part.toolName, 'with args:', part.args);
+        case 'tool-weather': {
+          const toolName = getToolName(part);
+
+          switch (part.state) {
+            case 'input-available':
+              console.log('Tool called:', toolName, 'with input:', part.input);
+              break;
+            case 'output-available':
+              console.log('Tool output:', part.output);
+              break;
+          }
           break;
-        case 'tool-result':
-          console.log('Tool result:', part.result);
-          break;
+        }
       }
     });
   }
