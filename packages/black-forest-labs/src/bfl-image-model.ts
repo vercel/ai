@@ -131,35 +131,24 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     }
 
     while (true) {
-      const response = await (this.config.fetch ?? fetch)(url.toString(), {
-        method: 'GET',
-        headers: combineHeaders(
-          await resolve(this.config.headers),
-        ) as HeadersInit,
-        signal: abortSignal,
+      const { value } = await getFromApi({
+        url: url.toString(),
+        headers: combineHeaders(await resolve(this.config.headers)),
+        failedResponseHandler: bflFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
+        abortSignal,
+        fetch: this.config.fetch,
       });
-      if (!response.ok) {
-        const errorBody = await safeParseJson(response);
-        const message =
-          bflErrorToMessage(errorBody) ?? response.statusText ?? 'BFL error';
-        throw new Error(message);
-      }
-      const json = (await response.json()) as unknown;
-      const parsed = bflPollSchema.safeParse(json);
-      if (!parsed.success) {
-        throw new Error('Invalid BFL poll response');
-      }
-      const value = parsed.data;
-      if (value.status === 'Ready') {
+
+      const status = value.status;
+      if (status === 'Ready') {
         if (typeof value.result?.sample === 'string') {
           return value.result.sample;
         }
         throw new Error('BFL poll response is Ready but missing result.sample');
       }
-      if (value.status === 'Error' || value.status === 'Failed') {
-        const msg =
-          bflErrorToMessage(json) ?? 'Black Forest Labs generation failed.';
-        throw new Error(msg);
+      if (status === 'Error' || status === 'Failed') {
+        throw new Error('Black Forest Labs generation failed.');
       }
 
       await delay(
@@ -264,12 +253,4 @@ function bflErrorToMessage(error: unknown): string | undefined {
     }
   }
   return message;
-}
-
-async function safeParseJson(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return undefined;
-  }
 }
