@@ -756,7 +756,6 @@ describe('generateImage', () => {
       expect(result.providerMetadata.gateway).not.toHaveProperty('images');
     });
 
-
     it('should not drop empty images array for non-gateway providers', async () => {
       const result = await generateImage({
         model: new MockImageModelV2({

@@ -1,7 +1,4 @@
-import {
-  ImageModelV2,
-  ImageModelV2ProviderMetadata,
-} from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
@@ -194,9 +191,12 @@ Only applicable for HTTP-based providers.
           providerMetadata[providerName] = {
             ...metadata,
           } as ImageModelV2ProviderMetadata[string];
-          const imagesValue = (providerMetadata[providerName] as { images?: unknown }).images;
+          const imagesValue = (
+            providerMetadata[providerName] as { images?: unknown }
+          ).images;
           if (Array.isArray(imagesValue) && imagesValue.length === 0) {
-            delete (providerMetadata[providerName] as { images?: unknown }).images;
+            delete (providerMetadata[providerName] as { images?: unknown })
+              .images;
           }
         } else {
           providerMetadata[providerName] ??= { images: [] };
