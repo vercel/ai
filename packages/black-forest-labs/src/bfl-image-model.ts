@@ -1,7 +1,4 @@
-import type {
-  ImageModelV2,
-  ImageModelV2CallWarning,
-} from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -71,8 +68,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'size',
-        details:
-          'Black Forest Labs ignores size when aspectRatio is provided.',
+        details: 'Black Forest Labs ignores size when aspectRatio is provided.',
       });
     }
 
@@ -161,11 +157,18 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
   }
 }
 
-function convertSizeToAspectRatio(size: string): BlackForestLabsAspectRatio | undefined {
+function convertSizeToAspectRatio(
+  size: string,
+): BlackForestLabsAspectRatio | undefined {
   const [wStr, hStr] = size.split('x');
   const width = Number(wStr);
   const height = Number(hStr);
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width <= 0 ||
+    height <= 0
+  ) {
     return undefined;
   }
   const g = gcd(width, height);

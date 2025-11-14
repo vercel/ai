@@ -96,7 +96,9 @@ describe('BlackForestLabsImageModel', () => {
         'https://api.example.com/poll?id=req-123',
       );
       expect(server.calls[2].requestMethod).toBe('GET');
-      expect(server.calls[2].requestUrl).toBe('https://api.example.com/image.png');
+      expect(server.calls[2].requestUrl).toBe(
+        'https://api.example.com/image.png',
+      );
     });
 
     it('should pass headers', async () => {
@@ -167,5 +169,3 @@ describe('BlackForestLabsImageModel', () => {
     });
   });
 });
-
-
