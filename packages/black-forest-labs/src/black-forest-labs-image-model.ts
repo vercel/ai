@@ -13,8 +13,8 @@ import {
   resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { BlackForestLabsAspectRatio } from './bfl-image-settings';
-import { BlackForestLabsImageModelId } from './bfl-image-settings';
+import type { BlackForestLabsAspectRatio } from './black-forest-labs-image-settings';
+import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;

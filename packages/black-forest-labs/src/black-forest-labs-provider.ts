@@ -5,8 +5,8 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { BlackForestLabsImageModel } from './bfl-image-model';
-import { BlackForestLabsImageModelId } from './bfl-image-settings';
+import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
+import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 import { VERSION } from './version';
 
 export interface BlackForestLabsProviderSettings {

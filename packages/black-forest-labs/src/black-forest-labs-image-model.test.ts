@@ -1,7 +1,7 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
-import { BlackForestLabsImageModel } from './bfl-image-model';
+import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
 
 const prompt = 'A cute baby sea otter';
 

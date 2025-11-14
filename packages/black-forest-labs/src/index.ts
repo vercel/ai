@@ -1,10 +1,10 @@
-export { createBlackForestLabs, blackForestLabs } from './bfl-provider';
+export { createBlackForestLabs, blackForestLabs } from './black-forest-labs-provider';
 export type {
   BlackForestLabsProvider,
   BlackForestLabsProviderSettings,
-} from './bfl-provider';
+} from './black-forest-labs-provider';
 export type {
   BlackForestLabsImageModelId,
   BlackForestLabsAspectRatio,
-} from './bfl-image-settings';
+} from './black-forest-labs-image-settings';
 export { VERSION } from './version';
