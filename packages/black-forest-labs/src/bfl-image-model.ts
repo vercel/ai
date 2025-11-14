@@ -226,7 +226,7 @@ const bflFailedResponseHandler = createJsonErrorResponseHandler({
 function bflErrorToMessage(error: unknown): string | undefined {
   const parsed = bflErrorSchema.safeParse(error);
   if (!parsed.success) return undefined;
-  const { message, detail } = parsed.data as { message?: string; detail?: unknown };
+  const { message, detail } = parsed.data;
   if (typeof detail === 'string') return detail;
   if (detail != null) {
     try {
