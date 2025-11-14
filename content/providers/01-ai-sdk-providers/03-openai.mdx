@@ -218,6 +218,9 @@ The following provider options are available:
 - **promptCacheKey** _string_
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
 
+- **promptCacheRetention** _'in_memory' | '24h'_
+  Controls how long cached prompt prefixes are retained, either in volatile GPU memory (in_memory) or for up to 24 hours using extended GPU-local storage (24h). Defaults to in_memory.
+
 - **safetyIdentifier** _string_
   A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
 
@@ -844,6 +847,10 @@ The following optional provider options are available for OpenAI chat models:
 - **promptCacheKey** _string_
 
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **promptCacheRetention** _'in_memory' | '24h'_
+
+  Controls how long cached prompt prefixes are retained, either in volatile GPU memory (in_memory) or for up to 24 hours using extended GPU-local storage (24h).
 
 - **safetyIdentifier** _string_
 

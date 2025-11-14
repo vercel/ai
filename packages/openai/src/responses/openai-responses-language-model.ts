@@ -1,5 +1,6 @@
 import {
   APICallError,
+  JSONValue,
   LanguageModelV3,
   LanguageModelV3CallWarning,
   LanguageModelV3Content,
@@ -8,7 +9,6 @@ import {
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
-  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -22,6 +22,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { isReasoningModel as modelSupportsReasoning } from '../openai-is-reasoning-model';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
@@ -29,8 +30,8 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
-import { webSearchOutputSchema } from '../tool/web-search';
 import { mcpOutputSchema } from '../tool/mcp';
+import { webSearchOutputSchema } from '../tool/web-search';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -48,7 +49,6 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { isReasoningModel as modelSupportsReasoning } from '../openai-is-reasoning-model';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -228,6 +228,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       service_tier: openaiOptions?.serviceTier,
       include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
+      prompt_cache_retention: openaiOptions?.promptCacheRetention,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
       truncation: openaiOptions?.truncation,

@@ -845,12 +845,13 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send promptCacheKey provider option', async () => {
+      it('should send promptCacheKey and promptCacheRetention provider options', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
               promptCacheKey: 'test-cache-key-123',
+              promptCacheRetention: '24h',
             },
           },
         });
@@ -861,6 +862,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
           prompt_cache_key: 'test-cache-key-123',
+          prompt_cache_retention: '24h',
         });
 
         expect(warnings).toStrictEqual([]);

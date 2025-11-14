@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createOpenAI } from '../openai-provider';
-import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
@@ -1414,7 +1414,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should send promptCacheKey extension value', async () => {
+  it('should send promptCacheKey and promptCacheRetention extension value', async () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
@@ -1422,6 +1422,7 @@ describe('doGenerate', () => {
       providerOptions: {
         openai: {
           promptCacheKey: 'test-cache-key-123',
+          promptCacheRetention: '24h',
         },
       },
     });
@@ -1430,6 +1431,7 @@ describe('doGenerate', () => {
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       prompt_cache_key: 'test-cache-key-123',
+      prompt_cache_retention: '24h',
     });
   });
 

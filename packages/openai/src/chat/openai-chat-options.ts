@@ -137,6 +137,15 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       promptCacheKey: z.string().optional(),
 
       /**
+       * Controls how long cached prompt prefixes are retained.
+       * - 'in_memory': Retain in volatile GPU memory.
+       * - '24h': Retain for up to 24 hours using extended GPU-local storage.
+       *
+       * @default 'in_memory'
+       */
+      promptCacheRetention: z.enum(['in_memory', '24h']).optional(),
+
+      /**
        * A stable identifier used to help detect users of your application
        * that may be violating OpenAI's usage policies. The IDs should be a
        * string that uniquely identifies each user. We recommend hashing their

@@ -154,6 +154,7 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
       parallelToolCalls: z.boolean().nullish(),
       previousResponseId: z.string().nullish(),
       promptCacheKey: z.string().nullish(),
+      promptCacheRetention: z.enum(['in_memory', '24h']).nullish(),
       reasoningEffort: z.string().nullish(),
       reasoningSummary: z.string().nullish(),
       safetyIdentifier: z.string().nullish(),
