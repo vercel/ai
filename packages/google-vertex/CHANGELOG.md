@@ -1,5 +1,50 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/anthropic@3.0.0-beta.53
+  - @ai-sdk/google@3.0.0-beta.43
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - @ai-sdk/anthropic@3.0.0-beta.52
+  - @ai-sdk/google@3.0.0-beta.42
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [1742445]
+  - @ai-sdk/anthropic@3.0.0-beta.51
+  - @ai-sdk/google@3.0.0-beta.41
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- 2825757: Add Google File search tool
+- Updated dependencies [2825757]
+  - @ai-sdk/google@3.0.0-beta.40
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/anthropic@3.0.0-beta.50
+  - @ai-sdk/google@3.0.0-beta.39
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
 ## 4.0.0-beta.58
 
 ### Patch Changes

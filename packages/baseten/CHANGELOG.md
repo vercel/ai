@@ -1,5 +1,37 @@
 # @ai-sdk/baseten
 
+## 1.0.0-beta.36
+
+### Patch Changes
+
+- ab9af9c: add moonshotai/Kimi-K2-Thinking model ID for Baseten provider
+
+## 1.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/openai-compatible@2.0.0-beta.34
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 1.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - @ai-sdk/openai-compatible@2.0.0-beta.33
+
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/openai-compatible@2.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
 ## 1.0.0-beta.32
 
 ### Patch Changes

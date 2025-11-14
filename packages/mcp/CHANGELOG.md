@@ -1,5 +1,34 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- 1cff766: feat(packages/mcp): add support for MCP server prompts exposed
+
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
 ## 1.0.0-beta.11
 
 ### Patch Changes

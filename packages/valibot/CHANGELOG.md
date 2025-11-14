@@ -1,5 +1,24 @@
 # @ai-sdk/valibot
 
+## 2.0.0-beta.33
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.31
+
 ## 2.0.0-beta.30
 
 ### Patch Changes
