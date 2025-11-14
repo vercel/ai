@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.66
+
+### Patch Changes
+
+- 73f9178: feat(openai): add 'gpt-5.1' modelID
+
 ## 2.0.65
 
 ### Patch Changes
