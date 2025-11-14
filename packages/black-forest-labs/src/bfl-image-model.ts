@@ -10,6 +10,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
+  delay,
   getFromApi,
   postJsonToApi,
   resolve,
@@ -18,6 +19,9 @@ import { z } from 'zod/v4';
 import type { BlackForestLabsAspectRatio } from './bfl-image-settings';
 import { BlackForestLabsImageModelId } from './bfl-image-settings';
 
+const DEFAULT_POLL_INTERVAL_MILLIS = 500;
+const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
+
 interface BlackForestLabsImageModelConfig {
   provider: string;
   baseURL: string;
@@ -25,7 +29,6 @@ interface BlackForestLabsImageModelConfig {
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
-    pollIntervalMs?: number;
   };
 }
 
@@ -130,7 +133,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       url.searchParams.set('id', requestId);
     }
 
-    while (true) {
+    for (let i = 0; i < DEFAULT_MAX_POLL_ATTEMPTS; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
         headers: combineHeaders(await resolve(this.config.headers)),
@@ -151,13 +154,10 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
         throw new Error('Black Forest Labs generation failed.');
       }
 
-      await delay(
-        this.config._internal?.pollIntervalMs != null
-          ? this.config._internal.pollIntervalMs
-          : 500,
-        abortSignal,
-      );
+      await delay(DEFAULT_POLL_INTERVAL_MILLIS);
     }
+
+    throw new Error('Black Forest Labs generation timed out.');
   }
 }
 
@@ -181,23 +181,6 @@ function gcd(a: number, b: number): number {
     x = t;
   }
   return x;
-}
-
-async function delay(ms: number, signal?: AbortSignal): Promise<void> {
-  if (signal?.aborted) return;
-  return new Promise((resolve, reject) => {
-    const id = setTimeout(resolve, ms);
-    if (signal) {
-      signal.addEventListener(
-        'abort',
-        () => {
-          clearTimeout(id);
-          reject(new DOMException('Aborted', 'AbortError'));
-        },
-        { once: true },
-      );
-    }
-  });
 }
 
 const bflSubmitSchema = z.object({
