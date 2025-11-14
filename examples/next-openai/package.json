@@ -25,7 +25,7 @@
     "@ai-sdk/provider-utils": "4.0.0-beta.33",
     "@ai-sdk/react": "3.0.0-beta.99",
     "@ai-sdk/rsc": "2.0.0-beta.100",
-    "@ai-sdk/xai": "3.0.0-beta.37",
+    "@ai-sdk/xai": "3.0.0-beta.38",
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
