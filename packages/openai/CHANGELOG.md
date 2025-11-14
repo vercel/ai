@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.59
+
+### Patch Changes
+
+- d0f1baf: feat(openai): Add support for 'promptCacheRetention: 24h' for gpt5.1 series
+
 ## 3.0.0-beta.58
 
 ### Patch Changes
