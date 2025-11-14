@@ -163,7 +163,7 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
        *
        * @default 'in_memory'
        */
-      promptCacheRetention: z.enum(['in_memory', '24h']).optional(),
+      promptCacheRetention: z.enum(['in_memory', '24h']).nullish(),
       reasoningEffort: z.string().nullish(),
       reasoningSummary: z.string().nullish(),
       safetyIdentifier: z.string().nullish(),
