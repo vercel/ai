@@ -3,4 +3,4 @@
 '@example/ai-core': patch
 ---
 
-feat(provider/black-forest-labs): New Black Forest Labs provider
+feat (provider/black-forest-labs): add Black Forest Labs provider
