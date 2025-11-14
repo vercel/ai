@@ -5,6 +5,8 @@ import {
   JSONObject,
 } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import { jsonValueSchema } from '../types/json-value';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   detectMediaType,
@@ -171,8 +173,7 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: Record<string, JSONObject & { images?: JSONArray }> =
-    {};
+  const providerMetadata: ImageModelV2ProviderMetadata = {};
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -190,22 +191,15 @@ Only applicable for HTTP-based providers.
     warnings.push(...result.warnings);
 
     if (result.providerMetadata) {
-      const entries = Object.entries(result.providerMetadata) as Array<
-        [string, JSONObject & { images?: JSONArray }]
-      >;
+      const entries = Object.entries(result.providerMetadata);
 
-      for (const [providerName, incoming] of entries) {
-        const existing = providerMetadata[providerName] ?? { images: [] };
+      for (const [providerName, incomingEntry] of entries) {
+        const existing = providerMetadata[providerName];
 
-        const incomingImages = Array.isArray(incoming.images)
-          ? incoming.images
-          : [];
-        const existingImages = Array.isArray(existing.images)
-          ? existing.images
-          : [];
-
-        const { images: _existingImages, ...existingRest } = existing;
-        const { images: _incomingImages, ...incomingRest } = incoming;
+        const { images: incomingImages, rest: incomingRest } =
+          normalizeProviderEntry(incomingEntry);
+        const { images: existingImages, rest: existingRest } =
+          normalizeProviderEntry(existing);
 
         const mergedImages: JSONArray = [...existingImages, ...incomingImages];
         const mergedRest: JSONObject = {
@@ -213,14 +207,10 @@ Only applicable for HTTP-based providers.
           ...incomingRest,
         };
 
-        if (providerName === 'gateway' && mergedImages.length === 0) {
-          providerMetadata[providerName] = mergedRest;
-        } else {
-          providerMetadata[providerName] = {
-            ...mergedRest,
-            images: mergedImages,
-          };
-        }
+        providerMetadata[providerName] = {
+          images: mergedImages,
+          ...mergedRest,
+        } as ImageModelV2ProviderMetadata[string];
       }
     }
 
@@ -237,7 +227,26 @@ Only applicable for HTTP-based providers.
     images,
     warnings,
     responses,
-    providerMetadata: providerMetadata as ImageModelV2ProviderMetadata,
+    providerMetadata: ((): ImageModelV2ProviderMetadata => {
+      const normalized: Record<string, JSONObject & { images?: JSONArray }> = {};
+
+      for (const [providerName, entry] of Object.entries(providerMetadata)) {
+        const { images: imagesArray, rest: entryRest } = normalizeProviderEntry(
+          entry,
+        );
+
+        if (providerName === 'gateway' && imagesArray.length === 0) {
+          normalized[providerName] = entryRest;
+        } else {
+          normalized[providerName] = {
+            ...entryRest,
+            images: imagesArray,
+          };
+        }
+      }
+
+      return normalized as ImageModelV2ProviderMetadata;
+    })(),
   });
 }
 
@@ -274,4 +283,31 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV2) {
   return model.maxImagesPerCall({
     modelId: model.modelId,
   });
+}
+
+const providerMetadataEntryNormalizationSchema = z
+  .record(z.string(), jsonValueSchema)
+  .transform(obj => {
+    const rawImages = (obj as { images?: unknown }).images;
+    const images: JSONArray = Array.isArray(rawImages)
+      ? (rawImages as JSONArray)
+      : [];
+    const { images: _ignore, ...rest } = obj as Record<string, unknown>;
+    return { images, rest: rest as JSONObject };
+  });
+
+function normalizeProviderEntry(
+  entry: unknown,
+): { images: JSONArray; rest: JSONObject } {
+  const parsed = providerMetadataEntryNormalizationSchema.safeParse(
+    entry ?? {},
+  );
+  if (!parsed.success) {
+    return { images: [], rest: {} };
+  }
+  const { images, rest } = parsed.data as unknown as {
+    images: JSONArray;
+    rest: JSONObject;
+  };
+  return { images, rest };
 }
