@@ -10,7 +10,7 @@ function createBasicModel({
   fetch,
   currentDate,
 }: {
-  headers?: () => Record<string, string>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
 } = {}) {
@@ -36,7 +36,7 @@ describe('BlackForestLabsImageModel', () => {
         },
       },
     },
-    'https://api.example.com/poll?id=req-123': {
+    'https://api.example.com/poll': {
       response: {
         type: 'json-value',
         body: {
@@ -56,7 +56,7 @@ describe('BlackForestLabsImageModel', () => {
   });
 
   describe('doGenerate', () => {
-    it('should pass the correct parameters including aspect ratio', async () => {
+    it('passes the correct parameters including aspect ratio and providerOptions', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -75,7 +75,7 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
 
-    it('should call the correct urls in sequence', async () => {
+    it('calls the expected URLs in sequence', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -101,7 +101,7 @@ describe('BlackForestLabsImageModel', () => {
       );
     });
 
-    it('should pass headers', async () => {
+    it('merges provider and request headers for submit call', async () => {
       const modelWithHeaders = createBasicModel({
         headers: () => ({
           'Custom-Provider-Header': 'provider-header-value',
@@ -129,7 +129,7 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
 
-    it('should pass request headers to polling requests', async () => {
+    it('passes merged headers to polling requests', async () => {
       const modelWithHeaders = createBasicModel({
         headers: () => ({
           'Custom-Provider-Header': 'provider-header-value',
@@ -156,7 +156,7 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
 
-    it('should warn and derive aspect_ratio when size is provided', async () => {
+    it('warns and derives aspect_ratio when size is provided', async () => {
       const model = createBasicModel();
 
       const result = await model.doGenerate({
@@ -176,7 +176,7 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
 
-    it('should warn and ignore size when both size and aspectRatio provided', async () => {
+    it('warns and ignores size when both size and aspectRatio are provided', async () => {
       const model = createBasicModel();
 
       const result = await model.doGenerate({
@@ -193,6 +193,140 @@ describe('BlackForestLabsImageModel', () => {
         setting: 'size',
         details: 'Black Forest Labs ignores size when aspectRatio is provided.',
       });
+    });
+
+    it('handles API errors with message and detail', async () => {
+      server.urls['https://api.example.com/v1/test-model'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          message: 'Top-level message',
+          detail: { error: 'Invalid prompt' },
+        }),
+      };
+
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          providerOptions: {},
+          size: undefined,
+          seed: undefined,
+          aspectRatio: undefined,
+        }),
+      ).rejects.toMatchObject({
+        message: '{"error":"Invalid prompt"}',
+        statusCode: 400,
+        url: 'https://api.example.com/v1/test-model',
+      });
+    });
+
+    it('handles poll responses with state instead of status', async () => {
+      server.urls['https://api.example.com/poll'].response = {
+        type: 'json-value',
+        body: {
+          state: 'Ready',
+          result: {
+            sample: 'https://api.example.com/image.png',
+          },
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0]).toBeInstanceOf(Uint8Array);
+    });
+
+    it('throws when poll is Ready but sample is missing', async () => {
+      server.urls['https://api.example.com/poll'].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: null,
+        },
+      };
+
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Black Forest Labs poll response is Ready but missing result.sample',
+      );
+    });
+
+    it('throws when poll returns Error or Failed', async () => {
+      server.urls['https://api.example.com/poll'].response = {
+        type: 'json-value',
+        body: {
+          status: 'Error',
+        },
+      };
+
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Black Forest Labs generation failed.');
+    });
+
+    it('includes timestamp, headers, and modelId in response metadata', async () => {
+      const testDate = new Date('2025-01-01T00:00:00Z');
+      const model = createBasicModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+      });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'test-model',
+        headers: expect.any(Object),
+      });
+    });
+  });
+
+  describe('constructor', () => {
+    it('exposes correct provider and model information', () => {
+      const model = createBasicModel();
+
+      expect(model.provider).toBe('black-forest-labs.image');
+      expect(model.modelId).toBe('test-model');
+      expect(model.specificationVersion).toBe('v2');
+      expect(model.maxImagesPerCall).toBe(1);
     });
   });
 });
