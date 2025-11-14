@@ -90,9 +90,14 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
 
     const pollUrl = submit.value.polling_url;
     const requestId = submit.value.id;
+    const fullHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
     const imageUrl = await this.pollForImageUrl({
       pollUrl,
       requestId,
+      headers: fullHeaders,
       abortSignal,
     });
 
@@ -118,10 +123,12 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
   private async pollForImageUrl({
     pollUrl,
     requestId,
+    headers,
     abortSignal,
   }: {
     pollUrl: string;
     requestId: string;
+    headers: Record<string, string | undefined>;
     abortSignal: AbortSignal | undefined;
   }): Promise<string> {
     const url = new URL(pollUrl);
@@ -132,7 +139,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     for (let i = 0; i < DEFAULT_MAX_POLL_ATTEMPTS; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
-        headers: combineHeaders(await resolve(this.config.headers)),
+        headers,
         failedResponseHandler: bflFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
         abortSignal,

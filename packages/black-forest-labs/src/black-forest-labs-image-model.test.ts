@@ -65,7 +65,7 @@ describe('BlackForestLabsImageModel', () => {
         size: undefined,
         aspectRatio: '16:9',
         seed: undefined,
-        providerOptions: { bfl: { additional_param: 'value' } },
+        providerOptions: { blackForestLabs: { additional_param: 'value' } },
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -123,6 +123,33 @@ describe('BlackForestLabsImageModel', () => {
 
       expect(server.calls[0].requestHeaders).toStrictEqual({
         'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+        'x-key': 'test-key',
+      });
+    });
+
+    it('should pass request headers to polling requests', async () => {
+      const modelWithHeaders = createBasicModel({
+        headers: () => ({
+          'Custom-Provider-Header': 'provider-header-value',
+          'x-key': 'test-key',
+        }),
+      });
+
+      await modelWithHeaders.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(server.calls[1].requestHeaders).toStrictEqual({
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
         'x-key': 'test-key',
