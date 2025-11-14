@@ -1042,5 +1042,30 @@ describe('generateImage', () => {
       });
       expect(result.providerMetadata.gateway).not.toHaveProperty('images');
     });
+
+    it('should keep images array for gateway if non-empty', async () => {
+      const result = await generateImage({
+        model: new MockImageModelV2({
+          doGenerate: async () =>
+            createMockResponse({
+              images: [pngBase64],
+              providerMetaData: {
+                gateway: {
+                  images: [{ metadata: 'value' }],
+                  routing: { provider: 'vertex' },
+                  cost: '0.04',
+                },
+              },
+            }),
+        }),
+        prompt,
+      });
+
+      expect(result.providerMetadata.gateway).toStrictEqual({
+        images: [{ metadata: 'value' }],
+        routing: { provider: 'vertex' },
+        cost: '0.04',
+      });
+    });
   });
 });

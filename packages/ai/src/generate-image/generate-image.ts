@@ -194,7 +194,10 @@ Only applicable for HTTP-based providers.
           providerMetadata[providerName] = {
             ...metadata,
           } as ImageModelV2ProviderMetadata[string];
-          delete (providerMetadata[providerName] as { images?: unknown }).images;
+          const imagesValue = (providerMetadata[providerName] as { images?: unknown }).images;
+          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
+            delete (providerMetadata[providerName] as { images?: unknown }).images;
+          }
         } else {
           providerMetadata[providerName] ??= { images: [] };
           providerMetadata[providerName].images.push(
