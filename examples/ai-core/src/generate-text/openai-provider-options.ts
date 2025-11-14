@@ -18,6 +18,7 @@ async function main() {
         strictJsonSchema: false,
         textVerbosity: 'medium',
         promptCacheKey: '<prompt_cache_key>',
+        promptCacheRetention: '24h',
         safetyIdentifier: '<safety_identifier>',
         // @ts-expect-error
         invalidOption: null,
