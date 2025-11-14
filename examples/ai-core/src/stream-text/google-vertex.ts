@@ -18,7 +18,10 @@ async function main() {
   console.log('Finish reason:', await result.finishReason);
 
   const usageMetadata = (await result.providerMetadata)?.google?.usageMetadata;
-  const trafficType = usageMetadata instanceof Object ? (usageMetadata as { trafficType?: string | undefined }).trafficType : undefined;
+  const trafficType =
+    usageMetadata instanceof Object
+      ? (usageMetadata as { trafficType?: string | undefined }).trafficType
+      : undefined;
   console.log('Traffic type:', trafficType);
 }
 
