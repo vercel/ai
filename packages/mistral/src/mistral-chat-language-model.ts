@@ -334,11 +334,11 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
             }
 
             const choice = value.choices[0];
-            const delta = choice.delta;
+            const delta = choice?.delta;
 
-            const textContent = extractTextContent(delta.content);
+            const textContent = extractTextContent(delta?.content);
 
-            if (delta.content != null && Array.isArray(delta.content)) {
+            if (delta?.content != null && Array.isArray(delta?.content)) {
               for (const part of delta.content) {
                 if (part.type === 'thinking') {
                   const reasoningDelta = extractReasoningContent(part.thinking);
@@ -419,7 +419,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
               }
             }
 
-            if (choice.finish_reason != null) {
+            if (choice?.finish_reason != null) {
               finishReason = mapMistralFinishReason(choice.finish_reason);
             }
           },
