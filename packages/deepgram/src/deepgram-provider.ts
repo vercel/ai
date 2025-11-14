@@ -1,5 +1,6 @@
 import {
   TranscriptionModelV3,
+  SpeechModelV3,
   ProviderV3,
   NoSuchModelError,
 } from '@ai-sdk/provider';
@@ -10,6 +11,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import { DeepgramSpeechModel } from './deepgram-speech-model';
+import { DeepgramSpeechModelId } from './deepgram-speech-options';
 import { VERSION } from './version';
 
 export interface DeepgramProvider extends ProviderV3 {
@@ -24,6 +27,11 @@ export interface DeepgramProvider extends ProviderV3 {
 Creates a model for transcription.
    */
   transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV3;
+
+  /**
+Creates a model for speech generation.
+   */
+  speech(modelId: DeepgramSpeechModelId): SpeechModelV3;
 }
 
 export interface DeepgramProviderSettings {
@@ -71,6 +79,14 @@ export function createDeepgram(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: DeepgramSpeechModelId) =>
+    new DeepgramSpeechModel(modelId, {
+      provider: `deepgram.speech`,
+      url: ({ path }) => `https://api.deepgram.com${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: DeepgramTranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
@@ -80,6 +96,8 @@ export function createDeepgram(
   provider.specificationVersion = 'v3' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   // Required ProviderV3 methods that are not supported
   provider.languageModel = () => {
