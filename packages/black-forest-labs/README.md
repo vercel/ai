@@ -46,7 +46,7 @@ const { image } = await generateImage({
   providerOptions: {
     blackForestLabs: {
       seed: 42,
-    }
+    },
   },
 });
 ```
