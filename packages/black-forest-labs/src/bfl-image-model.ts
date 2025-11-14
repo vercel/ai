@@ -145,27 +145,18 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
         throw new Error(message);
       }
       const json = (await response.json()) as unknown;
-      let status: string | undefined;
-      let sample: string | undefined;
-      if (isJsonObject(json)) {
-        const statusVal = json['status'];
-        const stateVal = json['state'];
-        if (typeof statusVal === 'string') status = statusVal;
-        else if (typeof stateVal === 'string') status = stateVal;
-
-        const resultVal = json['result'];
-        if (isJsonObject(resultVal)) {
-          const sampleVal = resultVal['sample'];
-          if (typeof sampleVal === 'string') sample = sampleVal;
-        }
+      const parsed = bflPollSchema.safeParse(json);
+      if (!parsed.success) {
+        throw new Error('Invalid BFL poll response');
       }
-      if (status === 'Ready') {
-        if (typeof sample === 'string') {
-          return sample;
+      const value = parsed.data;
+      if (value.status === 'Ready') {
+        if (typeof value.result?.sample === 'string') {
+          return value.result.sample;
         }
         throw new Error('BFL poll response is Ready but missing result.sample');
       }
-      if (status === 'Error' || status === 'Failed') {
+      if (value.status === 'Error' || value.status === 'Failed') {
         const msg =
           bflErrorToMessage(json) ?? 'Black Forest Labs generation failed.';
         throw new Error(msg);
@@ -220,28 +211,35 @@ async function delay(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-function isJsonObject(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
-
 const bflSubmitSchema = z.object({
   id: z.string(),
   polling_url: z.string().url(),
 });
 
-const bflPollSchema = z.object({
-  status: z.union([
-    z.literal('Pending'),
-    z.literal('Ready'),
-    z.literal('Error'),
-    z.literal('Failed'),
-  ]),
-  result: z
-    .object({
-      sample: z.string().url(),
-    })
-    .optional(),
-});
+const bflStatus = z.union([
+  z.literal('Pending'),
+  z.literal('Ready'),
+  z.literal('Error'),
+  z.literal('Failed'),
+]);
+
+const bflPollSchema = z
+  .object({
+    status: bflStatus.optional(),
+    state: bflStatus.optional(),
+    result: z
+      .object({
+        sample: z.string().url(),
+      })
+      .nullish(),
+  })
+  .refine(v => v.status != null || v.state != null, {
+    message: 'Missing status in BFL poll response',
+  })
+  .transform(v => ({
+    status: (v.status ?? v.state)!,
+    result: v.result,
+  }));
 
 const bflErrorSchema = z.object({
   message: z.string().optional(),
