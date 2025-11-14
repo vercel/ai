@@ -105,18 +105,6 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    if (
-      responseFormat != null &&
-      responseFormat.type === 'json' &&
-      responseFormat.schema != null
-    ) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
-      });
-    }
-
     // convert ai sdk messages to xai format
     const { messages, warnings: messageWarnings } =
       convertToXaiChatMessages(prompt);
