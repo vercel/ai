@@ -816,7 +816,7 @@ importers:
         specifier: 1.0.0-beta.15
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
-        specifier: 3.0.0-beta.34
+        specifier: 3.0.0-beta.35
         version: link:../../packages/mistral
       '@ai-sdk/openai':
         specifier: 3.0.0-beta.58
