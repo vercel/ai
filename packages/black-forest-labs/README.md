@@ -40,7 +40,7 @@ If you want to pass additional inputs to the model besides the prompt, use the `
 
 ```ts
 const { image } = await generateImage({
-  model: blackForestLabs.image('flux-pro'),
+  model: blackForestLabs.image('flux-pro-1.1'),
   prompt: 'A cat wearing an intricate robe',
   aspectRatio: '16:9',
   providerOptions: {
