@@ -54,11 +54,64 @@ const transcript = await transcribe({
 });
 ```
 
+### Download Size Limits (Security)
+
+<Note type="warning">
+  When using URLs for audio input, it's important to protect against potential
+  DoS attacks via unbounded downloads.
+</Note>
+
+The AI SDK enforces download size limits when `audio` is provided as a URL. By default, downloads are limited to **100MB** to prevent memory exhaustion attacks.
+
+You can customize this limit using the `maxDownloadSizeInBytes` parameter:
+
+```ts highlight="8"
+import { openai } from '@ai-sdk/openai';
+import { experimental_transcribe as transcribe } from 'ai';
+
+const transcript = await transcribe({
+  model: openai.transcription('whisper-1'),
+  audio: new URL('https://example.com/large-audio.mp3'),
+  maxDownloadSizeInBytes: 50 * 1024 * 1024, // 50MB limit
+});
+```
+
+If a download exceeds the size limit, a `DownloadError` will be thrown:
+
+```ts
+import { experimental_transcribe as transcribe, DownloadError } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+try {
+  await transcribe({
+    model: openai.transcription('whisper-1'),
+    audio: new URL('https://example.com/audio.mp3'),
+    maxDownloadSizeInBytes: 10 * 1024 * 1024, // 10MB limit
+  });
+} catch (error) {
+  if (DownloadError.isInstance(error)) {
+    console.log('Download failed:', error.message);
+    console.log('Content Length:', error.contentLength);
+    console.log('Max Size:', error.maxSize);
+  }
+}
+```
+
+**Security Best Practices:**
+
+- Always set appropriate size limits when accepting user-provided URLs
+- Use `abortSignal` with timeouts to prevent long-running downloads
+- Validate and sanitize URLs before passing them to `transcribe()`
+- Consider implementing rate limiting for URL-based transcription requests
+- Monitor for unusual download patterns that might indicate abuse
+
 ### Abort Signals and Timeouts
 
 `transcribe` accepts an optional `abortSignal` parameter of
 type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
 that you can use to abort the transcription process or set a timeout.
+
+This is particularly useful when combined with URL downloads to prevent long-running requests:
 
 ```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
@@ -68,7 +121,7 @@ import { readFile } from 'fs/promises';
 const transcript = await transcribe({
   model: openai.transcription('whisper-1'),
   audio: await readFile('audio.mp3'),
-  abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
+  abortSignal: AbortSignal.timeout(5000), // Abort after 5 seconds
 });
 ```
 
