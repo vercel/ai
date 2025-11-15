@@ -138,7 +138,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: workspace:*
@@ -232,7 +232,7 @@ importers:
         specifier: 2.0.0-beta.99
         version: link:../../packages/angular
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.2
@@ -305,7 +305,7 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.99
@@ -333,7 +333,7 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.99
@@ -358,7 +358,7 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
@@ -386,7 +386,7 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
@@ -423,7 +423,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -572,7 +572,7 @@ importers:
   examples/next-agent:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -685,7 +685,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.63
+        specifier: 4.0.0-beta.64
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.0-beta.99
@@ -791,6 +791,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: 3.0.0-beta.53
         version: link:../../packages/anthropic
+      '@ai-sdk/azure':
+        specifier: 3.0.0-beta.61
+        version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 3.0.0-beta.34
         version: link:../../packages/cohere
@@ -801,10 +804,10 @@ importers:
         specifier: 2.0.0-beta.34
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 3.0.0-beta.43
+        specifier: 3.0.0-beta.44
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.63
+        specifier: 4.0.0-beta.64
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.0-beta.33
@@ -813,10 +816,10 @@ importers:
         specifier: 1.0.0-beta.15
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
-        specifier: 3.0.0-beta.34
+        specifier: 3.0.0-beta.35
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
         specifier: 3.0.0-beta.34
@@ -831,7 +834,7 @@ importers:
         specifier: 2.0.0-beta.100
         version: link:../../packages/rsc
       '@ai-sdk/xai':
-        specifier: 3.0.0-beta.37
+        specifier: 3.0.0-beta.38
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
@@ -928,7 +931,7 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -983,7 +986,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -1035,7 +1038,7 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -1099,7 +1102,7 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -1169,7 +1172,7 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -1227,7 +1230,7 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.99
@@ -1252,7 +1255,7 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: 3.0.0-beta.99
@@ -1307,7 +1310,7 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.57
+        specifier: 3.0.0-beta.59
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
         specifier: 4.0.0-beta.33

@@ -293,6 +293,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
@@ -1430,6 +1431,25 @@ describe('doGenerate', () => {
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       prompt_cache_key: 'test-cache-key-123',
+    });
+  });
+
+  it('should send promptCacheRetention extension value', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_retention: '24h',
     });
   });
 
@@ -2584,6 +2604,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
