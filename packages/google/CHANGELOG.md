@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.32
+
+### Patch Changes
+
+- 0ac13cc: feat(vertex): support 'trafficType' in provider usageMetadata
+
 ## 2.0.31
 
 ### Patch Changes
