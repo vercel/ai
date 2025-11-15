@@ -19,6 +19,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal,
   experimental_context,
   onPreliminaryToolResult,
+  writeSource,
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -28,6 +29,22 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
+  writeSource?: (
+    source:
+      | {
+          sourceType: 'url';
+          url: string;
+          title?: string;
+          id?: string;
+        }
+      | {
+          sourceType: 'document';
+          mediaType: string;
+          title: string;
+          filename?: string;
+          id?: string;
+        },
+  ) => void;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -65,6 +82,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             messages,
             abortSignal,
             experimental_context,
+            writeSource,
           },
         });
 
