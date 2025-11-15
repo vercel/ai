@@ -43,14 +43,19 @@ export function convertJSONSchemaToOpenAPISchema(
   // Handle type
   if (type) {
     if (Array.isArray(type)) {
-      if (type.includes('null')) {
-        result.type = type.filter(t => t !== 'null')[0];
-        result.nullable = true;
+      const hasNull = type.includes('null');
+      const nonNullTypes = type.filter(t => t !== 'null');
+
+      if (nonNullTypes.length === 0) {
+        // Only null type
+        result.type = 'null';
       } else {
-        result.type = type;
+        // One or more non-null types: always use anyOf
+        result.anyOf = nonNullTypes.map(t => ({ type: t }));
+        if (hasNull) {
+          result.nullable = true;
+        }
       }
-    } else if (type === 'null') {
-      result.type = 'null';
     } else {
       result.type = type;
     }
