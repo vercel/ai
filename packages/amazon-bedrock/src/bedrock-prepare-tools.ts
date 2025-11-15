@@ -140,8 +140,6 @@ export async function prepareTools({
     bedrockTools.push({
       toolSpec: {
         name: tool.name,
-        // Only include description if it's a non-empty string
-        // Bedrock API requires description to have length >= 1 if present
         ...(tool.description && tool.description.trim() !== ''
           ? { description: tool.description }
           : {}),
