@@ -225,6 +225,13 @@ const result = await agent.generate({
       type: 'Array<ModelMessage>',
       description: 'A full conversation history as a list of model messages.',
     },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal that can be used to cancel the call.',
+    },
   ]}
 />
 
@@ -257,6 +264,13 @@ for await (const chunk of stream.textStream) {
       name: 'messages',
       type: 'Array<ModelMessage>',
       description: 'A full conversation history as a list of model messages.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal that can be used to cancel the call.',
     },
   ]}
 />

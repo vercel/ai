@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/llamaindex",
-  "version": "2.0.0-beta.94",
+  "version": "2.0.0-beta.99",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",

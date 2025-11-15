@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "6.0.0-beta.94",
+  "version": "6.0.0-beta.99",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -17,7 +17,7 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
