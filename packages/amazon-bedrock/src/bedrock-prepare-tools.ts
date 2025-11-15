@@ -140,9 +140,7 @@ export async function prepareTools({
     bedrockTools.push({
       toolSpec: {
         name: tool.name,
-        ...(tool.description && tool.description.trim() !== ''
-          ? { description: tool.description }
-          : {}),
+        description: tool.description,
         inputSchema: {
           json: tool.inputSchema as JSONObject,
         },
