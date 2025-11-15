@@ -53,7 +53,15 @@ export function OpenaiResponsesText({ part }: { part: TextUIPart }) {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
-  const text = annotations.reduce<string>((acc, cur) => {
+  // Sort annotations by start_index in descending order to process from end to start.
+  // This ensures that string modifications don't invalidate indices of earlier annotations.
+  const sortedAnnotations = [...annotations].sort((a, b) => {
+    const aStart = 'start_index' in a ? a.start_index : -1;
+    const bStart = 'start_index' in b ? b.start_index : -1;
+    return bStart - aStart;
+  });
+
+  const text = sortedAnnotations.reduce<string>((acc, cur) => {
     const text = (() => {
       switch (cur.type) {
         case 'container_file_citation':
