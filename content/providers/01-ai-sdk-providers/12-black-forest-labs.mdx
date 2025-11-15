@@ -134,16 +134,6 @@ Black Forest Labs image models support flexible provider options through the `pr
 - **webhook_url** - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL.
 - **webhook_secret** - Secret for webhook signature verification, sent in the `X-Webhook-Secret` header.
 
-### Available Endpoints
-
-Black Forest Labs supports the following endpoints (pass one as the model id):
-
-- `flux-kontext-pro`
-- `flux-kontext-max`
-- `flux-pro-1.1-ultra`
-- `flux-pro-1.1`
-- `flux-pro-1.0-fill`
-
 ### Regional Endpoints
 
 By default, requests are sent to `https://api.bfl.ai/v1`. You can select a regional endpoint by setting `baseURL` when creating the provider instance:
