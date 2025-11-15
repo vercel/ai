@@ -48,17 +48,12 @@ const searchKnowledge = tool({
       .describe('Maximum number of results'),
   }),
   execute: async ({ query, limit = 3 }, { writeSource }) => {
-    
-    
-
     // Extract keywords from query (remove common stop words)
     const stopWords = ['what', 'is', 'are', 'the', 'a', 'an', 'how', 'why', 'when', 'where', 'who', 'tell', 'me', 'about', 'explain'];
     const keywords = query
       .toLowerCase()
       .split(/\s+/)
       .filter(word => word.length > 2 && !stopWords.includes(word));
-
-    
 
     // Simulate vector search (in production, use a real vector database)
     // Search for documents that contain any of the keywords
@@ -72,11 +67,8 @@ const searchKnowledge = tool({
       })
       .slice(0, limit);
 
-    
-
     // Write sources to the stream - they will appear in message.parts
     results.forEach(doc => {
-      
       writeSource?.({
         sourceType: 'url',
         url: doc.url,
@@ -98,8 +90,6 @@ const tools = {
 
 export async function POST(req: Request) {
   const body = await req.json();
-
-  
 
   // Convert simple messages to ModelMessages format
   const modelMessages = body.messages.map((msg: any) => ({

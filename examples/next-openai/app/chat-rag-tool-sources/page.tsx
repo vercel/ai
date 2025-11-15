@@ -12,24 +12,10 @@ export default function Page() {
     }),
   });
 
-  console.log('[PAGE] Messages count:', messages.length);
-  messages.forEach((msg: any, i: number) => {
-    console.log(`[PAGE] Message ${i}:`, {
-      role: msg.role,
-      parts: msg.parts?.length || 0,
-    });
-    if (msg.parts) {
-      msg.parts.forEach((part: any, j: number) => {
-        console.log(`[PAGE]   Part ${j}:`, part.type, part);
-      });
-    }
-  });
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    console.log('[PAGE] Sending message:', input);
     await sendMessage({ role: 'user', content: input });
     setInput('');
   };

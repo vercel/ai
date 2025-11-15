@@ -51,8 +51,6 @@ async function main() {
             .describe('Maximum number of results to return'),
         }),
         execute: async ({ query, limit = 3 }, { writeSource }) => {
-          console.log(`\n[Tool] Searching knowledge base for: "${query}"`);
-
           // Simulate search (in a real app, this would use vector similarity search)
           const results = knowledgeBase
             .filter(doc =>
@@ -60,12 +58,8 @@ async function main() {
             )
             .slice(0, limit);
 
-          console.log(`[Tool] Found ${results.length} results`);
-
           // Write sources to the stream as we find them
           results.forEach(doc => {
-            console.log(`[Tool] Writing source: ${doc.title}`);
-
             // This is the new feature! Tools can now write sources directly
             writeSource?.({
               sourceType: 'url',
@@ -85,8 +79,6 @@ async function main() {
     maxSteps: 5, // Allow the model to use tools
   });
 
-  console.log('\n=== Streaming Response ===\n');
-
   // Process the stream and display both text and sources
   for await (const part of result.fullStream) {
     switch (part.type) {
@@ -96,51 +88,27 @@ async function main() {
       }
 
       case 'tool-call': {
-        console.log(`\n\n[Tool Call] ${part.toolName}`);
-        console.log(`[Arguments] ${JSON.stringify(part.args)}`);
         break;
       }
 
       case 'source': {
         // Sources written by tools appear here!
-        console.log('\n--- Source Referenced ---');
-        if (part.sourceType === 'url') {
-          console.log(`Title: ${part.title}`);
-          console.log(`URL: ${part.url}`);
-          console.log(`ID: ${part.id}`);
-        }
-        console.log('------------------------\n');
         break;
       }
 
       case 'tool-result': {
-        const resultText = typeof part.output === 'string' ? part.output : JSON.stringify(part.output);
-        console.log(`\n[Tool Result] Returned ${resultText.length} characters`);
         break;
       }
 
       case 'finish': {
-        console.log(`\n\n[Finished] Reason: ${part.finishReason}`);
         break;
       }
 
       case 'error': {
-        console.error('\n[Error]', part.error);
         break;
       }
     }
   }
-
-  // Access sources from the final result
-  console.log('\n\n=== All Sources ===');
-  const sources = result.experimental_providerMetadata?.sources || [];
-  if (sources.length > 0) {
-    sources.forEach((source: any, index: number) => {
-      console.log(`${index + 1}. ${source.title} - ${source.url}`);
-    });
-  } else {
-    console.log('No sources available in metadata');
-  }
 }
 
-main().catch(console.error);
+main();
