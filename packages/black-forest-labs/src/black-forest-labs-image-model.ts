@@ -73,10 +73,14 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const combinedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
 
     const submit = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      headers: combinedHeaders,
       body: {
         prompt,
         ...(finalAspectRatio ? { aspect_ratio: finalAspectRatio } : {}),
@@ -90,19 +94,17 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
 
     const pollUrl = submit.value.polling_url;
     const requestId = submit.value.id;
-    const fullHeaders = combineHeaders(
-      await resolve(this.config.headers),
-      headers,
-    );
+    
     const imageUrl = await this.pollForImageUrl({
       pollUrl,
       requestId,
-      headers: fullHeaders,
+      headers: combinedHeaders,
       abortSignal,
     });
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
+      headers: combinedHeaders,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
