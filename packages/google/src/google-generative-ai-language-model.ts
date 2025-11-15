@@ -780,16 +780,13 @@ export const getGroundingMetadataSchema = () =>
           web: z
             .object({ uri: z.string(), title: z.string().nullish() })
             .nullish(),
-          retrievedContext: z.union([
-            z
-              .object({ uri: z.string(), title: z.string().nullish() })
-              .nullish(),
-            z.object({
+          retrievedContext: z
+            .object({
               uri: z.string(),
               title: z.string().nullish(),
               text: z.string().nullish(),
-            }),
-          ]),
+            })
+            .nullish(),
         }),
       )
       .nullish(),
