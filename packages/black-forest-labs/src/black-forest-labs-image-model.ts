@@ -94,7 +94,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
 
     const pollUrl = submit.value.polling_url;
     const requestId = submit.value.id;
-    
+
     const imageUrl = await this.pollForImageUrl({
       pollUrl,
       requestId,

@@ -6,7 +6,7 @@ import { run } from '../lib/run';
 const blackForestLabs = createBlackForestLabs({
   fetch: async (...args) => {
     console.log('Fetching:', ...args);
-    const response = await fetch(...args)
+    const response = await fetch(...args);
     const responseBody = await response.clone().text();
     try {
       const body = JSON.parse(responseBody);
@@ -14,7 +14,7 @@ const blackForestLabs = createBlackForestLabs({
     } catch {
       console.log('non-json response');
     }
-    return response
+    return response;
   },
 });
 
