@@ -300,10 +300,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                   toolResultsStreamController!.enqueue(result);
                 },
                 writeSource: source => {
-                  // Auto-generate ID if not provided
                   const sourceId = source.id ?? generateId();
-
-                  // Enqueue source part to stream
                   toolResultsStreamController!.enqueue({
                     type: 'source',
                     ...source,

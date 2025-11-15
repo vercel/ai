@@ -38,7 +38,6 @@ async function main() {
       },
     ],
     tools: {
-      // RAG tool that searches knowledge base and writes sources
       searchKnowledge: tool({
         description:
           'Search the knowledge base for relevant information. Always use this tool when answering questions to provide accurate, sourced information.',
@@ -51,7 +50,6 @@ async function main() {
             .describe('Maximum number of results to return'),
         }),
         execute: async ({ query, limit = 3 }, { writeSource }) => {
-          // Simulate search (in a real app, this would use vector similarity search)
           const results = knowledgeBase
             .filter(doc =>
               doc.content.toLowerCase().includes(query.toLowerCase()),
@@ -60,53 +58,26 @@ async function main() {
 
           // Write sources to the stream as we find them
           results.forEach(doc => {
-            // This is the new feature! Tools can now write sources directly
             writeSource?.({
               sourceType: 'url',
               url: doc.url,
               title: doc.title,
-              id: doc.id, // Optional: provide custom ID
+              id: doc.id,
             });
           });
 
-          // Return the content to the LLM
           return results.length > 0
             ? results.map(doc => `${doc.title}: ${doc.content}`).join('\n\n')
             : 'No relevant information found.';
         },
       }),
     },
-    maxSteps: 5, // Allow the model to use tools
+    maxSteps: 5,
   });
 
-  // Process the stream and display both text and sources
   for await (const part of result.fullStream) {
-    switch (part.type) {
-      case 'text-delta': {
-        process.stdout.write(part.textDelta);
-        break;
-      }
-
-      case 'tool-call': {
-        break;
-      }
-
-      case 'source': {
-        // Sources written by tools appear here!
-        break;
-      }
-
-      case 'tool-result': {
-        break;
-      }
-
-      case 'finish': {
-        break;
-      }
-
-      case 'error': {
-        break;
-      }
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
     }
   }
 }

@@ -35,7 +35,6 @@ export default function Page() {
 
       <div className="flex flex-col gap-4">
         {messages.map((message: any) => {
-          // Extract sources for this message
           const sources = message.parts?.filter((p: any) => p.type === 'source-url') || [];
 
           return (
@@ -51,7 +50,6 @@ export default function Page() {
                 {message.role === 'user' ? 'You' : 'Assistant'}
               </div>
 
-              {/* Display message parts */}
               {message.parts && message.parts.length > 0 ? (
                 message.parts.map((part: any, index: number) => {
                   if (part.type === 'text') {
@@ -76,18 +74,15 @@ export default function Page() {
                       </div>
                     );
                   }
-                  // Skip rendering source-url here, we'll show them separately below
                   if (part.type === 'source-url') {
                     return null;
                   }
                   return null;
                 })
               ) : (
-                // Fallback for user messages without parts
                 <div className="whitespace-pre-wrap">{message.content}</div>
               )}
 
-              {/* Display sources section - only if sources exist */}
               {sources.length > 0 && (
                 <div className="mt-3 flex flex-col gap-2">
                   <div className="text-sm font-semibold text-gray-700">
@@ -118,7 +113,6 @@ export default function Page() {
                 </div>
               )}
 
-              {/* Show when tool found no sources */}
               {message.role === 'assistant' &&
                message.parts?.some((p: any) => p.type === 'tool-result') &&
                sources.length === 0 && (

@@ -251,7 +251,7 @@ describe('runToolsTransformation', () => {
           title: 'Delayed Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => {
-            await delay(0); // Simulate delayed execution
+            await delay(0); 
             return `${value}-delayed-result`;
           },
         },
@@ -481,7 +481,7 @@ describe('runToolsTransformation', () => {
         experimental_context: undefined,
       });
 
-      // consume each chunk to maintain order
+      
       const reader = transformedStream.getReader();
       while (true) {
         const { done, value } = await reader.read();
@@ -562,7 +562,7 @@ describe('runToolsTransformation', () => {
         experimental_context: undefined,
       });
 
-      // consume each chunk to maintain order
+      
       const reader = transformedStream.getReader();
       while (true) {
         const { done, value } = await reader.read();
@@ -644,10 +644,10 @@ describe('runToolsTransformation', () => {
           searchTool: tool({
             inputSchema: z.object({ query: z.string() }),
             execute: async ({ query }, { writeSource }) => {
-              // Write a URL source
+              
               writeSource?.({
                 sourceType: 'url',
-                url: 'https://example.com/doc',
+                url: 'https://example.com/doc1',
                 title: 'Example Document',
               });
 
@@ -667,7 +667,7 @@ describe('runToolsTransformation', () => {
 
       const result = await convertReadableStreamToArray(transformedStream);
 
-      // Should contain tool-call, source, tool-result, and finish
+      
       expect(result).toHaveLength(4);
       expect(result[0]).toMatchObject({
         type: 'tool-call',
@@ -677,9 +677,9 @@ describe('runToolsTransformation', () => {
       expect(result[1]).toMatchObject({
         type: 'source',
         sourceType: 'url',
-        url: 'https://example.com/doc',
+        url: 'https://example.com/doc1',
         title: 'Example Document',
-        id: 'id-1', // auto-generated (id-0 is used for toolExecutionId)
+        id: 'id-1', 
       });
       expect(result[2]).toMatchObject({
         type: 'tool-result',
@@ -714,7 +714,7 @@ describe('runToolsTransformation', () => {
           searchTool: tool({
             inputSchema: z.object({ query: z.string() }),
             execute: async ({ query }, { writeSource }) => {
-              // Write a document source
+              
               writeSource?.({
                 sourceType: 'document',
                 mediaType: 'application/pdf',
@@ -738,7 +738,7 @@ describe('runToolsTransformation', () => {
 
       const result = await convertReadableStreamToArray(transformedStream);
 
-      // Should contain tool-call, source, tool-result, and finish
+      
       expect(result).toHaveLength(4);
       expect(result[1]).toMatchObject({
         type: 'source',
@@ -746,7 +746,7 @@ describe('runToolsTransformation', () => {
         mediaType: 'application/pdf',
         title: 'Research Paper',
         filename: 'paper.pdf',
-        id: 'id-1', // auto-generated (id-0 is used for toolExecutionId)
+        id: 'id-1', 
       });
     });
 
@@ -772,7 +772,7 @@ describe('runToolsTransformation', () => {
           searchTool: tool({
             inputSchema: z.object({ query: z.string() }),
             execute: async ({ query }, { writeSource }) => {
-              // Write multiple sources
+              
               writeSource?.({
                 sourceType: 'url',
                 url: 'https://example.com/doc1',
@@ -801,19 +801,19 @@ describe('runToolsTransformation', () => {
 
       const result = await convertReadableStreamToArray(transformedStream);
 
-      // Should contain tool-call, source1, source2, tool-result, and finish
+      
       expect(result).toHaveLength(5);
       expect(result[1]).toMatchObject({
         type: 'source',
         sourceType: 'url',
         url: 'https://example.com/doc1',
         title: 'Document 1',
-        id: 'id-1', // id-0 is used for toolExecutionId
+        id: 'id-1', 
       });
       expect(result[2]).toMatchObject({
         type: 'source',
         sourceType: 'url',
-        url: 'https://example.com/doc2',
+        url: 'https://example.com/doc2',  
         title: 'Document 2',
         id: 'id-2',
       });
@@ -841,7 +841,7 @@ describe('runToolsTransformation', () => {
           searchTool: tool({
             inputSchema: z.object({ query: z.string() }),
             execute: async ({ query }, { writeSource }) => {
-              // Write source with custom ID
+              
               writeSource?.({
                 sourceType: 'url',
                 url: 'https://example.com/doc',
@@ -867,7 +867,7 @@ describe('runToolsTransformation', () => {
 
       expect(result[1]).toMatchObject({
         type: 'source',
-        id: 'custom-source-id', // should use provided ID
+        id: 'custom-source-id', 
       });
     });
 
@@ -893,7 +893,7 @@ describe('runToolsTransformation', () => {
           simpleTool: tool({
             inputSchema: z.object({ value: z.string() }),
             execute: async ({ value }) => {
-              // Don't use writeSource at all
+              
               return `Result: ${value}`;
             },
           }),
@@ -909,8 +909,7 @@ describe('runToolsTransformation', () => {
       });
 
       const result = await convertReadableStreamToArray(transformedStream);
-
-      // Should work normally without sources
+      
       expect(result).toHaveLength(3);
       expect(result[0]).toMatchObject({
         type: 'tool-call',

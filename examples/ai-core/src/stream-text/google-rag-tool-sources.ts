@@ -38,7 +38,6 @@ async function main() {
       },
     ],
     tools: {
-      
       searchKnowledge: tool({
         description:
           'Search the knowledge base for relevant information. Always use this tool when answering questions to provide accurate, sourced information.',
@@ -51,22 +50,13 @@ async function main() {
             .describe('Maximum number of results to return'),
         }),
         execute: async ({ query, limit = 3 }, { writeSource }) => {
-          
-
-          
           const results = knowledgeBase
             .filter(doc =>
               doc.content.toLowerCase().includes(query.toLowerCase()),
             )
             .slice(0, limit);
 
-          
-
-          
           results.forEach(doc => {
-            
-
-            
             writeSource?.({
               sourceType: 'url',
               url: doc.url,
@@ -75,70 +65,19 @@ async function main() {
             });
           });
 
-          
           return results.length > 0
             ? results.map(doc => `${doc.title}: ${doc.content}`).join('\n\n')
             : 'No relevant information found.';
         },
       }),
     },
-    maxSteps: 5, 
+    maxSteps: 5,
   });
 
-  
-
-  
   for await (const part of result.fullStream) {
-    switch (part.type) {
-      case 'text-delta': {
-        process.stdout.write(part.textDelta);
-        break;
-      }
-
-      case 'tool-call': {
-        
-        
-        break;
-      }
-
-      case 'source': {
-        
-        
-        if (part.sourceType === 'url') {
-          
-          
-          
-        }
-        
-        break;
-      }
-
-      case 'tool-result': {
-        const resultText = typeof part.output === 'string' ? part.output : JSON.stringify(part.output);
-        
-        break;
-      }
-
-      case 'finish': {
-        
-        break;
-      }
-
-      case 'error': {
-        break;
-      }
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
     }
-  }
-
-  
-  
-  const sources = result.experimental_providerMetadata?.sources || [];
-  if (sources.length > 0) {
-    sources.forEach((source: any, index: number) => {
-      
-    });
-  } else {
-    
   }
 }
 
