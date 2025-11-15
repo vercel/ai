@@ -1985,6 +1985,11 @@ Generated numbers (formatted to 2 decimal places): 88.99, 51.21, 89.85, 88.97, 7
   },
   {
     "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -2529,6 +2534,19 @@ providers and models, and which ones are available in the AI SDK.",
   },
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 379,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3035,6 +3053,25 @@ exports[`responses > file search tool > should stream file search results withou
   },
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 154,
+            "type": "file_citation",
+          },
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 382,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
     "type": "text-end",
   },
   {

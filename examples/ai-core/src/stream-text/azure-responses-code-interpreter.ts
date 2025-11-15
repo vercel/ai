@@ -12,9 +12,9 @@ import 'dotenv/config';
 async function main() {
   // Basic text generation
   const result = streamText({
-    model: azure.responses('gpt-5-mini'), // use your own deployment
+    model: azure.responses('gpt-4.1-mini'), // use your own deployment
     prompt:
-      'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results.',
+      'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
     tools: {
       code_interpreter: azure.tools.codeInterpreter(),
     },
@@ -27,6 +27,15 @@ async function main() {
   console.log('\n=== Other Outputs ===');
   console.log(await result.toolCalls);
   console.log(await result.toolResults);
+  console.log('\n=== Code Interpreter Annotations ===');
+  for await (const part of result.fullStream) {
+    if (part.type === 'text-end') {
+      const annotations = part.providerMetadata?.openai?.annotations;
+      if (annotations) {
+        console.dir(annotations);
+      }
+    }
+  }
 }
 
 main().catch(console.error);
