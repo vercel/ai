@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- 2a2e17d: fix (provider/amazon-bedrock): deal gracefully with empty tool descriptions
+
 ## 4.0.0-beta.58
 
 ### Patch Changes
