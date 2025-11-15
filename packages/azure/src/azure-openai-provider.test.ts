@@ -1309,7 +1309,7 @@ describe('responses', () => {
           {
             "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
               },
             },
@@ -1332,7 +1332,7 @@ describe('responses', () => {
           {
             "finishReason": "stop",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
               },
             },
@@ -1408,7 +1408,7 @@ describe('responses', () => {
           {
             "input": "{}",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "fc_67cb13a838088190be08eb3927c87501",
               },
             },
@@ -1453,7 +1453,7 @@ describe('responses', () => {
           {
             "input": "{"location":"Rome"}",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "fc_67cb13a858f081908a600343fa040f47",
               },
             },
@@ -1464,7 +1464,7 @@ describe('responses', () => {
           {
             "finishReason": "tool-calls",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
               },
             },
@@ -1513,7 +1513,7 @@ describe('responses', () => {
             "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
               },
             },
@@ -1526,7 +1526,7 @@ describe('responses', () => {
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
               },
             },
@@ -1541,7 +1541,7 @@ describe('responses', () => {
           {
             "finishReason": "stop",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": null,
               },
             },
