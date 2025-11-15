@@ -2,6 +2,7 @@ import { codeExecution } from './tool/code-execution';
 import { fileSearch } from './tool/file-search';
 import { googleSearch } from './tool/google-search';
 import { urlContext } from './tool/url-context';
+import { vertexRagStore } from './tool/vertex-rag-store';
 
 export const googleTools = {
   /**
@@ -15,6 +16,7 @@ export const googleTools = {
    * Must have name "url_context".
    */
   urlContext,
+
   /**
    * Enables Retrieval Augmented Generation (RAG) via the Gemini File Search tool.
    * Must have name "file_search".
@@ -37,4 +39,10 @@ export const googleTools = {
    * @see https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/code-execution-api (Vertex AI)
    */
   codeExecution,
+
+  /**
+   * Creates a Vertex RAG Store tool that enables the model to perform RAG searches against a Vertex RAG Store.
+   * Must have name "vertex_rag_store".
+   */
+  vertexRagStore,
 };

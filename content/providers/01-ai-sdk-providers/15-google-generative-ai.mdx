@@ -622,6 +622,117 @@ const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
 ```
 
+### RAG Engine Grounding
+
+With [RAG Engine Grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/rag-engine/use-vertexai-search#generate-content-using-gemini-api),
+the model has access to your custom knowledge base using the Vertex RAG Engine.
+This enables the model to provide answers based on your specific data sources and documents.
+
+<Note>
+  RAG Engine Grounding is only supported with Vertex Gemini models. You must use
+  the Google Vertex provider (`@ai-sdk/google-vertex`) instead of the standard
+  Google provider (`@ai-sdk/google`) to use this feature.
+</Note>
+
+```ts highlight="8,17-20"
+import { createVertex } from '@ai-sdk/google-vertex';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const vertex = createVertex({
+  project: 'my-project',
+  location: 'us-central1',
+});
+
+const { text, sources, providerMetadata } = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    vertex_rag_store: vertex.tools.vertexRagStore({
+      ragCorpus:
+        'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+      topK: 5,
+    }),
+  },
+  prompt:
+    'What are the key features of our product according to our documentation?',
+});
+
+// access the grounding metadata. Casting to the provider metadata type
+// is optional but provides autocomplete and type safety.
+const metadata = providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
+const safetyRatings = metadata?.safetyRatings;
+```
+
+When RAG Engine Grounding is enabled, the model will include sources from your RAG corpus in the response.
+
+Additionally, the grounding metadata includes detailed information about how RAG results were used to ground the model's response. Here are the available fields:
+
+- **`groundingChunks`** (Array of chunk objects | null)
+
+  - Contains the retrieved context chunks from your RAG corpus
+  - Each chunk includes:
+    - **`retrievedContext`**: Information about the retrieved context
+      - `uri`: The URI or identifier of the source document
+      - `title`: The title of the source document (optional)
+      - `text`: The actual text content of the chunk
+
+- **`groundingSupports`** (Array of support objects | null)
+
+  - Contains details about how specific response parts are supported by RAG results
+  - Each support object includes:
+    - **`segment`**: Information about the grounded text segment
+      - `text`: The actual text segment
+      - `startIndex`: Starting position in the response
+      - `endIndex`: Ending position in the response
+    - **`groundingChunkIndices`**: References to supporting RAG result chunks
+    - **`confidenceScores`**: Confidence scores (0-1) for each supporting chunk
+
+Example response:
+
+```json
+{
+  "groundingMetadata": {
+    "groundingChunks": [
+      {
+        "retrievedContext": {
+          "uri": "gs://my-bucket/docs/product-guide.pdf",
+          "title": "Product User Guide",
+          "text": "Our product includes advanced AI capabilities, real-time processing, and enterprise-grade security features."
+        }
+      }
+    ],
+    "groundingSupports": [
+      {
+        "segment": {
+          "startIndex": 0,
+          "endIndex": 45,
+          "text": "Our product includes advanced AI capabilities and real-time processing."
+        },
+        "groundingChunkIndices": [0],
+        "confidenceScores": [0.95]
+      }
+    ]
+  }
+}
+```
+
+#### Configuration Options
+
+The `vertexRagStore` tool accepts the following configuration options:
+
+- **`ragCorpus`** (`string`, required)
+
+  - The RagCorpus resource name in the format: `projects/{project}/locations/{location}/ragCorpora/{rag_corpus}`
+  - This identifies your specific RAG corpus to search against
+
+- **`topK`** (`number`, optional)
+
+  - The number of top contexts to retrieve from your RAG corpus
+  - Defaults to the corpus configuration if not specified
+
 ### Image Outputs
 
 Gemini models with image generation capabilities (`gemini-2.5-flash-image-preview`) support image generation. Images are exposed as files in the response.
