@@ -3252,6 +3252,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3323,6 +3328,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3550,6 +3560,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3626,6 +3641,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -4111,6 +4131,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4222,6 +4247,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4404,6 +4434,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4517,6 +4552,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4713,6 +4753,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4776,6 +4821,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -5009,6 +5059,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_123",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "title": "Example URL",
+                    "type": "url_citation",
+                    "url": "https://example.com",
+                  },
+                  {
+                    "file_id": "file-abc123",
+                    "quote": "This is a quote from the file",
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_123",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5083,6 +5150,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5265,6 +5351,21 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "container_id": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+                    "end_index": 465,
+                    "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                    "filename": "roll2dice_sums_10000.csv",
+                    "start_index": 423,
+                    "type": "container_file_citation",
+                  },
+                ],
+                "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5442,6 +5543,17 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                    "type": "file_path",
+                  },
+                ],
+                "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+              },
+            },
             "type": "text-end",
           },
           {
