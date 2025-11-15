@@ -247,13 +247,13 @@ describe('SseMCPTransport', () => {
     };
 
     const connectPromise = transport.start();
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-
     controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
-
     await connectPromise;
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
     const message = {
       jsonrpc: '2.0' as const,
       method: 'test',

@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_createMCPClient, generateText, stepCountIs } from 'ai';
+import { generateText, stepCountIs } from 'ai';
+import { experimental_createMCPClient } from '@ai-sdk/mcp';
 import 'dotenv/config';
 import { createDumpFetch } from './dump-fetch';
 
