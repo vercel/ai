@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/black-forest-labs': major
+'@ai-sdk/black-forest-labs': patch
 '@example/ai-core': patch
 ---
 
