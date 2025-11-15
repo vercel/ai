@@ -30,7 +30,7 @@ export class SseMCPTransport implements MCPTransport {
   private headers?: Record<string, string>;
   private authProvider?: OAuthClientProvider;
   private resourceMetadataUrl?: URL;
-  private fetch: FetchFunction;
+  private fetch?: FetchFunction;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -40,7 +40,7 @@ export class SseMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
-    fetch = getOriginalFetch(),
+    fetch,
   }: {
     url: string;
     headers?: Record<string, string>;
@@ -89,7 +89,8 @@ export class SseMCPTransport implements MCPTransport {
           const headers = await this.commonHeaders({
             Accept: 'text/event-stream',
           });
-          const response = await this.fetch(this.url.href, {
+          const fetch = this.getFetch();
+          const response = await fetch(this.url.href, {
             headers,
             signal: this.abortController?.signal,
           });
@@ -237,7 +238,8 @@ export class SseMCPTransport implements MCPTransport {
           signal: this.abortController?.signal,
         };
 
-        const response = await this.fetch(endpoint, init);
+        const fetch = this.getFetch();
+        const response = await fetch(endpoint, init);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
           this.resourceMetadataUrl = extractResourceMetadataUrl(response);
@@ -272,6 +274,10 @@ export class SseMCPTransport implements MCPTransport {
       }
     };
     await attempt();
+  }
+
+  private getFetch() {
+    return this.fetch ?? getOriginalFetch();
   }
 }
 
