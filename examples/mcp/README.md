@@ -53,3 +53,17 @@ In another terminal, run the HTTP client:
 ```sh
 pnpm client:http
 ```
+
+## SSE Transport with custom fetch (Legacy)
+
+Start server
+
+```sh
+pnpm sse:server
+```
+
+Run example:
+
+```sh
+pnpm sse-custom-fetch:client
+```
