@@ -199,7 +199,7 @@ function gcd(a: number, b: number): number {
 
 const bflSubmitSchema = z.object({
   id: z.string(),
-  polling_url: z.string().url(),
+  polling_url: z.url(),
 });
 
 const bflStatus = z.union([
@@ -215,7 +215,7 @@ const bflPollSchema = z
     state: bflStatus.optional(),
     result: z
       .object({
-        sample: z.string().url(),
+        sample: z.url(),
       })
       .nullish(),
   })
