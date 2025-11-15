@@ -111,12 +111,22 @@ describe('BlackForestLabs provider', () => {
       url: 'https://api.example.com/v1/flux-pro-1.1',
       method: 'POST',
     });
-    expect(calls[0]?.headers['x-key']).toBe('test-api-key');
-    expect(calls[0]?.headers['x-extra-header']).toBe('extra');
-    expect(calls[0]?.bodyJson).toMatchObject({
+    expect(calls[0].headers['x-key']).toBe('test-api-key');
+    expect(calls[0].headers['x-extra-header']).toBe('extra');
+    expect(calls[0].bodyJson).toMatchObject({
       prompt: 'A serene mountain landscape at sunset',
       aspect_ratio: '1:1',
     });
+
+    expect(calls[0].headers['user-agent']).toContain(
+      'ai-sdk/black-forest-labs/',
+    );
+    expect(calls[1].headers['user-agent']).toContain(
+      'ai-sdk/black-forest-labs/',
+    );
+    expect(calls[2].headers['user-agent']).toContain(
+      'ai-sdk/black-forest-labs/',
+    );
   });
 
   it('throws NoSuchModelError for unsupported model types', () => {
