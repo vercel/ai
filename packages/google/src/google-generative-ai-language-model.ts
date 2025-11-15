@@ -712,7 +712,7 @@ function extractSources({
         sourceType: 'url',
         id: generateId(),
         url: chunk.web.uri,
-        title: chunk.web.title,
+        title: chunk.web.title ?? undefined,
       });
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
@@ -785,6 +785,7 @@ export const getGroundingMetadataSchema = () =>
               .object({ uri: z.string(), title: z.string().nullish() })
               .nullish(),
             z.object({
+              uri: z.string(),
               title: z.string().nullish(),
               text: z.string().nullish(),
             }),
