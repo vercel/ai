@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.55
+
+### Patch Changes
+
+- cddda46: fix (provider/amazon-bedrock): deal gracefully with empty tool descriptions
+
 ## 3.0.54
 
 ### Patch Changes
