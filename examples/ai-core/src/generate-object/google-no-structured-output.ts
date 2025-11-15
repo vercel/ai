@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: google('gemini-1.5-pro-latest'),
+    model: google('gemini-2.5-pro'),
     providerOptions: {
       google: {
         structuredOutputs: false,

@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const { text } = await generateText({
-    model: google('gemini-1.5-pro'),
+    model: google('gemini-2.5-pro'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

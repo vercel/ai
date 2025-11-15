@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: vertex('gemini-1.5-flash'),
+    model: vertex('gemini-2.5-flash'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

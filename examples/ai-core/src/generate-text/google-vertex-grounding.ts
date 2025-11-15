@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: vertex('gemini-1.5-pro'),
+    model: vertex('gemini-2.5-pro'),
     providerOptions: {
       google: {
         useSearchGrounding: true,

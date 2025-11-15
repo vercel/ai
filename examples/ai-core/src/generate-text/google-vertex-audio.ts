@@ -5,7 +5,7 @@ import fs from 'node:fs';
 
 async function main() {
   const result = await generateText({
-    model: vertex('gemini-1.5-flash'),
+    model: vertex('gemini-2.5-flash'),
     providerOptions: {
       google: {
         audioTimestamp: true,
