@@ -17,6 +17,7 @@ export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
     dynamic?: false | undefined;
     invalid?: false | undefined;
     error?: never;
+    title?: string;
   };
 }>;
 
@@ -24,6 +25,7 @@ export type DynamicToolCall = BaseToolCall & {
   toolName: string;
   input: unknown;
   dynamic: true;
+  title?: string;
 
   /**
    * True if this is caused by an unparsable tool call or

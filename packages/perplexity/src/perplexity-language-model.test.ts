@@ -149,6 +149,104 @@ describe('PerplexityLanguageModel', () => {
       });
     });
 
+    it('should handle PDF files with base64 encoding', async () => {
+      const mockPdfData = 'mock-pdf-data';
+      const prompt: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this PDF' },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: mockPdfData,
+              filename: 'test.pdf',
+            },
+          ],
+        },
+      ];
+
+      prepareJsonResponse({
+        content: 'This is an analysis of the PDF',
+      });
+
+      const result = await perplexityModel.doGenerate({ prompt });
+
+      // Verify the request contains the correct PDF format
+      const requestBody =
+        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        {
+          type: 'text',
+          text: 'Analyze this PDF',
+        },
+        {
+          type: 'file_url',
+          file_url: {
+            url: expect.stringContaining(mockPdfData),
+          },
+          file_name: 'test.pdf',
+        },
+      ]);
+
+      // Verify the response is processed correctly
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'This is an analysis of the PDF',
+        },
+      ]);
+    });
+
+    it('should handle PDF files with URLs', async () => {
+      const pdfUrl = 'https://example.com/test.pdf';
+      const prompt: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this PDF' },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: new URL(pdfUrl),
+              filename: 'test.pdf',
+            },
+          ],
+        },
+      ];
+
+      prepareJsonResponse({
+        content: 'This is an analysis of the PDF from URL',
+      });
+
+      const result = await perplexityModel.doGenerate({ prompt });
+
+      // Verify the request contains the correct PDF URL format
+      const requestBody =
+        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        {
+          type: 'text',
+          text: 'Analyze this PDF',
+        },
+        {
+          type: 'file_url',
+          file_url: {
+            url: pdfUrl,
+          },
+          file_name: 'test.pdf',
+        },
+      ]);
+
+      // Verify the response is processed correctly
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'This is an analysis of the PDF from URL',
+        },
+      ]);
+    });
+
     it('should extract citations as sources', async () => {
       prepareJsonResponse({
         citations: ['http://example.com/123', 'https://example.com/456'],

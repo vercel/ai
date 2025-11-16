@@ -83,6 +83,7 @@ export function createDeepSeek(
   const provider = (modelId: DeepSeekChatModelId) =>
     createLanguageModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
 

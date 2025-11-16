@@ -2,9 +2,10 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output } from '../generate-text';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { ToolLoopAgent } from './tool-loop-agent';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { DeepPartial } from '../util/deep-partial';
+import { AgentCallParameters } from './agent';
+import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
@@ -20,10 +21,30 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should require options when call options are provided', async () => {
+      const agent = new ToolLoopAgent<{ callOption: string }>({
+        model: new MockLanguageModelV3(),
+      });
+
+      expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
+        AgentCallParameters<{ callOption: string }>
+      >();
+    });
+
+    it('should not require options when call options are not provided', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3(),
+      });
+
+      expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
+        AgentCallParameters<never>
+      >();
+    });
+
     it('should infer output type', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV3(),
-        experimental_output: Output.object({
+        output: Output.object({
           schema: z.object({ value: z.string() }),
         }),
       });
@@ -32,7 +53,7 @@ describe('ToolLoopAgent', () => {
         prompt: 'Hello, world!',
       });
 
-      const output = generateResult.experimental_output;
+      const output = generateResult.output;
 
       expectTypeOf<typeof output>().toEqualTypeOf<{ value: string }>();
     });
@@ -51,19 +72,39 @@ describe('ToolLoopAgent', () => {
       });
     });
 
+    it('should require options when call options are provided', async () => {
+      const agent = new ToolLoopAgent<{ callOption: string }>({
+        model: new MockLanguageModelV3(),
+      });
+
+      expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
+        AgentCallParameters<{ callOption: string }>
+      >();
+    });
+
+    it('should not require options when call options are not provided', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3(),
+      });
+
+      expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
+        AgentCallParameters<never>
+      >();
+    });
+
     it('should infer output type', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV3(),
-        experimental_output: Output.object({
+        output: Output.object({
           schema: z.object({ value: z.string() }),
         }),
       });
 
-      const streamResult = agent.stream({
+      const streamResult = await agent.stream({
         prompt: 'Hello, world!',
       });
 
-      const partialOutputStream = streamResult.experimental_partialOutputStream;
+      const partialOutputStream = streamResult.partialOutputStream;
 
       expectTypeOf<typeof partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<DeepPartial<{ value: string }>>

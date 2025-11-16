@@ -50,6 +50,7 @@ export function prepareTools({
   const isGemini2 = modelId.includes('gemini-2') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
+  const supportsFileSearch = modelId.includes('gemini-2.5');
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
@@ -62,11 +63,11 @@ export function prepareTools({
   );
 
   if (hasFunctionTools && hasProviderDefinedTools) {
+    const functionTools = tools.filter(tool => tool.type === 'function');
     toolWarnings.push({
       type: 'unsupported-tool',
       tool: tools.find(tool => tool.type === 'function')!,
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+      details: `Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: ${functionTools.map(t => t.name).join(', ')}. Please use either function tools or provider-defined tools, but not both.`,
     });
   }
 
@@ -121,6 +122,18 @@ export function prepareTools({
               tool,
               details:
                 'The code execution tools is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
+        case 'google.file_search':
+          if (supportsFileSearch) {
+            googleTools.push({ fileSearch: { ...tool.args } });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The file search tool is only supported with Gemini 2.5 models.',
             });
           }
           break;

@@ -13,12 +13,16 @@ export const TOP_LOGPROBS_MAX = 20;
 export const openaiResponsesReasoningModelIds = [
   'o1',
   'o1-2024-12-17',
-  'o3-mini',
-  'o3-mini-2025-01-31',
   'o3',
   'o3-2025-04-16',
+  'o3-deep-research',
+  'o3-deep-research-2025-06-26',
+  'o3-mini',
+  'o3-mini-2025-01-31',
   'o4-mini',
   'o4-mini-2025-04-16',
+  'o4-mini-deep-research',
+  'o4-mini-deep-research-2025-06-26',
   'codex-mini-latest',
   'computer-use-preview',
   'gpt-5',
@@ -30,6 +34,10 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5-nano-2025-08-07',
   'gpt-5-pro',
   'gpt-5-pro-2025-10-06',
+  'gpt-5.1',
+  'gpt-5.1-chat-latest',
+  'gpt-5.1-codex-mini',
+  'gpt-5.1-codex',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -90,6 +98,10 @@ export type OpenAIResponsesModelId =
   | 'gpt-4o-mini-2024-07-18'
   | 'gpt-4o-mini'
   | 'gpt-4o'
+  | 'gpt-5.1'
+  | 'gpt-5.1-chat-latest'
+  | 'gpt-5.1-codex-mini'
+  | 'gpt-5.1-codex'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -151,6 +163,16 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
       parallelToolCalls: z.boolean().nullish(),
       previousResponseId: z.string().nullish(),
       promptCacheKey: z.string().nullish(),
+
+      /**
+       * The retention policy for the prompt cache.
+       * - 'in_memory': Default. Standard prompt caching behavior.
+       * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
+       *          Currently only available for 5.1 series models.
+       *
+       * @default 'in_memory'
+       */
+      promptCacheRetention: z.enum(['in_memory', '24h']).nullish(),
       reasoningEffort: z.string().nullish(),
       reasoningSummary: z.string().nullish(),
       safetyIdentifier: z.string().nullish(),

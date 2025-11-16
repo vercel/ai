@@ -1,15 +1,11 @@
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
-import {
-  InferGenerateOutput,
-  InferStreamOutput,
-  Output,
-} from '../generate-text/output';
+import { Output } from '../generate-text/output';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
-import { Prompt } from '../prompt/prompt';
+import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters } from './agent';
 import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
@@ -25,15 +21,16 @@ import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
  * - A stop condition is met (default stop condition is stepCountIs(20))
  */
 export class ToolLoopAgent<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-> implements Agent<TOOLS, OUTPUT>
+> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT>
 {
   readonly version = 'agent-v1';
 
-  private readonly settings: ToolLoopAgentSettings<TOOLS, OUTPUT>;
+  private readonly settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>;
 
-  constructor(settings: ToolLoopAgentSettings<TOOLS, OUTPUT>) {
+  constructor(settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>) {
     this.settings = settings;
   }
 
@@ -51,35 +48,61 @@ export class ToolLoopAgent<
     return this.settings.tools as TOOLS;
   }
 
+  private async prepareCall(
+    options: AgentCallParameters<CALL_OPTIONS>,
+  ): Promise<
+    Omit<
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+      'prepareCall' | 'instructions'
+    > &
+      Prompt
+  > {
+    const baseCallArgs = {
+      ...this.settings,
+      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...options,
+    };
+
+    const preparedCallArgs =
+      (await this.settings.prepareCall?.(baseCallArgs)) ?? baseCallArgs;
+
+    const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
+
+    return {
+      ...callArgs,
+
+      // restore prompt types
+      ...({ system: instructions, messages, prompt } as Prompt),
+    };
+  }
+
   /**
    * Generates an output from the agent (non-streaming).
    */
-  async generate(
-    options: AgentCallParameters,
-  ): Promise<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>> {
-    const { instructions, stopWhen, ...settings } = this.settings;
-
+  async generate({
+    abortSignal,
+    ...options
+  }: AgentCallParameters<CALL_OPTIONS>): Promise<
+    GenerateTextResult<TOOLS, OUTPUT>
+  > {
     return generateText({
-      ...settings,
-      system: instructions,
-      stopWhen: stopWhen ?? stepCountIs(20),
-      ...options,
+      ...(await this.prepareCall(options)),
+      abortSignal,
     });
   }
 
   /**
    * Streams an output from the agent (streaming).
    */
-  stream(
-    options: AgentCallParameters,
-  ): StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>> {
-    const { instructions, stopWhen, ...settings } = this.settings;
-
+  async stream({
+    abortSignal,
+    ...options
+  }: AgentCallParameters<CALL_OPTIONS>): Promise<
+    StreamTextResult<TOOLS, OUTPUT>
+  > {
     return streamText({
-      ...settings,
-      system: instructions,
-      stopWhen: stopWhen ?? stepCountIs(20),
-      ...options,
+      ...(await this.prepareCall(options)),
+      abortSignal,
     });
   }
 }

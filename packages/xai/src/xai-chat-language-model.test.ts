@@ -301,6 +301,25 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
+    it('should pass parallel_function_calling provider option', async () => {
+      prepareJsonResponse({ content: '' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            parallel_function_calling: false,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        parallel_function_calling: false,
+      });
+    });
+
     it('should pass headers', async () => {
       prepareJsonResponse({ content: '' });
 
@@ -370,6 +389,7 @@ describe('XaiChatLanguageModel', () => {
               },
             ],
             "model": "grok-beta",
+            "parallel_function_calling": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
@@ -699,6 +719,64 @@ describe('XaiChatLanguageModel', () => {
         ]
       `);
     });
+
+    it('should support json schema response format without warnings', async () => {
+      prepareJsonResponse({ content: '{"name":"john doe"}' });
+
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect(warnings).toEqual([]);
+    });
+
+    it('should send json schema in response format', async () => {
+      prepareJsonResponse({ content: '{"name":"john"}' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'person',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-beta',
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'person',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+            },
+            strict: true,
+          },
+        },
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -1018,6 +1096,7 @@ describe('XaiChatLanguageModel', () => {
               },
             ],
             "model": "grok-beta",
+            "parallel_function_calling": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,

@@ -9,6 +9,10 @@ export type {
   GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
+export type {
+  InferCompleteOutput as InferGenerateOutput,
+  InferPartialOutput as InferStreamOutput,
+} from './output-utils';
 export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningOutput } from './reasoning-output';
