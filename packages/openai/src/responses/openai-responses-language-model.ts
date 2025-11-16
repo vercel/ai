@@ -487,8 +487,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: annotation.quote ?? annotation.filename ?? 'Document',
-                  filename: annotation.filename ?? annotation.file_id,
+                  title: annotation.filename ,
+                  filename: annotation.filename ,
                   ...(annotation.file_id
                     ? {
                         providerMetadata: {
@@ -506,15 +506,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
                   title:
-                    annotation.filename ?? annotation.file_id ?? 'Document',
-                  filename: annotation.filename ?? annotation.file_id,
+                    annotation.filename ,
+                  filename: annotation.filename ,
                   providerMetadata: {
                     openai: {
+                      type: annotation.type,
                       fileId: annotation.file_id,
                       containerId: annotation.container_id,
-                      ...(annotation.index != null
-                        ? { index: annotation.index }
-                        : {}),
+                      filename: annotation.filename,
                     },
                   },
                 });
@@ -1386,16 +1385,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
                   title:
-                    value.annotation.quote ??
-                    value.annotation.filename ??
-                    'Document',
+                    value.annotation.filename,
                   filename:
-                    value.annotation.filename ?? value.annotation.file_id,
+                    value.annotation.filename,
                   ...(value.annotation.file_id
                     ? {
                         providerMetadata: {
                           openai: {
+                            type :value.annotation.type,
                             fileId: value.annotation.file_id,
+                            filename: value.annotation.filename,
                           },
                         },
                       }
@@ -1408,18 +1407,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
                   title:
-                    value.annotation.filename ??
-                    value.annotation.file_id ??
-                    'Document',
+                    value.annotation.filename ,
                   filename:
-                    value.annotation.filename ?? value.annotation.file_id,
+                    value.annotation.filename ,
                   providerMetadata: {
                     openai: {
+                      type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       containerId: value.annotation.container_id,
-                      ...(value.annotation.index != null
-                        ? { index: value.annotation.index }
-                        : {}),
+                      filename: value.annotation.filename,
                     },
                   },
                 });
@@ -1433,10 +1429,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   filename: value.annotation.file_id,
                   providerMetadata: {
                     openai: {
+                      type:value.type,
                       fileId: value.annotation.file_id,
-                      ...(value.annotation.index != null
-                        ? { index: value.annotation.index }
-                        : {}),
+                      index:value.annotation.index ,
                     },
                   },
                 });
