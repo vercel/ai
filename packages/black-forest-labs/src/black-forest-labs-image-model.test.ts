@@ -65,13 +65,13 @@ describe('BlackForestLabsImageModel', () => {
         size: undefined,
         aspectRatio: '16:9',
         seed: undefined,
-        providerOptions: { blackForestLabs: { additional_param: 'value' } },
+        providerOptions: { blackForestLabs: { prompt_upsampling: true } },
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
-        additional_param: 'value',
+        prompt_upsampling: true,
       });
     });
 
@@ -171,8 +171,7 @@ describe('BlackForestLabsImageModel', () => {
       expect(result.warnings).toContainEqual({
         type: 'unsupported-setting',
         setting: 'size',
-        details:
-          'Black Forest Labs does not accept width/height. Deriving aspect_ratio from size.',
+        details: 'Deriving aspect_ratio from size.',
       });
     });
 

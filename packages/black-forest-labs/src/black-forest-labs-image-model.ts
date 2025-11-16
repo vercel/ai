@@ -9,6 +9,7 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -42,16 +43,13 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     private readonly config: BlackForestLabsImageModelConfig,
   ) {}
 
-  async doGenerate({
+  private async getArgs({
     prompt,
     size,
     aspectRatio,
+    seed,
     providerOptions,
-    headers,
-    abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
-  > {
+  }: Parameters<ImageModelV2['doGenerate']>[0]) {
     const warnings: Array<ImageModelV2CallWarning> = [];
 
     const finalAspectRatio =
@@ -61,8 +59,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'size',
-        details:
-          'Black Forest Labs does not accept width/height. Deriving aspect_ratio from size.',
+        details: 'Deriving aspect_ratio from size.',
       });
     } else if (size && aspectRatio) {
       warnings.push({
@@ -71,6 +68,70 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
         details: 'Black Forest Labs ignores size when aspectRatio is provided.',
       });
     }
+
+    const bflOptions = await parseProviderOptions({
+      provider: 'blackForestLabs',
+      providerOptions,
+      schema: blackForestLabsImageProviderOptionsSchema,
+    });
+
+    const body: Record<string, unknown> = {
+      prompt,
+      ...(finalAspectRatio ? { aspect_ratio: finalAspectRatio } : {}),
+    };
+
+    if (typeof seed === 'number') {
+      body.seed = seed;
+    } else if (bflOptions && 'seed' in bflOptions) {
+      body.seed = bflOptions.seed as number | null | undefined;
+    }
+
+    if (bflOptions) {
+      if (bflOptions.prompt_upsampling != null)
+        body.prompt_upsampling = bflOptions.prompt_upsampling;
+      if (bflOptions.safety_tolerance != null)
+        body.safety_tolerance = bflOptions.safety_tolerance;
+      if (bflOptions.output_format != null)
+        body.output_format = bflOptions.output_format;
+      if (bflOptions.webhook_url != null)
+        body.webhook_url = bflOptions.webhook_url;
+      if (bflOptions.webhook_secret != null)
+        body.webhook_secret = bflOptions.webhook_secret;
+      if (bflOptions.input_image != null)
+        body.input_image = bflOptions.input_image;
+      if (bflOptions.width != null) body.width = bflOptions.width;
+      if (bflOptions.height != null) body.height = bflOptions.height;
+      if (bflOptions.image_prompt != null)
+        body.image_prompt = bflOptions.image_prompt;
+      if (bflOptions.image_prompt_strength != null)
+        body.image_prompt_strength = bflOptions.image_prompt_strength;
+      if (bflOptions.raw != null) body.raw = bflOptions.raw;
+    }
+
+    return { body, warnings };
+  }
+
+  async doGenerate({
+    prompt,
+    size,
+    aspectRatio,
+    seed,
+    providerOptions,
+    headers,
+    abortSignal,
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
+  > {
+    const { body, warnings } = await this.getArgs({
+      prompt,
+      size,
+      aspectRatio,
+      seed,
+      providerOptions,
+      n: 1,
+      headers,
+      abortSignal,
+    } as Parameters<ImageModelV2['doGenerate']>[0]);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
@@ -81,11 +142,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     const submit = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combinedHeaders,
-      body: {
-        prompt,
-        ...(finalAspectRatio ? { aspect_ratio: finalAspectRatio } : {}),
-        ...(providerOptions?.blackForestLabs ?? {}),
-      },
+      body,
       failedResponseHandler: bflFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(bflSubmitSchema),
       abortSignal,
@@ -167,6 +224,25 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     throw new Error('Black Forest Labs generation timed out.');
   }
 }
+
+export const blackForestLabsImageProviderOptionsSchema = z.object({
+  seed: z.number().int().nullish(),
+  prompt_upsampling: z.boolean().nullish(),
+  safety_tolerance: z.number().int().min(0).max(6).nullish(),
+  output_format: z.enum(['jpeg', 'png']).nullish(),
+  webhook_url: z.string().url().nullish(),
+  webhook_secret: z.string().nullish(),
+  input_image: z.string().nullish(),
+  width: z.number().int().nullish(),
+  height: z.number().int().nullish(),
+  image_prompt: z.string().nullish(),
+  image_prompt_strength: z.number().min(0).max(1).nullish(),
+  raw: z.boolean().nullish(),
+});
+
+export type BlackForestLabsImageProviderOptions = z.infer<
+  typeof blackForestLabsImageProviderOptionsSchema
+>;
 
 function convertSizeToAspectRatio(
   size: string,
