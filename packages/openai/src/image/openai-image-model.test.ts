@@ -311,4 +311,42 @@ describe('doGenerate', () => {
       },
     });
   });
+
+  it('should map OpenAI usage to usage', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            b64_json: 'base64-image-1',
+          },
+        ],
+        usage: {
+          input_tokens: 12,
+          output_tokens: 0,
+          total_tokens: 12,
+          input_tokens_details: {
+            image_tokens: 7,
+            text_tokens: 5,
+          },
+        },
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.usage).toStrictEqual({
+      inputTokens: 12,
+      outputTokens: 0,
+      totalTokens: 12,
+    });
+  });
 });
