@@ -1,0 +1,320 @@
+---
+title: ScrapeGraph AI
+description: Learn how to use the ScrapeGraph AI provider for web scraping.
+---
+
+# ScrapeGraph AI Provider
+
+The AI SDK supports [ScrapeGraph AI](https://scrapegraphai.com) through the official provider package `@ai-sdk/scrapegraph`.
+
+ScrapeGraph AI provides AI-powered web scraping capabilities with multiple extraction methods:
+
+- **SmartScraper** - Extract structured data from websites using AI
+- **SearchScraper** - Search and extract data from multiple sources
+- **Markdownify** - Convert webpages to clean markdown
+- **Scrape** - Fetch raw HTML content with JavaScript rendering
+- **Crawl** - Multi-page crawling with AI extraction
+- **Agentic Scraper** - Complex workflows with AI-powered automation
+- **Sitemap** - Extract complete website structure
+
+## Setup
+
+The ScrapeGraph AI provider is available in the `@ai-sdk/scrapegraph` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/scrapegraph" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/scrapegraph" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/scrapegraph" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/scrapegraph" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `scrapegraph` from `@ai-sdk/scrapegraph`:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+```
+
+If you need a customized setup, you can import `createScrapeGraph` and create a provider instance with your settings:
+
+```ts
+import { createScrapeGraph } from '@ai-sdk/scrapegraph';
+
+const customScrapeGraph = createScrapeGraph({
+  apiKey: 'your-api-key', // or set SCRAPEGRAPH_API_KEY env variable
+  baseURL: 'https://api.scrapegraphai.com/v1',
+  headers: {
+    'Custom-Header': 'value'
+  }
+});
+```
+
+You can use the following optional settings to customize the ScrapeGraph AI provider instance:
+
+- **apiKey** _string_
+
+  Your ScrapeGraph AI API key. Default value is taken from the `SCRAPEGRAPH_API_KEY` or `SGAI_APIKEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://api.scrapegraphai.com/v1`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _FetchFunction_
+
+  Custom fetch implementation for middleware or testing.
+
+## Usage Examples
+
+### SmartScraper - Extract Structured Data
+
+Extract structured data from websites using AI-powered extraction:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+
+const data = await scrapegraph.smartScraper({
+  website_url: 'https://example.com/product',
+  user_prompt: 'Extract product information including name, price, and description',
+  output_schema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      price: { type: 'number' },
+      description: { type: 'string' }
+    }
+  }
+});
+
+console.log(data);
+```
+
+### SearchScraper - Search and Extract
+
+Search the web and extract structured data from search results:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+
+const results = await scrapegraph.searchScraper({
+  user_prompt: 'Find the latest AI research papers',
+  num_results: 5,
+  number_of_scrolls: 2
+});
+
+console.log(results);
+```
+
+### Markdownify - Convert to Markdown
+
+Convert any webpage to clean, formatted markdown:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+
+const markdown = await scrapegraph.markdownify({
+  website_url: 'https://example.com',
+  render_heavy_js: false
+});
+
+console.log(markdown);
+```
+
+### Scrape - Raw HTML Extraction
+
+Fetch raw HTML content with optional JavaScript rendering:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+
+const html = await scrapegraph.scrape({
+  website_url: 'https://example.com',
+  render_heavy_js: true // Enable for SPAs
+});
+
+console.log(html);
+```
+
+### Crawl - Multi-page Crawling
+
+Perform asynchronous multi-page crawling with AI extraction:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+
+// Initiate crawl
+const { request_id, status } = await scrapegraph.crawlInitiate({
+  url: 'https://example.com',
+  prompt: 'Extract all product names and prices',
+  depth: 2,
+  max_pages: 20,
+  same_domain_only: true,
+  extraction_mode: 'ai'
+});
+
+// Poll for results
+let results;
+do {
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  results = await scrapegraph.crawlFetchResults(request_id);
+  
+  if (results.status === 'completed') {
+    console.log('Crawled pages:', results.pages_crawled);
+    console.log('Data:', results.data);
+    break;
+  } else if (results.status === 'failed') {
+    console.error('Crawl failed:', results.error);
+    break;
+  }
+} while (results.status === 'processing' || results.status === 'pending');
+```
+
+### Agentic Scraper - AI Workflows
+
+Execute complex multi-step scraping workflows with AI agents:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+
+const data = await scrapegraph.agenticScraper({
+  url: 'https://example.com',
+  user_prompt: 'Navigate to products, filter by category, and extract top 5 items',
+  steps: [
+    'Click on the products link',
+    'Select category: Electronics',
+    'Extract top 5 items with prices'
+  ],
+  output_schema: {
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        price: { type: 'number' }
+      }
+    }
+  },
+  ai_extraction: true,
+  persistent_session: false
+});
+
+console.log(data);
+```
+
+### Sitemap - Extract Site Structure
+
+Discover all accessible URLs and pages within a website:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+
+const sitemap = await scrapegraph.sitemap({
+  website_url: 'https://example.com'
+});
+
+console.log('URLs found:', sitemap.urls);
+console.log('Site structure:', sitemap.hierarchy);
+```
+
+## Configuration Options
+
+### SmartScraper Options
+
+- `website_url` (required): Target website URL
+- `user_prompt` (required): Instructions for what to extract
+- `output_schema` (optional): JSON schema for structured output
+- `number_of_scrolls` (optional): Number of infinite scrolls (0-50)
+- `total_pages` (optional): Number of pages to process (1-100)
+- `render_heavy_js` (optional): Enable JavaScript rendering for SPAs
+- `stealth` (optional): Enable stealth mode to avoid bot detection
+
+### SearchScraper Options
+
+- `user_prompt` (required): Search query
+- `num_results` (optional): Number of websites to search (default: 3)
+- `number_of_scrolls` (optional): Scrolls per page (default: 0)
+
+### Crawl Options
+
+- `url` (required): Starting URL
+- `prompt` (optional): AI extraction prompt (required for AI mode)
+- `extraction_mode` (optional): `'ai'` or `'markdown'` (default: `'ai'`)
+- `depth` (optional): Maximum link traversal depth
+- `max_pages` (optional): Maximum pages to crawl
+- `same_domain_only` (optional): Stay within domain (default: true)
+
+### Agentic Scraper Options
+
+- `url` (required): Target website URL
+- `user_prompt` (optional): High-level workflow instructions
+- `steps` (optional): Step-by-step instructions array
+- `output_schema` (optional): JSON schema for output structure
+- `ai_extraction` (optional): Enable AI extraction (default: true)
+- `persistent_session` (optional): Maintain session state (default: false)
+- `timeout_seconds` (optional): Workflow timeout (default: 120)
+
+## Cost Information
+
+Different endpoints have different credit costs:
+
+- **Scrape**: 1 credit per page
+- **Markdownify**: 2 credits per page
+- **SmartScraper**: 10 credits per page
+- **SearchScraper**: 10 credits per website (default 3 = 30 credits)
+- **Crawl (AI mode)**: 10 credits per page
+- **Crawl (Markdown mode)**: 2 credits per page
+- **Agentic Scraper**: Variable based on complexity
+- **Sitemap**: 1 credit per request
+
+## More Information
+
+For more details about ScrapeGraph AI:
+
+- [ScrapeGraph AI Website](https://scrapegraphai.com)
+- [ScrapeGraph AI Documentation](https://docs.scrapegraphai.com)
+- [ScrapeGraph AI API Reference](https://docs.scrapegraphai.com/api-reference)
+
+## Example Integration with AI SDK
+
+ScrapeGraph AI works great alongside AI models for enhanced data processing:
+
+```ts
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+
+// First, scrape content
+const markdown = await scrapegraph.markdownify({
+  website_url: 'https://example.com/article',
+});
+
+// Then, analyze with AI
+const analysis = await generateObject({
+  model: openai('gpt-4-turbo'),
+  schema: {
+    type: 'object',
+    properties: {
+      summary: { type: 'string' },
+      keyPoints: { type: 'array', items: { type: 'string' } },
+      sentiment: { type: 'string', enum: ['positive', 'negative', 'neutral'] }
+    }
+  },
+  prompt: `Analyze this article:\n\n${markdown}`
+});
+
+console.log(analysis);
+```
+
