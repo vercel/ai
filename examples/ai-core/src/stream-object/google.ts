@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
-    model: google('gemini-1.5-pro-002'),
+    model: google('gemini-2.0-flash'),
     schema: z.object({
       characters: z.array(
         z.object({

@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: vertex('gemini-1.5-pro'),
+    model: vertex('gemini-2.5-pro'),
     schema: z.object({
       recipe: z.object({
         name: z.literal('Lasagna'),
