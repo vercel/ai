@@ -7,6 +7,7 @@ import {
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
+import { GatewayImageModel } from './gateway-image-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -51,6 +52,37 @@ vi.mock('./vercel-environment', () => ({
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
+
+type GatewayImageModelInternalConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Promise<Record<string, string>>;
+  fetch?: typeof fetch;
+  o11yHeaders: () => Promise<Record<string, string>>;
+};
+
+function assertIsGatewayImageModelInternalConfig(
+  value: unknown,
+): asserts value is GatewayImageModelInternalConfig {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { provider?: unknown }).provider !== 'string' ||
+    typeof (value as { baseURL?: unknown }).baseURL !== 'string' ||
+    typeof (value as { headers?: unknown }).headers !== 'function' ||
+    typeof (value as { o11yHeaders?: unknown }).o11yHeaders !== 'function'
+  ) {
+    throw new Error('Invalid GatewayImageModel configuration');
+  }
+}
+
+function getGatewayImageModelInternalConfig(
+  model: GatewayImageModel,
+): GatewayImageModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewayImageModelInternalConfig(config);
+  return config;
+}
 
 describe('GatewayProvider', () => {
   beforeEach(() => {
@@ -146,6 +178,54 @@ describe('GatewayProvider', () => {
         'openai/text-embedding-3-small',
       );
       expect(model).toBeInstanceOf(GatewayEmbeddingModel);
+    });
+
+    it('should create GatewayImageModel for imageModel', () => {
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.imageModel('google/imagen-4.0-generate');
+
+      if (!(model instanceof GatewayImageModel)) {
+        fail('Expected GatewayImageModel to be created');
+      }
+
+      const config = getGatewayImageModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should reuse gateway headers and fetch for imageModel', async () => {
+      const customFetch = vi.fn();
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Header': 'value' },
+        fetch: customFetch,
+      });
+
+      const model = provider.imageModel('google/imagen-4.0-generate');
+
+      if (!(model instanceof GatewayImageModel)) {
+        fail('Expected GatewayImageModel to be created');
+      }
+
+      const config = getGatewayImageModelInternalConfig(model);
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'ai-gateway-protocol-version': expect.any(String),
+        'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+      expect(config.fetch).toBe(customFetch);
+
+      const o11yHeaders = await config.o11yHeaders();
+      expect(o11yHeaders).toEqual({ 'ai-o11y-request-id': 'mock-request-id' });
     });
 
     it('should fetch available models', async () => {
@@ -342,6 +422,19 @@ describe('GatewayProvider', () => {
       expect(provider).toBeDefined();
       expect(typeof provider).toBe('function');
       expect(typeof provider.languageModel).toBe('function');
+    });
+
+    it('should expose imageModel on the default provider and construct model', () => {
+      expect(typeof gateway.imageModel).toBe('function');
+      const model = gateway.imageModel('google/imagen-4.0-generate');
+
+      if (!(model instanceof GatewayImageModel)) {
+        fail('Expected GatewayImageModel to be created by default provider');
+      }
+
+      const config = getGatewayImageModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v1/ai');
     });
 
     it('should override default baseURL when provided', async () => {

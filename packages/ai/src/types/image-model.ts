@@ -7,7 +7,7 @@ import {
 /**
 Image model that is used by the AI SDK Core functions.
   */
-export type ImageModel = ImageModelV2;
+export type ImageModel = string | ImageModelV2;
 
 /**
 Warning from the model provider for this call. The call will proceed, but e.g.
