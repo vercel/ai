@@ -154,7 +154,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
           return value.result.sample;
         }
         throw new Error(
-          'Black Forest Labs poll response is ready but missing result.sample',
+          'Black Forest Labs poll response is Ready but missing result.sample',
         );
       }
       if (status === 'Error' || status === 'Failed') {
