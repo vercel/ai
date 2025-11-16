@@ -1,5 +1,5 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
+import type { InferValidator, Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
   combineHeaders,
@@ -9,9 +9,11 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { BlackForestLabsAspectRatio } from './black-forest-labs-image-settings';
@@ -255,22 +257,26 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
   }
 }
 
-export const blackForestLabsImageProviderOptionsSchema = z.object({
-  seed: z.number().int().nullish(),
-  prompt_upsampling: z.boolean().nullish(),
-  safety_tolerance: z.number().int().min(0).max(6).nullish(),
-  output_format: z.enum(['jpeg', 'png']).nullish(),
-  webhook_url: z.string().url().nullish(),
-  webhook_secret: z.string().nullish(),
-  input_image: z.string().nullish(),
-  width: z.number().int().nullish(),
-  height: z.number().int().nullish(),
-  image_prompt: z.string().nullish(),
-  image_prompt_strength: z.number().min(0).max(1).nullish(),
-  raw: z.boolean().nullish(),
-});
+export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      seed: z.number().int().nullish(),
+      prompt_upsampling: z.boolean().nullish(),
+      safety_tolerance: z.number().int().min(0).max(6).nullish(),
+      output_format: z.enum(['jpeg', 'png']).nullish(),
+      webhook_url: z.string().url().nullish(),
+      webhook_secret: z.string().nullish(),
+      input_image: z.string().nullish(),
+      width: z.number().int().nullish(),
+      height: z.number().int().nullish(),
+      image_prompt: z.string().nullish(),
+      image_prompt_strength: z.number().min(0).max(1).nullish(),
+      raw: z.boolean().nullish(),
+    }),
+  ),
+);
 
-export type BlackForestLabsImageProviderOptions = z.infer<
+export type BlackForestLabsImageProviderOptions = InferValidator<
   typeof blackForestLabsImageProviderOptionsSchema
 >;
 
