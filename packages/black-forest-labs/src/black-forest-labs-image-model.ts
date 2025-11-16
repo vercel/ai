@@ -89,24 +89,24 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     }
 
     if (bflOptions) {
-      if (bflOptions.prompt_upsampling != null)
-        body.prompt_upsampling = bflOptions.prompt_upsampling;
-      if (bflOptions.safety_tolerance != null)
-        body.safety_tolerance = bflOptions.safety_tolerance;
-      if (bflOptions.output_format != null)
-        body.output_format = bflOptions.output_format;
-      if (bflOptions.webhook_url != null)
-        body.webhook_url = bflOptions.webhook_url;
-      if (bflOptions.webhook_secret != null)
-        body.webhook_secret = bflOptions.webhook_secret;
-      if (bflOptions.input_image != null)
-        body.input_image = bflOptions.input_image;
+      if (bflOptions.promptUpsampling != null)
+        body.promptUpsampling = bflOptions.promptUpsampling;
+      if (bflOptions.safetyTolerance != null)
+        body.safety_tolerance = bflOptions.safetyTolerance;
+      if (bflOptions.outputFormat != null)
+        body.outputFormat = bflOptions.outputFormat;
+      if (bflOptions.webhookUrl != null)
+        body.webhookUrl = bflOptions.webhookUrl;
+      if (bflOptions.webhookSecret != null)
+        body.webhookSecret = bflOptions.webhookSecret;
+      if (bflOptions.inputImage != null)
+        body.inputImage = bflOptions.inputImage;
       if (bflOptions.width != null) body.width = bflOptions.width;
       if (bflOptions.height != null) body.height = bflOptions.height;
-      if (bflOptions.image_prompt != null)
-        body.image_prompt = bflOptions.image_prompt;
-      if (bflOptions.image_prompt_strength != null)
-        body.image_prompt_strength = bflOptions.image_prompt_strength;
+      if (bflOptions.imagePrompt != null)
+        body.imagePrompt = bflOptions.imagePrompt;
+      if (bflOptions.imagePromptStrength != null)
+        body.imagePromptStrength = bflOptions.imagePromptStrength;
       if (bflOptions.raw != null) body.raw = bflOptions.raw;
     }
 
@@ -261,16 +261,16 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       seed: z.number().int().optional(),
-      prompt_upsampling: z.boolean().optional(),
-      safety_tolerance: z.number().int().min(0).max(6).optional(),
-      output_format: z.enum(['jpeg', 'png']).optional(),
-      webhook_url: z.url().optional(),
-      webhook_secret: z.string().optional(),
-      input_image: z.string().optional(),
+      promptUpsampling: z.boolean().optional(),
+      safetyTolerance: z.number().int().min(0).max(6).optional(),
+      outputFormat: z.enum(['jpeg', 'png']).optional(),
+      webhookUrl: z.url().optional(),
+      webhookSecret: z.string().optional(),
+      inputImage: z.string().optional(),
       width: z.number().int().optional(),
       height: z.number().int().optional(),
-      image_prompt: z.string().optional(),
-      image_prompt_strength: z.number().min(0).max(1).optional(),
+      imagePrompt: z.string().optional(),
+      imagePromptStrength: z.number().min(0).max(1).optional(),
       raw: z.boolean().optional(),
     }),
   ),
