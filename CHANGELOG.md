@@ -48,7 +48,6 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/angular](./packages/angular/CHANGELOG.md)
 - [@ai-sdk/react](./packages/react/CHANGELOG.md)
 - [@ai-sdk/rsc](./packages/rsc/CHANGELOG.md)
-- [@ai-sdk/solid](./packages/solid/CHANGELOG.md)
 - [@ai-sdk/svelte](./packages/svelte/CHANGELOG.md)
 - [@ai-sdk/vue](./packages/vue/CHANGELOG.md)
 
@@ -57,7 +56,5 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/codemod](./packages/codemod/CHANGELOG.md)
 - [@ai-sdk/provider](./packages/provider/CHANGELOG.md)
 - [@ai-sdk/provider-utils](./packages/provider-utils/CHANGELOG.md)
-- [@ai-sdk/swarm](./packages/swarm/CHANGELOG.md)
 - [@ai-sdk/test-server](./packages/test-server/CHANGELOG.md)
-- [@ai-sdk/ui-utils](./packages/ui-utils/CHANGELOG.md)
 - [@ai-sdk/valibot](./packages/valibot/CHANGELOG.md)
