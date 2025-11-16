@@ -7,6 +7,7 @@
     { "path": "packages/anthropic" },
     { "path": "packages/assemblyai" },
     { "path": "packages/azure" },
+    { "path": "packages/black-forest-labs" },
     { "path": "packages/baseten" },
     { "path": "packages/cerebras" },
     { "path": "packages/codemod" },
