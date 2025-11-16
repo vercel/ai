@@ -311,7 +311,7 @@ it('should warn when mixing function and provider-defined tools', () => {
         inputSchema: { type: 'object', properties: {} },
       },
       details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+        'Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: testFunction. Please use either function tools or provider-defined tools, but not both.',
     },
   ]);
 
@@ -355,7 +355,7 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
         inputSchema: { type: 'object', properties: {} },
       },
       details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+        'Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: testFunction. Please use either function tools or provider-defined tools, but not both.',
     },
   ]);
 });
