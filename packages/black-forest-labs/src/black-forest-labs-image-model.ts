@@ -264,7 +264,7 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
       prompt_upsampling: z.boolean().nullish(),
       safety_tolerance: z.number().int().min(0).max(6).nullish(),
       output_format: z.enum(['jpeg', 'png']).nullish(),
-      webhook_url: z.string().url().nullish(),
+      webhook_url: z.url().nullish(),
       webhook_secret: z.string().nullish(),
       input_image: z.string().nullish(),
       width: z.number().int().nullish(),
