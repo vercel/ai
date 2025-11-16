@@ -79,9 +79,9 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 ### Basic Usage
 
 ```ts
-import { blackForestLabs } from '@ai-sdk/black-forest-labs';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
+import { writeFileSync } from "node:fs";
+import { blackForestLabs } from "@ai-sdk/black-forest-labs";
+import { experimental_generateImage as generateImage } from "ai";
 
 const { image, providerMetadata } = await generateImage({
   model: blackForestLabs.image('flux-pro-1.1'),
