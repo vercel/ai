@@ -9,7 +9,7 @@ async function main() {
     prompt: 'Put a donut next to the flour.',
     providerOptions: {
       fal: {
-        image_url:
+        imageUrl:
           'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
       },
     },

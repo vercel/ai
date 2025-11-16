@@ -163,11 +163,21 @@ await generateImage({
 
 Fal image models support flexible provider options through the `providerOptions.fal` object. You can pass any parameters supported by the specific Fal model's API. Common options include:
 
-- **image_url** - Reference image URL for image-to-image generation
+- **imageUrl** - Reference image URL for image-to-image generation
 - **strength** - Controls how much the output differs from the input image
-- **guidance_scale** - Controls adherence to the prompt
-- **num_inference_steps** - Number of denoising steps
-- **safety_checker** - Enable/disable safety filtering
+- **guidanceScale** - Controls adherence to the prompt (range: 1-20)
+- **numInferenceSteps** - Number of denoising steps (range: 1-50)
+- **enableSafetyChecker** - Enable/disable safety filtering
+- **outputFormat** - Output format: 'jpeg' or 'png'
+- **syncMode** - Wait for completion before returning response
+- **acceleration** - Speed of generation: 'none', 'regular', or 'high'
+- **safetyTolerance** - Content safety filtering level (1-6, where 1 is strictest)
+
+<Note type="warning">
+  **Deprecation Notice**: snake_case parameter names (e.g., `image_url`,
+  `guidance_scale`) are deprecated and will be removed in v6.0. Please use
+  camelCase names (e.g., `imageUrl`, `guidanceScale`) instead.
+</Note>
 
 Refer to the [Fal AI model documentation](https://fal.ai/models) for model-specific parameters.
 
