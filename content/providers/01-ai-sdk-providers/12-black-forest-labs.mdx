@@ -89,7 +89,7 @@ const { image, providerMetadata } = await generateImage({
 });
 
 const filename = `image-${Date.now()}.png`;
-fs.writeFileSync(filename, image.uint8Array);
+writeFileSync(filename, image.uint8Array);
 console.log(`Image saved to ${filename}`);
 ```
 
