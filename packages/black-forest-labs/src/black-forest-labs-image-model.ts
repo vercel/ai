@@ -152,7 +152,13 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     const pollUrl = submit.value.polling_url;
     const requestId = submit.value.id;
 
-    const imageUrl = await this.pollForImageUrl({
+    const {
+      imageUrl,
+      seed: resultSeed,
+      start_time: resultStartTime,
+      end_time: resultEndTime,
+      duration: resultDuration,
+    } = await this.pollForImageUrl({
       pollUrl,
       requestId,
       headers: combinedHeaders,
@@ -171,6 +177,18 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     return {
       images: [imageBytes],
       warnings,
+      providerMetadata: {
+        blackForestLabs: {
+          images: [
+            {
+              ...(resultSeed != null && { seed: resultSeed }),
+              ...(resultStartTime != null && { start_time: resultStartTime }),
+              ...(resultEndTime != null && { end_time: resultEndTime }),
+              ...(resultDuration != null && { duration: resultDuration }),
+            },
+          ],
+        },
+      },
       response: {
         modelId: this.modelId,
         timestamp: currentDate,
@@ -189,7 +207,13 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     requestId: string;
     headers: Record<string, string | undefined>;
     abortSignal: AbortSignal | undefined;
-  }): Promise<string> {
+  }): Promise<{
+    imageUrl: string;
+    seed?: number;
+    start_time?: number;
+    end_time?: number;
+    duration?: number;
+  }> {
     const url = new URL(pollUrl);
     if (!url.searchParams.has('id')) {
       url.searchParams.set('id', requestId);
@@ -208,7 +232,13 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       const status = value.status;
       if (status === 'Ready') {
         if (typeof value.result?.sample === 'string') {
-          return value.result.sample;
+          return {
+            imageUrl: value.result.sample,
+            seed: value.result.seed ?? undefined,
+            start_time: value.result.start_time ?? undefined,
+            end_time: value.result.end_time ?? undefined,
+            duration: value.result.duration ?? undefined,
+          };
         }
         throw new Error(
           'Black Forest Labs poll response is Ready but missing result.sample',
@@ -292,6 +322,10 @@ const bflPollSchema = z
     result: z
       .object({
         sample: z.url(),
+        seed: z.number().optional(),
+        start_time: z.number().optional(),
+        end_time: z.number().optional(),
+        duration: z.number().optional(),
       })
       .nullish(),
   })

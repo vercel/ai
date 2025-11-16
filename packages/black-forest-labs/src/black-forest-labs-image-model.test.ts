@@ -75,6 +75,33 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
 
+    it('includes seed in providerMetadata images when provided by API', async () => {
+      server.urls['https://api.example.com/poll'].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: {
+            sample: 'https://api.example.com/image.png',
+            seed: 12345,
+          },
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.blackForestLabs.images[0]).toMatchObject({
+        seed: 12345,
+      });
+    });
+
     it('calls the expected URLs in sequence', async () => {
       const model = createBasicModel();
 
