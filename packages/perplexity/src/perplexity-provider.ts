@@ -12,6 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import { PerplexityLanguageModelId } from './perplexity-language-model-options';
+import { perplexityTools } from './perplexity-tools';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV3 {
@@ -24,6 +25,11 @@ Creates an Perplexity chat model for text generation.
 Creates an Perplexity language model for text generation.
    */
   languageModel(modelId: PerplexityLanguageModelId): LanguageModelV3;
+
+  /**
+   * Perplexity-specific tools.
+   */
+  tools: typeof perplexityTools;
 }
 
 export interface PerplexityProviderSettings {
@@ -88,6 +94,8 @@ export function createPerplexity(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.tools = perplexityTools;
 
   return provider;
 }
