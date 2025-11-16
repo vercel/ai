@@ -1,7 +1,6 @@
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-
 export const falImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z
@@ -34,7 +33,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
           .nullish(),
       })
       .passthrough()
-      .transform((data) => {
+      .transform(data => {
         const result: Record<string, unknown> = {};
         const deprecatedKeys: string[] = [];
 

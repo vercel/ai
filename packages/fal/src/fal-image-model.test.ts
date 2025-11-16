@@ -139,8 +139,12 @@ describe('FalImageModel', () => {
       const warning = result.warnings[0];
       if (warning.type === 'other') {
         expect(warning.message).toContain("'image_url' (use 'imageUrl')");
-        expect(warning.message).toContain("'guidance_scale' (use 'guidanceScale')");
-        expect(warning.message).toContain("'num_inference_steps' (use 'numInferenceSteps')");
+        expect(warning.message).toContain(
+          "'guidance_scale' (use 'guidanceScale')",
+        );
+        expect(warning.message).toContain(
+          "'num_inference_steps' (use 'numInferenceSteps')",
+        );
       }
     });
 

@@ -1,7 +1,4 @@
-import type {
-  ImageModelV3,
-  ImageModelV3CallWarning,
-} from '@ai-sdk/provider';
+import type { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -74,9 +71,10 @@ export class FalImageModel implements ImageModelV3 {
     };
 
     if (falOptions) {
-      const deprecatedKeys = '__deprecatedKeys' in falOptions
-        ? (falOptions.__deprecatedKeys as string[])
-        : undefined;
+      const deprecatedKeys =
+        '__deprecatedKeys' in falOptions
+          ? (falOptions.__deprecatedKeys as string[])
+          : undefined;
 
       if (deprecatedKeys && deprecatedKeys.length > 0) {
         warnings.push({
