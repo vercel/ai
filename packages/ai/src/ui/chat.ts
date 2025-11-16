@@ -549,7 +549,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
-  private async makeRequest({
+  protected async makeRequest({
     trigger,
     metadata,
     headers,
