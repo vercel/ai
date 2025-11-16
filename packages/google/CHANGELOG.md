@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.33
+
+### Patch Changes
+
+- 30a7d54: Improve error message when mixing function tools with provider-defined tools to clarify fallback behavior and list ignored function tools
+
 ## 2.0.32
 
 ### Patch Changes
