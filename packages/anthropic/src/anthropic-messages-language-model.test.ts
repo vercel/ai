@@ -3678,6 +3678,34 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should merge custom anthropic-beta header with fine-grained-tool-streaming beta', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({
+        apiKey: 'test-api-key',
+        headers: {
+          'anthropic-beta': 'context-1m-2025-08-07',
+        },
+      });
+
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain('fine-grained-tool-streaming-2025-05-14');
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain('context-1m-2025-08-07');
+    });
+
     it('should support cache control', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
