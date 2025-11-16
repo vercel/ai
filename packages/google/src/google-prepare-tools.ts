@@ -56,11 +56,11 @@ export function prepareTools({
   );
 
   if (hasFunctionTools && hasProviderDefinedTools) {
+    const functionTools = tools.filter(tool => tool.type === 'function');
     toolWarnings.push({
       type: 'unsupported-tool',
       tool: tools.find(tool => tool.type === 'function')!,
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+      details: `Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: ${functionTools.map(t => t.name).join(', ')}. Please use either function tools or provider-defined tools, but not both.`,
     });
   }
 
