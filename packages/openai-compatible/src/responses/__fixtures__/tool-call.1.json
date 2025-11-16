@@ -1,0 +1,58 @@
+{
+  "created_at": 1761682600,
+  "id": "36f3a0f5-6911-7bde-f6c3-4c53150aad60_us-east-1",
+  "max_output_tokens": 200,
+  "model": "grok-4-fast-reasoning",
+  "object": "response",
+  "output": [
+    {
+      "arguments": "{\"location\":\"San Francisco\"}",
+      "call_id": "call_19494542",
+      "name": "getWeather",
+      "type": "function_call",
+      "id": "fc_36f3a0f5-6911-7bde-f6c3-4c53150aad60_us-east-1_0",
+      "status": "completed"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": "medium",
+    "summary": "detailed"
+  },
+  "temperature": null,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "function",
+      "description": "Get the weather for a location",
+      "name": "getWeather",
+      "parameters": "{\"type\":\"object\",\"properties\":{\"location\":{\"type\":\"string\",\"description\":\"The location to get weather for\"},\"unit\":{\"type\":\"string\",\"enum\":[\"celsius\",\"fahrenheit\"],\"description\":\"Temperature unit\"}},\"required\":[\"location\"],\"additionalProperties\":false}",
+      "strict": false
+    }
+  ],
+  "top_p": null,
+  "usage": {
+    "input_tokens": 391,
+    "input_tokens_details": {
+      "cached_tokens": 282
+    },
+    "output_tokens": 269,
+    "output_tokens_details": {
+      "reasoning_tokens": 243
+    },
+    "total_tokens": 660,
+    "num_sources_used": 0,
+    "num_server_side_tools_used": 0
+  },
+  "user": null,
+  "incomplete_details": null,
+  "status": "completed",
+  "store": true,
+  "metadata": {}
+}
