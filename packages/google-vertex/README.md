@@ -50,6 +50,48 @@ const { text } = await generateText({
 
 This method supports Google's [Application Default Credentials](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#application-default-credentials) through the environment variables `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, and (optionally) `GOOGLE_PRIVATE_KEY_ID`. The values can be obtained from a json credentials file obtained from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
+### Express Mode Authentication
+
+Both Node.js and Edge runtimes support Express Mode authentication using a simple API key. This provides a simplified authentication method without requiring service account credentials.
+
+To use Express Mode, provide an `apiKey` when creating the provider:
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const vertex = createVertex({
+  project: 'your-project-id',
+  location: 'us-central1',
+  apiKey: 'your-api-key', // or set GOOGLE_VERTEX_API_KEY env variable
+});
+
+const { text } = await generateText({
+  model: vertex('gemini-1.5-flash'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+Alternatively, you can set the `GOOGLE_VERTEX_API_KEY` environment variable and use the default provider instance:
+
+```bash
+export GOOGLE_VERTEX_API_KEY=your-api-key
+export GOOGLE_VERTEX_PROJECT=your-project-id
+export GOOGLE_VERTEX_LOCATION=us-central1
+```
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertex('gemini-1.5-flash'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+Express Mode works identically for the Edge runtime using `@ai-sdk/google-vertex/edge`.
+
 ## Google Vertex Anthropic Provider
 
 The Google Vertex Anthropic provider is available for both Node.js and Edge runtimes. It follows a similar usage pattern to the [core Google Vertex provider](#google-vertex-provider).
