@@ -2,6 +2,7 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
@@ -40,6 +41,7 @@ export class HttpMCPTransport implements MCPTransport {
     reconnectionDelayGrowFactor: 1.5,
     maxRetries: 2,
   } as const;
+  private fetch?: FetchFunction;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -49,14 +51,17 @@ export class HttpMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
+    fetch,
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
+    fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
+    this.fetch = fetch;
   }
 
   private async commonHeaders(
@@ -107,6 +112,7 @@ export class HttpMCPTransport implements MCPTransport {
         !this.abortController.signal.aborted
       ) {
         const headers = await this.commonHeaders({});
+        const fetch = this.getFetch();
         await fetch(this.url, {
           method: 'DELETE',
           headers,
@@ -134,6 +140,7 @@ export class HttpMCPTransport implements MCPTransport {
           signal: this.abortController?.signal,
         } satisfies RequestInit;
 
+        const fetch = this.getFetch();
         const response = await fetch(this.url, init);
 
         const sessionId = response.headers.get('mcp-session-id');
@@ -301,6 +308,7 @@ export class HttpMCPTransport implements MCPTransport {
         headers['last-event-id'] = resumeToken;
       }
 
+      const fetch = this.getFetch();
       const response = await fetch(this.url.href, {
         method: 'GET',
         headers,
@@ -401,5 +409,9 @@ export class HttpMCPTransport implements MCPTransport {
         this.scheduleInboundSseReconnection();
       }
     }
+  }
+
+  private getFetch() {
+    return this.fetch ?? globalThis.fetch;
   }
 }

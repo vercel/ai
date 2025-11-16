@@ -16,9 +16,6 @@ import {
 } from './oauth';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
-// use function to allow for mocking in tests:
-const getOriginalFetch = () => globalThis.fetch;
-
 export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
   private abortController?: AbortController;
@@ -277,7 +274,7 @@ export class SseMCPTransport implements MCPTransport {
   }
 
   private getFetch() {
-    return this.fetch ?? getOriginalFetch();
+    return this.fetch ?? globalThis.fetch;
   }
 }
 

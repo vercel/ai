@@ -40,6 +40,7 @@ Available examples/folders:
 - `mcp-prompts` - MCP prompts example
 - `mcp-resources` - MCP resources example
 - `stdio` - Stdio Transport (requires `pnpm stdio:build` first)
+- `sse-custom-fetch` - SSE Transport with custom fetch (Legacy)
 
 Example usage:
 
@@ -52,18 +53,4 @@ In another terminal, run the HTTP client:
 
 ```sh
 pnpm client:http
-```
-
-## SSE Transport with custom fetch (Legacy)
-
-Start server
-
-```sh
-pnpm sse:server
-```
-
-Run example:
-
-```sh
-pnpm sse-custom-fetch:client
 ```
