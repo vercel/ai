@@ -128,6 +128,7 @@ export type OpenAIResponsesModelId =
 export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
   zodSchema(
     z.object({
+      conversation: z.string().nullish(),
       include: z
         .array(
           z.enum([
