@@ -52,7 +52,7 @@ type Input = {
   /**
    * The model to use for image generation. Only `dall-e-2` and `gpt-image-1` are supported. Defaults to `dall-e-2` unless a parameter specific to `gpt-image-1` is used.
    */
-  model?: string | ('dall-e-2' | 'gpt-image-1' | 'gpt-image-1-mini');
+  model?: 'dall-e-2' | 'gpt-image-1' | 'gpt-image-1-mini' | string & {};
   /**
    * The number of images to generate. Must be between 1 and 10.
    */
@@ -125,10 +125,8 @@ async function createVariations() {
     model: 'gpt-image-1',
     n: 3,
     image: new Blob([imageBuffer], { type: 'image/png' }),
-    prompt:
-      'Turn the cat into other animals but retain the style and dimensions of the original image',
   };
-  await sendRequestAndHandleResponse(input);
+  await sendRequestAndHandleResponse(input, 'https://api.openai.com/v1/images/variations');
 }
 
 async function removeBackground() {
@@ -174,14 +172,15 @@ async function combineImages() {
 }
 
 async function editWithMask() {
-  const cat = readFileSync('data/comic-cat.png') as BlobPart;
-  const mask = readFileSync('data/comic-cat-mask-1.png') as BlobPart;
+  const image = readFileSync('data/sunlit_lounge.png') as BlobPart;
+  const mask = readFileSync('data/sunlit_lounge_mask.png') as BlobPart;
 
   const input: Input = {
+    // model: 'dall-e-2',
     model: 'gpt-image-1',
-    image: new Blob([cat], { type: 'image/png' }),
+    image: new Blob([image], { type: 'image/png' }),
     mask: new Blob([mask], { type: 'image/png' }),
-    prompt: 'Add an ear ring',
+    prompt: 'A sunlit indoor lounge area with a pool containing a flamingo',
   };
   await sendRequestAndHandleResponse(input);
 }
@@ -199,12 +198,12 @@ async function outpaint() {
 }
 
 // replaceCharacter().catch(console.error);
-// createVariations().catch(console.error);
+createVariations().catch(console.error);
 // removeBackground().catch(console.error);
 // upscaleImage().catch(console.error);
 // combineImages().catch(console.error);
 // editWithMask().catch(console.error);
-outpaint().catch(console.error);
+// outpaint().catch(console.error);
 
 function inputToFormData(input: Input): FormData {
   const formData = new FormData();
@@ -216,15 +215,17 @@ function inputToFormData(input: Input): FormData {
       continue;
     }
 
-    formData.append(key, value as string | Blob);
+    formData.append(key, value as string | string);
   }
+
   return formData;
 }
 
-async function sendRequestAndHandleResponse(input: Input) {
+async function sendRequestAndHandleResponse(input: Input, url = 'https://api.openai.com/v1/images/edits') {
   const formData = inputToFormData(input);
+  console.log(formData)
 
-  const response = await fetch('https://api.openai.com/v1/images/edits', {
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -245,8 +246,18 @@ async function sendRequestAndHandleResponse(input: Input) {
 
   for (const { b64_json, revised_prompt, url } of data) {
     if (url) {
-      console.log('RESULT IMAGE:\n%s\n', url)
-      continue
+      // download image from URL and convert to base64
+      const imageResponse = await fetch(url);
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      await presentImages([
+        {
+          uint8Array,
+          base64: '',
+          mediaType: '',
+        },
+      ]);
+      continue;
     }
 
     try {
