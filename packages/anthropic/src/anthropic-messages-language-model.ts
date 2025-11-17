@@ -164,6 +164,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       });
     }
 
+    if (temperature != null && temperature > 1) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'temperature',
+        details: `${temperature} exceeds anthropic maximum of 1.0. clamped to 1.0`,
+      });
+      temperature = 1;
+    } else if (temperature != null && temperature < 0) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'temperature',
+        details: `${temperature} is below anthropic minimum of 0. clamped to 0`,
+      });
+      temperature = 0;
+    }
+
     if (responseFormat?.type === 'json') {
       if (responseFormat.schema == null) {
         warnings.push({
