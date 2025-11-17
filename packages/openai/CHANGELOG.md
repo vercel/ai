@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 2.0.68
+
+### Patch Changes
+
+- a4c6a12: feat(provider/openai): support conversations api
+
+## 2.0.67
+
+### Patch Changes
+
+- 3735f5a: feat(openai): Add support for 'promptCacheRetention: 24h' for gpt5.1 series
+
+## 2.0.66
+
+### Patch Changes
+
+- 73f9178: feat(openai): add 'gpt-5.1' modelID
+
 ## 2.0.65
 
 ### Patch Changes

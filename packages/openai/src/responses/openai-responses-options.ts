@@ -38,6 +38,10 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5-nano-2025-08-07',
   'gpt-5-pro',
   'gpt-5-pro-2025-10-06',
+  'gpt-5.1',
+  'gpt-5.1-chat-latest',
+  'gpt-5.1-codex-mini',
+  'gpt-5.1-codex',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -98,6 +102,10 @@ export type OpenAIResponsesModelId =
   | 'gpt-4o-mini-2024-07-18'
   | 'gpt-4o-mini'
   | 'gpt-4o'
+  | 'gpt-5.1'
+  | 'gpt-5.1-chat-latest'
+  | 'gpt-5.1-codex-mini'
+  | 'gpt-5.1-codex'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -120,6 +128,7 @@ export type OpenAIResponsesModelId =
 export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
   zodSchema(
     z.object({
+      conversation: z.string().nullish(),
       include: z
         .array(
           z.enum([
@@ -158,6 +167,16 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
       parallelToolCalls: z.boolean().nullish(),
       previousResponseId: z.string().nullish(),
       promptCacheKey: z.string().nullish(),
+
+      /**
+       * The retention policy for the prompt cache.
+       * - 'in_memory': Default. Standard prompt caching behavior.
+       * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
+       *          Currently only available for 5.1 series models.
+       *
+       * @default 'in_memory'
+       */
+      promptCacheRetention: z.enum(['in_memory', '24h']).nullish(),
       reasoningEffort: z.string().nullish(),
       reasoningSummary: z.string().nullish(),
       safetyIdentifier: z.string().nullish(),

@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.33
+
+### Patch Changes
+
+- 88d06ad: fix(provider/xai): remove json schema unsupported warning
+
 ## 2.0.32
 
 ### Patch Changes

@@ -1824,6 +1824,82 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'tool-with-empty-desc',
+          description: '', // Empty string should be omitted
+          inputSchema: {
+            type: 'object',
+            properties: {
+              param1: { type: 'string' },
+            },
+            required: ['param1'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool-with-whitespace-desc',
+          description: '   ', // Whitespace-only should be omitted
+          inputSchema: {
+            type: 'object',
+            properties: {
+              param2: { type: 'number' },
+            },
+            required: ['param2'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool-with-valid-desc',
+          description: 'Valid description',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              param3: { type: 'boolean' },
+            },
+            required: ['param3'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    // Tool with empty description should not have description field
+    expect(requestBody.toolConfig.tools[0].toolSpec).not.toHaveProperty(
+      'description',
+    );
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'tool-with-empty-desc',
+    );
+
+    // Tool with whitespace-only description should not have description field
+    expect(requestBody.toolConfig.tools[1].toolSpec).not.toHaveProperty(
+      'description',
+    );
+    expect(requestBody.toolConfig.tools[1].toolSpec.name).toBe(
+      'tool-with-whitespace-desc',
+    );
+
+    // Tool with valid description should have description field
+    expect(requestBody.toolConfig.tools[2].toolSpec.description).toBe(
+      'Valid description',
+    );
+    expect(requestBody.toolConfig.tools[2].toolSpec.name).toBe(
+      'tool-with-valid-desc',
+    );
+  });
+
   it('should handle Anthropic provider-defined tools', async () => {
     mockPrepareAnthropicTools.mockReturnValue(
       Promise.resolve({

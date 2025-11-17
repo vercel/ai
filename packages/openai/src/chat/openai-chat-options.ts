@@ -42,6 +42,8 @@ export type OpenAIChatModelId =
   | 'gpt-5-nano'
   | 'gpt-5-nano-2025-08-07'
   | 'gpt-5-chat-latest'
+  | 'gpt-5.1'
+  | 'gpt-5.1-chat-latest'
   | (string & {});
 
 export const openaiChatLanguageModelOptions = lazyValidator(() =>
@@ -80,7 +82,9 @@ export const openaiChatLanguageModelOptions = lazyValidator(() =>
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`.
        */
-      reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
+      reasoningEffort: z
+        .enum(['none', 'minimal', 'low', 'medium', 'high'])
+        .optional(),
 
       /**
        * Maximum number of completion tokens to generate. Useful for reasoning models.
@@ -139,6 +143,16 @@ export const openaiChatLanguageModelOptions = lazyValidator(() =>
        * Useful for improving cache hit rates and working around automatic caching issues.
        */
       promptCacheKey: z.string().optional(),
+
+      /**
+       * The retention policy for the prompt cache.
+       * - 'in_memory': Default. Standard prompt caching behavior.
+       * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
+       *          Currently only available for 5.1 series models.
+       *
+       * @default 'in_memory'
+       */
+      promptCacheRetention: z.enum(['in_memory', '24h']).optional(),
 
       /**
        * A stable identifier used to help detect users of your application
