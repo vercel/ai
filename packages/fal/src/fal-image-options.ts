@@ -8,7 +8,6 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
         imageUrl: z.string().nullish(),
         guidanceScale: z.number().min(1).max(20).nullish(),
         numInferenceSteps: z.number().min(1).max(50).nullish(),
-        numImages: z.number().min(1).max(4).nullish(),
         enableSafetyChecker: z.boolean().nullish(),
         outputFormat: z.enum(['jpeg', 'png']).nullish(),
         syncMode: z.boolean().nullish(),
@@ -23,7 +22,6 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
         image_url: z.string().nullish(),
         guidance_scale: z.number().min(1).max(20).nullish(),
         num_inference_steps: z.number().min(1).max(50).nullish(),
-        num_images: z.number().min(1).max(4).nullish(),
         enable_safety_checker: z.boolean().nullish(),
         output_format: z.enum(['jpeg', 'png']).nullish(),
         sync_mode: z.boolean().nullish(),
@@ -54,7 +52,6 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
         mapKey('image_url', 'imageUrl');
         mapKey('guidance_scale', 'guidanceScale');
         mapKey('num_inference_steps', 'numInferenceSteps');
-        mapKey('num_images', 'numImages');
         mapKey('enable_safety_checker', 'enableSafetyChecker');
         mapKey('output_format', 'outputFormat');
         mapKey('sync_mode', 'syncMode');
@@ -75,7 +72,6 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
               'imageUrl',
               'guidanceScale',
               'numInferenceSteps',
-              'numImages',
               'enableSafetyChecker',
               'outputFormat',
               'syncMode',
@@ -86,7 +82,6 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
               'image_url',
               'guidance_scale',
               'num_inference_steps',
-              'num_images',
               'enable_safety_checker',
               'output_format',
               'sync_mode',

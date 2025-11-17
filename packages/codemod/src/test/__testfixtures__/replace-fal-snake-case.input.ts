@@ -37,7 +37,6 @@ const result3 = await generateImage({
       output_format: 'png',
       sync_mode: true,
       safety_tolerance: 5,
-      num_images: 2,
     },
   },
 });

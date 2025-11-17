@@ -94,7 +94,6 @@ export class FalImageModel implements ImageModelV3 {
         imageUrl: 'image_url',
         guidanceScale: 'guidance_scale',
         numInferenceSteps: 'num_inference_steps',
-        numImages: 'num_images',
         enableSafetyChecker: 'enable_safety_checker',
         outputFormat: 'output_format',
         syncMode: 'sync_mode',
