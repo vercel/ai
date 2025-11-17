@@ -77,38 +77,23 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       schema: blackForestLabsImageProviderOptionsSchema,
     });
 
+    const [widthStr, heightStr] = size?.split('x') ?? [];
+
     const body: Record<string, unknown> = {
       prompt,
-      ...(finalAspectRatio ? { aspect_ratio: finalAspectRatio } : {}),
+      seed,
+      aspect_ratio: finalAspectRatio,
+      ...(size && { width: Number(widthStr), height: Number(heightStr) }),
+      image_prompt_strength: bflOptions?.imagePromptStrength,
+      image_prompt: bflOptions?.imagePrompt,
+      input_image: bflOptions?.inputImage,
+      output_format: bflOptions?.outputFormat,
+      prompt_upsampling: bflOptions?.promptUpsampling,
+      raw: bflOptions?.raw,
+      safety_tolerance: bflOptions?.safetyTolerance,
+      webhook_secret: bflOptions?.webhookSecret,
+      webhook_url: bflOptions?.webhookUrl,
     };
-
-    if (typeof seed === 'number') {
-      body.seed = seed;
-    } else if (bflOptions && bflOptions.seed != null) {
-      body.seed = bflOptions.seed;
-    }
-
-    if (bflOptions) {
-      if (bflOptions.promptUpsampling != null)
-        body.prompt_upsampling = bflOptions.promptUpsampling;
-      if (bflOptions.safetyTolerance != null)
-        body.safety_tolerance = bflOptions.safetyTolerance;
-      if (bflOptions.outputFormat != null)
-        body.output_format = bflOptions.outputFormat;
-      if (bflOptions.webhookUrl != null)
-        body.webhook_url = bflOptions.webhookUrl;
-      if (bflOptions.webhookSecret != null)
-        body.webhook_secret = bflOptions.webhookSecret;
-      if (bflOptions.inputImage != null)
-        body.input_image = bflOptions.inputImage;
-      if (bflOptions.width != null) body.width = bflOptions.width;
-      if (bflOptions.height != null) body.height = bflOptions.height;
-      if (bflOptions.imagePrompt != null)
-        body.image_prompt = bflOptions.imagePrompt;
-      if (bflOptions.imagePromptStrength != null)
-        body.image_prompt_strength = bflOptions.imagePromptStrength;
-      if (bflOptions.raw != null) body.raw = bflOptions.raw;
-    }
 
     return { body, warnings };
   }
@@ -260,18 +245,15 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
 export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      seed: z.number().int().optional(),
-      promptUpsampling: z.boolean().optional(),
-      safetyTolerance: z.number().int().min(0).max(6).optional(),
-      outputFormat: z.enum(['jpeg', 'png']).optional(),
-      webhookUrl: z.url().optional(),
-      webhookSecret: z.string().optional(),
-      inputImage: z.string().optional(),
-      width: z.number().int().optional(),
-      height: z.number().int().optional(),
       imagePrompt: z.string().optional(),
       imagePromptStrength: z.number().min(0).max(1).optional(),
+      inputImage: z.string().optional(),
+      outputFormat: z.enum(['jpeg', 'png']).optional(),
+      promptUpsampling: z.boolean().optional(),
       raw: z.boolean().optional(),
+      safetyTolerance: z.number().int().min(0).max(6).optional(),
+      webhookSecret: z.string().optional(),
+      webhookUrl: z.url().optional(),
     }),
   ),
 );

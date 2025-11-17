@@ -131,14 +131,17 @@ await generateImage({
 
 ### Provider Options
 
-Black Forest Labs image models support flexible provider options through the `providerOptions.blackForestLabs` object. You can pass any parameters supported by the specific endpoint's API. Common examples include:
+Black Forest Labs image models support flexible provider options through the `providerOptions.blackForestLabs` object. You can pass any parameters supported by the specific endpoint's API. The supported parameters depend on the used model ID:
 
-- **seed** - Seed for reproducibility. If `null` or omitted, a random seed is used. Accepts any integer.
-- **promptUpsampling** - If true, performs upsampling on the prompt.
-- **safetyTolerance** - Moderation level for inputs and outputs. Value ranges from 0 (most strict) to 6 (more permissive).
+- **imagePrompt** - Base64-encoded image to use as additional visual context for generation
+- **imagePromptStrength** - Strength of the image prompt influence on generation (0.0 to 1.0)
+- **inputImage** - Base64 encoded image or URL of image to use as reference. Supports up to 20MB or 20 megapixels.
 - **outputFormat** - Desired format of the output image. Can be “jpeg” or “png”.
-- **webhookUrl** - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL.
+- **promptUpsampling** - If true, performs upsampling on the prompt.
+- **raw** - Enable raw mode for more natural, authentic aesthetics
+- **safetyTolerance** - Moderation level for inputs and outputs. Value ranges from 0 (most strict) to 6 (more permissive).
 - **webhookSecret** - Secret for webhook signature verification, sent in the `X-Webhook-Secret` header.
+- **webhookUrl** - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL.
 
 ### Regional Endpoints
 
