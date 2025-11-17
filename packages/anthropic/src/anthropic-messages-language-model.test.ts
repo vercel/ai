@@ -2652,8 +2652,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.warnings).toMatchInlineSnapshot(`
           [
             {
-              "message": "temperature value 1.5 exceeds anthropic maximum of 1.0. clamped to 1.0",
-              "type": "other",
+              "details": "1.5 exceeds anthropic maximum of 1.0. clamped to 1.0",
+              "setting": "temperature",
+              "type": "unsupported-setting",
             },
           ]
         `);
@@ -2673,8 +2674,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.warnings).toMatchInlineSnapshot(`
           [
             {
-              "message": "temperature value -0.5 is below anthropic minimum of 0. clamped to 0",
-              "type": "other",
+              "details": "-0.5 is below anthropic minimum of 0. clamped to 0",
+              "setting": "temperature",
+              "type": "unsupported-setting",
             },
           ]
         `);
