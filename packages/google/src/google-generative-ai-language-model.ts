@@ -709,9 +709,15 @@ export const getGroundingMetadataSchema = () =>
           web: z
             .object({ uri: z.string(), title: z.string().nullish() })
             .nullish(),
-          retrievedContext: z
-            .object({ uri: z.string(), title: z.string().nullish() })
-            .nullish(),
+          retrievedContext: z.union([
+            z
+              .object({ uri: z.string(), title: z.string().nullish() })
+              .nullish(),
+            z.object({
+              title: z.string().nullish(),
+              text: z.string().nullish(),
+            }),
+          ]),
         }),
       )
       .nullish(),
@@ -799,6 +805,8 @@ const usageSchema = z.object({
   promptTokenCount: z.number().nullish(),
   candidatesTokenCount: z.number().nullish(),
   totalTokenCount: z.number().nullish(),
+  // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+  trafficType: z.string().nullish(),
 });
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata

@@ -1,5 +1,47 @@
 # ai
 
+## 6.0.0-beta.99
+
+### Patch Changes
+
+- 384142c: feat(agent): add abortSignal parameter to generate and stream
+
+## 6.0.0-beta.98
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/gateway@2.0.0-beta.52
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 6.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - @ai-sdk/gateway@2.0.0-beta.51
+
+## 6.0.0-beta.96
+
+### Patch Changes
+
+- a322efa: Added finishReason on useChat onFinish callbck
+
+## 6.0.0-beta.95
+
+### Patch Changes
+
+- eb8d1cb: fix not catching of empty arrays in validateUIMessage
+
+## 6.0.0-beta.94
+
+### Patch Changes
+
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+
 ## 6.0.0-beta.93
 
 ### Patch Changes

@@ -4,6 +4,7 @@ import {
   ImageModelProviderMetadata,
 } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import { ImageModelUsage } from '../types/usage';
 
 /**
 The result of a `generateImage` call.
@@ -35,4 +36,9 @@ Response metadata from the provider. There may be multiple responses if we made 
    * results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ImageModelProviderMetadata;
+
+  /**
+  Combined token usage across all underlying provider calls for this image generation.
+   */
+  readonly usage: ImageModelUsage;
 }

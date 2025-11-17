@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -119,6 +121,19 @@ const model = provider.chat('gpt-3.5-turbo');
 const server = createTestServer({
   'https://api.openai.com/v1/chat/completions': {},
 });
+
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['https://api.openai.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
@@ -278,6 +293,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
@@ -1415,6 +1431,25 @@ describe('doGenerate', () => {
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       prompt_cache_key: 'test-cache-key-123',
+    });
+  });
+
+  it('should send promptCacheRetention extension value', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_retention: '24h',
     });
   });
 
@@ -2569,6 +2604,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
@@ -2863,6 +2899,16 @@ describe('doStream', () => {
         },
       }
     `);
+  });
+
+  it('should set .modelId for model-router request', async () => {
+    prepareChunksFixtureResponse('azure-model-router.1');
+
+    const result = await provider.chat('test-azure-model-router').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(result.stream)).toMatchSnapshot();
   });
 
   describe('reasoning models', () => {

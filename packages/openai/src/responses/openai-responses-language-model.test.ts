@@ -574,6 +574,57 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send conversation provider option', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              conversation: 'conv_123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          conversation: 'conv_123',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn when both conversation and previousResponseId are provided', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              conversation: 'conv_123',
+              previousResponseId: 'resp_123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          conversation: 'conv_123',
+          previous_response_id: 'resp_123',
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'conversation',
+            details:
+              'conversation and previousResponseId cannot be used together',
+          },
+        ]);
+      });
+
       it('should send previous response id provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -861,6 +912,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
           prompt_cache_key: 'test-cache-key-123',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send promptCacheRetention provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_retention: '24h',
         });
 
         expect(warnings).toStrictEqual([]);
@@ -2275,6 +2347,62 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should include web search tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('mcp tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool.1');
+
+        result = await createModel('gpt-5-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'mcp',
+              args: {
+                serverLabel: 'dmcp',
+                serverUrl: 'https://mcp.exa.ai/mcp',
+                serverDescription: 'A web-search API for AI agents',
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-mini",
+            "tools": [
+              {
+                "require_approval": "never",
+                "server_description": "A web-search API for AI agents",
+                "server_label": "dmcp",
+                "server_url": "https://mcp.exa.ai/mcp",
+                "type": "mcp",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include mcp tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
     });
@@ -3798,6 +3926,30 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('mcp tool', () => {
+      it('should stream mcp tool results (list tools, tool calls, tool results)', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool.1');
+
+        const { stream } = await createModel('gpt-5-mini').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'mcp',
+              args: {
+                serverLabel: 'dmcp',
+                serverUrl: 'https://mcp.exa.ai/mcp',
+                serverDescription: 'A web-search API for AI agents',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
     });
 
