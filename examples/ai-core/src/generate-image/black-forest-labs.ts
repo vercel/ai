@@ -1,4 +1,7 @@
-import { BlackForestLabsImageProviderOptions, blackForestLabs } from '@ai-sdk/black-forest-labs';
+import {
+  BlackForestLabsImageProviderOptions,
+  blackForestLabs,
+} from '@ai-sdk/black-forest-labs';
 import { experimental_generateImage as generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
@@ -11,9 +14,9 @@ run(async () => {
     aspectRatio: '1:1',
     providerOptions: {
       blackForestLabs: {
-        outputFormat: 'png'
+        outputFormat: 'png',
       } satisfies BlackForestLabsImageProviderOptions,
-    }
+    },
   });
   await presentImages(response.images);
 
