@@ -52,7 +52,7 @@ const { image } = await generateImage({
   aspectRatio: '16:9',
   providerOptions: {
     blackForestLabs: {
-      seed: 42,
+      outputFormat: 'png',
     } satisfies BlackForestLabsImageProviderOptions,
   },
 });
