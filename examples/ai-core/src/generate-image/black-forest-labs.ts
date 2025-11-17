@@ -11,7 +11,7 @@ run(async () => {
     aspectRatio: '1:1',
     providerOptions: {
       blackForestLabs: {
-        output_format: 'png'
+        outputFormat: 'png'
       } satisfies BlackForestLabsImageProviderOptions,
     }
   });
