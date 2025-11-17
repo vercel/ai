@@ -2614,7 +2614,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "temperature value 1.5 exceeds bedrock maximum of 1.0. clamped to 1.0",
+          "details": "1.5 exceeds bedrock maximum of 1.0. clamped to 1.0",
           "setting": "temperature",
           "type": "unsupported-setting",
         },
@@ -2636,7 +2636,7 @@ describe('doGenerate', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "temperature value -0.5 is below bedrock minimum of 0. clamped to 0",
+          "details": "-0.5 is below bedrock minimum of 0. clamped to 0",
           "setting": "temperature",
           "type": "unsupported-setting",
         },

@@ -108,14 +108,14 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'temperature',
-        details: `temperature value ${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
+        details: `${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
       });
       temperature = 1;
     } else if (temperature != null && temperature < 0) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'temperature',
-        details: `temperature value ${temperature} is below bedrock minimum of 0. clamped to 0`,
+        details: `${temperature} is below bedrock minimum of 0. clamped to 0`,
       });
       temperature = 0;
     }
