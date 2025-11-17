@@ -455,9 +455,7 @@ const result = await generateText({
   prompt: 'analyze this large document...',
   providerOptions: {
     bedrock: {
-      additionalModelRequestFields: {
-        anthropic_beta: ['context-1m-2025-08-07'],
-      },
+      anthropicBeta: ['context-1m-2025-08-07'],
     },
   },
 });
