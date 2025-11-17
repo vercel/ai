@@ -21,5 +21,8 @@ run(async () => {
   });
   await presentImages(response.images);
 
-  console.log('response.providerMetadata', JSON.stringify(response.providerMetadata, null, 2));
+  console.log(
+    'response.providerMetadata',
+    JSON.stringify(response.providerMetadata, null, 2),
+  );
 });
