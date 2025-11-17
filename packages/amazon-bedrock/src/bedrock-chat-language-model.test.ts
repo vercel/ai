@@ -2611,11 +2611,14 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
 
     expect(requestBody.inferenceConfig.temperature).toBe(1);
-    expect(result.warnings).toContainEqual({
-      type: 'other',
-      message:
-        'temperature value 1.5 exceeds bedrock maximum of 1.0. clamped to 1.0',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "temperature value 1.5 exceeds bedrock maximum of 1.0. clamped to 1.0",
+          "type": "other",
+        },
+      ]
+    `);
   });
 
   it('should clamp temperature below 0 to 0 and add warning', async () => {
@@ -2629,11 +2632,14 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
 
     expect(requestBody.inferenceConfig.temperature).toBe(0);
-    expect(result.warnings).toContainEqual({
-      type: 'other',
-      message:
-        'temperature value -0.5 is below bedrock minimum of 0. clamped to 0',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "temperature value -0.5 is below bedrock minimum of 0. clamped to 0",
+          "type": "other",
+        },
+      ]
+    `);
   });
 
   it('should not clamp valid temperature between 0 and 1', async () => {
@@ -2647,6 +2653,6 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
 
     expect(requestBody.inferenceConfig.temperature).toBe(0.7);
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toMatchInlineSnapshot(`[]`);
   });
 });
