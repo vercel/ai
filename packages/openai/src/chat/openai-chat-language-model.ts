@@ -616,6 +616,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                     // check if tool call is complete
                     // (some providers send the full tool call in one chunk):
                     if (isParsableJson(toolCall.function.arguments)) {
+                      // normalize empty/whitespace arguments to empty object:
+                      const normalizedArguments =
+                        toolCall.function.arguments.trim() || '{}';
+
                       controller.enqueue({
                         type: 'tool-input-end',
                         id: toolCall.id,
@@ -625,7 +629,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                         type: 'tool-call',
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
+                        input: normalizedArguments,
                       });
                       toolCall.hasFinished = true;
                     }
@@ -659,6 +663,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                   toolCall.function?.arguments != null &&
                   isParsableJson(toolCall.function.arguments)
                 ) {
+                  // normalize empty/whitespace arguments to empty object:
+                  const normalizedArguments =
+                    toolCall.function.arguments.trim() || '{}';
+
                   controller.enqueue({
                     type: 'tool-input-end',
                     id: toolCall.id,
@@ -668,7 +676,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                     type: 'tool-call',
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
+                    input: normalizedArguments,
                   });
                   toolCall.hasFinished = true;
                 }
