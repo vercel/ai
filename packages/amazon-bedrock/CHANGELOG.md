@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- 33343c3: fix(amazon-bedrock): clamp temperature to valid 0-1 range with warnings
+- Updated dependencies [1d15673]
+  - @ai-sdk/anthropic@3.0.0-beta.54
+
 ## 4.0.0-beta.59
 
 ### Patch Changes
