@@ -84,8 +84,8 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
 
     if (typeof seed === 'number') {
       body.seed = seed;
-    } else if (bflOptions && 'seed' in bflOptions) {
-      body.seed = bflOptions.seed as number | null | undefined;
+    } else if (bflOptions && bflOptions.seed != null) {
+      body.seed = bflOptions.seed;
     }
 
     if (bflOptions) {
