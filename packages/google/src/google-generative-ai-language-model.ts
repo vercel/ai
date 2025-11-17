@@ -699,30 +699,12 @@ function extractSources({
 }: {
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
-<<<<<<< HEAD
 }): undefined | LanguageModelV2Source[] {
-  return groundingMetadata?.groundingChunks
-    ?.filter(
-      (
-        chunk,
-      ): chunk is GroundingChunkSchema & {
-        web: { uri: string; title?: string };
-      } => chunk.web != null,
-    )
-    .map(chunk => ({
-      type: 'source',
-      sourceType: 'url',
-      id: generateId(),
-      url: chunk.web.uri,
-      title: chunk.web.title,
-    }));
-=======
-}): undefined | LanguageModelV3Source[] {
   if (!groundingMetadata?.groundingChunks) {
     return undefined;
   }
 
-  const sources: LanguageModelV3Source[] = [];
+  const sources: LanguageModelV2Source[] = [];
 
   for (const chunk of groundingMetadata.groundingChunks) {
     if (chunk.web != null) {
@@ -787,7 +769,6 @@ function extractSources({
   }
 
   return sources.length > 0 ? sources : undefined;
->>>>>>> 0b92881ad (feat(google): Vertex RAG Engine grounding (#9432))
 }
 
 export const getGroundingMetadataSchema = () =>
