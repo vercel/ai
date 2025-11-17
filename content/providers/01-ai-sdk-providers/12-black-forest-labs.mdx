@@ -111,14 +111,17 @@ Black Forest Labs models support aspect ratios from 3:7 (portrait) to 7:3 (lands
 Transform existing images using text prompts.
 
 ```ts
+import { blackForestLabs, BlackForestLabsImageProviderOptions } from '@ai-sdk/black-forest-labs';
+import { experimental_generateImage as generateImage } from 'ai';
+
 // Example: Modify existing image
 await generateImage({
   model: blackForestLabs.image('flux-kontext-pro'),
   prompt: 'Put a donut next to the flour.',
   providerOptions: {
     blackForestLabs: {
-      input_image: '<base64 converted image>',
-    },
+      inputImage: '<base64 converted image>',
+    } satisfies BlackForestLabsImageProviderOptions,
   },
 });
 ```
@@ -128,11 +131,11 @@ await generateImage({
 Black Forest Labs image models support flexible provider options through the `providerOptions.blackForestLabs` object. You can pass any parameters supported by the specific endpoint's API. Common examples include:
 
 - **seed** - Seed for reproducibility. If `null` or omitted, a random seed is used. Accepts any integer.
-- **prompt_upsampling** - If true, performs upsampling on the prompt.
-- **safety_tolerance** - Moderation level for inputs and outputs. Value ranges from 0 (most strict) to 6 (more permissive).
-- **output_format** - Desired format of the output image. Can be “jpeg” or “png”.
-- **webhook_url** - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL.
-- **webhook_secret** - Secret for webhook signature verification, sent in the `X-Webhook-Secret` header.
+- **promptUpsampling** - If true, performs upsampling on the prompt.
+- **safetyTolerance** - Moderation level for inputs and outputs. Value ranges from 0 (most strict) to 6 (more permissive).
+- **outputFormat** - Desired format of the output image. Can be “jpeg” or “png”.
+- **webhookUrl** - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL.
+- **webhookSecret** - Secret for webhook signature verification, sent in the `X-Webhook-Secret` header.
 
 ### Regional Endpoints
 
