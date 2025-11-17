@@ -79,7 +79,7 @@ export class FalImageModel implements ImageModelV3 {
       if (deprecatedKeys && deprecatedKeys.length > 0) {
         warnings.push({
           type: 'other',
-          message: `The following provider options use deprecated snake_case and will be removed in v6.0. Please use camelCase instead: ${deprecatedKeys
+          message: `The following provider options use deprecated snake_case and will be removed in @ai-sdk/fal v2.0. Please use camelCase instead: ${deprecatedKeys
             .map(key => {
               const camelCase = key.replace(/_([a-z])/g, (_, letter) =>
                 letter.toUpperCase(),

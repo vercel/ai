@@ -152,7 +152,7 @@ await generateImage({
   prompt: 'Put a donut next to the flour.',
   providerOptions: {
     fal: {
-      image_url:
+      imageUrl:
         'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
     },
   },
@@ -175,8 +175,7 @@ Fal image models support flexible provider options through the `providerOptions.
 
 <Note type="warning">
   **Deprecation Notice**: snake_case parameter names (e.g., `image_url`,
-  `guidance_scale`) are deprecated and will be removed in v6.0. Please use
-  camelCase names (e.g., `imageUrl`, `guidanceScale`) instead.
+  `guidance_scale`) are deprecated and will be removed in `@ai-sdk/fal` v2.0. Please use camelCase names (e.g., `imageUrl`, `guidanceScale`) instead.
 </Note>
 
 Refer to the [Fal AI model documentation](https://fal.ai/models) for model-specific parameters.

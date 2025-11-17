@@ -1,4 +1,4 @@
-import { fal } from '@ai-sdk/fal';
+import { fal, type FalImageProviderOptions } from '@ai-sdk/fal';
 import { experimental_generateImage as generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
@@ -11,7 +11,7 @@ async function main() {
       fal: {
         imageUrl:
           'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
-      },
+      } satisfies FalImageProviderOptions,
     },
   });
   await presentImages(images);
