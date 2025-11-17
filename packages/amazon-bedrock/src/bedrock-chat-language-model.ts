@@ -156,12 +156,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       };
     }
 
-    if (betas.size > 0) {
-      const existingBetas =
-        bedrockOptions.additionalModelRequestFields?.anthropic_beta ?? [];
-      const mergedBetas = Array.isArray(existingBetas)
-        ? [...existingBetas, ...Array.from(betas)]
-        : Array.from(betas);
+    if (betas.size > 0 || bedrockOptions.anthropicBeta) {
+      const existingBetas = bedrockOptions.anthropicBeta ?? [];
+      const mergedBetas =
+        betas.size > 0
+          ? [...existingBetas, ...Array.from(betas)]
+          : existingBetas;
 
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,

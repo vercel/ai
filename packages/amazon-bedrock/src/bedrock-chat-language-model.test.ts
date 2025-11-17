@@ -2014,9 +2014,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
-          additionalModelRequestFields: {
-            anthropic_beta: ['context-1m-2025-08-07'],
-          },
+          anthropicBeta: ['context-1m-2025-08-07'],
         },
       },
     });
@@ -2106,9 +2104,7 @@ describe('doGenerate', () => {
       ],
       providerOptions: {
         bedrock: {
-          additionalModelRequestFields: {
-            anthropic_beta: ['context-1m-2025-08-07'],
-          },
+          anthropicBeta: ['context-1m-2025-08-07'],
         },
       },
     });
