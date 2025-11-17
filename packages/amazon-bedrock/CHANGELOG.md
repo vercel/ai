@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- 0a6fd91: fix(amazon-bedrock): move anthropic_beta to request body
+
 ## 4.0.0-beta.60
 
 ### Patch Changes
