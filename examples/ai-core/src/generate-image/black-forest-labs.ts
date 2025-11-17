@@ -12,6 +12,7 @@ run(async () => {
     prompt:
       'A cat wearing an intricate robe while gesticulating wildly, in the style of 80s pop art',
     aspectRatio: '1:1',
+    n: 2,
     providerOptions: {
       blackForestLabs: {
         outputFormat: 'png',
@@ -20,5 +21,5 @@ run(async () => {
   });
   await presentImages(response.images);
 
-  console.log('response.providerMetadata', response.providerMetadata);
+  console.log('response.providerMetadata', JSON.stringify(response.providerMetadata, null, 2));
 });
