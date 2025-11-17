@@ -90,23 +90,23 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
 
     if (bflOptions) {
       if (bflOptions.promptUpsampling != null)
-        body.promptUpsampling = bflOptions.promptUpsampling;
+        body.prompt_upsampling = bflOptions.promptUpsampling;
       if (bflOptions.safetyTolerance != null)
         body.safety_tolerance = bflOptions.safetyTolerance;
       if (bflOptions.outputFormat != null)
-        body.outputFormat = bflOptions.outputFormat;
+        body.output_format = bflOptions.outputFormat;
       if (bflOptions.webhookUrl != null)
-        body.webhookUrl = bflOptions.webhookUrl;
+        body.webhook_url = bflOptions.webhookUrl;
       if (bflOptions.webhookSecret != null)
-        body.webhookSecret = bflOptions.webhookSecret;
+        body.webhook_secret = bflOptions.webhookSecret;
       if (bflOptions.inputImage != null)
-        body.inputImage = bflOptions.inputImage;
+        body.input_image = bflOptions.inputImage;
       if (bflOptions.width != null) body.width = bflOptions.width;
       if (bflOptions.height != null) body.height = bflOptions.height;
       if (bflOptions.imagePrompt != null)
-        body.imagePrompt = bflOptions.imagePrompt;
+        body.image_prompt = bflOptions.imagePrompt;
       if (bflOptions.imagePromptStrength != null)
-        body.imagePromptStrength = bflOptions.imagePromptStrength;
+        body.image_prompt_strength = bflOptions.imagePromptStrength;
       if (bflOptions.raw != null) body.raw = bflOptions.raw;
     }
 
