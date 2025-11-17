@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.68
+
+### Patch Changes
+
+- a4c6a12: feat(provider/openai): support conversations api
+
 ## 2.0.67
 
 ### Patch Changes
