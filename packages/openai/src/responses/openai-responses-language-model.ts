@@ -118,6 +118,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
+    if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'conversation',
+        details: 'conversation and previousResponseId cannot be used together',
+      });
+    }
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
@@ -215,6 +223,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }),
 
       // provider options:
+      conversation: openaiOptions?.conversation,
       max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
