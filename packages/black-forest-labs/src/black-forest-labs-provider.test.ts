@@ -41,7 +41,7 @@ describe('BlackForestLabs provider', () => {
     expect(imageModel.provider).toBe('black-forest-labs.image');
     expect(imageModel.modelId).toBe('flux-pro-1.1');
     expect(imageModel2.modelId).toBe('flux-pro-1.1-ultra');
-    expect(imageModel.specificationVersion).toBe('v2');
+    expect(imageModel.specificationVersion).toBe('v3');
   });
 
   it('configures baseURL and headers correctly', async () => {

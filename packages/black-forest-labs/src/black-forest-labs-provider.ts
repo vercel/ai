@@ -1,4 +1,4 @@
-import { ImageModelV2, NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
+import { ImageModelV3, NoSuchModelError, ProviderV3 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   loadApiKey,
@@ -32,16 +32,16 @@ requests, or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface BlackForestLabsProvider extends ProviderV2 {
+export interface BlackForestLabsProvider extends ProviderV3 {
   /**
 Creates a model for image generation.
    */
-  image(modelId: BlackForestLabsImageModelId): ImageModelV2;
+  image(modelId: BlackForestLabsImageModelId): ImageModelV3;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV2;
+  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV3;
 }
 
 const defaultBaseURL = 'https://api.bfl.ai/v1';
@@ -72,6 +72,7 @@ export function createBlackForestLabs(
     });
 
   return {
+    specificationVersion: 'v3',
     imageModel: createImageModel,
     image: createImageModel,
     languageModel: () => {

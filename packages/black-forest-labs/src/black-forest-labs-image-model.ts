@@ -1,5 +1,5 @@
-import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
-import type { InferValidator, Resolvable } from '@ai-sdk/provider-utils';
+import type { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
   combineHeaders,
@@ -32,8 +32,8 @@ interface BlackForestLabsImageModelConfig {
   };
 }
 
-export class BlackForestLabsImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v2';
+export class BlackForestLabsImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -51,8 +51,8 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     aspectRatio,
     seed,
     providerOptions,
-  }: Parameters<ImageModelV2['doGenerate']>[0]) {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+  }: Parameters<ImageModelV3['doGenerate']>[0]) {
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
@@ -106,8 +106,8 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
+  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
     const { body, warnings } = await this.getArgs({
       prompt,
@@ -118,7 +118,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       n: 1,
       headers,
       abortSignal,
-    } as Parameters<ImageModelV2['doGenerate']>[0]);
+    } as Parameters<ImageModelV3['doGenerate']>[0]);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
@@ -258,7 +258,7 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type BlackForestLabsImageProviderOptions = InferValidator<
+export type BlackForestLabsImageProviderOptions = InferSchema<
   typeof blackForestLabsImageProviderOptionsSchema
 >;
 
