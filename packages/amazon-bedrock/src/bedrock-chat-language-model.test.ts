@@ -1956,12 +1956,10 @@ describe('doGenerate', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    const requestHeaders = server.calls[0].requestHeaders;
-
-    expect(requestHeaders['anthropic-beta']).toBe('computer-use-2024-10-22');
 
     expect(requestBody.additionalModelRequestFields).toEqual({
       tool_choice: { type: 'auto' },
+      anthropic_beta: ['computer-use-2024-10-22'],
     });
 
     expect(requestBody.toolConfig).toBeDefined();
@@ -1989,6 +1987,45 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should include anthropic_beta in additionalModelRequestFields when using extended context', async () => {
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'test response' }],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'stop',
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          additionalModelRequestFields: {
+            anthropic_beta: ['context-1m-2025-08-07'],
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      anthropic_beta: ['context-1m-2025-08-07'],
+    });
   });
 
   it('should properly combine headers from all sources', async () => {
