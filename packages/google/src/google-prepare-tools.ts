@@ -130,6 +130,27 @@ export function prepareTools({
             });
           }
           break;
+        case 'google.vertex_rag_store':
+          if (isGemini2) {
+            googleTools.push({
+              retrieval: {
+                vertex_rag_store: {
+                  rag_resources: {
+                    rag_corpus: tool.args.ragCorpus,
+                  },
+                  similarity_top_k: tool.args.topK as number | undefined,
+                },
+              },
+            });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The RAG store tool is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
         default:
           toolWarnings.push({ type: 'unsupported-tool', tool });
           break;

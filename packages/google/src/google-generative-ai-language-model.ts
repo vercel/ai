@@ -110,6 +110,23 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           `(${this.config.provider}).`,
       });
     }
+    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
+    if (
+      tools?.some(
+        tool =>
+          tool.type === 'provider-defined' &&
+          tool.id === 'google.vertex_rag_store',
+      ) &&
+      !this.config.provider.startsWith('google.vertex.')
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          `(${this.config.provider}).`,
+      });
+    }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
 
@@ -682,6 +699,7 @@ function extractSources({
 }: {
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
+<<<<<<< HEAD
 }): undefined | LanguageModelV2Source[] {
   return groundingMetadata?.groundingChunks
     ?.filter(
@@ -698,6 +716,78 @@ function extractSources({
       url: chunk.web.uri,
       title: chunk.web.title,
     }));
+=======
+}): undefined | LanguageModelV3Source[] {
+  if (!groundingMetadata?.groundingChunks) {
+    return undefined;
+  }
+
+  const sources: LanguageModelV3Source[] = [];
+
+  for (const chunk of groundingMetadata.groundingChunks) {
+    if (chunk.web != null) {
+      // Handle web chunks as URL sources
+      sources.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        url: chunk.web.uri,
+        title: chunk.web.title ?? undefined,
+      });
+    } else if (chunk.retrievedContext != null) {
+      // Handle retrievedContext chunks from RAG operations
+      const uri = chunk.retrievedContext.uri;
+      if (uri.startsWith('http://') || uri.startsWith('https://')) {
+        // It's a URL
+        sources.push({
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: uri,
+          title: chunk.retrievedContext.title ?? undefined,
+        });
+      } else {
+        // It's a document (gs://, file path, etc.)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
+        let mediaType = 'application/octet-stream'; // Default
+        let filename: string | undefined = undefined;
+
+        // Infer media type from URI extension
+        if (uri.endsWith('.pdf')) {
+          mediaType = 'application/pdf';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.txt')) {
+          mediaType = 'text/plain';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.docx')) {
+          mediaType =
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.doc')) {
+          mediaType = 'application/msword';
+          filename = uri.split('/').pop();
+        } else if (uri.match(/\.(md|markdown)$/)) {
+          mediaType = 'text/markdown';
+          filename = uri.split('/').pop();
+        } else {
+          // Extract filename from path for unknown types
+          filename = uri.split('/').pop();
+        }
+
+        sources.push({
+          type: 'source',
+          sourceType: 'document',
+          id: generateId(),
+          mediaType,
+          title,
+          filename,
+        });
+      }
+    }
+  }
+
+  return sources.length > 0 ? sources : undefined;
+>>>>>>> 0b92881ad (feat(google): Vertex RAG Engine grounding (#9432))
 }
 
 export const getGroundingMetadataSchema = () =>
@@ -711,15 +801,13 @@ export const getGroundingMetadataSchema = () =>
           web: z
             .object({ uri: z.string(), title: z.string().nullish() })
             .nullish(),
-          retrievedContext: z.union([
-            z
-              .object({ uri: z.string(), title: z.string().nullish() })
-              .nullish(),
-            z.object({
+          retrievedContext: z
+            .object({
+              uri: z.string(),
               title: z.string().nullish(),
               text: z.string().nullish(),
-            }),
-          ]),
+            })
+            .nullish(),
         }),
       )
       .nullish(),
