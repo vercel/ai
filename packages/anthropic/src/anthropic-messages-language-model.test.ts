@@ -2636,6 +2636,64 @@ describe('AnthropicMessagesLanguageModel', () => {
         }),
       ).rejects.toThrow('Overloaded');
     });
+
+    describe('temperature clamping', () => {
+      it('should clamp temperature above 1 to 1 and add warning', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 1.5,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(1);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "message": "temperature value 1.5 exceeds anthropic maximum of 1.0. clamped to 1.0",
+              "type": "other",
+            },
+          ]
+        `);
+      });
+
+      it('should clamp temperature below 0 to 0 and add warning', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: -0.5,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(0);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "message": "temperature value -0.5 is below anthropic minimum of 0. clamped to 0",
+              "type": "other",
+            },
+          ]
+        `);
+      });
+
+      it('should not clamp valid temperature between 0 and 1', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(0.7);
+        expect(result.warnings).toMatchInlineSnapshot(`[]`);
+      });
+    });
   });
 
   describe('doStream', () => {
