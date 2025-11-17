@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- 9b17031: Improve error message when mixing function tools with provider-defined tools to clarify fallback behavior and list ignored function tools
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- 0cfae4c: feat(vertex): support 'trafficType' in provider usageMetadata
+
 ## 3.0.0-beta.43
 
 ### Patch Changes

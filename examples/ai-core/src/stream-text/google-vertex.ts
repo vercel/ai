@@ -16,6 +16,9 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
+
+  const usageMetadata = (await result.providerMetadata)?.google?.usageMetadata;
+  console.log('Usage meta data:', usageMetadata);
 }
 
 main().catch(console.error);
