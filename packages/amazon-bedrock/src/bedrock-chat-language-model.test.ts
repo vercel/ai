@@ -2028,6 +2028,99 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should not include anthropic-beta in HTTP headers', async () => {
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'test response' }],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'stop',
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.bash_20241022',
+          name: 'bash',
+          args: {},
+        },
+      ],
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+
+    expect(requestHeaders['anthropic-beta']).toBeUndefined();
+  });
+
+  it('should combine user-provided and tool-generated betas in body', async () => {
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tool-use-id',
+                name: 'bash',
+                input: { command: 'ls -l' },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.bash_20241022',
+          name: 'bash',
+          args: {},
+        },
+      ],
+      providerOptions: {
+        bedrock: {
+          additionalModelRequestFields: {
+            anthropic_beta: ['context-1m-2025-08-07'],
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields.anthropic_beta).toEqual([
+      'context-1m-2025-08-07',
+      'computer-use-2024-10-22',
+    ]);
+  });
+
   it('should properly combine headers from all sources', async () => {
     prepareJsonResponse({});
 

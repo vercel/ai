@@ -157,9 +157,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     }
 
     if (betas.size > 0) {
+      const existingBetas =
+        bedrockOptions.additionalModelRequestFields?.anthropic_beta ?? [];
+      const mergedBetas = Array.isArray(existingBetas)
+        ? [...existingBetas, ...Array.from(betas)]
+        : Array.from(betas);
+
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,
-        anthropic_beta: Array.from(betas),
+        anthropic_beta: mergedBetas,
       };
     }
 
