@@ -65,7 +65,12 @@ describe('BlackForestLabsImageModel', () => {
         size: undefined,
         aspectRatio: '16:9',
         seed: undefined,
-        providerOptions: { blackForestLabs: { promptUpsampling: true } },
+        providerOptions: {
+          blackForestLabs: {
+            promptUpsampling: true,
+            unsupportedProperty: 'value',
+          },
+        },
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
