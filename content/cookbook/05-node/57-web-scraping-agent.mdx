@@ -1,0 +1,431 @@
+---
+title: Web Scraping Agent with ScrapeGraph AI
+description: Build an AI agent that can intelligently scrape and analyze web content using ScrapeGraph AI
+---
+
+# Web Scraping Agent with ScrapeGraph AI
+
+This guide demonstrates how to build an AI agent that can intelligently scrape and analyze web content using [ScrapeGraph AI](https://scrapegraphai.com) and the Vercel AI SDK.
+
+## Overview
+
+The agent will be able to:
+- Extract structured data from websites
+- Search the web for information
+- Convert webpages to markdown
+- Crawl multiple pages
+- Analyze and summarize scraped content using AI
+
+## Prerequisites
+
+1. Install the required packages:
+
+```bash
+pnpm add @ai-sdk/scrapegraph @ai-sdk/openai ai
+```
+
+2. Set up your API keys:
+
+```bash
+export SCRAPEGRAPH_API_KEY=your-scrapegraph-api-key
+export OPENAI_API_KEY=your-openai-api-key
+```
+
+## Implementation
+
+### Basic Web Scraping Agent
+
+Here's a basic implementation that allows the AI to scrape websites and analyze the content:
+
+```typescript
+import { openai } from '@ai-sdk/openai';
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+async function main() {
+  const result = await generateText({
+    model: openai('gpt-4-turbo'),
+    tools: {
+      scrapeWebsite: tool({
+        description: 'Scrape a website and extract structured data based on a prompt',
+        parameters: z.object({
+          url: z.string().describe('The URL to scrape'),
+          extractionPrompt: z.string().describe('What to extract from the page'),
+        }),
+        execute: async ({ url, extractionPrompt }) => {
+          const data = await scrapegraph.smartScraper({
+            website_url: url,
+            user_prompt: extractionPrompt,
+          });
+          return data;
+        },
+      }),
+      
+      searchAndScrape: tool({
+        description: 'Search the web and extract data from search results',
+        parameters: z.object({
+          query: z.string().describe('The search query'),
+          numResults: z.number().optional().describe('Number of results to scrape (default: 3)'),
+        }),
+        execute: async ({ query, numResults = 3 }) => {
+          const results = await scrapegraph.searchScraper({
+            user_prompt: query,
+            num_results: numResults,
+          });
+          return results;
+        },
+      }),
+      
+      convertToMarkdown: tool({
+        description: 'Convert a webpage to clean markdown format',
+        parameters: z.object({
+          url: z.string().describe('The URL to convert'),
+        }),
+        execute: async ({ url }) => {
+          const markdown = await scrapegraph.markdownify({
+            website_url: url,
+            render_heavy_js: false,
+          });
+          return { markdown };
+        },
+      }),
+    },
+    prompt: 'Find information about the latest AI developments from major tech companies',
+    maxSteps: 5,
+  });
+
+  console.log('Agent Response:', result.text);
+  console.log('\nTool Calls:');
+  for (const step of result.steps) {
+    if ('toolCalls' in step) {
+      for (const toolCall of step.toolCalls) {
+        console.log(`- ${toolCall.toolName}:`, toolCall.args);
+      }
+    }
+  }
+}
+
+main().catch(console.error);
+```
+
+### Advanced: Product Research Agent
+
+Here's a more advanced example that creates a product research agent:
+
+```typescript
+import { openai } from '@ai-sdk/openai';
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+async function productResearchAgent(query: string) {
+  const result = await generateText({
+    model: openai('gpt-4-turbo'),
+    tools: {
+      searchProducts: tool({
+        description: 'Search for products online and extract details',
+        parameters: z.object({
+          query: z.string().describe('The product search query'),
+        }),
+        execute: async ({ query }) => {
+          const results = await scrapegraph.searchScraper({
+            user_prompt: `Search for ${query} and extract product names, prices, ratings, and descriptions`,
+            num_results: 5,
+          });
+          return results;
+        },
+      }),
+      
+      extractProductDetails: tool({
+        description: 'Extract detailed product information from a specific product page',
+        parameters: z.object({
+          url: z.string().describe('The product page URL'),
+        }),
+        execute: async ({ url }) => {
+          const data = await scrapegraph.smartScraper({
+            website_url: url,
+            user_prompt: 'Extract product name, price, specifications, customer reviews, and availability',
+            output_schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                price: { type: 'number' },
+                currency: { type: 'string' },
+                specifications: { type: 'object' },
+                reviews: {
+                  type: 'object',
+                  properties: {
+                    rating: { type: 'number' },
+                    count: { type: 'number' },
+                    highlights: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+                inStock: { type: 'boolean' },
+              },
+            },
+          });
+          return data;
+        },
+      }),
+      
+      compareProducts: tool({
+        description: 'Compare multiple products and create a comparison table',
+        parameters: z.object({
+          urls: z.array(z.string()).describe('Array of product URLs to compare'),
+        }),
+        execute: async ({ urls }) => {
+          const products = await Promise.all(
+            urls.map(url =>
+              scrapegraph.smartScraper({
+                website_url: url,
+                user_prompt: 'Extract product name, price, key features, and pros/cons',
+              })
+            )
+          );
+          return { products };
+        },
+      }),
+    },
+    prompt: query,
+    maxSteps: 10,
+  });
+
+  return result;
+}
+
+// Usage
+async function main() {
+  const research = await productResearchAgent(
+    'I need to buy a laptop for software development under $2000. Find and compare the best options.'
+  );
+  
+  console.log('Research Results:');
+  console.log(research.text);
+}
+
+main().catch(console.error);
+```
+
+### Multi-Page Crawler Agent
+
+Here's an example that uses the crawling capabilities:
+
+```typescript
+import { openai } from '@ai-sdk/openai';
+import { scrapegraph } from '@ai-sdk/scrapegraph';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+async function crawlerAgent() {
+  const result = await generateText({
+    model: openai('gpt-4-turbo'),
+    tools: {
+      crawlWebsite: tool({
+        description: 'Crawl a website across multiple pages and extract data',
+        parameters: z.object({
+          url: z.string().describe('The starting URL'),
+          extractionPrompt: z.string().describe('What to extract from each page'),
+          maxPages: z.number().optional().describe('Maximum pages to crawl (default: 10)'),
+          depth: z.number().optional().describe('Maximum depth to crawl (default: 2)'),
+        }),
+        execute: async ({ url, extractionPrompt, maxPages = 10, depth = 2 }) => {
+          // Initiate crawl
+          const { request_id } = await scrapegraph.crawlInitiate({
+            url,
+            prompt: extractionPrompt,
+            max_pages: maxPages,
+            depth,
+            same_domain_only: true,
+            extraction_mode: 'ai',
+          });
+
+          // Poll for results
+          let attempts = 0;
+          const maxAttempts = 30;
+          
+          while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const results = await scrapegraph.crawlFetchResults(request_id);
+            
+            if (results.status === 'completed') {
+              return {
+                success: true,
+                pagesCrawled: results.pages_crawled,
+                data: results.data,
+              };
+            } else if (results.status === 'failed') {
+              return {
+                success: false,
+                error: results.error,
+              };
+            }
+            
+            attempts++;
+          }
+          
+          return {
+            success: false,
+            error: 'Crawl timed out',
+          };
+        },
+      }),
+      
+      getSitemap: tool({
+        description: 'Get the complete sitemap structure of a website',
+        parameters: z.object({
+          url: z.string().describe('The website URL'),
+        }),
+        execute: async ({ url }) => {
+          const sitemap = await scrapegraph.sitemap({
+            website_url: url,
+          });
+          return sitemap;
+        },
+      }),
+    },
+    prompt: 'Crawl the documentation site at https://docs.example.com and extract all API endpoints and their descriptions',
+    maxSteps: 5,
+  });
+
+  return result;
+}
+
+async function main() {
+  const result = await crawlerAgent();
+  console.log('Crawler Results:', result.text);
+}
+
+main().catch(console.error);
+```
+
+## Use Cases
+
+### 1. Competitive Analysis
+
+Monitor competitor websites and track pricing, features, and updates:
+
+```typescript
+const competitorAnalysis = await generateText({
+  model: openai('gpt-4-turbo'),
+  tools: {
+    analyzeCompetitor: tool({
+      description: 'Analyze a competitor website',
+      parameters: z.object({
+        url: z.string(),
+      }),
+      execute: async ({ url }) => {
+        return await scrapegraph.smartScraper({
+          website_url: url,
+          user_prompt: 'Extract pricing plans, key features, recent blog posts, and company news',
+        });
+      },
+    }),
+  },
+  prompt: 'Analyze our top 3 competitors and summarize their latest offerings',
+});
+```
+
+### 2. Content Aggregation
+
+Collect and summarize content from multiple sources:
+
+```typescript
+const contentAggregation = await generateText({
+  model: openai('gpt-4-turbo'),
+  tools: {
+    aggregateContent: tool({
+      description: 'Search and aggregate content on a topic',
+      parameters: z.object({
+        topic: z.string(),
+      }),
+      execute: async ({ topic }) => {
+        return await scrapegraph.searchScraper({
+          user_prompt: `Find recent articles about ${topic} and extract titles, summaries, and publication dates`,
+          num_results: 10,
+        });
+      },
+    }),
+  },
+  prompt: 'Create a weekly digest of AI and machine learning news',
+});
+```
+
+### 3. Market Research
+
+Extract and analyze market data:
+
+```typescript
+const marketResearch = await generateText({
+  model: openai('gpt-4-turbo'),
+  tools: {
+    researchMarket: tool({
+      description: 'Research market trends and data',
+      parameters: z.object({
+        query: z.string(),
+      }),
+      execute: async ({ query }) => {
+        return await scrapegraph.searchScraper({
+          user_prompt: query,
+          num_results: 15,
+        });
+      },
+    }),
+  },
+  prompt: 'Research the current state of the electric vehicle market and identify key trends',
+});
+```
+
+## Best Practices
+
+1. **Rate Limiting**: Be mindful of API rate limits and implement appropriate delays between requests.
+
+2. **Error Handling**: Always wrap scraping calls in try-catch blocks:
+
+```typescript
+try {
+  const data = await scrapegraph.smartScraper({
+    website_url: url,
+    user_prompt: prompt,
+  });
+} catch (error) {
+  console.error('Scraping failed:', error);
+  // Fallback logic
+}
+```
+
+3. **Structured Output**: Use output schemas for consistent data structure:
+
+```typescript
+const data = await scrapegraph.smartScraper({
+  website_url: url,
+  user_prompt: 'Extract product data',
+  output_schema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      price: { type: 'number' },
+      // ... more fields
+    },
+    required: ['name', 'price'],
+  },
+});
+```
+
+4. **Cost Management**: Choose the appropriate API endpoint for your needs:
+   - Use `markdownify` (2 credits) for simple content extraction
+   - Use `smartScraper` (10 credits) for structured AI extraction
+   - Use `scrape` (1 credit) for raw HTML
+
+5. **JavaScript Rendering**: Only enable `render_heavy_js` when necessary (for SPAs and dynamic sites) as it increases processing time.
+
+## Conclusion
+
+The ScrapeGraph AI provider enables powerful web scraping capabilities within your AI agents. Combined with the Vercel AI SDK, you can build intelligent systems that gather, analyze, and act on web data automatically.
+
+## Additional Resources
+
+- [ScrapeGraph AI Documentation](https://docs.scrapegraphai.com)
+- [AI SDK Documentation](https://ai-sdk.dev)
+- [ScrapeGraph AI Provider Reference](/providers/community-providers/scrapegraph)
+
