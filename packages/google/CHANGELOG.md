@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- 0b92881: Add Google Vertex RAG Engine grounding provider tool
+
 ## 3.0.0-beta.45
 
 ### Patch Changes
