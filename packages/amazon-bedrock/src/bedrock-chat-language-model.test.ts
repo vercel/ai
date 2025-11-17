@@ -2599,4 +2599,54 @@ describe('doGenerate', () => {
 
     expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
   });
+
+  it('should clamp temperature above 1 to 1 and add warning', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 1.5,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.inferenceConfig.temperature).toBe(1);
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message:
+        'temperature value 1.5 exceeds bedrock maximum of 1.0. clamped to 1.0',
+    });
+  });
+
+  it('should clamp temperature below 0 to 0 and add warning', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: -0.5,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.inferenceConfig.temperature).toBe(0);
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message:
+        'temperature value -0.5 is below bedrock minimum of 0. clamped to 0',
+    });
+  });
+
+  it('should not clamp valid temperature between 0 and 1', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.inferenceConfig.temperature).toBe(0.7);
+    expect(result.warnings).toEqual([]);
+  });
 });
