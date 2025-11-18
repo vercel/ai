@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.35
+
+### Patch Changes
+
+- f641e1b: fix: update gemini 3 model id
+
 ## 2.0.34
 
 ### Patch Changes
