@@ -172,6 +172,19 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       };
     }
 
+    if (betas.size > 0 || bedrockOptions.anthropicBeta) {
+      const existingBetas = bedrockOptions.anthropicBeta ?? [];
+      const mergedBetas =
+        betas.size > 0
+          ? [...existingBetas, ...Array.from(betas)]
+          : existingBetas;
+
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        anthropic_beta: mergedBetas,
+      };
+    }
+
     const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
 
@@ -305,17 +318,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   };
 
   private async getHeaders({
-    betas,
     headers,
   }: {
-    betas: Set<string>;
     headers: Record<string, string | undefined> | undefined;
   }) {
-    return combineHeaders(
-      await resolve(this.config.headers),
-      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
-      headers,
-    );
+    return combineHeaders(await resolve(this.config.headers), headers);
   }
 
   async doGenerate(
@@ -325,13 +332,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       command: args,
       warnings,
       usesJsonResponseTool,
-      betas,
     } = await this.getArgs(options);
 
     const url = `${this.getUrl(this.modelId)}/converse`;
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: await this.getHeaders({ betas, headers: options.headers }),
+      headers: await this.getHeaders({ headers: options.headers }),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
@@ -453,13 +459,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       command: args,
       warnings,
       usesJsonResponseTool,
-      betas,
     } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: await this.getHeaders({ betas, headers: options.headers }),
+      headers: await this.getHeaders({ headers: options.headers }),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
