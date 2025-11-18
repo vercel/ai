@@ -4,7 +4,11 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
+<<<<<<< HEAD
     model: google('gemini-1.5-flash-002'),
+=======
+    model: google('gemini-3-pro-preview'),
+>>>>>>> 599a97f5b (fix: update gemini 3 model id (#10339))
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
