@@ -728,6 +728,7 @@ describe('generateImage', () => {
       expect(result.providerMetadata.gateway).toStrictEqual({
         routing: { provider: 'test2' },
         generationId: 'gen-123',
+        cost: '0.01',
       });
     });
 
@@ -926,6 +927,7 @@ describe('generateImage', () => {
           ],
         },
         gateway: {
+          routing: { provider: 'vertex' },
           cost: '0.08',
         },
       });
@@ -1037,6 +1039,7 @@ describe('generateImage', () => {
       });
 
       expect(result.providerMetadata.gateway).toStrictEqual({
+        routing: { provider: 'vertex' },
         cost: '0.04',
       });
       expect(result.providerMetadata.gateway).not.toHaveProperty('images');

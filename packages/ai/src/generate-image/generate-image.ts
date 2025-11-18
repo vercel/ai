@@ -188,9 +188,16 @@ Only applicable for HTTP-based providers.
         images: unknown;
       }>(result.providerMetadata)) {
         if (providerName === 'gateway') {
-          providerMetadata[providerName] = {
-            ...metadata,
-          } as ImageModelV2ProviderMetadata[string];
+          const currentEntry = providerMetadata[providerName];
+          if (currentEntry != null && typeof currentEntry === 'object') {
+            providerMetadata[providerName] = {
+              ...(currentEntry as object),
+              ...metadata,
+            } as ImageModelV2ProviderMetadata[string];
+          } else {
+            providerMetadata[providerName] =
+              metadata as ImageModelV2ProviderMetadata[string];
+          }
           const imagesValue = (
             providerMetadata[providerName] as { images?: unknown }
           ).images;
