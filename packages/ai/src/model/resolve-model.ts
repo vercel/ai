@@ -1,6 +1,7 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
   EmbeddingModelV3,
+  ImageModelV3,
   LanguageModelV3,
   ProviderV3,
   SpeechModelV3,
@@ -12,9 +13,11 @@ import { LanguageModel } from '../types/language-model';
 import { SpeechModel } from '../types/speech-model';
 import { TranscriptionModel } from '../types/transcription-model';
 import { asEmbeddingModelV3 } from './as-embedding-model-v3';
+import { asImageModelV3 } from './as-image-model-v3';
 import { asLanguageModelV3 } from './as-language-model-v3';
 import { asSpeechModelV3 } from './as-speech-model-v3';
 import { asTranscriptionModelV3 } from './as-transcription-model-v3';
+import { ImageModel } from '../types/image-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   if (typeof model !== 'string') {
@@ -101,6 +104,23 @@ export function resolveSpeechModel(
   }
 
   return getGlobalProvider().speechModel?.(model);
+}
+
+export function resolveImageModel(model: ImageModel): ImageModelV3 {
+  if (typeof model !== 'string') {
+    if (model.specificationVersion !== 'v3' && model.specificationVersion !== 'v2') {
+      const unsupportedModel: any = model;
+      throw new UnsupportedModelVersionError({
+        version: unsupportedModel.specificationVersion,
+        provider: unsupportedModel.provider,
+        modelId: unsupportedModel.modelId,
+      });
+    }
+
+    return asImageModelV3(model);
+  }
+
+  return getGlobalProvider().imageModel(model);
 }
 
 function getGlobalProvider(): ProviderV3 {
