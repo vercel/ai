@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.11
+
+### Patch Changes
+
+- a20e687: feat(provider/gateway): add support for image models
+
 ## 2.0.10
 
 ### Patch Changes

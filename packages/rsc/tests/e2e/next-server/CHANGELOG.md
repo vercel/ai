@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [a20e687]
+  - ai@5.0.95
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@5.0.94
 
 ## 0.0.1
