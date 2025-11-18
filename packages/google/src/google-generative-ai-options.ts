@@ -33,15 +33,12 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash-lite-preview-09-2025'
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-2.5-flash-preview-09-2025'
-<<<<<<< HEAD
-=======
   | 'gemini-3-pro-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
   | 'gemini-flash-latest'
   | 'gemini-flash-lite-latest'
->>>>>>> 599a97f5b (fix: update gemini 3 model id (#10339))
   // Experimental models
   // https://ai.google.dev/gemini-api/docs/models/experimental-models
   | 'gemini-2.5-pro-exp-03-25'
