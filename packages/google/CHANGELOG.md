@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- 32a8c82: feat: add gemini 3 pro
+- 599a97f: fix: update gemini 3 model id
+
 ## 3.0.0-beta.46
 
 ### Patch Changes
