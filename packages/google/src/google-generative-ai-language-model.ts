@@ -97,17 +97,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       schema: googleGenerativeAIProviderOptions,
     });
 
-    // Add warning if includeThoughts is used with a non-Vertex Google provider
+    // Add warning if includeThoughts is used with model other than Gemini 2.5 series
     if (
       googleOptions?.thinkingConfig?.includeThoughts === true &&
-      !this.config.provider.startsWith('google.vertex.')
+      !this.modelId.includes('2.5')
     ) {
       warnings.push({
         type: 'other',
         message:
-          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
-          'and might not be supported or could behave unexpectedly with the current Google provider ' +
-          `(${this.config.provider}).`,
+          "The 'includeThoughts' option is only supported with Gemini 2.5 series models" +
+          'and might not be supported or could behave unexpectedly with the current gemini model' +
+          `(${this.modelId}).`,
       });
     }
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
