@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.61
+
+### Patch Changes
+
+- 23f132b: fix: error schema for Responses API
+
 ## 3.0.0-beta.60
 
 ### Patch Changes
