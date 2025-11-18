@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.36
+
+### Patch Changes
+
+- 9df7698: fix(provider/google): remove includethoughts warning
+
 ## 2.0.35
 
 ### Patch Changes
