@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 6078060: fix(provider/google): remove includethoughts warning
+
 ## 3.0.0-beta.47
 
 ### Patch Changes
