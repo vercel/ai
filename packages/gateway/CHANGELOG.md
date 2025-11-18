@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.10
+
+### Patch Changes
+
+- 646dc54: feat(provider/gateway): Add Gemini 3 Pro to Gateway autocomplete
+
 ## 2.0.9
 
 ### Patch Changes
