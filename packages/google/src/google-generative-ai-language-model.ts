@@ -105,7 +105,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       warnings.push({
         type: 'other',
         message:
-          "The 'includeThoughts' option is only supported with Gemini 2.5 series models" +
+          "The 'includeThoughts' option is only supported with Gemini 2.5 series models " +
           'and might not be supported or could behave unexpectedly with the current gemini model' +
           `(${this.modelId}).`,
       });

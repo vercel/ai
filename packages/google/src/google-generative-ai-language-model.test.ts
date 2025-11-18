@@ -231,12 +231,16 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+  const TEST_URL_GEMINI_2_5_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_2_5_FLASH]: {},
   });
 
   const prepareJsonResponse = ({
@@ -263,7 +267,8 @@ describe('doGenerate', () => {
       | typeof TEST_URL_GEMINI_2_0_PRO
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
       | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
+      | typeof TEST_URL_GEMINI_1_5_FLASH
+      | typeof TEST_URL_GEMINI_2_5_FLASH;
   }) => {
     server.urls[url].response = {
       type: 'json-value',
@@ -1776,19 +1781,19 @@ describe('doGenerate', () => {
     `);
   });
   describe('warnings for includeThoughts option', () => {
-    it('should generate a warning if includeThoughts is true for a non-Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
+    it('should generate a warning if includeThoughts is true for a non-2.5 model', async () => {
+      prepareJsonResponse({content: 'test',url: TEST_URL_GEMINI_1_5_FLASH,}); // Mock API response
 
-      // Manually create a model instance to control the provider string
-      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+      // Use Gemini 1.5 model (doesn't support includeThoughts)
+      const oldModel = new GoogleGenerativeAILanguageModel('gemini-1.5-flash', {
+        provider: 'google.generative-ai.chat', // Simulate GenerativeAI Provider
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: {},
         generateId: () => 'test-id',
         supportedUrls: () => ({}), // Dummy implementation
       });
 
-      const { warnings } = await nonVertexModel.doGenerate({
+      const { warnings } = await oldModel.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
           google: {
@@ -1803,25 +1808,26 @@ describe('doGenerate', () => {
       expect(warnings).toMatchInlineSnapshot(`
         [
           {
-            "message": "The 'includeThoughts' option is only supported with the Google Vertex provider and might not be supported or could behave unexpectedly with the current Google provider (google.generative-ai.chat).",
+            "message": "The 'includeThoughts' option is only supported with Gemini 2.5 series models and might not be supported or could behave unexpectedly with the current gemini model(gemini-1.5-flash).",
             "type": "other",
           },
         ]
       `);
     });
 
-    it('should NOT generate a warning if includeThoughts is true for a Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
+    it('should NOT generate a warning if includeThoughts is true for a Gemini 2.5 model (Provider: GenerativeAI)', async () => {
+      prepareJsonResponse({content: 'test',url: TEST_URL_GEMINI_2_5_FLASH,}); // Mock API response
 
-      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.vertex.chat', // Simulate Vertex provider
+      // Use Gemini 2.5 model (supports includeThoughts)
+      const oldModel = new GoogleGenerativeAILanguageModel('gemini-2.5-flash', {
+        provider: 'google.generative-ai.chat', // Simulate GenerativeAI Provider
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: {},
         generateId: () => 'test-id',
-        supportedUrls: () => ({}),
+        supportedUrls: () => ({}), // Dummy implementation
       });
 
-      const { warnings } = await vertexModel.doGenerate({
+      const { warnings } = await oldModel.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
           google: {
@@ -1836,11 +1842,38 @@ describe('doGenerate', () => {
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
-    it('should NOT generate a warning if includeThoughts is false for a non-Vertex provider', async () => {
+    it('should NOT generate a warning if includeThoughts is true for a Gemini 2.5 model (Provider: Vertex)', async () => {
+      prepareJsonResponse({ content: 'test',url:TEST_URL_GEMINI_2_5_FLASH }); // Mock API response
+
+      // Use Gemini 2.5 model (does supports includeThoughts)
+      const oldModel = new GoogleGenerativeAILanguageModel('gemini-2.5-flash', {
+        provider: 'google.vertex.chat', // Simulate Vertex Provider
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: {},
+        generateId: () => 'test-id',
+        supportedUrls: () => ({}), // Dummy implementation
+      });
+
+      const { warnings } = await oldModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              includeThoughts: true,
+              thinkingBudget: 500,
+            },
+          },
+        },
+      });
+
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should NOT generate a warning if includeThoughts is false', async () => {
       prepareJsonResponse({ content: 'test' }); // Mock API response
 
       const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+        provider: 'google.generative-ai.chat', // Simulate GenerativeAI provider
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: {},
         generateId: () => 'test-id',
@@ -1862,10 +1895,10 @@ describe('doGenerate', () => {
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
-    it('should NOT generate a warning if thinkingConfig is not provided for a non-Vertex provider', async () => {
+    it('should NOT generate a warning if thinkingConfig is not provided', async () => {
       prepareJsonResponse({ content: 'test' }); // Mock API response
       const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+        provider: 'google.generative-ai.chat', // Simulate GenerativeAI provider
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: {},
         generateId: () => 'test-id',
