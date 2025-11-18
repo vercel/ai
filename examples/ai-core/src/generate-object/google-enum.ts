@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateObject({
-    model: google('gemini-1.5-pro-latest'),
+    model: google('gemini-2.5-pro'),
     output: 'enum',
     enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
     prompt:
