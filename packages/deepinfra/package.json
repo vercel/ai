@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/deepinfra",
-  "version": "2.0.0-beta.32",
+  "version": "2.0.0-beta.34",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
