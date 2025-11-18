@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.95
+
+### Patch Changes
+
+- a20e687: feat(provider/gateway): add support for image models
+- Updated dependencies [a20e687]
+  - @ai-sdk/gateway@2.0.11
+
 ## 5.0.94
 
 ### Patch Changes
