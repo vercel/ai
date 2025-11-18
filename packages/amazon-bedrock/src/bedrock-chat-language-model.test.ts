@@ -1,8 +1,6 @@
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import {
-  createTestServer,
-  convertReadableStreamToArray,
-} from '@ai-sdk/provider-utils/test';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
@@ -37,7 +35,7 @@ vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
   };
 });
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -1443,6 +1441,39 @@ describe('doStream', () => {
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
+  it('merges user additionalModelRequestFields with derived thinking (stream)', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: { type: 'enabled', budgetTokens: 500 },
+          additionalModelRequestFields: { foo: 'bar', custom: 42 },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('reasoningConfig');
+    expect(body.additionalModelRequestFields).toMatchObject({
+      foo: 'bar',
+      custom: 42,
+      thinking: { type: 'enabled', budget_tokens: 500 },
+    });
+  });
+
   it('should handle JSON response format in streaming', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1793,13 +1824,93 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should handle Anthropic provider-defined tools', async () => {
-    mockPrepareAnthropicTools.mockReturnValue({
-      tools: [{ name: 'bash', type: 'bash_20241022' }],
+  it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'tool-with-empty-desc',
+          description: '', // Empty string should be omitted
+          inputSchema: {
+            type: 'object',
+            properties: {
+              param1: { type: 'string' },
+            },
+            required: ['param1'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool-with-whitespace-desc',
+          description: '   ', // Whitespace-only should be omitted
+          inputSchema: {
+            type: 'object',
+            properties: {
+              param2: { type: 'number' },
+            },
+            required: ['param2'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool-with-valid-desc',
+          description: 'Valid description',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              param3: { type: 'boolean' },
+            },
+            required: ['param3'],
+            additionalProperties: false,
+          },
+        },
+      ],
       toolChoice: { type: 'auto' },
-      toolWarnings: [],
-      betas: new Set(['computer-use-2024-10-22']),
+      prompt: TEST_PROMPT,
     });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    // Tool with empty description should not have description field
+    expect(requestBody.toolConfig.tools[0].toolSpec).not.toHaveProperty(
+      'description',
+    );
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'tool-with-empty-desc',
+    );
+
+    // Tool with whitespace-only description should not have description field
+    expect(requestBody.toolConfig.tools[1].toolSpec).not.toHaveProperty(
+      'description',
+    );
+    expect(requestBody.toolConfig.tools[1].toolSpec.name).toBe(
+      'tool-with-whitespace-desc',
+    );
+
+    // Tool with valid description should have description field
+    expect(requestBody.toolConfig.tools[2].toolSpec.description).toBe(
+      'Valid description',
+    );
+    expect(requestBody.toolConfig.tools[2].toolSpec.name).toBe(
+      'tool-with-valid-desc',
+    );
+  });
+
+  it('should handle Anthropic provider-defined tools', async () => {
+    mockPrepareAnthropicTools.mockReturnValue(
+      Promise.resolve({
+        tools: [
+          { name: 'bash', type: 'bash_20241022', cache_control: undefined },
+        ],
+        toolChoice: { type: 'auto' },
+        toolWarnings: [],
+        betas: new Set(['computer-use-2024-10-22']),
+      }),
+    );
 
     // Set up the mock response for this specific URL and test case
     server.urls[anthropicGenerateUrl].response = {
@@ -1845,12 +1956,10 @@ describe('doGenerate', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    const requestHeaders = server.calls[0].requestHeaders;
-
-    expect(requestHeaders['anthropic-beta']).toBe('computer-use-2024-10-22');
 
     expect(requestBody.additionalModelRequestFields).toEqual({
       tool_choice: { type: 'auto' },
+      anthropic_beta: ['computer-use-2024-10-22'],
     });
 
     expect(requestBody.toolConfig).toBeDefined();
@@ -1878,6 +1987,134 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should include anthropic_beta in additionalModelRequestFields when using extended context', async () => {
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'test response' }],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'stop',
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          anthropicBeta: ['context-1m-2025-08-07'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      anthropic_beta: ['context-1m-2025-08-07'],
+    });
+  });
+
+  it('should not include anthropic-beta in HTTP headers', async () => {
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'test response' }],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'stop',
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.bash_20241022',
+          name: 'bash',
+          args: {},
+        },
+      ],
+    });
+
+    const requestHeaders = server.calls[0].requestHeaders;
+
+    expect(requestHeaders['anthropic-beta']).toBeUndefined();
+  });
+
+  it('should combine user-provided and tool-generated betas in body', async () => {
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'tool-use-id',
+                name: 'bash',
+                input: { command: 'ls -l' },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'anthropic.bash_20241022',
+          name: 'bash',
+          args: {},
+        },
+      ],
+      providerOptions: {
+        bedrock: {
+          anthropicBeta: ['context-1m-2025-08-07'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields.anthropic_beta).toEqual([
+      'context-1m-2025-08-07',
+      'computer-use-2024-10-22',
+    ]);
   });
 
   it('should properly combine headers from all sources', async () => {
@@ -2052,6 +2289,28 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
+  it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: { type: 'enabled', budgetTokens: 1234 },
+          additionalModelRequestFields: { foo: 'bar', custom: 42 },
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('reasoningConfig');
+    expect(body.additionalModelRequestFields).toMatchObject({
+      foo: 'bar',
+      custom: 42,
+      thinking: { type: 'enabled', budget_tokens: 1234 },
+    });
+  });
+
   it('should extract reasoning text with signature', async () => {
     const reasoningText = 'I need to think about this problem carefully...';
     const signature = 'abc123signature';
@@ -2221,7 +2480,7 @@ describe('doGenerate', () => {
   it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
     prepareJsonResponse({});
 
-    const conversationWithToolCalls: LanguageModelV2Prompt = [
+    const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
@@ -2408,7 +2667,7 @@ describe('doGenerate', () => {
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
     prepareJsonResponse({});
 
-    const conversationWithToolCalls: LanguageModelV2Prompt = [
+    const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
@@ -2465,5 +2724,63 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
 
     expect(requestBody.toolConfig).toMatchInlineSnapshot(`undefined`);
+  });
+
+  it('should clamp temperature above 1 to 1 and add warning', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 1.5,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.inferenceConfig.temperature).toBe(1);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "1.5 exceeds bedrock maximum of 1.0. clamped to 1.0",
+          "setting": "temperature",
+          "type": "unsupported-setting",
+        },
+      ]
+    `);
+  });
+
+  it('should clamp temperature below 0 to 0 and add warning', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: -0.5,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.inferenceConfig.temperature).toBe(0);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "-0.5 is below bedrock minimum of 0. clamped to 0",
+          "setting": "temperature",
+          "type": "unsupported-setting",
+        },
+      ]
+    `);
+  });
+
+  it('should not clamp valid temperature between 0 and 1', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.inferenceConfig.temperature).toBe(0.7);
+    expect(result.warnings).toMatchInlineSnapshot(`[]`);
   });
 });

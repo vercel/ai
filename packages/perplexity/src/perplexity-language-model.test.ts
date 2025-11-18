@@ -1,8 +1,10 @@
+// TEST FILE DOES NOT USE THE PROVIDER `createPerplexity`
+
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
-  createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { z } from 'zod/v4';
@@ -11,7 +13,7 @@ import {
   PerplexityLanguageModel,
 } from './perplexity-language-model';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -145,6 +147,104 @@ describe('PerplexityLanguageModel', () => {
         search_recency_filter: 'month',
         return_images: true,
       });
+    });
+
+    it('should handle PDF files with base64 encoding', async () => {
+      const mockPdfData = 'mock-pdf-data';
+      const prompt: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this PDF' },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: mockPdfData,
+              filename: 'test.pdf',
+            },
+          ],
+        },
+      ];
+
+      prepareJsonResponse({
+        content: 'This is an analysis of the PDF',
+      });
+
+      const result = await perplexityModel.doGenerate({ prompt });
+
+      // Verify the request contains the correct PDF format
+      const requestBody =
+        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        {
+          type: 'text',
+          text: 'Analyze this PDF',
+        },
+        {
+          type: 'file_url',
+          file_url: {
+            url: expect.stringContaining(mockPdfData),
+          },
+          file_name: 'test.pdf',
+        },
+      ]);
+
+      // Verify the response is processed correctly
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'This is an analysis of the PDF',
+        },
+      ]);
+    });
+
+    it('should handle PDF files with URLs', async () => {
+      const pdfUrl = 'https://example.com/test.pdf';
+      const prompt: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this PDF' },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: new URL(pdfUrl),
+              filename: 'test.pdf',
+            },
+          ],
+        },
+      ];
+
+      prepareJsonResponse({
+        content: 'This is an analysis of the PDF from URL',
+      });
+
+      const result = await perplexityModel.doGenerate({ prompt });
+
+      // Verify the request contains the correct PDF URL format
+      const requestBody =
+        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        {
+          type: 'text',
+          text: 'Analyze this PDF',
+        },
+        {
+          type: 'file_url',
+          file_url: {
+            url: pdfUrl,
+          },
+          file_name: 'test.pdf',
+        },
+      ]);
+
+      // Verify the response is processed correctly
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'This is an analysis of the PDF from URL',
+        },
+      ]);
     });
 
     it('should extract citations as sources', async () => {
@@ -781,7 +881,21 @@ describe('PerplexityLanguageModel', () => {
           },
           {
             "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}.
-        Error message: [{"code":"invalid_value","values":["assistant"],"path":["choices",0,"delta","role"],"message":"Invalid input: expected \\"assistant\\""}]],
+        Error message: [
+          {
+            "code": "invalid_value",
+            "values": [
+              "assistant"
+            ],
+            "path": [
+              "choices",
+              0,
+              "delta",
+              "role"
+            ],
+            "message": "Invalid input: expected \\"assistant\\""
+          }
+        ]],
             "type": "error",
           },
           {
@@ -809,7 +923,32 @@ describe('PerplexityLanguageModel', () => {
           },
           {
             "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.
-        Error message: [{"code":"invalid_value","values":["assistant"],"path":["choices",0,"delta","role"],"message":"Invalid input: expected \\"assistant\\""},{"expected":"string","code":"invalid_type","path":["choices",0,"delta","content"],"message":"Invalid input: expected string, received undefined"}]],
+        Error message: [
+          {
+            "code": "invalid_value",
+            "values": [
+              "assistant"
+            ],
+            "path": [
+              "choices",
+              0,
+              "delta",
+              "role"
+            ],
+            "message": "Invalid input: expected \\"assistant\\""
+          },
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "choices",
+              0,
+              "delta",
+              "content"
+            ],
+            "message": "Invalid input: expected string, received undefined"
+          }
+        ]],
             "type": "error",
           },
           {

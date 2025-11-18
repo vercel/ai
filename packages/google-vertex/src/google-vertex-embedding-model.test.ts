@@ -1,10 +1,15 @@
 import {
-  EmbeddingModelV2Embedding,
+  EmbeddingModelV3Embedding,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { describe, it, expect, vi } from 'vitest';
+import { createVertex } from './google-vertex-provider';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
@@ -13,7 +18,7 @@ const dummyEmbeddings = [
 const testValues = ['test text one', 'test text two'];
 
 const DEFAULT_URL =
-  'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google/models/textembedding-gecko@001:predict';
+  'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google/models/textembedding-gecko@001:predict';
 
 const CUSTOM_URL =
   'https://custom-endpoint.com/models/textembedding-gecko@001:predict';
@@ -38,7 +43,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     project: 'test-project',
     headers: () => ({}),
     baseURL:
-      'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
+      'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google',
   };
 
   const model = new GoogleVertexEmbeddingModel(mockModelId, mockConfig);
@@ -48,7 +53,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     tokenCounts = [1, 1],
     headers,
   }: {
-    embeddings?: EmbeddingModelV2Embedding[];
+    embeddings?: EmbeddingModelV3Embedding[];
     tokenCounts?: number[];
     headers?: Record<string, string>;
   } = {}) {
@@ -167,21 +172,20 @@ describe('GoogleVertexEmbeddingModel', () => {
     });
   });
 
+  // changed test to go through the provider `createVertex`
   it('should pass headers correctly', async () => {
     prepareJsonResponse();
 
-    const model = new GoogleVertexEmbeddingModel(mockModelId, {
-      ...mockConfig,
-      headers: () => ({
-        'X-Custom-Header': 'custom-value',
-      }),
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'us-central1',
+      headers: { 'X-Custom-Header': 'custom-value' },
     });
 
-    await model.doEmbed({
+    await provider.textEmbeddingModel(mockModelId).doEmbed({
       values: testValues,
-      headers: {
-        'X-Request-Header': 'request-value',
-      },
+      headers: { 'X-Request-Header': 'request-value' },
+      providerOptions: { google: mockProviderOptions },
     });
 
     expect(server.calls[0].requestHeaders).toStrictEqual({
@@ -189,6 +193,9 @@ describe('GoogleVertexEmbeddingModel', () => {
       'x-custom-header': 'custom-value',
       'x-request-header': 'request-value',
     });
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/google-vertex/0.0.0-test`,
+    );
   });
 
   it('should throw TooManyEmbeddingValuesForCallError when too many values provided', async () => {

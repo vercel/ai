@@ -1,5 +1,110 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- bb36798: fix(spec): `LanguageModelV3ToolResult["result"]` change from `unknown` to `NonNullable<JSONValue>`
+
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- af3780b: chore(provider): remove providerExecuted from LanguageModelV3ToolResult
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- d1bdadb: Added reranking model
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- 4c44a5b: fix(spec): allow `undefined` values in `JSONObject` type
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- a755db5: feat(provider): Add SharedV3Warning type
+
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- 3794514: feat: flexible tool output content support
+
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- 81d4308: feat: provider-executed dynamic tools
+
+## 3.0.0-beta.6
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+## 2.1.0-beta.5
+
+### Patch Changes
+
+- 046aa3b: feat(provider): speech model v3 spec
+- e8109d3: feat: tool execution approval
+
+## 2.1.0-beta.4
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 2b0caef: feat(provider): add preliminary provider executed tool results to language model specification
+
+## 2.1.0-beta.3
+
+### Patch Changes
+
+- 8dac895: feat: `LanguageModelV3`
+
+## 2.1.0-beta.2
+
+### Patch Changes
+
+- ed329cb: feat: `Provider-V3`
+- 522f6b8: feat: `ImageModelV3`
+
+## 2.1.0-beta.1
+
+### Patch Changes
+
+- 0c4822d: feat: `EmbeddingModelV3`
+
+## 2.1.0-beta.0
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
 ## 2.0.0
 
 ### Major Changes

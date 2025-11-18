@@ -1,31 +1,47 @@
 import {
-  EmbeddingModelV2,
-  LanguageModelV2,
+  EmbeddingModelV3,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
+  RerankingModelV3,
+  ProviderV3,
 } from '@ai-sdk/provider';
+
 import {
   FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
 import { CohereChatModelId } from './cohere-chat-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
+import { CohereRerankingModelId } from './reranking/cohere-reranking-options';
+import { CohereRerankingModel } from './reranking/cohere-reranking-model';
 import { CohereEmbeddingModelId } from './cohere-embedding-options';
+import { VERSION } from './version';
 
-export interface CohereProvider extends ProviderV2 {
-  (modelId: CohereChatModelId): LanguageModelV2;
+export interface CohereProvider extends ProviderV3 {
+  (modelId: CohereChatModelId): LanguageModelV3;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(modelId: CohereChatModelId): LanguageModelV2;
+  languageModel(modelId: CohereChatModelId): LanguageModelV3;
 
-  embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV2<string>;
+  embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV3<string>;
 
-  textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3<string>;
+
+  /**
+   * Creates a model for reranking.
+   */
+  reranking(modelId: CohereRerankingModelId): RerankingModelV3;
+
+  /**
+   * Creates a model for reranking.
+   */
+  rerankingModel(modelId: CohereRerankingModelId): RerankingModelV3;
 }
 
 export interface CohereProviderSettings {
@@ -67,14 +83,18 @@ export function createCohere(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.cohere.com/v2';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'COHERE_API_KEY',
-      description: 'Cohere',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'COHERE_API_KEY',
+          description: 'Cohere',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/cohere/${VERSION}`,
+    );
 
   const createChatModel = (modelId: CohereChatModelId) =>
     new CohereChatLanguageModel(modelId, {
@@ -93,6 +113,14 @@ export function createCohere(
       fetch: options.fetch,
     });
 
+  const createRerankingModel = (modelId: CohereRerankingModelId) =>
+    new CohereRerankingModel(modelId, {
+      provider: 'cohere.reranking',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: CohereChatModelId) {
     if (new.target) {
       throw new Error(
@@ -103,9 +131,12 @@ export function createCohere(
     return createChatModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.embedding = createTextEmbeddingModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.reranking = createRerankingModel;
+  provider.rerankingModel = createRerankingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });

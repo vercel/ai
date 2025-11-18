@@ -1,7 +1,7 @@
 import {
   JSONObject,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
@@ -11,21 +11,21 @@ import {
 } from '@ai-sdk/anthropic/internal';
 import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
-export function prepareTools({
+export async function prepareTools({
   tools,
   toolChoice,
   modelId,
 }: {
-  tools: LanguageModelV2CallOptions['tools'];
-  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: string;
-}): {
+}): Promise<{
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
   betas: Set<string>;
-  toolWarnings: LanguageModelV2CallWarning[];
-} {
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  toolWarnings: LanguageModelV3CallWarning[];
+}> {
+  const toolWarnings: LanguageModelV3CallWarning[] = [];
   const betas = new Set<string>();
 
   if (tools == null || tools.length === 0) {
@@ -90,7 +90,7 @@ export function prepareTools({
       toolChoice: preparedAnthropicToolChoice,
       toolWarnings: anthropicToolWarnings,
       betas: anthropicBetas,
-    } = prepareAnthropicTools({
+    } = await prepareAnthropicTools({
       tools: providerDefinedTools,
       toolChoice,
     });
@@ -119,8 +119,8 @@ export function prepareTools({
           toolSpec: {
             name: tool.name,
             inputSchema: {
-              json: asSchema(fullToolDefinition.inputSchema)
-                .jsonSchema as JSONObject,
+              json: (await asSchema(fullToolDefinition.inputSchema)
+                .jsonSchema) as JSONObject,
             },
           },
         });
@@ -140,7 +140,9 @@ export function prepareTools({
     bedrockTools.push({
       toolSpec: {
         name: tool.name,
-        description: tool.description,
+        ...(tool.description?.trim() !== ''
+          ? { description: tool.description }
+          : {}),
         inputSchema: {
           json: tool.inputSchema as JSONObject,
         },

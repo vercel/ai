@@ -46,6 +46,7 @@ const bundle = [
   'v5/rename-datastream-methods-to-uimessage',
   'v5/rename-datastream-transform-stream',
   'v5/rename-IDGenerator-to-IdGenerator',
+  'v5/replace-datastream-to-uimessagestream',
   'v5/rename-languagemodelv1providermetadata',
   'v5/rename-max-tokens-to-max-output-tokens',
   'v5/rename-message-to-ui-message',
@@ -57,6 +58,7 @@ const bundle = [
   'v5/rename-todatastreamresponse-to-touimessagestreamresponse',
   'v5/rename-tool-parameters-to-inputschema',
   'v5/replace-bedrock-snake-case',
+  'v5/replace-fal-snake-case',
   'v5/replace-content-with-parts',
   'v5/replace-experimental-provider-metadata',
   'v5/replace-image-type-with-file-type',
@@ -68,12 +70,16 @@ const bundle = [
   'v5/replace-simulate-streaming',
   'v5/replace-textdelta-with-text',
   'v5/replace-usage-token-properties',
+  'v5/replace-usechat-api-with-transport',
+  'v5/replace-usechat-input-with-state',
   'v5/replace-zod-import-with-v3',
   'v5/require-createIdGenerator-size-argument',
   'v5/restructure-file-stream-parts',
   'v5/restructure-source-stream-parts',
   'v5/rsc-package',
+  'v5/move-tool-invocations-to-parts',
   'v5/not-implemented/pattern',
+  'v5/rename-addtoolresult-to-addtooloutput',
 ];
 
 const log = debug('codemod:upgrade');

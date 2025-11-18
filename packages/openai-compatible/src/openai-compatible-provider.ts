@@ -1,8 +1,8 @@
 import {
-  EmbeddingModelV2,
-  ImageModelV2,
-  LanguageModelV2,
-  ProviderV2,
+  EmbeddingModelV3,
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -10,7 +10,10 @@ import {
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
-import { OpenAICompatibleChatLanguageModel } from './chat/openai-compatible-chat-language-model';
+import {
+  OpenAICompatibleChatConfig,
+  OpenAICompatibleChatLanguageModel,
+} from './chat/openai-compatible-chat-language-model';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
@@ -21,18 +24,21 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
-> extends Omit<ProviderV2, 'imageModel'> {
-  (modelId: CHAT_MODEL_IDS): LanguageModelV2;
+> extends Omit<ProviderV3, 'imageModel'> {
+  (modelId: CHAT_MODEL_IDS): LanguageModelV3;
 
-  languageModel(modelId: CHAT_MODEL_IDS): LanguageModelV2;
+  languageModel(
+    modelId: CHAT_MODEL_IDS,
+    config?: Partial<OpenAICompatibleChatConfig>,
+  ): LanguageModelV3;
 
-  chatModel(modelId: CHAT_MODEL_IDS): LanguageModelV2;
+  chatModel(modelId: CHAT_MODEL_IDS): LanguageModelV3;
 
-  completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV2;
+  completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV3;
 
-  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3<string>;
 
-  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV2;
+  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV3;
 }
 
 export interface OpenAICompatibleProviderSettings {
@@ -74,6 +80,11 @@ or to provide a custom fetch implementation for e.g. testing.
 Include usage information in streaming responses.
    */
   includeUsage?: boolean;
+
+  /**
+   * Whether the provider supports structured outputs in chat models.
+   */
+  supportsStructuredOutputs?: boolean;
 }
 
 /**
@@ -130,6 +141,7 @@ export function createOpenAICompatible<
     new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
+      supportsStructuredOutputs: options.supportsStructuredOutputs,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
@@ -148,6 +160,7 @@ export function createOpenAICompatible<
 
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;

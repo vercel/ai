@@ -1,5 +1,5 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { FalImageModel } from './fal-image-model';
 
@@ -71,6 +71,81 @@ describe('FalImageModel', () => {
         num_images: 1,
         additional_param: 'value',
       });
+    });
+
+    it('should convert camelCase provider options to snake_case for API', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            imageUrl: 'https://example.com/image.png',
+            guidanceScale: 7.5,
+            numInferenceSteps: 50,
+            enableSafetyChecker: false,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        num_images: 1,
+        image_url: 'https://example.com/image.png',
+        guidance_scale: 7.5,
+        num_inference_steps: 50,
+        enable_safety_checker: false,
+      });
+
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('should accept deprecated snake_case provider options with warning', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            image_url: 'https://example.com/image.png',
+            guidance_scale: 7.5,
+            num_inference_steps: 50,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        num_images: 1,
+        image_url: 'https://example.com/image.png',
+        guidance_scale: 7.5,
+        num_inference_steps: 50,
+      });
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatchObject({
+        type: 'other',
+        message: expect.stringContaining('deprecated snake_case'),
+      });
+
+      const warning = result.warnings[0];
+      if (warning.type === 'other') {
+        expect(warning.message).toContain("'image_url' (use 'imageUrl')");
+        expect(warning.message).toContain(
+          "'guidance_scale' (use 'guidanceScale')",
+        );
+        expect(warning.message).toContain(
+          "'num_inference_steps' (use 'numInferenceSteps')",
+        );
+      }
     });
 
     it('should convert aspect ratio to size', async () => {
@@ -305,7 +380,7 @@ describe('FalImageModel', () => {
 
       expect(model.provider).toBe('fal.image');
       expect(model.modelId).toBe('fal-ai/qwen-image');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

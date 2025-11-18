@@ -164,12 +164,19 @@ The following provider options are available:
 
   Whether to store the generation. Defaults to `true`.
 
-  When using reasoning models (o1, o3, o4-mini) with multi-step tool calls and `store: false`,
-  include `['reasoning.encrypted_content']` in the `include` option to ensure reasoning
-  content is available across conversation steps.
+- **maxToolCalls** _integer_
+  The maximum number of total calls to built-in tools that can be processed in a response.
+  This maximum number applies across all built-in tool calls, not per individual tool.
+  Any further attempts to call a tool by the model will be ignored.
 
 - **metadata** _Record&lt;string, string&gt;_
   Additional metadata to store with the generation.
+
+- **conversation** _string_
+  The ID of the OpenAI Conversation to continue.
+  You must create a conversation first via the [OpenAI API](https://platform.openai.com/docs/api-reference/conversations/create).
+  Cannot be used in conjunction with `previousResponseId`.
+  Defaults to `undefined`.
 
 - **previousResponseId** _string_
   The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
@@ -182,8 +189,14 @@ The following provider options are available:
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
 
-- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
+
+<Note>
+  The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
+  models. Setting `reasoningEffort` to 'none' with other models will result in
+  an error.
+</Note>
 
 - **reasoningSummary** _'auto' | 'detailed'_
   Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
@@ -191,10 +204,11 @@ The following provider options are available:
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `false`.
 
-- **serviceTier** _'auto' | 'flex' | 'priority'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+
   Defaults to 'auto'.
 
 - **textVerbosity** _'low' | 'medium' | 'high'_
@@ -203,12 +217,21 @@ The following provider options are available:
 
 - **include** _Array&lt;string&gt;_
   Specifies additional content to include in the response. Supported values:
-  `['reasoning.encrypted_content']` for accessing reasoning content across conversation steps,
-  and `['file_search_call.results']` for including file search results in responses.
+  `['file_search_call.results']` for including file search results in responses.
+  `['message.output_text.logprobs']` for logprobs.
   Defaults to `undefined`.
+
+- **truncation** _string_
+  The truncation strategy to use for the model response.
+
+  - Auto: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation.
+  - disabled (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error.
 
 - **promptCacheKey** _string_
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **promptCacheRetention** _'in_memory' | '24h'_
+  The retention policy for the prompt cache. Set to `'24h'` to enable extended prompt caching, which keeps cached prefixes active for up to 24 hours. Defaults to `'in_memory'` for standard prompt caching. Note: `'24h'` is currently only available for the 5.1 series of models.
 
 - **safetyIdentifier** _string_
   A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
@@ -233,33 +256,6 @@ The following OpenAI-specific metadata is returned:
 
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
-
-#### Web Search
-
-The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
-
-```ts
-const result = await generateText({
-  model: openai('gpt-5'),
-  prompt: 'What happened in San Francisco last week?',
-  tools: {
-    web_search: openai.tools.webSearch({
-      // optional configuration:
-      searchContextSize: 'high',
-      userLocation: {
-        type: 'approximate',
-        city: 'San Francisco',
-        region: 'California',
-      },
-    }),
-  },
-  // Force web search tool (optional):
-  toolChoice: { type: 'tool', toolName: 'web_search' },
-});
-
-// URL sources
-const sources = result.sources;
-```
 
 #### Reasoning Output
 
@@ -333,7 +329,43 @@ The `textVerbosity` parameter scales output length without changing the underlyi
 - `'medium'`: Balanced detail (default)
 - `'high'`: Verbose responses with comprehensive detail
 
-#### File Search
+#### Web Search Tool
+
+The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search: openai.tools.webSearch({
+      // optional configuration:
+      searchContextSize: 'high',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+  // Force web search tool (optional):
+  toolChoice: { type: 'tool', toolName: 'web_search' },
+});
+
+// URL sources directly from `results`
+const sources = result.sources;
+
+// Or access sources from tool results
+for (const toolResult of result.toolResults) {
+  if (toolResult.toolName === 'web_search') {
+    console.log('Query:', toolResult.output.action.query);
+    console.log('Sources:', toolResult.output.sources);
+    // `sources` is an array of object: { type: 'url', url: string }
+  }
+}
+```
+
+#### File Search Tool
 
 The OpenAI responses API supports file search through the `openai.tools.fileSearch` tool.
 
@@ -345,23 +377,26 @@ const result = await generateText({
   prompt: 'What does the document say about user authentication?',
   tools: {
     file_search: openai.tools.fileSearch({
-      // optional configuration:
-      vectorStoreIds: ['vs_123', 'vs_456'],
-      maxNumResults: 10,
+      vectorStoreIds: ['vs_123'],
+      // configuration below is optional:
+      maxNumResults: 5,
+      filters: {
+        key: 'author',
+        type: 'eq',
+        value: 'Jane Smith',
+      },
       ranking: {
         ranker: 'auto',
-      },
-      filters: {
-        type: 'and',
-        filters: [
-          { key: 'author', type: 'eq', value: 'John Doe' },
-          { key: 'date', type: 'gte', value: '2023-01-01' },
-        ],
+        scoreThreshold: 0.5,
       },
     }),
   },
-  // Force file search tool:
-  toolChoice: { type: 'tool', toolName: 'file_search' },
+  providerOptions: {
+    openai: {
+      // optional: include results
+      include: ['file_search_call.results'],
+    } satisfies OpenAIResponsesProviderOptions,
+  },
 });
 ```
 
@@ -371,9 +406,72 @@ const result = await generateText({
   be customized.
 </Note>
 
-#### Code Interpreter
+#### Image Generation Tool
 
-The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
+Availability is restricted to specific models (for example, `gpt-5` variants).
+
+You can use the image tool with either `generateText` or `streamText`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: openai.tools.imageGeneration({ outputFormat: 'webp' }),
+  },
+});
+
+for (const toolResult of result.staticToolResults) {
+  if (toolResult.toolName === 'image_generation') {
+    const base64Image = toolResult.output.result;
+  }
+}
+```
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai('gpt-5'),
+  prompt:
+    'Generate an image of an echidna swimming across the Mozambique channel.',
+  tools: {
+    image_generation: openai.tools.imageGeneration({
+      outputFormat: 'webp',
+      quality: 'low',
+    }),
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type == 'tool-result' && !part.dynamic) {
+    const base64Image = part.output.result;
+  }
+}
+```
+
+<Note>
+  When you set `store: false`, then previously generated images will not be
+  accessible by the model. We recommend using the image generation tool without
+  setting `store: false`.
+</Note>
+
+For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
+refer to the OpenAI documentation:
+
+- Image generation overview and models: [OpenAI Image Generation](https://platform.openai.com/docs/guides/image-generation)
+- Image generation tool parameters (background, size, quality, format, etc.): [Image Generation Tool Options](https://platform.openai.com/docs/guides/tools-image-generation#tool-options)
+
+#### Code Interpreter Tool
+
+The OpenAI responses API supports the code interpreter tool through the `openai.tools.codeInterpreter` tool.
+This allows models to write and execute Python code.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -403,7 +501,110 @@ The code interpreter tool can be configured with:
   be customized.
 </Note>
 
-#### Image Support
+#### MCP Tool
+
+The OpenAI responses API supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers through the `openai.tools.mcp` tool. This allows models to call tools exposed by remote MCP servers or service connectors.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5'),
+  prompt: 'Search the web for the latest news about AI developments',
+  tools: {
+    mcp: openai.tools.mcp({
+      serverLabel: 'web-search',
+      serverUrl: 'https://mcp.exa.ai/mcp',
+      serverDescription: 'A web-search API for AI agents',
+    }),
+  },
+});
+```
+
+The MCP tool can be configured with:
+
+- **serverLabel** _string_ (required)
+
+  A label to identify the MCP server. This label is used in tool calls to distinguish between multiple MCP servers.
+
+- **serverUrl** _string_ (required if `connectorId` is not provided)
+
+  The URL for the MCP server. Either `serverUrl` or `connectorId` must be provided.
+
+- **connectorId** _string_ (required if `serverUrl` is not provided)
+
+  Identifier for a service connector. Either `serverUrl` or `connectorId` must be provided.
+
+- **serverDescription** _string_ (optional)
+
+  Optional description of the MCP server that helps the model understand its purpose.
+
+- **allowedTools** _string[] | object_ (optional)
+
+  Controls which tools from the MCP server are available. Can be:
+
+  - An array of tool names: `['tool1', 'tool2']`
+  - An object with filters:
+    ```ts
+    {
+      readOnly: true, // Only allow read-only tools
+      toolNames: ['tool1', 'tool2'] // Specific tool names
+    }
+    ```
+
+- **authorization** _string_ (optional)
+
+  OAuth access token for authenticating with the MCP server or connector.
+
+- **headers** _Record&lt;string, string&gt;_ (optional)
+
+  Optional HTTP headers to include in requests to the MCP server.
+
+<Note>
+  The tool calls made by the model when using the OpenAI MCP tool are approved
+  by default. Be sure to connect to only trusted MCP servers, who you trust to
+  share your data with.
+</Note>
+
+<Note>
+  The OpenAI MCP tool is different from the general MCP client approach
+  documented in [MCP Tools](/docs/ai-sdk-core/mcp-tools). The OpenAI MCP tool is
+  a built-in provider-defined tool that allows OpenAI models to directly connect
+  to MCP servers, while the general MCP client requires you to convert MCP tools
+  to AI SDK tools first.
+</Note>
+
+#### Local Shell Tool
+
+The OpenAI responses API support the local shell tool for Codex models through the `openai.tools.localShell` tool.
+Local shell is a tool that allows agents to run shell commands locally on a machine you or the user provides.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5-codex'),
+  tools: {
+    local_shell: openai.tools.localShell({
+      execute: async ({ action }) => {
+        // ... your implementation, e.g. sandbox access ...
+        return { output: stdout };
+      },
+    }),
+  },
+  prompt: 'List the files in my home directory.',
+  stopWhen: stepCountIs(2),
+});
+```
+
+<Note>
+  The tool must be named `local_shell`. This name is required by OpenAI's API
+  specification and cannot be customized. The model can only be
+</Note>
+
+#### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
 You can pass Image files as part of the message content using the 'image' type:
@@ -450,7 +651,7 @@ You can also pass the URL of an image.
 }
 ```
 
-#### PDF support
+#### PDF Inputs
 
 The OpenAI Responses API supports reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
@@ -506,7 +707,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 #### Structured Outputs
 
-The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `experimental_output` option when using `generateText` or `streamText`.
+The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `output` option when using `generateText` or `streamText`.
 
 ```ts
 // Using generateObject
@@ -531,7 +732,7 @@ const result = await generateObject({
 const result = await generateText({
   model: openai('gpt-4.1'),
   prompt: 'How do I make a pizza?',
-  experimental_output: Output.object({
+  output: Output.object({
     schema: z.object({
       ingredients: z.array(z.string()),
       steps: z.array(z.string()),
@@ -554,6 +755,8 @@ OpenAI chat models support also some model specific provider options that are no
 You can pass them in the `providerOptions` argument:
 
 ```ts
+import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+
 const model = openai.chat('gpt-5');
 
 await generateText({
@@ -565,7 +768,7 @@ await generateText({
         '50256': -100,
       },
       user: 'test-user', // optional unique user identifier
-    },
+    } satisfies OpenAIChatLanguageModelOptions,
   },
 });
 ```
@@ -636,10 +839,12 @@ The following optional provider options are available for OpenAI chat models:
 
   Parameters for prediction mode.
 
-- **serviceTier** _'auto' | 'flex'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3, o4-mini, and gpt-5 models.
+  at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
+  Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+
   Defaults to 'auto'.
 
 - **strictJsonSchema** _boolean_
@@ -654,6 +859,10 @@ The following optional provider options are available for OpenAI chat models:
 - **promptCacheKey** _string_
 
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **promptCacheRetention** _'in_memory' | '24h'_
+
+  The retention policy for the prompt cache. Set to `'24h'` to enable extended prompt caching, which keeps cached prefixes active for up to 24 hours. Defaults to `'in_memory'` for standard prompt caching. Note: `'24h'` is currently only available for the 5.1 series of models.
 
 - **safetyIdentifier** _string_
 
@@ -1040,6 +1249,29 @@ console.log(`usage:`, {
 });
 ```
 
+For GPT-5.1 models, you can enable extended prompt caching that keeps cached prefixes active for up to 24 hours:
+
+```ts highlight="7-12"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text, usage, providerMetadata } = await generateText({
+  model: openai.chat('gpt-5.1'),
+  prompt: `A 1024-token or longer prompt...`,
+  providerOptions: {
+    openai: {
+      promptCacheKey: 'my-custom-cache-key-123',
+      promptCacheRetention: '24h', // Extended caching for GPT-5.1
+    },
+  },
+});
+
+console.log(`usage:`, {
+  ...usage,
+  cachedPromptTokens: providerMetadata?.openai?.cachedPromptTokens,
+});
+```
+
 #### Audio Input
 
 With the `gpt-4o-audio-preview` model, you can pass audio files to the model.
@@ -1146,26 +1378,23 @@ The following optional provider options are available for OpenAI completion mode
 
 ### Model Capabilities
 
-| Model                  | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
-| ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4.1`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-mini`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-nano`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o3-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o3`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o4-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `chatgpt-4o-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5`                | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-mini`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-nano`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-chat-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                 | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
+| --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5.1-codex-mini`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1-codex`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-pro`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-nano`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-codex`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-chat-latest`   | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4.1`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI
@@ -1238,11 +1467,12 @@ const model = openai.image('dall-e-3');
 
 ### Model Capabilities
 
-| Model         | Sizes                           |
-| ------------- | ------------------------------- |
-| `gpt-image-1` | 1024x1024, 1536x1024, 1024x1536 |
-| `dall-e-3`    | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2`    | 256x256, 512x512, 1024x1024     |
+| Model              | Sizes                           |
+| ------------------ | ------------------------------- |
+| `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
+| `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
+| `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
+| `dall-e-2`         | 256x256, 512x512, 1024x1024     |
 
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 

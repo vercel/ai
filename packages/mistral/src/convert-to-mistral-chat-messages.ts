@@ -1,12 +1,25 @@
 import {
-  LanguageModelV2Prompt,
+  LanguageModelV3DataContent,
+  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { MistralPrompt } from './mistral-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
+function formatFileUrl({
+  data,
+  mediaType,
+}: {
+  data: LanguageModelV3DataContent;
+  mediaType: string;
+}): string {
+  return data instanceof URL
+    ? data.toString()
+    : `data:${mediaType};base64,${convertToBase64(data as Uint8Array)}`;
+}
+
 export function convertToMistralChatMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): MistralPrompt {
   const messages: MistralPrompt = [];
 
@@ -38,15 +51,15 @@ export function convertToMistralChatMessages(
 
                   return {
                     type: 'image_url',
-                    image_url:
-                      part.data instanceof URL
-                        ? part.data.toString()
-                        : `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                    image_url: formatFileUrl({ data: part.data, mediaType }),
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   return {
                     type: 'document_url',
-                    document_url: part.data.toString(),
+                    document_url: formatFileUrl({
+                      data: part.data,
+                      mediaType: 'application/pdf',
+                    }),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
@@ -116,6 +129,9 @@ export function convertToMistralChatMessages(
             case 'text':
             case 'error-text':
               contentValue = output.value;
+              break;
+            case 'execution-denied':
+              contentValue = output.reason ?? 'Tool execution denied.';
               break;
             case 'content':
             case 'json':

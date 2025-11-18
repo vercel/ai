@@ -41,7 +41,7 @@ The completion, embedding, and image settings are implemented similarly to the c
 2. **example-provider.ts** - Main provider implementation:
 
 ```ts
-import { LanguageModelV1, EmbeddingModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV1, EmbeddingModelV3 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
@@ -110,7 +110,7 @@ Creates a text embedding model for text generation.
   textEmbeddingModel(
     modelId: ExampleEmbeddingModelId,
     settings?: ExampleEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  ): EmbeddingModelV3<string>;
 
   /**
 Creates an image model for image generation.
@@ -118,7 +118,7 @@ Creates an image model for image generation.
   imageModel(
     modelId: ExampleImageModelId,
     settings?: ExampleImageSettings,
-  ): ImageModelV2;
+  ): ImageModelV3;
 }
 
 export function createExample(

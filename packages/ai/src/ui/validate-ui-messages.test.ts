@@ -1,6 +1,9 @@
 import { z } from 'zod/v4';
 import { InferUITool, UIMessage } from './ui-messages';
-import { validateUIMessages } from './validate-ui-messages';
+import {
+  safeValidateUIMessages,
+  validateUIMessages,
+} from './validate-ui-messages';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 describe('validateUIMessages', () => {
@@ -22,6 +25,55 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_InvalidArgumentError: Invalid argument for parameter messages: messages parameter must be provided]
+      `);
+    });
+
+    it('should throw TypeValidationError when messages array is empty', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [].
+        Error message: [
+          {
+            "origin": "array",
+            "code": "too_small",
+            "minimum": 1,
+            "inclusive": true,
+            "path": [],
+            "message": "Messages array must not be empty"
+          }
+        ]]
+      `);
+    });
+
+    it('should throw TypeValidationError when message has empty parts array', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'user',
+              parts: [],
+            },
+          ],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"user","parts":[]}].
+        Error message: [
+          {
+            "origin": "array",
+            "code": "too_small",
+            "minimum": 1,
+            "inclusive": true,
+            "path": [
+              0,
+              "parts"
+            ],
+            "message": "Message must contain at least one part"
+          }
+        ]]
       `);
     });
   });
@@ -121,7 +173,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -452,7 +513,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -1028,7 +1098,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["foo"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "foo"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -1057,7 +1136,16 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"result":123}.
-        Error message: [{"expected":"string","code":"invalid_type","path":["result"],"message":"Invalid input: expected string, received number"}]]
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "result"
+            ],
+            "message": "Invalid input: expected string, received number"
+          }
+        ]]
       `);
     });
 
@@ -1104,5 +1192,164 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+  });
+});
+
+export function expectToBe<T extends boolean>(
+  value: boolean,
+  expected: T,
+): asserts value is T {
+  expect(value).toBe(expected);
+}
+
+describe('safeValidateUIMessages', () => {
+  it('should return success result for valid messages', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ],
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "parts": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should return failure result when messages parameter is null', async () => {
+    const result = await safeValidateUIMessages({
+      messages: null,
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_InvalidArgumentError');
+    expect(result.error.message).toBe(
+      'Invalid argument for parameter messages: messages parameter must be provided',
+    );
+  });
+
+  it('should return failure result when messages array is empty', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [],
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
+    expect(result.error.message).toContain('Messages array must not be empty');
+  });
+
+  it('should return failure result when message has empty parts array', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          parts: [],
+        },
+      ],
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
+  });
+
+  it('should return failure result when metadata validation fails', async () => {
+    const result = await safeValidateUIMessages<UIMessage<{ foo: string }>>({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          metadata: { foo: 123 },
+          parts: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ],
+      metadataSchema: z.object({ foo: z.string() }),
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
+  });
+
+  it('should return failure result when tool input validation fails', async () => {
+    const testTool = {
+      name: 'foo',
+      inputSchema: z.object({ foo: z.string() }),
+      outputSchema: z.object({ result: z.string() }),
+    };
+
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: { foo: 123 },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ],
+      tools: { foo: testTool },
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
+  });
+
+  it('should return failure result when data schema is missing', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [{ type: 'data-bar', data: { foo: 'bar' } }],
+        },
+      ],
+      dataSchemas: {
+        foo: z.object({ foo: z.string() }),
+      },
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain(
+      'No data schema found for data part bar',
+    );
+  });
+
+  it('should return failure result for invalid message structure', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          role: 'user',
+        },
+      ],
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
   });
 });

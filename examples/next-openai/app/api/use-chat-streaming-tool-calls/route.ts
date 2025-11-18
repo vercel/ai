@@ -44,7 +44,7 @@ export async function POST(req: Request) {
           };
         },
       },
-      // client-side tool that displays whether information to the user:
+      // client-side tool that displays weather information to the user:
       showWeatherInformation: {
         description:
           'Show the weather information to the user. Always use this tool to tell weather information to the user.',

@@ -1,6 +1,6 @@
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
-import { ImageModelV2, LanguageModelV2 } from '@ai-sdk/provider';
+import { ImageModelV3, LanguageModelV3 } from '@ai-sdk/provider';
 import { APICallError, experimental_generateImage as generateImage } from 'ai';
 import 'dotenv/config';
 import { describe, expect, it, vi } from 'vitest';
@@ -29,7 +29,7 @@ const RUNTIME_VARIANTS = {
 const createBaseModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV2> =>
+): ModelWithCapabilities<LanguageModelV3> =>
   createLanguageModelWithCapabilities(vertex(modelId), [
     ...defaultChatModelCapabilities,
     'audioInput',
@@ -38,7 +38,7 @@ const createBaseModel = (
 const createSearchGroundedModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV2> => ({
+): ModelWithCapabilities<LanguageModelV3> => ({
   model: wrapLanguageModel({
     model: vertex(modelId),
     middleware: defaultSettingsMiddleware({
@@ -55,8 +55,8 @@ const createSearchGroundedModel = (
 });
 
 const createModelObject = (
-  imageModel: ImageModelV2,
-): { model: ImageModelV2; modelId: string } => ({
+  imageModel: ImageModelV3,
+): { model: ImageModelV3; modelId: string } => ({
   model: imageModel,
   modelId: imageModel.modelId,
 });
@@ -64,8 +64,8 @@ const createModelObject = (
 const createImageModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-  additionalTests: ((model: ImageModelV2) => void)[] = [],
-): ModelWithCapabilities<ImageModelV2> => {
+  additionalTests: ((model: ImageModelV3) => void)[] = [],
+): ModelWithCapabilities<ImageModelV3> => {
   const model = vertex.image(modelId);
 
   if (additionalTests.length > 0) {
@@ -82,7 +82,7 @@ const createImageModel = (
 const createModelVariants = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV2>[] => [
+): ModelWithCapabilities<LanguageModelV3>[] => [
   createBaseModel(vertex, modelId),
   createSearchGroundedModel(vertex, modelId),
 ];
@@ -151,7 +151,7 @@ function detectImageMediaType(
   return undefined;
 }
 
-const imageTest = (model: ImageModelV2) => {
+const imageTest = (model: ImageModelV3) => {
   vi.setConfig({ testTimeout: 10000 });
 
   it('should generate an image with correct dimensions and format', async () => {

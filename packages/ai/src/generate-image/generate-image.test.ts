@@ -1,7 +1,7 @@
 import {
-  ImageModelV2,
-  ImageModelV2CallWarning,
-  ImageModelV2ProviderMetadata,
+  ImageModelV3,
+  ImageModelV3CallWarning,
+  ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -18,7 +18,7 @@ import {
   vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockImageModelV2 } from '../test/mock-image-model-v2';
+import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
@@ -38,10 +38,10 @@ vi.mock('../version', () => {
 
 const createMockResponse = (options: {
   images: string[] | Uint8Array[];
-  warnings?: ImageModelV2CallWarning[];
+  warnings?: ImageModelV3CallWarning[];
   timestamp?: Date;
   modelId?: string;
-  providerMetaData?: ImageModelV2ProviderMetadata;
+  providerMetaData?: ImageModelV3ProviderMetadata;
   headers?: Record<string, string>;
 }) => ({
   images: options.images,
@@ -75,10 +75,10 @@ describe('generateImage', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<ImageModelV2['doGenerate']>[0];
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -118,7 +118,7 @@ describe('generateImage', () => {
 
   it('should return warnings', async () => {
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -142,7 +142,7 @@ describe('generateImage', () => {
   });
 
   it('should call logWarnings with the correct warnings', async () => {
-    const expectedWarnings: ImageModelV2CallWarning[] = [
+    const expectedWarnings: ImageModelV3CallWarning[] = [
       {
         type: 'other',
         message: 'Setting is not supported',
@@ -155,7 +155,7 @@ describe('generateImage', () => {
     ];
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -166,15 +166,19 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should call logWarnings with aggregated warnings from multiple calls', async () => {
-    const warning1: ImageModelV2CallWarning = {
+    const warning1: ImageModelV3CallWarning = {
       type: 'other',
       message: 'Warning from call 1',
     };
-    const warning2: ImageModelV2CallWarning = {
+    const warning2: ImageModelV3CallWarning = {
       type: 'other',
       message: 'Warning from call 2',
     };
@@ -183,7 +187,7 @@ describe('generateImage', () => {
     let callCount = 0;
 
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         maxImagesPerCall: 1,
         doGenerate: async () => {
           switch (callCount++) {
@@ -207,12 +211,16 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith(expectedAggregatedWarnings);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedAggregatedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
     await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -223,13 +231,17 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith([]);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: [],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   describe('base64 image data', () => {
     it('should return generated images with correct mime types', async () => {
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: [pngBase64, jpegBase64],
@@ -260,7 +272,7 @@ describe('generateImage', () => {
 
     it('should return the first image with correct mime type', async () => {
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: [pngBase64, jpegBase64],
@@ -289,7 +301,7 @@ describe('generateImage', () => {
       ];
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           doGenerate: async () =>
             createMockResponse({
               images: uint8ArrayImages,
@@ -323,7 +335,7 @@ describe('generateImage', () => {
       let callCount = 0;
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           maxImagesPerCall: 2,
           doGenerate: async options => {
             switch (callCount++) {
@@ -390,7 +402,7 @@ describe('generateImage', () => {
       let callCount = 0;
 
       const result = await generateImage({
-        model: new MockImageModelV2({
+        model: new MockImageModelV3({
           maxImagesPerCall: 2,
           doGenerate: async options => {
             switch (callCount++) {
@@ -464,7 +476,7 @@ describe('generateImage', () => {
         const maxImagesPerCallMock = vitest.fn(maxImagesPerCall);
 
         const result = await generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             maxImagesPerCall: maxImagesPerCallMock,
             doGenerate: async options => {
               switch (callCount++) {
@@ -535,7 +547,7 @@ describe('generateImage', () => {
     it('should throw NoImageGeneratedError when no images are returned', async () => {
       await expect(
         generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             doGenerate: async () =>
               createMockResponse({
                 images: [],
@@ -559,7 +571,7 @@ describe('generateImage', () => {
     it('should include response headers in error when no images generated', async () => {
       await expect(
         generateImage({
-          model: new MockImageModelV2({
+          model: new MockImageModelV3({
             doGenerate: async () =>
               createMockResponse({
                 images: [],
@@ -593,7 +605,7 @@ describe('generateImage', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -616,7 +628,7 @@ describe('generateImage', () => {
 
   it('should return provider metadata', async () => {
     const result = await generateImage({
-      model: new MockImageModelV2({
+      model: new MockImageModelV3({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64, pngBase64],
@@ -637,6 +649,88 @@ describe('generateImage', () => {
       testProvider: {
         images: [{ revisedPrompt: 'test-revised-prompt' }, null],
       },
+    });
+  });
+
+  it('should expose empty usage when provider does not report usage', async () => {
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [pngBase64],
+          }),
+      }),
+      prompt,
+    });
+
+    expect(result.usage).toStrictEqual({
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
+    });
+  });
+
+  it('should aggregate usage across multiple provider calls', async () => {
+    let callCount = 0;
+
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        maxImagesPerCall: 1,
+        doGenerate: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                images: [pngBase64],
+                warnings: [],
+                providerMetadata: {
+                  testProvider: { images: [null] },
+                },
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'mock-model-id',
+                  headers: {},
+                },
+                usage: {
+                  inputTokens: 10,
+                  outputTokens: 0,
+                  totalTokens: 10,
+                },
+              };
+            case 1:
+              return {
+                images: [jpegBase64],
+                warnings: [],
+                providerMetadata: {
+                  testProvider: { images: [null] },
+                },
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'mock-model-id',
+                  headers: {},
+                },
+                usage: {
+                  inputTokens: 5,
+                  outputTokens: 0,
+                  totalTokens: 5,
+                },
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      prompt,
+      n: 2,
+    });
+
+    expect(result.images.map(image => image.base64)).toStrictEqual([
+      pngBase64,
+      jpegBase64,
+    ]);
+    expect(result.usage).toStrictEqual({
+      inputTokens: 15,
+      outputTokens: 0,
+      totalTokens: 15,
     });
   });
 });

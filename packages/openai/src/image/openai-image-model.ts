@@ -1,12 +1,12 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { openaiImageResponseSchema } from './openai-image-api';
 import {
   OpenAIImageModelId,
   hasDefaultResponseFormat,
@@ -19,8 +19,8 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAIImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v2';
+export class OpenAIImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
 
   get maxImagesPerCall(): number {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
@@ -44,10 +44,10 @@ export class OpenAIImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
+  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV2CallWarning> = [];
+    const warnings: Array<ImageModelV3CallWarning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -90,6 +90,14 @@ export class OpenAIImageModel implements ImageModelV2 {
     return {
       images: response.data.map(item => item.b64_json),
       warnings,
+      usage:
+        response.usage != null
+          ? {
+              inputTokens: response.usage.input_tokens ?? undefined,
+              outputTokens: response.usage.output_tokens ?? undefined,
+              totalTokens: response.usage.total_tokens ?? undefined,
+            }
+          : undefined,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -109,11 +117,3 @@ export class OpenAIImageModel implements ImageModelV2 {
     };
   }
 }
-
-// minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiImageResponseSchema = z.object({
-  data: z.array(
-    z.object({ b64_json: z.string(), revised_prompt: z.string().optional() }),
-  ),
-});

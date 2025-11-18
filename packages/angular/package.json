@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "1.0.44",
+  "version": "2.0.0-beta.99",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
   "main": "dist/index.cjs",
@@ -9,7 +9,7 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --tsconfig tsconfig.build.json --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -27,13 +27,15 @@
   },
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "dependencies": {
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "8.57.1",
@@ -41,11 +43,11 @@
     "jsdom": "^24.0.0",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "@angular/core": ">=16.0.0",
-    "zod": "^3.25.76 || ^4"
+    "@angular/core": ">=16.0.0"
   },
   "engines": {
     "node": ">=18"

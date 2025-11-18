@@ -7,6 +7,7 @@ describe('convertToOpenAIResponsesInput', () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([{ role: 'system', content: 'Hello' }]);
@@ -16,6 +17,7 @@ describe('convertToOpenAIResponsesInput', () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'developer',
+        store: true,
       });
 
       expect(result.input).toEqual([{ role: 'developer', content: 'Hello' }]);
@@ -25,6 +27,7 @@ describe('convertToOpenAIResponsesInput', () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
         systemMessageMode: 'remove',
+        store: true,
       });
 
       expect(result.input).toEqual([]);
@@ -41,6 +44,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -64,6 +68,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -95,6 +100,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -125,6 +131,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -156,6 +163,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         systemMessageMode: 'system',
         fileIdPrefixes: ['file-'],
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -186,6 +194,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -221,6 +230,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -255,6 +265,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -287,6 +298,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         systemMessageMode: 'system',
         fileIdPrefixes: ['file-'],
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -319,6 +331,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -353,6 +366,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           systemMessageMode: 'system',
+          store: true,
         }),
       ).rejects.toThrow('file part media type text/plain');
     });
@@ -372,6 +386,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -404,6 +419,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-'],
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -435,6 +451,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-'],
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -471,6 +488,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-', 'file-'],
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -514,6 +532,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           // fileIdPrefixes intentionally omitted
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -550,6 +569,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           systemMessageMode: 'system',
           fileIdPrefixes: [], // Empty array should disable file ID detection
+          store: true,
         });
 
         expect(result.input).toEqual([
@@ -574,6 +594,7 @@ describe('convertToOpenAIResponsesInput', () => {
           { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -601,6 +622,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -652,26 +674,18 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": [
-              {
-                "text": "I will search for that information.",
-                "type": "output_text",
-              },
-            ],
             "id": "id_123",
-            "role": "assistant",
+            "type": "item_reference",
           },
           {
-            "arguments": "{"query":"weather in San Francisco"}",
-            "call_id": "call_123",
             "id": "id_456",
-            "name": "search",
-            "type": "function_call",
+            "type": "item_reference",
           },
         ]
       `);
@@ -699,6 +713,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -717,8 +732,8 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    describe('reasoning messages', () => {
-      describe('basic conversion', () => {
+    describe('reasoning messages (store: false)', () => {
+      describe('single summary part', () => {
         it('should convert single reasoning part with text', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
@@ -738,6 +753,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -777,6 +793,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -816,6 +833,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -836,7 +854,7 @@ describe('convertToOpenAIResponsesInput', () => {
         });
       });
 
-      describe('empty text handling', () => {
+      describe('single summary part with empty text', () => {
         it('should create empty summary for initial empty text', async () => {
           const result = await convertToOpenAIResponsesInput({
             prompt: [
@@ -856,6 +874,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -890,6 +909,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -932,6 +952,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -981,6 +1002,8 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        // encrypted content is stored in the last summary part
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -988,25 +1011,28 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
-          expect(result.input).toEqual([
-            {
-              type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step',
-                },
-                {
-                  type: 'summary_text',
-                  text: 'Second reasoning step',
-                },
-              ],
-            },
-          ]);
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "encrypted_content": "encrypted_content_001",
+                "id": "reasoning_001",
+                "summary": [
+                  {
+                    "text": "First reasoning step",
+                    "type": "summary_text",
+                  },
+                  {
+                    "text": "Second reasoning step",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+            ]
+          `);
 
           expect(result.warnings).toHaveLength(0);
         });
@@ -1039,6 +1065,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -1121,6 +1148,116 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: true,
+          });
+
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "First user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "reasoning_001",
+                "type": "item_reference",
+              },
+              {
+                "content": [
+                  {
+                    "text": "First response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "reasoning_002",
+                "type": "item_reference",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+            ]
+          `);
+
+          expect(result.warnings).toMatchInlineSnapshot(`[]`);
+        });
+
+        it('should handle reasoning across multiple assistant messages', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            prompt: [
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'First user question' }],
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning step (message 1)',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                  {
+                    type: 'reasoning',
+                    text: 'Second reasoning step (message 1)',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                  { type: 'text', text: 'First response' },
+                ],
+              },
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'Second user question' }],
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning step (message 2)',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_002',
+                      },
+                    },
+                  },
+                  { type: 'text', text: 'Second response' },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -1292,6 +1429,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toEqual([
@@ -1388,6 +1526,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toHaveLength(0);
@@ -1423,6 +1562,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            store: false,
           });
 
           expect(result.input).toHaveLength(0);
@@ -1441,7 +1581,7 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
-    it('should convert tool result parts', async () => {
+    it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -1460,15 +1600,248 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
-      expect(result.input).toEqual([
-        {
-          type: 'function_call_output',
-          call_id: 'call_123',
-          output: JSON.stringify({ temperature: '72°F', condition: 'Sunny' }),
-        },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": "{"temperature":"72°F","condition":"Sunny"}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with text value', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'The weather in San Francisco is 72°F',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": "The weather in San Francisco is 72°F",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart that contains text', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'The weather in San Francisco is 72°F',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "The weather in San Francisco is 72°F",
+                "type": "input_text",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart that contains image', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-data',
+                      mediaType: 'image/png',
+                      data: 'base64_data',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart that contains file (PDF)', async () => {
+      const base64Data = 'AQIDBAU=';
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-data',
+                      mediaType: 'application/pdf',
+                      data: base64Data,
+                      filename: 'document.pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "file_data": "data:application/pdf;base64,AQIDBAU=",
+                "filename": "document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart with mixed content (text, image, file)', async () => {
+      const base64Data = 'AQIDBAU=';
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'The weather in San Francisco is 72°F',
+                    },
+                    {
+                      type: 'image-data',
+                      mediaType: 'image/png',
+                      data: 'base64_data',
+                    },
+                    {
+                      type: 'file-data',
+                      mediaType: 'application/pdf',
+                      data: base64Data,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "The weather in San Francisco is 72°F",
+                "type": "input_text",
+              },
+              {
+                "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+              {
+                "file_data": "data:application/pdf;base64,AQIDBAU=",
+                "filename": "data",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
     });
 
     it('should convert multiple tool result parts in a single message', async () => {
@@ -1496,6 +1869,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result.input).toEqual([
@@ -1513,8 +1887,51 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
-  describe('web search tool', () => {
-    it('should exclude web search tool calls and results from prompt', async () => {
+  describe('provider-defined tools', () => {
+    it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: { code: 'example code', containerId: 'container_123' },
+                providerExecuted: true,
+                toolCallId:
+                  'ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                toolName: 'code_interpreter',
+                type: 'tool-call',
+              },
+              {
+                output: {
+                  type: 'json',
+                  value: {
+                    outputs: [{ type: 'logs', logs: 'example logs' }],
+                  },
+                },
+                toolCallId:
+                  'ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                toolName: 'code_interpreter',
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "ci_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -1527,7 +1944,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'tool-call',
                 toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                toolName: 'web_search_preview',
+                toolName: 'web_search',
                 input: {
                   query: 'San Francisco major news events June 22 2025',
                 },
@@ -1536,14 +1953,21 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'tool-result',
                 toolCallId: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                toolName: 'web_search_preview',
+                toolName: 'web_search',
                 output: {
                   type: 'json',
-                  value: [
-                    {
-                      url: 'https://patch.com/california/san-francisco/calendar',
+                  value: {
+                    action: {
+                      type: 'search',
+                      query: 'San Francisco major news events June 22 2025',
                     },
-                  ],
+                    sources: [
+                      {
+                        type: 'url',
+                        url: 'https://patch.com/california/san-francisco/calendar',
+                      },
+                    ],
+                  },
                 },
               },
               {
@@ -1554,6 +1978,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1582,12 +2007,129 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           "warnings": [
             {
-              "message": "tool result parts in assistant messages are not supported for OpenAI responses",
+              "message": "Results for OpenAI tool web_search are not sent to the API when store is false",
               "type": "other",
             },
           ],
         }
       `);
+    });
+
+    describe('local shell', () => {
+      it('should convert local shell tool call and result into item reference with store: true', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  input: { action: { type: 'exec', command: ['ls'] } },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  output: { type: 'json', value: { output: 'example output' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: true,
+          hasLocalShellTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+              "type": "item_reference",
+            },
+            {
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "output": "example output",
+              "type": "local_shell_call_output",
+            },
+          ]
+        `);
+      });
+
+      it('should convert local shell tool call and result into item reference with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  input: { action: { type: 'exec', command: ['ls'] } },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_XWgeTylovOiS8xLNz2TONOgO',
+                  toolName: 'local_shell',
+                  output: { type: 'json', value: { output: 'example output' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: false,
+          hasLocalShellTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "action": {
+                "command": [
+                  "ls",
+                ],
+                "env": undefined,
+                "timeout_ms": undefined,
+                "type": "exec",
+                "user": undefined,
+                "working_directory": undefined,
+              },
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "id": "lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
+              "type": "local_shell_call",
+            },
+            {
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
+              "output": "example output",
+              "type": "local_shell_call_output",
+            },
+          ]
+        `);
+      });
     });
   });
 
@@ -1609,6 +2151,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        store: true,
       });
 
       expect(result).toMatchInlineSnapshot(`

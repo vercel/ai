@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "2.0.44",
+  "version": "3.0.0-beta.99",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -9,7 +9,7 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -27,14 +27,16 @@
   },
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "dependencies": {
-    "ai": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
+    "ai": "workspace:*",
     "swrv": "^1.0.4"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
     "@testing-library/vue": "^8.1.0",
@@ -47,19 +49,11 @@
     "msw": "2.6.4",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "2.1.4"
+    "vitest": "2.1.4",
+    "zod": "3.25.76"
   },
   "peerDependencies": {
-    "vue": "^3.3.4",
-    "zod": "^3.25.76 || ^4"
-  },
-  "peerDependenciesMeta": {
-    "vue": {
-      "optional": true
-    },
-    "zod": {
-      "optional": true
-    }
+    "vue": "^3.3.4"
   },
   "engines": {
     "node": ">=18"

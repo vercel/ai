@@ -1,7 +1,7 @@
-import { EmbeddingModelV2 } from '@ai-sdk/provider';
+import { EmbeddingModelV3 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
+import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage } from '../types';
 import { embed } from './embed';
@@ -18,7 +18,7 @@ vi.mock('../version', () => {
 describe('result.embedding', () => {
   it('should generate embedding', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -31,7 +31,7 @@ describe('result.embedding', () => {
 describe('result.response', () => {
   it('should include response in the result', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
           body: { foo: 'bar' },
           headers: { foo: 'bar' },
@@ -56,7 +56,7 @@ describe('result.response', () => {
 describe('result.value', () => {
   it('should include value in the result', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -69,7 +69,7 @@ describe('result.value', () => {
 describe('result.usage', () => {
   it('should include usage in the result', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -90,7 +90,7 @@ describe('result.providerMetadata', () => {
     };
 
     const result = await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: mockEmbed(
           [testValue],
           [dummyEmbedding],
@@ -112,7 +112,7 @@ describe('result.providerMetadata', () => {
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
             'custom-request-header': 'request-header-value',
@@ -135,7 +135,7 @@ describe('options.headers', () => {
 describe('options.providerOptions', () => {
   it('should pass provider options to model', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: async ({ providerOptions }) => {
           expect(providerOptions).toStrictEqual({
             aProvider: { someKey: 'someValue' },
@@ -163,7 +163,7 @@ describe('telemetry', () => {
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -175,7 +175,7 @@ describe('telemetry', () => {
 
   it('should record telemetry data when enabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -195,7 +195,7 @@ describe('telemetry', () => {
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV2({
+      model: new MockEmbeddingModelV3({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -216,12 +216,12 @@ function mockEmbed<VALUE>(
   embeddings: Array<Embedding>,
   usage?: EmbeddingModelUsage,
   response: Awaited<
-    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+    ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>
   >['response'] = { headers: {}, body: {} },
   providerMetadata?: Awaited<
-    ReturnType<EmbeddingModelV2<VALUE>['doEmbed']>
+    ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>
   >['providerMetadata'],
-): EmbeddingModelV2<VALUE>['doEmbed'] {
+): EmbeddingModelV3<VALUE>['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
     return { embeddings, usage, response, providerMetadata };
