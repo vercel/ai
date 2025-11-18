@@ -1,5 +1,30 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 6078060: fix(provider/google): remove includethoughts warning
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- 32a8c82: feat: add gemini 3 pro
+- 599a97f: fix: update gemini 3 model id
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- 0b92881: Add Google Vertex RAG Engine grounding provider tool
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- 9b17031: Improve error message when mixing function tools with provider-defined tools to clarify fallback behavior and list ignored function tools
+
 ## 3.0.0-beta.44
 
 ### Patch Changes

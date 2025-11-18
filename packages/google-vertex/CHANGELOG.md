@@ -1,5 +1,42 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [6078060]
+  - @ai-sdk/google@3.0.0-beta.48
+
+## 4.0.0-beta.68
+
+### Patch Changes
+
+- Updated dependencies [32a8c82]
+- Updated dependencies [599a97f]
+  - @ai-sdk/google@3.0.0-beta.47
+
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [1d15673]
+  - @ai-sdk/anthropic@3.0.0-beta.54
+
+## 4.0.0-beta.66
+
+### Patch Changes
+
+- 0b92881: Add Google Vertex RAG Engine grounding provider tool
+- Updated dependencies [0b92881]
+  - @ai-sdk/google@3.0.0-beta.46
+
+## 4.0.0-beta.65
+
+### Patch Changes
+
+- Updated dependencies [9b17031]
+  - @ai-sdk/google@3.0.0-beta.45
+
 ## 4.0.0-beta.64
 
 ### Patch Changes

@@ -80,6 +80,9 @@ importers:
       '@ai-sdk/baseten':
         specifier: workspace:*
         version: link:../../packages/baseten
+      '@ai-sdk/black-forest-labs':
+        specifier: workspace:*
+        version: link:../../packages/black-forest-labs
       '@ai-sdk/cerebras':
         specifier: workspace:*
         version: link:../../packages/cerebras
@@ -138,7 +141,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: workspace:*
@@ -232,7 +235,7 @@ importers:
         specifier: 2.0.0-beta.99
         version: link:../../packages/angular
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.2
@@ -305,7 +308,7 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.99
@@ -333,7 +336,7 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.99
@@ -358,7 +361,7 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
@@ -386,7 +389,7 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
@@ -423,7 +426,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -572,7 +575,7 @@ importers:
   examples/next-agent:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -685,7 +688,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.64
+        specifier: 4.0.0-beta.69
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.0-beta.99
@@ -786,13 +789,13 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.0-beta.58
+        specifier: 4.0.0-beta.61
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 3.0.0-beta.53
+        specifier: 3.0.0-beta.54
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 3.0.0-beta.61
+        specifier: 3.0.0-beta.63
         version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 3.0.0-beta.34
@@ -804,13 +807,13 @@ importers:
         specifier: 2.0.0-beta.34
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 3.0.0-beta.44
+        specifier: 3.0.0-beta.48
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.64
+        specifier: 4.0.0-beta.69
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 3.0.0-beta.33
+        specifier: 3.0.0-beta.34
         version: link:../../packages/groq
       '@ai-sdk/mcp':
         specifier: 1.0.0-beta.15
@@ -819,7 +822,7 @@ importers:
         specifier: 3.0.0-beta.35
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
         specifier: 3.0.0-beta.34
@@ -931,7 +934,7 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -986,7 +989,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -1038,7 +1041,7 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -1102,7 +1105,7 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -1172,7 +1175,7 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.99
@@ -1230,7 +1233,7 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.99
@@ -1255,7 +1258,7 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: 3.0.0-beta.99
@@ -1310,7 +1313,7 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.59
+        specifier: 3.0.0-beta.61
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
         specifier: 4.0.0-beta.33
@@ -1625,6 +1628,34 @@ importers:
         specifier: ^0.0.10
         version: 0.0.10
     devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/black-forest-labs:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -37835,17 +37866,17 @@ snapshots:
       cac: 6.7.14
       chokidar: 3.6.0
       consola: 3.2.3
-      debug: 4.3.7
+      debug: 4.4.1(supports-color@9.4.0)
       esbuild: 0.23.1
       execa: 5.1.1
       joycon: 3.1.1
       picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(yaml@2.7.0)
       resolve-from: 5.0.0
-      rollup: 4.34.9
+      rollup: 4.52.3
       source-map: 0.8.0-beta.0
       sucrase: 3.35.0
-      tinyglobby: 0.2.14
+      tinyglobby: 0.2.15
       tree-kill: 1.2.2
     optionalDependencies:
       postcss: 8.5.6
@@ -37862,17 +37893,17 @@ snapshots:
       cac: 6.7.14
       chokidar: 3.6.0
       consola: 3.2.3
-      debug: 4.3.7
+      debug: 4.4.1(supports-color@9.4.0)
       esbuild: 0.23.1
       execa: 5.1.1
       joycon: 3.1.1
       picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(yaml@2.7.0)
       resolve-from: 5.0.0
-      rollup: 4.34.9
+      rollup: 4.52.3
       source-map: 0.8.0-beta.0
       sucrase: 3.35.0
-      tinyglobby: 0.2.14
+      tinyglobby: 0.2.15
       tree-kill: 1.2.2
     optionalDependencies:
       postcss: 8.5.6
