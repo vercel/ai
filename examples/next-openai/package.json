@@ -35,6 +35,7 @@
     "ai": "6.0.0-beta.99",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "effect": "^3.19.4",
     "lucide-react": "^0.545.0",
     "next": "^15.5.4",
     "react": "^18",
