@@ -391,8 +391,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
-    // map response content to content array
-    for (const part of response.output) {
+    // map response content to content array (defined when there is no error)
+    for (const part of response.output!) {
       switch (part.type) {
         case 'reasoning': {
           // when there are no summary parts, we need to add an empty reasoning part:
@@ -623,7 +623,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     const providerMetadata: SharedV2ProviderMetadata = {
-      openai: { responseId: response.id },
+      openai: {
+        ...(response.id != null ? { responseId: response.id } : {}),
+      },
     };
 
     if (logprobs.length > 0) {
@@ -634,6 +636,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       providerMetadata.openai.serviceTier = response.service_tier;
     }
 
+    const usage = response.usage!; // defined when there is no error
+
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
@@ -641,18 +645,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         hasFunctionCall,
       }),
       usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+        totalTokens: usage.input_tokens + usage.output_tokens,
         reasoningTokens:
-          response.usage.output_tokens_details?.reasoning_tokens ?? undefined,
+          usage.output_tokens_details?.reasoning_tokens ?? undefined,
         cachedInputTokens:
-          response.usage.input_tokens_details?.cached_tokens ?? undefined,
+          usage.input_tokens_details?.cached_tokens ?? undefined,
       },
       request: { body },
       response: {
         id: response.id,
-        timestamp: new Date(response.created_at * 1000),
+        timestamp: new Date(response.created_at! * 1000),
         modelId: response.model,
         headers: responseHeaders,
         body: rawResponse,
