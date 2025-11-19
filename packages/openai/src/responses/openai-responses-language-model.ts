@@ -623,7 +623,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     const providerMetadata: SharedV2ProviderMetadata = {
-      openai: { responseId: response.id },
+      openai: {
+        ...(response.id != null ? { responseId: response.id } : {}),
+      },
     };
 
     if (logprobs.length > 0) {
