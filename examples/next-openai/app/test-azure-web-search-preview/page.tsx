@@ -1,17 +1,17 @@
 'use client';
 
-import { OpenAIWebSearchMessage } from '@/agent/openai-web-search-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';
 import SourcesView from '@/components/sources-view';
-import OpenAIWebSearchView from '@/components/tool/openai-web-search-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { AzureWebSearchPreviewMessage } from '@/app/api/chat-azure-web-search-preview/route';
+import AzureWebSearchPreviewView from '@/components/tool/azure-web-search-preview-view';
 
 export default function TestOpenAIWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
-    useChat<OpenAIWebSearchMessage>({
+    useChat<AzureWebSearchPreviewMessage>({
       transport: new DefaultChatTransport({
         api: '/api/chat-azure-web-search-preview',
       }),
@@ -32,8 +32,8 @@ export default function TestOpenAIWebSearch() {
               case 'reasoning': {
                 return <ReasoningView part={part} key={index} />;
               }
-              case 'tool-web_search': {
-                return <OpenAIWebSearchView invocation={part} key={index} />;
+              case 'tool-web_search_preview': {
+                return <AzureWebSearchPreviewView invocation={part} key={index} />;
               }
             }
           })}
