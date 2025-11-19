@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-import { prepareTools } from './google-prepare-tools';
-import { it, expect } from 'vitest';
 import { LanguageModelV2ProviderDefinedTool } from '@ai-sdk/provider';
-=======
-import { LanguageModelV3ProviderDefinedTool } from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
->>>>>>> 8ee8edc8a (fix(google): add support for gemini-3-pro-preview model tools (#10354))
 
 it('should return undefined tools and tool_choice when tools are null', () => {
   const result = prepareTools({
