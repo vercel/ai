@@ -13,10 +13,11 @@ async function main() {
   // Basic text generation
   const result = streamText({
     model: azure.responses('gpt-4.1-mini'), // use your own deployment
-    prompt:
-      'Summarize three major news stories from today.',
+    prompt: 'Summarize three major news stories from today.',
     tools: {
-      web_search_preview: azure.tools.webSearchPreview({searchContextSize:"low"}),
+      web_search_preview: azure.tools.webSearchPreview({
+        searchContextSize: 'low',
+      }),
     },
   });
 
@@ -28,21 +29,26 @@ async function main() {
   console.log(await result.toolCalls);
   console.log(await result.toolResults);
   console.log('\n=== Web Search Preview Annotations ===');
-   for await (const part of result.fullStream) {
+  for await (const part of result.fullStream) {
     switch (part.type) {
-      case 'text-end':{
-        const annotations = part.providerMetadata?.openai?.annotations;
-        if (annotations) {
-          console.dir(annotations);
-        }
+      case 'text-end':
+        {
+          const annotations = part.providerMetadata?.openai?.annotations;
+          if (annotations) {
+            console.dir(annotations);
+          }
         }
         break;
-
 
       case 'source':
         if (part.sourceType === 'url') {
           console.log(`\n[source: ${part.url}]`);
         }
+        break;
+
+      case 'error':
+        console.log('error');
+        console.error(part.error);
         break;
     }
   }

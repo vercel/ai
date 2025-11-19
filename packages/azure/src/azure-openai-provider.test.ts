@@ -1211,32 +1211,28 @@ describe('responses', () => {
       });
     });
 
-    describe('web search preview tool',()=>{
+    describe('web search preview tool', () => {
       let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
-      beforeEach( async()=>{
-
+      beforeEach(async () => {
         prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
-  
+
         result = await createModel('test-deployment').doGenerate({
           prompt: TEST_PROMPT,
           tools: [
             {
-              type : 'provider-defined',
-              id:'openai.web_search_preview',
-              name :'web_search_preview',
+              type: 'provider-defined',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
               args: {},
             },
           ],
         });
-  
       });
-      it('should stream web search preview results include',async ()=>{
+      it('should stream web search preview results include', async () => {
         expect(result.content).toMatchSnapshot();
       });
-
-    })
-
+    });
   });
 
   describe('image generation tool', () => {
@@ -1655,26 +1651,25 @@ describe('responses', () => {
       ).toMatchSnapshot();
     });
   });
-  describe('web search preview tool', ()=>{
+  describe('web search preview tool', () => {
     prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
 
-    it('should stream web search preview results include'), async ()=>{
-      const result = await createModel('test-deployment').doStream({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type : 'provider-defined',
-            id:'openai.web_search_preview',
-            name :'web_search_preview',
-            args:{
-            }
-          }
-        ]
-      })
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
-    };
-    
-  })
+    it('should stream web search preview results include'),
+      async () => {
+        const result = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {},
+            },
+          ],
+        });
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      };
+  });
 });

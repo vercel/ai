@@ -13,10 +13,11 @@ async function main() {
   // Basic text generation
   const basicResult = await generateText({
     model: azure.responses('gpt-4.1-mini'),
-    prompt:
-      'Summarize three major news stories from today.',
+    prompt: 'Summarize three major news stories from today.',
     tools: {
-      web_search_preview: azure.tools.webSearchPreview({searchContextSize:"medium"}),
+      web_search_preview: azure.tools.webSearchPreview({
+        searchContextSize: 'low',
+      }),
     },
   });
 
@@ -32,6 +33,11 @@ async function main() {
       if (annotations) {
         console.dir(annotations);
       }
+    }
+  }
+  for (const step of basicResult.steps) {
+    if (step.warnings) {
+      console.log(step.warnings);
     }
   }
 }
