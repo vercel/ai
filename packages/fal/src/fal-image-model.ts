@@ -1,12 +1,4 @@
-<<<<<<< HEAD
-import type {
-  ImageModelV2,
-  ImageModelV2CallWarning,
-  JSONObject,
-} from '@ai-sdk/provider';
-=======
-import type { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
->>>>>>> 547145a3a (feat(fal): deprecate snake_case provider options in favor of camelCase (#10280))
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -54,17 +46,8 @@ export class FalImageModel implements ImageModelV2 {
     aspectRatio,
     seed,
     providerOptions,
-<<<<<<< HEAD
-    headers,
-    abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
-  > {
+  }: Parameters<ImageModelV2['doGenerate']>[0]) {
     const warnings: Array<ImageModelV2CallWarning> = [];
-=======
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<ImageModelV3CallWarning> = [];
->>>>>>> 547145a3a (feat(fal): deprecate snake_case provider options in favor of camelCase (#10280))
 
     let imageSize: FalImageSize | undefined;
     if (size) {
@@ -131,8 +114,8 @@ export class FalImageModel implements ImageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV2['doGenerate']>>> {
     const { requestBody, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
