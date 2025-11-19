@@ -37,6 +37,12 @@ const gatewayProviderOptions = lazySchema(() =>
        * Example: `['openai/gpt-5-nano', 'zai/glm-4.6']` will try `openai/gpt-5-nano` first, then `zai/glm-4.6` as fallback.
        */
       models: z.array(z.string()).optional(),
+      /**
+       * Whether to filter by only providers with zero data retention.
+       *
+       * When enabled, only providers that guarantee zero data retention will be used.
+       */
+      zdr: z.boolean().optional(),
     }),
   ),
 );
