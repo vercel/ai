@@ -372,7 +372,7 @@ it('should handle latest modelId for provider-defined tools correctly', () => {
     ],
     modelId: 'gemini-flash-latest',
   });
-  expect(result.tools).toEqual([{ googleSearchRetrieval: {} }]);
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
