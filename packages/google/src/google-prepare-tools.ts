@@ -40,9 +40,6 @@ export function prepareTools({
 
   const toolWarnings: LanguageModelV2CallWarning[] = [];
 
-<<<<<<< HEAD
-  const isGemini2 = modelId.includes('gemini-2');
-=======
   const isLatest = (
     [
       'gemini-flash-latest',
@@ -52,7 +49,6 @@ export function prepareTools({
   ).some(id => id === modelId);
   const isGemini2orNewer =
     modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
->>>>>>> 8ee8edc8a (fix(google): add support for gemini-3-pro-preview model tools (#10354))
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
   const supportsFileSearch = modelId.includes('gemini-2.5');
