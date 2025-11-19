@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.69
+
+### Patch Changes
+
+- 38a9f48: fix: error schema for Responses API
+
 ## 2.0.68
 
 ### Patch Changes
