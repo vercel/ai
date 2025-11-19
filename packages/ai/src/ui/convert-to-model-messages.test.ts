@@ -505,6 +505,11 @@ describe('convertToModelMessages', () => {
                   "type": "text",
                   "value": "3",
                 },
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
                 "toolCallId": "call1",
                 "toolName": "calculator",
                 "type": "tool-result",

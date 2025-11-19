@@ -19,9 +19,9 @@ export type GoogleGenerativeAIContent = {
 };
 
 export type GoogleGenerativeAIContentPart =
-  | { text: string }
+  | { text: string; thought?: boolean; thoughtSignature?: string }
   | { inlineData: { mimeType: string; data: string } }
-  | { functionCall: { name: string; args: unknown } }
+  | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
   | { functionResponse: { name: string; response: unknown } }
   | { fileData: { mimeType: string; fileUri: string } };
 
