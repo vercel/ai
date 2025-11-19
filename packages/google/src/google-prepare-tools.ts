@@ -40,7 +40,15 @@ export function prepareTools({
 
   const toolWarnings: LanguageModelV2CallWarning[] = [];
 
-  const isGemini2 = modelId.includes('gemini-2');
+  const isLatest = (
+    [
+      'gemini-flash-latest',
+      'gemini-flash-lite-latest',
+      'gemini-pro-latest',
+    ] as const satisfies GoogleGenerativeAIModelId[]
+  ).some(id => id === modelId);
+  const isGemini2orNewer =
+    modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
   const supportsFileSearch = modelId.includes('gemini-2.5');
@@ -73,7 +81,7 @@ export function prepareTools({
     providerDefinedTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ googleSearch: {} });
           } else if (supportsDynamicRetrieval) {
             // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
@@ -95,7 +103,7 @@ export function prepareTools({
           }
           break;
         case 'google.url_context':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
@@ -107,7 +115,7 @@ export function prepareTools({
           }
           break;
         case 'google.code_execution':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
@@ -131,7 +139,7 @@ export function prepareTools({
           }
           break;
         case 'google.vertex_rag_store':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({
               retrieval: {
                 vertex_rag_store: {
