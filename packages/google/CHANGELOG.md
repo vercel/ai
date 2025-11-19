@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.37
+
+### Patch Changes
+
+- 6de29ca: Prepare search tool for gemini-3-pro-preview
+
 ## 2.0.36
 
 ### Patch Changes
