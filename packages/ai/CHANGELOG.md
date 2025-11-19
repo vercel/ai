@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.100
+
+### Patch Changes
+
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+
 ## 6.0.0-beta.99
 
 ### Patch Changes

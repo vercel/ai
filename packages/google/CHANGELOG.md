@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+
 ## 3.0.0-beta.50
 
 ### Patch Changes
