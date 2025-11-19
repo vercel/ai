@@ -47,7 +47,7 @@ export function prepareTools({
       'gemini-pro-latest',
     ] as const satisfies GoogleGenerativeAIModelId[]
   ).some(id => id === modelId);
-  const isAfterGemini2 =
+  const isGemini2orNewer =
     modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
@@ -81,7 +81,7 @@ export function prepareTools({
     providerDefinedTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          if (isAfterGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ googleSearch: {} });
           } else if (supportsDynamicRetrieval) {
             // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
@@ -103,7 +103,7 @@ export function prepareTools({
           }
           break;
         case 'google.url_context':
-          if (isAfterGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
@@ -115,7 +115,7 @@ export function prepareTools({
           }
           break;
         case 'google.code_execution':
-          if (isAfterGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
@@ -139,7 +139,7 @@ export function prepareTools({
           }
           break;
         case 'google.vertex_rag_store':
-          if (isAfterGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({
               retrieval: {
                 vertex_rag_store: {
