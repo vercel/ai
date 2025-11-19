@@ -234,7 +234,6 @@ async function main() {
 
     console.log('\n\nmessages after turn 3:');
     console.log(JSON.stringify((await turn3.response).messages, null, 2));
-
   } catch (error) {
     console.error('\nFAILED with error:');
     console.error(error);

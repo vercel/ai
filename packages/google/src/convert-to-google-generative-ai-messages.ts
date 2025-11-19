@@ -81,7 +81,10 @@ export function convertToGoogleGenerativeAIMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const thoughtSignature = part.providerOptions?.google.thoughtSignature != null ? String(part.providerOptions.google.thoughtSignature) : undefined;
+              const thoughtSignature =
+                part.providerOptions?.google.thoughtSignature != null
+                  ? String(part.providerOptions.google.thoughtSignature)
+                  : undefined;
 
               switch (part.type) {
                 case 'text': {
@@ -89,7 +92,7 @@ export function convertToGoogleGenerativeAIMessages(
                     ? undefined
                     : {
                         text: part.text,
-                        thoughtSignature
+                        thoughtSignature,
                       };
                 }
 
@@ -99,7 +102,7 @@ export function convertToGoogleGenerativeAIMessages(
                     : {
                         text: part.text,
                         thought: true,
-                        thoughtSignature
+                        thoughtSignature,
                       };
                 }
 
@@ -132,7 +135,7 @@ export function convertToGoogleGenerativeAIMessages(
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature
+                    thoughtSignature,
                   };
                 }
               }
