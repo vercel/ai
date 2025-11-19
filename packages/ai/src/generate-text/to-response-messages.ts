@@ -108,6 +108,9 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             : toolResult.error,
         errorMode: toolResult.type === 'tool-error' ? 'text' : 'none',
       }),
+      ...(toolResult.providerMetadata != null
+        ? { providerOptions: toolResult.providerMetadata }
+        : {}),
     }));
 
   if (toolResultContent.length > 0) {

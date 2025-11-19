@@ -4698,6 +4698,24 @@ describe('streamText', () => {
             "text": " World",
             "type": "text-delta",
           },
+<<<<<<< HEAD
+=======
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-result",
+            "providerMetadata": {
+              "provider": {
+                "custom": "value",
+              },
+            },
+            "toolCallId": "2",
+            "toolName": "tool1",
+            "type": "tool-result",
+          },
+>>>>>>> 8370068a2 (fix(provider/google): preserve thoughtSignature through tool execution (#10361))
         ]
       `);
     });

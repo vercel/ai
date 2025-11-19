@@ -259,6 +259,28 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 content: toolParts
                   .map((toolPart): ToolResultPart | null => {
                     switch (toolPart.state) {
+<<<<<<< HEAD
+=======
+                      case 'output-denied': {
+                        outputs.push({
+                          type: 'tool-result',
+                          toolCallId: toolPart.toolCallId,
+                          toolName: getToolOrDynamicToolName(toolPart),
+                          output: {
+                            type: 'error-text' as const,
+                            value:
+                              toolPart.approval.reason ??
+                              'Tool execution denied.',
+                          },
+                          ...(toolPart.callProviderMetadata != null
+                            ? { providerOptions: toolPart.callProviderMetadata }
+                            : {}),
+                        });
+
+                        break;
+                      }
+
+>>>>>>> 8370068a2 (fix(provider/google): preserve thoughtSignature through tool execution (#10361))
                       case 'output-error':
                       case 'output-available': {
                         const toolName = getToolOrDynamicToolName(toolPart);
@@ -278,10 +300,18 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                                 ? 'text'
                                 : 'none',
                           }),
+<<<<<<< HEAD
                         };
                       }
                       default: {
                         return null;
+=======
+                          ...(toolPart.callProviderMetadata != null
+                            ? { providerOptions: toolPart.callProviderMetadata }
+                            : {}),
+                        });
+                        break;
+>>>>>>> 8370068a2 (fix(provider/google): preserve thoughtSignature through tool execution (#10361))
                       }
                     }
                   })
