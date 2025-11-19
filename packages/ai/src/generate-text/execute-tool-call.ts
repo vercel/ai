@@ -75,7 +75,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
               type: 'tool-result',
               output: part.output,
               preliminary: true,
-              providerMetadata: toolCall.providerMetadata,
             });
           } else {
             output = part.output;
