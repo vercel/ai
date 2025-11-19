@@ -907,7 +907,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
+                  toolName: webSearchToolName ?? 'web_search',
                   input: JSON.stringify({}),
                   providerExecuted: true,
                 });
@@ -1030,7 +1030,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
+                  toolName: webSearchToolName ?? 'web_search',
                   result: mapWebSearchOutput(value.item.action),
                 });
               } else if (value.item.type === 'computer_call') {
