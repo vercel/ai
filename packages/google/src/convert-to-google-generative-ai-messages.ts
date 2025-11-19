@@ -88,7 +88,10 @@ export function convertToGoogleGenerativeAIMessages(
                     : {
                         text: part.text,
                         thoughtSignature:
-                          part.providerOptions?.google?.thoughtSignature,
+                          typeof part.providerOptions?.google
+                            ?.thoughtSignature === 'string'
+                            ? part.providerOptions.google.thoughtSignature
+                            : undefined,
                       };
                 }
 
@@ -99,7 +102,10 @@ export function convertToGoogleGenerativeAIMessages(
                         text: part.text,
                         thought: true,
                         thoughtSignature:
-                          part.providerOptions?.google?.thoughtSignature,
+                          typeof part.providerOptions?.google
+                            ?.thoughtSignature === 'string'
+                            ? part.providerOptions.google.thoughtSignature
+                            : undefined,
                       };
                 }
 
@@ -133,7 +139,10 @@ export function convertToGoogleGenerativeAIMessages(
                       args: part.input,
                     },
                     thoughtSignature:
-                      part.providerOptions?.google?.thoughtSignature,
+                      typeof part.providerOptions?.google?.thoughtSignature ===
+                      'string'
+                        ? part.providerOptions.google.thoughtSignature
+                        : undefined,
                   };
                 }
               }

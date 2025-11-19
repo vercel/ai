@@ -411,3 +411,129 @@ describe('assistant messages', () => {
     });
   });
 });
+
+describe('parallel tool calls', () => {
+  it('should preserve thought signature only on first parallel tool call', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: { city: 'paris' },
+            providerOptions: { google: { thoughtSignature: 'sig_parallel' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call2',
+            toolName: 'checkweather',
+            input: { city: 'london' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "paris",
+                  },
+                  "name": "checkweather",
+                },
+                "thoughtSignature": "sig_parallel",
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "london",
+                  },
+                  "name": "checkweather",
+                },
+                "thoughtSignature": undefined,
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+});
+
+describe('tool results with thought signatures', () => {
+  it('should preserve thought signature from tool-call in tool-result', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'readdata',
+            input: { userId: '123' },
+            providerOptions: { google: { thoughtSignature: 'sig_original' } },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'readdata',
+            output: {
+              type: 'error-text',
+              value: 'file not found',
+            },
+            providerOptions: { google: { thoughtSignature: 'sig_original' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "functionCall": {
+                  "args": {
+                    "userId": "123",
+                  },
+                  "name": "readdata",
+                },
+                "thoughtSignature": "sig_original",
+              },
+            ],
+            "role": "model",
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "name": "readdata",
+                  "response": {
+                    "content": "file not found",
+                    "name": "readdata",
+                  },
+                },
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+});

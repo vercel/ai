@@ -114,6 +114,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             : toolResult.error,
         errorMode: toolResult.type === 'tool-error' ? 'text' : 'none',
       }),
+      providerOptions: toolResult.providerMetadata,
     }));
 
   if (toolResultContent.length > 0) {
