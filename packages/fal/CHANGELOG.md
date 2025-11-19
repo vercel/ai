@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 1.0.23
+
+### Patch Changes
+
+- f40d094: Create a schema for Fal AI providerOptions, and deprecate snake_case parameters for camelCase options
+
 ## 1.0.22
 
 ### Patch Changes
