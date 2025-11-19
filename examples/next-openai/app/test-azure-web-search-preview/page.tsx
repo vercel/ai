@@ -15,11 +15,16 @@ export default function TestOpenAIWebSearch() {
       transport: new DefaultChatTransport({
         api: '/api/chat-azure-web-search-preview',
       }),
+      onError: error => {
+        console.error('Chat error:', error);
+      },
     });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">Azure OpenAI Web Search Preview</h1>
+      <h1 className="mb-4 text-xl font-bold">
+        Azure OpenAI Web Search Preview
+      </h1>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
@@ -33,7 +38,9 @@ export default function TestOpenAIWebSearch() {
                 return <ReasoningView part={part} key={index} />;
               }
               case 'tool-web_search_preview': {
-                return <AzureWebSearchPreviewView invocation={part} key={index} />;
+                return (
+                  <AzureWebSearchPreviewView invocation={part} key={index} />
+                );
               }
             }
           })}
