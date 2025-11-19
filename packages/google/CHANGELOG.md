@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.38
+
+### Patch Changes
+
+- 42a6339: feat(google): `thinking_level` option for Gemini 3
+
 ## 2.0.37
 
 ### Patch Changes
