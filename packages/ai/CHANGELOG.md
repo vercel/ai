@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.96
+
+### Patch Changes
+
+- c89268c: fix(provider/google): preserve thoughtSignature through tool execution
+
 ## 5.0.95
 
 ### Patch Changes

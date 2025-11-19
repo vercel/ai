@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.39
+
+### Patch Changes
+
+- c89268c: fix(provider/google): preserve thoughtSignature through tool execution
+
 ## 2.0.38
 
 ### Patch Changes
