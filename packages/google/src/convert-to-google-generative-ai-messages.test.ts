@@ -413,7 +413,7 @@ describe('assistant messages', () => {
 });
 
 describe('parallel tool calls', () => {
-  it('should preserve thought signature only on first parallel tool call', async () => {
+  it('should include thought signature on functionCall when provided', async () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
         role: 'assistant',
@@ -435,41 +435,26 @@ describe('parallel tool calls', () => {
       },
     ]);
 
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "contents": [
-          {
-            "parts": [
-              {
-                "functionCall": {
-                  "args": {
-                    "city": "paris",
-                  },
-                  "name": "checkweather",
-                },
-                "thoughtSignature": "sig_parallel",
-              },
-              {
-                "functionCall": {
-                  "args": {
-                    "city": "london",
-                  },
-                  "name": "checkweather",
-                },
-                "thoughtSignature": undefined,
-              },
-            ],
-            "role": "model",
-          },
-        ],
-        "systemInstruction": undefined,
-      }
-    `);
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        args: { city: 'paris' },
+        name: 'checkweather',
+      },
+      thoughtSignature: 'sig_parallel',
+    });
+
+    expect(result.contents[0].parts[1]).toEqual({
+      functionCall: {
+        args: { city: 'london' },
+        name: 'checkweather',
+      },
+      thoughtSignature: undefined,
+    });
   });
 });
 
 describe('tool results with thought signatures', () => {
-  it('should preserve thought signature from tool-call in tool-result', async () => {
+  it('should include thought signature on functionCall but not on functionResponse', async () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
         role: 'assistant',
@@ -500,40 +485,24 @@ describe('tool results with thought signatures', () => {
       },
     ]);
 
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "contents": [
-          {
-            "parts": [
-              {
-                "functionCall": {
-                  "args": {
-                    "userId": "123",
-                  },
-                  "name": "readdata",
-                },
-                "thoughtSignature": "sig_original",
-              },
-            ],
-            "role": "model",
-          },
-          {
-            "parts": [
-              {
-                "functionResponse": {
-                  "name": "readdata",
-                  "response": {
-                    "content": "file not found",
-                    "name": "readdata",
-                  },
-                },
-              },
-            ],
-            "role": "user",
-          },
-        ],
-        "systemInstruction": undefined,
-      }
-    `);
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        args: { userId: '123' },
+        name: 'readdata',
+      },
+      thoughtSignature: 'sig_original',
+    });
+
+    expect(result.contents[1].parts[0]).toEqual({
+      functionResponse: {
+        name: 'readdata',
+        response: {
+          content: 'file not found',
+          name: 'readdata',
+        },
+      },
+    });
+
+    expect(result.contents[1].parts[0]).not.toHaveProperty('thoughtSignature');
   });
 });
