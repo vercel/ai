@@ -153,9 +153,13 @@ async function main() {
 
     console.log('\n\nturn 2 succeeded!');
 
+    const response2 = await turn2.response;
+
+    console.log('\n\nmessages after turn 2:');
+    console.log(JSON.stringify(response2.messages, null, 2));
+
     console.log('\n\n=== turn 3: force successful tool call ===');
 
-    const response2 = await turn2.response;
     const messagesForTurn3 = [
       {
         role: 'user' as const,
@@ -227,6 +231,10 @@ async function main() {
     }
 
     console.log('\n\nturn 3 succeeded!');
+
+    console.log('\n\nmessages after turn 3:');
+    console.log(JSON.stringify((await turn3.response).messages, null, 2));
+
   } catch (error) {
     console.error('\nFAILED with error:');
     console.error(error);
