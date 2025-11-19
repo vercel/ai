@@ -82,8 +82,8 @@ export function convertToGoogleGenerativeAIMessages(
           parts: content
             .map(part => {
               const thoughtSignature =
-                part.providerOptions?.google.thoughtSignature != null
-                  ? String(part.providerOptions.google.thoughtSignature)
+                part.providerOptions?.google?.thoughtSignature != null
+                  ? String(part.providerOptions.google?.thoughtSignature)
                   : undefined;
 
               switch (part.type) {
