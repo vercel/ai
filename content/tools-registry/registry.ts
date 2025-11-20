@@ -69,7 +69,7 @@ console.log(text);`,
 import { webSearch } from '@exalabs/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3.0-pro'),
+  model: gateway('google/gemini-3-pro-preview'),
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
@@ -101,7 +101,7 @@ console.log(text);`,
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3.0-pro'),
+  model: gateway('google/gemini-3-pro-preview'),
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
