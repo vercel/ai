@@ -787,7 +787,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
+                  toolName: webSearchToolName ?? 'web_search',
                   input: JSON.stringify({}),
                   providerExecuted: true,
                 });
@@ -898,7 +898,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
+                  toolName: webSearchToolName ?? 'web_search',
                   result: mapWebSearchOutput(value.item.action),
                   providerExecuted: true,
                 });

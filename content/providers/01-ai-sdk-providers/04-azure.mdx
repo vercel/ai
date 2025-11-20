@@ -324,6 +324,57 @@ The following OpenAI-specific metadata is returned:
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
 
+<<<<<<< HEAD
+=======
+<Note>
+  The providerMetadata is only returned with the default responses API, and is
+  not supported when using 'azure.chat' or 'azure.completion'
+</Note>
+
+#### Web Search Tool
+
+The Azure OpenAI responses API supports web search(preview) through the `azure.tools.webSearchPreview` tool.
+
+```ts
+const result = await generateText({
+  model: azure('gpt-4.1-mini'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search_preview: azure.tools.webSearchPreview({
+      // optional configuration:
+      searchContextSize: 'low',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+  // Force web search tool (optional):
+  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
+});
+
+console.log(result.text);
+
+// URL sources directly from `results`
+const sources = result.sources;
+for (const source of sources) {
+  console.log('source:', source);
+}
+```
+
+<Note>
+  The tool must be named `web_search_preview` when using Azure OpenAI's web
+  search(preview) functionality. This name is required by Azure OpenAI's API
+  specification and cannot be customized.
+</Note>
+
+<Note>
+  The 'web_search_preview' tool is only supported with the default responses
+  API, and is not supported when using 'azure.chat' or 'azure.completion'
+</Note>
+
+>>>>>>> 64aa48fd6 (feat(provider/azure): Responses API web search preview is enabled (#10370))
 #### File Search Tool
 
 The Azure OpenAI responses API supports file search through the `azure.tools.fileSearch` tool.
