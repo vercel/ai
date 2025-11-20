@@ -1100,7 +1100,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
