@@ -21,7 +21,8 @@ export default function TestAnthropicWebFetch() {
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">Anthropic Web Search</h1>
+      <h1 className="mb-4 text-xl font-bold">Microsoft Foundry Anthropic</h1>
+      <h2 className="mb-4 text-xl font-bold">web search , web fetch , code execution</h2>
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
