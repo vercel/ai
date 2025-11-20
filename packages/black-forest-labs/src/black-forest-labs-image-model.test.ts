@@ -9,16 +9,22 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
+  pollIntervalMillis,
+  pollTimeoutMillis,
 }: {
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
+  pollIntervalMillis?: number;
+  pollTimeoutMillis?: number;
 } = {}) {
   return new BlackForestLabsImageModel('test-model', {
     provider: 'black-forest-labs.image',
     baseURL: 'https://api.example.com/v1',
     headers: headers ?? (() => ({ 'x-key': 'test-key' })),
     fetch,
+    pollIntervalMillis,
+    pollTimeoutMillis,
     _internal: {
       currentDate,
     },
@@ -278,6 +284,79 @@ describe('BlackForestLabsImageModel', () => {
 
       expect(result.images).toHaveLength(1);
       expect(result.images[0]).toBeInstanceOf(Uint8Array);
+    });
+
+    it('polls multiple times using configured interval until Ready', async () => {
+      let pollHitCount = 0;
+      server.urls['https://api.example.com/poll'].response = () => {
+        pollHitCount += 1;
+        if (pollHitCount < 3) {
+          return {
+            type: 'json-value',
+            body: { status: 'Pending' },
+          };
+        }
+        return {
+          type: 'json-value',
+          body: {
+            status: 'Ready',
+            result: { sample: 'https://api.example.com/image.png' },
+          },
+        };
+      };
+
+      const model = createBasicModel({
+        pollIntervalMillis: 10,
+        pollTimeoutMillis: 1000,
+      });
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      const pollCalls = server.calls.filter(
+        c => c.requestMethod === 'GET' && c.requestUrl.startsWith('https://api.example.com/poll'),
+      );
+      expect(pollCalls.length).toBe(3);
+    });
+
+    it('uses configured pollTimeoutMillis and pollIntervalMillis to time out', async () => {
+      server.urls['https://api.example.com/poll'].response = ({ callNumber }) => ({
+        type: 'json-value',
+        body: { status: 'Pending', callNumber },
+      });
+
+      const pollIntervalMillis = 10;
+      const pollTimeoutMillis = 25;
+      const model = createBasicModel({
+        pollIntervalMillis,
+        pollTimeoutMillis,
+      });
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Black Forest Labs generation timed out.');
+
+      const pollCalls = server.calls.filter(
+        c => c.requestMethod === 'GET' && c.requestUrl.startsWith('https://api.example.com/poll'),
+      );
+      expect(pollCalls.length).toBe(Math.ceil(pollTimeoutMillis / pollIntervalMillis));
+      const imageFetchCalls = server.calls.filter(c =>
+        c.requestUrl.startsWith('https://api.example.com/image.png'),
+      );
+      expect(imageFetchCalls.length).toBe(0);
     });
 
     it('throws when poll is Ready but sample is missing', async () => {
