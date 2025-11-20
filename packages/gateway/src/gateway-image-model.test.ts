@@ -34,7 +34,7 @@ describe('GatewayImageModel', () => {
 
       expect(model.modelId).toBe(TEST_MODEL_ID);
       expect(model.provider).toBe('gateway');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(4);
     });
 
