@@ -25,7 +25,7 @@ export const tools: Tool[] = [
     description:
       'Execute Python code in a sandboxed environment using Vercel Sandbox. Run calculations, data processing, and other computational tasks safely in an isolated environment with Python 3.13.',
     packageName: 'ai-sdk-tool-code-execution',
-    tags: ['execution', 'python', 'sandbox', 'compute'],
+    tags: ['code-execution', 'sandbox'],
     apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
     installCommand: {
       pnpm: 'pnpm install ai-sdk-tool-code-execution',
