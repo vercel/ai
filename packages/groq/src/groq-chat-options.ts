@@ -31,11 +31,7 @@ export const groqProviderOptions = z.object({
   
   /**
    * Specifies the reasoning effort level for model inference.
-   * - 'none': No reasoning
-   * - 'default': Default reasoning level
-   * - 'low': Low reasoning effort
-   * - 'medium': Medium reasoning effort
-   * - 'high': High reasoning effort
+   * @see https://console.groq.com/docs/reasoning#reasoning-effort
    */
   reasoningEffort: z.enum(['none', 'default', 'low', 'medium', 'high']).optional(),
 
