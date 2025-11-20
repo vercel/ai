@@ -17,16 +17,13 @@ async function main() {
 
     const result = streamText({
       model: google('gemini-2.0-flash-exp'),
-      providerOptions: {
-        google: { responseModalities: ['TEXT', 'IMAGE'] },
-      },
       messages,
     });
 
     process.stdout.write('\nAssistant: ');
     for await (const delta of result.fullStream) {
       switch (delta.type) {
-        case 'text': {
+        case 'text-delta': {
           process.stdout.write(delta.text);
           break;
         }

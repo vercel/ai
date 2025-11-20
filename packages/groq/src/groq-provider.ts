@@ -1,34 +1,42 @@
 import {
-  LanguageModelV2,
+  LanguageModelV3,
   NoSuchModelError,
-  ProviderV2,
-  TranscriptionModelV2,
+  ProviderV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
 import { GroqChatModelId } from './groq-chat-options';
 import { GroqTranscriptionModelId } from './groq-transcription-options';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 
-export interface GroqProvider extends ProviderV2 {
+import { groqTools } from './groq-tools';
+import { VERSION } from './version';
+export interface GroqProvider extends ProviderV3 {
   /**
 Creates a model for text generation.
 */
-  (modelId: GroqChatModelId): LanguageModelV2;
+  (modelId: GroqChatModelId): LanguageModelV3;
 
   /**
 Creates an Groq chat model for text generation.
    */
-  languageModel(modelId: GroqChatModelId): LanguageModelV2;
+  languageModel(modelId: GroqChatModelId): LanguageModelV3;
 
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV3;
+
+  /**
+   * Tools provided by Groq.
+   */
+  tools: typeof groqTools;
 }
 
 export interface GroqProviderSettings {
@@ -61,14 +69,18 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.groq.com/openai/v1';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'GROQ_API_KEY',
-      description: 'Groq',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'GROQ_API_KEY',
+          description: 'Groq',
+        })}`,
+        ...options.headers,
+      },
+      `ai-sdk/groq/${VERSION}`,
+    );
 
   const createChatModel = (modelId: GroqChatModelId) =>
     new GroqChatLanguageModel(modelId, {
@@ -101,6 +113,7 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     return createLanguageModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
 
@@ -111,6 +124,9 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
   provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
+
+  provider.tools = groqTools;
 
   return provider;
 }

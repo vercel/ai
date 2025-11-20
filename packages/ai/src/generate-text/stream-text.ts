@@ -1,7 +1,7 @@
 import {
   getErrorMessage,
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
+  LanguageModelV3,
+  LanguageModelV3CallWarning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -11,39 +11,15 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
-import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { UIMessage } from '../../src/ui';
-import { createUIMessageStreamResponse } from '../../src/ui-message-stream/create-ui-message-stream-response';
-import { getResponseUIMessageId } from '../../src/ui-message-stream/get-response-ui-message-id';
-import { handleUIMessageStreamFinish } from '../../src/ui-message-stream/handle-ui-message-stream-finish';
-import { pipeUIMessageStreamToResponse } from '../../src/ui-message-stream/pipe-ui-message-stream-to-response';
-import {
-  InferUIMessageChunk,
-  UIMessageChunk,
-} from '../../src/ui-message-stream/ui-message-chunks';
-import { UIMessageStreamResponseInit } from '../../src/ui-message-stream/ui-message-stream-response-init';
-import {
-  InferUIMessageData,
-  InferUIMessageMetadata,
-} from '../../src/ui/ui-messages';
-import { asArray } from '../../src/util/as-array';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../../src/util/async-iterable-stream';
-import { consumeStream } from '../../src/util/consume-stream';
-import { createStitchableStream } from '../../src/util/create-stitchable-stream';
-import { DelayedPromise } from '../../src/util/delayed-promise';
-import { now as originalNow } from '../../src/util/now';
-import { prepareRetries } from '../../src/util/prepare-retries';
+import { NoOutputGeneratedError } from '../error';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
-import { resolveLanguageModel } from '../prompt/resolve-language-model';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -53,6 +29,8 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { LanguageModelRequestMetadata } from '../types';
 import {
   CallWarning,
@@ -62,9 +40,33 @@ import {
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { filterStreamErrors } from '../util/filter-stream-errors';
+import { UIMessage } from '../ui';
+import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
+import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
+import { handleUIMessageStreamFinish } from '../ui-message-stream/handle-ui-message-stream-finish';
+import { pipeUIMessageStreamToResponse } from '../ui-message-stream/pipe-ui-message-stream-to-response';
+import {
+  InferUIMessageChunk,
+  UIMessageChunk,
+} from '../ui-message-stream/ui-message-chunks';
+import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
+import { asArray } from '../util/as-array';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
+import { consumeStream } from '../util/consume-stream';
+import { createStitchableStream } from '../util/create-stitchable-stream';
+import { DelayedPromise } from '../util/delayed-promise';
+import { DownloadFunction } from '../util/download/download-function';
+import { now as originalNow } from '../util/now';
+import { prepareRetries } from '../util/prepare-retries';
+import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { Output } from './output';
+import { executeToolCall } from './execute-tool-call';
+import { Output, text } from './output';
+import { InferCompleteOutput, InferPartialOutput } from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
@@ -84,9 +86,10 @@ import {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import { ToolCallUnion } from './tool-call';
+import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
+import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
@@ -133,8 +136,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-        | 'text'
-        | 'reasoning'
+        | 'text-delta'
+        | 'reasoning-delta'
         | 'source'
         | 'tool-call'
         | 'tool-input-start'
@@ -213,21 +216,17 @@ If set and supported by the model, calls will generate deterministic results.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
 @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
-@param onFinish - Callback that is called when the LLM response and all request tool executions
-(for tools that have an `execute` function) are finished.
+@param onFinish - Callback that is called when all steps are finished and the response is complete.
 
 @return
 A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
-  OUTPUT = never,
-  PARTIAL_OUTPUT = never,
+  OUTPUT extends Output = Output<string, string>,
 >({
   model,
   tools,
@@ -239,7 +238,8 @@ export function streamText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
-  experimental_output: output,
+  experimental_output,
+  output = experimental_output,
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
@@ -247,6 +247,7 @@ export function streamText<
   activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
+  experimental_download: download,
   includeRawChunks = false,
   onChunk,
   onError = ({ error }) => {
@@ -255,6 +256,7 @@ export function streamText<
   onFinish,
   onAbort,
   onStepFinish,
+  experimental_context,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -314,7 +316,14 @@ functionality that can be fully encapsulated in the provider.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
-    experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+    output?: OUTPUT;
+
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+
+@deprecated Use `output` instead.
+ */
+    experimental_output?: OUTPUT;
 
     /**
 Optional function that you can use to provide different settings for a step.
@@ -342,6 +351,13 @@ The stream transformations must maintain the stream structure for streamText to 
     experimental_transform?:
       | StreamTextTransform<TOOLS>
       | Array<StreamTextTransform<TOOLS>>;
+
+    /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction | undefined;
 
     /**
 Whether to include raw chunks from the provider in the stream.
@@ -380,6 +396,15 @@ Callback that is called when each step (LLM call) is finished, including interme
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
+     * Context that is passed into tool execution.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context?: unknown;
+
+    /**
 Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -387,8 +412,8 @@ Internal. For test use only. May change without notice.
       generateId?: IdGenerator;
       currentDate?: () => Date;
     };
-  }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
-  return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
+  }): StreamTextResult<TOOLS, OUTPUT> {
+  return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
@@ -416,6 +441,8 @@ Internal. For test use only. May change without notice.
     now,
     currentDate,
     generateId,
+    experimental_context,
+    download,
   });
 }
 
@@ -426,28 +453,17 @@ type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
 
 function createOutputTransformStream<
   TOOLS extends ToolSet,
-  OUTPUT,
-  PARTIAL_OUTPUT,
+  OUTPUT extends Output,
 >(
-  output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined,
+  output: OUTPUT,
 ): TransformStream<
   TextStreamPart<TOOLS>,
-  EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+  EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
 > {
-  if (!output) {
-    return new TransformStream<
-      TextStreamPart<TOOLS>,
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
-    >({
-      transform(chunk, controller) {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
-      },
-    });
-  }
-
   let firstTextChunkId: string | undefined = undefined;
   let text = '';
   let textChunk = '';
+  let textProviderMetadata: ProviderMetadata | undefined = undefined;
   let lastPublishedJson = '';
 
   function publishTextChunk({
@@ -455,15 +471,16 @@ function createOutputTransformStream<
     partialOutput = undefined,
   }: {
     controller: TransformStreamDefaultController<
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >;
-    partialOutput?: PARTIAL_OUTPUT;
+    partialOutput?: InferPartialOutput<OUTPUT>;
   }) {
     controller.enqueue({
       part: {
-        type: 'text',
+        type: 'text-delta',
         id: firstTextChunkId!,
         text: textChunk,
+        providerMetadata: textProviderMetadata,
       },
       partialOutput,
     });
@@ -472,7 +489,7 @@ function createOutputTransformStream<
 
   return new TransformStream<
     TextStreamPart<TOOLS>,
-    EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+    EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
@@ -481,7 +498,7 @@ function createOutputTransformStream<
       }
 
       if (
-        chunk.type !== 'text' &&
+        chunk.type !== 'text-delta' &&
         chunk.type !== 'text-start' &&
         chunk.type !== 'text-end'
       ) {
@@ -513,10 +530,13 @@ function createOutputTransformStream<
 
       text += chunk.text;
       textChunk += chunk.text;
+      textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
 
       // only publish if partial json can be parsed:
-      const result = await output.parsePartial({ text });
-      if (result != null) {
+      const result = await output.parsePartialOutput({ text });
+
+      // null should be allowed (valid JSON value) but undefined should not:
+      if (result !== undefined) {
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
         if (currentJson !== lastPublishedJson) {
@@ -528,17 +548,17 @@ function createOutputTransformStream<
   });
 }
 
-class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
-  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
+class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
+  implements StreamTextResult<TOOLS, OUTPUT>
 {
   private readonly _totalUsage = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['usage']>
   >();
   private readonly _finishReason = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['finishReason']>
   >();
   private readonly _steps = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
   >();
 
   private readonly addStream: (
@@ -547,11 +567,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private readonly closeStream: () => void;
 
-  private baseStream: ReadableStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>>;
+  private baseStream: ReadableStream<
+    EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+  >;
 
-  private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
+  private outputSpecification: OUTPUT | undefined;
 
   private includeRawChunks: boolean;
+
+  private tools: TOOLS | undefined;
 
   constructor({
     model,
@@ -581,8 +605,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onFinish,
     onAbort,
     onStepFinish,
+    experimental_context,
+    download,
   }: {
-    model: LanguageModelV2;
+    model: LanguageModelV3;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -597,13 +623,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
-    output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
+    output: OUTPUT | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     includeRawChunks: boolean;
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
+    experimental_context: unknown;
+    download: DownloadFunction | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -612,8 +640,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
-    this.output = output;
+    this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
+    this.tools = tools;
 
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
@@ -649,8 +678,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     > = {};
 
     const eventProcessor = new TransformStream<
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >({
       async transform(chunk, controller) {
         controller.enqueue(chunk); // forward the chunk to the next stream
@@ -658,8 +687,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         const { part } = chunk;
 
         if (
-          part.type === 'text' ||
-          part.type === 'reasoning' ||
+          part.type === 'text-delta' ||
+          part.type === 'reasoning-delta' ||
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
@@ -684,7 +713,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(activeTextContent[part.id]);
         }
 
-        if (part.type === 'text') {
+        if (part.type === 'text-delta') {
           const activeText = activeTextContent[part.id];
 
           if (activeText == null) {
@@ -704,6 +733,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'text-end') {
+          const activeText = activeTextContent[part.id];
+
+          if (activeText == null) {
+            controller.enqueue({
+              part: {
+                type: 'error',
+                error: `text part ${part.id} not found`,
+              },
+              partialOutput: undefined,
+            });
+            return;
+          }
+
+          activeText.providerMetadata =
+            part.providerMetadata ?? activeText.providerMetadata;
+
           delete activeTextContent[part.id];
         }
 
@@ -717,7 +762,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(activeReasoningContent[part.id]);
         }
 
-        if (part.type === 'reasoning') {
+        if (part.type === 'reasoning-delta') {
           const activeReasoning = activeReasoningContent[part.id];
 
           if (activeReasoning == null) {
@@ -768,7 +813,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
-        if (part.type === 'tool-result') {
+        if (part.type === 'tool-result' && !part.preliminary) {
+          recordedContent.push(part);
+        }
+
+        if (part.type === 'tool-approval-request') {
           recordedContent.push(part);
         }
 
@@ -777,6 +826,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'start-step') {
+          // reset the recorded data when a new step starts:
+          recordedContent = [];
+          activeReasoningContent = {};
+          activeTextContent = {};
+
           recordedRequest = part.request;
           recordedWarnings = part.warnings;
         }
@@ -803,11 +857,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           await onStepFinish?.(currentStepResult);
 
-          recordedSteps.push(currentStepResult);
+          logWarnings({
+            warnings: recordedWarnings,
+            provider: model.provider,
+            model: model.modelId,
+          });
 
-          recordedContent = [];
-          activeReasoningContent = {};
-          activeTextContent = {};
+          recordedSteps.push(currentStepResult);
 
           recordedResponseMessages.push(...stepMessages);
 
@@ -825,6 +881,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
+            const error = new NoOutputGeneratedError({
+              message: 'No output generated. Check the stream for errors.',
+            });
+
+            self._finishReason.reject(error);
+            self._totalUsage.reject(error);
+            self._steps.reject(error);
+
             return; // no steps recorded (e.g. in error scenario)
           }
 
@@ -856,7 +920,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             files: finalStep.files,
             sources: finalStep.sources,
             toolCalls: finalStep.toolCalls,
+            staticToolCalls: finalStep.staticToolCalls,
+            dynamicToolCalls: finalStep.dynamicToolCalls,
             toolResults: finalStep.toolResults,
+            staticToolResults: finalStep.staticToolResults,
+            dynamicToolResults: finalStep.dynamicToolResults,
             request: finalStep.request,
             response: finalStep.response,
             warnings: finalStep.warnings,
@@ -866,7 +934,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // Add response information to the root span:
           rootSpan.setAttributes(
-            selectTelemetryAttributes({
+            await selectTelemetryAttributes({
               telemetry,
               attributes: {
                 'ai.response.finishReason': finishReason,
@@ -902,27 +970,49 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
-    let stream = stitchableStream.stream;
+    // resilient stream that handles abort signals and errors:
+    const reader = stitchableStream.stream.getReader();
+    let stream = new ReadableStream<TextStreamPart<TOOLS>>({
+      async start(controller) {
+        // send start event:
+        controller.enqueue({ type: 'start' });
+      },
 
-    // filter out abort errors:
-    stream = filterStreamErrors(stream, ({ error, controller }) => {
-      if (isAbortError(error) && abortSignal?.aborted) {
-        onAbort?.({ steps: recordedSteps });
-        controller.enqueue({ type: 'abort' });
-        controller.close();
-      } else {
-        controller.error(error);
-      }
+      async pull(controller) {
+        // abort handling:
+        function abort() {
+          onAbort?.({ steps: recordedSteps });
+          controller.enqueue({ type: 'abort' });
+          controller.close();
+        }
+
+        try {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            controller.close();
+            return;
+          }
+
+          if (abortSignal?.aborted) {
+            abort();
+            return;
+          }
+
+          controller.enqueue(value);
+        } catch (error) {
+          if (isAbortError(error) && abortSignal?.aborted) {
+            abort();
+          } else {
+            controller.error(error);
+          }
+        }
+      },
+
+      cancel(reason) {
+        return stitchableStream.stream.cancel(reason);
+      },
     });
-
-    // add a stream that emits a start event:
-    stream = stream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-        start(controller) {
-          controller.enqueue({ type: 'start' });
-        },
-      }),
-    );
 
     // transform the stream before output parsing
     // to enable replacement of stream segments:
@@ -938,11 +1028,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     }
 
     this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output))
+      .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
       maxRetries: maxRetriesArg,
+      abortSignal,
     });
 
     const tracer = getTracer(telemetry);
@@ -976,6 +1067,105 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       fn: async rootSpanArg => {
         rootSpan = rootSpanArg;
 
+        const initialPrompt = await standardizePrompt({
+          system,
+          prompt,
+          messages,
+        } as Prompt);
+
+        const initialMessages = initialPrompt.messages;
+        const initialResponseMessages: Array<ResponseMessage> = [];
+
+        const { approvedToolApprovals, deniedToolApprovals } =
+          collectToolApprovals<TOOLS>({ messages: initialMessages });
+
+        // initial tool execution step stream
+        if (
+          deniedToolApprovals.length > 0 ||
+          approvedToolApprovals.length > 0
+        ) {
+          let toolExecutionStepStreamController:
+            | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
+            | undefined;
+          const toolExecutionStepStream = new ReadableStream<
+            TextStreamPart<TOOLS>
+          >({
+            start(controller) {
+              toolExecutionStepStreamController = controller;
+            },
+          });
+
+          self.addStream(toolExecutionStepStream);
+
+          try {
+            for (const toolApproval of deniedToolApprovals) {
+              toolExecutionStepStreamController?.enqueue({
+                type: 'tool-output-denied',
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+              } as StaticToolOutputDenied<TOOLS>);
+            }
+
+            const toolOutputs: Array<ToolOutput<TOOLS>> = [];
+
+            await Promise.all(
+              approvedToolApprovals.map(async toolApproval => {
+                const result = await executeToolCall({
+                  toolCall: toolApproval.toolCall,
+                  tools,
+                  tracer,
+                  telemetry,
+                  messages: initialMessages,
+                  abortSignal,
+                  experimental_context,
+                  onPreliminaryToolResult: result => {
+                    toolExecutionStepStreamController?.enqueue(result);
+                  },
+                });
+
+                if (result != null) {
+                  toolExecutionStepStreamController?.enqueue(result);
+                  toolOutputs.push(result);
+                }
+              }),
+            );
+
+            initialResponseMessages.push({
+              role: 'tool',
+              content: [
+                // add regular tool results for approved tool calls:
+                ...toolOutputs.map(output => ({
+                  type: 'tool-result' as const,
+                  toolCallId: output.toolCallId,
+                  toolName: output.toolName,
+                  output: createToolModelOutput({
+                    tool: tools?.[output.toolName],
+                    output:
+                      output.type === 'tool-result'
+                        ? output.output
+                        : output.error,
+                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                  }),
+                })),
+                // add execution denied tool results for denied tool approvals:
+                ...deniedToolApprovals.map(toolApproval => ({
+                  type: 'tool-result' as const,
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  toolName: toolApproval.toolCall.toolName,
+                  output: {
+                    type: 'execution-denied' as const,
+                    reason: toolApproval.approvalResponse.reason,
+                  },
+                })),
+              ],
+            });
+          } finally {
+            toolExecutionStepStreamController?.close();
+          }
+        }
+
+        recordedResponseMessages.push(...initialResponseMessages);
+
         async function streamStep({
           currentStep,
           responseMessages,
@@ -989,16 +1179,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           stepFinish = new DelayedPromise<void>();
 
-          const initialPrompt = await standardizePrompt({
-            system,
-            prompt,
-            messages,
-          });
-
-          const stepInputMessages = [
-            ...initialPrompt.messages,
-            ...responseMessages,
-          ];
+          const stepInputMessages = [...initialMessages, ...responseMessages];
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -1007,20 +1188,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
           });
 
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
               messages: prepareStepResult?.messages ?? stepInputMessages,
             },
-            supportedUrls: await model.supportedUrls,
+            supportedUrls: await stepModel.supportedUrls,
+            download,
           });
 
-          const stepModel = resolveLanguageModel(
-            prepareStepResult?.model ?? model,
-          );
-
           const { toolChoice: stepToolChoice, tools: stepTools } =
-            prepareToolsAndToolChoice({
+            await prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: prepareStepResult?.activeTools ?? activeTools,
@@ -1075,23 +1257,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               }),
               tracer,
               endWhenDone: false,
-              fn: async doStreamSpan => {
-                return {
-                  startTimestampMs: now(), // get before the call
-                  doStreamSpan,
-                  result: await stepModel.doStream({
-                    ...callSettings,
-                    tools: stepTools,
-                    toolChoice: stepToolChoice,
-                    responseFormat: output?.responseFormat,
-                    prompt: promptMessages,
-                    providerOptions,
-                    abortSignal,
-                    headers,
-                    includeRawChunks,
-                  }),
-                };
-              },
+              fn: async doStreamSpan => ({
+                startTimestampMs: now(), // get before the call
+                doStreamSpan,
+                result: await stepModel.doStream({
+                  ...callSettings,
+                  tools: stepTools,
+                  toolChoice: stepToolChoice,
+                  responseFormat: await output?.responseFormat,
+                  prompt: promptMessages,
+                  providerOptions,
+                  abortSignal,
+                  headers,
+                  includeRawChunks,
+                }),
+              }),
             }),
           );
 
@@ -1104,12 +1284,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             messages: stepInputMessages,
             repairToolCall,
             abortSignal,
+            experimental_context,
+            generateId,
           });
 
           const stepRequest = request ?? {};
-          const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
+          const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-          let warnings: LanguageModelV2CallWarning[] | undefined;
+          let warnings: LanguageModelV3CallWarning[] | undefined;
 
           const activeToolCallToolNames: Record<string, string> = {};
 
@@ -1166,6 +1348,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
+                    case 'tool-approval-request':
                     case 'text-start':
                     case 'text-end': {
                       controller.enqueue(chunk);
@@ -1175,7 +1358,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'text-delta': {
                       if (chunk.delta.length > 0) {
                         controller.enqueue({
-                          type: 'text',
+                          type: 'text-delta',
                           id: chunk.id,
                           text: chunk.delta,
                           providerMetadata: chunk.providerMetadata,
@@ -1193,7 +1376,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'reasoning-delta': {
                       controller.enqueue({
-                        type: 'reasoning',
+                        type: 'reasoning-delta',
                         id: chunk.id,
                         text: chunk.delta,
                         providerMetadata: chunk.providerMetadata,
@@ -1210,7 +1393,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'tool-result': {
                       controller.enqueue(chunk);
-                      stepToolOutputs.push(chunk);
+
+                      if (!chunk.preliminary) {
+                        stepToolOutputs.push(chunk);
+                      }
+
                       break;
                     }
 
@@ -1268,10 +1455,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
+                          experimental_context,
                         });
                       }
 
-                      controller.enqueue(chunk);
+                      controller.enqueue({
+                        ...chunk,
+                        dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
+                        title: tool?.title,
+                      });
                       break;
                     }
 
@@ -1291,6 +1483,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           toolCallId: chunk.id,
                           messages: stepInputMessages,
                           abortSignal,
+                          experimental_context,
                         });
                       }
 
@@ -1328,7 +1521,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   // record telemetry information first to ensure best effort timing
                   try {
                     doStreamSpan.setAttributes(
-                      selectTelemetryAttributes({
+                      await selectTelemetryAttributes({
                         telemetry,
                         attributes: {
                           'ai.response.finishReason': stepFinishReason,
@@ -1444,7 +1637,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         // add the initial stream to the stitchable stream
         await streamStep({
           currentStep: 0,
-          responseMessages: [],
+          responseMessages: initialResponseMessages,
           usage: {
             inputTokens: undefined,
             outputTokens: undefined,
@@ -1467,6 +1660,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get steps() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._steps.promise;
   }
 
@@ -1510,8 +1707,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.finalStep.then(step => step.toolCalls);
   }
 
+  get staticToolCalls() {
+    return this.finalStep.then(step => step.staticToolCalls);
+  }
+
+  get dynamicToolCalls() {
+    return this.finalStep.then(step => step.dynamicToolCalls);
+  }
+
   get toolResults() {
     return this.finalStep.then(step => step.toolResults);
+  }
+
+  get staticToolResults() {
+    return this.finalStep.then(step => step.staticToolResults);
+  }
+
+  get dynamicToolResults() {
+    return this.finalStep.then(step => step.dynamicToolResults);
   }
 
   get usage() {
@@ -1527,10 +1740,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   }
 
   get totalUsage() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._totalUsage.promise;
   }
 
   get finishReason() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
     return this._finishReason.promise;
   }
 
@@ -1551,9 +1772,12 @@ However, the LLM results are expected to be small enough to not cause issues.
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
-        new TransformStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
+        new TransformStream<
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+          string
+        >({
           transform({ part }, controller) {
-            if (part.type === 'text') {
+            if (part.type === 'text-delta') {
               controller.enqueue(part.text);
             }
           },
@@ -1566,7 +1790,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
-          EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
           TextStreamPart<TOOLS>
         >({
           transform({ part }, controller) {
@@ -1588,16 +1812,18 @@ However, the LLM results are expected to be small enough to not cause issues.
     }
   }
 
-  get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
-    if (this.output == null) {
-      throw new NoOutputSpecifiedError();
-    }
+  get experimental_partialOutputStream(): AsyncIterableStream<
+    InferPartialOutput<OUTPUT>
+  > {
+    return this.partialOutputStream;
+  }
 
+  get partialOutputStream(): AsyncIterableStream<InferPartialOutput<OUTPUT>> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
-          EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
-          PARTIAL_OUTPUT
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+          InferPartialOutput<OUTPUT>
         >({
           transform({ partialOutput }, controller) {
             if (partialOutput != null) {
@@ -1607,6 +1833,20 @@ However, the LLM results are expected to be small enough to not cause issues.
         }),
       ),
     );
+  }
+
+  get output(): Promise<InferCompleteOutput<OUTPUT>> {
+    return this.finalStep.then(step => {
+      const output = this.outputSpecification ?? text();
+      return output.parseCompleteOutput(
+        { text: step.text },
+        {
+          response: step.response,
+          usage: step.usage,
+          finishReason: step.finishReason,
+        },
+      );
+    });
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
@@ -1629,6 +1869,18 @@ However, the LLM results are expected to be small enough to not cause issues.
             responseMessageId: generateMessageId,
           })
         : undefined;
+
+    // TODO simplify once dynamic is no longer needed for invalid tool inputs
+    const isDynamic = (part: { toolName: string; dynamic?: boolean }) => {
+      const tool = this.tools?.[part.toolName];
+
+      // provider-executed, dynamic tools are not listed in the tools object
+      if (tool == null) {
+        return part.dynamic;
+      }
+
+      return tool?.type === 'dynamic' ? true : undefined;
+    };
 
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<
@@ -1654,7 +1906,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'text': {
+            case 'text-delta': {
               controller.enqueue({
                 type: 'text-delta',
                 id: part.id,
@@ -1688,7 +1940,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'reasoning': {
+            case 'reasoning-delta': {
               if (sendReasoning) {
                 controller.enqueue({
                   type: 'reasoning-delta',
@@ -1751,11 +2003,17 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-input-start': {
+              const dynamic = isDynamic(part);
+
               controller.enqueue({
                 type: 'tool-input-start',
                 toolCallId: part.id,
                 toolName: part.toolName,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(dynamic != null ? { dynamic } : {}),
+                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
@@ -1770,33 +2028,90 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-call': {
+              const dynamic = isDynamic(part);
+
+              if (part.invalid) {
+                controller.enqueue({
+                  type: 'tool-input-error',
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  input: part.input,
+                  ...(part.providerExecuted != null
+                    ? { providerExecuted: part.providerExecuted }
+                    : {}),
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(dynamic != null ? { dynamic } : {}),
+                  errorText: onError(part.error),
+                  ...(part.title != null ? { title: part.title } : {}),
+                });
+              } else {
+                controller.enqueue({
+                  type: 'tool-input-available',
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  input: part.input,
+                  ...(part.providerExecuted != null
+                    ? { providerExecuted: part.providerExecuted }
+                    : {}),
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(dynamic != null ? { dynamic } : {}),
+                  ...(part.title != null ? { title: part.title } : {}),
+                });
+              }
+
+              break;
+            }
+
+            case 'tool-approval-request': {
               controller.enqueue({
-                type: 'tool-input-available',
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                input: part.input,
-                providerExecuted: part.providerExecuted,
-                providerMetadata: part.providerMetadata,
+                type: 'tool-approval-request',
+                approvalId: part.approvalId,
+                toolCallId: part.toolCall.toolCallId,
               });
               break;
             }
 
             case 'tool-result': {
+              const dynamic = isDynamic(part);
+
               controller.enqueue({
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.output,
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.preliminary != null
+                  ? { preliminary: part.preliminary }
+                  : {}),
+                ...(dynamic != null ? { dynamic } : {}),
               });
               break;
             }
 
             case 'tool-error': {
+              const dynamic = isDynamic(part);
+
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
                 errorText: onError(part.error),
-                providerExecuted: part.providerExecuted,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(dynamic != null ? { dynamic } : {}),
+              });
+              break;
+            }
+
+            case 'tool-output-denied': {
+              controller.enqueue({
+                type: 'tool-output-denied',
+                toolCallId: part.toolCallId,
               });
               break;
             }
@@ -1838,6 +2153,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               if (sendFinish) {
                 controller.enqueue({
                   type: 'finish',
+                  finishReason: part.finishReason,
                   ...(messageMetadataValue != null
                     ? { messageMetadata: messageMetadataValue }
                     : {}),

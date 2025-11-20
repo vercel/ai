@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV3 } from 'ai/test';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = await generateText({
-    model: new MockLanguageModelV2({
+    model: new MockLanguageModelV3({
       doGenerate: async () => ({
         warnings: [],
         usage: {
@@ -61,7 +61,7 @@ async function main() {
         ].join('\n'),
       });
 
-      return { ...toolCall, args: JSON.stringify(repairedArgs) };
+      return { ...toolCall, input: JSON.stringify(repairedArgs) };
     },
   });
 

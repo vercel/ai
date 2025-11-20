@@ -91,9 +91,9 @@ export function smoothStream<TOOLS extends ToolSet>({
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        if (chunk.type !== 'text') {
+        if (chunk.type !== 'text-delta') {
           if (buffer.length > 0) {
-            controller.enqueue({ type: 'text', text: buffer, id });
+            controller.enqueue({ type: 'text-delta', text: buffer, id });
             buffer = '';
           }
 
@@ -102,7 +102,7 @@ export function smoothStream<TOOLS extends ToolSet>({
         }
 
         if (chunk.id !== id && buffer.length > 0) {
-          controller.enqueue({ type: 'text', text: buffer, id });
+          controller.enqueue({ type: 'text-delta', text: buffer, id });
           buffer = '';
         }
 
@@ -112,7 +112,7 @@ export function smoothStream<TOOLS extends ToolSet>({
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type: 'text', text: match, id });
+          controller.enqueue({ type: 'text-delta', text: match, id });
           buffer = buffer.slice(match.length);
 
           await delay(delayInMs);

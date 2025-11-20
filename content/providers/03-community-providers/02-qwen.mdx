@@ -5,13 +5,19 @@ description: Learn how to use the Qwen provider.
 
 # Qwen Provider
 
+<Note type="warning">
+  This community provider is not yet compatible with AI SDK 5. Please wait for
+  the provider to be updated or consider using an [AI SDK 5 compatible
+  provider](/providers/ai-sdk-providers).
+</Note>
+
 [younis-ahmed/qwen-ai-provider](https://github.com/younis-ahmed/qwen-ai-provider) is a community provider that uses [Qwen](https://www.alibabacloud.com/en/solutions/generative-ai/qwen) to provide language model support for the AI SDK.
 
 ## Setup
 
 The Qwen provider is available in the `qwen-ai-provider` module. You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add qwen-ai-provider" dark />
   </Tab>
@@ -20,6 +26,10 @@ The Qwen provider is available in the `qwen-ai-provider` module. You can install
   </Tab>
   <Tab>
     <Snippet text="yarn add qwen-ai-provider" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add qwen-ai-provider" dark />
   </Tab>
 </Tabs>
 

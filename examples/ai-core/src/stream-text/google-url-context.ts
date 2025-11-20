@@ -13,7 +13,7 @@ async function main() {
   });
 
   for await (const part of result.fullStream) {
-    if (part.type === 'text') {
+    if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }
 

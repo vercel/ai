@@ -1,5 +1,6 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { standardizePrompt } from './standardize-prompt';
+import { describe, it, expect } from 'vitest';
 
 describe('message prompt', () => {
   it('should throw InvalidPromptError when system message has parts', async () => {

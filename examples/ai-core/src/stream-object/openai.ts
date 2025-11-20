@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
@@ -23,7 +23,7 @@ async function main() {
 
   for await (const partialObject of result.partialObjectStream) {
     console.clear();
-    console.log(partialObject);
+    console.dir(partialObject, { depth: Infinity });
   }
 }
 

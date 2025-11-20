@@ -1,10 +1,11 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
   HttpChatTransportInitOptions,
 } from './http-chat-transport';
 import { UIMessage } from './ui-messages';
+import { describe, it, expect } from 'vitest';
 
 class MockHttpChatTransport extends HttpChatTransport<UIMessage> {
   constructor(options: HttpChatTransportInitOptions<UIMessage> = {}) {
@@ -37,7 +38,7 @@ describe('HttpChatTransport', () => {
       await transport.sendMessages({
         chatId: 'c123',
         messageId: 'm123',
-        trigger: 'submit-user-message',
+        trigger: 'submit-message',
         messages: [
           {
             id: 'm123',
@@ -65,7 +66,7 @@ describe('HttpChatTransport', () => {
             },
           ],
           "someData": true,
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
     });
@@ -84,7 +85,7 @@ describe('HttpChatTransport', () => {
       await transport.sendMessages({
         chatId: 'c123',
         messageId: 'm123',
-        trigger: 'submit-user-message',
+        trigger: 'submit-message',
         messages: [
           {
             id: 'm123',
@@ -112,7 +113,7 @@ describe('HttpChatTransport', () => {
             },
           ],
           "someData": true,
-          "trigger": "submit-user-message",
+          "trigger": "submit-message",
         }
       `);
     });
@@ -133,7 +134,7 @@ describe('HttpChatTransport', () => {
       await transport.sendMessages({
         chatId: 'c123',
         messageId: 'm123',
-        trigger: 'submit-user-message',
+        trigger: 'submit-message',
         messages: [
           {
             id: 'm123',
@@ -147,6 +148,7 @@ describe('HttpChatTransport', () => {
       expect(server.calls[0].requestHeaders['x-test-header']).toBe(
         'test-value',
       );
+      expect(server.calls[0].requestUserAgent).toContain('ai-sdk/');
     });
 
     it('should include headers in the request when a function is provided', async () => {
@@ -163,7 +165,7 @@ describe('HttpChatTransport', () => {
       await transport.sendMessages({
         chatId: 'c123',
         messageId: 'm123',
-        trigger: 'submit-user-message',
+        trigger: 'submit-message',
         messages: [
           {
             id: 'm123',
@@ -177,6 +179,7 @@ describe('HttpChatTransport', () => {
       expect(server.calls[0].requestHeaders['x-test-header']).toBe(
         'test-value-fn',
       );
+      expect(server.calls[0].requestUserAgent).toContain('ai-sdk/');
     });
   });
 });

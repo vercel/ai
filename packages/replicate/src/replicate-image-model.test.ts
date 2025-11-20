@@ -1,6 +1,11 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createReplicate } from './replicate-provider';
 import { ReplicateImageModel } from './replicate-image-model';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 const prompt = 'The Loch Ness monster getting a manicure';
 
@@ -127,6 +132,10 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
       prefer: 'wait',
     });
+
+    expect(server.calls[0].requestUserAgent).toContain(
+      `ai-sdk/replicate/0.0.0-test`,
+    );
   });
 
   it('should extract the generated image from array response', async () => {

@@ -1,6 +1,6 @@
-import { LanguageModelV2ToolResultOutput } from '@ai-sdk/provider';
-import { ProviderOptions } from './provider-options';
+import { JSONValue } from '@ai-sdk/provider';
 import { DataContent } from './data-content';
+import { ProviderOptions } from './provider-options';
 
 /**
 Text content part of a prompt. It contains a string of text.
@@ -156,7 +156,7 @@ Name of the tool that generated this result.
   /**
 Result of the tool call. This is a JSON-serializable object.
    */
-  output: LanguageModelV2ToolResultOutput;
+  output: ToolResultOutput;
 
   /**
 Additional provider-specific metadata. They are passed through
@@ -165,3 +165,215 @@ functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
 }
+
+/**
+ * Output of a tool result.
+ */
+export type ToolResultOutput =
+  | {
+      /**
+       * Text tool output that should be directly sent to the API.
+       */
+      type: 'text';
+      value: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: ProviderOptions;
+    }
+  | {
+      type: 'json';
+      value: JSONValue;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: ProviderOptions;
+    }
+  | {
+      /**
+       * Type when the user has denied the execution of the tool call.
+       */
+      type: 'execution-denied';
+
+      /**
+       * Optional reason for the execution denial.
+       */
+      reason?: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: ProviderOptions;
+    }
+  | {
+      type: 'error-text';
+      value: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: ProviderOptions;
+    }
+  | {
+      type: 'error-json';
+      value: JSONValue;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: ProviderOptions;
+    }
+  | {
+      type: 'content';
+      value: Array<
+        | {
+            type: 'text';
+
+            /**
+Text content.
+*/
+            text: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * @deprecated Use image-data or file-data instead.
+             */
+            type: 'media';
+            data: string;
+            mediaType: string;
+          }
+        | {
+            type: 'file-data';
+
+            /**
+Base-64 encoded media data.
+*/
+            data: string;
+
+            /**
+IANA media type.
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+*/
+            mediaType: string;
+
+            /**
+             * Optional filename of the file.
+             */
+            filename?: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            type: 'file-url';
+
+            /**
+             * URL of the file.
+             */
+            url: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            type: 'file-id';
+
+            /**
+             * ID of the file.
+             *
+             * If you use multiple providers, you need to
+             * specify the provider specific ids using
+             * the Record option. The key is the provider
+             * name, e.g. 'openai' or 'anthropic'.
+             */
+            fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using base64 encoded data.
+             */
+            type: 'image-data';
+
+            /**
+Base-64 encoded image data.
+*/
+            data: string;
+
+            /**
+IANA media type.
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+*/
+            mediaType: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using a URL.
+             */
+            type: 'image-url';
+
+            /**
+             * URL of the image.
+             */
+            url: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using a provider file id.
+             */
+            type: 'image-file-id';
+
+            /**
+             * Image that is referenced using a provider file id.
+             *
+             * If you use multiple providers, you need to
+             * specify the provider specific ids using
+             * the Record option. The key is the provider
+             * name, e.g. 'openai' or 'anthropic'.
+             */
+            fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * Custom content part. This can be used to implement
+             * provider-specific content parts.
+             */
+            type: 'custom';
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+      >;
+    };

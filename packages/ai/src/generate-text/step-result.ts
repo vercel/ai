@@ -11,8 +11,12 @@ import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './response-message';
-import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-output';
+import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import {
+  DynamicToolResult,
+  StaticToolResult,
+  TypedToolResult,
+} from './tool-result';
 import { ToolSet } from './tool-set';
 
 /**
@@ -52,12 +56,32 @@ The sources that were used to generate the text.
   /**
 The tool calls that were made during the generation.
 */
-  readonly toolCalls: ToolCallArray<TOOLS>;
+  readonly toolCalls: Array<TypedToolCall<TOOLS>>;
+
+  /**
+The static tool calls that were made in the last step.
+*/
+  readonly staticToolCalls: Array<StaticToolCall<TOOLS>>;
+
+  /**
+The dynamic tool calls that were made in the last step.
+*/
+  readonly dynamicToolCalls: Array<DynamicToolCall>;
 
   /**
 The results of the tool calls.
 */
-  readonly toolResults: ToolResultArray<TOOLS>;
+  readonly toolResults: Array<TypedToolResult<TOOLS>>;
+
+  /**
+The static tool results that were made in the last step.
+*/
+  readonly staticToolResults: Array<StaticToolResult<TOOLS>>;
+
+  /**
+The dynamic tool results that were made in the last step.
+*/
+  readonly dynamicToolResults: Array<DynamicToolResult>;
 
   /**
 The reason why the generation finished.
@@ -172,7 +196,34 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     return this.content.filter(part => part.type === 'tool-call');
   }
 
+  get staticToolCalls() {
+    return this.toolCalls.filter(
+      (toolCall): toolCall is StaticToolCall<TOOLS> =>
+        toolCall.dynamic !== true,
+    );
+  }
+
+  get dynamicToolCalls() {
+    return this.toolCalls.filter(
+      (toolCall): toolCall is DynamicToolCall => toolCall.dynamic === true,
+    );
+  }
+
   get toolResults() {
     return this.content.filter(part => part.type === 'tool-result');
+  }
+
+  get staticToolResults() {
+    return this.toolResults.filter(
+      (toolResult): toolResult is StaticToolResult<TOOLS> =>
+        toolResult.dynamic !== true,
+    );
+  }
+
+  get dynamicToolResults() {
+    return this.toolResults.filter(
+      (toolResult): toolResult is DynamicToolResult =>
+        toolResult.dynamic === true,
+    );
   }
 }

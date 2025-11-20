@@ -1,4 +1,5 @@
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -21,6 +22,66 @@ describe('system messages', () => {
     ).toThrow(
       'system messages are only supported at the beginning of the conversation',
     );
+  });
+});
+
+describe('thought signatures', () => {
+  it('should preserve thought signatures in assistant messages', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Regular text',
+            providerOptions: { google: { thoughtSignature: 'sig1' } },
+          },
+          {
+            type: 'reasoning',
+            text: 'Reasoning text',
+            providerOptions: { google: { thoughtSignature: 'sig2' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'test',
+            input: { value: 'test' },
+            providerOptions: { google: { thoughtSignature: 'sig3' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Regular text",
+                "thoughtSignature": "sig1",
+              },
+              {
+                "text": "Reasoning text",
+                "thought": true,
+                "thoughtSignature": "sig2",
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "value": "test",
+                  },
+                  "name": "test",
+                },
+                "thoughtSignature": "sig3",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
   });
 });
 
@@ -290,5 +351,158 @@ describe('assistant messages', () => {
         },
       ]),
     ).toThrow('File data URLs in assistant messages are not supported');
+  });
+
+  it('should convert tool result messages with content type (multipart with images)', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'text',
+                  text: 'Here is the generated image:',
+                },
+                {
+                  type: 'image-data',
+                  data: 'base64encodedimagedata',
+                  mediaType: 'image/jpeg',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                name: 'imageGenerator',
+                response: {
+                  name: 'imageGenerator',
+                  content: 'Here is the generated image:',
+                },
+              },
+            },
+            {
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: 'base64encodedimagedata',
+              },
+            },
+            {
+              text: 'Tool executed successfully and returned this image as a response',
+            },
+          ],
+        },
+      ],
+    });
+  });
+});
+
+describe('parallel tool calls', () => {
+  it('should include thought signature on functionCall when provided', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: { city: 'paris' },
+            providerOptions: { google: { thoughtSignature: 'sig_parallel' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call2',
+            toolName: 'checkweather',
+            input: { city: 'london' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        args: { city: 'paris' },
+        name: 'checkweather',
+      },
+      thoughtSignature: 'sig_parallel',
+    });
+
+    expect(result.contents[0].parts[1]).toEqual({
+      functionCall: {
+        args: { city: 'london' },
+        name: 'checkweather',
+      },
+      thoughtSignature: undefined,
+    });
+  });
+});
+
+describe('tool results with thought signatures', () => {
+  it('should include thought signature on functionCall but not on functionResponse', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'readdata',
+            input: { userId: '123' },
+            providerOptions: { google: { thoughtSignature: 'sig_original' } },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'readdata',
+            output: {
+              type: 'error-text',
+              value: 'file not found',
+            },
+            providerOptions: { google: { thoughtSignature: 'sig_original' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        args: { userId: '123' },
+        name: 'readdata',
+      },
+      thoughtSignature: 'sig_original',
+    });
+
+    expect(result.contents[1].parts[0]).toEqual({
+      functionResponse: {
+        name: 'readdata',
+        response: {
+          content: 'file not found',
+          name: 'readdata',
+        },
+      },
+    });
+
+    expect(result.contents[1].parts[0]).not.toHaveProperty('thoughtSignature');
   });
 });

@@ -9,7 +9,7 @@ async function main() {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: groq('moonshotai/kimi-k2-instruct'),
+    model: groq('moonshotai/kimi-k2-instruct-0905'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
@@ -24,7 +24,7 @@ async function main() {
 
   for await (const delta of result.fullStream) {
     switch (delta.type) {
-      case 'text': {
+      case 'text-delta': {
         fullResponse += delta.text;
         process.stdout.write(delta.text);
         break;
@@ -40,6 +40,10 @@ async function main() {
       }
 
       case 'tool-result': {
+        if (delta.dynamic) {
+          continue;
+        }
+
         const transformedDelta: ToolResultPart = {
           ...delta,
           output: { type: 'json', value: delta.output },

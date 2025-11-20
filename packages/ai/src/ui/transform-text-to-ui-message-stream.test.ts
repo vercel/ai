@@ -3,6 +3,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { transformTextToUiMessageStream } from './transform-text-to-ui-message-stream';
+import { describe, it, expect } from 'vitest';
 
 describe('transformTextToUiMessageStream', () => {
   it('should transform text stream into UI message stream with correct sequence', async () => {

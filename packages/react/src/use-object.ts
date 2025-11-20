@@ -1,26 +1,19 @@
 import {
   FetchFunction,
+  FlexibleSchema,
   InferSchema,
   isAbortError,
   safeValidateTypes,
 } from '@ai-sdk/provider-utils';
-import {
-  asSchema,
-  DeepPartial,
-  isDeepEqualData,
-  parsePartialJson,
-  Schema,
-} from 'ai';
+import { asSchema, DeepPartial, isDeepEqualData, parsePartialJson } from 'ai';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
 export type Experimental_UseObjectOptions<
-  SCHEMA extends z4.core.$ZodType | z3.Schema | Schema,
+  SCHEMA extends FlexibleSchema,
   RESULT,
 > = {
   /**
@@ -29,7 +22,7 @@ export type Experimental_UseObjectOptions<
   api: string;
 
   /**
-   * A Zod schema that defines the shape of the complete object.
+   * A schema that defines the shape of the complete object.
    */
   schema: SCHEMA;
 
@@ -110,10 +103,15 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
    * Abort the current request immediately, keep the current partial object if any.
    */
   stop: () => void;
+
+  /**
+   * Clear the object state.
+   */
+  clear: () => void;
 };
 
 function useObject<
-  SCHEMA extends z4.core.$ZodType | z3.Schema | Schema,
+  SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = any,
 >({
@@ -159,9 +157,9 @@ function useObject<
 
   const submit = async (input: INPUT) => {
     try {
-      mutate(undefined); // reset the data
+      clearObject();
+
       setIsLoading(true);
-      setError(undefined);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -239,12 +237,24 @@ function useObject<
     }
   };
 
+  const clear = () => {
+    stop();
+    clearObject();
+  };
+
+  const clearObject = () => {
+    setError(undefined);
+    setIsLoading(false);
+    mutate(undefined);
+  };
+
   return {
     submit,
     object: data,
     error,
     isLoading,
     stop,
+    clear,
   };
 }
 

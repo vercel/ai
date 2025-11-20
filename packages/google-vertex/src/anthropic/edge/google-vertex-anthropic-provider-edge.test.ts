@@ -2,6 +2,7 @@ import { resolve } from '@ai-sdk/provider-utils';
 import * as edgeAuth from '../../edge/google-vertex-auth-edge';
 import { createVertexAnthropic as createVertexAnthropicOriginal } from '../google-vertex-anthropic-provider';
 import { createVertexAnthropic as createVertexAnthropicEdge } from './google-vertex-anthropic-provider-edge';
+import { describe, beforeEach, expect, it, vi } from 'vitest';
 
 // Mock the imported modules
 vi.mock('../../edge/google-vertex-auth-edge', () => ({

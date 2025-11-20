@@ -4,70 +4,85 @@ import {
   OpenAIEmbeddingModel,
   OpenAIImageModel,
   OpenAIResponsesLanguageModel,
+  OpenAISpeechModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
 import {
-  EmbeddingModelV2,
-  LanguageModelV2,
-  ProviderV2,
-  ImageModelV2,
-  TranscriptionModelV2,
+  EmbeddingModelV3,
+  LanguageModelV3,
+  ProviderV3,
+  ImageModelV3,
+  SpeechModelV3,
+  TranscriptionModelV3,
 } from '@ai-sdk/provider';
-import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  loadApiKey,
+  loadSetting,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
+import { azureOpenaiTools } from './azure-openai-tools';
+import { VERSION } from './version';
 
-export interface AzureOpenAIProvider extends ProviderV2 {
-  (deploymentId: string): LanguageModelV2;
+export interface AzureOpenAIProvider extends ProviderV3 {
+  (deploymentId: string): LanguageModelV3;
+
+  /**
+  Creates an Azure OpenAI responses API model for text generation.
+   */
+  languageModel(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  languageModel(deploymentId: string): LanguageModelV2;
-
-  /**
-Creates an Azure OpenAI chat model for text generation.
-   */
-  chat(deploymentId: string): LanguageModelV2;
+  chat(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI responses API model for text generation.
    */
-  responses(deploymentId: string): LanguageModelV2;
+  responses(deploymentId: string): LanguageModelV3;
 
   /**
 Creates an Azure OpenAI completion model for text generation.
    */
-  completion(deploymentId: string): LanguageModelV2;
+  completion(deploymentId: string): LanguageModelV3;
 
   /**
-@deprecated Use `textEmbeddingModel` instead.
+@deprecated Use `textEmbedding` instead.
    */
-  embedding(deploymentId: string): EmbeddingModelV2<string>;
-
-  /**
-   * Creates an Azure OpenAI DALL-E model for image generation.
-   * @deprecated Use `imageModel` instead.
-   */
-  image(deploymentId: string): ImageModelV2;
+  embedding(deploymentId: string): EmbeddingModelV3<string>;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  imageModel(deploymentId: string): ImageModelV2;
+  image(deploymentId: string): ImageModelV3;
 
   /**
-@deprecated Use `textEmbeddingModel` instead.
+   * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  textEmbedding(deploymentId: string): EmbeddingModelV2<string>;
+  imageModel(deploymentId: string): ImageModelV3;
+
+  textEmbedding(deploymentId: string): EmbeddingModelV3<string>;
 
   /**
 Creates an Azure OpenAI model for text embeddings.
    */
-  textEmbeddingModel(deploymentId: string): EmbeddingModelV2<string>;
+  textEmbeddingModel(deploymentId: string): EmbeddingModelV3<string>;
 
   /**
    * Creates an Azure OpenAI model for audio transcription.
    */
-  transcription(deploymentId: string): TranscriptionModelV2;
+  transcription(deploymentId: string): TranscriptionModelV3;
+
+  /**
+   * Creates an Azure OpenAI model for speech generation.
+   */
+  speech(deploymentId: string): SpeechModelV3;
+
+  /**
+   * AzureOpenAI-specific tools.
+   */
+  tools: typeof azureOpenaiTools;
 }
 
 export interface AzureOpenAIProviderSettings {
@@ -106,6 +121,13 @@ or to provide a custom fetch implementation for e.g. testing.
 Custom api version to use. Defaults to `preview`.
     */
   apiVersion?: string;
+
+  /**
+Use deployment-based URLs for specific model types. Set to true to use legacy deployment format:
+`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of
+`{baseURL}/v1{path}?api-version={apiVersion}`.
+   */
+  useDeploymentBasedUrls?: boolean;
 }
 
 /**
@@ -114,14 +136,17 @@ Create an Azure OpenAI provider instance.
 export function createAzure(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
-  const getHeaders = () => ({
-    'api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'AZURE_API_KEY',
-      description: 'Azure OpenAI',
-    }),
-    ...options.headers,
-  });
+  const getHeaders = () => {
+    const baseHeaders = {
+      'api-key': loadApiKey({
+        apiKey: options.apiKey,
+        environmentVariableName: 'AZURE_API_KEY',
+        description: 'Azure OpenAI',
+      }),
+      ...options.headers,
+    };
+    return withUserAgentSuffix(baseHeaders, `ai-sdk/azure/${VERSION}`);
+  };
 
   const getResourceName = () =>
     loadSetting({
@@ -131,13 +156,21 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion ?? 'preview';
+  const apiVersion = options.apiVersion ?? 'v1';
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
     const baseUrlPrefix =
       options.baseURL ?? `https://${getResourceName()}.openai.azure.com/openai`;
-    // Use v1 API format - no deployment ID in URL
-    const fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
+
+    let fullUrl: URL;
+    if (options.useDeploymentBasedUrls) {
+      // Use deployment-based format for compatibility with certain Azure OpenAI models
+      fullUrl = new URL(`${baseUrlPrefix}/deployments/${modelId}${path}`);
+    } else {
+      // Use v1 API format - no deployment ID in URL
+      fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
+    }
+
     fullUrl.searchParams.set('api-version', apiVersion);
     return fullUrl.toString();
   };
@@ -172,6 +205,7 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch: options.fetch,
+      fileIdPrefixes: ['assistant-'],
     });
 
   const createImageModel = (modelId: string) =>
@@ -190,6 +224,14 @@ export function createAzure(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: string) =>
+    new OpenAISpeechModel(modelId, {
+      provider: 'azure.speech',
+      url,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (deploymentId: string) {
     if (new.target) {
       throw new Error(
@@ -197,10 +239,11 @@ export function createAzure(
       );
     }
 
-    return createChatModel(deploymentId);
+    return createResponsesModel(deploymentId);
   };
 
-  provider.languageModel = createChatModel;
+  provider.specificationVersion = 'v3' as const;
+  provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
@@ -210,6 +253,8 @@ export function createAzure(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
+  provider.speech = createSpeechModel;
+  provider.tools = azureOpenaiTools;
   return provider;
 }
 

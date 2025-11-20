@@ -5,11 +5,6 @@ description: Convert useChat messages to ModelMessages for AI functions (API Ref
 
 # `convertToModelMessages()`
 
-<Note title="warning">
-  The `convertToModelMessages` function is no longer required. The AI SDK now
-  automatically converts the incoming messages to the `ModelMessage` format.
-</Note>
-
 The `convertToModelMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `ModelMessage` objects. These `ModelMessage` objects are compatible with AI core functions like `streamText`.
 
 ```ts filename="app/api/chat/route.ts"
@@ -46,9 +41,9 @@ export async function POST(req: Request) {
     },
     {
       name: 'options',
-      type: '{ tools?: ToolSet }',
+      type: '{ tools?: ToolSet, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | null }',
       description:
-        'Optional configuration object. Provide tools to enable multi-modal tool responses.',
+        'Optional configuration object. Provide tools to enable multi-modal tool responses, and convertDataPart to transform custom data parts into model-compatible content.',
     },
   ]}
 />
@@ -78,7 +73,7 @@ import { z } from 'zod';
 const screenshotTool = tool({
   parameters: z.object({}),
   execute: async () => 'imgbase64',
-  experimental_toToolResultContent: result => [{ type: 'image', data: result }],
+  toModelOutput: result => [{ type: 'image', data: result }],
 });
 
 const result = streamText({
@@ -91,4 +86,145 @@ const result = streamText({
 });
 ```
 
-Tools can implement the optional `experimental_toToolResultContent` method to transform their results into multi-modal content. The content is an array of content parts, where each part has a `type` (e.g., 'text', 'image') and corresponding data.
+Tools can implement the optional `toModelOutput` method to transform their results into multi-modal content. The content is an array of content parts, where each part has a `type` (e.g., 'text', 'image') and corresponding data.
+
+## Custom Data Part Conversion
+
+The `convertToModelMessages` function supports converting custom data parts attached to user messages. This is useful when users need to include additional context (URLs, code files, JSON configs) with their messages.
+
+### Basic Usage
+
+By default, data parts in user messages are filtered out during conversion. To include them, provide a `convertDataPart` callback that transforms data parts into text or file parts that the model can understand:
+
+```ts filename="app/api/chat/route.ts"
+import { openai } from '@ai-sdk/openai';
+import { convertToModelMessages, streamText } from 'ai';
+
+type CustomUIMessage = UIMessage<
+  never,
+  {
+    url: { url: string; title: string; content: string };
+    'code-file': { filename: string; code: string; language: string };
+  }
+>;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    messages: convertToModelMessages<CustomUIMessage>(messages, {
+      convertDataPart: part => {
+        // Convert URL attachments to text
+        if (part.type === 'data-url') {
+          return {
+            type: 'text',
+            text: `[Reference: ${part.data.title}](${part.data.url})\n\n${part.data.content}`,
+          };
+        }
+
+        // Convert code file attachments
+        if (part.type === 'data-code-file') {
+          return {
+            type: 'text',
+            text: `\`\`\`${part.data.language}\n// ${part.data.filename}\n${part.data.code}\n\`\`\``,
+          };
+        }
+
+        // Other data parts are ignored
+      },
+    }),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+### Use Cases
+
+**Attaching URL Content**
+Allow users to attach URLs to their messages, with the content fetched and formatted for the model:
+
+```ts
+// Client side
+sendMessage({
+  parts: [
+    { type: 'text', text: 'Analyze this article' },
+    {
+      type: 'data-url',
+      data: {
+        url: 'https://example.com/article',
+        title: 'Important Article',
+        content: '...',
+      },
+    },
+  ],
+});
+```
+
+**Including Code Files as Context**
+Let users reference code files in their conversations:
+
+```ts
+convertDataPart: part => {
+  if (part.type === 'data-code-file') {
+    return {
+      type: 'text',
+      text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
+    };
+  }
+};
+```
+
+**Selective Inclusion**
+Only data parts for which you return a text or file model message part are included,
+all other data parts are ignored.
+
+```ts
+const result = convertToModelMessages<
+  UIMessage<
+    unknown,
+    {
+      url: { url: string; title: string };
+      code: { code: string; language: string };
+      note: { text: string };
+    }
+  >
+>(messages, {
+  convertDataPart: part => {
+    if (part.type === 'data-url') {
+      return {
+        type: 'text',
+        text: `[${part.data.title}](${part.data.url})`,
+      };
+    }
+
+    // data-code and data-node are ignored
+  },
+});
+```
+
+### Type Safety
+
+The generic parameter ensures full type safety for your custom data parts:
+
+```ts
+type MyUIMessage = UIMessage<
+  unknown,
+  {
+    url: { url: string; content: string };
+    config: { key: string; value: string };
+  }
+>;
+
+// TypeScript knows the exact shape of part.data
+convertToModelMessages<MyUIMessage>(messages, {
+  convertDataPart: part => {
+    if (part.type === 'data-url') {
+      // part.data is typed as { url: string; content: string }
+      return { type: 'text', text: part.data.url };
+    }
+    return null;
+  },
+});
+```

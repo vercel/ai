@@ -6,6 +6,7 @@ import { join } from 'path';
 vi.mock('fs', () => ({
   existsSync: vi.fn(),
   readFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
 }));
 
 vi.mock('path', () => ({

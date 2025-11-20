@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "3.0.0-beta.5",
+  "version": "4.0.0-beta.33",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -9,12 +9,13 @@
   "files": [
     "dist/**/*",
     "CHANGELOG.md",
+    "README.md",
     "test.d.ts"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -41,19 +42,36 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.0.0",
-    "zod-to-json-schema": "^3.24.1",
-    "eventsource-parser": "^3.0.3"
+    "eventsource-parser": "^3.0.6"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
+    "@valibot/to-json-schema": "^1.3.0",
     "@vercel/ai-tsconfig": "workspace:*",
+    "arktype": "^2.1.22",
+    "effect": "^3.18.4",
     "msw": "2.7.0",
     "tsup": "^8",
     "typescript": "5.8.3",
+    "valibot": "1.1.0",
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "zod": "^3.25.76 || ^4"
+    "arktype": "^2.1.22",
+    "effect": "^3.18.4",
+    "zod": "^3.25.76 || ^4.1.8",
+    "@valibot/to-json-schema": "^1.3.0"
+  },
+  "peerDependenciesMeta": {
+    "arktype": {
+      "optional": true
+    },
+    "effect": {
+      "optional": true
+    },
+    "@valibot/to-json-schema": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=18"

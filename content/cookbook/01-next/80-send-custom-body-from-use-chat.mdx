@@ -6,14 +6,20 @@ tags: ['next', 'chat']
 
 # Send Custom Body from useChat
 
+<Note>
+  If you are looking to send custom values alongside each message, check out the
+  [chatbot request configuration
+  documentation](https://ai-sdk.dev/docs/ai-sdk-ui/chatbot#request-configuration).
+</Note>
+
 By default, `useChat` sends all messages as well as information from the request to the server.
-However, it is often desirable to control the body content that is sent to the server, e.g. to:
+However, it is often desirable to control the entire body content that is sent to the server, e.g. to:
 
 - only send the last message
 - send additional data along with the message
 - change the structure of the request body
 
-The `prepareSendMessagesRequest` option allows you to customize the body content that is sent to the server.
+The `prepareSendMessagesRequest` option allows you to customize the entire body content that is sent to the server.
 The function receives the message list, the request data, and the request body from the append call.
 It should return the body content that will be sent to the server.
 

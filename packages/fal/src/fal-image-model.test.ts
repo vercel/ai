@@ -1,5 +1,5 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { FalImageModel } from './fal-image-model';
 
@@ -15,8 +15,8 @@ function createBasicModel({
   currentDate?: () => Date;
   settings?: any;
 } = {}) {
-  return new FalImageModel('stable-diffusion-xl', {
-    provider: 'fal',
+  return new FalImageModel('fal-ai/qwen-image', {
+    provider: 'fal.image',
     baseURL: 'https://api.example.com',
     headers: headers ?? { 'api-key': 'test-key' },
     fetch,
@@ -28,7 +28,7 @@ function createBasicModel({
 
 describe('FalImageModel', () => {
   const server = createTestServer({
-    'https://api.example.com/stable-diffusion-xl': {
+    'https://api.example.com/fal-ai/qwen-image': {
       response: {
         type: 'json-value',
         body: {
@@ -71,6 +71,81 @@ describe('FalImageModel', () => {
         num_images: 1,
         additional_param: 'value',
       });
+    });
+
+    it('should convert camelCase provider options to snake_case for API', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            imageUrl: 'https://example.com/image.png',
+            guidanceScale: 7.5,
+            numInferenceSteps: 50,
+            enableSafetyChecker: false,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        num_images: 1,
+        image_url: 'https://example.com/image.png',
+        guidance_scale: 7.5,
+        num_inference_steps: 50,
+        enable_safety_checker: false,
+      });
+
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('should accept deprecated snake_case provider options with warning', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            image_url: 'https://example.com/image.png',
+            guidance_scale: 7.5,
+            num_inference_steps: 50,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        num_images: 1,
+        image_url: 'https://example.com/image.png',
+        guidance_scale: 7.5,
+        num_inference_steps: 50,
+      });
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatchObject({
+        type: 'other',
+        message: expect.stringContaining('deprecated snake_case'),
+      });
+
+      const warning = result.warnings[0];
+      if (warning.type === 'other') {
+        expect(warning.message).toContain("'image_url' (use 'imageUrl')");
+        expect(warning.message).toContain(
+          "'guidance_scale' (use 'guidanceScale')",
+        );
+        expect(warning.message).toContain(
+          "'num_inference_steps' (use 'numInferenceSteps')",
+        );
+      }
     });
 
     it('should convert aspect ratio to size', async () => {
@@ -119,7 +194,7 @@ describe('FalImageModel', () => {
     });
 
     it('should handle API errors', async () => {
-      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
         type: 'error',
         status: 400,
         body: JSON.stringify({
@@ -146,7 +221,7 @@ describe('FalImageModel', () => {
       ).rejects.toMatchObject({
         message: 'prompt: Invalid prompt',
         statusCode: 400,
-        url: 'https://api.example.com/stable-diffusion-xl',
+        url: 'https://api.example.com/fal-ai/qwen-image',
       });
     });
 
@@ -168,7 +243,7 @@ describe('FalImageModel', () => {
 
         expect(result.response).toStrictEqual({
           timestamp: testDate,
-          modelId: 'stable-diffusion-xl',
+          modelId: 'fal-ai/qwen-image',
           headers: expect.any(Object),
         });
       });
@@ -196,7 +271,7 @@ describe('FalImageModel', () => {
             file_size: 456,
           },
         };
-        server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+        server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
           type: 'json-value',
           body: {
             images: [
@@ -260,7 +335,7 @@ describe('FalImageModel', () => {
           num_inference_steps: 456,
           nsfw_content_detected: [false],
         };
-        server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+        server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
           type: 'json-value',
           body: {
             images: [
@@ -303,16 +378,16 @@ describe('FalImageModel', () => {
     it('should expose correct provider and model information', () => {
       const model = createBasicModel();
 
-      expect(model.provider).toBe('fal');
-      expect(model.modelId).toBe('stable-diffusion-xl');
-      expect(model.specificationVersion).toBe('v2');
+      expect(model.provider).toBe('fal.image');
+      expect(model.modelId).toBe('fal-ai/qwen-image');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });
 
   describe('response schema validation', () => {
     it('should parse single image response', async () => {
-      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
         type: 'json-value',
         body: {
           image: {
@@ -339,7 +414,7 @@ describe('FalImageModel', () => {
     });
 
     it('should parse multiple images response', async () => {
-      server.urls['https://api.example.com/stable-diffusion-xl'].response = {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
         type: 'json-value',
         body: {
           images: [
@@ -372,6 +447,149 @@ describe('FalImageModel', () => {
       expect(result.images).toHaveLength(2);
       expect(result.images[0]).toBeInstanceOf(Uint8Array);
       expect(result.images[1]).toBeInstanceOf(Uint8Array);
+    });
+
+    it('should handle null file_name and file_size values', async () => {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
+        type: 'json-value',
+        body: {
+          images: [
+            {
+              url: 'https://api.example.com/image.png',
+              content_type: 'image/png',
+              file_name: null,
+              file_size: null,
+              width: 944,
+              height: 1104,
+            },
+          ],
+          timings: { inference: 5.875932216644287 },
+          seed: 328395684,
+          has_nsfw_concepts: [false],
+          prompt:
+            'A female model holding this book, keeping the book unchanged.',
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      expect(result.providerMetadata?.fal).toMatchObject({
+        images: [
+          {
+            width: 944,
+            height: 1104,
+            contentType: 'image/png',
+            fileName: null,
+            fileSize: null,
+            nsfw: false,
+          },
+        ],
+        timings: { inference: 5.875932216644287 },
+        seed: 328395684,
+      });
+    });
+
+    it('should handle empty timings object', async () => {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
+        type: 'json-value',
+        body: {
+          images: [
+            {
+              url: 'https://api.example.com/image.png',
+              content_type: 'image/png',
+              file_name: null,
+              file_size: null,
+              width: 880,
+              height: 1184,
+            },
+          ],
+          timings: {},
+          seed: 235205040,
+          has_nsfw_concepts: [false],
+          prompt: 'Change the plates to colorful ones',
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      expect(result.providerMetadata?.fal).toMatchObject({
+        images: [
+          {
+            width: 880,
+            height: 1184,
+            contentType: 'image/png',
+            fileName: null,
+            fileSize: null,
+            nsfw: false,
+          },
+        ],
+        timings: {},
+        seed: 235205040,
+      });
+    });
+
+    it('should handle null width and height values with images array only', async () => {
+      server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
+        type: 'json-value',
+        body: {
+          images: [
+            {
+              url: 'https://api.example.com/image.png',
+              content_type: 'image/png',
+              file_name: 'output.png',
+              file_size: 663399,
+              width: null,
+              height: null,
+            },
+          ],
+          description: 'here is an image with null width and height',
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        providerOptions: {},
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      expect(result.providerMetadata?.fal).toMatchObject({
+        images: [
+          {
+            width: null,
+            height: null,
+            contentType: 'image/png',
+            fileName: 'output.png',
+            fileSize: 663399,
+          },
+        ],
+        description: 'here is an image with null width and height',
+      });
     });
   });
 });

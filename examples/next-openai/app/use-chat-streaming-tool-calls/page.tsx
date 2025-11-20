@@ -1,25 +1,34 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import ChatInput from '@component/chat-input';
-import { DefaultChatTransport } from 'ai';
+import ChatInput from '@/components/chat-input';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
 import { StreamingToolCallsMessage } from '../api/use-chat-streaming-tool-calls/route';
 
 export default function Chat() {
-  const { messages, status, sendMessage } = useChat<StreamingToolCallsMessage>({
-    transport: new DefaultChatTransport({
-      api: '/api/use-chat-streaming-tool-calls',
-    }),
-    maxSteps: 5,
+  const { messages, status, sendMessage, addToolOutput } =
+    useChat<StreamingToolCallsMessage>({
+      transport: new DefaultChatTransport({
+        api: '/api/use-chat-streaming-tool-calls',
+      }),
 
-    // run client-side tools that are automatically executed:
-    async onToolCall({ toolCall }) {
-      if (toolCall.toolName === 'showWeatherInformation') {
-        // display tool. add tool result that informs the llm that the tool was executed.
-        return 'Weather information was shown to the user.';
-      }
-    },
-  });
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+
+      // run client-side tools that are automatically executed:
+      async onToolCall({ toolCall }) {
+        if (toolCall.toolName === 'showWeatherInformation') {
+          // display tool. add tool result that informs the llm that the tool was executed.
+          addToolOutput({
+            tool: 'showWeatherInformation',
+            toolCallId: toolCall.toolCallId,
+            output: 'Weather information was shown to the user.',
+          });
+        }
+      },
+    });
 
   // used to only render the role when it changes:
   let lastRole: string | undefined = undefined;

@@ -5,6 +5,12 @@ description: Learn how to use LangDB with the AI SDK
 
 # LangDB
 
+<Note type="warning">
+  This community provider is not yet compatible with AI SDK 5. Please wait for
+  the provider to be updated or consider using an [AI SDK 5 compatible
+  provider](/providers/ai-sdk-providers).
+</Note>
+
 [LangDB](https://langdb.ai) is a high-performance enterprise AI gateway built in Rust, designed to govern, secure, and optimize AI traffic.
 
 LangDB provides OpenAI-compatible APIs, enabling developers to connect with multiple LLMs by changing just two lines of code. With LangDB, you can:
@@ -18,7 +24,7 @@ LangDB provides OpenAI-compatible APIs, enabling developers to connect with mult
 
 The LangDB provider is available via the `@langdb/vercel-provider` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @langdb/vercel-provider" dark />
   </Tab>
@@ -27,6 +33,10 @@ The LangDB provider is available via the `@langdb/vercel-provider` module. You c
   </Tab>
   <Tab>
     <Snippet text="yarn add @langdb/vercel-provider" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @langdb/vercel-provider" dark />
   </Tab>
 </Tabs>
 

@@ -17,6 +17,12 @@ export interface GenerateObjectResult<OBJECT> {
   readonly object: OBJECT;
 
   /**
+   * The reasoning that was used to generate the object.
+   * Concatenated from all reasoning parts.
+   */
+  readonly reasoning: string | undefined;
+
+  /**
   The reason why the generation finished.
      */
   readonly finishReason: FinishReason;

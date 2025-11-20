@@ -77,7 +77,7 @@ To handle the chat requests and model responses, set up an API route:
 
 ```ts filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
+import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
 
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
     model: openai('gpt-4o'),
     system: 'You are a friendly assistant!',
     messages: convertToModelMessages(messages),
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
 
   return result.toUIMessageStreamResponse();
@@ -129,7 +129,7 @@ Update the API route to include the tool you've defined:
 
 ```ts filename="app/api/chat/route.ts" highlight="3,8,14"
 import { openai } from '@ai-sdk/openai';
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
+import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
 import { tools } from '@/ai/tools';
 
 export async function POST(request: Request) {
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     model: openai('gpt-4o'),
     system: 'You are a friendly assistant!',
     messages: convertToModelMessages(messages),
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     tools,
   });
 

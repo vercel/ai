@@ -1,5 +1,6 @@
 import { cleanup, render } from '@testing-library/react';
 import { SWRConfig } from 'swr';
+import { beforeEach, afterEach, vi } from 'vitest';
 
 export const setupTestComponent = (
   TestComponent: React.ComponentType<any>,

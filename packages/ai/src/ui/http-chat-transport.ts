@@ -1,7 +1,15 @@
-import { FetchFunction, Resolvable, resolve } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  Resolvable,
+  normalizeHeaders,
+  resolve,
+  withUserAgentSuffix,
+  getRuntimeEnvironmentUserAgent,
+} from '@ai-sdk/provider-utils';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
+import { VERSION } from '../version';
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
@@ -13,10 +21,7 @@ export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
     headers: HeadersInit | undefined;
     api: string;
   } & {
-    trigger:
-      | 'submit-user-message'
-      | 'submit-tool-result'
-      | 'regenerate-assistant-message';
+    trigger: 'submit-message' | 'regenerate-message';
     messageId: string | undefined;
   },
 ) =>
@@ -156,12 +161,17 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const resolvedHeaders = await resolve(this.headers);
     const resolvedCredentials = await resolve(this.credentials);
 
+    const baseHeaders = {
+      ...normalizeHeaders(resolvedHeaders),
+      ...normalizeHeaders(options.headers),
+    };
+
     const preparedRequest = await this.prepareSendMessagesRequest?.({
       api: this.api,
       id: options.chatId,
       messages: options.messages,
       body: { ...resolvedBody, ...options.body },
-      headers: { ...resolvedHeaders, ...options.headers },
+      headers: baseHeaders,
       credentials: resolvedCredentials,
       requestMetadata: options.metadata,
       trigger: options.trigger,
@@ -171,8 +181,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const api = preparedRequest?.api ?? this.api;
     const headers =
       preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...resolvedHeaders, ...options.headers };
+        ? normalizeHeaders(preparedRequest.headers)
+        : baseHeaders;
     const body =
       preparedRequest?.body !== undefined
         ? preparedRequest.body
@@ -191,10 +201,14 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
+      headers: withUserAgentSuffix(
+        {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       body: JSON.stringify(body),
       credentials,
       signal: abortSignal,
@@ -220,11 +234,16 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const resolvedHeaders = await resolve(this.headers);
     const resolvedCredentials = await resolve(this.credentials);
 
+    const baseHeaders = {
+      ...normalizeHeaders(resolvedHeaders),
+      ...normalizeHeaders(options.headers),
+    };
+
     const preparedRequest = await this.prepareReconnectToStreamRequest?.({
       api: this.api,
       id: options.chatId,
       body: { ...resolvedBody, ...options.body },
-      headers: { ...resolvedHeaders, ...options.headers },
+      headers: baseHeaders,
       credentials: resolvedCredentials,
       requestMetadata: options.metadata,
     });
@@ -232,8 +251,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
     const headers =
       preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...resolvedHeaders, ...options.headers };
+        ? normalizeHeaders(preparedRequest.headers)
+        : baseHeaders;
     const credentials = preparedRequest?.credentials ?? resolvedCredentials;
 
     // avoid caching globalThis.fetch in case it is patched by other libraries
@@ -241,7 +260,11 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'GET',
-      headers,
+      headers: withUserAgentSuffix(
+        headers,
+        `ai-sdk/${VERSION}`,
+        getRuntimeEnvironmentUserAgent(),
+      ),
       credentials,
     });
 

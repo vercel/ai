@@ -6,6 +6,7 @@ import { UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamWriter } from './ui-message-stream-writer';
 import { consumeStream } from '../util/consume-stream';
 import { UIMessage } from '../ui/ui-messages';
+import { describe, it, expect } from 'vitest';
 
 describe('createUIMessageStream', () => {
   it('should send data stream part and close the stream', async () => {
@@ -396,6 +397,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": undefined,
           "isAborted": false,
           "isContinuation": false,
           "messages": [
@@ -462,6 +464,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": undefined,
           "isAborted": false,
           "isContinuation": true,
           "messages": [
@@ -543,6 +546,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": undefined,
           "isAborted": false,
           "isContinuation": false,
           "messages": [
@@ -602,6 +606,7 @@ describe('createUIMessageStream', () => {
     expect(recordedOptions).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": undefined,
           "isAborted": false,
           "isContinuation": false,
           "messages": [

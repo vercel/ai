@@ -13,14 +13,16 @@ However, LangChain does not provide a way to easily build UIs or a standard way 
 
 Here is a basic example that uses both the AI SDK and LangChain together with the [Next.js](https://nextjs.org/docs) App Router.
 
-The [`@ai-sdk/langchain` package](/docs/reference/stream-helpers/langchain-adapter) uses the result from [LangChain ExpressionLanguage streaming](https://js.langchain.com/docs/expression_language/streaming) to pipe text to the client.
+The [`@ai-sdk/langchain` package](/docs/reference/stream-helpers/langchain-adapter) uses the result from [LangChain ExpressionLanguage streaming](https://js.langchain.com/docs/how_to/streaming) to pipe text to the client.
 `toDataStreamResponse()` is compatible with the LangChain Expression Language `.stream()` function response.
 
 ```tsx filename="app/api/completion/route.ts" highlight={"16"}
+import { toUIMessageStream } from '@ai-sdk/langchain';
 import { ChatOpenAI } from '@langchain/openai';
-import { toDataStreamResponse } from '@ai-sdk/langchain';
+import { createUIMessageStreamResponse } from 'ai';
 
-export const maxDuration = 60;
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
@@ -32,7 +34,9 @@ export async function POST(req: Request) {
 
   const stream = await model.stream(prompt);
 
-  return toDataStreamResponse(stream);
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream(stream),
+  });
 }
 ```
 

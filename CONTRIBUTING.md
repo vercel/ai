@@ -92,3 +92,7 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 8. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
 
 Thank you for contributing to the AI SDK! Your efforts help us improve the project for everyone.
+
+## Learn More
+
+We have additional contributor documentation in the `contributing/` folder.

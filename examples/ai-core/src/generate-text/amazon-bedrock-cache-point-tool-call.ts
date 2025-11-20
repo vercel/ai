@@ -1,6 +1,6 @@
 import { generateText, tool } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 
 const weatherTool = tool({
@@ -140,6 +140,10 @@ async function main() {
 
   // typed tool calls:
   for (const toolCall of result.toolCalls) {
+    if (toolCall.dynamic) {
+      continue;
+    }
+
     switch (toolCall.toolName) {
       case 'weather': {
         toolCall.input.location; // string
@@ -150,6 +154,10 @@ async function main() {
 
   // typed tool results for tools with execute method:
   for (const toolResult of result.toolResults) {
+    if (toolResult.dynamic) {
+      continue;
+    }
+
     switch (toolResult.toolName) {
       case 'weather': {
         toolResult.input.location; // string

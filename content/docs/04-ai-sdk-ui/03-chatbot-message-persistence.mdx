@@ -55,18 +55,7 @@ function getChatFile(id: string): string {
 
 ## Loading an existing chat
 
-When the user navigates to the chat page with a chat ID, we need to load the chat messages and display them.
-
-```tsx filename="app/chat/[id]/page.tsx"
-import { loadChat } from '@util/chat-store';
-import Chat from '@ui/chat';
-
-export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params; // get the chat ID from the URL
-  const messages = await loadChat(id); // load the chat messages
-  return <Chat id={id} initialMessages={messages} />; // display the chat
-}
-```
+When the user navigates to the chat page with a chat ID, we need to load the chat messages from storage.
 
 The `loadChat` function in our file-based chat store is implemented as follows:
 
@@ -81,8 +70,134 @@ export async function loadChat(id: string): Promise<UIMessage[]> {
 // ... rest of the file
 ```
 
-The display component is a simple chat component that uses the `useChat` hook to
-send and receive messages:
+## Validating messages on the server
+
+When processing messages on the server that contain tool calls, custom metadata, or data parts, you should validate them using `validateUIMessages` before sending them to the model.
+
+### Validation with tools
+
+When your messages include tool calls, validate them against your tool definitions:
+
+```tsx filename="app/api/chat/route.ts" highlight="7-25,32-37"
+import {
+  convertToModelMessages,
+  streamText,
+  UIMessage,
+  validateUIMessages,
+  tool,
+} from 'ai';
+import { z } from 'zod';
+import { loadChat, saveChat } from '@util/chat-store';
+import { openai } from '@ai-sdk/openai';
+import { dataPartsSchema, metadataSchema } from '@util/schemas';
+
+// Define your tools
+const tools = {
+  weather: tool({
+    description: 'Get weather information',
+    parameters: z.object({
+      location: z.string(),
+      units: z.enum(['celsius', 'fahrenheit']),
+    }),
+    execute: async ({ location, units }) => {
+      /* tool implementation */
+    },
+  }),
+  // other tools
+};
+
+export async function POST(req: Request) {
+  const { message, id } = await req.json();
+
+  // Load previous messages from database
+  const previousMessages = await loadChat(id);
+
+  // Append new message to previousMessages messages
+  const messages = [...previousMessages, message];
+
+  // Validate loaded messages against
+  // tools, data parts schema, and metadata schema
+  const validatedMessages = await validateUIMessages({
+    messages,
+    tools, // Ensures tool calls in messages match current schemas
+    dataPartsSchema,
+    metadataSchema,
+  });
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    messages: convertToModelMessages(validatedMessages),
+    tools,
+  });
+
+  return result.toUIMessageStreamResponse({
+    originalMessages: messages,
+    onFinish: ({ messages }) => {
+      saveChat({ chatId: id, messages });
+    },
+  });
+}
+```
+
+### Handling validation errors
+
+Handle validation errors gracefully when messages from the database don't match current schemas:
+
+```tsx filename="app/api/chat/route.ts" highlight="3,10-24"
+import {
+  convertToModelMessages,
+  streamText,
+  validateUIMessages,
+  TypeValidationError,
+} from 'ai';
+import { type MyUIMessage } from '@/types';
+
+export async function POST(req: Request) {
+  const { message, id } = await req.json();
+
+  // Load and validate messages from database
+  let validatedMessages: MyUIMessage[];
+
+  try {
+    const previousMessages = await loadMessagesFromDB(id);
+    validatedMessages = await validateUIMessages({
+      // append the new message to the previous messages:
+      messages: [...previousMessages, message],
+      tools,
+      metadataSchema,
+    });
+  } catch (error) {
+    if (error instanceof TypeValidationError) {
+      // Log validation error for monitoring
+      console.error('Database messages validation failed:', error);
+      // Could implement message migration or filtering here
+      // For now, start with empty history
+      validatedMessages = [];
+    } else {
+      throw error;
+    }
+  }
+
+  // Continue with validated messages...
+}
+```
+
+## Displaying the chat
+
+Once messages are loaded from storage, you can display them in your chat UI. Here's how to set up the page component and the chat display:
+
+```tsx filename="app/chat/[id]/page.tsx"
+import { loadChat } from '@util/chat-store';
+import Chat from '@ui/chat';
+
+export default async function Page(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
+  const messages = await loadChat(id);
+  return <Chat id={id} initialMessages={messages} />;
+}
+```
+
+The chat component uses the `useChat` hook to manage the conversation:
 
 ```tsx filename="ui/chat.tsx" highlight="10-16"
 'use client';
@@ -146,6 +261,11 @@ export default function Chat({
   `useChat` message format is designed for frontend display, and contains
   additional fields such as `id` and `createdAt`. We recommend storing the
   messages in the `useChat` message format.
+
+When loading messages from storage that contain tools, metadata, or custom data
+parts, validate them using `validateUIMessages` before processing (see the
+[validation section](#validating-messages-from-database) above).
+
 </Note>
 
 Storing messages is done in the `onFinish` callback of the `toUIMessageStreamResponse` function.
@@ -328,10 +448,11 @@ const {
 });
 ```
 
-On the server, you can then load the previous messages and append the new message to the previous messages:
+On the server, you can then load the previous messages and append the new message to the previous messages. If your messages contain tools, metadata, or custom data parts, you should validate them:
 
-```tsx filename="app/api/chat/route.ts" highlight="2-11"
-import { convertToModelMessages, UIMessage } from 'ai';
+```tsx filename="app/api/chat/route.ts" highlight="2-11,14-18"
+import { convertToModelMessages, UIMessage, validateUIMessages } from 'ai';
+// import your tools and schemas
 
 export async function POST(req: Request) {
   // get the last message from the client:
@@ -340,16 +461,22 @@ export async function POST(req: Request) {
   // load the previous messages from the server:
   const previousMessages = await loadChat(id);
 
-  // append the new message to the previous messages:
-  const messages = [...previousMessages, message];
+  // validate messages if they contain tools, metadata, or data parts:
+  const validatedMessages = await validateUIMessages({
+    // append the new message to the previous messages:
+    messages: [...previousMessages, message],
+    tools, // if using tools
+    metadataSchema, // if using custom metadata
+    dataSchemas, // if using custom data parts
+  });
 
   const result = streamText({
     // ...
-    messages: convertToModelMessages(messages),
+    messages: convertToModelMessages(validatedMessages),
   });
 
   return result.toUIMessageStreamResponse({
-    originalMessages: messages,
+    originalMessages: validatedMessages,
     onFinish: ({ messages }) => {
       saveChat({ chatId: id, messages });
     },
@@ -405,181 +532,4 @@ When the client reloads the page after a disconnect, the chat will be restored f
   streaming is not yet complete.
 </Note>
 
-## Resuming ongoing streams
-
-<Note>This feature is experimental and may change in future versions.</Note>
-
-The `useChat` hook has experimental support for resuming an ongoing chat generation stream by any client, either after a network disconnect or by reloading the chat page. This can be useful for building applications that involve long-running conversations or for ensuring that messages are not lost in case of network failures.
-
-The following are the pre-requisities for your chat application to support resumable streams:
-
-- Installing the [`resumable-stream`](https://www.npmjs.com/package/resumable-stream) package that helps create and manage the publisher/subscriber mechanism of the streams.
-- Creating a [Redis](https://vercel.com/marketplace/redis) instance to store the stream state.
-- Creating a table that tracks the stream IDs associated with a chat.
-
-To resume a chat stream, you will use the `resumeStream` function returned by the `useChat` hook. You will call this function during the initial mount of the hook inside the main chat component.
-
-```tsx filename="ui/chat.tsx"
-'use client';
-
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, type UIMessage } from 'ai';
-import { useEffect } from 'react';
-
-export function Chat({
-  chatId,
-  autoResume,
-  initialMessages = [],
-}: {
-  chatId: string;
-  autoResume: boolean;
-  initialMessages: UIMessage[];
-}) {
-  const {
-    resumeStream,
-    // ... other useChat returns
-  } = useChat({
-    id: chatId,
-    messages: initialMessages,
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-    }),
-  });
-
-  useEffect(() => {
-    if (autoResume) {
-      resumeStream();
-    }
-    // We want to disable the exhaustive deps rule here because we only want to run this effect once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return <div>{/* Your chat UI here */}</div>;
-}
-```
-
-The `resumeStream` function makes a `GET` request to your configured chat endpoint (or `/api/chat` by default) whenever your client calls it. If there’s an active stream, it will pick up where it left off, otherwise it simply finishes without error.
-
-The `GET` request automatically appends the `chatId` query parameter to the URL to help identify the chat the request belongs to. Using the `chatId`, you can look up the most recent stream ID from the database and resume the stream.
-
-```bash
-GET /api/chat?chatId=<your-chat-id>
-```
-
-Earlier, you must've implemented the `POST` handler for the `/api/chat` route to create new chat generations. When using `resumeStream`, you must also implement the `GET` handler for `/api/chat` route to resume streams.
-
-### 1. Implement the GET handler
-
-Add a `GET` method to `/api/chat` that:
-
-1. Reads `chatId` from the query string
-2. Validates it’s present
-3. Loads any stored stream IDs for that chat
-4. Returns the latest one to `streamContext.resumableStream()`
-5. Falls back to an empty stream if it’s already closed
-
-```ts filename="app/api/chat/route.ts"
-import { loadStreams } from '@util/chat-store';
-import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
-import { after } from 'next/server';
-import { createResumableStreamContext } from 'resumable-stream';
-
-export async function GET(request: Request) {
-  const streamContext = createResumableStreamContext({
-    waitUntil: after,
-  });
-
-  const { searchParams } = new URL(request.url);
-  const chatId = searchParams.get('chatId');
-
-  if (!chatId) {
-    return new Response('id is required', { status: 400 });
-  }
-
-  const streamIds = await loadStreams(chatId);
-
-  if (!streamIds.length) {
-    return new Response('No streams found', { status: 404 });
-  }
-
-  const recentStreamId = streamIds.at(-1);
-
-  if (!recentStreamId) {
-    return new Response('No recent stream found', { status: 404 });
-  }
-
-  const emptyDataStream = createUIMessageStream({
-    execute: () => {},
-  });
-
-  return new Response(
-    await streamContext.resumableStream(recentStreamId, () =>
-      emptyDataStream.pipeThrough(new JsonToSseTransformStream()),
-    ),
-  );
-}
-```
-
-After you've implemented the `GET` handler, you can update the `POST` handler to handle the creation of resumable streams.
-
-### 2. Update the POST handler
-
-When you create a brand-new chat completion, you must:
-
-1. Generate a fresh `streamId`
-2. Persist it alongside your `chatId`
-3. Kick off a `createUIMessageStream` that pipes tokens as they arrive
-4. Hand that new stream to `streamContext.resumableStream()`
-
-```ts filename="app/api/chat/route.ts"
-import {
-  convertToModelMessages,
-  createUIMessageStream,
-  generateId,
-  streamText,
-  UIMessage,
-} from 'ai';
-import { appendStreamId, saveChat } from '@util/chat-store';
-import { createResumableStreamContext } from 'resumable-stream';
-import { openai } from '@ai-sdk/openai';
-
-const streamContext = createResumableStreamContext({
-  waitUntil: after,
-});
-
-async function POST(request: Request) {
-  const { chatId, messages }: { chatId: string; messages: UIMessage[] } =
-    await request.json();
-  const streamId = generateId();
-
-  // Record this new stream so we can resume later
-  await appendStreamId({ chatId, streamId });
-
-  // Build the data stream that will emit tokens
-  const stream = createUIMessageStream({
-    execute: ({ writer }) => {
-      const result = streamText({
-        model: openai('gpt-4o'),
-        messages: convertToModelMessages(messages),
-      });
-
-      // Return a resumable stream to the client
-      writer.merge(result.toUIMessageStream());
-    },
-  });
-
-  const resumableStream = await streamContext.resumableStream(
-    streamId,
-    () => stream,
-  );
-
-  return resumableStream.toUIMessageStreamResponse({
-    originalMessages: messages,
-    onFinish: ({ messages }) => {
-      saveChat({ chatId, messages });
-    },
-  });
-}
-```
-
-With both handlers, your clients can now gracefully resume ongoing streams.
+For more robust handling of disconnects, you may want to add resumability on disconnects. Check out the [Chatbot Resume Streams](/docs/ai-sdk-ui/chatbot-resume-streams) documentation to learn more.

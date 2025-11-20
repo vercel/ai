@@ -112,7 +112,7 @@ export async function continueConversation(history: Message[]) {
     tools: {
       getWeather: {
         description: 'Get the weather for a location',
-        parameters: z.object({
+        inputSchema: z.object({
           city: z.string().describe('The city to get the weather for'),
           unit: z
             .enum(['C', 'F'])

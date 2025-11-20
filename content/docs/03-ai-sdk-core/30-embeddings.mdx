@@ -193,6 +193,37 @@ const { embedding, response } = await embed({
 console.log(response); // Raw provider response
 ```
 
+## Embedding Middleware
+
+You can enhance embedding models, e.g. to set default values, using
+`wrapEmbeddingModel` and `EmbeddingModelV3Middleware`.
+
+Here is an example that uses the built-in `defaultEmbeddingSettingsMiddleware`:
+
+```ts
+import { google } from '@ai-sdk/google';
+import {
+  customProvider,
+  defaultEmbeddingSettingsMiddleware,
+  embed,
+  wrapEmbeddingModel,
+} from 'ai';
+
+const embeddingModelWithDefaults = wrapEmbeddingModel({
+  model: google.textEmbedding('gemini-embedding-001'),
+  middleware: defaultEmbeddingSettingsMiddleware({
+    settings: {
+      providerOptions: {
+        google: {
+          outputDimensionality: 256,
+          taskType: 'CLASSIFICATION',
+        },
+      },
+    },
+  }),
+});
+```
+
 ## Embedding Providers & Models
 
 Several providers offer embedding models:
@@ -202,6 +233,7 @@ Several providers offer embedding models:
 | [OpenAI](/providers/ai-sdk-providers/openai#embedding-models)                             | `text-embedding-3-large`        | 3072                 |
 | [OpenAI](/providers/ai-sdk-providers/openai#embedding-models)                             | `text-embedding-3-small`        | 1536                 |
 | [OpenAI](/providers/ai-sdk-providers/openai#embedding-models)                             | `text-embedding-ada-002`        | 1536                 |
+| [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai#embedding-models) | `gemini-embedding-001`          | 3072                 |
 | [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai#embedding-models) | `text-embedding-004`            | 768                  |
 | [Mistral](/providers/ai-sdk-providers/mistral#embedding-models)                           | `mistral-embed`                 | 1024                 |
 | [Cohere](/providers/ai-sdk-providers/cohere#embedding-models)                             | `embed-english-v3.0`            | 1024                 |

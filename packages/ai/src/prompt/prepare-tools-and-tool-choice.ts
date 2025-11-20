@@ -1,14 +1,14 @@
 import {
-  LanguageModelV2FunctionTool,
-  LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2ToolChoice,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
-import { isNonEmptyObject } from '../../src/util/is-non-empty-object';
+import { isNonEmptyObject } from '../util/is-non-empty-object';
 import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
 
-export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
+export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   tools,
   toolChoice,
   activeTools,
@@ -16,12 +16,12 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   tools: TOOLS | undefined;
   toolChoice: ToolChoice<TOOLS> | undefined;
   activeTools: Array<keyof TOOLS> | undefined;
-}): {
+}): Promise<{
   tools:
-    | Array<LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool>
+    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool>
     | undefined;
-  toolChoice: LanguageModelV2ToolChoice | undefined;
-} {
+  toolChoice: LanguageModelV3ToolChoice | undefined;
+}> {
   if (!isNonEmptyObject(tools)) {
     return {
       tools: undefined,
@@ -37,31 +37,41 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
         )
       : Object.entries(tools);
 
-  return {
-    tools: filteredTools.map(([name, tool]) => {
-      const toolType = tool.type;
-      switch (toolType) {
-        case undefined:
-        case 'function':
-          return {
-            type: 'function' as const,
-            name,
-            description: tool.description,
-            inputSchema: asSchema(tool.inputSchema).jsonSchema,
-          };
-        case 'provider-defined':
-          return {
-            type: 'provider-defined' as const,
-            name,
-            id: tool.id,
-            args: tool.args,
-          };
-        default: {
-          const exhaustiveCheck: never = toolType;
-          throw new Error(`Unsupported tool type: ${exhaustiveCheck}`);
-        }
+  const languageModelTools: Array<
+    LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool
+  > = [];
+  for (const [name, tool] of filteredTools) {
+    const toolType = tool.type;
+
+    switch (toolType) {
+      case undefined:
+      case 'dynamic':
+      case 'function':
+        languageModelTools.push({
+          type: 'function' as const,
+          name,
+          description: tool.description,
+          inputSchema: await asSchema(tool.inputSchema).jsonSchema,
+          providerOptions: tool.providerOptions,
+        });
+        break;
+      case 'provider-defined':
+        languageModelTools.push({
+          type: 'provider-defined' as const,
+          name,
+          id: tool.id,
+          args: tool.args,
+        });
+        break;
+      default: {
+        const exhaustiveCheck: never = toolType as never;
+        throw new Error(`Unsupported tool type: ${exhaustiveCheck}`);
       }
-    }),
+    }
+  }
+
+  return {
+    tools: languageModelTools,
     toolChoice:
       toolChoice == null
         ? { type: 'auto' }

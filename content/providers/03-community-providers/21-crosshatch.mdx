@@ -5,6 +5,12 @@ description: Learn how to use the Crosshatch provider for the AI SDK.
 
 # Crosshatch Provider
 
+<Note type="warning">
+  This community provider is not yet compatible with AI SDK 5. Please wait for
+  the provider to be updated or consider using an [AI SDK 5 compatible
+  provider](/providers/ai-sdk-providers).
+</Note>
+
 The [Crosshatch](https://crosshatch.io) provider supports secure inference from popular language models with permissioned access to data users share, giving responses personalized with complete user context.
 
 It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject` and `streamObject` functions.
@@ -14,7 +20,7 @@ It creates language model objects that can be used with the `generateText`, `str
 The Crosshatch provider is available via the `@crosshatch/ai-provider` module.
 You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn']}>
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
     <Snippet text="pnpm add @crosshatch/ai-provider" dark />
   </Tab>
@@ -23,6 +29,10 @@ You can install it with:
   </Tab>
   <Tab>
     <Snippet text="yarn add @crosshatch/ai-provider" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @crosshatch/ai-provider" dark />
   </Tab>
 </Tabs>
 

@@ -6,7 +6,8 @@ description: API reference for the useObject hook.
 # `experimental_useObject()`
 
 <Note>
-  `useObject` is an experimental feature and only available in React and Svelte.
+  `useObject` is an experimental feature and only available in React, Svelte,
+  and Vue.
 </Note>
 
 Allows you to consume text streams that represent a JSON object and parse them into a complete object based on a schema.
@@ -156,6 +157,11 @@ export default function Page() {
       name: 'stop',
       type: '() => void',
       description: 'Function to abort the current API request.',
+    },
+    {
+      name: 'clear',
+      type: '() => void',
+      description: 'Function to clear the object state.',
     },
   ]}
 />

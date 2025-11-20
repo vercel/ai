@@ -1,4 +1,8 @@
-import { SharedV2Headers, SharedV2ProviderOptions } from '../../shared';
+import {
+  SharedV2Headers,
+  SharedV2ProviderOptions,
+  SharedV2ProviderMetadata,
+} from '../../shared';
 import { EmbeddingModelV2Embedding } from './embedding-model-v2-embedding';
 
 /**
@@ -83,6 +87,13 @@ Generated embeddings. They are in the same order as the input values.
 Token usage. We only have input tokens for embeddings.
     */
     usage?: { tokens: number };
+
+    /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+     */
+    providerMetadata?: SharedV2ProviderMetadata;
 
     /**
 Optional response information for debugging purposes.

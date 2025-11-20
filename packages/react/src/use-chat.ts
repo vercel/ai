@@ -32,8 +32,11 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'stop'
   | 'resumeStream'
   | 'addToolResult'
+  | 'addToolOutput'
+  | 'addToolApprovalResponse'
   | 'status'
   | 'messages'
+  | 'clearError'
 >;
 
 export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
@@ -121,10 +124,16 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     setMessages,
     sendMessage: chatRef.current.sendMessage,
     regenerate: chatRef.current.regenerate,
+    clearError: chatRef.current.clearError,
     stop: chatRef.current.stop,
     error,
     resumeStream: chatRef.current.resumeStream,
     status,
-    addToolResult: chatRef.current.addToolResult,
+    /**
+     * @deprecated Use `addToolOutput` instead.
+     */
+    addToolResult: chatRef.current.addToolOutput,
+    addToolOutput: chatRef.current.addToolOutput,
+    addToolApprovalResponse: chatRef.current.addToolApprovalResponse,
   };
 }

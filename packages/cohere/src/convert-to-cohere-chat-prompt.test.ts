@@ -1,4 +1,5 @@
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
+import { describe, it, expect } from 'vitest';
 
 describe('convert to cohere chat prompt', () => {
   describe('file processing', () => {

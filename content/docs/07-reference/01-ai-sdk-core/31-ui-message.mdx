@@ -36,9 +36,9 @@ const dataPartSchema = z.object({
 
 type MyDataPart = z.infer<typeof dataPartSchema>;
 
-const tools: ToolSet = {
+const tools = {
   someTool: tool({}),
-};
+} satisfies ToolSet;
 
 type MyTools = InferUITools<typeof tools>;
 

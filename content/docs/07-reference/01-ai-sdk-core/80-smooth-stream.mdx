@@ -52,21 +52,42 @@ const result = streamText({
 
 #### Word chunking caveats with non-latin languages
 
-<Note>
-    The word based chunking **does not work well** with the following languages that do not delimit words with spaces:
+The word based chunking **does not work well** with the following languages that do not delimit words with spaces:
 
-    For these languages we recommend using a custom regex, like the following:
+For these languages we recommend using a custom regex, like the following:
 
-    - Chinese - `/[\u4E00-\u9FFF]|\S+\s+/`
-    - Japanese - `/[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/`
+- Chinese - `/[\u4E00-\u9FFF]|\S+\s+/`
+- Japanese - `/[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/`
 
-    For these languages you could pass your own language aware chunking function:
+```tsx filename="Japanese example"
+import { smoothStream, streamText } from 'ai';
 
-    - Vietnamese
-    - Thai
-    - Javanese (Aksara Jawa)
+const result = streamText({
+  model: 'openai/gpt-4.1',
+  prompt: 'Your prompt here',
+  experimental_transform: smoothStream({
+    chunking: /[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/,
+  }),
+});
+```
 
-</Note>
+```tsx filename="Chinese example"
+import { smoothStream, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-4.1',
+  prompt: 'Your prompt here',
+  experimental_transform: smoothStream({
+    chunking: /[\u4E00-\u9FFF]|\S+\s+/,
+  }),
+});
+```
+
+For these languages you could pass your own language aware chunking function:
+
+- Vietnamese
+- Thai
+- Javanese (Aksara Jawa)
 
 #### Regex based chunking
 

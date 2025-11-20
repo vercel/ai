@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2Prompt,
+  LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -10,7 +10,7 @@ import {
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
   options?: { isGemmaModel?: boolean },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -81,11 +81,29 @@ export function convertToGoogleGenerativeAIMessages(
           role: 'model',
           parts: content
             .map(part => {
+              const thoughtSignature =
+                part.providerOptions?.google?.thoughtSignature != null
+                  ? String(part.providerOptions.google?.thoughtSignature)
+                  : undefined;
+
               switch (part.type) {
                 case 'text': {
                   return part.text.length === 0
                     ? undefined
-                    : { text: part.text };
+                    : {
+                        text: part.text,
+                        thoughtSignature,
+                      };
+                }
+
+                case 'reasoning': {
+                  return part.text.length === 0
+                    ? undefined
+                    : {
+                        text: part.text,
+                        thought: true,
+                        thoughtSignature,
+                      };
                 }
 
                 case 'file': {
@@ -117,6 +135,7 @@ export function convertToGoogleGenerativeAIMessages(
                       name: part.toolName,
                       args: part.input,
                     },
+                    thoughtSignature,
                   };
                 }
               }
@@ -129,17 +148,62 @@ export function convertToGoogleGenerativeAIMessages(
       case 'tool': {
         systemMessagesAllowed = false;
 
+        const parts: GoogleGenerativeAIContentPart[] = [];
+
+        for (const part of content) {
+          const output = part.output;
+
+          if (output.type === 'content') {
+            for (const contentPart of output.value) {
+              switch (contentPart.type) {
+                case 'text':
+                  parts.push({
+                    functionResponse: {
+                      name: part.toolName,
+                      response: {
+                        name: part.toolName,
+                        content: contentPart.text,
+                      },
+                    },
+                  });
+                  break;
+                case 'image-data':
+                  parts.push(
+                    {
+                      inlineData: {
+                        mimeType: contentPart.mediaType,
+                        data: contentPart.data,
+                      },
+                    },
+                    {
+                      text: 'Tool executed successfully and returned this image as a response',
+                    },
+                  );
+                  break;
+                default:
+                  parts.push({ text: JSON.stringify(contentPart) });
+                  break;
+              }
+            }
+          } else {
+            parts.push({
+              functionResponse: {
+                name: part.toolName,
+                response: {
+                  name: part.toolName,
+                  content:
+                    output.type === 'execution-denied'
+                      ? (output.reason ?? 'Tool execution denied.')
+                      : output.value,
+                },
+              },
+            });
+          }
+        }
+
         contents.push({
           role: 'user',
-          parts: content.map(part => ({
-            functionResponse: {
-              name: part.toolName,
-              response: {
-                name: part.toolName,
-                content: part.output.value,
-              },
-            },
-          })),
+          parts,
         });
         break;
       }

@@ -1,9 +1,10 @@
 import {
   createTestServer,
   TestResponseController,
-} from '@ai-sdk/provider-utils/test';
+} from '@ai-sdk/test-server/with-vitest';
 import { z } from 'zod/v4';
 import { StructuredObject } from './structured-object.ng';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const server = createTestServer({
   '/api/object': {},
@@ -97,6 +98,38 @@ describe('text stream', () => {
       expect(structuredObject.object).toStrictEqual({
         content: 'h',
       });
+    });
+
+    it('should stop and clear the object state after a call to submit then clear', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/object'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      controller.write('{"content": "h');
+      const submitOperation = structuredObject.submit('test-input');
+
+      await vi.waitFor(() => {
+        expect(structuredObject.loading).toBe(true);
+        expect(structuredObject.object).toStrictEqual({
+          content: 'h',
+        });
+      });
+
+      structuredObject.clear();
+
+      await vi.waitFor(() => {
+        expect(structuredObject.loading).toBe(false);
+      });
+
+      await expect(controller.write('ello, world!"}')).rejects.toThrow();
+      await expect(controller.close()).rejects.toThrow();
+      await submitOperation;
+
+      expect(structuredObject.loading).toBe(false);
+      expect(structuredObject.error).toBeUndefined();
+      expect(structuredObject.object).toBeUndefined();
     });
   });
 
@@ -196,5 +229,27 @@ describe('text stream', () => {
     await structuredObjectWithCustomCredentials.submit('test-input');
 
     expect(server.calls[0].requestCredentials).toBe('include');
+  });
+
+  it('should clear the object state after a call to clear', async () => {
+    server.urls['/api/object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    const structuredObjectWithOnFinish = new StructuredObject({
+      api: '/api/object',
+      schema: z.object({ content: z.string() }),
+    });
+
+    await structuredObjectWithOnFinish.submit('test-input');
+
+    expect(structuredObjectWithOnFinish.object).toBeDefined();
+
+    structuredObjectWithOnFinish.clear();
+
+    expect(structuredObjectWithOnFinish.object).toBeUndefined();
+    expect(structuredObjectWithOnFinish.error).toBeUndefined();
+    expect(structuredObjectWithOnFinish.loading).toBe(false);
   });
 });

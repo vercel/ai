@@ -1,12 +1,12 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = streamText({
-    model: azure('v0-gpt-35-turbo'), // use your own deployment
+    model: azure('gpt-4.1-mini'), // use your own deployment
     tools: {
       weather: weatherTool,
       cityAttractions: {
@@ -18,12 +18,16 @@ async function main() {
 
   for await (const part of result.fullStream) {
     switch (part.type) {
-      case 'text': {
+      case 'text-delta': {
         console.log('Text:', part.text);
         break;
       }
 
       case 'tool-call': {
+        if (part.dynamic) {
+          continue;
+        }
+
         switch (part.toolName) {
           case 'cityAttractions': {
             console.log('TOOL CALL cityAttractions');
@@ -42,6 +46,10 @@ async function main() {
       }
 
       case 'tool-result': {
+        if (part.dynamic) {
+          continue;
+        }
+
         switch (part.toolName) {
           // NOT AVAILABLE (NO EXECUTE METHOD)
           // case 'cityAttractions': {

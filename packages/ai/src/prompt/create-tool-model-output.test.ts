@@ -1,5 +1,7 @@
 import { Tool } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from './create-tool-model-output';
+import z from 'zod/v4';
+import { describe, it, expect } from 'vitest';
 
 describe('createToolModelOutput', () => {
   describe('error cases', () => {
@@ -58,6 +60,7 @@ describe('createToolModelOutput', () => {
           type: 'text',
           value: `Custom output: ${output}`,
         }),
+        inputSchema: z.object({}),
       };
 
       const result = createToolModelOutput({
@@ -78,6 +81,7 @@ describe('createToolModelOutput', () => {
           type: 'json',
           value: { processed: output, timestamp: '2023-01-01' },
         }),
+        inputSchema: z.object({}),
       };
 
       const complexOutput = { data: [1, 2, 3], status: 'success' };
@@ -102,6 +106,7 @@ describe('createToolModelOutput', () => {
             { type: 'text', text: 'Additional information' },
           ],
         }),
+        inputSchema: z.object({}),
       };
 
       const result = createToolModelOutput({
@@ -137,6 +142,7 @@ describe('createToolModelOutput', () => {
     it('should return text type for string output even with tool that has no toModelOutput', () => {
       const toolWithoutToModelOutput: Tool = {
         description: 'A tool without toModelOutput',
+        inputSchema: z.object({}),
       };
 
       const result = createToolModelOutput({
@@ -269,6 +275,7 @@ describe('createToolModelOutput', () => {
   describe('edge cases', () => {
     it('should prioritize isError over tool.toModelOutput', () => {
       const mockTool: Tool = {
+        inputSchema: z.object({}),
         toModelOutput: () => ({
           type: 'text',
           value: 'This should not be called',
@@ -287,7 +294,7 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should handle undefined output in error case', () => {
+    it('should handle undefined output in error text case', () => {
       const result = createToolModelOutput({
         output: undefined,
         tool: undefined,
@@ -300,7 +307,20 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should handle undefined output in non-error case', () => {
+    it('should use null for undefined output in error json case', () => {
+      const result = createToolModelOutput({
+        output: undefined,
+        tool: undefined,
+        errorMode: 'json',
+      });
+
+      expect(result).toEqual({
+        type: 'error-json',
+        value: null,
+      });
+    });
+
+    it('should use null for undefined output in non-error case', () => {
       const result = createToolModelOutput({
         output: undefined,
         tool: undefined,
@@ -309,7 +329,7 @@ describe('createToolModelOutput', () => {
 
       expect(result).toEqual({
         type: 'json',
-        value: undefined,
+        value: null,
       });
     });
   });

@@ -1,19 +1,23 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
+import { JSONObject } from '@ai-sdk/provider';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
+import { logWarnings } from '../logger/log-warnings';
+import { DataContent } from '../prompt';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
+import {
+  TranscriptionWarning,
+  TranscriptionModel,
+} from '../types/transcription-model';
+import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
-} from '../../src/util/detect-media-type';
-import { download } from '../../src/util/download';
-import { prepareRetries } from '../../src/util/prepare-retries';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import { DataContent } from '../prompt';
-import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { TranscriptionWarning } from '../types/transcription-model';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+} from '../util/detect-media-type';
+import { download } from '../util/download/download';
+import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
-
+import { VERSION } from '../version';
+import { resolveTranscriptionModel } from '../model/resolve-model';
 /**
 Generates transcripts using a transcription model.
 
@@ -38,7 +42,7 @@ export async function transcribe({
   /**
 The transcription model to use.
      */
-  model: TranscriptionModelV2;
+  model: TranscriptionModel;
 
   /**
 The audio data to transcribe.
@@ -79,25 +83,31 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
+  const resolvedModel = resolveTranscriptionModel(model);
+  if (!resolvedModel) {
+    throw new Error('Model could not be resolved');
   }
 
-  const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const { retry } = prepareRetries({
+    maxRetries: maxRetriesArg,
+    abortSignal,
+  });
+
+  const headersWithUserAgent = withUserAgentSuffix(
+    headers ?? {},
+    `ai/${VERSION}`,
+  );
+
   const audioData =
     audio instanceof URL
       ? (await download({ url: audio })).data
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
-    model.doGenerate({
+    resolvedModel.doGenerate({
       audio: audioData,
       abortSignal,
-      headers,
+      headers: headersWithUserAgent,
       providerOptions,
       mediaType:
         detectMediaType({
@@ -106,6 +116,12 @@ Only applicable for HTTP-based providers.
         }) ?? 'audio/wav',
     }),
   );
+
+  logWarnings({
+    warnings: result.warnings,
+    provider: resolvedModel.provider,
+    model: resolvedModel.modelId,
+  });
 
   if (!result.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
@@ -133,7 +149,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   readonly durationInSeconds: number | undefined;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
-  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+  readonly providerMetadata: Record<string, JSONObject>;
 
   constructor(options: {
     text: string;
@@ -146,7 +162,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     durationInSeconds: number | undefined;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
-    providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
+    providerMetadata: Record<string, JSONObject> | undefined;
   }) {
     this.text = options.text;
     this.segments = options.segments;

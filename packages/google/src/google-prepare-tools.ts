@@ -1,6 +1,6 @@
 import {
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
+  LanguageModelV3CallOptions,
+  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -11,8 +11,8 @@ export function prepareTools({
   toolChoice,
   modelId,
 }: {
-  tools: LanguageModelV2CallOptions['tools'];
-  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: GoogleGenerativeAIModelId;
 }): {
   tools:
@@ -33,16 +33,25 @@ export function prepareTools({
           allowedFunctionNames?: string[];
         };
       };
-  toolWarnings: LanguageModelV2CallWarning[];
+  toolWarnings: LanguageModelV3CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV2CallWarning[] = [];
+  const toolWarnings: LanguageModelV3CallWarning[] = [];
 
-  const isGemini2 = modelId.includes('gemini-2');
+  const isLatest = (
+    [
+      'gemini-flash-latest',
+      'gemini-flash-lite-latest',
+      'gemini-pro-latest',
+    ] as const satisfies GoogleGenerativeAIModelId[]
+  ).some(id => id === modelId);
+  const isGemini2orNewer =
+    modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
+  const supportsFileSearch = modelId.includes('gemini-2.5');
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
@@ -55,16 +64,16 @@ export function prepareTools({
   );
 
   if (hasFunctionTools && hasProviderDefinedTools) {
+    const functionTools = tools.filter(tool => tool.type === 'function');
     toolWarnings.push({
       type: 'unsupported-tool',
       tool: tools.find(tool => tool.type === 'function')!,
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+      details: `Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: ${functionTools.map(t => t.name).join(', ')}. Please use either function tools or provider-defined tools, but not both.`,
     });
   }
 
   if (hasProviderDefinedTools) {
-    const googleTools: Record<string, any> = {};
+    const googleTools: any[] = [];
 
     const providerDefinedTools = tools.filter(
       tool => tool.type === 'provider-defined',
@@ -72,34 +81,81 @@ export function prepareTools({
     providerDefinedTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          if (isGemini2) {
-            googleTools.googleSearch = {};
+          if (isGemini2orNewer) {
+            googleTools.push({ googleSearch: {} });
           } else if (supportsDynamicRetrieval) {
             // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
-            googleTools.googleSearchRetrieval = {
-              dynamicRetrievalConfig: {
-                mode: tool.args.mode as
-                  | 'MODE_DYNAMIC'
-                  | 'MODE_UNSPECIFIED'
-                  | undefined,
-                dynamicThreshold: tool.args.dynamicThreshold as
-                  | number
-                  | undefined,
+            googleTools.push({
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: tool.args.mode as
+                    | 'MODE_DYNAMIC'
+                    | 'MODE_UNSPECIFIED'
+                    | undefined,
+                  dynamicThreshold: tool.args.dynamicThreshold as
+                    | number
+                    | undefined,
+                },
               },
-            };
+            });
           } else {
-            googleTools.googleSearchRetrieval = {};
+            googleTools.push({ googleSearchRetrieval: {} });
           }
           break;
         case 'google.url_context':
-          if (isGemini2) {
-            googleTools.urlContext = {};
+          if (isGemini2orNewer) {
+            googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported-tool',
               tool,
               details:
                 'The URL context tool is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
+        case 'google.code_execution':
+          if (isGemini2orNewer) {
+            googleTools.push({ codeExecution: {} });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The code execution tools is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
+        case 'google.file_search':
+          if (supportsFileSearch) {
+            googleTools.push({ fileSearch: { ...tool.args } });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The file search tool is only supported with Gemini 2.5 models.',
+            });
+          }
+          break;
+        case 'google.vertex_rag_store':
+          if (isGemini2orNewer) {
+            googleTools.push({
+              retrieval: {
+                vertex_rag_store: {
+                  rag_resources: {
+                    rag_corpus: tool.args.ragCorpus,
+                  },
+                  similarity_top_k: tool.args.topK as number | undefined,
+                },
+              },
+            });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The RAG store tool is not supported with other Gemini models than Gemini 2.',
             });
           }
           break;
@@ -110,7 +166,7 @@ export function prepareTools({
     });
 
     return {
-      tools: Object.keys(googleTools).length > 0 ? googleTools : undefined,
+      tools: googleTools.length > 0 ? googleTools : undefined,
       toolConfig: undefined,
       toolWarnings,
     };

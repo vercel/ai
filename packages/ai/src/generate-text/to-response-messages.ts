@@ -83,6 +83,12 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             }),
             providerOptions: part.providerMetadata,
           };
+        case 'tool-approval-request':
+          return {
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCallId: part.toolCall.toolCallId,
+          };
       }
     });
 
@@ -108,6 +114,9 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             : toolResult.error,
         errorMode: toolResult.type === 'tool-error' ? 'text' : 'none',
       }),
+      ...(toolResult.providerMetadata != null
+        ? { providerOptions: toolResult.providerMetadata }
+        : {}),
     }));
 
   if (toolResultContent.length > 0) {

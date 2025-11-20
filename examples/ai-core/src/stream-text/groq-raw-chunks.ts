@@ -1,57 +1,36 @@
 import { groq } from '@ai-sdk/groq';
+import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const model = groq('llama-3.3-70b-versatile');
-
-  console.log('=== GROQ RAW STREAMING CHUNKS ===');
-
-  const { stream } = await model.doStream({
-    prompt: [
-      {
-        role: 'user',
-        content: [{ type: 'text', text: 'Count from 1 to 3 slowly.' }],
-      },
-    ],
+  const result = streamText({
+    model: groq('llama-3.3-70b-versatile'),
+    prompt: 'Count from 1 to 3 slowly.',
     includeRawChunks: true,
   });
 
   let textChunkCount = 0;
   let rawChunkCount = 0;
-  let fullText = '';
 
-  const reader = stream.getReader();
-
-  try {
-    while (true) {
-      const { done, value: chunk } = await reader.read();
-      if (done) break;
-
-      if (chunk.type === 'raw') {
-        rawChunkCount++;
-        console.log(
-          'Raw chunk',
-          rawChunkCount,
-          ':',
-          JSON.stringify(chunk.rawValue),
-        );
-      } else {
-        console.log('Processed chunk:', chunk.type, JSON.stringify(chunk));
-      }
-
-      if (chunk.type === 'text-delta') {
-        textChunkCount++;
-        fullText += chunk.delta;
-      }
+  for await (const chunk of result.fullStream) {
+    if (chunk.type === 'text-delta') {
+      textChunkCount++;
+      console.log('Text chunk', textChunkCount, ':', chunk.text);
+    } else if (chunk.type === 'raw') {
+      rawChunkCount++;
+      console.log(
+        'Raw chunk',
+        rawChunkCount,
+        ':',
+        JSON.stringify(chunk.rawValue),
+      );
     }
-  } finally {
-    reader.releaseLock();
   }
 
   console.log();
   console.log('Text chunks:', textChunkCount);
   console.log('Raw chunks:', rawChunkCount);
-  console.log('Final text:', fullText);
+  console.log('Final text:', await result.text);
 }
 
 main().catch(console.error);

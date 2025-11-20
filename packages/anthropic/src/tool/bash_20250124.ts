@@ -1,5 +1,18 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import z from 'zod/v4';
+import {
+  createProviderDefinedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+
+const bash_20250124InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      command: z.string(),
+      restart: z.boolean().optional(),
+    }),
+  ),
+);
 
 export const bash_20250124 = createProviderDefinedToolFactory<
   {
@@ -15,10 +28,7 @@ export const bash_20250124 = createProviderDefinedToolFactory<
   },
   {}
 >({
-  id: 'anthropic.bashTool_20250124',
+  id: 'anthropic.bash_20250124',
   name: 'bash',
-  inputSchema: z.object({
-    command: z.string(),
-    restart: z.boolean().optional(),
-  }),
+  inputSchema: bash_20250124InputSchema,
 });

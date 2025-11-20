@@ -1,9 +1,9 @@
 import { vercel } from '@ai-sdk/vercel';
-import { streamText, CoreMessage, ToolCallPart, ToolResultPart } from 'ai';
+import { streamText, ToolCallPart, ToolResultPart, ModelMessage } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;
@@ -24,7 +24,7 @@ async function main() {
 
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {
-      case 'text': {
+      case 'text-delta': {
         process.stdout.write(chunk.text);
         break;
       }
