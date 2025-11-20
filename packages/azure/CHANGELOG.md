@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.0.73
+
+### Patch Changes
+
+- 29a5595: Azure OpenAI enabled web-search-preview
+- Updated dependencies [29a5595]
+  - @ai-sdk/openai@2.0.71
+
 ## 2.0.72
 
 ### Patch Changes
