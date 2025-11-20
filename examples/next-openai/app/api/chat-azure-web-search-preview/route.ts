@@ -38,23 +38,9 @@ export async function POST(req: Request) {
         searchContextSize: 'low',
       }),
     },
-    onChunk: ({ chunk }) => {
-      console.log('Chunk:', chunk);
-    },
-    onError: error => {
-      console.error('error:', error);
-    },
   });
 
-  console.log('test3');
-
-  // for await(const part of result.fullStream){
-  //   if(part.type==="error"){
-  //     console.error(part.error)
-  //   }else{
-  //     console.log(JSON.stringify(part).substring(0,400))
-  //   }
-  // }
-
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    sendSources:true,
+  });
 }
