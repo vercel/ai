@@ -87,7 +87,9 @@ describe('BlackForestLabs provider', () => {
   });
 
   it('uses provider polling options for timeout behavior', async () => {
-    server.urls['https://api.example.com/poll'].response = ({ callNumber }) => ({
+    server.urls['https://api.example.com/poll'].response = ({
+      callNumber,
+    }) => ({
       type: 'json-value',
       body: { status: 'Pending', callNumber },
     });

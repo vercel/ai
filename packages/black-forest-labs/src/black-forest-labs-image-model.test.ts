@@ -320,13 +320,17 @@ describe('BlackForestLabsImageModel', () => {
       });
 
       const pollCalls = server.calls.filter(
-        c => c.requestMethod === 'GET' && c.requestUrl.startsWith('https://api.example.com/poll'),
+        c =>
+          c.requestMethod === 'GET' &&
+          c.requestUrl.startsWith('https://api.example.com/poll'),
       );
       expect(pollCalls.length).toBe(3);
     });
 
     it('uses configured pollTimeoutMillis and pollIntervalMillis to time out', async () => {
-      server.urls['https://api.example.com/poll'].response = ({ callNumber }) => ({
+      server.urls['https://api.example.com/poll'].response = ({
+        callNumber,
+      }) => ({
         type: 'json-value',
         body: { status: 'Pending', callNumber },
       });
@@ -350,9 +354,13 @@ describe('BlackForestLabsImageModel', () => {
       ).rejects.toThrow('Black Forest Labs generation timed out.');
 
       const pollCalls = server.calls.filter(
-        c => c.requestMethod === 'GET' && c.requestUrl.startsWith('https://api.example.com/poll'),
+        c =>
+          c.requestMethod === 'GET' &&
+          c.requestUrl.startsWith('https://api.example.com/poll'),
       );
-      expect(pollCalls.length).toBe(Math.ceil(pollTimeoutMillis / pollIntervalMillis));
+      expect(pollCalls.length).toBe(
+        Math.ceil(pollTimeoutMillis / pollIntervalMillis),
+      );
       const imageFetchCalls = server.calls.filter(c =>
         c.requestUrl.startsWith('https://api.example.com/image.png'),
       );
