@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.34
+
+### Patch Changes
+
+- 2c6ea5c: fix(xai): add cache input tokens
+
 ## 2.0.33
 
 ### Patch Changes

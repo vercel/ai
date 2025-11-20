@@ -1,5 +1,11 @@
 # @ai-sdk/huggingface
 
+## 0.0.10
+
+### Patch Changes
+
+- 1319c14: extract reasoning content
+
 ## 0.0.9
 
 ### Patch Changes
