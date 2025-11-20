@@ -1,5 +1,18 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.101
+
+### Patch Changes
+
+- ai@6.0.0-beta.101
+
+## 3.0.0-beta.100
+
+### Patch Changes
+
+- Updated dependencies [8370068]
+  - ai@6.0.0-beta.100
+
 ## 3.0.0-beta.99
 
 ### Patch Changes
