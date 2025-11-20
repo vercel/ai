@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- e623580: feat (provider/perplexity): add reasoning tokens
+
 ## 3.0.0-beta.34
 
 ### Patch Changes

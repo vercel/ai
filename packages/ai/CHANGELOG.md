@@ -1,5 +1,32 @@
 # ai
 
+## 6.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [cc5170d]
+  - @ai-sdk/gateway@2.0.0-beta.55
+
+## 6.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [5f66123]
+  - @ai-sdk/gateway@2.0.0-beta.54
+
+## 6.0.0-beta.101
+
+### Patch Changes
+
+- Updated dependencies [3782645]
+  - @ai-sdk/gateway@2.0.0-beta.53
+
+## 6.0.0-beta.100
+
+### Patch Changes
+
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+
 ## 6.0.0-beta.99
 
 ### Patch Changes

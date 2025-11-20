@@ -1,6 +1,6 @@
+import { LanguageModelV3ProviderDefinedTool } from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
-import { LanguageModelV3ProviderDefinedTool } from '@ai-sdk/provider';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
   const result = prepareTools({
@@ -371,6 +371,23 @@ it('should handle latest modelId for provider-defined tools correctly', () => {
       },
     ],
     modelId: 'gemini-flash-latest',
+  });
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle gemini-3 modelId for provider-defined tools correctly', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-pro-preview',
   });
   expect(result.tools).toEqual([{ googleSearch: {} }]);
   expect(result.toolConfig).toBeUndefined();

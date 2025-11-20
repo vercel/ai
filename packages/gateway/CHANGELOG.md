@@ -1,5 +1,23 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- cc5170d: feat(provider/gateway): update gateway model string autocomplete
+
+## 2.0.0-beta.54
+
+### Patch Changes
+
+- 5f66123: chore(provider/gateway): Update gateway language model settings
+
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- 3782645: bump `@vercel/oidc` to 3.0.5
+
 ## 2.0.0-beta.52
 
 ### Patch Changes

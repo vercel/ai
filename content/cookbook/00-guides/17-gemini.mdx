@@ -1,22 +1,26 @@
 ---
-title: Get started with Gemini 2.5
-description: Get started with Gemini 2.5 using the AI SDK.
+title: Get started with Gemini 3
+description: Get started with Gemini 3 using the AI SDK.
 tags: ['getting-started']
 ---
 
-# Get started with Gemini 2.5
+# Get started with Gemini 3
 
-With the release of [Gemini 2.5](https://developers.googleblog.com/gemini-2-5-thinking-model-updates/), there has never been a better time to start building AI applications, particularly those that require complex reasoning capabilities and advanced intelligence.
+With the release of Gemini 3, Google's most intelligent model to date, there has never been a better time to start building AI applications that combine state-of-the-art reasoning with multimodal understanding.
 
-The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like Gemini 2.5 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
+The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like Gemini 3 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
 
-## Gemini 2.5
+## Gemini 3
 
-Gemini 2.5 is Google's most advanced model family to date, offering exceptional capabilities across reasoning, instruction following, coding, and knowledge tasks. The Gemini 2.5 model family consists of:
+Gemini 3 represents a significant leap forward in AI capabilities, combining all of Gemini's strengths together to help you bring any idea to life. It delivers:
 
-- [Gemini 2.5 Pro](https://ai.google.dev/gemini-api/docs/models#gemini-2.5-pro): Best for coding and highly complex tasks
-- [Gemini 2.5 Flash](https://ai.google.dev/gemini-api/docs/models#gemini-2.5-flash): Fast performance on everyday tasks
-- [Gemini 2.5 Flash-Lite](https://ai.google.dev/gemini-api/docs/models#gemini-2.5-flash-lite): Best for high volume cost-efficient tasks
+- State-of-the-art reasoning with unprecedented depth and nuance
+- PhD-level performance on complex benchmarks like Humanity's Last Exam (37.5%) and GPQA Diamond (91.9%)
+- Leading multimodal understanding with 81% on MMMU-Pro and 87.6% on Video-MMMU
+- Best-in-class vibe coding and agentic capabilities
+- Superior long-horizon planning for multi-step workflows
+
+Gemini 3 Pro is currently available in preview, offering great performance across all benchmarks.
 
 ## Getting Started with the AI SDK
 
@@ -24,49 +28,48 @@ The AI SDK is the TypeScript toolkit designed to help developers build AI-powere
 
 The AI SDK abstracts away the differences between model providers, eliminates boilerplate code for building chatbots, and allows you to go beyond text output to generate rich, interactive components.
 
-At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call Gemini 2.5 with the AI SDK:
+At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call Gemini 3 with the AI SDK:
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-3-pro-preview'),
   prompt: 'Explain the concept of the Hilbert space.',
 });
 console.log(text);
 ```
 
-### Thinking Capability
+### Enhanced Reasoning with Thinking Mode
 
-The Gemini 2.5 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis.
-
-You can control the amount of thinking using the `thinkingConfig` provider option and specifying a thinking budget in tokens. Additionally, you can request thinking summaries by setting `includeThoughts` to `true`.
+Gemini 3 Pro can use enhanced reasoning through thinking mode, which improves its ability to solve complex problems. You can control the thinking level using the `thinkingLevel` provider option:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const { text, reasoning } = await generateText({
-  model: google('gemini-2.5-flash'),
+const { text } = await generateText({
+  model: google('gemini-3-pro-preview'),
   prompt: 'What is the sum of the first 10 prime numbers?',
   providerOptions: {
     google: {
       thinkingConfig: {
-        thinkingBudget: 8192,
         includeThoughts: true,
+        thinkingLevel: 'low',
       },
-    },
+    } satisfies GoogleGenerativeAIProviderOptions,
   },
 });
 
-console.log(text); // text response
-console.log(reasoning); // reasoning summary
+console.log(text);
 ```
+
+The `thinkingLevel` parameter accepts values like `'low'` or `'high'` to control the depth of reasoning applied to your prompt.
 
 ### Using Tools with the AI SDK
 
-Gemini 2.5 supports tool calling, allowing it to interact with external systems and perform discrete tasks. Here's an example of using tool calling with the AI SDK:
+Gemini 3 excels at tool calling with improved reliability and consistency for multi-step workflows. Here's an example of using tool calling with the AI SDK:
 
 ```ts
 import { z } from 'zod';
@@ -74,7 +77,7 @@ import { generateText, tool, stepCountIs } from 'ai';
 import { google } from '@ai-sdk/google';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-3-pro-preview'),
   prompt: 'What is the weather in San Francisco?',
   tools: {
     weather: tool({
@@ -88,7 +91,7 @@ const result = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // Optional, enables multi step calling
+  stopWhen: stepCountIs(5), // enables multi-step calling
 });
 
 console.log(result.text);
@@ -98,7 +101,7 @@ console.log(result.steps);
 
 ### Using Google Search with Gemini
 
-With [search grounding](https://ai.google.dev/gemini-api/docs/google-search), Gemini can access to the latest information using Google search. Here's an example of using Google Search with the AI SDK:
+With [search grounding](https://ai.google.dev/gemini-api/docs/google-search), Gemini can access the latest information using Google search. Here's an example of using Google Search with the AI SDK:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -106,7 +109,7 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-3-pro-preview'),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -122,6 +125,8 @@ const metadata = providerMetadata?.google as
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
+
+console.log({ text, sources, groundingMetadata, safetyRatings });
 ```
 
 ### Building Interactive Interfaces
@@ -132,7 +137,7 @@ AI SDK UI provides robust abstractions that simplify the complex tasks of managi
 
 With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), [`useObject`](/docs/reference/ai-sdk-ui/use-object), and [`useAssistant`](/docs/reference/ai-sdk-ui/use-assistant) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
 
-Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Gemini 2.5 Flash:
+Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Gemini 3 Pro:
 
 In a new Next.js application, first install the AI SDK and the Google Generative AI provider:
 
@@ -144,14 +149,11 @@ Then, create a route handler for the chat endpoint:
 import { google } from '@ai-sdk/google';
 import { streamText, UIMessage, convertToModelMessages } from 'ai';
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
-
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3-pro-preview'),
     messages: convertToModelMessages(messages),
   });
 

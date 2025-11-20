@@ -52,6 +52,8 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
         .object({
           thinkingBudget: z.number().optional(),
           includeThoughts: z.boolean().optional(),
+          // https://ai.google.dev/gemini-api/docs/gemini-3?thinking=high#thinking_level
+          thinkingLevel: z.enum(['low', 'medium', 'high']).optional(),
         })
         .optional(),
 
@@ -158,6 +160,7 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
               '21:9',
             ])
             .optional(),
+          imageSize: z.enum(['1K', '2K', '4K']).optional(),
         })
         .optional(),
     }),

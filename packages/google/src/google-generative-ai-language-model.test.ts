@@ -1847,6 +1847,29 @@ describe('doGenerate', () => {
       }
     `);
   });
+
+  it('should pass thinkingLevel in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'high',
+        },
+      },
+    });
+  });
 });
 
 describe('doStream', () => {
