@@ -4697,6 +4697,8 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "annotations": [
                   {
+                    "end_index": 234,
+                    "start_index": 123,
                     "title": "Example URL",
                     "type": "url_citation",
                     "url": "https://example.com",
