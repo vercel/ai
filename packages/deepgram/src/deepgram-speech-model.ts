@@ -41,7 +41,7 @@ interface DeepgramSpeechModelConfig extends DeepgramConfig {
 }
 
 export class DeepgramSpeechModel implements SpeechModelV2 {
-  readonly specificationVersion = 'v3';
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
