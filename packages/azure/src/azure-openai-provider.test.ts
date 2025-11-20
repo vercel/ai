@@ -1652,24 +1652,22 @@ describe('responses', () => {
     });
   });
   describe('web search preview tool', () => {
-    prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
-
-    it('should stream web search preview results include'),
-      async () => {
-        const result = await createModel('test-deployment').doStream({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search_preview',
-              name: 'web_search_preview',
-              args: {},
-            },
-          ],
-        });
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
-      };
+    it('should stream web search preview results include', async () => {
+      prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search_preview',
+            name: 'web_search_preview',
+            args: {},
+          },
+        ],
+      });
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
   });
 });
