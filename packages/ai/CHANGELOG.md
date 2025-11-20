@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.0-beta.105
+
+### Patch Changes
+
+- Updated dependencies [bca7e61]
+  - @ai-sdk/gateway@2.0.0-beta.57
+
 ## 6.0.0-beta.104
 
 ### Patch Changes
