@@ -29,12 +29,6 @@ export async function POST(req: Request) {
     prompt,
     tools: {
       web_search_preview: azure.tools.webSearchPreview({
-        userLocation: {
-          type: 'approximate',
-          country: 'JP',
-          city: '東京',
-          region: '関東',
-        },
         searchContextSize: 'low',
       }),
     },
