@@ -4990,15 +4990,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "Example URL",
-            "type": "source",
-            "url": "https://example.com",
-          },
-          {
             "filename": "file-abc123",
-            "id": "id-1",
+            "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
               "openai": {
