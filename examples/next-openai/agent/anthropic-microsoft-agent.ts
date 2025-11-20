@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
@@ -5,7 +6,7 @@ function createAgent() {
   const resourceName = process.env.ANTHROPIC_MICROSOFT_RESOURCE_NAME;
   const apiKey = process.env.ANTHROPIC_MICROSOFT_API_KEY;
   if (!resourceName || !apiKey) {
-    throw new Error('undeinfed resource or key.');
+    throw new Error('undefined resource or key.');
   }
 
   const anthropic = createAnthropic({
