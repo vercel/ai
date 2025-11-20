@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.0-beta.104
+
+### Patch Changes
+
+- 2d166e4: feat(provider/gateway): add support for image models
+- Updated dependencies [2d166e4]
+  - @ai-sdk/gateway@2.0.0-beta.56
+
 ## 6.0.0-beta.103
 
 ### Patch Changes
