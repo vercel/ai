@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- cc5170d: feat(provider/gateway): update gateway model string autocomplete
+
 ## 2.0.0-beta.54
 
 ### Patch Changes
