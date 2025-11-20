@@ -41,13 +41,9 @@ export type GatewayModelId =
   | 'google/gemini-2.5-flash-image-preview'
   | 'google/gemini-2.5-flash-lite'
   | 'google/gemini-2.5-pro'
-<<<<<<< HEAD
-  | 'google/gemini-3-pro'
-  | 'google/gemma-2-9b'
-=======
   | 'google/gemini-3-pro-preview'
   | 'google/gemini-3-pro-image'
->>>>>>> cc5170de2 (feat(provider/gateway): update gateway model string autocomplete (#10404))
+  | 'google/gemma-2-9b'
   | 'inception/mercury-coder-small'
   | 'meituan/longcat-flash-chat'
   | 'meituan/longcat-flash-thinking'
