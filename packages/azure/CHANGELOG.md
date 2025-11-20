@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 2.0.72
+
+### Patch Changes
+
+- dafda29: Set the annotations from the Responses API to doStream
+- Updated dependencies [dafda29]
+  - @ai-sdk/openai@2.0.70
+
 ## 2.0.71
 
 ### Patch Changes

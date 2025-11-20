@@ -2536,6 +2536,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   },
   {
     "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3076,6 +3081,19 @@ providers and models, and which ones are available in the AI SDK.",
   },
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 379,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3583,6 +3601,25 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
   },
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 154,
+            "type": "file_citation",
+          },
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 382,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3664,6 +3701,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
   },
   {
     "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3806,6 +3848,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   },
   {
     "id": "msg_test",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_test",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -4250,6 +4297,43 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
   },
   {
     "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
+            "type": "url_citation",
+            "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+          },
+          {
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
+            "type": "url_citation",
+            "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+          },
+        ],
+        "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+      },
+    },
     "type": "text-end",
   },
   {

@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.70
+
+### Patch Changes
+
+- dafda29: Set the annotations from the Responses API to doStream
+
 ## 2.0.69
 
 ### Patch Changes
