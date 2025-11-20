@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.62
+
+### Patch Changes
+
+- 64aa48f: Azure OpenAI enabled web-search-preview
+
+## 3.0.0-beta.61
+
+### Patch Changes
+
+- 23f132b: fix: error schema for Responses API
+
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 0877683: feat(provider/openai): support conversations api
+
 ## 3.0.0-beta.59
 
 ### Patch Changes
