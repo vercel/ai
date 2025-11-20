@@ -282,6 +282,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
         reasoningTokens:
           response.usage.completion_tokens_details?.reasoning_tokens ??
           undefined,
+        cachedInputTokens:
+          response.usage.prompt_tokens_details?.cached_tokens ?? undefined,
       },
       request: { body },
       response: {
@@ -321,6 +323,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
@@ -380,6 +384,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
               usage.reasoningTokens =
                 value.usage.completion_tokens_details?.reasoning_tokens ??
                 undefined;
+              usage.cachedInputTokens =
+                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
             }
 
             const choice = value.choices[0];
@@ -511,9 +517,20 @@ const xaiUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  prompt_tokens_details: z
+    .object({
+      text_tokens: z.number().nullish(),
+      audio_tokens: z.number().nullish(),
+      image_tokens: z.number().nullish(),
+      cached_tokens: z.number().nullish(),
+    })
+    .nullish(),
   completion_tokens_details: z
     .object({
       reasoning_tokens: z.number().nullish(),
+      audio_tokens: z.number().nullish(),
+      accepted_prediction_tokens: z.number().nullish(),
+      rejected_prediction_tokens: z.number().nullish(),
     })
     .nullish(),
 });
