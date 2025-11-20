@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.54
+
+### Patch Changes
+
+- 5f66123: chore(provider/gateway): Update gateway language model settings
+
 ## 2.0.0-beta.53
 
 ### Patch Changes
