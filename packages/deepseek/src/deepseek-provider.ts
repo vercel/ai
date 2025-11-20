@@ -72,7 +72,7 @@ export function createDeepSeek(
 
   class DeepSeekChatLanguageModel extends OpenAICompatibleChatLanguageModel {
     private addJsonInstruction<
-      T extends Parameters<LanguageModelV3['doGenerate']>[0],
+      T extends Parameters<LanguageModelV2['doGenerate']>[0],
     >(opts: T): T {
       if (opts.responseFormat?.type !== 'json') return opts;
 
@@ -86,11 +86,11 @@ export function createDeepSeek(
       return { ...opts, prompt: adjustedPrompt } as T;
     }
 
-    async doGenerate(options: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    async doGenerate(options: Parameters<LanguageModelV2['doGenerate']>[0]) {
       return super.doGenerate(this.addJsonInstruction(options));
     }
 
-    async doStream(options: Parameters<LanguageModelV3['doStream']>[0]) {
+    async doStream(options: Parameters<LanguageModelV2['doStream']>[0]) {
       return super.doStream(this.addJsonInstruction(options));
     }
   }
