@@ -97,15 +97,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       schema: googleGenerativeAIProviderOptions,
     });
 
-    // Add warning if includeThoughts is used with a non-Vertex Google provider
+    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     if (
-      googleOptions?.thinkingConfig?.includeThoughts === true &&
+      tools?.some(
+        tool =>
+          tool.type === 'provider-defined' &&
+          tool.id === 'google.vertex_rag_store',
+      ) &&
       !this.config.provider.startsWith('google.vertex.')
     ) {
       warnings.push({
         type: 'other',
         message:
-          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
           `(${this.config.provider}).`,
       });
@@ -240,7 +244,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             outcome: part.codeExecutionResult.outcome,
             output: part.codeExecutionResult.output,
           },
-          providerExecuted: true,
         });
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
@@ -450,7 +453,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         outcome: part.codeExecutionResult.outcome,
                         output: part.codeExecutionResult.output,
                       },
-                      providerExecuted: true,
                     });
                     // Clear the ID after use.
                     lastCodeExecutionToolCallId = undefined;
@@ -683,21 +685,75 @@ function extractSources({
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
 }): undefined | LanguageModelV3Source[] {
-  return groundingMetadata?.groundingChunks
-    ?.filter(
-      (
-        chunk,
-      ): chunk is GroundingChunkSchema & {
-        web: { uri: string; title?: string };
-      } => chunk.web != null,
-    )
-    .map(chunk => ({
-      type: 'source',
-      sourceType: 'url',
-      id: generateId(),
-      url: chunk.web.uri,
-      title: chunk.web.title,
-    }));
+  if (!groundingMetadata?.groundingChunks) {
+    return undefined;
+  }
+
+  const sources: LanguageModelV3Source[] = [];
+
+  for (const chunk of groundingMetadata.groundingChunks) {
+    if (chunk.web != null) {
+      // Handle web chunks as URL sources
+      sources.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        url: chunk.web.uri,
+        title: chunk.web.title ?? undefined,
+      });
+    } else if (chunk.retrievedContext != null) {
+      // Handle retrievedContext chunks from RAG operations
+      const uri = chunk.retrievedContext.uri;
+      if (uri.startsWith('http://') || uri.startsWith('https://')) {
+        // It's a URL
+        sources.push({
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: uri,
+          title: chunk.retrievedContext.title ?? undefined,
+        });
+      } else {
+        // It's a document (gs://, file path, etc.)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
+        let mediaType = 'application/octet-stream'; // Default
+        let filename: string | undefined = undefined;
+
+        // Infer media type from URI extension
+        if (uri.endsWith('.pdf')) {
+          mediaType = 'application/pdf';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.txt')) {
+          mediaType = 'text/plain';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.docx')) {
+          mediaType =
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.doc')) {
+          mediaType = 'application/msword';
+          filename = uri.split('/').pop();
+        } else if (uri.match(/\.(md|markdown)$/)) {
+          mediaType = 'text/markdown';
+          filename = uri.split('/').pop();
+        } else {
+          // Extract filename from path for unknown types
+          filename = uri.split('/').pop();
+        }
+
+        sources.push({
+          type: 'source',
+          sourceType: 'document',
+          id: generateId(),
+          mediaType,
+          title,
+          filename,
+        });
+      }
+    }
+  }
+
+  return sources.length > 0 ? sources : undefined;
 }
 
 export const getGroundingMetadataSchema = () =>
@@ -708,9 +764,15 @@ export const getGroundingMetadataSchema = () =>
     groundingChunks: z
       .array(
         z.object({
-          web: z.object({ uri: z.string(), title: z.string() }).nullish(),
+          web: z
+            .object({ uri: z.string(), title: z.string().nullish() })
+            .nullish(),
           retrievedContext: z
-            .object({ uri: z.string(), title: z.string() })
+            .object({
+              uri: z.string(),
+              title: z.string().nullish(),
+              text: z.string().nullish(),
+            })
             .nullish(),
         }),
       )
@@ -799,6 +861,8 @@ const usageSchema = z.object({
   promptTokenCount: z.number().nullish(),
   candidatesTokenCount: z.number().nullish(),
   totalTokenCount: z.number().nullish(),
+  // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+  trafficType: z.string().nullish(),
 });
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata

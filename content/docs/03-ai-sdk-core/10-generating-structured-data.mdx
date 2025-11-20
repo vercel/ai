@@ -303,25 +303,20 @@ const { object } = await generateObject({
 
 ## Structured outputs with `generateText` and `streamText`
 
-You can generate structured data with `generateText` and `streamText` by using the `experimental_output` setting.
+You can generate structured data with `generateText` and `streamText` by using the `output` setting.
 
 <Note>
   Some models, e.g. those by OpenAI, support structured outputs and tool calling
   at the same time. This is only possible with `generateText` and `streamText`.
 </Note>
 
-<Note type="warning">
-  Structured output generation with `generateText` and `streamText` is
-  experimental and may change in the future.
-</Note>
-
 ### `generateText`
 
 ```ts highlight="2,4-18"
-// experimental_output is a structured object that matches the schema:
-const { experimental_output } = await generateText({
+// output is a structured object that matches the schema:
+const { output } = await generateText({
   // ...
-  experimental_output: Output.object({
+  output: Output.object({
     schema: z.object({
       name: z.string(),
       age: z.number().nullable().describe('Age of the person.'),
@@ -343,10 +338,10 @@ const { experimental_output } = await generateText({
 ### `streamText`
 
 ```ts highlight="2,4-18"
-// experimental_partialOutputStream contains generated partial objects:
-const { experimental_partialOutputStream } = await streamText({
+// partialOutputStream contains generated partial objects:
+const { partialOutputStream } = await streamText({
   // ...
-  experimental_output: Output.object({
+  output: Output.object({
     schema: z.object({
       name: z.string(),
       age: z.number().nullable().describe('Age of the person.'),
@@ -364,6 +359,113 @@ const { experimental_partialOutputStream } = await streamText({
   prompt: 'Generate an example person for testing.',
 });
 ```
+
+### Output Types
+
+The AI SDK supports multiple ways of specifying the expected structure of generated data via the `Output` object. You can select from various strategies for structured/text generation and validation.
+
+#### `Output.text()`
+
+Use `Output.text()` to generate plain text from a model. This option doesn't enforce any schema on the result: you simply receive the model's text as a string.
+
+```ts
+const { output } = await generateText({
+  // ...
+  output: Output.text(),
+  prompt: 'Tell me a joke.',
+});
+// output will be a string (the joke)
+```
+
+#### `Output.object()`
+
+Use `Output.object({ schema })` to generate a structured object based on a schema (for example, a Zod schema). The output is type-validated to ensure the returned result matches the schema.
+
+```ts
+const { output } = await generateText({
+  // ...
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number().nullable(),
+      labels: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate information for a test user.',
+});
+// output will be an object matching the schema above
+```
+
+Partial outputs (e.g. with `streamText`) are also validated against your provided schema, as much as possible.
+
+#### `Output.array()`
+
+Use `Output.array({ element })` to specify that you expect an array of typed objects from the model, where each element should conform to a schema.
+
+```ts
+const { output } = await generateText({
+  // ...
+  output: Output.array({
+    element: z.object({
+      location: z.string(),
+      temperature: z.number(),
+      condition: z.string(),
+    }),
+  }),
+  prompt: 'List the weather for San Francisco and Paris.',
+});
+// output will be an array of objects like:
+// [
+//   { location: 'San Francisco', temperature: 70, condition: 'Sunny' },
+//   { location: 'Paris', temperature: 65, condition: 'Cloudy' },
+// ]
+```
+
+With `Output.array`, the model is guided to return an object with an `elements` property that is an array; the SDK then extracts and validates this array for you.
+
+For more advanced validation or different structures, see [the Output API reference](/docs/reference/ai-sdk-core/output).
+
+#### `Output.choice()`
+
+Use `Output.choice({ options })` when you expect the model to choose from a specific set of string options, such as for classification or fixed-enum answers.
+
+```ts
+const { output } = await generateText({
+  // ...
+  output: Output.choice({
+    options: ['sunny', 'rainy', 'snowy'],
+  }),
+  prompt: 'Is the weather sunny, rainy, or snowy today?',
+});
+// output will be one of: 'sunny', 'rainy', or 'snowy'
+```
+
+You can provide any set of string options, and the output will always be a single string value that matches one of the specified options. The SDK validates that the result matches one of your options, and will throw if the model returns something invalid.
+
+This is especially useful for making classification-style generations or forcing valid values for API compatibility.
+
+#### `Output.json()`
+
+Use `Output.json()` when you want to generate and parse unstructured JSON values from the model, without enforcing a specific schema. This is useful if you want to capture arbitrary objects, flexible structures, or when you want to rely on the model's natural output rather than rigid validation.
+
+```ts
+const { output } = await generateText({
+  // ...
+  output: Output.json(),
+  prompt:
+    'For each city, return the current temperature and weather condition as a JSON object.',
+});
+
+// output could be any valid JSON, for example:
+// {
+//   "San Francisco": { "temperature": 70, "condition": "Sunny" },
+//   "Paris": { "temperature": 65, "condition": "Cloudy" }
+// }
+```
+
+With `Output.json`, the SDK only checks that the response is valid JSON; it doesn't validate the structure or types of the values. If you need schema validation, use the `.object` or `.array` outputs instead.
+
+This makes `Output.json()` ideal for custom or dynamic data structures, prototyping, working with unpredictable model output, or extracting information when you don't have a strict schema.
 
 ## More Examples
 
