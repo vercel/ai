@@ -837,7 +837,7 @@ importers:
         specifier: 2.0.0-beta.104
         version: link:../../packages/rsc
       '@ai-sdk/xai':
-        specifier: 3.0.0-beta.38
+        specifier: 3.0.0-beta.39
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
