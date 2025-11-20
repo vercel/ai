@@ -19,6 +19,7 @@ export const DEFAULT_MAX_IMAGES_PER_CALL_BY_PROVIDER: Record<string, number> = {
 export function getDefaultMaxImagesPerCallForModel(
   modelId: GatewayImageModelId,
 ): number | undefined {
-  const providerPrefix = typeof modelId === 'string' ? modelId.split('/')[0] : '';
+  const providerPrefix =
+    typeof modelId === 'string' ? modelId.split('/')[0] : '';
   return DEFAULT_MAX_IMAGES_PER_CALL_BY_PROVIDER[providerPrefix];
 }
