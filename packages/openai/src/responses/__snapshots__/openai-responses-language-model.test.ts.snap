@@ -2536,6 +2536,21 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   },
   {
     "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "container_id": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+            "end_index": 465,
+            "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+            "filename": "roll2dice_sums_10000.csv",
+            "start_index": 423,
+            "type": "container_file_citation",
+          },
+        ],
+        "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3076,6 +3091,19 @@ providers and models, and which ones are available in the AI SDK.",
   },
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 379,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3583,6 +3611,25 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
   },
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 154,
+            "type": "file_citation",
+          },
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 382,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3664,6 +3711,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
   },
   {
     "id": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0df93c0bb83a72f20068c97a0b36f4819ea5906451007f95e2",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3749,6 +3801,1959 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
 ]
 `;
 
+<<<<<<< HEAD
+=======
+exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp tool results (list tools, tool calls, tool results) 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0c72b1033351981300690ccf79c6d88193b7d054f4f83ad50a",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-11-06T16:40:25.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
+    "toolName": "mcp",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "serverLabel": "dmcp",
+      "tools": [
+        {
+          "annotations": {
+            "read_only": false,
+          },
+          "description": "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "numResults": {
+                "description": "Number of search results to return (default: 5)",
+                "type": "number",
+              },
+              "query": {
+                "description": "Search query",
+                "type": "string",
+              },
+            },
+            "required": [
+              "query",
+            ],
+            "type": "object",
+          },
+          "name": "web_search_exa",
+        },
+        {
+          "annotations": {
+            "read_only": false,
+          },
+          "description": "Search and get relevant context for any programming task. Exa-code has the highest quality and freshest context for libraries, SDKs, and APIs. Use this tool for ANY question or task for related to programming. RULE: when the user's query contains exa-code or anything related to code, you MUST use this tool.",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "query": {
+                "description": "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'",
+                "type": "string",
+              },
+              "tokensNum": {
+                "default": 5000,
+                "description": "Number of tokens to return (1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.",
+                "maximum": 50000,
+                "minimum": 1000,
+                "type": "number",
+              },
+            },
+            "required": [
+              "query",
+            ],
+            "type": "object",
+          },
+          "name": "get_code_context_exa",
+        },
+      ],
+      "type": "listTools",
+    },
+    "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
+    "toolName": "mcp",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0c72b1033351981300690ccf7c6ea4819383a27ac8faae82a2:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0c72b1033351981300690ccf7c6ea4819383a27ac8faae82a2",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0c72b1033351981300690ccf7c6ea4819383a27ac8faae82a2:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0c72b1033351981300690ccf7c6ea4819383a27ac8faae82a2",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
+    "toolName": "mcp",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "arguments": "{"query":"2025 New York City mayoral election results Nov 2025 latest results", "numResults": 5}",
+      "name": "web_search_exa",
+      "output": "{"requestId": "d9c62fa7c1129e16e2131c3996ea8f6b", "autoDate": "2025-11-01T00:00:00.000Z", "resolvedSearchType": "neural", "results": [{"id": "https://www.nbcnews.com/politics/2025-elections/new-york-city-mayor-results", "title": "NYC Mayor Election 2025 Live Results - NBC News", "url": "https://www.nbcnews.com/politics/2025-elections/new-york-city-mayor-results", "publishedDate": "2025-11-06T12:27:04.000Z", "author": "", "text": "[Skip to Results](https://www.nbcnews.com/www.nbcnews.com#content)\\n\\nIE 11 is not supported. For an optimal experience visit our site on another browser.\\n\\nLive\\n\\nLast update 7:27 AM ET\\n\\n# New York City Mayor Results 2025\\n\\nDemocratic nominee Zohran Mamdani defeated former Gov. Andrew Cuomo, who ran as a third-party candidate, after also defeating Cuomo in a June primary. Republican Curtis Sliwa was also in the race. Incumbent Mayor Eric Adams was also running as a third-party hopeful but dropped out of the race this fall, though his name still appeared on ballots.\\n\\n## New York City\\n\\nProjected winner\\n\\nZOHRAN MAMDANI wins the New York City mayor race\\n\\nCandidate\\n\\nParty\\n\\nVotes\\n\\nPct.Percentage\\n\\n| Candidate | Party | Votes | Percentage |\\n| --- | --- | --- | --- |\\n| Zohran Mamdani Joseph Hernandez | D | 0 | 50.4% |\\n| Andrew Cuomo Joseph Hernandez | I | 0 | 41.6% |\\n| Curtis Sliwa Joseph Hernandez | R | 0 | 7.1% |\\n| Total | 2,055,921 |\\n\\n- view fewer candidates+ view all candidates\\n\\n93.5% expected votes in(Est. remaining 145,000)\\n\\n93.5% expected votes in(Est. remaining 145,000)\\n\\n## Mayor Borough Results\\n\\nMAP VIEW:\\n\\n- borough\\n- Size of lead\\n- Est. Remaining votes\\n\\nSearch for a borough\\n\\nSORT BY:\\n\\n- borough\\n- Votes in\\n\\nborough\\n\\nCandidate\\n\\nParty\\n\\nVotes\\n\\nPct.Percentage\\n\\nBronxBronx223,042 votes94.2% in\\n\\n| Candidate | Party | Votes | Percentage |\\n| --- | --- | --- | --- |\\n| Z. MamdaniZohran Mamdani J. HernandezJoseph Hernandez | D | 0 | 51.5% |\\n| A. CuomoAndrew Cuomo J. HernandezJoseph Hernandez | I | 0 | 40.3% |\\n| C. SliwaCurtis Sliwa J. HernandezJoseph Hernandez | R | 0 | 7.1% |\\n\\n- view fewer+ view all\\n\\nBrooklynBrooklyn658,199 votes93.3% in\\n\\n| Candidate | Party | Votes | Percentage |\\n| --- | --- | --- | --- |\\n| Z. MamdaniZohran Mamdani J. HernandezJoseph Hernandez | D | 0 | 56.8% |\\n| A. CuomoAndrew Cuomo J. HernandezJoseph Hernandez | I | 0 | 37.3% |\\n| C. SliwaCurtis Sliwa J. HernandezJoseph Hernandez | R | 0 | 4.9% |\\n\\n- view fewer+ view all\\n\\nManhattanManhattan521,767 votes92.6% in\\n\\n", "image": "https://media-cldnry.s-nbcnews.com/image/upload/f_auto/v1762187960/firecracker/cms-images/2025/og-2025-newyork-mayor.png", "favicon": "https://nodeassets.nbcnews.com/cdnassets/projects/ramen/favicon/nbcnews/all-other-sizes-PNG.ico/favicon-32x32.png"}, {"id": "https://www.washingtonpost.com/elections/results/2025/11/04/new-york-city-mayor-results/", "title": "New York City mayor election results 2025 live updates", "url": "https://www.washingtonpost.com/elections/results/2025/11/04/new-york-city-mayor-results/", "publishedDate": "2025-11-04T00:00:00.000Z", "author": "Washington Post staff", "text": "Democracy Dies in Darkness\\n\\nBy Washington Post staff\\n\\nZohran Mamdani, a 34-year-old New York assemblyman and [democratic socialist](https://www.washingtonpost.com/politics/2025/10/28/mamdani-newyork-socialist-democrats/), has won New York\\u2019s mayoral race, according to a projection by the Associated Press. He faced Republican Curtis Sliwa and former New York governor Andrew M. Cuomo, who [lost the Democratic primary](https://www.washingtonpost.com/politics/2025/07/01/zohran-mamdani-wins-nyc-mayor-democratic-primary/) against Mamdani and ran as an independent in the general election.\\n\\nMamdani will become the city\\u2019s [first Muslim mayor](https://www.washingtonpost.com/nation/2025/10/18/new-york-city-mamdani-cuomo-mayors-election/) and is the youngest person in a century to win City Hall.\\n\\nMore Election 2025 results\\n\\nThe Post is tracking results across the country for the 2025 election.\\n\\n[**Virginia election results**](https://www.washingtonpost.com/elections/results/2025/11/04/virginia-election-results-live/) **:** [Governor](https://www.washingtonpost.com/elections/results/2025/11/04/virginia-governor-results/) \\\\| [Lieutenant Governor](https://www.washingtonpost.com/elections/results/2025/11/04/virginia-lieutenant-governor-results/) \\\\| [Attorney General](https://www.washingtonpost.com/elections/results/2025/11/04/virginia-attorney-general-results/) \\\\| [House of Delegates](https://www.washingtonpost.com/elections/results/2025/11/04/virginia-house-delegates-results/)\\n\\n**Mayoral races:** [New York City](https://www.washingtonpost.com/elections/results/2025/11/04/new-york-city-mayor-results/) \\\\| [Atlanta](https://www.washingtonpost.com/elections/results/2025/11/04/atlanta-mayor-results/) \\\\| [Cincinnati](https://www.washingtonpost.com/elections/results/2025/11/04/cincinnati-mayor-results/) \\\\| [Detroit](https://www.washingtonpost.com/elections/results/2025/11/04/detroit-mayor-results/) \\\\| [Jersey City](https://www.washingtonpost.com/elections/results/2025/11/04/jersey-city-ma", "image": "https://www.washingtonpost.com/wp-apps/imrs.php?src=https://arc-anglerfish-washpost-prod-washpost.s3.amazonaws.com/public/65F3GOUVLVERRF7IDJ3QR4U7NE.jpg&w=1440", "favicon": "https://www.washingtonpost.com/favicon.svg"}, {"id": "https://www.cbsnews.com/newyork/live-updates/nyc-election-results-2025/", "title": "Zohran Mamdani claims victory in NYC mayor's race, promises ...", "url": "https://www.cbsnews.com/newyork/live-updates/nyc-election-results-2025/", "publishedDate": "2025-11-05T16:32:19.000Z", "author": "Renee  Anderson, Jesse  Zanger", "text": "- [All News](https://www.cbsnews.com/newyork/local-news/)\\n- [NY News](https://www.cbsnews.com/newyork/local-news/new-york/)\\n- [Bronx News](https://www.cbsnews.com/newyork/local-news/bronx-news)\\n- [Brooklyn News](https://www.cbsnews.com/newyork/local-news/brooklyn-news/)\\n- [Harlem News](https://www.cbsnews.com/newyork/local-news/harlem-news/)\\n- [Long Island News](https://www.cbsnews.com/newyork/local-news/long-island/)\\n- [Northern Suburbs](https://www.cbsnews.com/newyork/local-news/northern-suburbs/)\\n- [Queens News](https://www.cbsnews.com/newyork/local-news/queens-news/)\\n- [NJ News](https://www.cbsnews.com/newyork/local-news/new-jersey/)\\n- [CT News](https://www.cbsnews.com/newyork/local-news/connecticut/)\\n- [Investigations](https://www.cbsnews.com/newyork/feature/cbs-new-york-investigates/)\\n- [Politics](https://www.cbsnews.com/newyork/politics/)\\n- [Education](https://www.cbsnews.com/newyork/local-news/education/)\\n- [Transportation](https://www.cbsnews.com/newyork/transportation/)\\n- [Crime](https://www.cbsnews.com/newyork/crime/)\\n- [Housing](https://www.cbsnews.com/newyork/local-news/housing/)\\n- [Arts & Entertainment](https://www.cbsnews.com/newyork/entertainment/)\\n- [Climate & Environment](https://www.cbsnews.com/newyork/local-news/environment/)\\n- [Health & Wellness](https://www.cbsnews.com/newyork/health/)\\n- [Aging & Caregiving](https://www.cbsnews.com/newyork/local-news/aging-caregiving/)\\n\\n- [First Alert Weather](https://www.cbsnews.com/newyork/weather/)\\n- [Radars & Maps](https://www.cbsnews.com/newyork/weather/tri-state-radar/)\\n- [CBS2 Weather Map](https://www.cbsnews.com/newyork/weather/temperature/)\\n- [CBS2 Weather Watchers](https://www.cbsnews.com/newyork/weather/cbs2-weather-watchers/)\\n- [First Alert Weather 101](https://www.cbsnews.com/newyork/news/sign-up-for-a-first-alert-weather-101-class-at-your-school/)\\n- [Share Photos & Videos](https://app.cimediacloud.com/file-request/K9C2AIBW#/add-files)\\n\\n- [All Sports](https://www.cbsnews.com/newyork/sports/)\\n- [Gia", "image": "https://assets1.cbsnewsstatic.com/hub/i/r/2025/11/05/583a9654-7b91-4655-bf85-6011fd8743e9/thumbnail/1200x630/08ba0b3d1995a4331a69c1a5b2942574/election-mamdani-pool-hi-res-still-23-18-5609.jpg", "favicon": "https://www.cbsnews.com/fly/bundles/cbsnewscore/icons/icon-32x32.png"}, {"id": "https://abcnews.go.com/Politics/new-york-city-2025-mayoral-election-results-mamdani/story?id=126345335", "title": "New York City mayoral election results: Zohran Mamdani is projected winner in history-making victory", "url": "https://abcnews.go.com/Politics/new-york-city-2025-mayoral-election-results-mamdani/story?id=126345335", "publishedDate": "2025-11-05T05:11:16.000Z", "author": "ABC News", "text": "# New York City mayoral election results: Zohran Mamdani is projected winner in history-making victory\\n\\nFollow live election results and candidate updates for NYC\\u2019s mayoral race.\\n\\nBy[Oren Oppenheim](https://abcnews.go.com/author/oren_oppenheim)\\n\\nNovember 5, 2025, 2:39 AM\\n\\nABC News projects Democratic candidate Zohran Mamdani will win the race for New York City mayor, in a history-making victory over former Gov. Andrew Cuomo, a Democrat who was running as an independent, and Republican candidate Curtis Sliwa.\\n\\nMamdani, 34, a state Assemblyman and democratic socialist who campaigned on a progressive economic platform, is set to become the city's first Muslim and South Asian mayor in an election that saw more than 2 million voters pack the polls -- the highest turnout for a mayoral election since 1969.\\n\\nNew York City mayoral candidates, Andrew Cuomo, Oct. 7, 2025, Zohran Mamdani, Oct. 8, 2025 and Curtis Sliwa, Sept. 13, 2025.\\n\\nGetty Images\\n\\nWith about 60% of the expected vote reporting, Mamdani was leading with 50% of the vote, followed by Cuomo at 42% and Sliwa with 8%.\\n\\n[**NYC mayoral race in the national spotlight as voters make final decisions**\\\\\\n\\\\\\n- Nov 4, 10:01 AM](https://abcnews.go.com/Politics/national-spotlight-shines-nyc-mayoral-race-voters-make/story?id=127075101)\\n\\n[**Election Day live updates: Mamdani celebrates victory in 'reborn' New York City**\\\\\\n\\\\\\n- 29 minutes ago](https://abcnews.go.com/US/live-updates/election-day-live-updates-key-races-unfold-new/?id=127143118)\\n\\n[**'Mass chaos': Duffy says he might have to close some airspace next week amid shutdown**\\\\\\n\\\\\\n- Nov 4, 5:44 PM](https://abcnews.go.com/US/department-transportation-forced-shut-airspace-week-duffy/story?id=127178219)\\n\\nMamdani had remained the front-runner since clinching the Democratic primary and notched key endorsements from figures such as Gov. Kathy Hochul. But he faced some backlash over the feasibility of his proposals and current or former views on issues such as policing.\\n\\nCuomo, 67, h", "image": "https://i.abcnewsfe.com/a/ea145a04-8183-4225-8d15-c6e23385ae0f/nyc-mayor-gty-gmh-251009_1760019839052_hpMain_16x9.jpg?w=1600", "favicon": "https://s.abcnews.com/assets/dtci/images/favicon.ico"}, {"id": "https://www.cnn.com/election/2025/results/mayor-results", "title": "Mayoral election results | CNN Politics", "url": "https://www.cnn.com/election/2025/results/mayor-results", "publishedDate": "2025-11-05T16:35:00.000Z", "author": "Gene Armstrong", "text": "# Mayoral election results\\n\\nUpdated\\n4:35 PM EST, Wed November 5, 2025\\n\\nLink Copied!\\n\\n### New York City\\n\\nState Assemblyman Zohran Mamdani, a democratic socialist, will be the next mayor of the nation\\u2019s largest city. He defeated former Gov. Andrew Cuomo, who ran as an independent candidate after losing to Mamdani in the primary, as well as Republican Curtis Sliwa. Current mayor Eric Adams ran an independent campaign but dropped out and endorsed Cuomo.\\n\\nAd Feedback\\n\\n### Cincinnati\\n\\nMayor Aftab Pureval defeated Vice President JD Vance\\u2019s half-brother, pastor and coffee shop owner Cory Bowman. The race is officially nonpartisan, but Pureval is a Democrat and Bowman is a Republican.\\n\\n### Atlanta\\n\\nMayor Andre Dickens won another four years in the office he\\u2019s held since 2022. He faced three opponents, including an LGBTQ advocate, a former police officer and a community organizer.\\n\\n### Detroit\\n\\nCity Council President Mary Sheffield will become Detroit\\u2019s first female mayor after defeating Reverend Solomon Kinloch, who has never held elected office. The mayor\\u2019s race in Detroit was open after incumbent Mayor Mike Duggan announced he would not run for another term in office, opting instead to run as an independent for governor of Michigan.\\n\\nAd Feedback\\n\\n### Jersey City\\n\\nFormer New Jersey Gov. Jim McGreevey faces a wide field as he attempts to make a political comeback more than 20 years after resigning. McGreevey and city council member James Solomon advanced to a runoff.\\n\\n### Pittsburgh\\n\\nDemocrat Corey O\\u2019Connor, the Allegheny County controller and son of former Pittsburgh mayor Bob O\\u2019Connor, defeated Republican former policeman Tony Moreno. O\\u2019Connor made waves earlier this year when he defeated incumbent Mayor Ed Gainey in the primary.\\n\\n### Buffalo\\n\\nIn the Democratic primary, state Sen. Sean Ryan defeated Christopher Scanlon, who has served as Buffalo\\u2019s acting mayor since the elected mayor, Byron Brown, resigned in October 2024. It was the second time in a row that the city\\u2019s si", "image": "https://media.cnn.com/api/v1/images/stellar/prod/election-center-2025.png?c=16x9&q=w_800,c_fill", "favicon": "https://www.cnn.com/media/sites/cnn/apple-touch-icon.png"}], "requestTags": {"flagsEnabledInPosthog": "experiment_auto_join,fallback_keyword_to_neural,fallback_neural_to_keyword,hybrid_for_auto,lang_filter,langfuse_search_logging,llm_gateway,markdown_contents,neosnippets,race_providers_for_query_cache,redirect_classifier_active,redirect_classifier_shadow,reranker_with_date,research_enabled,snippets_strategy:default,sranker_qwen_medium_trt,sranker_qwen_medium_trt_for_auto,sranker_qwen_medium_trt_for_fast,sranker_qwen_medium_trt_for_hybrid,type_hybrid_merge_chicken_index_at_35,use_dynamo_db_with_query_cache,use_exa21,use_exaperson_v1_latest,use_kronos_answer_active,use_kronos_answer_shadow,use_modal_embeddings,use_moderated_index,use_new_atlas,use_new_atlas_keyword,use_query_cache_sparse_for_fast,use_query_cache_sparse_for_hybrid,use_s3e_race,use_zilliz_for_query_cache", "flagsEnabledInRequest": "", "enabledFlags": "experiment_auto_join,fallback_keyword_to_neural,fallback_neural_to_keyword,hybrid_for_auto,lang_filter,langfuse_search_logging,llm_gateway,markdown_contents,neosnippets,race_providers_for_query_cache,redirect_classifier_active,redirect_classifier_shadow,reranker_with_date,research_enabled,snippets_strategy:default,sranker_qwen_medium_trt,sranker_qwen_medium_trt_for_auto,sranker_qwen_medium_trt_for_fast,sranker_qwen_medium_trt_for_hybrid,type_hybrid_merge_chicken_index_at_35,use_dynamo_db_with_query_cache,use_exa21,use_exaperson_v1_latest,use_kronos_answer_active,use_kronos_answer_shadow,use_modal_embeddings,use_moderated_index,use_new_atlas,use_new_atlas_keyword,use_query_cache_sparse_for_fast,use_query_cache_sparse_for_hybrid,use_s3e_race,use_zilliz_for_query_cache", "initialSearchType": "auto", "didIncludeText": "no", "didExcludeText": "no", "didIncludeDomains": "no", "didExcludeDomains": "no", "didIncludeUrls": "no", "didExcludeUrls": "no", "moderation": "no", "didUseDateFilters": "no", "category": "none", "didUseAutoprompt": "no", "hasUserLocation": "no", "didRequestContentText": true, "didRequestContentHighlights": false, "didRequestContentSummary": false, "livecrawl": "preferred", "requestedLinks": "no", "willPostRerankNeural": "yes", "willPostModerate": false, "searchTypeBranch": "auto", "autoBranch": {"neuralSearch": {"sierra": {"query": "2025 New York City mayoral election results Nov 2025 latest results", "flags": "experiment_auto_join,fallback_keyword_to_neural,fallback_neural_to_keyword,hybrid_for_auto,lang_filter,langfuse_search_logging,llm_gateway,markdown_contents,neosnippets,race_providers_for_query_cache,redirect_classifier_active,redirect_classifier_shadow,reranker_with_date,research_enabled,snippets_strategy:default,sranker_qwen_medium_trt,sranker_qwen_medium_trt_for_auto,sranker_qwen_medium_trt_for_fast,sranker_qwen_medium_trt_for_hybrid,type_hybrid_merge_chicken_index_at_35,use_dynamo_db_with_query_cache,use_exaperson_v1_latest,use_kronos_answer_active,use_kronos_answer_shadow,use_modal_embeddings,use_moderated_index,use_new_atlas_keyword,use_query_cache_sparse_for_fast,use_query_cache_sparse_for_hybrid,use_s3e_race,use_zilliz_for_query_cache,use_exa21", "filters": {"moderation": "blacklisted", "moderationConfig": {"llamaguardS1": false, "llamaguardS3": false, "llamaguardS4": false, "llamaguardS12": false, "domainBlacklisted": false, "domainBlacklistedMedia": false}}, "queryDateString": "2025-11-06", "numResultsRequested": 35, "engine": "default", "isTweetCategory": false, "sierraTime": 150.91307300003245, "numResultsReturned": 32}, "fetchContents": {"contentExpansion": {"failedContents": []}, "contentsResultsCount": 32, "filteredResultsCount": 0}}, "keywordSearch": {"query": "2025 New York City mayoral election results Nov 2025 latest results", "modifiedQuery": "2025 New York City mayoral election results Nov 2025 latest results", "slicedAmount": 0, "searchData": {"q": "2025 New York City mayoral election results Nov 2025 latest results", "num": 10, "safe": "active"}, "opts": {"snippetMode": "snippet", "addAnswerBox": true, "addKnowledgeGraph": true, "addPeopleAlsoAsk": false, "allowEmptyAnswerLinks": false, "providers": [{"provider": "serper", "startAfterMs": 0, "timeoutMs": 10000}], "timeoutMs": 10000, "teamId": "cm60snyw00011cfcxf2vbwp8n"}, "serperSource": "regular", "relatedQueries": ["New York mayoral election results 2025", "NJ election results", "Virginia election results", "Nyc election results AP", "New Jersey mayor election", "Mamdani New York", "Minneapolis mayor election", "New York Mayor Zohran"], "success": true, "numResultsRequested": 5, "numResultsReturned": 10, "fetchContents": {"contentExpansion": {"failedContents": ["https://www.nytimes.com/interactive/2025/11/04/us/elections/results-new-york-city-mayor.html", "https://www.nytimes.com/interactive/2025/11/04/us/elections/results-new-york-city-mayor.html"]}, "contentsResultsCount": 8, "filteredResultsCount": 0}}, "neitherFailed": true, "autoJoin": true, "autoJoinRerank": {"reranker": {"withModeration": false, "preserveUnranked": true, "strategy": {"strategy": "modal_sranker_qwen_trt", "default": true}, "strategy_decided": "modal_sranker_qwen_trt", "strategy_reason": "explicit_strategy", "isQdf": false}}, "autoJoinResults": "35"}, "decidedAutoType": "neural", "resolvedSearchType": "neural", "autoType": "neural", "decidedResultsLength": 5, "totalFilterCount": "11", "contextExpansionNeeded": "not-needed", "finalResultsCount": 5, "searchTime": 5436.7, "path": "/search", "method": "POST", "teamId": "cm60snyw00011cfcxf2vbwp8n"}, "effectiveFilters": {"includeDomains": [], "excludeDomains": [], "includeUrls": [], "excludeUrls": [], "includeText": [], "excludeText": []}, "searchTime": 5436.7, "costDollars": {"total": 0.01, "search": {"neural": 0.005}, "contents": {"text": 0.005}}}",
+      "serverLabel": "dmcp",
+      "type": "call",
+    },
+    "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
+    "toolName": "mcp",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0c72b1033351981300690ccf8826a88193bf4cb6521d9da046:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0c72b1033351981300690ccf8826a88193bf4cb6521d9da046",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0c72b1033351981300690ccf8826a88193bf4cb6521d9da046:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0c72b1033351981300690ccf8826a88193bf4cb6521d9da046",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
+    "toolName": "mcp",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "arguments": "{"query":"NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "numResults":5}",
+      "name": "web_search_exa",
+      "output": "{"requestId": "7ff4bca9a3c9eadc6acd476d6aa02547", "resolvedSearchType": "neural", "results": [{"id": "https://www.nbcnews.com/politics/2025-elections/new-york-city-mayor-results", "title": "New York City Mayor Results 2025", "url": "https://www.nbcnews.com/politics/2025-elections/new-york-city-mayor-results", "publishedDate": "2025-11-06T12:27:04.000Z", "author": "", "text": "[Skip to Results](https://www.nbcnews.com/www.nbcnews.com#content)\\n\\nIE 11 is not supported. For an optimal experience visit our site on another browser.\\n\\nLive\\n\\nLast update 7:27 AM ET\\n\\n# New York City Mayor Results 2025\\n\\nDemocratic nominee Zohran Mamdani defeated former Gov. Andrew Cuomo, who ran as a third-party candidate, after also defeating Cuomo in a June primary. Republican Curtis Sliwa was also in the race. Incumbent Mayor Eric Adams was also running as a third-party hopeful but dropped out of the race this fall, though his name still appeared on ballots.\\n\\n## New York City\\n\\nProjected winner\\n\\nZOHRAN MAMDANI wins the New York City mayor race\\n\\nCandidate\\n\\nParty\\n\\nVotes\\n\\nPct.Percentage\\n\\n| Candidate | Party | Votes | Percentage |\\n| --- | --- | --- | --- |\\n| Zohran Mamdani Joseph Hernandez | D | 0 | 50.4% |\\n| Andrew Cuomo Joseph Hernandez | I | 0 | 41.6% |\\n| Curtis Sliwa Joseph Hernandez | R | 0 | 7.1% |\\n| Total | 2,055,921 |\\n\\n- view fewer candidates+ view all candidates\\n\\n93.5% expected votes in(Est. remaining 145,000)\\n\\n93.5% expected votes in(Est. remaining 145,000)\\n\\n## Mayor Borough Results\\n\\nMAP VIEW:\\n\\n- borough\\n- Size of lead\\n- Est. Remaining votes\\n\\nSearch for a borough\\n\\nSORT BY:\\n\\n- borough\\n- Votes in\\n\\nborough\\n\\nCandidate\\n\\nParty\\n\\nVotes\\n\\nPct.Percentage\\n\\nBronxBronx223,042 votes94.2% in\\n\\n| Candidate | Party | Votes | Percentage |\\n| --- | --- | --- | --- |\\n| Z. MamdaniZohran Mamdani J. HernandezJoseph Hernandez | D | 0 | 51.5% |\\n| A. CuomoAndrew Cuomo J. HernandezJoseph Hernandez | I | 0 | 40.3% |\\n| C. SliwaCurtis Sliwa J. HernandezJoseph Hernandez | R | 0 | 7.1% |\\n\\n- view fewer+ view all\\n\\nBrooklynBrooklyn658,199 votes93.3% in\\n\\n| Candidate | Party | Votes | Percentage |\\n| --- | --- | --- | --- |\\n| Z. MamdaniZohran Mamdani J. HernandezJoseph Hernandez | D | 0 | 56.8% |\\n| A. CuomoAndrew Cuomo J. HernandezJoseph Hernandez | I | 0 | 37.3% |\\n| C. SliwaCurtis Sliwa J. HernandezJoseph Hernandez | R | 0 | 4.9% |\\n\\n- view fewer+ view all\\n\\nManhattanManhattan521,767 votes92.6% in\\n\\n", "image": "https://media-cldnry.s-nbcnews.com/image/upload/f_auto/v1762187960/firecracker/cms-images/2025/og-2025-newyork-mayor.png", "favicon": "https://nodeassets.nbcnews.com/cdnassets/projects/ramen/favicon/nbcnews/all-other-sizes-PNG.ico/favicon-32x32.png"}, {"id": "https://abc7ny.com/live-updates/election-day-2025-nyc-mayoral-race-nj-governor-live-results-updates/18108070/", "title": "Election results: Zohran Mamdani wins NYC mayor, Mikie Sherrill ...", "url": "https://abc7ny.com/live-updates/election-day-2025-nyc-mayoral-race-nj-governor-live-results-updates/18108070/", "publishedDate": "2025-11-05T20:48:19.000Z", "author": "Eyewitness News", "text": "Welcome, Mickey\\n\\nmickey@disney.com\\n\\nManage MyDisney Account\\n\\nLog Out\\n\\nLive\\n\\n- [POLITICS](https://abc7ny.com/topic/politics/)\\n\\n# Election results: Zohran Mamdani wins NYC mayor, Mikie Sherrill wins NJ governor\\n\\nByEyewitness News\\n\\nLast updated: Wednesday, November 5, 2025 8:48PM GMT\\n\\nStream New York's #1 news - AccuWeather - original content 24/7\\n\\nNEW YORK (WABC) -- Zohran Mamdani has been elected mayor of New York City, defeating former Gov. Andrew Cuomo and Republican Curtis Sliwa.\\n\\nWith the victory, the democratic socialist will etch his place in history as the city's first Muslim mayor, the first of South Asian heritage and the first born in Africa. He will also become the city's youngest mayor in more than a century when he takes office on Jan. 1.\\n\\nDemocratic U.S. Rep. Mikie Sherrill has been elected governor of New Jersey.\\n\\nThe four-term member of Congress centered her campaign on her biography as a Navy helicopter pilot and former prosecutor who would stand up to President Donald Trump.\\n\\nShe will be New Jersey's second female governor.\\n\\nCiattarelli lost his second straight governor's election after coming within a few points of defeating Gov. Phil Murphy four years ago.\\n\\n## Key Headlines\\n\\n- Nov 05, 2025, 4:41 PM GMT\\n\\n[Mamdani appoints transition team](https://abc7ny.com/live-updates/election-day-2025-nyc-mayoral-race-nj-governor-live-results-updates/18108070/entry/18116827/)\\n\\n- Nov 05, 2025, 3:43 PM GMT\\n\\n[Voters gave Mamdani 'mandate' to pursue agenda, New York City mayor-elect says on GMA](https://abc7ny.com/live-updates/election-day-2025-nyc-mayoral-race-nj-governor-live-results-updates/18108070/entry/18116646/)\\n\\n- Nov 05, 2025, 1:09 PM GMT\\n\\n[McGreevey, Solomon advance to runoff in race for Jersey City mayor](https://abc7ny.com/live-updates/election-day-2025-nyc-mayoral-race-nj-governor-live-results-updates/18108070/entry/18116169/)\\n\\n- Nov 05, 2025, 4:56 AM GMT\\n\\n[A closer look: NYC mayoral race winner per election district](https://abc7ny.com/live-updates/ele", "image": "https://cdn.abcotvs.com/dip/images/18114795_110425-wabc-mamdani-sherrill-ap-new-img.jpg?w=1600", "favicon": "https://cdn.abcotvs.net/abcotv/assets/news/wabc/images/logos/favicon.ico"}, {"id": "https://www.cbsnews.com/newyork/live-updates/nyc-election-results-2025/", "title": "Zohran Mamdani claims victory in NYC mayor's race, promises \\"relentless improvement\\"", "url": "https://www.cbsnews.com/newyork/live-updates/nyc-election-results-2025/", "publishedDate": "2025-11-05T16:32:19.000Z", "author": "Renee  Anderson, Jesse  Zanger", "text": "- [All News](https://www.cbsnews.com/newyork/local-news/)\\n- [NY News](https://www.cbsnews.com/newyork/local-news/new-york/)\\n- [Bronx News](https://www.cbsnews.com/newyork/local-news/bronx-news)\\n- [Brooklyn News](https://www.cbsnews.com/newyork/local-news/brooklyn-news/)\\n- [Harlem News](https://www.cbsnews.com/newyork/local-news/harlem-news/)\\n- [Long Island News](https://www.cbsnews.com/newyork/local-news/long-island/)\\n- [Northern Suburbs](https://www.cbsnews.com/newyork/local-news/northern-suburbs/)\\n- [Queens News](https://www.cbsnews.com/newyork/local-news/queens-news/)\\n- [NJ News](https://www.cbsnews.com/newyork/local-news/new-jersey/)\\n- [CT News](https://www.cbsnews.com/newyork/local-news/connecticut/)\\n- [Investigations](https://www.cbsnews.com/newyork/feature/cbs-new-york-investigates/)\\n- [Politics](https://www.cbsnews.com/newyork/politics/)\\n- [Education](https://www.cbsnews.com/newyork/local-news/education/)\\n- [Transportation](https://www.cbsnews.com/newyork/transportation/)\\n- [Crime](https://www.cbsnews.com/newyork/crime/)\\n- [Housing](https://www.cbsnews.com/newyork/local-news/housing/)\\n- [Arts & Entertainment](https://www.cbsnews.com/newyork/entertainment/)\\n- [Climate & Environment](https://www.cbsnews.com/newyork/local-news/environment/)\\n- [Health & Wellness](https://www.cbsnews.com/newyork/health/)\\n- [Aging & Caregiving](https://www.cbsnews.com/newyork/local-news/aging-caregiving/)\\n\\n- [First Alert Weather](https://www.cbsnews.com/newyork/weather/)\\n- [Radars & Maps](https://www.cbsnews.com/newyork/weather/tri-state-radar/)\\n- [CBS2 Weather Map](https://www.cbsnews.com/newyork/weather/temperature/)\\n- [CBS2 Weather Watchers](https://www.cbsnews.com/newyork/weather/cbs2-weather-watchers/)\\n- [First Alert Weather 101](https://www.cbsnews.com/newyork/news/sign-up-for-a-first-alert-weather-101-class-at-your-school/)\\n- [Share Photos & Videos](https://app.cimediacloud.com/file-request/K9C2AIBW#/add-files)\\n\\n- [All Sports](https://www.cbsnews.com/newyork/sports/)\\n- [Gia", "image": "https://assets1.cbsnewsstatic.com/hub/i/r/2025/11/05/583a9654-7b91-4655-bf85-6011fd8743e9/thumbnail/1200x630/08ba0b3d1995a4331a69c1a5b2942574/election-mamdani-pool-hi-res-still-23-18-5609.jpg", "favicon": "https://www.cbsnews.com/fly/bundles/cbsnewscore/icons/icon-32x32.png"}, {"id": "https://www.cnn.com/election/2025/results/new-york-city-mayor", "title": "New York City mayoral election results | CNN Politics", "url": "https://www.cnn.com/election/2025/results/new-york-city-mayor", "publishedDate": "2025-11-05T16:34:00.000Z", "author": "Gene Armstrong", "text": "# New York City mayoral election results\\n\\nUpdated\\n4:34 PM EST, Wed November 5, 2025\\n\\nLink Copied!\\n\\nState Assemblyman Zohran Mamdani, a democratic socialist, will be the next mayor of the nation\\u2019s largest city. [He defeated former Gov. Andrew Cuomo](https://www.cnn.com/2025/11/04/politics/nyc-mayor-zohran-mamdani-wins), who ran as an independent candidate after losing to Mamdani in the primary, as well as Republican Curtis Sliwa. Current mayor Eric Adams ran an independent campaign but dropped out and endorsed Cuomo.\\n\\n**Source**: Results data via The Associated Press; Projections by CNN\\n\\nAd Feedback", "image": "https://media.cnn.com/api/v1/images/stellar/prod/election-center-2025.png?c=16x9&q=w_800,c_fill", "favicon": "https://www.cnn.com/media/sites/cnn/apple-touch-icon.png"}, {"id": "https://www.npr.org/2025/11/04/nx-s1-5597788/election-results-zohran-mamdani-new-york-city-mayor", "title": "Zohran Mamdani wins NYC mayoral race : NPR", "url": "https://www.npr.org/2025/11/04/nx-s1-5597788/election-results-zohran-mamdani-new-york-city-mayor", "publishedDate": "2025-11-04T00:00:00.000Z", "author": "By", "text": "Accessibility links\\n\\n- [Skip to main content](https://www.npr.org/www.npr.org#mainContent)\\n- [Keyboard shortcuts for audio player](https://help.npr.org/contact/s/article?name=what-are-the-keyboard-shortcuts-for-using-the-npr-org-audio-player)\\n\\n**Zohran Mamdani wins NYC mayoral race** **Mamdani, a democratic socialist and state assemblymember, will make history as the first Muslim and South Asian person \\u2014 as well as the youngest in over a century \\u2014 to serve as New York City mayor.**\\n\\n### [Elections](https://www.npr.org/sections/elections/)\\n\\n# Mamdani wins New York City mayoral race, in a historic victory for progressives\\n\\nUpdated November 5, 20252:06 AM ETOriginally published November 4, 20259:35 PM ET\\n\\nBy\\n\\n[Rachel Treisman](https://www.npr.org/people/776048102/rachel-treisman)\\n\\n,\\n\\n[Brian Mann](https://www.npr.org/people/935764762/brian-mann)\\n\\nMayor-elect Zohran Mamdani, right, and his wife, Rama Duwaji, react to supporters during an election night watch party, Tuesday in New York.\\n**Keren Carri\\u00f3n/NPR** **hide caption**\\n\\n**toggle caption**\\n\\nKeren Carri\\u00f3n/NPR\\n\\nBROOKLYN, N.Y. - Zohran Mamdani will be the next mayor of New York City, becoming the first Muslim and person of South Asian descent \\u2014 as well as the youngest in over a century \\u2014 to hold the position.\\n\\n\\"The future is in our hands,\\" Mamdani declared to roaring applause Tuesday night at a victory celebration in Brooklyn. \\"My friends, tonight we have toppled a political dynasty.\\"\\n\\nThe 34-year-old, Ugandan-born Democratic socialist defeated former New York Gov. Andrew Cuomo, who ran as an Independent, and Republican Curtis Sliwa in Tuesday's election, according to a race call by the Associated Press.\\n\\nIt's a remarkable ascent for Mamdani, who was a relatively unknown state assemblymember representing a district in Queens when he entered the crowded mayoral race last year. He went on to win June's Democratic primary by 12 percentage points, quickly becoming one of the country's most [popular and polarizing](https://w", "image": "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/4650x2616+0+181/resize/1400/quality/100/format/jpeg/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F89%2F5e%2F0d3f96604984a6b50bd522e65276%2Fgettyimages-2242687292.jpg", "favicon": "https://media.npr.org/chrome/favicon/favicon-32x32.png"}], "requestTags": {"flagsEnabledInPosthog": "experiment_auto_join,fallback_keyword_to_neural,fallback_neural_to_keyword,hybrid_for_auto,lang_filter,langfuse_search_logging,llm_gateway,markdown_contents,neosnippets,race_providers_for_query_cache,redirect_classifier_active,redirect_classifier_shadow,reranker_with_date,research_enabled,snippets_strategy:default,sranker_qwen_medium_trt,sranker_qwen_medium_trt_for_auto,sranker_qwen_medium_trt_for_fast,sranker_qwen_medium_trt_for_hybrid,type_hybrid_merge_chicken_index_at_35,use_dynamo_db_with_query_cache,use_exa21,use_exaperson_v1_latest,use_kronos_answer_active,use_kronos_answer_shadow,use_modal_embeddings,use_moderated_index,use_new_atlas,use_new_atlas_keyword,use_query_cache_sparse_for_fast,use_query_cache_sparse_for_hybrid,use_s3e_race,use_zilliz_for_query_cache", "flagsEnabledInRequest": "", "enabledFlags": "experiment_auto_join,fallback_keyword_to_neural,fallback_neural_to_keyword,hybrid_for_auto,lang_filter,langfuse_search_logging,llm_gateway,markdown_contents,neosnippets,race_providers_for_query_cache,redirect_classifier_active,redirect_classifier_shadow,reranker_with_date,research_enabled,snippets_strategy:default,sranker_qwen_medium_trt,sranker_qwen_medium_trt_for_auto,sranker_qwen_medium_trt_for_fast,sranker_qwen_medium_trt_for_hybrid,type_hybrid_merge_chicken_index_at_35,use_dynamo_db_with_query_cache,use_exa21,use_exaperson_v1_latest,use_kronos_answer_active,use_kronos_answer_shadow,use_modal_embeddings,use_moderated_index,use_new_atlas,use_new_atlas_keyword,use_query_cache_sparse_for_fast,use_query_cache_sparse_for_hybrid,use_s3e_race,use_zilliz_for_query_cache", "initialSearchType": "auto", "didIncludeText": "no", "didExcludeText": "no", "didIncludeDomains": "no", "didExcludeDomains": "no", "didIncludeUrls": "no", "didExcludeUrls": "no", "moderation": "no", "didUseDateFilters": "no", "category": "none", "didUseAutoprompt": "no", "hasUserLocation": "no", "didRequestContentText": true, "didRequestContentHighlights": false, "didRequestContentSummary": false, "livecrawl": "preferred", "requestedLinks": "no", "willPostRerankNeural": "yes", "willPostModerate": false, "searchTypeBranch": "auto", "autoBranch": {"neuralSearch": {"sierra": {"query": "NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "flags": "experiment_auto_join,fallback_keyword_to_neural,fallback_neural_to_keyword,hybrid_for_auto,lang_filter,langfuse_search_logging,llm_gateway,markdown_contents,neosnippets,race_providers_for_query_cache,redirect_classifier_active,redirect_classifier_shadow,reranker_with_date,research_enabled,snippets_strategy:default,sranker_qwen_medium_trt,sranker_qwen_medium_trt_for_auto,sranker_qwen_medium_trt_for_fast,sranker_qwen_medium_trt_for_hybrid,type_hybrid_merge_chicken_index_at_35,use_dynamo_db_with_query_cache,use_exaperson_v1_latest,use_kronos_answer_active,use_kronos_answer_shadow,use_modal_embeddings,use_moderated_index,use_new_atlas_keyword,use_query_cache_sparse_for_fast,use_query_cache_sparse_for_hybrid,use_s3e_race,use_zilliz_for_query_cache,use_exa21", "filters": {"moderation": "blacklisted", "moderationConfig": {"llamaguardS1": false, "llamaguardS3": false, "llamaguardS4": false, "llamaguardS12": false, "domainBlacklisted": false, "domainBlacklistedMedia": false}}, "queryDateString": "2025-11-06", "numResultsRequested": 35, "engine": "default", "isTweetCategory": false, "sierraTime": 420.0595379997976, "numResultsReturned": 35}, "fetchContents": {"contentExpansion": {"failedContents": ["https://lemmy.world/post/27015801"]}, "contentsResultsCount": 34, "filteredResultsCount": 0}}, "keywordSearch": {"query": "NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "modifiedQuery": "NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "slicedAmount": 0, "searchData": {"q": "NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "num": 10, "safe": "active"}, "opts": {"snippetMode": "snippet", "addAnswerBox": true, "addKnowledgeGraph": true, "addPeopleAlsoAsk": false, "allowEmptyAnswerLinks": false, "providers": [{"provider": "serper", "startAfterMs": 0, "timeoutMs": 10000}], "timeoutMs": 10000, "teamId": "cm60snyw00011cfcxf2vbwp8n"}, "serperSource": "regular", "relatedQueries": ["New York mayoral election results 2025", "NJ election results", "NYC mayoral election results map", "NYC mayoral election results AP", "New Jersey mayor election", "Mamdani policies", "Minneapolis mayor election", "N.Y.C. mayor election nyt"], "success": true, "numResultsRequested": 5, "numResultsReturned": 10, "fetchContents": {"contentExpansion": {"failedContents": ["https://www.nytimes.com/interactive/2025/11/04/us/elections/results-new-york-city-mayor.html", "https://www.nytimes.com/interactive/2025/11/04/us/elections/results-new-york-city-mayor.html", "https://www.politico.com/news/2025/11/05/with-slim-majority-mamdani-takes-over-a-divided-city-00638849"]}, "contentsResultsCount": 7, "filteredResultsCount": 0}}, "neitherFailed": true, "autoJoin": true, "autoJoinRerank": {"reranker": {"withModeration": false, "preserveUnranked": true, "strategy": {"strategy": "modal_sranker_qwen_trt", "default": true}, "strategy_decided": "modal_sranker_qwen_trt", "strategy_reason": "explicit_strategy", "isQdf": false}}, "autoJoinResults": "35"}, "decidedAutoType": "neural", "resolvedSearchType": "neural", "autoType": "neural", "decidedResultsLength": 5, "totalFilterCount": "16", "contextExpansionNeeded": "not-needed", "finalResultsCount": 5, "searchTime": 4633.4, "path": "/search", "method": "POST", "teamId": "cm60snyw00011cfcxf2vbwp8n"}, "effectiveFilters": {"includeDomains": [], "excludeDomains": [], "includeUrls": [], "excludeUrls": [], "includeText": [], "excludeText": []}, "searchTime": 4633.4, "costDollars": {"total": 0.01, "search": {"neural": 0.005}, "contents": {"text": 0.005}}}",
+      "serverLabel": "dmcp",
+      "type": "call",
+    },
+    "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
+    "toolName": "mcp",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0c72b1033351981300690ccf94bc0c8193ab4a01ae62e95577:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0c72b1033351981300690ccf94bc0c8193ab4a01ae62e95577",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0c72b1033351981300690ccf94bc0c8193ab4a01ae62e95577:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0c72b1033351981300690ccf94bc0c8193ab4a01ae62e95577",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "Yes",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " searched",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " web",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Major",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " outlets",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " projecting",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Zo",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "hran",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mam",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ani",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " winner",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " New",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " York",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " City",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " mayor",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "al",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " race",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Summary",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "from",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " multiple",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " live",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pages",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " AP",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " projections",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Project",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ed",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " winner",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Zo",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "hran",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mam",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ani",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Dem",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ocrat",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Main",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " challeng",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ers",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Andrew",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Cuomo",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "running",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " independent",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Curtis",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " S",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "li",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "wa",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Republic",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "an",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Report",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ed",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vote",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shares",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " live",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trackers",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " came",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mam",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ani",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ≈",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "50",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "–",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "50",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "4",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "%,",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Cuomo",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ≈",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "41",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "–",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "42",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "%,",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " S",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "li",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "wa",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ≈",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "–",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "8",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "%",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "percent",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ages",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vary",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " slightly",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " outlet",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/time",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reporting",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Sources",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " /",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " live",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " result",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pages",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NBC",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " News",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "live",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".n",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bc",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "news",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/p",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "olit",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ics",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-e",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "lections",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/new",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-y",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ork",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-city",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ay",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "or",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Washington",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Post",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "live",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " updates",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " /",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " AP",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " projection",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".w",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ash",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ington",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "post",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/e",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "lections",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "11",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "04",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/new",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-y",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ork",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-city",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ay",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "or",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " CNN",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "race",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " page",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " /",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " projection",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".c",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "nn",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/e",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "lection",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/new",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-y",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ork",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-city",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ay",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "or",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ABC",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " News",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "projection",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " article",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "abc",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "news",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".go",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Politics",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/new",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-y",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ork",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-city",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ay",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oral",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-election",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "amd",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ani",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/story",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "?id",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "=",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "126",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "345",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "335",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NPR",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "coverage",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".n",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "pr",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".org",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "11",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "04",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/n",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "x",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-s",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "559",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "778",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "8",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/e",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "lection",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "zo",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "hran",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "amd",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ani",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-new",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-y",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ork",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-city",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ay",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "or",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Would",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Pull",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " official",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NYC",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Board",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Elections",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " final",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " results",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " page",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "?
+",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Send",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " link",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " specific",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " news",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " outlet",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’s",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " detailed",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " breakdown",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "by",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": " borough",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/d",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": "istrict",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")?",
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0c72b1033351981300690ccf97df988193b9c062fa247e6257",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0c72b1033351981300690ccf79c6d88193b7d054f4f83ad50a",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 11791,
+      "outputTokens": 963,
+      "reasoningTokens": 512,
+      "totalTokens": 12754,
+    },
+  },
+]
+`;
+
+>>>>>>> 423ba08f3 (feat(provider/openai):Set the annotations from the Responses API to doStream (#10253))
 exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should handle streaming web search with action query field 1`] = `
 [
   {
@@ -3806,6 +5811,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   },
   {
     "id": "msg_test",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_test",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -4250,6 +6260,55 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
   },
   {
     "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "end_index": 414,
+            "start_index": 327,
+            "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
+            "type": "url_citation",
+            "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+          },
+          {
+            "end_index": 697,
+            "start_index": 620,
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "end_index": 975,
+            "start_index": 898,
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "end_index": 1292,
+            "start_index": 1215,
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "end_index": 1602,
+            "start_index": 1525,
+            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "type": "url_citation",
+            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+          },
+          {
+            "end_index": 2029,
+            "start_index": 1900,
+            "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
+            "type": "url_citation",
+            "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+          },
+        ],
+        "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+      },
+    },
     "type": "text-end",
   },
   {
