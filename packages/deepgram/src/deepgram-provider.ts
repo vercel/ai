@@ -1,6 +1,12 @@
 import {
+<<<<<<< HEAD
   TranscriptionModelV2,
   ProviderV2,
+=======
+  TranscriptionModelV3,
+  SpeechModelV3,
+  ProviderV3,
+>>>>>>> f1181085a (feat(deepgram): add text-to-speech support (#10063))
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -10,6 +16,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import { DeepgramSpeechModel } from './deepgram-speech-model';
+import { DeepgramSpeechModelId } from './deepgram-speech-options';
 import { VERSION } from './version';
 
 export interface DeepgramProvider extends ProviderV2 {
@@ -23,7 +31,16 @@ export interface DeepgramProvider extends ProviderV2 {
   /**
 Creates a model for transcription.
    */
+<<<<<<< HEAD
   transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV2;
+=======
+  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV3;
+
+  /**
+Creates a model for speech generation.
+   */
+  speech(modelId: DeepgramSpeechModelId): SpeechModelV3;
+>>>>>>> f1181085a (feat(deepgram): add text-to-speech support (#10063))
 }
 
 export interface DeepgramProviderSettings {
@@ -71,6 +88,14 @@ export function createDeepgram(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: DeepgramSpeechModelId) =>
+    new DeepgramSpeechModel(modelId, {
+      provider: `deepgram.speech`,
+      url: ({ path }) => `https://api.deepgram.com${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: DeepgramTranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
@@ -79,6 +104,8 @@ export function createDeepgram(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   // Required ProviderV2 methods that are not supported
   provider.languageModel = () => {
