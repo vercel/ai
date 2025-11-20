@@ -159,14 +159,23 @@ The following optional provider options are available for Google Generative AI m
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
 
-- **thinkingConfig** _\{ thinkingBudget: number; includeThoughts: boolean \}_
+- **thinkingConfig** _\{ thinkingLevel?: 'low' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
   Optional. Configuration for the model's thinking process. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/thinking).
+
+  - **thinkingLevel** _'low' | 'high'_
+
+    Optional. Controls the thinking depth for Gemini 3 models. Use 'low' for faster responses or 'high' for deeper reasoning. Only supported by Gemini 3 models (`gemini-3-pro-preview` and later).
 
   - **thinkingBudget** _number_
 
     Optional. Gives the model guidance on the number of thinking tokens it can use when generating a response. Setting it to 0 disables thinking, if the model supports it.
     For more information about the possible value ranges for each model see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking#set-budget).
+
+    <Note>
+      This option is for Gemini 2.5 models. Gemini 3 models should use
+      `thinkingLevel` instead.
+    </Note>
 
   - **includeThoughts** _boolean_
 
@@ -193,12 +202,42 @@ The following optional provider options are available for Google Generative AI m
 
 ### Thinking
 
-The Gemini 2.5 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
+The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
-You can control thinking budgets and enable a thought summary by setting the `thinkingConfig` parameter.
+#### Gemini 3 Models
+
+For Gemini 3 models, use the `thinkingLevel` parameter to control the depth of reasoning:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const model = google('gemini-3-pro-preview');
+
+const { text, reasoning } = await generateText({
+  model: model,
+  prompt: 'What is the sum of the first 10 prime numbers?',
+  providerOptions: {
+    google: {
+      thinkingConfig: {
+        thinkingLevel: 'high',
+        includeThoughts: true,
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
+  },
+});
+
+console.log(text);
+
+console.log(reasoning); // Reasoning summary
+```
+
+#### Gemini 2.5 Models
+
+For Gemini 2.5 models, use the `thinkingBudget` parameter to control the number of thinking tokens:
+
+```ts
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const model = google('gemini-2.5-flash');
@@ -212,7 +251,7 @@ const { text, reasoning } = await generateText({
         thinkingBudget: 8192,
         includeThoughts: true,
       },
-    },
+    } satisfies GoogleGenerativeAIProviderOptions,
   },
 });
 
