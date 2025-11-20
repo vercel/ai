@@ -2,4 +2,4 @@
 '@ai-sdk/mcp': patch
 ---
 
-Add the possibility to define client version in mcp client definition
+feat(mcp): add the possibility to define client version in mcp client definition
