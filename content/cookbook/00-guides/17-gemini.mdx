@@ -46,7 +46,7 @@ console.log(text);
 Gemini 3 Pro can use enhanced reasoning through thinking mode, which improves its ability to solve complex problems. You can control the thinking level using the `thinkingLevel` provider option:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -54,15 +54,18 @@ const { text } = await generateText({
   prompt: 'What is the sum of the first 10 prime numbers?',
   providerOptions: {
     google: {
-      thinkingLevel: 'high',
-    },
+      thinkingConfig: {
+        includeThoughts: true,
+        thinkingLevel: 'low',
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
   },
 });
 
 console.log(text);
 ```
 
-The `thinkingLevel` parameter accepts values like `'low'`, `'medium'`, or `'high'` to control the depth of reasoning applied to your prompt.
+The `thinkingLevel` parameter accepts values like `'low'` or `'high'` to control the depth of reasoning applied to your prompt.
 
 ### Using Tools with the AI SDK
 
