@@ -4,7 +4,6 @@ import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
 import { convertBase64ToUint8Array } from '../lib/convert-base64';
 
-
 run(async () => {
   const azure = createAzure({
     headers: {

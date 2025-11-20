@@ -1628,9 +1628,8 @@ describe('responses', () => {
       ).toMatchSnapshot();
     });
   });
-  describe('image generation tool', ()=>{
-    it('should stream image generation tool results include',async()=>{
-
+  describe('image generation tool', () => {
+    it('should stream image generation tool results include', async () => {
       prepareChunksFixtureResponse('azure-image-generation-tool.1');
       const result = await createModel('test-deployment').doStream({
         prompt: TEST_PROMPT,
@@ -1647,7 +1646,6 @@ describe('responses', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
-
-    })
+    });
   });
 });
