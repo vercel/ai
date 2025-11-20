@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -40,7 +40,7 @@ interface DeepgramSpeechModelConfig extends DeepgramConfig {
   };
 }
 
-export class DeepgramSpeechModel implements SpeechModelV3 {
+export class DeepgramSpeechModel implements SpeechModelV2 {
   readonly specificationVersion = 'v3';
 
   get provider(): string {
@@ -60,8 +60,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
     language,
     instructions,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
+    const warnings: SpeechModelV2CallWarning[] = [];
 
     // Parse provider options
     const deepgramOptions = await parseProviderOptions({
@@ -455,8 +455,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, queryParams, warnings } = await this.getArgs(options);
 
