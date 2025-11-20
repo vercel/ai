@@ -164,6 +164,7 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
               '21:9',
             ])
             .optional(),
+          imageSize: z.enum(['1K', '2K', '4K']).optional(),
         })
         .optional(),
     }),
