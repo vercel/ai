@@ -149,6 +149,7 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     });
 
   return {
+    specificationVersion: 'v3' as const,
     imageModel: createImageModel,
     image: createImageModel,
     languageModel: () => {

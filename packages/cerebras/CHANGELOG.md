@@ -1,5 +1,242 @@
 # @ai-sdk/cerebras
 
+## 2.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/openai-compatible@2.0.0-beta.34
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 2.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - @ai-sdk/openai-compatible@2.0.0-beta.33
+
+## 2.0.0-beta.36
+
+### Patch Changes
+
+- 5e1e0ed: fix(cerebras): update model IDs based on https://inference-docs.cerebras.ai/models/overview
+
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/openai-compatible@2.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 2.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+  - @ai-sdk/openai-compatible@2.0.0-beta.31
+
+## 2.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/openai-compatible@2.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+  - @ai-sdk/openai-compatible@2.0.0-beta.29
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/openai-compatible@2.0.0-beta.28
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/openai-compatible@2.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/openai-compatible@2.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.25
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 2.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/openai-compatible@2.0.0-beta.24
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 2.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+  - @ai-sdk/openai-compatible@2.0.0-beta.23
+
+## 2.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/openai-compatible@2.0.0-beta.22
+
+## 2.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/openai-compatible@2.0.0-beta.21
+
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+  - @ai-sdk/provider@3.0.0-beta.8
+  - @ai-sdk/openai-compatible@2.0.0-beta.20
+
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [81d4308]
+  - @ai-sdk/provider@3.0.0-beta.7
+  - @ai-sdk/openai-compatible@2.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+  - @ai-sdk/openai-compatible@2.0.0-beta.18
+
+## 2.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [b689220]
+  - @ai-sdk/openai-compatible@2.0.0-beta.17
+
+## 2.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [6306603]
+  - @ai-sdk/provider-utils@4.0.0-beta.16
+  - @ai-sdk/openai-compatible@2.0.0-beta.16
+
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [f0b2157]
+  - @ai-sdk/provider-utils@4.0.0-beta.15
+  - @ai-sdk/openai-compatible@2.0.0-beta.15
+
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [3b1d015]
+  - @ai-sdk/provider-utils@4.0.0-beta.14
+  - @ai-sdk/openai-compatible@2.0.0-beta.14
+
+## 2.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [d116b4b]
+  - @ai-sdk/provider-utils@4.0.0-beta.13
+  - @ai-sdk/openai-compatible@2.0.0-beta.13
+
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [7e32fea]
+  - @ai-sdk/provider-utils@4.0.0-beta.12
+  - @ai-sdk/openai-compatible@2.0.0-beta.12
+
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 95f65c2: chore: use import \* from zod/v4
+- Updated dependencies [95f65c2]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/openai-compatible@2.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.11
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- 42e9f64: Add support for 5 new Cerebras models:
+
+  - gpt-oss-120b (120B parameters)
+  - qwen-3-235b-a22b-instruct-2507 (235B instruction-tuned)
+  - qwen-3-235b-a22b-thinking-2507 (235B enhanced reasoning)
+  - qwen-3-32b (32B multilingual)
+  - qwen-3-coder-480b (480B code generation)
+
+  Remove deprecated llama3.1-70b model.
+
+## 2.0.0-beta.12
+
+### Minor Changes
+
+- Added support for new Cerebras models:
+  - `gpt-oss-120b` - 120 billion parameter high-performance model
+  - `qwen-3-235b-a22b-instruct-2507` - 235 billion parameter instruction-tuned model
+  - `qwen-3-235b-a22b-thinking-2507` - 235 billion parameter model with enhanced reasoning
+  - `qwen-3-32b` - 32 billion parameter multilingual model
+  - `qwen-3-coder-480b` - 480 billion parameter model specialized for code generation
+- Removed deprecated `llama3.1-70b` model
+- Updated documentation with comprehensive model information
+
 ## 2.0.0-beta.11
 
 ### Major Changes

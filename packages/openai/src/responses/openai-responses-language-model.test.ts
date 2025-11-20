@@ -1,20 +1,23 @@
 import {
   LanguageModelV3,
+  LanguageModelV3Content,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
+  OpenAIResponsesProviderOptions,
   openaiResponsesReasoningModelIds,
-} from './openai-responses-settings';
+} from './openai-responses-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -248,7 +251,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should remove unsupported settings for o1', async () => {
-        const { warnings } = await createModel('o1-mini').doGenerate({
+        const { warnings } = await createModel('o1').doGenerate({
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -258,17 +261,17 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'o1-mini',
+          model: 'o1',
           input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+            { role: 'developer', content: 'You are a helpful assistant.' },
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
           ],
         });
 
         expect(warnings).toStrictEqual([
-          {
-            type: 'other',
-            message: 'system messages are removed for this model',
-          },
           {
             details: 'temperature is not supported for reasoning models',
             setting: 'temperature',
@@ -295,21 +298,10 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
 
           const expectedMessages = [
-            // o1 models prior to o1-2024-12-17 should remove system messages, all other models should replace
-            // them with developer messages
-            ...(![
-              'o1-mini',
-              'o1-mini-2024-09-12',
-              'o1-preview',
-              'o1-preview-2024-09-12',
-            ].includes(modelId)
-              ? [
-                  {
-                    role: 'developer',
-                    content: 'You are a helpful assistant.',
-                  },
-                ]
-              : []),
+            {
+              role: 'developer',
+              content: 'You are a helpful assistant.',
+            },
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ];
 
@@ -319,21 +311,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           });
 
           expect(warnings).toStrictEqual([
-            // o1 models prior to o1-2024-12-17 should remove system messages, all other models should replace
-            // them with developer messages
-            ...([
-              'o1-mini',
-              'o1-mini-2024-09-12',
-              'o1-preview',
-              'o1-preview-2024-09-12',
-            ].includes(modelId)
-              ? [
-                  {
-                    message: 'system messages are removed for this model',
-                    type: 'other',
-                  },
-                ]
-              : []),
             {
               details: 'temperature is not supported for reasoning models',
               setting: 'temperature',
@@ -414,17 +391,27 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          text: {
-            format: {
-              type: 'json_object',
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "text": {
+              "format": {
+                "type": "json_object",
+              },
             },
-          },
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -435,38 +422,123 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               parallelToolCalls: false,
-            },
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          parallel_tool_calls: false,
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "parallel_tool_calls": false,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send store provider option', async () => {
+      it('should send store = false provider option and opt into reasoning.encrypted_content for reasoning models', async () => {
+        const { warnings } = await createModel('gpt-5-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "include": [
+              "reasoning.encrypted_content",
+            ],
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-mini",
+            "store": false,
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send store = false provider option and not opt into reasoning.encrypted_content for non-reasoning models', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
               store: false,
-            },
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'gpt-4o',
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-          store: false,
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "store": false,
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send store = true provider option without reasoning.encrypted_content', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: true,
+            } satisfies OpenAIResponsesProviderOptions,
+          },
         });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "store": true,
+          }
+        `);
 
         expect(warnings).toStrictEqual([]);
       });
@@ -476,7 +548,38 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
-              store: false,
+              user: 'user_123',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-4o",
+            "user": "user_123",
+          }
+        `);
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send conversation provider option', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              conversation: 'conv_123',
             },
           },
         });
@@ -486,10 +589,40 @@ describe('OpenAIResponsesLanguageModel', () => {
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
-          store: false,
+          conversation: 'conv_123',
         });
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn when both conversation and previousResponseId are provided', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              conversation: 'conv_123',
+              previousResponseId: 'resp_123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          conversation: 'conv_123',
+          previous_response_id: 'resp_123',
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'conversation',
+            details:
+              'conversation and previousResponseId cannot be used together',
+          },
+        ]);
       });
 
       it('should send previous response id provider option', async () => {
@@ -543,7 +676,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               openai: {
                 reasoningEffort: 'low',
                 reasoningSummary: 'auto',
-              },
+              } satisfies OpenAIResponsesProviderOptions,
             },
           });
 
@@ -573,7 +706,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             providerOptions: {
               openai: {
                 reasoningEffort: 'low',
-              },
+              } satisfies OpenAIResponsesProviderOptions,
             },
           });
 
@@ -604,7 +737,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               instructions: 'You are a friendly assistant.',
-            },
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
@@ -784,6 +917,27 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send promptCacheRetention provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_retention: '24h',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send safetyIdentifier provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
@@ -800,6 +954,63 @@ describe('OpenAIResponsesLanguageModel', () => {
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
           safety_identifier: 'test-safety-identifier-123',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send truncation auto provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              truncation: 'auto',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          truncation: 'auto',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send truncation disabled provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              truncation: 'disabled',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          truncation: 'disabled',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should not send truncation when not specified', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
         });
 
         expect(warnings).toStrictEqual([]);
@@ -1095,6 +1306,20 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
           ]
         `);
+      });
+    });
+
+    describe('errors', () => {
+      it('should throw an error', async () => {
+        prepareJsonFixtureResponse('openai-error.1');
+
+        expect(
+          createModel('gpt-4o').doGenerate({
+            prompt: TEST_PROMPT,
+          }),
+        ).rejects.toThrow(
+          'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+        );
       });
     });
 
@@ -1956,8 +2181,31 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
       });
 
-      it('should include code interpreter tool call and result in content', async () => {
+      it('should include code interpreter tool call, result, and annotations in content', async () => {
         expect(result.content).toMatchSnapshot();
+
+        const sources = result.content.filter(
+          (part): part is Extract<LanguageModelV3Content, { type: 'source' }> =>
+            part.type === 'source',
+        );
+
+        expect(sources).toHaveLength(1);
+        expect(sources).toEqual([
+          expect.objectContaining({
+            type: 'source',
+            sourceType: 'document',
+            id: 'id-0',
+            filename: 'two_dice_sums_10000.txt',
+            mediaType: 'text/plain',
+            providerMetadata: {
+              openai: expect.objectContaining({
+                fileId: 'cfile_6903bf45e3288191af3d56e6d23c3a4d',
+                containerId:
+                  'cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec',
+              }),
+            },
+          }),
+        ]);
       });
     });
 
@@ -2067,157 +2315,25 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      beforeEach(() => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67cf2b2f6bd081909be2c8054ddef0eb',
-            object: 'response',
-            created_at: 1741630255,
-            status: 'completed',
-            error: null,
-            incomplete_details: null,
-            instructions: null,
-            max_output_tokens: null,
-            model: 'gpt-4o-2024-07-18',
-            output: [
-              {
-                type: 'web_search_call',
-                id: 'ws_67cf2b3051e88190b006770db6fdb13d',
-                status: 'completed',
-                action: {
-                  type: 'search',
-                  query: 'Vercel AI SDK next version features',
-                },
-              },
-              {
-                type: 'web_search_call',
-                id: 'ws_67cf2b3051e88190b006234456fdb13d',
-                status: 'completed',
-                action: {
-                  type: 'search',
-                  // sometimes search calls do not have a query
-                },
-              },
-              {
-                type: 'message',
-                id: 'msg_67cf2b35467481908f24412e4fd40d66',
-                status: 'completed',
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'output_text',
-                    text: `Last week in San Francisco, several notable events and developments took place:\n\n**Bruce Lee Statue in Chinatown**\n\nThe Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))\n\n**Office Leasing Revival**\n\nThe Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))\n\n**Spring Blooms in the Bay Area**\n\nWith the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))\n\n**Oceanfront Great Highway Park**\n\nSan Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))\n\n**Warmer Spring Seasons**\n\nAn analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))\n\n\n# Key San Francisco Developments Last Week:\n- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)\n- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)\n- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)`,
-                    annotations: [
-                      {
-                        type: 'url_citation',
-                        start_index: 486,
-                        end_index: 606,
-                        url: 'https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com',
-                        title:
-                          'Bruce Lee statue to be installed in SF Chinatown',
-                      },
-                      {
-                        type: 'url_citation',
-                        start_index: 912,
-                        end_index: 1035,
-                        url: 'https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com',
-                        title:
-                          'The Bay Area is set to make an office leasing comeback',
-                      },
-                      {
-                        type: 'url_citation',
-                        start_index: 1346,
-                        end_index: 1472,
-                        url: 'https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com',
-                        title: 'Where to see spring blooms in the Bay Area',
-                      },
-                      {
-                        type: 'url_citation',
-                        start_index: 1884,
-                        end_index: 2023,
-                        url: 'https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com',
-                        title:
-                          'Oceanfront Great Highway park set to open in April',
-                      },
-                      {
-                        type: 'url_citation',
-                        start_index: 2404,
-                        end_index: 2540,
-                        url: 'https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com',
-                        title:
-                          "San Francisco's spring seasons are getting warmer",
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: null,
-              summary: null,
-            },
-            store: true,
-            temperature: 0,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
-            tools: [
-              {
-                type: 'web_search',
-                search_context_size: 'medium',
-                user_location: {
-                  type: 'approximate',
-                  city: null,
-                  country: 'US',
-                  region: null,
-                  timezone: null,
-                },
-              },
-            ],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 327,
-              input_tokens_details: {
-                cached_tokens: 0,
-              },
-              output_tokens: 770,
-              output_tokens_details: {
-                reasoning_tokens: 0,
-              },
-              total_tokens: 1097,
-            },
-            user: null,
-            metadata: {},
-          },
-        };
-      });
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
-      it('should send web_search tool', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-web-search-tool.1');
+
+        result = await createModel('gpt-5-nano').doGenerate({
           tools: [
             {
               type: 'provider-defined',
               id: 'openai.web_search',
               name: 'web_search',
-              args: {
-                searchContextSize: 'high',
-                userLocation: {
-                  type: 'approximate',
-                  city: 'San Francisco',
-                },
-              },
+              args: {},
             },
           ],
           prompt: TEST_PROMPT,
         });
+      });
 
+      it('should send request body with include and tool', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "include": [
@@ -2234,51 +2350,47 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "gpt-4o",
+            "model": "gpt-5-nano",
             "tools": [
               {
-                "search_context_size": "high",
                 "type": "web_search",
-                "user_location": {
-                  "city": "San Francisco",
-                  "type": "approximate",
-                },
               },
             ],
           }
         `);
-
-        expect(warnings).toStrictEqual([]);
       });
 
-      it('should send web_search tool as tool_choice', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          toolChoice: {
-            type: 'tool',
-            toolName: 'web_search',
-          },
+      it('should include web search tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('mcp tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool.1');
+
+        result = await createModel('gpt-5-mini').doGenerate({
+          prompt: TEST_PROMPT,
           tools: [
             {
               type: 'provider-defined',
-              id: 'openai.web_search',
-              name: 'web_search',
+              id: 'openai.mcp',
+              name: 'mcp',
               args: {
-                searchContextSize: 'high',
-                userLocation: {
-                  type: 'approximate',
-                  city: 'San Francisco',
-                },
+                serverLabel: 'dmcp',
+                serverUrl: 'https://mcp.exa.ai/mcp',
+                serverDescription: 'A web-search API for AI agents',
               },
             },
           ],
-          prompt: TEST_PROMPT,
         });
+      });
 
+      it('should send request body with tool', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
-            "include": [
-              "web_search_call.action.sources",
-            ],
             "input": [
               {
                 "content": [
@@ -2290,137 +2402,22 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "gpt-4o",
-            "tool_choice": {
-              "type": "web_search",
-            },
+            "model": "gpt-5-mini",
             "tools": [
               {
-                "search_context_size": "high",
-                "type": "web_search",
-                "user_location": {
-                  "city": "San Francisco",
-                  "type": "approximate",
-                },
+                "require_approval": "never",
+                "server_description": "A web-search API for AI agents",
+                "server_label": "dmcp",
+                "server_url": "https://mcp.exa.ai/mcp",
+                "type": "mcp",
               },
             ],
           }
         `);
-
-        expect(warnings).toStrictEqual([]);
       });
 
-      it('should generate content', async () => {
-        const result = await createModel('gpt-4o').doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
-              "providerExecuted": true,
-              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "status": "completed",
-              },
-              "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "web_search",
-              "type": "tool-result",
-            },
-            {
-              "input": "{"action":{"type":"search"}}",
-              "providerExecuted": true,
-              "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-              "toolName": "web_search",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "status": "completed",
-              },
-              "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-              "toolName": "web_search",
-              "type": "tool-result",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
-                },
-              },
-              "text": "Last week in San Francisco, several notable events and developments took place:
-
-          **Bruce Lee Statue in Chinatown**
-
-          The Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))
-
-          **Office Leasing Revival**
-
-          The Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))
-
-          **Spring Blooms in the Bay Area**
-
-          With the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))
-
-          **Oceanfront Great Highway Park**
-
-          San Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))
-
-          **Warmer Spring Seasons**
-
-          An analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))
-
-
-          # Key San Francisco Developments Last Week:
-          - [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)
-          - [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)
-          - [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)",
-              "type": "text",
-            },
-            {
-              "id": "id-0",
-              "sourceType": "url",
-              "title": "Bruce Lee statue to be installed in SF Chinatown",
-              "type": "source",
-              "url": "https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com",
-            },
-            {
-              "id": "id-1",
-              "sourceType": "url",
-              "title": "The Bay Area is set to make an office leasing comeback",
-              "type": "source",
-              "url": "https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com",
-            },
-            {
-              "id": "id-2",
-              "sourceType": "url",
-              "title": "Where to see spring blooms in the Bay Area",
-              "type": "source",
-              "url": "https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com",
-            },
-            {
-              "id": "id-3",
-              "sourceType": "url",
-              "title": "Oceanfront Great Highway park set to open in April",
-              "type": "source",
-              "url": "https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com",
-            },
-            {
-              "id": "id-4",
-              "sourceType": "url",
-              "title": "San Francisco's spring seasons are getting warmer",
-              "type": "source",
-              "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
-            },
-          ]
-        `);
+      it('should include mcp tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
       });
     });
 
@@ -2641,95 +2638,34 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       expect(result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "input": "",
-              "providerExecuted": true,
-              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "computer_use",
-              "type": "tool-call",
-            },
-            {
-              "providerExecuted": true,
-              "result": {
-                "status": "completed",
-                "type": "computer_use_tool_result",
-              },
-              "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
-              "toolName": "computer_use",
-              "type": "tool-result",
-            },
-            {
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "msg_computer_test",
-                },
-              },
-              "text": "I've completed the computer task.",
-              "type": "text",
-            },
-          ]
-        `);
-    });
-
-    describe('errors', () => {
-      it('should throw an API call error when the response contains an error part', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67c97c0203188190a025beb4a75242bc',
-            object: 'response',
-            created_at: 1741257730,
-            status: 'completed',
-            error: {
-              code: 'ERR_SOMETHING',
-              message: 'Something went wrong',
-            },
-            incomplete_details: null,
-            input: [],
-            instructions: null,
-            max_output_tokens: null,
-            model: 'gpt-4o-2024-07-18',
-            output: [],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: null,
-              summary: null,
-            },
-            store: true,
-            temperature: 1,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
-            tools: [],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 345,
-              input_tokens_details: {
-                cached_tokens: 234,
-              },
-              output_tokens: 538,
-              output_tokens_details: {
-                reasoning_tokens: 123,
-              },
-              total_tokens: 572,
-            },
-            user: null,
-            metadata: {},
+        [
+          {
+            "input": "",
+            "providerExecuted": true,
+            "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "computer_use",
+            "type": "tool-call",
           },
-        };
-
-        expect(
-          createModel('gpt-4o').doGenerate({
-            prompt: TEST_PROMPT,
-          }),
-        ).rejects.toThrow('Something went wrong');
-      });
+          {
+            "result": {
+              "status": "completed",
+              "type": "computer_use_tool_result",
+            },
+            "toolCallId": "computer_67cf2b3051e88190b006770db6fdb13d",
+            "toolName": "computer_use",
+            "type": "tool-result",
+          },
+          {
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_computer_test",
+              },
+            },
+            "text": "I've completed the computer task.",
+            "type": "text",
+          },
+        ]
+      `);
     });
 
     it('should handle mixed url_citation and file_citation annotations', async () => {
@@ -2804,6 +2740,22 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "end_index": 10,
+                    "start_index": 0,
+                    "title": "Example URL",
+                    "type": "url_citation",
+                    "url": "https://example.com",
+                  },
+                  {
+                    "end_index": 30,
+                    "file_id": "file-abc123",
+                    "quote": "This is a quote from the file",
+                    "start_index": 20,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_123",
               },
             },
@@ -2821,6 +2773,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-abc123",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-abc123",
+              },
+            },
             "sourceType": "document",
             "title": "This is a quote from the file",
             "type": "source",
@@ -2894,6 +2851,15 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "end_index": 20,
+                    "file_id": "file-xyz789",
+                    "quote": "Important information from document",
+                    "start_index": 0,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_456",
               },
             },
@@ -2904,6 +2870,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-xyz789",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-xyz789",
+              },
+            },
             "sourceType": "document",
             "title": "Important information from document",
             "type": "source",
@@ -2982,6 +2953,20 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
                 "itemId": "msg_789",
               },
             },
@@ -2992,6 +2977,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -3000,8 +2990,210 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should handle container_file_citation annotations', async () => {
+      prepareJsonResponse({
+        id: 'resp_container',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-5',
+        output: [
+          {
+            id: 'msg_container',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Generated with container file.',
+                annotations: [
+                  {
+                    type: 'container_file_citation',
+                    container_id: 'cntr_test',
+                    file_id: 'file-container',
+                    filename: 'data.csv',
+                    start_index: 0,
+                    end_index: 10,
+                    index: 2,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 10,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 5,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 15,
+        },
+        user: null,
+        metadata: {},
+      });
+
+      const result = await createModel('gpt-5').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "container_id": "cntr_test",
+                    "end_index": 10,
+                    "file_id": "file-container",
+                    "filename": "data.csv",
+                    "index": 2,
+                    "start_index": 0,
+                    "type": "container_file_citation",
+                  },
+                ],
+                "itemId": "msg_container",
+              },
+            },
+            "text": "Generated with container file.",
+            "type": "text",
+          },
+          {
+            "filename": "data.csv",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "containerId": "cntr_test",
+                "fileId": "file-container",
+                "index": 2,
+              },
+            },
+            "sourceType": "document",
+            "title": "data.csv",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_path annotations', async () => {
+      prepareJsonResponse({
+        id: 'resp_file_path',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o',
+        output: [
+          {
+            id: 'msg_file_path',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Output written to file.',
+                annotations: [
+                  {
+                    type: 'file_path',
+                    file_id: 'file-path-123',
+                    index: 0,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 10,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 5,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 15,
+        },
+        user: null,
+        metadata: {},
+      });
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-path-123",
+                    "index": 0,
+                    "type": "file_path",
+                  },
+                ],
+                "itemId": "msg_file_path",
+              },
+            },
+            "text": "Output written to file.",
+            "type": "text",
+          },
+          {
+            "filename": "file-path-123",
+            "id": "id-0",
+            "mediaType": "application/octet-stream",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-path-123",
+                "index": 0,
+              },
+            },
+            "sourceType": "document",
+            "title": "file-path-123",
             "type": "source",
           },
         ]
@@ -3065,6 +3257,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3136,6 +3333,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3363,6 +3565,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3439,6 +3646,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3493,6 +3705,24 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
+      it('should stream web search results (sources, tool calls, tool results)', async () => {
+        prepareChunksFixtureResponse('openai-web-search-tool.1');
+
+        const { stream } = await createModel('gpt-5-nano').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+
       it('should handle streaming web search with action query field', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
@@ -3514,90 +3744,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         };
 
-        const { stream } = await createModel('o3-2025-04-16').doStream({
-          prompt: TEST_PROMPT,
-        });
-
-        const result = await convertReadableStreamToArray(stream);
-        expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "resp_test",
-            "modelId": "o3-2025-04-16",
-            "timestamp": 2025-03-10T18:10:55.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "ws_test",
-            "providerExecuted": true,
-            "toolName": "web_search",
-            "type": "tool-input-start",
-          },
-          {
-            "id": "ws_test",
-            "type": "tool-input-end",
-          },
-          {
-            "input": "{"action":{"type":"search","query":"Vercel AI SDK next version features"}}",
-            "providerExecuted": true,
-            "toolCallId": "ws_test",
-            "toolName": "web_search",
-            "type": "tool-call",
-          },
-          {
-            "providerExecuted": true,
-            "result": {
-              "status": "completed",
-            },
-            "toolCallId": "ws_test",
-            "toolName": "web_search",
-            "type": "tool-result",
-          },
-          {
-            "id": "msg_test",
-            "providerMetadata": {
-              "openai": {
-                "itemId": "msg_test",
-              },
-            },
-            "type": "text-start",
-          },
-          {
-            "delta": "Based on the search results, here are the upcoming features.",
-            "id": "msg_test",
-            "type": "text-delta",
-          },
-          {
-            "id": "msg_test",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "openai": {
-                "responseId": "resp_test",
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
-            },
-          },
-        ]
-      `);
-      });
-
-      it('should stream web search results (sources, tool calls, tool results)', async () => {
-        prepareChunksFixtureResponse('openai-web-search-tool');
-
         const { stream } = await createModel('gpt-5-nano').doStream({
           tools: [
             {
@@ -3610,442 +3756,66 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await convertReadableStreamToArray(stream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
-                "modelId": "gpt-5-nano-2025-08-07",
-                "timestamp": 2025-09-10T14:14:36.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-                "providerExecuted": true,
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "{"action":{"type":"search","query":"Berlin news today"}}",
-                "providerExecuted": true,
-                "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                },
-                "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-                "providerExecuted": true,
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "{"action":{"type":"search"}}",
-                "providerExecuted": true,
-                "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                },
-                "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-                "providerExecuted": true,
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "{"action":{"type":"search"}}",
-                "providerExecuted": true,
-                "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                },
-                "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-                "providerExecuted": true,
-                "toolName": "web_search",
-                "type": "tool-input-start",
-              },
-              {
-                "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-                "type": "tool-input-end",
-              },
-              {
-                "input": "{"action":{"type":"search"}}",
-                "providerExecuted": true,
-                "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-call",
-              },
-              {
-                "providerExecuted": true,
-                "result": {
-                  "status": "completed",
-                },
-                "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-                "toolName": "web_search",
-                "type": "tool-result",
-              },
-              {
-                "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-start",
-              },
-              {
-                "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                  },
-                },
-                "type": "text-start",
-              },
-              {
-                "delta": "Here’s what’s notable in Berlin today (September 10, 2025), based on three quick web searches:
-
-            - Berlin Art Week 2025 kicks off today and runs through September 14. The city’s autumn art season opens with more than 100 venues, featuring exhibitions from Patti Smith, Mark Leckey, Katharina Grosse, Carrie Mae Weems, and more. ([wallpaper.com](https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025))
-
-            - The city is highlighting its 200-year Museum Island anniversary this year, with ongoing events and exhibitions around Berlin’s historic center. This is part of Berlin’s big year of cultural highlights. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-            - 49h ICC: Open House is scheduled for September 11–14, offering guided tours and design talks at the former ICC Berlin. It’s one of the major architecture/design events associated with Berlin 2025. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-            - Open Monument Day is coming up on September 13–14, when many",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "id-0",
-                "sourceType": "url",
-                "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
-                "type": "source",
-                "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
-              },
-              {
-                "id": "id-1",
-                "sourceType": "url",
-                "title": "Berlin 2025 – the main events | visitBerlin.de",
-                "type": "source",
-                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-              },
-              {
-                "id": "id-2",
-                "sourceType": "url",
-                "title": "Berlin 2025 – the main events | visitBerlin.de",
-                "type": "source",
-                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-              },
-              {
-                "delta": " historic sites around Berlin open to the public with special programs. If you’re in town this weekend, it’s a good chance to explore landmarks that aren’t usually accessible.",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-            - If you’re a sports fan, Berlin will host NFL games",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "id-3",
-                "sourceType": "url",
-                "title": "Berlin 2025 – the main events | visitBerlin.de",
-                "type": "source",
-                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-              },
-              {
-                "delta": " in November 2025 (three regular-season games in the Olympic Stadium, with the Indianapolis Colts among",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " the teams). It’s part of Berlin’s ongoing slate of major events this year",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": ". ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-            - For some broader",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "id-4",
-                "sourceType": "url",
-                "title": "Berlin 2025 – the main events | visitBerlin.de",
-                "type": "source",
-                "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-              },
-              {
-                "delta": " context, Berlin has been discussing its role in postwar security arrangements for Ukraine, with",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " German officials signaling readiness to increase support but delaying a formal deployment decision until broader conditions are",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " clearer. This",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " was reported for early September 2025. ([reuters.com](https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/))",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "id-5",
-                "sourceType": "url",
-                "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
-                "type": "source",
-                "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
-              },
-              {
-                "delta": "
-
-            Would you like me to pull live updates or focus on a specific topic (arts,",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "delta": " politics, sports) from today?",
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-delta",
-              },
-              {
-                "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
-                "type": "text-end",
-              },
-              {
-                "finishReason": "stop",
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
-                    "serviceTier": "default",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "cachedInputTokens": 34560,
-                  "inputTokens": 60093,
-                  "outputTokens": 4080,
-                  "reasoningTokens": 3648,
-                  "totalTokens": 64173,
-                },
-              },
-            ]
-          `);
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+      it('should stream file search results without results include', async () => {
+        prepareChunksFixtureResponse('openai-file-search-tool.1');
 
-      describe('without results include', () => {
-        beforeEach(async () => {
-          prepareChunksFixtureResponse('openai-file-search-tool.1');
-
-          result = await createModel('gpt-5-nano').doStream({
-            prompt: TEST_PROMPT,
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'openai.file_search',
-                name: 'file_search',
-                args: {
-                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
-                },
-              },
-            ],
-          });
-        });
-
-        it('should stream file search results', async () => {
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
-        });
-      });
-
-      describe('with results include', () => {
-        beforeEach(async () => {
-          prepareChunksFixtureResponse('openai-file-search-tool.2');
-
-          result = await createModel('gpt-5-nano').doStream({
-            prompt: TEST_PROMPT,
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'openai.file_search',
-                name: 'file_search',
-                args: {
-                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
-                },
-              },
-            ],
-            providerOptions: {
-              openai: {
-                include: ['file_search_call.results'],
+        const result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
               },
             },
-          });
+          ],
         });
 
-        it('should stream file search results', async () => {
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+
+      it('should stream file search results with results include', async () => {
+        prepareChunksFixtureResponse('openai-file-search-tool.2');
+
+        const result = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+              },
+            },
+          ],
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
+            },
+          },
         });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
-
-      beforeEach(async () => {
+      it('should stream code interpreter results with annotations', async () => {
         prepareChunksFixtureResponse('openai-code-interpreter-tool.1');
 
-        result = await createModel('gpt-5-nano').doStream({
+        const streamResult = await createModel('gpt-5-nano').doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -4056,22 +3826,44 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-      });
 
-      it('should stream code interpreter results', async () => {
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
+        const streamParts = await convertReadableStreamToArray(
+          streamResult.stream,
+        );
+
+        expect(streamParts).toMatchSnapshot();
+
+        const sourceParts = streamParts.filter(
+          (
+            part,
+          ): part is Extract<LanguageModelV3StreamPart, { type: 'source' }> =>
+            part.type === 'source',
+        );
+
+        expect(sourceParts).toHaveLength(1);
+        expect(sourceParts).toEqual([
+          expect.objectContaining({
+            type: 'source',
+            sourceType: 'document',
+            filename: 'roll2dice_sums_10000.csv',
+            mediaType: 'text/plain',
+            providerMetadata: {
+              openai: expect.objectContaining({
+                fileId: 'cfile_68c2e7084ab48191a67824aa1f4c90f1',
+                containerId:
+                  'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+              }),
+            },
+          }),
+        ]);
       });
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
-
-      beforeEach(async () => {
+      it('should stream code image generation results', async () => {
         prepareChunksFixtureResponse('openai-image-generation-tool.1');
 
-        result = await createModel('gpt-5-nano').doStream({
+        const result = await createModel('gpt-5-nano').doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -4082,9 +3874,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-      });
 
-      it('should stream code image generation results', async () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
@@ -4092,12 +3882,10 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('local shell tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
-
-      beforeEach(async () => {
+      it('should stream code local shell results', async () => {
         prepareChunksFixtureResponse('openai-local-shell-tool.1');
 
-        result = await createModel('gpt-5-codex').doStream({
+        const result = await createModel('gpt-5-codex').doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
@@ -4108,24 +3896,40 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
         });
-      });
 
-      it('should stream code local shell results', async () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
     });
 
+    describe('mcp tool', () => {
+      it('should stream mcp tool results (list tools, tool calls, tool results)', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool.1');
+
+        const { stream } = await createModel('gpt-5-mini').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.mcp',
+              name: 'mcp',
+              args: {
+                serverLabel: 'dmcp',
+                serverUrl: 'https://mcp.exa.ai/mcp',
+                serverDescription: 'A web-search API for AI agents',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+    });
+
     describe('errors', () => {
       it('should stream error parts', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"error","code":"ERR_SOMETHING","message":"Something went wrong","param":null,"sequence_number":1}\n\n`,
-          ],
-        };
+        prepareChunksFixtureResponse('openai-error.1');
 
         const { stream } = await createModel('gpt-4o-mini').doStream({
           prompt: TEST_PROMPT,
@@ -4134,43 +3938,46 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-              "modelId": "gpt-4o-mini-2024-07-18",
-              "timestamp": 2025-03-10T18:46:40.000Z,
-              "type": "response-metadata",
-            },
-            {
-              "error": {
-                "code": "ERR_SOMETHING",
-                "message": "Something went wrong",
-                "param": null,
-                "sequence_number": 1,
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
+                "modelId": "gpt-5-nano-2025-08-07",
+                "timestamp": 2025-11-18T14:03:09.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "error": {
+                  "error": {
+                    "code": "insufficient_quota",
+                    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
+                    "param": null,
+                    "type": "insufficient_quota",
+                  },
+                  "sequence_number": 2,
+                  "type": "error",
+                },
                 "type": "error",
               },
-              "type": "error",
-            },
-            {
-              "finishReason": "unknown",
-              "providerMetadata": {
-                "openai": {
-                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+              {
+                "finishReason": "unknown",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": undefined,
+                  "outputTokens": undefined,
+                  "totalTokens": undefined,
                 },
               },
-              "type": "finish",
-              "usage": {
-                "inputTokens": undefined,
-                "outputTokens": undefined,
-                "totalTokens": undefined,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
 
@@ -4255,6 +4062,15 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -4287,16 +4103,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -4327,6 +4133,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4438,6 +4249,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4549,6 +4365,15 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
+                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -4581,16 +4406,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_6808709f6fcc8191ad2e2fdd784017b3",
-                    "reasoningEncryptedContent": "encrypted_reasoning_data_final_def456",
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
                 "id": "rs_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -4621,6 +4436,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4734,6 +4554,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4859,6 +4684,15 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
+                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
+                  },
+                },
+                "type": "reasoning-end",
+              },
+              {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -4891,16 +4725,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "reasoning-delta",
               },
               {
-                "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:0",
-                "providerMetadata": {
-                  "openai": {
-                    "itemId": "rs_first_6808709f6fcc8191ad2e2fdd784017b3",
-                    "reasoningEncryptedContent": null,
-                  },
-                },
-                "type": "reasoning-end",
-              },
-              {
                 "id": "rs_first_6808709f6fcc8191ad2e2fdd784017b3:1",
                 "providerMetadata": {
                   "openai": {
@@ -4931,6 +4755,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4994,6 +4823,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -5183,7 +5017,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data:{"type":"response.content_part.added","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL"}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL","start_index":123,"end_index":234}}\n\n`,
           `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"file-abc123","quote":"This is a quote from the file"}}\n\n`,
           `data:{"type":"response.content_part.done","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}}\n\n`,
           `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}}\n\n`,
@@ -5216,12 +5050,36 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "file-abc123",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-abc123",
+              },
+            },
             "sourceType": "document",
             "title": "This is a quote from the file",
             "type": "source",
           },
           {
             "id": "msg_123",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "end_index": 234,
+                    "start_index": 123,
+                    "title": "Example URL",
+                    "type": "url_citation",
+                    "url": "https://example.com",
+                  },
+                  {
+                    "file_id": "file-abc123",
+                    "quote": "This is a quote from the file",
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_123",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5272,6 +5130,11 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
@@ -5280,12 +5143,36 @@ describe('OpenAIResponsesLanguageModel', () => {
             "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-YRcoCqn3Fo2K4JgraG",
+              },
+            },
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5306,6 +5193,472 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+    it('should handle container_file_citation annotations in streaming', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({ type: 'response.content_part.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', text: '', annotations: [] } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_text.annotation.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, annotation_index: 0, annotation: { type: 'container_file_citation', container_id: 'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9', end_index: 465, file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1', filename: 'roll2dice_sums_10000.csv', start_index: 423 } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.content_part.done', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', annotations: [{ type: 'container_file_citation', container_id: 'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9', end_index: 465, file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1', filename: 'roll2dice_sums_10000.csv', start_index: 423 }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_item.done', output_index: 0, item: { id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', type: 'message', status: 'completed', content: [{ type: 'output_text', annotations: [{ type: 'container_file_citation', container_id: 'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9', end_index: 465, file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1', filename: 'roll2dice_sums_10000.csv', start_index: 423 }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." }], role: 'assistant' } })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9',
+              object: 'response',
+              created_at: 1757603567,
+              status: 'completed',
+              error: null,
+              incomplete_details: null,
+              instructions: null,
+              max_output_tokens: null,
+              model: 'gpt-5-nano-2025-08-07',
+              output: [
+                {
+                  id: 'rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: 'import random, math\nN=10000\nsums=[]\ns=0\nfor _ in range(N):\n    a=random.randint(1,6)\n    b=random.randint(1,6)\n    sm=a+b\n    sums.append(sm)\n    s+=sm\nmin(sums), max(sums), sum(sums), sum(sums)/N\n',
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [{ type: 'logs', logs: '(2, 12, 69868, 6.9868)' }],
+                },
+                {
+                  id: 'rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: "import csv, pathlib\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\nwith open(path, 'w', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['sum'])\n    for val in sums:\n        writer.writerow([val])\npath, path.exists(), len(sums)\n",
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [
+                    {
+                      type: 'logs',
+                      logs: "(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)",
+                    },
+                  ],
+                },
+                {
+                  id: 'rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: 'sums[:20]\n',
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [
+                    {
+                      type: 'logs',
+                      logs: '[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]',
+                    },
+                  ],
+                },
+                {
+                  id: 'rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9',
+                  type: 'message',
+                  status: 'completed',
+                  content: [
+                    {
+                      type: 'output_text',
+                      annotations: [
+                        {
+                          type: 'container_file_citation',
+                          container_id:
+                            'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                          end_index: 465,
+                          file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1',
+                          filename: 'roll2dice_sums_10000.csv',
+                          start_index: 423,
+                        },
+                      ],
+                      logprobs: [],
+                      text: "Here's a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.).",
+                    },
+                  ],
+                  role: 'assistant',
+                },
+              ],
+              parallel_tool_calls: true,
+              previous_response_id: null,
+              prompt_cache_key: null,
+              reasoning: { effort: 'medium', summary: null },
+              safety_identifier: null,
+              store: true,
+              temperature: 1,
+              text: { format: { type: 'text' }, verbosity: 'medium' },
+              tool_choice: 'auto',
+              tools: [
+                { type: 'code_interpreter', container: { type: 'auto' } },
+              ],
+              top_logprobs: 0,
+              top_p: 1,
+              truncation: 'disabled',
+              usage: {
+                input_tokens: 6047,
+                input_tokens_details: { cached_tokens: 2944 },
+                output_tokens: 1623,
+                output_tokens_details: { reasoning_tokens: 1408 },
+                total_tokens: 7670,
+              },
+              user: null,
+              metadata: {},
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-5').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "filename": "roll2dice_sums_10000.csv",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "containerId": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+                "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+              },
+            },
+            "sourceType": "document",
+            "title": "roll2dice_sums_10000.csv",
+            "type": "source",
+          },
+          {
+            "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "container_id": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+                    "end_index": 465,
+                    "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                    "filename": "roll2dice_sums_10000.csv",
+                    "start_index": 423,
+                    "type": "container_file_citation",
+                  },
+                ],
+                "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+              },
+            },
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 2944,
+              "inputTokens": 6047,
+              "outputTokens": 1623,
+              "reasoningTokens": 1408,
+              "totalTokens": 7670,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_path annotations in streaming', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:${JSON.stringify({ type: 'response.content_part.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', text: '', annotations: [] } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_text.annotation.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, annotation_index: 0, annotation: { type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.content_part.done', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', annotations: [{ type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_item.done', output_index: 0, item: { id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', type: 'message', status: 'completed', content: [{ type: 'output_text', annotations: [{ type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." }], role: 'assistant' } })}\n\n`,
+          `data:${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9',
+              object: 'response',
+              created_at: 1757603567,
+              status: 'completed',
+              error: null,
+              incomplete_details: null,
+              instructions: null,
+              max_output_tokens: null,
+              model: 'gpt-5-nano-2025-08-07',
+              output: [
+                {
+                  id: 'rs_68c2e6f40ba48193a1c27abf31130e7e02d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: 'import random, math\nN=10000\nsums=[]\ns=0\nfor _ in range(N):\n    a=random.randint(1,6)\n    b=random.randint(1,6)\n    sm=a+b\n    sums.append(sm)\n    s+=sm\nmin(sums), max(sums), sum(sums), sum(sums)/N\n',
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [{ type: 'logs', logs: '(2, 12, 69868, 6.9868)' }],
+                },
+                {
+                  id: 'rs_68c2e6fcb52881938f21c45741216ac002d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: "import csv, pathlib\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\nwith open(path, 'w', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['sum'])\n    for val in sums:\n        writer.writerow([val])\npath, path.exists(), len(sums)\n",
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [
+                    {
+                      type: 'logs',
+                      logs: "(PosixPath('/mnt/data/roll2dice_sums_10000.csv'), True, 10000)",
+                    },
+                  ],
+                },
+                {
+                  id: 'rs_68c2e6fff1808193a78d43410a1feb4802d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9',
+                  type: 'code_interpreter_call',
+                  status: 'completed',
+                  code: 'sums[:20]\n',
+                  container_id:
+                    'cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9',
+                  outputs: [
+                    {
+                      type: 'logs',
+                      logs: '[6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7]',
+                    },
+                  ],
+                },
+                {
+                  id: 'rs_68c2e703d114819383c5da260649c7ce02d3a5742c7ddae9',
+                  type: 'reasoning',
+                  summary: [],
+                },
+                {
+                  id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9',
+                  type: 'message',
+                  status: 'completed',
+                  content: [
+                    {
+                      type: 'output_text',
+                      annotations: [
+                        {
+                          type: 'file_path',
+                          file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1',
+                        },
+                      ],
+                      logprobs: [],
+                      text: "Here's a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.).",
+                    },
+                  ],
+                  role: 'assistant',
+                },
+              ],
+              parallel_tool_calls: true,
+              previous_response_id: null,
+              prompt_cache_key: null,
+              reasoning: { effort: 'medium', summary: null },
+              safety_identifier: null,
+              store: true,
+              temperature: 1,
+              text: { format: { type: 'text' }, verbosity: 'medium' },
+              tool_choice: 'auto',
+              tools: [
+                { type: 'code_interpreter', container: { type: 'auto' } },
+              ],
+              top_logprobs: 0,
+              top_p: 1,
+              truncation: 'disabled',
+              usage: {
+                input_tokens: 6047,
+                input_tokens_details: { cached_tokens: 2944 },
+                output_tokens: 1623,
+                output_tokens_details: { reasoning_tokens: 1408 },
+                total_tokens: 7670,
+              },
+              user: null,
+              metadata: {},
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "filename": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+            "id": "id-0",
+            "mediaType": "application/octet-stream",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+              },
+            },
+            "sourceType": "document",
+            "title": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+            "type": "source",
+          },
+          {
+            "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                    "type": "file_path",
+                  },
+                ],
+                "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+              },
+            },
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "responseId": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 2944,
+              "inputTokens": 6047,
+              "outputTokens": 1623,
+              "reasoningTokens": 1408,
+              "totalTokens": 7670,
+            },
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('web search sources schema resilience', () => {
+    it('should accept api-type sources without throwing', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_api_sources',
+          object: 'response',
+          created_at: 1741631111,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o',
+          output: [
+            {
+              type: 'web_search_call',
+              id: 'ws_api_sources',
+              status: 'completed',
+              action: {
+                type: 'search',
+                query: 'current price of BTC',
+                sources: [
+                  {
+                    type: 'url',
+                    url: 'https://example.com?a=1&utm_source=openai',
+                  },
+                  { type: 'api', name: 'oai-finance' },
+                ],
+              },
+            },
+            {
+              type: 'message',
+              id: 'msg_done',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'BTC is trading at ...',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+            total_tokens: 15,
+          },
+          previous_response_id: null,
+          parallel_tool_calls: true,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [{ type: 'web_search', search_context_size: 'medium' }],
+          top_p: 1,
+          truncation: 'disabled',
+          user: null,
+          metadata: {},
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.content).toMatchSnapshot();
     });
   });
 });

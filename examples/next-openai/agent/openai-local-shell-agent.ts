@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { Sandbox } from '@vercel/sandbox';
-import { Agent, InferAgentUIMessage } from 'ai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 // warning: this is a demo sandbox that is shared across chats on localhost
 let globalSandboxId: string | null = null;
@@ -13,9 +13,9 @@ async function getSandbox(): Promise<Sandbox> {
   return sandbox;
 }
 
-export const openaiLocalShellAgent = new Agent({
+export const openaiLocalShellAgent = new ToolLoopAgent({
   model: openai('gpt-5-codex'),
-  system:
+  instructions:
     'You are an agent with access to a shell environment.' +
     'When a command execution is denied, ask the user if they want to execute something else.',
   tools: {

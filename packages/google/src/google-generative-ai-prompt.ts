@@ -1,7 +1,8 @@
-import { z } from 'zod/v4';
-import { groundingMetadataSchema } from './tool/google-search';
-import { urlContextMetadataSchema } from './tool/url-context';
-import { safetyRatingSchema } from './google-generative-ai-language-model';
+import {
+  GroundingMetadataSchema,
+  UrlContextMetadataSchema,
+} from './google-generative-ai-language-model';
+import { type SafetyRatingSchema } from './google-generative-ai-language-model';
 
 export type GoogleGenerativeAIPrompt = {
   systemInstruction?: GoogleGenerativeAISystemInstruction;
@@ -18,21 +19,17 @@ export type GoogleGenerativeAIContent = {
 };
 
 export type GoogleGenerativeAIContentPart =
-  | { text: string }
+  | { text: string; thought?: boolean; thoughtSignature?: string }
   | { inlineData: { mimeType: string; data: string } }
-  | { functionCall: { name: string; args: unknown } }
+  | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
   | { functionResponse: { name: string; response: unknown } }
   | { fileData: { mimeType: string; fileUri: string } };
 
-export type GoogleGenerativeAIGroundingMetadata = z.infer<
-  typeof groundingMetadataSchema
->;
+export type GoogleGenerativeAIGroundingMetadata = GroundingMetadataSchema;
 
-export type GoogleGenerativeAIUrlContextMetadata = z.infer<
-  typeof urlContextMetadataSchema
->;
+export type GoogleGenerativeAIUrlContextMetadata = UrlContextMetadataSchema;
 
-export type GoogleGenerativeAISafetyRating = z.infer<typeof safetyRatingSchema>;
+export type GoogleGenerativeAISafetyRating = SafetyRatingSchema;
 
 export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;

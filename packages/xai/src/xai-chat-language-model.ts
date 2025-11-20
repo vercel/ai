@@ -105,18 +105,6 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       });
     }
 
-    if (
-      responseFormat != null &&
-      responseFormat.type === 'json' &&
-      responseFormat.schema != null
-    ) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
-        details: 'JSON response format schema is not supported',
-      });
-    }
-
     // convert ai sdk messages to xai format
     const { messages, warnings: messageWarnings } =
       convertToXaiChatMessages(prompt);
@@ -143,6 +131,9 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       top_p: topP,
       seed,
       reasoning_effort: options.reasoningEffort,
+
+      // parallel function calling
+      parallel_function_calling: options.parallel_function_calling,
 
       // response format
       response_format:

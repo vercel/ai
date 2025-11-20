@@ -104,6 +104,22 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
+    if (temperature != null && temperature > 1) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'temperature',
+        details: `${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
+      });
+      temperature = 1;
+    } else if (temperature != null && temperature < 0) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'temperature',
+        details: `${temperature} is below bedrock minimum of 0. clamped to 0`,
+      });
+      temperature = 0;
+    }
+
     if (
       responseFormat != null &&
       responseFormat.type !== 'text' &&
@@ -137,14 +153,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
-    const { toolConfig, additionalTools, toolWarnings, betas } = prepareTools({
-      tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
-      toolChoice:
-        jsonResponseTool != null
-          ? { type: 'tool', toolName: jsonResponseTool.name }
-          : toolChoice,
-      modelId: this.modelId,
-    });
+    const { toolConfig, additionalTools, toolWarnings, betas } =
+      await prepareTools({
+        tools: jsonResponseTool ? [jsonResponseTool, ...(tools ?? [])] : tools,
+        toolChoice:
+          jsonResponseTool != null
+            ? { type: 'tool', toolName: jsonResponseTool.name }
+            : toolChoice,
+        modelId: this.modelId,
+      });
 
     warnings.push(...toolWarnings);
 
@@ -152,6 +169,19 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,
         ...additionalTools,
+      };
+    }
+
+    if (betas.size > 0 || bedrockOptions.anthropicBeta) {
+      const existingBetas = bedrockOptions.anthropicBeta ?? [];
+      const mergedBetas =
+        betas.size > 0
+          ? [...existingBetas, ...Array.from(betas)]
+          : existingBetas;
+
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        anthropic_beta: mergedBetas,
       };
     }
 
@@ -257,8 +287,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       await convertToBedrockChatMessages(filteredPrompt);
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
-    const { reasoningConfig: _, ...filteredBedrockOptions } =
-      providerOptions?.bedrock || {};
+    const {
+      reasoningConfig: _,
+      additionalModelRequestFields: __,
+      ...filteredBedrockOptions
+    } = providerOptions?.bedrock || {};
 
     return {
       command: {
@@ -285,17 +318,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   };
 
   private async getHeaders({
-    betas,
     headers,
   }: {
-    betas: Set<string>;
     headers: Record<string, string | undefined> | undefined;
   }) {
-    return combineHeaders(
-      await resolve(this.config.headers),
-      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
-      headers,
-    );
+    return combineHeaders(await resolve(this.config.headers), headers);
   }
 
   async doGenerate(
@@ -305,13 +332,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       command: args,
       warnings,
       usesJsonResponseTool,
-      betas,
     } = await this.getArgs(options);
 
     const url = `${this.getUrl(this.modelId)}/converse`;
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: await this.getHeaders({ betas, headers: options.headers }),
+      headers: await this.getHeaders({ headers: options.headers }),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,
@@ -433,13 +459,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       command: args,
       warnings,
       usesJsonResponseTool,
-      betas,
     } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
-      headers: await this.getHeaders({ betas, headers: options.headers }),
+      headers: await this.getHeaders({ headers: options.headers }),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: BedrockErrorSchema,

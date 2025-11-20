@@ -5,6 +5,7 @@ import {
 import {
   combineHeaders,
   createJsonResponseHandler,
+  extractResponseHeaders,
   parseProviderOptions,
   postJsonToApi,
   postToApi,
@@ -146,10 +147,6 @@ const assemblyaiProviderOptionsSchema = z.object({
    */
   summaryType: z.string().nullish(),
   /**
-   * List of topics to identify in the transcription.
-   */
-  topics: z.array(z.string()).nullish(),
-  /**
    * Name of the authentication header for webhook requests.
    */
   webhookAuthHeaderName: z.string().nullish(),
@@ -175,10 +172,15 @@ interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   _internal?: {
     currentDate?: () => Date;
   };
+  /**
+   * The polling interval for checking transcript status in milliseconds.
+   */
+  pollingInterval?: number;
 }
 
 export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
   readonly specificationVersion = 'v3';
+  private readonly POLLING_INTERVAL_MS = 3000;
 
   get provider(): string {
     return this.config.provider;
@@ -247,7 +249,6 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
       body.summary_model =
         (assemblyaiOptions.summaryModel as never) ?? undefined;
       body.summary_type = (assemblyaiOptions.summaryType as never) ?? undefined;
-      body.topics = assemblyaiOptions.topics ?? undefined;
       body.webhook_auth_header_name =
         assemblyaiOptions.webhookAuthHeaderName ?? undefined;
       body.webhook_auth_header_value =
@@ -260,6 +261,74 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
       body,
       warnings,
     };
+  }
+
+  /**
+   * Polls the given transcript until we have a status other than `processing` or `queued`.
+   *
+   * @see https://www.assemblyai.com/docs/getting-started/transcribe-an-audio-file#step-33
+   */
+  private async waitForCompletion(
+    transcriptId: string,
+    headers: Record<string, string | undefined> | undefined,
+    abortSignal?: AbortSignal,
+  ): Promise<{
+    transcript: z.infer<typeof assemblyaiTranscriptionResponseSchema>;
+    responseHeaders: Record<string, string>;
+  }> {
+    const pollingInterval =
+      this.config.pollingInterval ?? this.POLLING_INTERVAL_MS;
+
+    while (true) {
+      if (abortSignal?.aborted) {
+        throw new Error('Transcription request was aborted');
+      }
+
+      const response = await fetch(
+        this.config.url({
+          path: `/v2/transcript/${transcriptId}`,
+          modelId: this.modelId,
+        }),
+        {
+          method: 'GET',
+          headers: combineHeaders(
+            this.config.headers(),
+            headers,
+          ) as HeadersInit,
+          signal: abortSignal,
+        },
+      );
+
+      if (!response.ok) {
+        throw await assemblyaiFailedResponseHandler({
+          response,
+          url: this.config.url({
+            path: `/v2/transcript/${transcriptId}`,
+            modelId: this.modelId,
+          }),
+          requestBodyValues: {},
+        });
+      }
+
+      const transcript = assemblyaiTranscriptionResponseSchema.parse(
+        await response.json(),
+      );
+
+      if (transcript.status === 'completed') {
+        return {
+          transcript,
+          responseHeaders: extractResponseHeaders(response),
+        };
+      }
+
+      if (transcript.status === 'error') {
+        throw new Error(
+          `Transcription failed: ${transcript.error ?? 'Unknown error'}`,
+        );
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollingInterval));
+    }
   }
 
   async doGenerate(
@@ -290,11 +359,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
 
     const { body, warnings } = await this.getArgs(options);
 
-    const {
-      value: response,
-      responseHeaders,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
+    const { value: submitResponse } = await postJsonToApi({
       url: this.config.url({
         path: '/v2/transcript',
         modelId: this.modelId,
@@ -306,29 +371,35 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
       },
       failedResponseHandler: assemblyaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        assemblyaiTranscriptionResponseSchema,
+        assemblyaiSubmitResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
+    const { transcript, responseHeaders } = await this.waitForCompletion(
+      submitResponse.id,
+      options.headers,
+      options.abortSignal,
+    );
+
     return {
-      text: response.text ?? '',
+      text: transcript.text ?? '',
       segments:
-        response.words?.map(word => ({
+        transcript.words?.map(word => ({
           text: word.text,
           startSecond: word.start,
           endSecond: word.end,
         })) ?? [],
-      language: response.language_code ?? undefined,
+      language: transcript.language_code ?? undefined,
       durationInSeconds:
-        response.audio_duration ?? response.words?.at(-1)?.end ?? undefined,
+        transcript.audio_duration ?? transcript.words?.at(-1)?.end ?? undefined,
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
-        headers: responseHeaders,
-        body: rawResponse,
+        headers: responseHeaders, // Headers from final GET request
+        body: transcript, // Raw response from final GET request
       },
     };
   }
@@ -338,7 +409,14 @@ const assemblyaiUploadResponseSchema = z.object({
   upload_url: z.string(),
 });
 
+const assemblyaiSubmitResponseSchema = z.object({
+  id: z.string(),
+  status: z.enum(['queued', 'processing', 'completed', 'error']),
+});
+
 const assemblyaiTranscriptionResponseSchema = z.object({
+  id: z.string(),
+  status: z.enum(['queued', 'processing', 'completed', 'error']),
   text: z.string().nullish(),
   language_code: z.string().nullish(),
   words: z
@@ -351,4 +429,5 @@ const assemblyaiTranscriptionResponseSchema = z.object({
     )
     .nullish(),
   audio_duration: z.number().nullish(),
+  error: z.string().nullish(),
 });

@@ -81,14 +81,18 @@ export function convertToGoogleGenerativeAIMessages(
           role: 'model',
           parts: content
             .map(part => {
+              const thoughtSignature =
+                part.providerOptions?.google?.thoughtSignature != null
+                  ? String(part.providerOptions.google?.thoughtSignature)
+                  : undefined;
+
               switch (part.type) {
                 case 'text': {
                   return part.text.length === 0
                     ? undefined
                     : {
                         text: part.text,
-                        thoughtSignature:
-                          part.providerOptions?.google?.thoughtSignature,
+                        thoughtSignature,
                       };
                 }
 
@@ -98,8 +102,7 @@ export function convertToGoogleGenerativeAIMessages(
                     : {
                         text: part.text,
                         thought: true,
-                        thoughtSignature:
-                          part.providerOptions?.google?.thoughtSignature,
+                        thoughtSignature,
                       };
                 }
 
@@ -132,8 +135,7 @@ export function convertToGoogleGenerativeAIMessages(
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature:
-                      part.providerOptions?.google?.thoughtSignature,
+                    thoughtSignature,
                   };
                 }
               }
@@ -165,7 +167,7 @@ export function convertToGoogleGenerativeAIMessages(
                     },
                   });
                   break;
-                case 'media':
+                case 'image-data':
                   parts.push(
                     {
                       inlineData: {

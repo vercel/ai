@@ -73,6 +73,14 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 export const xaiProviderOptions = z.object({
   reasoningEffort: z.enum(['low', 'high']).optional(),
 
+  /**
+   * Whether to enable parallel function calling during tool use.
+   * When true, the model can call multiple functions in parallel.
+   * When false, the model will call functions sequentially.
+   * Defaults to true.
+   */
+  parallel_function_calling: z.boolean().optional(),
+
   searchParameters: z
     .object({
       /**

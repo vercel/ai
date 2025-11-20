@@ -178,7 +178,10 @@ export function createGatewayProvider(
           return metadata;
         })
         .catch(async (error: unknown) => {
-          throw asGatewayError(error, parseAuthMethod(await getHeaders()));
+          throw await asGatewayError(
+            error,
+            await parseAuthMethod(await getHeaders()),
+          );
         });
     }
 
@@ -193,7 +196,10 @@ export function createGatewayProvider(
     })
       .getCredits()
       .catch(async (error: unknown) => {
-        throw asGatewayError(error, parseAuthMethod(await getHeaders()));
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
       });
   };
 
@@ -207,6 +213,7 @@ export function createGatewayProvider(
     return createLanguageModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.getAvailableModels = getAvailableModels;
   provider.getCredits = getCredits;
   provider.imageModel = (modelId: string) => {

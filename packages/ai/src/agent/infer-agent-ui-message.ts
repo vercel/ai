@@ -1,5 +1,5 @@
 import { InferUITools, UIMessage } from '../ui/ui-messages';
-import { InferAgentTools } from './inter-agent-tools';
+import { InferAgentTools } from './infer-agent-tools';
 
 /**
  * Infer the UI message type of an agent.

@@ -1,4 +1,5 @@
 import {
+  LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
@@ -224,6 +225,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -427,6 +429,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -707,6 +710,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -783,6 +787,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -813,6 +818,7 @@ describe('generateText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -894,6 +900,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -1023,6 +1030,7 @@ describe('generateText', () => {
           }),
           tools: {
             tool1: tool({
+              title: 'Tool One',
               inputSchema: z.object({ value: z.string() }),
               execute: async (args, options) => {
                 expect(args).toStrictEqual({ value: 'value' });
@@ -1238,6 +1246,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1420,6 +1429,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1816,6 +1826,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1894,6 +1905,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -2554,6 +2566,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -2628,6 +2641,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2649,6 +2663,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2677,6 +2692,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2687,6 +2703,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2761,7 +2778,7 @@ describe('generateText', () => {
   });
 
   describe('options.output', () => {
-    describe('no output', () => {
+    describe('text output (default)', () => {
       it('should throw error when accessing output', async () => {
         const result = await generateText({
           model: new MockLanguageModelV3({
@@ -2773,9 +2790,7 @@ describe('generateText', () => {
           prompt: 'prompt',
         });
 
-        expect(() => {
-          result.experimental_output;
-        }).toThrow('No output specified');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
     });
 
@@ -2789,10 +2804,10 @@ describe('generateText', () => {
             }),
           }),
           prompt: 'prompt',
-          experimental_output: Output.text(),
+          output: Output.text(),
         });
 
-        expect(result.experimental_output).toStrictEqual('Hello, world!');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
 
       it('should set responseFormat to text and not change the prompt', async () => {
@@ -2809,7 +2824,7 @@ describe('generateText', () => {
             },
           }),
           prompt: 'prompt',
-          experimental_output: Output.text(),
+          output: Output.text(),
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
@@ -2859,12 +2874,12 @@ describe('generateText', () => {
             }),
           }),
           prompt: 'prompt',
-          experimental_output: Output.object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
         });
 
-        expect(result.experimental_output).toEqual({ value: 'test-value' });
+        expect(result.output).toEqual({ value: 'test-value' });
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
@@ -2881,7 +2896,7 @@ describe('generateText', () => {
             },
           }),
           prompt: 'prompt',
-          experimental_output: Output.object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
         });
@@ -2935,6 +2950,198 @@ describe('generateText', () => {
         `);
       });
     });
+
+    describe('array output', () => {
+      it('should generate an array with 3 elements', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  elements: [
+                    { content: 'element 1' },
+                    { content: 'element 2' },
+                    { content: 'element 3' },
+                  ],
+                }),
+              },
+            ],
+          },
+        });
+
+        const result = await generateText({
+          model,
+          output: Output.array({
+            element: z.object({ content: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(result.output).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "element 1",
+          },
+          {
+            "content": "element 2",
+          },
+          {
+            "content": "element 3",
+          },
+        ]
+      `);
+
+        expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+
+        expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "elements": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "content",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "elements",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+      });
+    });
+
+    describe('choice output', () => {
+      it('should generate a choice value', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ result: 'sunny' }),
+              },
+            ],
+          },
+        });
+
+        const result = await generateText({
+          model,
+          output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(result.output).toEqual('sunny');
+        expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+        expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "sunny",
+                  "rainy",
+                  "snowy",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+      });
+    });
+
+    it('should not parse output when finish reason is tool-calls', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: 'tool-calls',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: `{ "value": "test" }`,
+              },
+            ],
+          }),
+        }),
+        prompt: 'prompt',
+        output: Output.object({
+          schema: z.object({ summary: z.string() }),
+        }),
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+      });
+
+      // output should be undefined when finish reason is tool-calls
+      expect(() => {
+        result.output;
+      }).toThrow('No output generated');
+
+      // But tool calls should work normally
+      expect(result.toolCalls).toHaveLength(1);
+      expect(result.toolResults).toHaveLength(1);
+    });
   });
 
   describe('tool execution errors', () => {
@@ -2977,6 +3184,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -3084,6 +3292,7 @@ describe('generateText', () => {
             },
             "providerExecuted": true,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "providerTool",
             "type": "tool-call",
@@ -3170,6 +3379,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "dynamicTool",
             "type": "tool-call",
@@ -3289,6 +3499,7 @@ describe('generateText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -3425,6 +3636,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -3458,6 +3670,7 @@ describe('generateText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "cityAttractions",
                   "type": "tool-call",
@@ -3561,7 +3774,11 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings once for each step with warnings from that step', async () => {
@@ -3617,8 +3834,16 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledTimes(2);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+        warnings: [warning1],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
+        warnings: [warning2],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -3634,7 +3859,11 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
   });
 
@@ -3692,6 +3921,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3704,6 +3934,7 @@ describe('generateText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -3807,6 +4038,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3817,6 +4049,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3839,6 +4072,7 @@ describe('generateText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -4465,6 +4699,138 @@ describe('generateText', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('prepareStep with model switch and image URLs', () => {
+    it('should use the prepareStep model supportedUrls for download decision', async () => {
+      const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
+        [];
+      const languageModelCalls: Array<
+        Parameters<LanguageModelV3['doGenerate']>[0]
+      > = [];
+
+      const modelWithImageUrlSupport = new MockLanguageModelV3({
+        provider: 'with-image-url-support',
+        modelId: 'with-image-url-support',
+        supportedUrls: {
+          'image/*': [/^https?:\/\/.*$/],
+        },
+        doGenerate: async options => {
+          languageModelCalls.push(options);
+          return {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'response from with-image-url-support' },
+            ],
+          };
+        },
+      });
+
+      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
+        provider: 'without-image-url-support',
+        modelId: 'without-image-url-support',
+        supportedUrls: {},
+        doGenerate: async options => {
+          languageModelCalls.push(options);
+          return {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'response from without-image-url-support' },
+            ],
+          };
+        },
+      });
+
+      const customDownload = async (
+        requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>,
+      ) => {
+        downloadCalls.push(...requestedDownloads);
+        return requestedDownloads.map(download =>
+          download.isUrlSupportedByModel
+            ? null
+            : {
+                data: new Uint8Array([1, 2, 3, 4]),
+                mediaType: 'image/png',
+              },
+        );
+      };
+
+      const result = await generateText({
+        model: modelWithImageUrlSupport,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image' },
+              { type: 'image', image: 'https://example.com/test.jpg' },
+            ],
+          },
+        ],
+        prepareStep: async () => {
+          return { model: modelWithoutImageUrlSupport }; // model switch
+        },
+        experimental_download: customDownload,
+      });
+
+      expect(downloadCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "isUrlSupportedByModel": false,
+            "url": "https://example.com/test.jpg",
+          },
+        ]
+      `);
+
+      expect(languageModelCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
+            },
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Describe this image",
+                    "type": "text",
+                  },
+                  {
+                    "data": Uint8Array [
+                      1,
+                      2,
+                      3,
+                      4,
+                    ],
+                    "filename": undefined,
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": undefined,
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          },
+        ]
+      `);
+
+      expect(result.text).toBe('response from without-image-url-support');
     });
   });
 });

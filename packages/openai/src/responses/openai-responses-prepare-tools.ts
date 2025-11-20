@@ -8,9 +8,11 @@ import { fileSearchArgsSchema } from '../tool/file-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
-import { OpenAIResponsesTool } from './openai-responses-api-types';
+import { mcpArgsSchema } from '../tool/mcp';
+import { OpenAIResponsesTool } from './openai-responses-api';
+import { validateTypes } from '@ai-sdk/provider-utils';
 
-export function prepareResponsesTools({
+export async function prepareResponsesTools({
   tools,
   toolChoice,
   strictJsonSchema,
@@ -18,7 +20,7 @@ export function prepareResponsesTools({
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   strictJsonSchema: boolean;
-}): {
+}): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
     | 'auto'
@@ -29,9 +31,10 @@ export function prepareResponsesTools({
     | { type: 'web_search' }
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
+    | { type: 'mcp' }
     | { type: 'image_generation' };
   toolWarnings: LanguageModelV3CallWarning[];
-} {
+}> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
@@ -57,7 +60,10 @@ export function prepareResponsesTools({
       case 'provider-defined': {
         switch (tool.id) {
           case 'openai.file_search': {
-            const args = fileSearchArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: fileSearchArgsSchema,
+            });
 
             openaiTools.push({
               type: 'file_search',
@@ -81,7 +87,10 @@ export function prepareResponsesTools({
             break;
           }
           case 'openai.web_search_preview': {
-            const args = webSearchPreviewArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webSearchPreviewArgsSchema,
+            });
             openaiTools.push({
               type: 'web_search_preview',
               search_context_size: args.searchContextSize,
@@ -90,7 +99,10 @@ export function prepareResponsesTools({
             break;
           }
           case 'openai.web_search': {
-            const args = webSearchArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webSearchArgsSchema,
+            });
             openaiTools.push({
               type: 'web_search',
               filters:
@@ -103,7 +115,11 @@ export function prepareResponsesTools({
             break;
           }
           case 'openai.code_interpreter': {
-            const args = codeInterpreterArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: codeInterpreterArgsSchema,
+            });
+
             openaiTools.push({
               type: 'code_interpreter',
               container:
@@ -116,7 +132,11 @@ export function prepareResponsesTools({
             break;
           }
           case 'openai.image_generation': {
-            const args = imageGenerationArgsSchema.parse(tool.args);
+            const args = await validateTypes({
+              value: tool.args,
+              schema: imageGenerationArgsSchema,
+            });
+
             openaiTools.push({
               type: 'image_generation',
               background: args.background,
@@ -135,6 +155,42 @@ export function prepareResponsesTools({
               output_format: args.outputFormat,
               size: args.size,
             });
+            break;
+          }
+          case 'openai.mcp': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: mcpArgsSchema,
+            });
+
+            openaiTools.push({
+              type: 'mcp',
+              server_label: args.serverLabel,
+              allowed_tools: Array.isArray(args.allowedTools)
+                ? args.allowedTools
+                : args.allowedTools
+                  ? {
+                      read_only: args.allowedTools.readOnly,
+                      tool_names: args.allowedTools.toolNames,
+                    }
+                  : undefined,
+              authorization: args.authorization,
+              connector_id: args.connectorId,
+              headers: args.headers,
+              // require_approval:
+              //   typeof args.requireApproval === 'string'
+              //     ? args.requireApproval
+              //     : args.requireApproval
+              //       ? {
+              //           read_only: args.requireApproval.readOnly,
+              //           tool_names: args.requireApproval.toolNames,
+              //         }
+              //       : undefined,
+              require_approval: 'never',
+              server_description: args.serverDescription,
+              server_url: args.serverUrl,
+            });
+
             break;
           }
         }
@@ -165,7 +221,8 @@ export function prepareResponsesTools({
           toolChoice.toolName === 'file_search' ||
           toolChoice.toolName === 'image_generation' ||
           toolChoice.toolName === 'web_search_preview' ||
-          toolChoice.toolName === 'web_search'
+          toolChoice.toolName === 'web_search' ||
+          toolChoice.toolName === 'mcp'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
