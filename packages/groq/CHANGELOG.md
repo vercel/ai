@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- 0f0fa34: Restrict reasoningEffort to allowed enum values in Groq provider options
+
 ## 3.0.0-beta.34
 
 ### Patch Changes
