@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.30
+
+### Patch Changes
+
+- 31cc064: fix(groq): remove decomissioned `moonshotai/kimi-k2-instruct`, add `moonshotai/kimi-k2-instruct-0905`
+
 ## 2.0.29
 
 ### Patch Changes
