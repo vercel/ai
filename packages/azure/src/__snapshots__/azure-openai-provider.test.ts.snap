@@ -254,6 +254,7 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "query": "top news stories November 19, 2025",
@@ -272,6 +273,7 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "query": "major news stories November 19, 2025",
@@ -285,15 +287,6 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
   {
     "providerMetadata": {
       "openai": {
-        "annotations": [
-          {
-            "end_index": 576,
-            "start_index": 453,
-            "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
-            "type": "url_citation",
-            "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
-          },
-        ],
         "itemId": "msg_015f6a6b41cacae400691daacf3e70819397c7d2d5d05e1605",
       },
     },
@@ -3238,6 +3231,7 @@ exports[`responses > web search preview tool > should stream web search preview 
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "query": "top news stories November 19, 2025",
@@ -5004,6 +4998,20 @@ exports[`responses > web search preview tool > should stream web search preview 
   },
   {
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "end_index": 577,
+            "start_index": 458,
+            "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+            "type": "url_citation",
+            "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+          },
+        ],
+        "itemId": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+      },
+    },
     "type": "text-end",
   },
   {
