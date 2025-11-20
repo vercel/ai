@@ -33,16 +33,16 @@ export const tools: Tool[] = [
       yarn: 'yarn add ai-sdk-tool-code-execution',
       bun: 'bun add ai-sdk-tool-code-execution',
     },
-    codeExample: `import { generateText } from 'ai';
+    codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
 import { executeCode } from 'ai-sdk-tool-code-execution';
-import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: gateway('openai/gpt-5.1-codex'),
   prompt: 'What is 5 + 5 minus 84 cubed?',
   tools: {
     executeCode: executeCode(),
   },
+  stopWhen: stepCountIs(5),
 });
 
 console.log(text);`,
@@ -65,12 +65,11 @@ console.log(text);`,
       yarn: 'yarn add @exalabs/ai-sdk',
       bun: 'bun add @exalabs/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
 import { webSearch } from '@exalabs/ai-sdk';
-import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: gateway('google/gemini-3.0-pro'),
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
@@ -98,12 +97,11 @@ console.log(text);`,
       yarn: 'yarn add @parallel-web/ai-sdk-tools',
       bun: 'bun add @parallel-web/ai-sdk-tools',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
-import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: gateway('google/gemini-3.0-pro'),
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
