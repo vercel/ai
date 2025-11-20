@@ -6,18 +6,28 @@ describe('groqProviderOptions', () => {
     it('accepts valid reasoningEffort values', () => {
       const validValues = ['none', 'default', 'low', 'medium', 'high'] as const;
 
-      validValues.forEach((value) => {
-        const result = groqProviderOptions.safeParse({ reasoningEffort: value });
+      validValues.forEach(value => {
+        const result = groqProviderOptions.safeParse({
+          reasoningEffort: value,
+        });
         expect(result.success).toBe(true);
         expect(result.data?.reasoningEffort).toBe(value);
       });
     });
 
     it('rejects invalid reasoningEffort values', () => {
-      const invalidValues = ['invalid', 'high-effort', 'minimal', 'maximum', ''];
+      const invalidValues = [
+        'invalid',
+        'high-effort',
+        'minimal',
+        'maximum',
+        '',
+      ];
 
-      invalidValues.forEach((value) => {
-        const result = groqProviderOptions.safeParse({ reasoningEffort: value });
+      invalidValues.forEach(value => {
+        const result = groqProviderOptions.safeParse({
+          reasoningEffort: value,
+        });
         expect(result.success).toBe(false);
       });
     });
@@ -29,7 +39,9 @@ describe('groqProviderOptions', () => {
     });
 
     it('allows reasoningEffort to be omitted explicitly', () => {
-      const result = groqProviderOptions.safeParse({ reasoningEffort: undefined });
+      const result = groqProviderOptions.safeParse({
+        reasoningEffort: undefined,
+      });
       expect(result.success).toBe(true);
       expect(result.data?.reasoningEffort).toBeUndefined();
     });
@@ -72,8 +84,10 @@ describe('groqProviderOptions', () => {
         'high',
       ];
 
-      variants.forEach((variant) => {
-        const result = groqProviderOptions.safeParse({ reasoningEffort: variant });
+      variants.forEach(variant => {
+        const result = groqProviderOptions.safeParse({
+          reasoningEffort: variant,
+        });
         expect(result.success).toBe(true);
         if (result.success) {
           expect(result.data.reasoningEffort).toBe(variant);
