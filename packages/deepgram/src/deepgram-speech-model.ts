@@ -271,7 +271,7 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
         const container = deepgramOptions.container.toLowerCase();
         const oldEncoding = queryParams.encoding?.toLowerCase();
         let newEncoding: string | undefined;
-        
+
         if (container === 'wav') {
           queryParams.container = 'wav';
           newEncoding = 'linear16'; // Default encoding for wav
@@ -282,7 +282,7 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
           queryParams.container = 'none';
           newEncoding = 'linear16'; // Default encoding for raw audio
         }
-        
+
         // If encoding changed, clean up incompatible parameters
         if (newEncoding && newEncoding !== oldEncoding) {
           queryParams.encoding = newEncoding;
