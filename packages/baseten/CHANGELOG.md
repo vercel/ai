@@ -1,5 +1,11 @@
 # @ai-sdk/baseten
 
+## 1.0.0-beta.36
+
+### Patch Changes
+
+- ab9af9c: add moonshotai/Kimi-K2-Thinking model ID for Baseten provider
+
 ## 1.0.0-beta.35
 
 ### Patch Changes
