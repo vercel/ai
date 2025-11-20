@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.13
+
+### Patch Changes
+
+- 8c54c71: feat(provider/gateway): update gateway model string autocomplete
+
 ## 2.0.12
 
 ### Patch Changes
