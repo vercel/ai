@@ -1216,7 +1216,7 @@ describe('responses', () => {
     let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
     beforeEach(async () => {
-      prepareJsonFixtureResponse('openai-image-generation-tool.1');
+      prepareJsonFixtureResponse('azure-image-generation-tool.1');
 
       result = await createModel('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
@@ -1627,5 +1627,27 @@ describe('responses', () => {
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
     });
+  });
+  describe('image generation tool', ()=>{
+    it('should stream image generation tool results include',async()=>{
+
+      prepareChunksFixtureResponse('azure-image-generation-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+        ],
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+
+    })
   });
 });
