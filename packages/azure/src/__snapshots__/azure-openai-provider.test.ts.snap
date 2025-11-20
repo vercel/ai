@@ -244,6 +244,73 @@ exports[`responses > doGenerate > file search tool > without results include > s
 ]
 `;
 
+exports[`responses > doGenerate > web search preview tool > should stream web search preview results include 1`] = `
+[
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_015f6a6b41cacae400691daacb83288193836c60a7c57507fd",
+    "toolName": "web_search_preview",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "query": "top news stories November 19, 2025",
+        "type": "search",
+      },
+    },
+    "toolCallId": "ws_015f6a6b41cacae400691daacb83288193836c60a7c57507fd",
+    "toolName": "web_search_preview",
+    "type": "tool-result",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_015f6a6b41cacae400691daacdbd0081938887c66406662377",
+    "toolName": "web_search_preview",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "query": "major news stories November 19, 2025",
+        "type": "search",
+      },
+    },
+    "toolCallId": "ws_015f6a6b41cacae400691daacdbd0081938887c66406662377",
+    "toolName": "web_search_preview",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_015f6a6b41cacae400691daacf3e70819397c7d2d5d05e1605",
+      },
+    },
+    "text": "Here are three major news stories from today, November 19, 2025:
+
+1. President Donald Trump hosted Saudi Crown Prince Mohammed bin Salman (MBS) at the White House. Trump defended the Saudi prince over the 2018 murder of journalist Jamal Khashoggi, dismissing it as "things happened" and praising MBS's human rights record. The visit included a lavish military parade and the announcement of a $1.3 trillion investment pledge by Saudi Arabia in the U.S. [The Straits Times](https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025)
+
+2. The U.S. House of Representatives voted overwhelmingly (427-1) to compel the Justice Department to release all unclassified files related to Jeffrey Epstein. This followed a shift from Trump who had initially opposed the release. The resolution now moves to the Senate for consideration. [The Straits Times](https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025)
+
+3. Spain pledged €817 million (approximately $1.2 billion) in military and other aid to Ukraine to help bolster Kyiv’s air defenses against ongoing Russian attacks. The aid is part of a 10-year bilateral security and defense agreement signed in 2024 and includes purchasing U.S. military equipment under NATO’s prioritization. [The Straits Times](https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025)
+
+If you want more details or other news stories, feel free to ask!",
+    "type": "text",
+  },
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+    "type": "source",
+    "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+  },
+]
+`;
+
 exports[`responses > doStream > should send code interpreter calls 1`] = `
 [
   {
@@ -3130,6 +3197,1844 @@ exports[`responses > image generation tool > should include generate image tool 
     },
     "text": "",
     "type": "text",
+  },
+]
+`;
+
+exports[`responses > web search preview tool > should stream web search preview results include 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0dcf1a118189f28100691daa5591108194a7dc13f2d6faa80c",
+    "modelId": "gpt-4.1-mini",
+    "timestamp": 2025-11-19T11:30:29.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "ws_0dcf1a118189f28100691daa56c6488194b41c751d5cb3b4c3",
+    "providerExecuted": true,
+    "toolName": "web_search_preview",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "ws_0dcf1a118189f28100691daa56c6488194b41c751d5cb3b4c3",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0dcf1a118189f28100691daa56c6488194b41c751d5cb3b4c3",
+    "toolName": "web_search_preview",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "query": "top news stories November 19, 2025",
+        "type": "search",
+      },
+    },
+    "toolCallId": "ws_0dcf1a118189f28100691daa56c6488194b41c751d5cb3b4c3",
+    "toolName": "web_search_preview",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "Here",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " three",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " major",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " news",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stories",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " today",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " November",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "19",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+
+",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " U",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".S",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " President",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Donald",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Trump",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hosted",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Saudi",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Crown",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Prince",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mohammed",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bin",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Salman",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " White",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " House",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " defending",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prince",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " over",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "201",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "8",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " killing",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " journalist",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Jam",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "al",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " K",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "hash",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oggi",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " praising",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " $",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "3",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trillion",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " investment",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pledge",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Saudi",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Arabia",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " visit",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " included",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " military",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " display",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " plans",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " selling",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " F",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "35",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " jets",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Riy",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "adh",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " highlighting",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " strengthening",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " U",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".S",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Saudi",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relationship",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " despite",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " controversies",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " [",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Str",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aits",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Times",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "](",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "https",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "rait",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "imes",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/world",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "while",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-you",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-w",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ere",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-s",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "leep",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ing",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ories",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-you",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ight",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-have",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "issed",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-n",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ov",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "19",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").
+
+",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " In",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " U",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".S",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " House",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Representatives",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vote",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "427",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " passed",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " compel",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Justice",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Department",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " release",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " more",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " files",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " related",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Jeffrey",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Epstein",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " marking",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " significant",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " step",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " toward",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " transparency",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " case",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " This",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " follows",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " notable",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " political",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " division",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " among",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Republicans",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " recent",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shift",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " President",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Trump's",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " position",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " matter",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " [",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Str",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aits",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Times",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "](",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "https",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "rait",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "imes",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/world",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "while",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-you",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-w",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ere",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-s",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "leep",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ing",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ories",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-you",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ight",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-have",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "issed",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-n",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ov",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "19",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").
+
+",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "3",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Spain",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " announced",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " €",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "817",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " million",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " military",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " aid",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " package",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Ukraine",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " amid",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ongoing",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " conflict",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Russia",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " This",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " includes",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " €",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "300",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " million",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " defense",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " equipment",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " purchase",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " U",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".S",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " military",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gear",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " part",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " long",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-term",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bilateral",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " security",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " agreement",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " aiming",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bolster",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Ukraine",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " air",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " defenses",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " [",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Str",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aits",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Times",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "](",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "https",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "rait",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "imes",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/world",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "while",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-you",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-w",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ere",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-s",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "leep",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ing",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-st",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ories",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-you",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ight",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-have",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "issed",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-n",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ov",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "19",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").
+
+",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "If",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " want",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " more",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " detailed",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " summaries",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " additional",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " news",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " just",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " let",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": " know",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "delta": "!",
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+    "type": "source",
+    "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+  },
+  {
+    "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "end_index": 577,
+            "start_index": 458,
+            "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+            "type": "url_citation",
+            "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+          },
+        ],
+        "itemId": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "error": [AI_JSONParseError: JSON parsing failed: Text: .
+Error message: Unexpected end of JSON input],
+    "type": "error",
+  },
+  {
+    "finishReason": "error",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0dcf1a118189f28100691daa5591108194a7dc13f2d6faa80c",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 5093,
+      "outputTokens": 369,
+      "reasoningTokens": 0,
+      "totalTokens": 5462,
+    },
   },
 ]
 `;
