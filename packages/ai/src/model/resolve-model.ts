@@ -108,7 +108,10 @@ export function resolveSpeechModel(
 
 export function resolveImageModel(model: ImageModel): ImageModelV3 {
   if (typeof model !== 'string') {
-    if (model.specificationVersion !== 'v3' && model.specificationVersion !== 'v2') {
+    if (
+      model.specificationVersion !== 'v3' &&
+      model.specificationVersion !== 'v2'
+    ) {
       const unsupportedModel: any = model;
       throw new UnsupportedModelVersionError({
         version: unsupportedModel.specificationVersion,
