@@ -1,12 +1,7 @@
 import {
-<<<<<<< HEAD
   TranscriptionModelV2,
+  SpeechModelV2,
   ProviderV2,
-=======
-  TranscriptionModelV3,
-  SpeechModelV3,
-  ProviderV3,
->>>>>>> f1181085a (feat(deepgram): add text-to-speech support (#10063))
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -31,16 +26,12 @@ export interface DeepgramProvider extends ProviderV2 {
   /**
 Creates a model for transcription.
    */
-<<<<<<< HEAD
   transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV2;
-=======
-  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV3;
 
   /**
 Creates a model for speech generation.
    */
-  speech(modelId: DeepgramSpeechModelId): SpeechModelV3;
->>>>>>> f1181085a (feat(deepgram): add text-to-speech support (#10063))
+  speech(modelId: DeepgramSpeechModelId): SpeechModelV2;
 }
 
 export interface DeepgramProviderSettings {
