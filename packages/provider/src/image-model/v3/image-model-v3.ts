@@ -1,4 +1,5 @@
 import { JSONArray, JSONValue } from '../../json-value';
+import { ImageModelV3Usage } from './image-model-v3-usage';
 import { ImageModelV3CallOptions } from './image-model-v3-call-options';
 import { ImageModelV3CallWarning } from './image-model-v3-call-warning';
 
@@ -100,5 +101,10 @@ Response headers.
       */
       headers: Record<string, string> | undefined;
     };
+
+    /**
+    Optional token usage for the image generation call (if the provider reports it).
+     */
+    usage?: ImageModelV3Usage;
   }>;
 };

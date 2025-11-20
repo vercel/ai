@@ -90,6 +90,12 @@ or to provide a custom fetch implementation for e.g. testing.
 Optional function to generate a unique ID for each request.
      */
   generateId?: () => string;
+
+  /**
+   * Custom provider name
+   * Defaults to 'google.generative-ai'.
+   */
+  name?: string;
 }
 
 /**
@@ -101,6 +107,8 @@ export function createGoogleGenerativeAI(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
+
+  const providerName = options.name ?? 'google.generative-ai';
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -117,7 +125,7 @@ export function createGoogleGenerativeAI(
 
   const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
     new GoogleGenerativeAILanguageModel(modelId, {
-      provider: 'google.generative-ai',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
@@ -138,7 +146,7 @@ export function createGoogleGenerativeAI(
 
   const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
     new GoogleGenerativeAIEmbeddingModel(modelId, {
-      provider: 'google.generative-ai',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -149,7 +157,7 @@ export function createGoogleGenerativeAI(
     settings: GoogleGenerativeAIImageSettings = {},
   ) =>
     new GoogleGenerativeAIImageModel(modelId, settings, {
-      provider: 'google.generative-ai',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,

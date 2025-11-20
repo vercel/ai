@@ -1,5 +1,57 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.63
+
+### Patch Changes
+
+- 423ba08: Set the annotations from the Responses API to doStream
+
+## 3.0.0-beta.62
+
+### Patch Changes
+
+- 64aa48f: Azure OpenAI enabled web-search-preview
+
+## 3.0.0-beta.61
+
+### Patch Changes
+
+- 23f132b: fix: error schema for Responses API
+
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 0877683: feat(provider/openai): support conversations api
+
+## 3.0.0-beta.59
+
+### Patch Changes
+
+- d0f1baf: feat(openai): Add support for 'promptCacheRetention: 24h' for gpt5.1 series
+
+## 3.0.0-beta.58
+
+### Patch Changes
+
+- 79b4e46: feat(openai): add 'gpt-5.1' modelID
+
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
 ## 3.0.0-beta.55
 
 ### Patch Changes

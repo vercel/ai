@@ -2153,6 +2153,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               if (sendFinish) {
                 controller.enqueue({
                   type: 'finish',
+                  finishReason: part.finishReason,
                   ...(messageMetadataValue != null
                     ? { messageMetadata: messageMetadataValue }
                     : {}),

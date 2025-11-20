@@ -107,34 +107,43 @@ const server = createTestServer({
     {},
 });
 
-describe('chat', () => {
+describe('responses (default language model)', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
+    function prepareJsonResponse({
+      content = '',
+      usage = {
+        input_tokens: 4,
+        output_tokens: 30,
+        total_tokens: 34,
+      },
+    } = {}) {
       server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+        'https://test-resource.openai.azure.com/openai/v1/responses'
       ].response = {
         type: 'json-value',
         body: {
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          object: 'chat.completion',
-          created: 1711115037,
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
           model: 'test-deployment',
-          choices: [
+          output: [
             {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content,
-              },
-              finish_reason: 'stop',
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: content,
+                  annotations: [],
+                },
+              ],
             },
           ],
-          usage: {
-            prompt_tokens: 4,
-            total_tokens: 34,
-            completion_tokens: 30,
-          },
-          system_fingerprint: 'fp_3bc1b5746c',
+          usage,
+          incomplete_details: null,
         },
       };
     }
@@ -201,6 +210,109 @@ describe('chat', () => {
       });
 
       await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1',
+      );
+    });
+  });
+});
+
+describe('chat', () => {
+  describe('doGenerate', () => {
+    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'gpt-3.5-turbo-0125',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 4,
+            total_tokens: 34,
+            completion_tokens: 30,
+          },
+          system_fingerprint: 'fp_3bc1b5746c',
+        },
+      };
+    }
+
+    it('should set the correct default api version', async () => {
+      prepareJsonResponse();
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('v1');
+    });
+
+    it('should set the correct modified api version', async () => {
+      prepareJsonResponse();
+
+      await providerApiVersionChanged.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2025-04-01-preview');
+    });
+
+    it('should pass headers', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
+    });
+
+    it('should use the baseURL correctly', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        baseURL: 'https://test-resource.openai.azure.com/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
@@ -1098,6 +1210,29 @@ describe('responses', () => {
         });
       });
     });
+
+    describe('web search preview tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {},
+            },
+          ],
+        });
+      });
+      it('should stream web search preview results include', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
   });
 
   describe('image generation tool', () => {
@@ -1215,6 +1350,11 @@ describe('responses', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -1424,6 +1564,25 @@ describe('responses', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -1511,6 +1670,25 @@ describe('responses', () => {
         },
       });
 
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('web search preview tool', () => {
+    it('should stream web search preview results include', async () => {
+      prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search_preview',
+            name: 'web_search_preview',
+            args: {},
+          },
+        ],
+      });
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
