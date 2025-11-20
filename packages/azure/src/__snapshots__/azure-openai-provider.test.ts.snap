@@ -2059,6 +2059,11 @@ Generated numbers (formatted to 2 decimal places): 88.99, 51.21, 89.85, 88.97, 7
   },
   {
     "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -2603,6 +2608,19 @@ providers and models, and which ones are available in the AI SDK.",
   },
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 379,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -3109,6 +3127,25 @@ exports[`responses > file search tool > should stream file search results withou
   },
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 154,
+            "type": "file_citation",
+          },
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 382,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -4976,6 +5013,20 @@ exports[`responses > web search preview tool > should stream web search preview 
   },
   {
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+    "providerMetadata": {
+      "openai": {
+        "annotations": [
+          {
+            "end_index": 577,
+            "start_index": 458,
+            "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+            "type": "url_citation",
+            "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+          },
+        ],
+        "itemId": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
+      },
+    },
     "type": "text-end",
   },
   {
