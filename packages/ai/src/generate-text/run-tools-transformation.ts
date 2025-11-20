@@ -66,6 +66,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       toolName: string;
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-delta';
@@ -238,6 +239,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 input: toolCall.input,
                 error: getErrorMessage(toolCall.error!),
                 dynamic: true,
+                title: toolCall.title,
               });
               break;
             }
@@ -319,7 +321,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolCallId: chunk.toolCallId,
               toolName,
               input: toolInputs.get(chunk.toolCallId),
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
               error: chunk.result,
               dynamic: chunk.dynamic,
             } as TypedToolError<TOOLS>);
@@ -330,7 +332,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolName,
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
               dynamic: chunk.dynamic,
             } as TypedToolResult<TOOLS>);
           }

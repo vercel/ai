@@ -166,7 +166,11 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should call logWarnings with aggregated warnings from multiple calls', async () => {
@@ -207,7 +211,11 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith(expectedAggregatedWarnings);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedAggregatedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -223,7 +231,11 @@ describe('generateImage', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith([]);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: [],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   describe('base64 image data', () => {
@@ -637,6 +649,88 @@ describe('generateImage', () => {
       testProvider: {
         images: [{ revisedPrompt: 'test-revised-prompt' }, null],
       },
+    });
+  });
+
+  it('should expose empty usage when provider does not report usage', async () => {
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [pngBase64],
+          }),
+      }),
+      prompt,
+    });
+
+    expect(result.usage).toStrictEqual({
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
+    });
+  });
+
+  it('should aggregate usage across multiple provider calls', async () => {
+    let callCount = 0;
+
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        maxImagesPerCall: 1,
+        doGenerate: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                images: [pngBase64],
+                warnings: [],
+                providerMetadata: {
+                  testProvider: { images: [null] },
+                },
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'mock-model-id',
+                  headers: {},
+                },
+                usage: {
+                  inputTokens: 10,
+                  outputTokens: 0,
+                  totalTokens: 10,
+                },
+              };
+            case 1:
+              return {
+                images: [jpegBase64],
+                warnings: [],
+                providerMetadata: {
+                  testProvider: { images: [null] },
+                },
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'mock-model-id',
+                  headers: {},
+                },
+                usage: {
+                  inputTokens: 5,
+                  outputTokens: 0,
+                  totalTokens: 5,
+                },
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      prompt,
+      n: 2,
+    });
+
+    expect(result.images.map(image => image.base64)).toStrictEqual([
+      pngBase64,
+      jpegBase64,
+    ]);
+    expect(result.usage).toStrictEqual({
+      inputTokens: 15,
+      outputTokens: 0,
+      totalTokens: 15,
     });
   });
 });

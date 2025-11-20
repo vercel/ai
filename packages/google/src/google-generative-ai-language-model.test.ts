@@ -88,6 +88,22 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].web with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          web: {
+            // Missing `title`
+            uri: 'https://example.com/weather',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates complete grounding metadata with Vertex AI Search results', () => {
     const metadata = {
       retrievalQueries: ['How to make appointment to renew driving license?'],
@@ -108,6 +124,22 @@ describe('groundingMetadataSchema', () => {
           segment_text: 'ipsum lorem ...',
           supportChunkIndices: [1, 2],
           confidenceScore: [0.9541752, 0.97726375],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            // Missing `title`
+            uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+          },
         },
       ],
     };
@@ -740,12 +772,6 @@ describe('doGenerate', () => {
           {
             web: { uri: 'https://source.example.com', title: 'Source Title' },
           },
-          {
-            retrievedContext: {
-              uri: 'https://not-a-source.example.com',
-              title: 'Not a Source',
-            },
-          },
         ],
       },
     });
@@ -770,6 +796,69 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should extract sources from RAG retrievedContext chunks', async () => {
+    prepareJsonResponse({
+      content: 'test response with RAG',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: { uri: 'https://web.example.com', title: 'Web Source' },
+          },
+          {
+            retrievedContext: {
+              uri: 'gs://rag-corpus/document.pdf',
+              title: 'RAG Document',
+              text: 'Retrieved context...',
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://external-rag-source.com/page',
+              title: 'External RAG Source',
+              text: 'External retrieved context...',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with RAG",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": "Web Source",
+              "type": "source",
+              "url": "https://web.example.com",
+            },
+            {
+              "filename": "document.pdf",
+              "id": "test-id",
+              "mediaType": "application/pdf",
+              "sourceType": "document",
+              "title": "RAG Document",
+              "type": "source",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": "External RAG Source",
+              "type": "source",
+              "url": "https://external-rag-source.com/page",
+            },
+          ]
+        `);
   });
 
   describe('async headers handling', () => {
@@ -1071,25 +1160,26 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toEqual([{ codeExecution: {} }]);
 
-    expect(content).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        input: '{"language":"PYTHON","code":"print(1+1)"}',
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        result: {
-          outcome: 'OUTCOME_OK',
-          output: '2',
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(1+1)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
         },
-        providerExecuted: true,
-      },
-    ]);
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "2",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
   });
 
   describe('search tool selection', () => {
@@ -1222,6 +1312,44 @@ describe('doGenerate', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: [{ urlContext: {} }],
+      });
+    });
+    it('should use vertexRagStore for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
+      await gemini2Pro.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.vertex_rag_store',
+            name: 'vertex_rag_store',
+            args: {
+              ragCorpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+              topK: 5,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: [
+          {
+            retrieval: {
+              vertex_rag_store: {
+                rag_resources: {
+                  rag_corpus:
+                    'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+                },
+                similarity_top_k: 5,
+              },
+            },
+          },
+        ],
       });
     });
   });
@@ -1647,113 +1775,99 @@ describe('doGenerate', () => {
       ]
     `);
   });
-  describe('warnings for includeThoughts option', () => {
-    it('should generate a warning if includeThoughts is true for a non-Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
 
-      // Manually create a model instance to control the provider string
-      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        supportedUrls: () => ({}), // Dummy implementation
-      });
-
-      const { warnings } = await nonVertexModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            thinkingConfig: {
-              includeThoughts: true,
-              thinkingBudget: 500,
-            },
-          },
-        },
-      });
-
-      expect(warnings).toMatchInlineSnapshot(`
-        [
+  it('should support includeThoughts with google generative ai provider', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            "message": "The 'includeThoughts' option is only supported with the Google Vertex provider and might not be supported or could behave unexpectedly with the current Google provider (google.generative-ai.chat).",
-            "type": "other",
+            content: {
+              parts: [
+                {
+                  text: 'let me think about this problem',
+                  thought: true,
+                  thoughtSignature: 'reasoning_sig',
+                },
+                { text: 'the answer is 42' },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            safetyRatings: SAFETY_RATINGS,
           },
-        ]
-      `);
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 15,
+          totalTokenCount: 25,
+          thoughtsTokenCount: 8,
+        },
+      },
+    };
+
+    const { content, usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: 1024,
+          },
+        },
+      },
     });
 
-    it('should NOT generate a warning if includeThoughts is true for a Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
-
-      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.vertex.chat', // Simulate Vertex provider
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        supportedUrls: () => ({}),
-      });
-
-      const { warnings } = await vertexModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            thinkingConfig: {
-              includeThoughts: true,
-              thinkingBudget: 500,
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig",
             },
           },
+          "text": "let me think about this problem",
+          "type": "reasoning",
         },
-      });
+        {
+          "providerMetadata": undefined,
+          "text": "the answer is 42",
+          "type": "text",
+        },
+      ]
+    `);
 
-      expect(warnings).toMatchInlineSnapshot(`[]`);
-    });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 10,
+        "outputTokens": 15,
+        "reasoningTokens": 8,
+        "totalTokens": 25,
+      }
+    `);
+  });
 
-    it('should NOT generate a warning if includeThoughts is false for a non-Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
+  it('should pass thinkingLevel in provider options', async () => {
+    prepareJsonResponse({});
 
-      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        supportedUrls: () => ({}),
-      });
-
-      const { warnings } = await nonVertexModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            thinkingConfig: {
-              includeThoughts: false,
-              thinkingBudget: 500,
-            },
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
           },
         },
-      });
-
-      expect(warnings).toMatchInlineSnapshot(`[]`);
+      },
     });
 
-    it('should NOT generate a warning if thinkingConfig is not provided for a non-Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
-      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        supportedUrls: () => ({}),
-      });
-
-      const { warnings } = await nonVertexModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            // No thinkingConfig
-          },
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'high',
         },
-      });
-
-      expect(warnings).toMatchInlineSnapshot(`[]`);
+      },
     });
   });
 });
@@ -2141,25 +2255,27 @@ describe('doStream', () => {
       e => e.type === 'tool-call' || e.type === 'tool-result',
     );
 
-    expect(toolEvents).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        input: '{"language":"PYTHON","code":"print(\\"hello\\")"}',
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        result: {
-          outcome: 'OUTCOME_OK',
-          output: 'hello\n',
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(\\"hello\\")"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
         },
-        providerExecuted: true,
-      },
-    ]);
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "hello
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
   });
 
   describe('search tool selection', () => {

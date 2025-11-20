@@ -213,6 +213,7 @@ export function createGatewayProvider(
     return createLanguageModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.getAvailableModels = getAvailableModels;
   provider.getCredits = getCredits;
   provider.imageModel = (modelId: string) => {

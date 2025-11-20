@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import { JSONObject } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -117,7 +117,11 @@ Only applicable for HTTP-based providers.
     }),
   );
 
-  logWarnings(result.warnings);
+  logWarnings({
+    warnings: result.warnings,
+    provider: resolvedModel.provider,
+    model: resolvedModel.modelId,
+  });
 
   if (!result.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
@@ -145,7 +149,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   readonly durationInSeconds: number | undefined;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
-  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+  readonly providerMetadata: Record<string, JSONObject>;
 
   constructor(options: {
     text: string;
@@ -158,7 +162,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     durationInSeconds: number | undefined;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
-    providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
+    providerMetadata: Record<string, JSONObject> | undefined;
   }) {
     this.text = options.text;
     this.segments = options.segments;

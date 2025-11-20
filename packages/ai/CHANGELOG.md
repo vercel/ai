@@ -1,5 +1,218 @@
 # ai
 
+## 6.0.0-beta.101
+
+### Patch Changes
+
+- Updated dependencies [3782645]
+  - @ai-sdk/gateway@2.0.0-beta.53
+
+## 6.0.0-beta.100
+
+### Patch Changes
+
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+
+## 6.0.0-beta.99
+
+### Patch Changes
+
+- 384142c: feat(agent): add abortSignal parameter to generate and stream
+
+## 6.0.0-beta.98
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/gateway@2.0.0-beta.52
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 6.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - @ai-sdk/gateway@2.0.0-beta.51
+
+## 6.0.0-beta.96
+
+### Patch Changes
+
+- a322efa: Added finishReason on useChat onFinish callbck
+
+## 6.0.0-beta.95
+
+### Patch Changes
+
+- eb8d1cb: fix not catching of empty arrays in validateUIMessage
+
+## 6.0.0-beta.94
+
+### Patch Changes
+
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+
+## 6.0.0-beta.93
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/gateway@2.0.0-beta.50
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 6.0.0-beta.92
+
+### Patch Changes
+
+- 97b1d77: fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
+
+## 6.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+  - @ai-sdk/gateway@2.0.0-beta.49
+
+## 6.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/gateway@2.0.0-beta.48
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 6.0.0-beta.89
+
+### Patch Changes
+
+- d59ce25: fix(ai): do not mutate middleware array argument when wrapping
+
+## 6.0.0-beta.88
+
+### Patch Changes
+
+- 22ef5c6: feat(ai): Output.text() is default output mode
+
+## 6.0.0-beta.87
+
+### Patch Changes
+
+- ca13d26: feat(ai): add output to StreamTextResult
+
+## 6.0.0-beta.86
+
+### Patch Changes
+
+- 36b175c: chore(ai): change output generics
+
+## 6.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [96322b7]
+  - @ai-sdk/gateway@2.0.0-beta.47
+
+## 6.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.46
+
+## 6.0.0-beta.83
+
+### Patch Changes
+
+- e1f6e8e: feat(ai): add Output.json()
+
+## 6.0.0-beta.82
+
+### Patch Changes
+
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/gateway@2.0.0-beta.45
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 6.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [7d73922]
+  - @ai-sdk/gateway@2.0.0-beta.44
+
+## 6.0.0-beta.80
+
+### Patch Changes
+
+- 9524761: chore(ai): rename relevanceScore to score
+
+## 6.0.0-beta.79
+
+### Patch Changes
+
+- d1bdadb: Added experimental_rerank support
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/gateway@2.0.0-beta.43
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 6.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/gateway@2.0.0-beta.42
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 6.0.0-beta.77
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/gateway@2.0.0-beta.41
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 6.0.0-beta.76
+
+### Patch Changes
+
+- a755db5: feat(ai): improve warnings with provider and model id
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/gateway@2.0.0-beta.40
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 6.0.0-beta.75
+
+### Patch Changes
+
+- 58920e0: fix(ai): do not drop custom headers in HttpChatTransport
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+  - @ai-sdk/gateway@2.0.0-beta.39
+
+## 6.0.0-beta.74
+
+### Patch Changes
+
+- 293a6b7: Added a title to the tools
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/gateway@2.0.0-beta.38
+
 ## 6.0.0-beta.73
 
 ### Patch Changes

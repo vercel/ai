@@ -1,10 +1,6 @@
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
-import {
-  InferGenerateOutput,
-  InferStreamOutput,
-} from '../generate-text/output-utils';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 
@@ -42,7 +38,12 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
          */
         prompt?: never;
       }
-  );
+  ) & {
+    /**
+     * Abort signal.
+     */
+    abortSignal?: AbortSignal;
+  };
 
 /**
  * An Agent receives a prompt (text or messages) and generates or streams an output
@@ -77,12 +78,12 @@ export interface Agent<
    */
   generate(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): PromiseLike<GenerateTextResult<TOOLS, InferGenerateOutput<OUTPUT>>>;
+  ): PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>;
 
   /**
    * Streams an output from the agent (streaming).
    */
   stream(
     options: AgentCallParameters<CALL_OPTIONS>,
-  ): PromiseLike<StreamTextResult<TOOLS, InferStreamOutput<OUTPUT>>>;
+  ): PromiseLike<StreamTextResult<TOOLS, OUTPUT>>;
 }

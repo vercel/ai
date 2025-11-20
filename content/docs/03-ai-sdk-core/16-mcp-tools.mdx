@@ -9,8 +9,15 @@ description: Learn how to connect to Model Context Protocol (MCP) servers and us
   The MCP tools feature is experimental and may change in the future.
 </Note>
 
-The AI SDK supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers to access their tools.
-This enables your AI applications to discover and use tools across various services through a standardized interface.
+The AI SDK supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers to access their tools, resources, and prompts.
+This enables your AI applications to discover and use capabilities across various services through a standardized interface.
+
+<Note>
+  If you're using OpenAI's Responses API, you can also use the built-in
+  `openai.tools.mcp` tool, which provides direct MCP server integration without
+  needing to convert tools. See the [OpenAI provider
+  documentation](/providers/ai-sdk-providers/openai#mcp-tool) for details.
+</Note>
 
 ## Initializing an MCP Client
 
@@ -193,6 +200,59 @@ const tools = await mcpClient.tools({
 ```
 
 This approach provides full TypeScript type safety and IDE autocompletion, letting you catch parameter mismatches during development. When you define `schemas`, the client only pulls the explicitly defined tools, keeping your application focused on the tools it needs
+
+## Using MCP Resources
+
+According to the [MCP specification](https://modelcontextprotocol.io/docs/learn/server-concepts#resources), resources are **application-driven** data sources that provide context to the model. Unlike tools (which are model-controlled), your application decides when to fetch and pass resources as context.
+
+The MCP client provides three methods for working with resources:
+
+### Listing Resources
+
+List all available resources from the MCP server:
+
+```typescript
+const resources = await mcpClient.listResources();
+```
+
+### Reading Resource Contents
+
+Read the contents of a specific resource by its URI:
+
+```typescript
+const resourceData = await mcpClient.readResource({
+  uri: 'file:///example/document.txt',
+});
+```
+
+### Listing Resource Templates
+
+Resource templates are dynamic URI patterns that allow flexible queries. List all available templates:
+
+```typescript
+const templates = await mcpClient.listResourceTemplates();
+```
+
+## Using MCP Prompts
+
+According to the MCP specification, prompts are user-controlled templates that servers expose for clients to list and retrieve with optional arguments.
+
+### Listing Prompts
+
+```typescript
+const prompts = await mcpClient.listPrompts();
+```
+
+### Getting a Prompt
+
+Retrieve prompt messages, optionally passing arguments defined by the server:
+
+```typescript
+const prompt = await mcpClient.getPrompt({
+  name: 'code_review',
+  arguments: { code: 'function add(a, b) { return a + b; }' },
+});
+```
 
 ## Examples
 
