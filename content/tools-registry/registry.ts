@@ -20,6 +20,38 @@ export interface Tool {
 
 export const tools: Tool[] = [
   {
+    slug: 'code-execution',
+    name: 'Code Execution',
+    description:
+      'Execute Python code in a sandboxed environment using Vercel Sandbox. Run calculations, data processing, and other computational tasks safely in an isolated environment with Python 3.13.',
+    packageName: 'ai-sdk-tool-code-execution',
+    tags: ['execution', 'python', 'sandbox', 'compute'],
+    apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm install ai-sdk-tool-code-execution',
+      npm: 'npm install ai-sdk-tool-code-execution',
+      yarn: 'yarn add ai-sdk-tool-code-execution',
+      bun: 'bun add ai-sdk-tool-code-execution',
+    },
+    codeExample: `import { generateText } from 'ai';
+import { executeCode } from 'ai-sdk-tool-code-execution';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'What is 5 + 5 minus 84 cubed?',
+  tools: {
+    executeCode: executeCode(),
+  },
+});
+
+console.log(text);`,
+    docsUrl: 'https://vercel.com/docs/vercel-sandbox',
+    apiKeyUrl: 'https://vercel.com/docs/vercel-sandbox#authentication',
+    websiteUrl: 'https://vercel.com/docs/vercel-sandbox',
+    npmUrl: 'https://www.npmjs.com/package/ai-sdk-tool-code-execution',
+  },
+  {
     slug: 'exa',
     name: 'Exa',
     description:
