@@ -1,10 +1,11 @@
-import 'dotenv/config';
+// anthropic-microsoft-agent.ts
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-function createAgent() {
+export function createAnthropicMicrosoftAgent() {
   const resourceName = process.env.ANTHROPIC_MICROSOFT_RESOURCE_NAME;
   const apiKey = process.env.ANTHROPIC_MICROSOFT_API_KEY;
+
   if (!resourceName || !apiKey) {
     throw new Error('undefined resource or key.');
   }
@@ -14,7 +15,7 @@ function createAgent() {
     apiKey,
   });
 
-  const anthropicMicrosoftAgent = new ToolLoopAgent({
+  return new ToolLoopAgent({
     model: anthropic('claude-sonnet-4-5'),
     tools: {
       code_execution: anthropic.tools.codeExecution_20250825(),
@@ -30,12 +31,11 @@ function createAgent() {
       web_fetch: anthropic.tools.webFetch_20250910(),
     },
   });
-
-  return anthropicMicrosoftAgent;
 }
 
-export const anthropicMicrosoftAgent = createAgent();
-
-export type AnthropicMicrosoftMessage = InferAgentUIMessage<
-  typeof anthropicMicrosoftAgent
+export type AnthropicMicrosoftAgent = ReturnType<
+  typeof createAnthropicMicrosoftAgent
 >;
+
+export type AnthropicMicrosoftMessage =
+  InferAgentUIMessage<AnthropicMicrosoftAgent>;
