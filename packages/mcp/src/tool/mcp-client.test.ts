@@ -10,6 +10,7 @@ import {
   ListPromptsResult,
   GetPromptResult,
 } from './types';
+import { JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,
   afterEach,
@@ -528,5 +529,46 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should use custom client version when provided', async () => {
+    const mockTransport = new MockMCPTransport();
+    let capturedClientInfo: { name: string; version: string } | undefined;
+
+    const originalSend = mockTransport.send.bind(mockTransport);
+    mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
+      if (message.method === 'initialize' && message.params) {
+        capturedClientInfo = message.params.clientInfo;
+      }
+      return originalSend(message);
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+      version: '2.5.0',
+    });
+
+    expect(capturedClientInfo).toBeDefined();
+    expect(capturedClientInfo?.version).toBe('2.5.0');
+  });
+
+  it('should use default version when not provided', async () => {
+    const mockTransport = new MockMCPTransport();
+    let capturedClientInfo: { name: string; version: string } | undefined;
+
+    const originalSend = mockTransport.send.bind(mockTransport);
+    mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
+      if (message.method === 'initialize' && message.params) {
+        capturedClientInfo = message.params.clientInfo;
+      }
+      return originalSend(message);
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    expect(capturedClientInfo).toBeDefined();
+    expect(capturedClientInfo?.version).toBe('1.0.0');
   });
 });
