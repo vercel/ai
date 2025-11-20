@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.62
+
+### Patch Changes
+
+- 64aa48f: Azure OpenAI enabled web-search-preview
+
 ## 3.0.0-beta.61
 
 ### Patch Changes
