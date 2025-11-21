@@ -115,4 +115,55 @@ console.log(text);`,
     websiteUrl: 'https://parallel.ai',
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
   },
+  {
+      slug: 'ctx-zip',
+      name: 'MCP Code Mode',
+      description:
+        'Transform MCP tools and AI SDK tools into code, write it to a Vercel sandbox file system and have the agent import the tools, write code, and execute it. Learn more about MCP Code Mode [here](https://www.anthropic.com/engineering/code-execution-with-mcp).',
+      packageName: 'ctx-zip',
+      tags: ['code-execution', 'sandbox', 'mcp', 'code-mode'],
+      apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
+      installCommand: {
+        pnpm: 'pnpm install ctx-zip',
+        npm: 'npm install ctx-zip',
+        yarn: 'yarn add ctx-zip',
+        bun: 'bun add ctx-zip',
+      },
+      codeExample: `import { gateway, generateText, stepCountIs } from 'ai'
+import { createVercelSandboxCodeMode, SANDBOX_SYSTEM_PROMPT } from "ctx-zip";
+const { tools, manager } = await createVercelSandboxCodeMode({
+  servers: [
+    {
+      name: "vercel",
+      url: "https://mcp.vercel.com",
+      useSSE: false,
+      headers: {
+        Authorization: \`Bearer \${process.env.VERCEL_API_KEY}\`,
+      },
+    },
+  ],
+  standardTools: {
+    weather: weatherTool,
+  },
+});
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-4.1-mini'),
+  tools,
+  stopWhen: stepCountIs(20),
+  system: SANDBOX_SYSTEM_PROMPT,
+  messages: [
+    {
+      role: "user",
+      content: "What tools are available from the Vercel MCP server?",
+    },
+  ],
+});
+
+console.log(text);`,
+      docsUrl: 'https://github.com/karthikscale3/ctx-zip/blob/main/README.md',
+      apiKeyUrl: 'https://vercel.com/docs/vercel-sandbox#authentication',
+      websiteUrl: 'https://github.com/karthikscale3/ctx-zip/blob/main/README.md',
+      npmUrl: 'https://www.npmjs.com/package/ctx-zip',
+  }
 ];
