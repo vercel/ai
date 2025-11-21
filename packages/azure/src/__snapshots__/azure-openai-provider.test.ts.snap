@@ -2060,7 +2060,7 @@ Generated numbers (formatted to 2 decimal places): 88.99, 51.21, 89.85, 88.97, 7
   {
     "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
       },
     },
@@ -2609,7 +2609,7 @@ providers and models, and which ones are available in the AI SDK.",
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "annotations": [
           {
             "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
@@ -3128,7 +3128,7 @@ exports[`responses > file search tool > should stream file search results withou
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "annotations": [
           {
             "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
@@ -5014,7 +5014,7 @@ exports[`responses > web search preview tool > should stream web search preview 
   {
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "annotations": [
           {
             "end_index": 577,

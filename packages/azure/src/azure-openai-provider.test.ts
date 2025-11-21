@@ -1351,7 +1351,7 @@ describe('responses', () => {
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
               },
             },
@@ -1565,7 +1565,7 @@ describe('responses', () => {
           {
             "id": "msg_456",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "annotations": [
                   {
                     "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
