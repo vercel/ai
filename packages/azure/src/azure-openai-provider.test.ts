@@ -1675,7 +1675,6 @@ describe('responses', () => {
       ).toMatchSnapshot();
     });
   });
-
   describe('web search preview tool', () => {
     it('should stream web search preview results include', async () => {
       prepareChunksFixtureResponse('azure-web-search-preview-tool.1');

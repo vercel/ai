@@ -6,7 +6,7 @@ import ImageGenerationView from '@/components/tool/openai-image-generation-view'
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
-export default function TestOpenAIWebSearch() {
+export default function TestOpenAIImageGeneration() {
   const { status, sendMessage, messages } =
     useChat<AzureImageGenerationMessage>({
       transport: new DefaultChatTransport({
