@@ -1,3 +1,4 @@
+import { GatewayModelId } from '@ai-sdk/gateway';
 import {
   LanguageModelV2,
   LanguageModelV3,
@@ -9,7 +10,7 @@ import {
 /**
 Language model that is used by the AI SDK Core functions.
 */
-export type LanguageModel = string | LanguageModelV3 | LanguageModelV2;
+export type LanguageModel = GatewayModelId | LanguageModelV3 | LanguageModelV2;
 
 /**
 Reason why a language model finished generating a response.
