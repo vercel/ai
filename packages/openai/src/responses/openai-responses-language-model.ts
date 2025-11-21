@@ -121,6 +121,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
+    if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'conversation',
+        details: 'conversation and previousResponseId cannot be used together',
+      });
+    }
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
@@ -218,6 +226,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       }),
 
       // provider options:
+      conversation: openaiOptions?.conversation,
       max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
@@ -387,8 +396,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
-    // map response content to content array
-    for (const part of response.output) {
+    // map response content to content array (defined when there is no error)
+    for (const part of response.output!) {
       switch (part.type) {
         case 'reasoning': {
           // when there are no summary parts, we need to add an empty reasoning part:
@@ -749,6 +758,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       providerMetadata[providerKey].serviceTier = response.service_tier;
     }
 
+    const usage = response.usage!; // defined when there is no error
+
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
@@ -756,18 +767,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         hasFunctionCall,
       }),
       usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+        totalTokens: usage.input_tokens + usage.output_tokens,
         reasoningTokens:
-          response.usage.output_tokens_details?.reasoning_tokens ?? undefined,
+          usage.output_tokens_details?.reasoning_tokens ?? undefined,
         cachedInputTokens:
-          response.usage.input_tokens_details?.cached_tokens ?? undefined,
+          usage.input_tokens_details?.cached_tokens ?? undefined,
       },
       request: { body },
       response: {
         id: response.id,
-        timestamp: new Date(response.created_at * 1000),
+        timestamp: new Date(response.created_at! * 1000),
         modelId: response.model,
         headers: responseHeaders,
         body: rawResponse,
@@ -827,6 +838,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
       | undefined
     > = {};
+
+    // set annotations in 'text-end' part providerMetadata.
+    const ongoingAnnotations: Array<
+      Extract<
+        OpenAIResponsesChunk,
+        { type: 'response.output_text.annotation.added' }
+      >['annotation']
+    > = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -899,7 +918,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
+                  toolName: webSearchToolName ?? 'web_search',
                   input: JSON.stringify({}),
                   providerExecuted: true,
                 });
@@ -965,6 +984,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
+                ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
@@ -995,7 +1015,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
-            } else if (isResponseOutputItemDoneChunk(value)) {
+            } else if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type !== 'message'
+            ) {
               if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
@@ -1022,7 +1045,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
+                  toolName: webSearchToolName ?? 'web_search',
                   result: mapWebSearchOutput(value.item.action),
                 });
               } else if (value.item.type === 'computer_call') {
@@ -1168,11 +1191,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerMetadata: {
                     [providerKey]: { itemId: value.item.id },
                   },
-                });
-              } else if (value.item.type === 'message') {
-                controller.enqueue({
-                  type: 'text-end',
-                  id: value.item.id,
                 });
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
@@ -1376,6 +1394,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 serviceTier = value.response.service_tier;
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
+              ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
                 controller.enqueue({
                   type: 'source',
@@ -1446,6 +1465,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
+            } else if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type === 'message'
+            ) {
+              controller.enqueue({
+                type: 'text-end',
+                id: value.item.id,
+                providerMetadata: {
+                  openai: {
+                    itemId: value.item.id,
+                    ...(ongoingAnnotations.length > 0 && {
+                      annotations: ongoingAnnotations,
+                    }),
+                  },
+                },
+              });
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }

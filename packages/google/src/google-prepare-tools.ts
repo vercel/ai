@@ -47,7 +47,8 @@ export function prepareTools({
       'gemini-pro-latest',
     ] as const satisfies GoogleGenerativeAIModelId[]
   ).some(id => id === modelId);
-  const isGemini2 = modelId.includes('gemini-2') || isLatest;
+  const isGemini2orNewer =
+    modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
   const supportsFileSearch = modelId.includes('gemini-2.5');
@@ -63,11 +64,11 @@ export function prepareTools({
   );
 
   if (hasFunctionTools && hasProviderDefinedTools) {
+    const functionTools = tools.filter(tool => tool.type === 'function');
     toolWarnings.push({
       type: 'unsupported-tool',
       tool: tools.find(tool => tool.type === 'function')!,
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+      details: `Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: ${functionTools.map(t => t.name).join(', ')}. Please use either function tools or provider-defined tools, but not both.`,
     });
   }
 
@@ -80,7 +81,7 @@ export function prepareTools({
     providerDefinedTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ googleSearch: {} });
           } else if (supportsDynamicRetrieval) {
             // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
@@ -102,7 +103,7 @@ export function prepareTools({
           }
           break;
         case 'google.url_context':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
@@ -114,7 +115,7 @@ export function prepareTools({
           }
           break;
         case 'google.code_execution':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
@@ -134,6 +135,27 @@ export function prepareTools({
               tool,
               details:
                 'The file search tool is only supported with Gemini 2.5 models.',
+            });
+          }
+          break;
+        case 'google.vertex_rag_store':
+          if (isGemini2orNewer) {
+            googleTools.push({
+              retrieval: {
+                vertex_rag_store: {
+                  rag_resources: {
+                    rag_corpus: tool.args.ragCorpus,
+                  },
+                  similarity_top_k: tool.args.topK as number | undefined,
+                },
+              },
+            });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The RAG store tool is not supported with other Gemini models than Gemini 2.',
             });
           }
           break;

@@ -1210,6 +1210,29 @@ describe('responses', () => {
         });
       });
     });
+
+    describe('web search preview tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {},
+            },
+          ],
+        });
+      });
+      it('should stream web search preview results include', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
   });
 
   describe('image generation tool', () => {
@@ -1327,6 +1350,11 @@ describe('responses', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -1536,6 +1564,25 @@ describe('responses', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -1623,6 +1670,25 @@ describe('responses', () => {
         },
       });
 
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('web search preview tool', () => {
+    it('should stream web search preview results include', async () => {
+      prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search_preview',
+            name: 'web_search_preview',
+            args: {},
+          },
+        ],
+      });
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
