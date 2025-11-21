@@ -501,12 +501,14 @@ class DefaultMCPClient implements MCPClient {
                   additionalProperties: false,
                 } as JSONSchema7),
                 execute,
+                annotations,
               })
             : tool({
                 description,
                 title,
                 inputSchema: schemas[name].inputSchema,
                 execute,
+                annotations,
               });
 
         tools[name] = toolWithExecute;

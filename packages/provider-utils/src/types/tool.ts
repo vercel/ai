@@ -116,6 +116,33 @@ Not used for provider-defined tools.
   title?: string;
 
   /**
+   * Optional annotations from MCP protocol that provide hints about tool behavior.
+   * These are informational only and should not be used for security decisions.
+   */
+  annotations?: {
+    /**
+     * Human-readable title for the tool.
+     */
+    title?: string;
+    /**
+     * If true, indicates the tool does not modify its environment.
+     */
+    readOnlyHint?: boolean;
+    /**
+     * If true, indicates the tool may perform destructive updates.
+     */
+    destructiveHint?: boolean;
+    /**
+     * If true, indicates repeated calls with same args have no additional effect.
+     */
+    idempotentHint?: boolean;
+    /**
+     * If true, indicates the tool interacts with external entities.
+     */
+    openWorldHint?: boolean;
+  };
+
+  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -240,6 +267,13 @@ export function tool(tool: any): any {
 export function dynamicTool(tool: {
   description?: string;
   title?: string;
+  annotations?: {
+    title?: string;
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
+  };
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
