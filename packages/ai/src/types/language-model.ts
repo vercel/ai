@@ -7,10 +7,40 @@ import {
   LanguageModelV3Source,
 } from '@ai-sdk/provider';
 
+declare global {
+  /**
+   * Global interface that can be augmented by third-party packages to register custom model IDs.
+   *
+   * @example
+   * ```typescript
+   * declare global {
+   *   interface RegisteredProviderModels {
+   *     'my-provider:my-model': true;
+   *     'my-provider:another-model': true;
+   *   }
+   * }
+   * ```
+   */
+  interface RegisteredProviderModels {}
+}
+
+/**
+ * Global provider model ID type that defaults to GatewayModelId but can be augmented
+ * by third-party packages via declaration merging.
+ */
+export type GlobalProviderModelId = [keyof RegisteredProviderModels] extends [
+  never,
+]
+  ? GatewayModelId
+  : keyof RegisteredProviderModels;
+
 /**
 Language model that is used by the AI SDK Core functions.
 */
-export type LanguageModel = GatewayModelId | LanguageModelV3 | LanguageModelV2;
+export type LanguageModel =
+  | GlobalProviderModelId
+  | LanguageModelV3
+  | LanguageModelV2;
 
 /**
 Reason why a language model finished generating a response.
