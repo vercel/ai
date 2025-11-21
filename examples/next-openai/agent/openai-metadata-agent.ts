@@ -15,9 +15,6 @@ export type ExampleMetadata = z.infer<typeof exampleMetadataSchema>;
 
 export const openaiMetadataAgent = new ToolLoopAgent({
   model: openai('gpt-4o'),
-  onStepFinish: ({ request }) => {
-    console.dir(request.body, { depth: Infinity });
-  },
 });
 
 export type OpenAIMetadataMessage = InferAgentUIMessage<
