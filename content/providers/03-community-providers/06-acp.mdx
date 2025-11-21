@@ -5,9 +5,9 @@ description: ACP Provider for the AI SDK
 
 # ACP (Agent Client Protocol)
 
-[ACP (Agent Client Protocol)](https://agentclientprotocol.com/) is an open protocol that enables seamless communication between AI agents and client applications. The ACP provider for the AI SDK is listed on the [official ACP clients page](https://agentclientprotocol.com/overview/clients) and allows you to use ACP-compatible agents through the AI SDK's standard interface.
+[ACP (Agent Client Protocol)](https://agentclientprotocol.com/) is an open protocol that enables seamless communication between AI agents and client applications. 
 
-The ACP provider bridges ACP agents (like Claude Code, Gemini CLI, Codex CLI, and **[many more](https://agentclientprotocol.com/overview/agents)**) to the AI SDK by communicating with them via the Agent Client Protocol and exposing them through the `LanguageModelV2` interface, enabling you to build web applications and Node.js services with ACP agents.
+The ACP provider bridges ACP agents (like Claude Code, Gemini CLI, Codex CLI, and **[many more](https://agentclientprotocol.com/overview/agents)**) to the AI SDK by communicating with them via the Agent Client Protocol and exposing them through the `LanguageModel` interface, enabling you to build web applications and Node.js services with ACP agents.
 
 ## Key Features
 
@@ -93,7 +93,7 @@ const model = provider.languageModel();
 
 ## Examples
 
-### Basic Text Generation
+### Text Generation
 
 ```javascript
 import { createACPProvider } from '@mcpc-tech/acp-ai-provider';
