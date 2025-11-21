@@ -1,14 +1,14 @@
 import { UIMessageStreamOptions } from '../generate-text';
+import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
-import { convertToModelMessages } from '../ui/convert-to-model-messages';
+import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
-import { validateUIMessages } from '../ui/validate-ui-messages';
 import { Agent } from './agent';
+import { createAgentUIStream } from './create-agent-ui-stream';
 
 /**
- * Runs the agent and stream the output as a UI message stream
- * in the response body.
+ * Runs the agent and returns a response object with a UI message stream.
  *
  * @param agent - The agent to run.
  * @param messages - The input UI messages.
@@ -16,33 +16,29 @@ import { Agent } from './agent';
  * @returns The response object.
  */
 export async function createAgentUIStreamResponse<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  OUTPUT extends Output = never,
+  MESSAGE_METADATA = unknown,
 >({
-  agent,
-  messages,
+  headers,
+  status,
+  statusText,
+  consumeSseStream,
   ...options
 }: {
-  agent: Agent<TOOLS, OUTPUT, OUTPUT_PARTIAL>;
+  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   messages: unknown[];
-} & UIMessageStreamOptions<
-  UIMessage<never, never, InferUITools<TOOLS>>
->): Promise<Response> {
-  const validatedMessages = await validateUIMessages<
-    UIMessage<never, never, InferUITools<TOOLS>>
-  >({
-    messages,
-    tools: agent.tools,
-  });
-
-  const modelMessages = convertToModelMessages(validatedMessages, {
-    tools: agent.tools,
-  });
-
-  const result = agent.stream({ prompt: modelMessages });
-
+  options?: CALL_OPTIONS;
+} & UIMessageStreamResponseInit &
+  UIMessageStreamOptions<
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+  >): Promise<Response> {
   return createUIMessageStreamResponse({
-    stream: result.toUIMessageStream(options),
+    headers,
+    status,
+    statusText,
+    consumeSseStream,
+    stream: await createAgentUIStream(options),
   });
 }

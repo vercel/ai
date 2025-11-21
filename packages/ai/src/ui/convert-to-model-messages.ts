@@ -1,6 +1,9 @@
 import {
   AssistantContent,
+  FilePart,
+  isNonNullable,
   ModelMessage,
+  TextPart,
   ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
@@ -8,15 +11,21 @@ import { ToolSet } from '../generate-text/tool-set';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
+  DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
   getToolOrDynamicToolName,
+  InferUIMessageData,
+  InferUIMessageTools,
+  isDataUIPart,
+  isFileUIPart,
+  isReasoningUIPart,
+  isTextUIPart,
   isToolOrDynamicToolUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
   UIMessage,
-  UITools,
 } from './ui-messages';
 
 /**
@@ -26,14 +35,18 @@ with the AI functions (e.g. `streamText`, `generateText`).
 @param messages - The UI messages to convert.
 @param options.tools - The tools to use.
 @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
+@param options.convertDataPart - Optional function to convert data parts to text or file model message parts. Returns `undefined` if the part should be ignored.
 
 @returns An array of ModelMessages.
  */
-export function convertToModelMessages(
-  messages: Array<Omit<UIMessage, 'id'>>,
+export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
+  messages: Array<Omit<UI_MESSAGE, 'id'>>,
   options?: {
     tools?: ToolSet;
     ignoreIncompleteToolCalls?: boolean;
+    convertDataPart?: (
+      part: DataUIPart<InferUIMessageData<UI_MESSAGE>>,
+    ) => TextPart | FilePart | undefined;
   },
 ): ModelMessage[] {
   const modelMessages: ModelMessage[] = [];
@@ -53,7 +66,9 @@ export function convertToModelMessages(
   for (const message of messages) {
     switch (message.role) {
       case 'system': {
-        const textParts = message.parts.filter(part => part.type === 'text');
+        const textParts = message.parts.filter(
+          (part): part is TextUIPart => part.type === 'text',
+        );
 
         const providerMetadata = textParts.reduce((acc, part) => {
           if (part.providerMetadata != null) {
@@ -76,34 +91,39 @@ export function convertToModelMessages(
         modelMessages.push({
           role: 'user',
           content: message.parts
-            .filter(
-              (part): part is TextUIPart | FileUIPart =>
-                part.type === 'text' || part.type === 'file',
-            )
-            .map(part => {
-              switch (part.type) {
-                case 'text':
-                  return {
-                    type: 'text' as const,
-                    text: part.text,
-                    ...(part.providerMetadata != null
-                      ? { providerOptions: part.providerMetadata }
-                      : {}),
-                  };
-                case 'file':
-                  return {
-                    type: 'file' as const,
-                    mediaType: part.mediaType,
-                    filename: part.filename,
-                    data: part.url,
-                    ...(part.providerMetadata != null
-                      ? { providerOptions: part.providerMetadata }
-                      : {}),
-                  };
-                default:
-                  return part;
+            .map((part): TextPart | FilePart | undefined => {
+              // Process text parts
+              if (isTextUIPart(part)) {
+                return {
+                  type: 'text' as const,
+                  text: part.text,
+                  ...(part.providerMetadata != null
+                    ? { providerOptions: part.providerMetadata }
+                    : {}),
+                };
               }
-            }),
+
+              // Process file parts
+              if (isFileUIPart(part)) {
+                return {
+                  type: 'file' as const,
+                  mediaType: part.mediaType,
+                  filename: part.filename,
+                  data: part.url,
+                  ...(part.providerMetadata != null
+                    ? { providerOptions: part.providerMetadata }
+                    : {}),
+                };
+              }
+
+              // Process data parts with converter if provided
+              if (isDataUIPart(part)) {
+                return options?.convertDataPart?.(
+                  part as DataUIPart<InferUIMessageData<UI_MESSAGE>>,
+                );
+              }
+            })
+            .filter(isNonNullable),
         });
 
         break;
@@ -113,10 +133,11 @@ export function convertToModelMessages(
         if (message.parts != null) {
           let block: Array<
             | TextUIPart
-            | ToolUIPart<UITools>
+            | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
             | ReasoningUIPart
             | FileUIPart
             | DynamicToolUIPart
+            | DataUIPart<InferUIMessageData<UI_MESSAGE>>
           > = [];
 
           function processBlock() {
@@ -127,7 +148,7 @@ export function convertToModelMessages(
             const content: AssistantContent = [];
 
             for (const part of block) {
-              if (part.type === 'text') {
+              if (isTextUIPart(part)) {
                 content.push({
                   type: 'text' as const,
                   text: part.text,
@@ -135,14 +156,14 @@ export function convertToModelMessages(
                     ? { providerOptions: part.providerMetadata }
                     : {}),
                 });
-              } else if (part.type === 'file') {
+              } else if (isFileUIPart(part)) {
                 content.push({
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
                   data: part.url,
                 });
-              } else if (part.type === 'reasoning') {
+              } else if (isReasoningUIPart(part)) {
                 content.push({
                   type: 'reasoning' as const,
                   text: part.text,
@@ -196,6 +217,14 @@ export function convertToModelMessages(
                     });
                   }
                 }
+              } else if (isDataUIPart(part)) {
+                const dataPart = options?.convertDataPart?.(
+                  part as DataUIPart<InferUIMessageData<UI_MESSAGE>>,
+                );
+
+                if (dataPart != null) {
+                  content.push(dataPart);
+                }
               } else {
                 const _exhaustiveCheck: never = part;
                 throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
@@ -212,7 +241,10 @@ export function convertToModelMessages(
               part =>
                 isToolOrDynamicToolUIPart(part) &&
                 part.providerExecuted !== true,
-            ) as (ToolUIPart<UITools> | DynamicToolUIPart)[];
+            ) as (
+              | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
+              | DynamicToolUIPart
+            )[];
 
             // tool message with tool results
             if (toolParts.length > 0) {
@@ -246,6 +278,9 @@ export function convertToModelMessages(
                               toolPart.approval.reason ??
                               'Tool execution denied.',
                           },
+                          ...(toolPart.callProviderMetadata != null
+                            ? { providerOptions: toolPart.callProviderMetadata }
+                            : {}),
                         });
 
                         break;
@@ -269,6 +304,9 @@ export function convertToModelMessages(
                                 ? 'text'
                                 : 'none',
                           }),
+                          ...(toolPart.callProviderMetadata != null
+                            ? { providerOptions: toolPart.callProviderMetadata }
+                            : {}),
                         });
                         break;
                       }
@@ -286,12 +324,13 @@ export function convertToModelMessages(
 
           for (const part of message.parts) {
             if (
-              part.type === 'text' ||
-              part.type === 'reasoning' ||
-              part.type === 'file' ||
-              isToolOrDynamicToolUIPart(part)
+              isTextUIPart(part) ||
+              isReasoningUIPart(part) ||
+              isFileUIPart(part) ||
+              isToolOrDynamicToolUIPart(part) ||
+              isDataUIPart(part)
             ) {
-              block.push(part);
+              block.push(part as (typeof block)[number]);
             } else if (part.type === 'step-start') {
               processBlock();
             }

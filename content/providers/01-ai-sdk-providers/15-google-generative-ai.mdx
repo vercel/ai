@@ -159,14 +159,23 @@ The following optional provider options are available for Google Generative AI m
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
 
-- **thinkingConfig** _\{ thinkingBudget: number; includeThoughts: boolean \}_
+- **thinkingConfig** _\{ thinkingLevel?: 'low' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
   Optional. Configuration for the model's thinking process. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/thinking).
+
+  - **thinkingLevel** _'low' | 'high'_
+
+    Optional. Controls the thinking depth for Gemini 3 models. Use 'low' for faster responses or 'high' for deeper reasoning. Only supported by Gemini 3 models (`gemini-3-pro-preview` and later).
 
   - **thinkingBudget** _number_
 
     Optional. Gives the model guidance on the number of thinking tokens it can use when generating a response. Setting it to 0 disables thinking, if the model supports it.
     For more information about the possible value ranges for each model see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking#set-budget).
+
+    <Note>
+      This option is for Gemini 2.5 models. Gemini 3 models should use
+      `thinkingLevel` instead.
+    </Note>
 
   - **includeThoughts** _boolean_
 
@@ -193,12 +202,42 @@ The following optional provider options are available for Google Generative AI m
 
 ### Thinking
 
-The Gemini 2.5 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
+The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
-You can control thinking budgets and enable a thought summary by setting the `thinkingConfig` parameter.
+#### Gemini 3 Models
+
+For Gemini 3 models, use the `thinkingLevel` parameter to control the depth of reasoning:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const model = google('gemini-3-pro-preview');
+
+const { text, reasoning } = await generateText({
+  model: model,
+  prompt: 'What is the sum of the first 10 prime numbers?',
+  providerOptions: {
+    google: {
+      thinkingConfig: {
+        thinkingLevel: 'high',
+        includeThoughts: true,
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
+  },
+});
+
+console.log(text);
+
+console.log(reasoning); // Reasoning summary
+```
+
+#### Gemini 2.5 Models
+
+For Gemini 2.5 models, use the `thinkingBudget` parameter to control the number of thinking tokens:
+
+```ts
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const model = google('gemini-2.5-flash');
@@ -212,7 +251,7 @@ const { text, reasoning } = await generateText({
         thinkingBudget: 8192,
         includeThoughts: true,
       },
-    },
+    } satisfies GoogleGenerativeAIProviderOptions,
   },
 });
 
@@ -525,6 +564,31 @@ Example response:
 }
 ```
 
+### File Search
+
+The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets Gemini retrieve context from your own documents that you have indexed in File Search stores. Only Gemini 2.5 models support this feature.
+
+```ts highlight="9-13"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: google('gemini-2.5-pro'),
+  tools: {
+    file_search: google.tools.fileSearch({
+      fileSearchStoreNames: [
+        'projects/my-project/locations/us/fileSearchStores/my-store',
+      ],
+      metadataFilter: 'author = "Robert Graves"',
+      topK: 8,
+    }),
+  },
+  prompt: "Summarise the key themes of 'I, Claudius'.",
+});
+```
+
+File Search responses include citations via the normal `sources` field and expose raw [grounding metadata](#google-search) in `providerMetadata.google.groundingMetadata`.
+
 ### URL Context
 
 Google provides a provider-defined URL context tool.
@@ -632,6 +696,117 @@ const metadata = providerMetadata?.google as
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
 ```
+
+### RAG Engine Grounding
+
+With [RAG Engine Grounding](https://cloud.google.com/vertex-ai/generative-ai/docs/rag-engine/use-vertexai-search#generate-content-using-gemini-api),
+the model has access to your custom knowledge base using the Vertex RAG Engine.
+This enables the model to provide answers based on your specific data sources and documents.
+
+<Note>
+  RAG Engine Grounding is only supported with Vertex Gemini models. You must use
+  the Google Vertex provider (`@ai-sdk/google-vertex`) instead of the standard
+  Google provider (`@ai-sdk/google`) to use this feature.
+</Note>
+
+```ts highlight="8,17-20"
+import { createVertex } from '@ai-sdk/google-vertex';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const vertex = createVertex({
+  project: 'my-project',
+  location: 'us-central1',
+});
+
+const { text, sources, providerMetadata } = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    vertex_rag_store: vertex.tools.vertexRagStore({
+      ragCorpus:
+        'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+      topK: 5,
+    }),
+  },
+  prompt:
+    'What are the key features of our product according to our documentation?',
+});
+
+// access the grounding metadata. Casting to the provider metadata type
+// is optional but provides autocomplete and type safety.
+const metadata = providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
+const safetyRatings = metadata?.safetyRatings;
+```
+
+When RAG Engine Grounding is enabled, the model will include sources from your RAG corpus in the response.
+
+Additionally, the grounding metadata includes detailed information about how RAG results were used to ground the model's response. Here are the available fields:
+
+- **`groundingChunks`** (Array of chunk objects | null)
+
+  - Contains the retrieved context chunks from your RAG corpus
+  - Each chunk includes:
+    - **`retrievedContext`**: Information about the retrieved context
+      - `uri`: The URI or identifier of the source document
+      - `title`: The title of the source document (optional)
+      - `text`: The actual text content of the chunk
+
+- **`groundingSupports`** (Array of support objects | null)
+
+  - Contains details about how specific response parts are supported by RAG results
+  - Each support object includes:
+    - **`segment`**: Information about the grounded text segment
+      - `text`: The actual text segment
+      - `startIndex`: Starting position in the response
+      - `endIndex`: Ending position in the response
+    - **`groundingChunkIndices`**: References to supporting RAG result chunks
+    - **`confidenceScores`**: Confidence scores (0-1) for each supporting chunk
+
+Example response:
+
+```json
+{
+  "groundingMetadata": {
+    "groundingChunks": [
+      {
+        "retrievedContext": {
+          "uri": "gs://my-bucket/docs/product-guide.pdf",
+          "title": "Product User Guide",
+          "text": "Our product includes advanced AI capabilities, real-time processing, and enterprise-grade security features."
+        }
+      }
+    ],
+    "groundingSupports": [
+      {
+        "segment": {
+          "startIndex": 0,
+          "endIndex": 45,
+          "text": "Our product includes advanced AI capabilities and real-time processing."
+        },
+        "groundingChunkIndices": [0],
+        "confidenceScores": [0.95]
+      }
+    ]
+  }
+}
+```
+
+#### Configuration Options
+
+The `vertexRagStore` tool accepts the following configuration options:
+
+- **`ragCorpus`** (`string`, required)
+
+  - The RagCorpus resource name in the format: `projects/{project}/locations/{location}/ragCorpora/{rag_corpus}`
+  - This identifies your specific RAG corpus to search against
+
+- **`topK`** (`number`, optional)
+
+  - The number of top contexts to retrieve from your RAG corpus
+  - Defaults to the corpus configuration if not specified
 
 ### Image Outputs
 
@@ -745,6 +920,7 @@ The following Zod features are known to not work with Google Generative AI:
 
 | Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | Google Maps         | URL Context         |
 | ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-3-pro-preview`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-pro`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash-lite`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

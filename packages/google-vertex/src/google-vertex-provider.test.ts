@@ -17,6 +17,7 @@ vi.mock('@ai-sdk/google/internal', () => ({
     googleSearch: vi.fn(),
     googleMaps: vi.fn(),
     urlContext: vi.fn(),
+    fileSearch: vi.fn(),
     codeExecution: vi.fn(),
   },
 }));

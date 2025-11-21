@@ -1,5 +1,97 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 32d8dbb: fix(provider-utils): compatibility with V8 readonly execution environment
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 4f16c37: chore(provider-utils): upgrade eventsource-parser to 3.0.6
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- 016b111: fix(provider-utils): make ReadableStream.cancel() properly finalize async iterators
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 293a6b7: Added a title to the tools
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- fca786b: feat(provider-utils): add MaybePromiseLike type
+
 ## 4.0.0-beta.19
 
 ### Patch Changes

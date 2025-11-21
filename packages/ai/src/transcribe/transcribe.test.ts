@@ -1,5 +1,5 @@
 import {
-  JSONValue,
+  JSONObject,
   TranscriptionModelV3,
   TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
@@ -56,7 +56,7 @@ const createMockResponse = (options: {
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
-  providerMetadata?: Record<string, Record<string, JSONValue>>;
+  providerMetadata?: Record<string, JSONObject>;
 }) => ({
   text: options.text,
   segments: options.segments,
@@ -173,7 +173,11 @@ describe('transcribe', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -189,7 +193,11 @@ describe('transcribe', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith([]);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: [],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should return the transcript', async () => {

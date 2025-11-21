@@ -4,5 +4,7 @@ export const googleVertexTools = {
   googleSearch: googleTools.googleSearch,
   googleMaps: googleTools.googleMaps,
   urlContext: googleTools.urlContext,
+  fileSearch: googleTools.fileSearch,
   codeExecution: googleTools.codeExecution,
+  vertexRagStore: googleTools.vertexRagStore,
 };

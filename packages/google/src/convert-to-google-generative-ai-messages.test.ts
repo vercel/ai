@@ -411,3 +411,98 @@ describe('assistant messages', () => {
     });
   });
 });
+
+describe('parallel tool calls', () => {
+  it('should include thought signature on functionCall when provided', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: { city: 'paris' },
+            providerOptions: { google: { thoughtSignature: 'sig_parallel' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call2',
+            toolName: 'checkweather',
+            input: { city: 'london' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        args: { city: 'paris' },
+        name: 'checkweather',
+      },
+      thoughtSignature: 'sig_parallel',
+    });
+
+    expect(result.contents[0].parts[1]).toEqual({
+      functionCall: {
+        args: { city: 'london' },
+        name: 'checkweather',
+      },
+      thoughtSignature: undefined,
+    });
+  });
+});
+
+describe('tool results with thought signatures', () => {
+  it('should include thought signature on functionCall but not on functionResponse', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'readdata',
+            input: { userId: '123' },
+            providerOptions: { google: { thoughtSignature: 'sig_original' } },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'readdata',
+            output: {
+              type: 'error-text',
+              value: 'file not found',
+            },
+            providerOptions: { google: { thoughtSignature: 'sig_original' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        args: { userId: '123' },
+        name: 'readdata',
+      },
+      thoughtSignature: 'sig_original',
+    });
+
+    expect(result.contents[1].parts[0]).toEqual({
+      functionResponse: {
+        name: 'readdata',
+        response: {
+          content: 'file not found',
+          name: 'readdata',
+        },
+      },
+    });
+
+    expect(result.contents[1].parts[0]).not.toHaveProperty('thoughtSignature');
+  });
+});

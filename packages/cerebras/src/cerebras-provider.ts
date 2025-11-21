@@ -100,6 +100,7 @@ export function createCerebras(
   const provider = (modelId: CerebrasChatModelId) =>
     createLanguageModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
 

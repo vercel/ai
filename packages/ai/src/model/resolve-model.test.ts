@@ -1,9 +1,16 @@
+import { gateway } from '@ai-sdk/gateway';
 import { EmbeddingModelV2, LanguageModelV2 } from '@ai-sdk/provider';
-import { customProvider } from '../registry/custom-provider';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { resolveEmbeddingModel, resolveLanguageModel } from './resolve-model';
-import { beforeEach, afterEach, describe, expect, it } from 'vitest';
+import { customProvider } from '../registry/custom-provider';
+import { MockImageModelV2 } from '../test/mock-image-model-v2';
+import {
+  resolveEmbeddingModel,
+  resolveImageModel,
+  resolveLanguageModel,
+} from './resolve-model';
 
 describe('resolveLanguageModel', () => {
   describe('when a language model v3 is provided', () => {
@@ -164,6 +171,71 @@ describe('resolveEmbeddingModel', () => {
 
     it('should return a embedding model from the global default provider', () => {
       const resolvedModel = resolveEmbeddingModel('test-model-id');
+
+      expect(resolvedModel.provider).toBe('global-test-provider');
+      expect(resolvedModel.modelId).toBe('actual-test-model-id');
+    });
+  });
+});
+
+describe('resolveImageModel', () => {
+  describe('when an image model v2 is provided', () => {
+    it('should return the image model v2', () => {
+      const resolvedModel = resolveImageModel(
+        new MockImageModelV2({
+          provider: 'test-provider',
+          modelId: 'test-model-id',
+        }),
+      );
+
+      expect(resolvedModel.provider).toBe('test-provider');
+      expect(resolvedModel.modelId).toBe('test-model-id');
+    });
+  });
+
+  describe('when a string is provided and the global default provider is not set', () => {
+    it('should return a gateway image model', () => {
+      const resolvedModel = resolveImageModel(
+        new MockImageModelV2({
+          provider: 'gateway',
+          modelId: 'test-model-id',
+        }),
+      );
+
+      const imageModelSpy = vi
+        .spyOn(gateway, 'imageModel')
+        .mockReturnValue(resolvedModel);
+
+      try {
+        const resolvedModel = resolveImageModel('test-model-id');
+
+        expect(resolvedModel).toBe(resolvedModel);
+      } finally {
+        imageModelSpy.mockRestore();
+      }
+    });
+  });
+
+  describe('when a string is provided and the global default provider is set', () => {
+    beforeEach(() => {
+      globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
+        imageModels: {
+          'test-model-id': resolveImageModel(
+            new MockImageModelV2({
+              provider: 'global-test-provider',
+              modelId: 'actual-test-model-id',
+            }),
+          ),
+        },
+      });
+    });
+
+    afterEach(() => {
+      delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+    });
+
+    it('should return an image model from the global default provider', () => {
+      const resolvedModel = resolveImageModel('test-model-id');
 
       expect(resolvedModel.provider).toBe('global-test-provider');
       expect(resolvedModel.modelId).toBe('actual-test-model-id');

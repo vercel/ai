@@ -228,6 +228,8 @@ export function createBaseten(
   };
 
   const provider = (modelId?: BasetenChatModelId) => createChatModel(modelId);
+
+  provider.specificationVersion = 'v3' as const;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
   provider.imageModel = (modelId: string) => {

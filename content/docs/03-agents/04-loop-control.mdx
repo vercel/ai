@@ -158,7 +158,7 @@ const agent = new ToolLoopAgent({
     if (messages.length > 20) {
       return {
         messages: [
-          messages[0], // Keep system message
+          messages[0], // Keep system instructions
           ...messages.slice(-10), // Keep last 10 messages
         ],
       };
