@@ -86,6 +86,24 @@ const blackForestLabs = createBlackForestLabs({
 });
 ```
 
+You can also override these polling settings per request via `providerOptions.blackForestLabs`:
+
+```ts
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-pro-1.1'),
+  prompt: 'A cat wearing an intricate robe',
+  providerOptions: {
+    blackForestLabs: {
+      pollIntervalMillis: 250,
+      pollTimeoutMillis: 30_000,
+    },
+  },
+});
+```
+
 ## Documentation
 
 See the [Black Forest Labs provider](https://ai-sdk.dev/providers/ai-sdk-providers/black-forest-labs) for more information.

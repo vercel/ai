@@ -128,6 +128,12 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       abortSignal,
     } as Parameters<ImageModelV3['doGenerate']>[0]);
 
+    const bflOptions = await parseProviderOptions({
+      provider: 'blackForestLabs',
+      providerOptions,
+      schema: blackForestLabsImageProviderOptionsSchema,
+    });
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
       await resolve(this.config.headers),
@@ -158,6 +164,10 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       requestId,
       headers: combinedHeaders,
       abortSignal,
+      pollOverrides: {
+        pollIntervalMillis: bflOptions?.pollIntervalMillis,
+        pollTimeoutMillis: bflOptions?.pollTimeoutMillis,
+      },
     });
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
@@ -197,11 +207,16 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     requestId,
     headers,
     abortSignal,
+    pollOverrides,
   }: {
     pollUrl: string;
     requestId: string;
     headers: Record<string, string | undefined>;
     abortSignal: AbortSignal | undefined;
+    pollOverrides?: {
+      pollIntervalMillis?: number;
+      pollTimeoutMillis?: number;
+    };
   }): Promise<{
     imageUrl: string;
     seed?: number;
@@ -210,9 +225,13 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     duration?: number;
   }> {
     const pollIntervalMillis =
-      this.config.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
+      pollOverrides?.pollIntervalMillis ??
+      this.config.pollIntervalMillis ??
+      DEFAULT_POLL_INTERVAL_MILLIS;
     const pollTimeoutMillis =
-      this.config.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS;
+      pollOverrides?.pollTimeoutMillis ??
+      this.config.pollTimeoutMillis ??
+      DEFAULT_POLL_TIMEOUT_MILLIS;
     const maxPollAttempts = Math.ceil(
       pollTimeoutMillis / Math.max(1, pollIntervalMillis),
     );
@@ -270,6 +289,8 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
       safetyTolerance: z.number().int().min(0).max(6).optional(),
       webhookSecret: z.string().optional(),
       webhookUrl: z.url().optional(),
+      pollIntervalMillis: z.number().int().positive().optional(),
+      pollTimeoutMillis: z.number().int().positive().optional(),
     }),
   ),
 );
