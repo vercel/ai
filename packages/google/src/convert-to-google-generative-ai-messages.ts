@@ -107,13 +107,6 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'file': {
-                  if (part.mediaType !== 'image/png') {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'Only PNG images are supported in assistant messages',
-                    });
-                  }
-
                   if (part.data instanceof URL) {
                     throw new UnsupportedFunctionalityError({
                       functionality:
