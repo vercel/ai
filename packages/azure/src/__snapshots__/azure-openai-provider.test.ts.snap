@@ -297,7 +297,7 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
   },
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "annotations": [
           {
             "end_index": 576,
@@ -3260,7 +3260,7 @@ exports[`responses > web search preview tool > should stream web search preview 
   {
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
       },
     },
@@ -5037,7 +5037,7 @@ Error message: Unexpected end of JSON input],
   {
     "finishReason": "error",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "responseId": "resp_0dcf1a118189f28100691daa5591108194a7dc13f2d6faa80c",
         "serviceTier": "default",
       },
