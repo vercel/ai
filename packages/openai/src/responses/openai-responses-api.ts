@@ -559,6 +559,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         annotation: z.discriminatedUnion('type', [
           z.object({
             type: z.literal('url_citation'),
+            start_index: z.number(),
+            end_index: z.number(),
             url: z.string(),
             title: z.string(),
           }),

@@ -1151,6 +1151,15 @@ describe('HuggingFaceResponsesLanguageModel', () => {
           {
             "providerMetadata": {
               "huggingface": {
+                "itemId": "reasoning_1",
+              },
+            },
+            "text": "Let me think about this problem step by step...",
+            "type": "reasoning",
+          },
+          {
+            "providerMetadata": {
+              "huggingface": {
                 "itemId": "msg_after_reasoning",
               },
             },
@@ -1169,12 +1178,13 @@ describe('HuggingFaceResponsesLanguageModel', () => {
           `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"reasoning_stream","type":"reasoning"},"sequence_number":1}\n\n`,
           `data:{"type":"response.reasoning_text.delta","item_id":"reasoning_stream","output_index":0,"content_index":0,"delta":"Thinking about","sequence_number":2}\n\n`,
           `data:{"type":"response.reasoning_text.delta","item_id":"reasoning_stream","output_index":0,"content_index":0,"delta":" the problem...","sequence_number":3}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"reasoning_stream","type":"reasoning","content":[{"type":"reasoning_text","text":"Thinking about the problem..."}]},"sequence_number":4}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_stream","type":"message","role":"assistant"},"sequence_number":5}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_stream","output_index":1,"content_index":0,"delta":"The solution is","sequence_number":6}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_stream","output_index":1,"content_index":0,"delta":" simple.","sequence_number":7}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_stream","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"The solution is simple."}]},"sequence_number":8}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_reasoning_stream","status":"completed","usage":{"input_tokens":10,"output_tokens":20,"total_tokens":30}},"sequence_number":9}\n\n`,
+          `data:{"type":"response.reasoning_text.done","item_id":"reasoning_stream","output_index":0,"content_index":0,"text":"Thinking about the problem...","sequence_number":4}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"reasoning_stream","type":"reasoning","content":[{"type":"reasoning_text","text":"Thinking about the problem..."}]},"sequence_number":5}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"id":"msg_stream","type":"message","role":"assistant"},"sequence_number":6}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_stream","output_index":1,"content_index":0,"delta":"The solution is","sequence_number":7}\n\n`,
+          `data:{"type":"response.output_text.delta","item_id":"msg_stream","output_index":1,"content_index":0,"delta":" simple.","sequence_number":8}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"id":"msg_stream","type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"The solution is simple."}]},"sequence_number":9}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_reasoning_stream","status":"completed","usage":{"input_tokens":10,"output_tokens":20,"total_tokens":30}},"sequence_number":10}\n\n`,
         ],
       };
 
@@ -1195,6 +1205,29 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "modelId": "deepseek-ai/DeepSeek-R1",
             "timestamp": 2025-03-06T13:50:19.000Z,
             "type": "response-metadata",
+          },
+          {
+            "id": "reasoning_stream",
+            "providerMetadata": {
+              "huggingface": {
+                "itemId": "reasoning_stream",
+              },
+            },
+            "type": "reasoning-start",
+          },
+          {
+            "delta": "Thinking about",
+            "id": "reasoning_stream",
+            "type": "reasoning-delta",
+          },
+          {
+            "delta": " the problem...",
+            "id": "reasoning_stream",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "reasoning_stream",
+            "type": "reasoning-end",
           },
           {
             "id": "msg_stream",
