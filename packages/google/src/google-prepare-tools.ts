@@ -111,7 +111,7 @@ export function prepareTools({
           }
           break;
         case 'google.google_maps':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             const { enableWidget, retrievalConfig } = tool.args as {
               enableWidget?: boolean;
               retrievalConfig?: Record<string, unknown>;
