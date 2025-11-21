@@ -129,7 +129,7 @@ console.log(text);`,
         yarn: 'yarn add ctx-zip',
         bun: 'bun add ctx-zip',
       },
-      codeExample: `import { gateway, generateText, stepCountIs } from 'ai'
+      codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
 import { createVercelSandboxCodeMode, SANDBOX_SYSTEM_PROMPT } from "ctx-zip";
 const { tools, manager } = await createVercelSandboxCodeMode({
   servers: [
