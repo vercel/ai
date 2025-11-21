@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.107
+
+### Patch Changes
+
+- 8445d70: feat: export GatewayModelId and use to type LanguageModel
+
 ## 6.0.0-beta.106
 
 ### Patch Changes
