@@ -384,9 +384,9 @@ The following gateway provider options are available:
 
 - **zdr** _boolean_
 
-  When enabled, filters routing to only providers that guarantee zero data retention. This ensures that your requests are only sent to providers that do not store or retain any of your data.
+  Restricts routing to providers with zero data retention guarantees.
 
-  Example: `zdr: true` will only allow routing to providers with zero data retention guarantees.
+  Example: `zdr: true`
 
 - **models** _string[]_
 
@@ -451,7 +451,7 @@ const { text } = await generateText({
 
 #### Zero Data Retention Example
 
-The `zdr` option ensures requests are only routed to providers with zero data retention guarantees:
+Use the `zdr` option for sensitive data that requires privacy guarantees:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -462,13 +462,10 @@ const { text } = await generateText({
   prompt: 'Analyze this sensitive document...',
   providerOptions: {
     gateway: {
-      zdr: true, // Only use providers with zero data retention
+      zdr: true,
     } satisfies GatewayProviderOptions,
   },
 });
-
-// The gateway will only route to providers that guarantee
-// they do not store or retain any of your request data
 ```
 
 ### Provider-Specific Options
