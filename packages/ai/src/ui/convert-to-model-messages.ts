@@ -278,6 +278,9 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                               toolPart.approval.reason ??
                               'Tool execution denied.',
                           },
+                          ...(toolPart.callProviderMetadata != null
+                            ? { providerOptions: toolPart.callProviderMetadata }
+                            : {}),
                         });
 
                         break;
@@ -301,6 +304,9 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                                 ? 'text'
                                 : 'none',
                           }),
+                          ...(toolPart.callProviderMetadata != null
+                            ? { providerOptions: toolPart.callProviderMetadata }
+                            : {}),
                         });
                         break;
                       }
