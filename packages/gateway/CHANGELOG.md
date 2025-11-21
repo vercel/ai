@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.57
+
+### Patch Changes
+
+- bca7e61: feat(provider/gateway): Change default maxImagesPerCall per-provider
+
+## 2.0.0-beta.56
+
+### Patch Changes
+
+- 2d166e4: feat(provider/gateway): add support for image models
+
 ## 2.0.0-beta.55
 
 ### Patch Changes
