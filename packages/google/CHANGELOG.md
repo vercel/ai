@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- fff8d59: feat(provider/google): Add support for the imageSize provider option
+
 ## 3.0.0-beta.51
 
 ### Patch Changes
