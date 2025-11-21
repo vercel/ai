@@ -22,7 +22,7 @@ describe('InferAgentUIMessage', () => {
 
     type Message = InferAgentUIMessage<typeof baseAgent>;
 
-    expectTypeOf<Message>().toMatchTypeOf<UIMessage<never, never, {}>>();
+    expectTypeOf<Message>().toMatchTypeOf<UIMessage<unknown, never, {}>>();
 
     type MessagePart = Message['parts'][number];
 
