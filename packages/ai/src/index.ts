@@ -1,5 +1,9 @@
 // re-exports:
+<<<<<<< HEAD
 export { gateway, createGateway } from '@ai-sdk/gateway';
+=======
+export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
+>>>>>>> 8445d7061 (feat: export GatewayModelId and use to type LanguageModel (#10464))
 export {
   asSchema,
   createIdGenerator,

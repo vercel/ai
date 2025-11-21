@@ -1,3 +1,4 @@
+import { GatewayModelId } from '@ai-sdk/gateway';
 import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
@@ -5,10 +6,62 @@ import {
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
 
+declare global {
+  /**
+   * Global interface that can be augmented by third-party packages to register custom model IDs.
+   *
+   * You can register model IDs in two ways:
+   *
+   * 1. Register baesd on Model IDs from a provider package:
+   * @example
+   * ```typescript
+   * import { openai } from '@ai-sdk/openai';
+   * type OpenAIResponsesModelId = Parameters<typeof openai>[0];
+   *
+   * declare global {
+   *   interface RegisteredProviderModels {
+   *     openai: OpenAIResponsesModelId;
+   *   }
+   * }
+   * ```
+   *
+   * 2. Register individual model IDs directly as keys:
+   * @example
+   * ```typescript
+   * declare global {
+   *   interface RegisteredProviderModels {
+   *     'my-provider:my-model': any;
+   *     'my-provider:another-model': any;
+   *   }
+   * }
+   * ```
+   */
+  interface RegisteredProviderModels {}
+}
+
+/**
+ * Global provider model ID type that defaults to GatewayModelId but can be augmented
+ * by third-party packages via declaration merging.
+ */
+export type GlobalProviderModelId = [keyof RegisteredProviderModels] extends [
+  never,
+]
+  ? GatewayModelId
+  :
+      | keyof RegisteredProviderModels
+      | RegisteredProviderModels[keyof RegisteredProviderModels];
+
 /**
 Language model that is used by the AI SDK Core functions.
 */
+<<<<<<< HEAD
 export type LanguageModel = string | LanguageModelV2;
+=======
+export type LanguageModel =
+  | GlobalProviderModelId
+  | LanguageModelV3
+  | LanguageModelV2;
+>>>>>>> 8445d7061 (feat: export GatewayModelId and use to type LanguageModel (#10464))
 
 /**
 Reason why a language model finished generating a response.
