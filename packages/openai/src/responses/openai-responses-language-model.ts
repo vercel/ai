@@ -1473,7 +1473,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 type: 'text-end',
                 id: value.item.id,
                 providerMetadata: {
-                  openai: {
+                  [providerKey]: {
                     itemId: value.item.id,
                     ...(ongoingAnnotations.length > 0 && {
                       annotations: ongoingAnnotations,
