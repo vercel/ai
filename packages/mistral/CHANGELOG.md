@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- 8f430af: Add PDF base64 coverage and refactor file URL formatting
+
 ## 3.0.0-beta.34
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- 3da75f4: Added utility ensureJsonInstructionForProvider that auto-injects a JSON instruction when the provider is deepseek.chat
+
 ## 2.0.0-beta.34
 
 ### Patch Changes

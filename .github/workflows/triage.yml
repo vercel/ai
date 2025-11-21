@@ -268,7 +268,7 @@ jobs:
             - Only assign labels if you're reasonably confident (>0.6) about the relevance
             - If the issue mentiones React Native or Expo, add the "ai/ui" label and "expo" label
             - If the issue is about adding a new provider or another 3rd party tool, add documentation, ai/provider, and provider/community labels.
-            - If the issue looks like "🤖 Provider API update - <PROVIDER HERE>@11.1.0", then assign ai/provider and provider/<PROVIDER HERE>.
+            - If the issue looks like "🤖 Provider API update - <PROVIDER HERE>@11.1.0", then assign ai/provider and provider/<PROVIDER HERE>. These pull requests are always for a known provider, NEVER apply the provider/community label.
 
             Examples
 
