@@ -10,22 +10,22 @@ import {
 declare global {
   /**
    * Global interface that can be augmented by third-party packages to register custom model IDs.
-   * 
+   *
    * You can register model IDs in two ways:
-   * 
+   *
    * 1. Register baesd on Model IDs from a provider package:
    * @example
    * ```typescript
    * import { openai } from '@ai-sdk/openai';
    * type OpenAIResponsesModelId = Parameters<typeof openai>[0];
-   * 
+   *
    * declare global {
    *   interface RegisteredProviderModels {
    *     openai: OpenAIResponsesModelId;
    *   }
    * }
    * ```
-   * 
+   *
    * 2. Register individual model IDs directly as keys:
    * @example
    * ```typescript
@@ -48,7 +48,9 @@ export type GlobalProviderModelId = [keyof RegisteredProviderModels] extends [
   never,
 ]
   ? GatewayModelId
-  : keyof RegisteredProviderModels | RegisteredProviderModels[keyof RegisteredProviderModels];
+  :
+      | keyof RegisteredProviderModels
+      | RegisteredProviderModels[keyof RegisteredProviderModels];
 
 /**
 Language model that is used by the AI SDK Core functions.
