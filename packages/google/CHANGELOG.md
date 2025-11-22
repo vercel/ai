@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.42
+
+### Patch Changes
+
+- b60216b: Change streamText loop to merge file part processing into main parts loop
+
 ## 2.0.41
 
 ### Patch Changes
