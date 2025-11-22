@@ -17,17 +17,11 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import { getDefaultMaxImagesPerCallForModel } from './gateway-image-model-settings';
 
-<<<<<<< HEAD
 export class GatewayImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly maxImagesPerCall = 4;
-=======
-export class GatewayImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3' as const;
   get maxImagesPerCall() {
     return getDefaultMaxImagesPerCallForModel(this.modelId) ?? 4;
   }
->>>>>>> bca7e61c4 (feat(provider/gateway): Change default maxImagesPerCall per-provider (#10440))
 
   constructor(
     readonly modelId: string,
