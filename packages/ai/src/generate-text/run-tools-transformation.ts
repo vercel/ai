@@ -281,9 +281,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             toolInputs.set(toolCall.toolCallId, toolCall.input);
 
             // Only execute tools that are not provider-executed:
-            if (tool.execute != null && toolCall.providerExecuted !== true) {
-              const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
-              outstandingToolResults.add(toolExecutionId);
+            if (toolCall.providerExecuted !== true) {
+              let toolExecutionId: string;
+
+              if (tool.execute != null) {
+                toolExecutionId = generateId(); // use our own id to guarantee uniqueness
+                outstandingToolResults.add(toolExecutionId);
+              }
 
               // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
               // because we want to process the next chunk as soon as possible.
@@ -300,9 +304,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                   toolResultsStreamController!.enqueue(result);
                 },
               }).then(result => {
-                toolResultsStreamController!.enqueue(result);
-                outstandingToolResults.delete(toolExecutionId);
-                attemptClose();
+                if (tool.execute != null) {
+                  toolResultsStreamController!.enqueue(result);
+                  outstandingToolResults.delete(toolExecutionId);
+                  attemptClose();
+                }
               });
             }
           } catch (error) {
