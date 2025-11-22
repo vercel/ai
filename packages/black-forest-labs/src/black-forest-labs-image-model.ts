@@ -20,13 +20,21 @@ import type { BlackForestLabsAspectRatio } from './black-forest-labs-image-setti
 import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
-const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
+const DEFAULT_POLL_TIMEOUT_MILLIS = 60000;
 
 interface BlackForestLabsImageModelConfig {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  /**
+   Poll interval in milliseconds between status checks. Defaults to 500ms.
+   */
+  pollIntervalMillis?: number;
+  /**
+   Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
+   */
+  pollTimeoutMillis?: number;
   _internal?: {
     currentDate?: () => Date;
   };
@@ -120,6 +128,12 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       abortSignal,
     } as Parameters<ImageModelV2['doGenerate']>[0]);
 
+    const bflOptions = await parseProviderOptions({
+      provider: 'blackForestLabs',
+      providerOptions,
+      schema: blackForestLabsImageProviderOptionsSchema,
+    });
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
       await resolve(this.config.headers),
@@ -150,6 +164,10 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
       requestId,
       headers: combinedHeaders,
       abortSignal,
+      pollOverrides: {
+        pollIntervalMillis: bflOptions?.pollIntervalMillis,
+        pollTimeoutMillis: bflOptions?.pollTimeoutMillis,
+      },
     });
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
@@ -189,11 +207,16 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     requestId,
     headers,
     abortSignal,
+    pollOverrides,
   }: {
     pollUrl: string;
     requestId: string;
     headers: Record<string, string | undefined>;
     abortSignal: AbortSignal | undefined;
+    pollOverrides?: {
+      pollIntervalMillis?: number;
+      pollTimeoutMillis?: number;
+    };
   }): Promise<{
     imageUrl: string;
     seed?: number;
@@ -201,12 +224,24 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     end_time?: number;
     duration?: number;
   }> {
+    const pollIntervalMillis =
+      pollOverrides?.pollIntervalMillis ??
+      this.config.pollIntervalMillis ??
+      DEFAULT_POLL_INTERVAL_MILLIS;
+    const pollTimeoutMillis =
+      pollOverrides?.pollTimeoutMillis ??
+      this.config.pollTimeoutMillis ??
+      DEFAULT_POLL_TIMEOUT_MILLIS;
+    const maxPollAttempts = Math.ceil(
+      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
+    );
+
     const url = new URL(pollUrl);
     if (!url.searchParams.has('id')) {
       url.searchParams.set('id', requestId);
     }
 
-    for (let i = 0; i < DEFAULT_MAX_POLL_ATTEMPTS; i++) {
+    for (let i = 0; i < maxPollAttempts; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
         headers,
@@ -235,7 +270,7 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
         throw new Error('Black Forest Labs generation failed.');
       }
 
-      await delay(DEFAULT_POLL_INTERVAL_MILLIS);
+      await delay(pollIntervalMillis);
     }
 
     throw new Error('Black Forest Labs generation timed out.');
@@ -254,6 +289,8 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
       safetyTolerance: z.number().int().min(0).max(6).optional(),
       webhookSecret: z.string().optional(),
       webhookUrl: z.url().optional(),
+      pollIntervalMillis: z.number().int().positive().optional(),
+      pollTimeoutMillis: z.number().int().positive().optional(),
     }),
   ),
 );
