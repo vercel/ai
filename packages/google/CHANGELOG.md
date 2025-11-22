@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.41
+
+### Patch Changes
+
+- 3438163: add `gemini-3-pro-preview` and `gemini-3-pro-image-preview` model IDs
+
 ## 2.0.40
 
 ### Patch Changes
