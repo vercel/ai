@@ -200,13 +200,29 @@ Only applicable for HTTP-based providers.
         if (providerName === 'gateway') {
           const currentEntry = providerMetadata[providerName];
           if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
+            const merged = {
               ...(currentEntry as object),
               ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
-          } else {
+            } as Record<string, unknown>;
+                const existingCalls =
+                  (currentEntry as Record<string, unknown>)['allCalls'];
+                const callsArray = Array.isArray(existingCalls)
+                  ? (existingCalls as unknown[])
+                  : [];
+                (merged as Record<string, unknown>)['allCalls'] = [
+                  ...callsArray,
+                  metadata,
+                ];
             providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
+              merged as ImageModelV3ProviderMetadata[string];
+          } else {
+                const first = { ...(metadata as object) } as Record<
+                  string,
+                  unknown
+                >;
+                (first as Record<string, unknown>)['allCalls'] = [metadata];
+                providerMetadata[providerName] =
+                  first as ImageModelV3ProviderMetadata[string];
           }
           const imagesValue = (
             providerMetadata[providerName] as { images?: unknown }
