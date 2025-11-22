@@ -16,14 +16,16 @@ export function prepareTools({
   modelId: GoogleGenerativeAIModelId;
 }): {
   tools:
-    | {
-        functionDeclarations: Array<{
-          name: string;
-          description: string;
-          parameters: unknown;
-        }>;
-      }
-    | Record<string, any>
+    | Array<
+        | {
+            functionDeclarations: Array<{
+              name: string;
+              description: string;
+              parameters: unknown;
+            }>;
+          }
+        | Record<string, any>
+      >
     | undefined;
   toolConfig:
     | undefined
@@ -190,7 +192,7 @@ export function prepareTools({
 
   if (toolChoice == null) {
     return {
-      tools: { functionDeclarations },
+      tools: [{ functionDeclarations }],
       toolConfig: undefined,
       toolWarnings,
     };
@@ -201,25 +203,25 @@ export function prepareTools({
   switch (type) {
     case 'auto':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
         toolWarnings,
       };
     case 'none':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'NONE' } },
         toolWarnings,
       };
     case 'required':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'ANY' } },
         toolWarnings,
       };
     case 'tool':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
             mode: 'ANY',

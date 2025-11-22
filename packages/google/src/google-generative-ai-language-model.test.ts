@@ -519,19 +519,21 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       generationConfig: {},
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      tools: {
-        functionDeclarations: [
-          {
-            name: 'test-tool',
-            description: '',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+              },
             },
-          },
-        ],
-      },
+          ],
+        },
+      ],
       toolConfig: {
         functionCallingConfig: {
           mode: 'ANY',
@@ -670,22 +672,24 @@ describe('doGenerate', () => {
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {},
       toolConfig: { functionCallingConfig: { mode: 'ANY' } },
-      tools: {
-        functionDeclarations: [
-          {
-            name: 'test-tool',
-            description: '',
-            parameters: {
-              properties: {
-                property1: { type: 'string' },
-                property2: { type: 'number' },
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                properties: {
+                  property1: { type: 'string' },
+                  property2: { type: 'number' },
+                },
+                required: ['property1', 'property2'],
+                type: 'object',
               },
-              required: ['property1', 'property2'],
-              type: 'object',
             },
-          },
-        ],
-      },
+          ],
+        },
+      ],
     });
   });
 
