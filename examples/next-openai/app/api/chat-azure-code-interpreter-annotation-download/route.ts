@@ -1,5 +1,8 @@
 import { OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { azure } from '@ai-sdk/azure';
+import {
+  azure,
+  azureResponsesSourceDocumentProviderMetadataSchema,
+} from '@ai-sdk/azure';
 
 import {
   convertToModelMessages,
@@ -38,7 +41,7 @@ export async function POST(req: Request) {
   }> = [];
 
   const result = streamText({
-    model: azure('gpt-5-mini'),
+    model: azure('gpt-4.1-mini'),
     tools,
     messages: convertToModelMessages(uiMessages),
     onStepFinish: async ({ sources, request }) => {
@@ -46,23 +49,22 @@ export async function POST(req: Request) {
 
       // Collect container file citations from sources
       for (const source of sources) {
-        if (
-          source.sourceType === 'document' &&
-          source.providerMetadata?.openai?.containerId &&
-          source.providerMetadata?.openai?.fileId
-        ) {
-          const containerId = String(
-            source.providerMetadata.openai.containerId || '',
-          );
-          const fileId = String(source.providerMetadata.openai.fileId || '');
-          const filename = source.filename || source.title || 'file';
-
-          // Avoid duplicates
-          const exists = containerFileSources.some(
-            s => s.containerId === containerId && s.fileId === fileId,
-          );
-          if (!exists) {
-            containerFileSources.push({ containerId, fileId, filename });
+        if (source.sourceType === 'document') {
+          const providerMetadataParsed =
+            azureResponsesSourceDocumentProviderMetadataSchema.safeParse(
+              source.providerMetadata,
+            );
+          if (providerMetadataParsed.success) {
+            const { openai } = providerMetadataParsed.data;
+            if (openai.type === 'container_file_citation') {
+              const { containerId, fileId, filename } = openai;
+              const exists = containerFileSources.some(
+                s => s.containerId === containerId && s.fileId === fileId,
+              );
+              if (!exists) {
+                containerFileSources.push({ containerId, fileId, filename });
+              }
+            }
           }
         }
       }

@@ -1,4 +1,8 @@
-import { azure } from '@ai-sdk/azure';
+import {
+  azure,
+  azureResponsesOutputTextProviderMetadataSchema,
+  azureResponsesSourceDocumentProviderMetadataSchema,
+} from '@ai-sdk/azure';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
@@ -28,9 +32,26 @@ async function main() {
   console.log('\n=== Code Interpreter Annotations ===');
   for (const part of basicResult.content) {
     if (part.type === 'text') {
-      const annotations = part.providerMetadata?.openai?.annotations;
-      if (annotations) {
-        console.dir(annotations);
+      const providerMetadataParsed =
+        azureResponsesOutputTextProviderMetadataSchema.safeParse(
+          part.providerMetadata,
+        );
+      if (providerMetadataParsed.success) {
+        const { openai } = providerMetadataParsed.data;
+        console.log('-- text-part-- ');
+        console.dir({ openai }, { depth: Infinity });
+      }
+    } else if (part.type === 'source') {
+      if (part.sourceType === 'document') {
+        const providerMetadataParsed =
+          azureResponsesSourceDocumentProviderMetadataSchema.safeParse(
+            part.providerMetadata,
+          );
+        if (providerMetadataParsed.success) {
+          const { openai } = providerMetadataParsed.data;
+          console.log('-- source-document-part-- ');
+          console.dir({ openai }, { depth: Infinity });
+        }
       }
     }
   }

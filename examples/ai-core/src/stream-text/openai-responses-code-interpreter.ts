@@ -1,4 +1,8 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  openaiResponsesOutputTextProviderMetadataSchema,
+  openaiResponsesSourceDocumentProviderMetadataSchema,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
@@ -9,7 +13,7 @@ async function main() {
     prompt:
       'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
     tools: {
-      code_interpreter: openai.tools.codeInterpreter({}),
+      code_interpreter: openai.tools.codeInterpreter(),
     },
   });
 
@@ -23,9 +27,26 @@ async function main() {
   console.log('\n=== Code Interpreter Annotations ===');
   for await (const part of result.fullStream) {
     if (part.type === 'text-end') {
-      const annotations = part.providerMetadata?.openai?.annotations;
-      if (annotations) {
-        console.dir(annotations);
+      const providerMetadataParsed =
+        openaiResponsesOutputTextProviderMetadataSchema.safeParse(
+          part.providerMetadata,
+        );
+      if (providerMetadataParsed.success) {
+        const { openai } = providerMetadataParsed.data;
+        console.log('-- text-part-- ');
+        console.dir({ openai }, { depth: Infinity });
+      }
+    } else if (part.type === 'source') {
+      if (part.sourceType === 'document') {
+        const providerMetadataParsed =
+          openaiResponsesSourceDocumentProviderMetadataSchema.safeParse(
+            part.providerMetadata,
+          );
+        if (providerMetadataParsed.success) {
+          const { openai } = providerMetadataParsed.data;
+          console.log('-- source-document-part-- ');
+          console.dir({ openai }, { depth: Infinity });
+        }
       }
     }
   }
