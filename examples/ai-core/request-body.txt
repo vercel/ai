@@ -1,0 +1,13 @@
+{
+  "generationConfig": {},
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Create an image of Los Angeles where all car infrastructure has been replaced with bike infrastructure, trains, pedestrian zones, and parks. The image should be photorealistic and vibrant."
+        }
+      ]
+    }
+  ]
+}

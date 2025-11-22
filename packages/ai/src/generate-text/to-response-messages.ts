@@ -20,6 +20,8 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 }): Array<AssistantModelMessage | ToolModelMessage> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
+  debugger
+
   const content: AssistantContent = inputContent
     .filter(part => part.type !== 'source')
     .filter(
