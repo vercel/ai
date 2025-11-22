@@ -130,6 +130,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       tools,
       toolChoice,
       modelId: this.modelId,
+      functionCallingConfig: googleOptions?.functionCallingConfig,
     });
 
     return {

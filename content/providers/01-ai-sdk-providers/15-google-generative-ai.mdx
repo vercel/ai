@@ -200,6 +200,121 @@ The following optional provider options are available for Google Generative AI m
   - 16:9
   - 21:9
 
+- **functionCallingConfig** _object_
+
+  Optional. Configuration for function calling behavior.
+
+  This provides direct control over Google's function calling modes, including:
+
+  - Enabling parallel function calling (model can call multiple functions in one response)
+  - Restricting function calls to a specific subset of available functions
+  - Controlling when the model should or shouldn't call functions
+
+  **Note**: If `toolChoice` is specified in the main options, it takes precedence over this setting for backward compatibility.
+
+  - **mode** _'AUTO' | 'NONE' | 'ANY'_
+
+    Controls when the model should invoke functions:
+
+    - `AUTO`: Model autonomously decides whether to call functions or respond with text
+    - `ANY`: Model must call at least one function (enables parallel function calling)
+    - `NONE`: Model cannot call any functions, responds only with text
+
+  - **allowedFunctionNames** _string[]_
+
+    Optional. Array of function names that the model is allowed to call.
+    Only used when `mode` is `ANY`.
+    If not provided or empty, all available functions can be called.
+
+  **Example: Enable parallel function calling**
+
+  ```ts
+  import { google } from '@ai-sdk/google';
+  import { generateText } from 'ai';
+
+  const result = await generateText({
+    model: google('gemini-2.5-flash'),
+    prompt:
+      'What is the weather in London and schedule a meeting for tomorrow at 3pm?',
+    tools: {
+      getWeather: {
+        description: 'Get weather information for a city',
+        parameters: z.object({
+          city: z.string(),
+        }),
+      },
+      scheduleMeeting: {
+        description: 'Schedule a meeting',
+        parameters: z.object({
+          date: z.string(),
+          time: z.string(),
+        }),
+      },
+    },
+    providerOptions: {
+      google: {
+        functionCallingConfig: {
+          mode: 'ANY', // Model can call multiple functions in parallel
+        },
+      },
+    },
+  });
+  ```
+
+  **Example: Restrict to specific functions**
+
+  ```ts
+  const result = await generateText({
+    model: google('gemini-2.5-flash'),
+    prompt: 'Help me with my tasks',
+    tools: {
+      weather: {
+        /* ... */
+      },
+      calendar: {
+        /* ... */
+      },
+      email: {
+        /* ... */
+      },
+      database: {
+        /* ... */
+      },
+    },
+    providerOptions: {
+      google: {
+        functionCallingConfig: {
+          mode: 'ANY',
+          allowedFunctionNames: ['weather', 'calendar'], // Only these two can be called
+        },
+      },
+    },
+  });
+  ```
+
+  **Example: Disable function calling**
+
+  ```ts
+  const result = await generateText({
+    model: google('gemini-2.5-flash'),
+    prompt: 'Just give me a text response',
+    tools: {
+      someFunction: {
+        /* ... */
+      },
+    },
+    providerOptions: {
+      google: {
+        functionCallingConfig: {
+          mode: 'NONE', // Model cannot call any functions
+        },
+      },
+    },
+  });
+  ```
+
+  For more information, see [Google's Function Calling documentation](https://ai.google.dev/gemini-api/docs/function-calling#function_calling_modes).
+
 ### Thinking
 
 The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).

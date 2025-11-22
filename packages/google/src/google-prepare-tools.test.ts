@@ -427,3 +427,207 @@ it('should handle url context tool alone', () => {
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
+
+it('should use functionCallingConfig from provider options when toolChoice is not provided', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'Test',
+        inputSchema: {},
+      },
+    ],
+    functionCallingConfig: { mode: 'AUTO' },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'AUTO' },
+  });
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should use functionCallingConfig with mode ANY for parallel calling', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'weather',
+        description: 'Get weather',
+        inputSchema: {},
+      },
+      {
+        type: 'function',
+        name: 'calendar',
+        description: 'Check calendar',
+        inputSchema: {},
+      },
+    ],
+    functionCallingConfig: { mode: 'ANY' },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'ANY' },
+  });
+});
+
+it('should use functionCallingConfig with allowedFunctionNames to restrict function subset', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'weather',
+        description: 'Get weather',
+        inputSchema: {},
+      },
+      {
+        type: 'function',
+        name: 'calendar',
+        description: 'Check calendar',
+        inputSchema: {},
+      },
+      {
+        type: 'function',
+        name: 'email',
+        description: 'Send email',
+        inputSchema: {},
+      },
+    ],
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['weather', 'calendar'],
+    },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['weather', 'calendar'],
+    },
+  });
+});
+
+it('should use functionCallingConfig with mode NONE to disable function calling', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'Test',
+        inputSchema: {},
+      },
+    ],
+    functionCallingConfig: { mode: 'NONE' },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'NONE' },
+  });
+});
+
+it('should prioritize functionCallingConfig over toolChoice when toolChoice is auto', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'Test',
+        inputSchema: {},
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    functionCallingConfig: { mode: 'NONE' },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'NONE' },
+  });
+});
+
+it('should prioritize explicit toolChoice over functionCallingConfig when toolChoice is not auto', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'Test',
+        inputSchema: {},
+      },
+    ],
+    toolChoice: { type: 'required' },
+    functionCallingConfig: { mode: 'NONE' },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'ANY' },
+  });
+});
+
+it('should return undefined toolConfig when neither toolChoice nor functionCallingConfig is provided', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'Test',
+        inputSchema: {},
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.toolConfig).toBeUndefined();
+});
+
+it('should not apply functionCallingConfig to provider-defined tools', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    functionCallingConfig: { mode: 'ANY' },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+});
+
+it('should ignore allowedFunctionNames when mode is not ANY', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'weather',
+        description: 'Get weather',
+        inputSchema: {},
+      },
+      {
+        type: 'function',
+        name: 'calendar',
+        description: 'Check calendar',
+        inputSchema: {},
+      },
+    ],
+    functionCallingConfig: {
+      mode: 'AUTO',
+      allowedFunctionNames: ['weather'],
+    },
+    modelId: 'gemini-2.5-flash',
+  });
+
+  // allowedFunctionNames should be ignored when mode is AUTO
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'AUTO' },
+  });
+});
