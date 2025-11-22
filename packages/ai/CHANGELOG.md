@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.99
+
+### Patch Changes
+
+- 15cfac8: feat: export GatewayModelId and use to type LanguageModel
+
 ## 5.0.98
 
 ### Patch Changes
