@@ -2658,6 +2658,97 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream text and files in correct order', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Step 1: ' },
+                  { inlineData: { data: 'image1', mimeType: 'image/png' } },
+                  { text: ' Step 2: ' },
+                  { inlineData: { data: 'image2', mimeType: 'image/jpeg' } },
+                  { text: ' Done' },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    // Filter to content events only (excluding metadata)
+    const contentEvents = events.filter(
+      event =>
+        event.type === 'text-start' ||
+        event.type === 'text-delta' ||
+        event.type === 'text-end' ||
+        event.type === 'file',
+    );
+
+    // Verify that text and file parts are interleaved in the correct order
+    expect(contentEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-start",
+        },
+        {
+          "delta": "Step 1: ",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "data": "image1",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+        {
+          "delta": " Step 2: ",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "data": "image2",
+          "mediaType": "image/jpeg",
+          "type": "file",
+        },
+        {
+          "delta": " Done",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+      ]
+    `);
+  });
+
   it('should set finishReason to tool-calls when chunk contains functionCall', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
