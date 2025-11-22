@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- 5dd4c6a: fix(provider/gateway): Fix Gateway image model provider options not passing through
+
 ## 2.0.0-beta.58
 
 ### Patch Changes
