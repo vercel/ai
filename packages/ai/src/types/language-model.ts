@@ -54,14 +54,9 @@ export type GlobalProviderModelId = [keyof RegisteredProviderModels] extends [
 /**
 Language model that is used by the AI SDK Core functions.
 */
-<<<<<<< HEAD
-export type LanguageModel = string | LanguageModelV2;
-=======
 export type LanguageModel =
   | GlobalProviderModelId
-  | LanguageModelV3
   | LanguageModelV2;
->>>>>>> 8445d7061 (feat: export GatewayModelId and use to type LanguageModel (#10464))
 
 /**
 Reason why a language model finished generating a response.
