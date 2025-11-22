@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- 1d15673: fix(provider/anthropic): clamp temperature to valid 0-1 range with warnings
+
 ## 3.0.0-beta.53
 
 ### Patch Changes

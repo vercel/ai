@@ -104,6 +104,10 @@ export const bedrockProviderOptions = z.object({
       budgetTokens: z.number().optional(),
     })
     .optional(),
+  /**
+   * Anthropic beta features to enable
+   */
+  anthropicBeta: z.array(z.string()).optional(),
 });
 
 export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;

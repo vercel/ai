@@ -1,5 +1,11 @@
 # @ai-sdk/huggingface
 
+## 1.0.0-beta.30
+
+### Patch Changes
+
+- 1bbce64: extract reasoning content
+
 ## 1.0.0-beta.29
 
 ### Patch Changes
