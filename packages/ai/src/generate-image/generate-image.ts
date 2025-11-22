@@ -204,24 +204,25 @@ Only applicable for HTTP-based providers.
               ...(currentEntry as object),
               ...metadata,
             } as Record<string, unknown>;
-
-            for (const key of ['cost', 'marketCost']) {
-              const previousValue = (currentEntry as Record<string, unknown>)[
-                key
-              ];
-              const newValue = (metadata as Record<string, unknown>)[key];
-              const sum = addDecimal(
-                typeof previousValue === 'string' ? previousValue : undefined,
-                typeof newValue === 'string' ? newValue : undefined,
-              );
-              if (sum) merged[key] = sum;
-            }
-
+                const existingCalls =
+                  (currentEntry as Record<string, unknown>)['calls'];
+                const callsArray = Array.isArray(existingCalls)
+                  ? (existingCalls as unknown[])
+                  : [];
+                (merged as Record<string, unknown>)['allCalls'] = [
+                  ...callsArray,
+                  metadata,
+                ];
             providerMetadata[providerName] =
               merged as ImageModelV3ProviderMetadata[string];
           } else {
-            providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
+                const first = { ...(metadata as object) } as Record<
+                  string,
+                  unknown
+                >;
+                (first as Record<string, unknown>)['allCalls'] = [metadata];
+                providerMetadata[providerName] =
+                  first as ImageModelV3ProviderMetadata[string];
           }
           const imagesValue = (
             providerMetadata[providerName] as { images?: unknown }
@@ -293,22 +294,4 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
   return model.maxImagesPerCall({
     modelId: model.modelId,
   });
-}
-
-/**
- * Adds two non-negative decimal numbers represented as strings.
- */
-function addDecimal(value1?: string, value2?: string): string | undefined {
-  if (!value1 || !value2) return value1 || value2;
-  const [integer1, fraction1 = ''] = value1.split('.');
-  const [integer2, fraction2 = ''] = value2.split('.');
-  const precision = Math.max(fraction1.length, fraction2.length);
-  const sum =
-    BigInt(integer1 + fraction1.padEnd(precision, '0')) +
-    BigInt(integer2 + fraction2.padEnd(precision, '0'));
-  const sumString = sum.toString().padStart(precision + 1, '0');
-  return `${sumString.slice(0, -precision)}.${sumString.slice(-precision)}`.replace(
-    /\.?0+$/,
-    '',
-  );
 }
