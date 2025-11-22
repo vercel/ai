@@ -205,7 +205,7 @@ Only applicable for HTTP-based providers.
               ...metadata,
             } as Record<string, unknown>;
                 const existingCalls =
-                  (currentEntry as Record<string, unknown>)['calls'];
+                  (currentEntry as Record<string, unknown>)['allCalls'];
                 const callsArray = Array.isArray(existingCalls)
                   ? (existingCalls as unknown[])
                   : [];
