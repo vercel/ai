@@ -48,7 +48,7 @@ Creates an Xai chat model for text generation.
   /**
 Creates an Xai responses model for agentic tool calling.
    */
-  responses: (modelId: XaiResponsesModelId) => LanguageModelV3;
+  responses: (modelId: XaiResponsesModelId) => LanguageModelV2;
 
   /**
 Creates an Xai image model for image generation.
@@ -58,16 +58,12 @@ Creates an Xai image model for image generation.
   /**
 Creates an Xai image model for image generation.
    */
-<<<<<<< HEAD
   imageModel(modelId: XaiImageModelId): ImageModelV2;
-=======
-  imageModel(modelId: XaiImageModelId): ImageModelV3;
 
   /**
 Server-side agentic tools for use with the responses API.
    */
   tools: typeof xaiTools;
->>>>>>> 5ad1bbee5 (feat: xai server-side tool calling (#9896))
 }
 
 export interface XaiProviderSettings {
@@ -143,15 +139,10 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   const provider = (modelId: XaiChatModelId) =>
     createChatLanguageModel(modelId);
 
-<<<<<<< HEAD
-  provider.languageModel = createLanguageModel;
-  provider.chat = createLanguageModel;
-=======
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v2' as const;
   provider.languageModel = createChatLanguageModel;
   provider.chat = createChatLanguageModel;
   provider.responses = createResponsesLanguageModel;
->>>>>>> 5ad1bbee5 (feat: xai server-side tool calling (#9896))
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };

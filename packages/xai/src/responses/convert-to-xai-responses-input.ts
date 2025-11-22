@@ -1,20 +1,20 @@
 import {
-  LanguageModelV3CallWarning,
-  LanguageModelV3Message,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Message,
 } from '@ai-sdk/provider';
 import { XaiResponsesInput } from './xai-responses-api';
 
 export async function convertToXaiResponsesInput({
   prompt,
 }: {
-  prompt: LanguageModelV3Message[];
+  prompt: LanguageModelV2Message[];
   store?: boolean;
 }): Promise<{
   input: XaiResponsesInput;
-  inputWarnings: LanguageModelV3CallWarning[];
+  inputWarnings: LanguageModelV2CallWarning[];
 }> {
   const input: XaiResponsesInput = [];
-  const inputWarnings: LanguageModelV3CallWarning[] = [];
+  const inputWarnings: LanguageModelV2CallWarning[] = [];
 
   for (const message of prompt) {
     switch (message.role) {
@@ -137,9 +137,6 @@ export async function convertToXaiResponsesInput({
             case 'text':
             case 'error-text':
               outputValue = output.value;
-              break;
-            case 'execution-denied':
-              outputValue = output.reason ?? 'tool execution denied';
               break;
             case 'json':
             case 'error-json':

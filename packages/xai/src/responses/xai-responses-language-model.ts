@@ -1,10 +1,10 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallWarning,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Content,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -38,8 +38,8 @@ type XaiResponsesConfig = {
   fetch?: FetchFunction;
 };
 
-export class XaiResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class XaiResponsesLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'v2';
 
   readonly modelId: XaiResponsesModelId;
 
@@ -68,8 +68,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     providerOptions,
     tools,
     toolChoice,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     const options =
       (await parseProviderOptions({
@@ -142,8 +142,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const {
       args: body,
       warnings,
@@ -168,7 +168,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV2Content> = [];
 
     const webSearchSubTools = [
       'web_search',
@@ -275,8 +275,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const {
       args,
       warnings,
@@ -301,8 +301,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
+    const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
@@ -317,7 +317,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof xaiResponsesChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV2StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
