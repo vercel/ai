@@ -544,43 +544,7 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should stream text deltas', async () => {
-        prepareStreamChunks([
-          JSON.stringify({
-            type: 'response.created',
-            response: {
-              id: 'resp_123',
-              object: 'response',
-              created_at: 1700000000,
-              model: 'grok-4-fast',
-              status: 'in_progress',
-              output: [],
-            },
-          }),
-          JSON.stringify({
-            type: 'response.output_text.delta',
-            item_id: 'msg_123',
-            output_index: 0,
-            content_index: 0,
-            delta: 'hello',
-          }),
-          JSON.stringify({
-            type: 'response.output_text.delta',
-            item_id: 'msg_123',
-            output_index: 0,
-            content_index: 0,
-            delta: ' world',
-          }),
-          JSON.stringify({
-            type: 'response.done',
-            response: {
-              id: 'resp_123',
-              object: 'response',
-              status: 'completed',
-              output: [],
-              usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 },
-            },
-          }),
-        ]);
+        prepareChunksFixtureResponse('xai-text-streaming.1');
 
         const { stream } = await createModel().doStream({
           prompt: TEST_PROMPT,
@@ -588,48 +552,7 @@ describe('XaiResponsesLanguageModel', () => {
 
         const parts = await convertReadableStreamToArray(stream);
 
-        expect(parts).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_123",
-              "modelId": "grok-4-fast",
-              "timestamp": undefined,
-              "type": "response-metadata",
-            },
-            {
-              "id": "text-msg_123",
-              "type": "text-start",
-            },
-            {
-              "delta": "hello",
-              "id": "text-msg_123",
-              "type": "text-delta",
-            },
-            {
-              "delta": " world",
-              "id": "text-msg_123",
-              "type": "text-delta",
-            },
-            {
-              "id": "text-msg_123",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "type": "finish",
-              "usage": {
-                "inputTokens": 10,
-                "outputTokens": 5,
-                "reasoningTokens": undefined,
-                "totalTokens": 15,
-              },
-            },
-          ]
-        `);
+        expect(parts).toMatchSnapshot();
       });
     });
 
