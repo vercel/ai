@@ -15,10 +15,13 @@ import { z } from 'zod/v4';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { getDefaultMaxImagesPerCallForModel } from './gateway-image-model-settings';
 
 export class GatewayImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly maxImagesPerCall = 4;
+  get maxImagesPerCall() {
+    return getDefaultMaxImagesPerCallForModel(this.modelId) ?? 4;
+  }
 
   constructor(
     readonly modelId: string,
