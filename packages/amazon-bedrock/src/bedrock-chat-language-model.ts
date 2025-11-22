@@ -132,22 +132,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-<<<<<<< HEAD
-    if (tools != null && responseFormat?.type === 'json') {
-      if (tools.length > 0) {
-        warnings.push({
-          type: 'other',
-          message:
-            'JSON response format does not support tools. ' +
-            'The provided tools are ignored.',
-        });
-      }
-    }
-
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
-=======
-    const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
->>>>>>> 88b2c7eaf (feat(amazon-bedrock,google-vertex-anthropic): Anthropic Structured Tool Call Ports (#9880))
       responseFormat?.type === 'json' && responseFormat.schema != null
         ? {
             type: 'function',
@@ -352,12 +337,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-<<<<<<< HEAD
     const content: Array<LanguageModelV2Content> = [];
-=======
-    const content: Array<LanguageModelV3Content> = [];
     let isJsonResponseFromTool = false;
->>>>>>> 88b2c7eaf (feat(amazon-bedrock,google-vertex-anthropic): Anthropic Structured Tool Call Ports (#9880))
 
     // map response content to content array
     for (const part of response.output.message.content) {
@@ -489,12 +470,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-<<<<<<< HEAD
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
-=======
-    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
->>>>>>> 88b2c7eaf (feat(amazon-bedrock,google-vertex-anthropic): Anthropic Structured Tool Call Ports (#9880))
 
     const contentBlocks: Record<
       number,
