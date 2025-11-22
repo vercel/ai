@@ -421,17 +421,8 @@ const result = await generateText({
 
 #### Image Generation Tool
 
-<Note type="warning">
-  Azure OpenAI Responses API
-  [image_generation](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?tabs=python-secure#image-generation-preview)
-  is now Preview release(Not GA release).Image tool does not currently support
-  streaming mode. You can not use the image tool with `streamText` currently.
-</Note>
-
 Azure OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
 Availability is restricted to specific models (for example, `gpt-5` variants).
-
-You can use the image tool with `generateText`.
 
 ```ts
 import { createAzure } from '@ai-sdk/azure';
@@ -458,6 +449,17 @@ for (const toolResult of result.staticToolResults) {
   }
 }
 ```
+
+<Note>
+  The tool must be named `image_generation` when using Azure OpenAI's image
+  generation functionality. This name is required by Azure OpenAI's API
+  specification and cannot be customized.
+</Note>
+
+<Note>
+  The 'image_generation' tool is only supported with the default responses API,
+  and is not supported when using 'azure.chat' or 'azure.completion'
+</Note>
 
 <Note>
   To use image_generation, you must first create an image generation model. You
