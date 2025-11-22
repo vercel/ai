@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import { run } from '../lib/run';
 import 'dotenv/config';
 
@@ -15,13 +15,16 @@ run(async () => {
     apiKey,
   });
 
-  const result = await generateText({
+  const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(result.text);
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
+
   console.log();
-  console.log('Token usage:', result.usage);
-  console.log('Finish reason:', result.finishReason);
+  console.log('Token usage:', await result.usage);
+  console.log('Finish reason:', await result.finishReason);
 });
