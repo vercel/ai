@@ -1,3 +1,6 @@
+import { openai } from '@ai-sdk/openai';
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
+
 import { z } from 'zod';
 
 export const exampleMetadataSchema = z.object({
@@ -9,3 +12,12 @@ export const exampleMetadataSchema = z.object({
 });
 
 export type ExampleMetadata = z.infer<typeof exampleMetadataSchema>;
+
+export const openaiMetadataAgent = new ToolLoopAgent({
+  model: openai('gpt-4o'),
+});
+
+export type OpenAIMetadataMessage = InferAgentUIMessage<
+  typeof openaiMetadataAgent,
+  ExampleMetadata
+>;
