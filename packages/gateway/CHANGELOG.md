@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.14
+
+### Patch Changes
+
+- c9520e5: fix(provider/gateway): Fix Gateway image model provider options not passing through
+- 2382c89: feat(provider/gateway): Change default maxImagesPerCall per-provider
+
 ## 2.0.13
 
 ### Patch Changes
