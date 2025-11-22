@@ -64,7 +64,7 @@ export class GatewayImageModel implements ImageModelV2 {
           ...(size && { size }),
           ...(aspectRatio && { aspectRatio }),
           ...(seed && { seed }),
-          ...(providerOptions ?? {}),
+          ...(providerOptions && { providerOptions }),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayImageResponseSchema,
