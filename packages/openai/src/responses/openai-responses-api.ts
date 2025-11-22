@@ -285,6 +285,35 @@ export const openaiResponsesOutputTextAnnotationSchema = z.discriminatedUnion(
   ],
 );
 
+export const sourceDocumentForFileCitationSchema = z.object({
+  type: z.literal('file_citation'),
+  fileId: z.string(),
+  filename: z.string(),
+  index: z.number(),
+});
+export type SourceDocumentForFileCitationSchema = z.infer<
+  typeof sourceDocumentForFileCitationSchema
+>;
+
+export const sourceDocumentForContainerFileCitationSchema = z.object({
+  type: z.literal('container_file_citation'),
+  fileId: z.string(),
+  containerId: z.string(),
+  filename: z.string(),
+});
+export type SourceDocumentForContainerFileCitationSchema = z.infer<
+  typeof sourceDocumentForContainerFileCitationSchema
+>;
+
+export const sourceDocumentForFilePathSchema = z.object({
+  type: z.literal('file_path'),
+  fileId: z.string(),
+  index: z.number(),
+});
+export type SourceDocumentForFilePathSchema = z.infer<
+  typeof sourceDocumentForFilePathSchema
+>;
+
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
@@ -684,7 +713,9 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                       }),
                     )
                     .nullish(),
-                  annotations: z.array(openaiResponsesOutputTextAnnotationSchema),
+                  annotations: z.array(
+                    openaiResponsesOutputTextAnnotationSchema,
+                  ),
                 }),
               ),
             }),

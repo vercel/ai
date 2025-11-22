@@ -41,6 +41,9 @@ import {
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
   OpenAIResponsesWebSearchAction,
+  SourceDocumentForContainerFileCitationSchema,
+  SourceDocumentForFileCitationSchema,
+  SourceDocumentForFilePathSchema,
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
@@ -496,17 +499,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: annotation.filename ,
-                  filename: annotation.filename ,
-                  ...(annotation.file_id
-                    ? {
-                        providerMetadata: {
-                          openai: {
-                            fileId: annotation.file_id,
-                          },
-                        },
-                      }
-                    : {}),
+                  title: annotation.filename,
+                  filename: annotation.filename,
+                  providerMetadata: {
+                    openai: {
+                      type: annotation.type,
+                      fileId: annotation.file_id,
+                      filename: annotation.filename,
+                      index: annotation.index,
+                    } satisfies SourceDocumentForFileCitationSchema,
+                  },
                 });
               } else if (annotation.type === 'container_file_citation') {
                 content.push({
@@ -514,16 +516,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title:
-                    annotation.filename ,
-                  filename: annotation.filename ,
+                  title: annotation.filename,
+                  filename: annotation.filename,
                   providerMetadata: {
                     openai: {
                       type: annotation.type,
                       fileId: annotation.file_id,
                       containerId: annotation.container_id,
                       filename: annotation.filename,
-                    },
+                    } satisfies SourceDocumentForContainerFileCitationSchema,
                   },
                 });
               } else if (annotation.type === 'file_path') {
@@ -536,11 +537,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   filename: annotation.file_id,
                   providerMetadata: {
                     openai: {
+                      type: annotation.type,
                       fileId: annotation.file_id,
-                      ...(annotation.index != null
-                        ? { index: annotation.index }
-                        : {}),
-                    },
+                      index: annotation.index,
+                    } satisfies SourceDocumentForFilePathSchema,
                   },
                 });
               }
@@ -1403,21 +1403,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title:
-                    value.annotation.filename,
-                  filename:
-                    value.annotation.filename,
-                  ...(value.annotation.file_id
-                    ? {
-                        providerMetadata: {
-                          openai: {
-                            type :value.annotation.type,
-                            fileId: value.annotation.file_id,
-                            filename: value.annotation.filename,
-                          },
-                        },
-                      }
-                    : {}),
+                  title: value.annotation.filename,
+                  filename: value.annotation.filename,
+                  providerMetadata: {
+                    openai: {
+                      type: value.annotation.type,
+                      fileId: value.annotation.file_id,
+                      filename: value.annotation.filename,
+                      index: value.annotation.index,
+                    } satisfies SourceDocumentForFileCitationSchema,
+                  },
                 });
               } else if (value.annotation.type === 'container_file_citation') {
                 controller.enqueue({
@@ -1425,17 +1420,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title:
-                    value.annotation.filename ,
-                  filename:
-                    value.annotation.filename ,
+                  title: value.annotation.filename,
+                  filename: value.annotation.filename,
                   providerMetadata: {
                     openai: {
                       type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       containerId: value.annotation.container_id,
                       filename: value.annotation.filename,
-                    },
+                    } satisfies SourceDocumentForContainerFileCitationSchema,
                   },
                 });
               } else if (value.annotation.type === 'file_path') {
@@ -1448,10 +1441,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   filename: value.annotation.file_id,
                   providerMetadata: {
                     openai: {
-                      type:value.type,
+                      type: value.annotation.type,
                       fileId: value.annotation.file_id,
-                      index:value.annotation.index ,
-                    },
+                      index: value.annotation.index,
+                    } satisfies SourceDocumentForFilePathSchema,
                   },
                 });
               }
