@@ -285,33 +285,52 @@ export const openaiResponsesOutputTextAnnotationSchema = z.discriminatedUnion(
   ],
 );
 
-export const sourceDocumentForFileCitationSchema = z.object({
-  type: z.literal('file_citation'),
-  fileId: z.string(),
-  filename: z.string(),
-  index: z.number(),
-});
-export type SourceDocumentForFileCitationSchema = z.infer<
-  typeof sourceDocumentForFileCitationSchema
+export const responsesSourceDocumentProviderMetadataSchema =
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('file_citation'),
+      fileId: z.string(),
+      filename: z.string(),
+      index: z.number(),
+    }),
+    z.object({
+      type: z.literal('container_file_citation'),
+      fileId: z.string(),
+      containerId: z.string(),
+      filename: z.string(),
+    }),
+    z.object({
+      type: z.literal('file_path'),
+      fileId: z.string(),
+      index: z.number(),
+    }),
+  ]);
+
+type ResponsesSourceDocumentProviderMetadataSchema = z.infer<
+  typeof responsesSourceDocumentProviderMetadataSchema
 >;
 
-export const sourceDocumentForContainerFileCitationSchema = z.object({
-  type: z.literal('container_file_citation'),
-  fileId: z.string(),
-  containerId: z.string(),
-  filename: z.string(),
-});
-export type SourceDocumentForContainerFileCitationSchema = z.infer<
-  typeof sourceDocumentForContainerFileCitationSchema
+export type ResponsesSourceDocumentFileCitationSchema = Extract<
+  ResponsesSourceDocumentProviderMetadataSchema,
+  { type: 'file_citation' }
 >;
 
-export const sourceDocumentForFilePathSchema = z.object({
-  type: z.literal('file_path'),
-  fileId: z.string(),
-  index: z.number(),
+export type ResponsesSourceDocumentContainerFileCitationSchema = Extract<
+  ResponsesSourceDocumentProviderMetadataSchema,
+  { type: 'container_file_citation' }
+>;
+
+export type ResponsesSourceDocumentFilePathSchema = Extract<
+  ResponsesSourceDocumentProviderMetadataSchema,
+  { type: 'file_path' }
+>;
+
+export const responsesOutputTextProviderMetadataSchema = z.object({
+  itemId: z.string(),
+  annotations: z.array(openaiResponsesOutputTextAnnotationSchema).optional(),
 });
-export type SourceDocumentForFilePathSchema = z.infer<
-  typeof sourceDocumentForFilePathSchema
+export type ResponsesOutputTextProviderMetadataSchema = z.infer<
+  typeof responsesOutputTextProviderMetadataSchema
 >;
 
 export const openaiResponsesChunkSchema = lazySchema(() =>

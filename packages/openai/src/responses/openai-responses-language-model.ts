@@ -41,9 +41,10 @@ import {
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
   OpenAIResponsesWebSearchAction,
-  SourceDocumentForContainerFileCitationSchema,
-  SourceDocumentForFileCitationSchema,
-  SourceDocumentForFilePathSchema,
+  ResponsesOutputTextProviderMetadataSchema,
+  ResponsesSourceDocumentContainerFileCitationSchema,
+  ResponsesSourceDocumentFileCitationSchema,
+  ResponsesSourceDocumentFilePathSchema,
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
@@ -474,7 +475,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               ...(contentPart.annotations.length > 0 && {
                 annotations: contentPart.annotations,
               }),
-            };
+            } satisfies ResponsesOutputTextProviderMetadataSchema;
 
             content.push({
               type: 'text',
@@ -507,7 +508,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       fileId: annotation.file_id,
                       filename: annotation.filename,
                       index: annotation.index,
-                    } satisfies SourceDocumentForFileCitationSchema,
+                    } satisfies ResponsesSourceDocumentFileCitationSchema,
                   },
                 });
               } else if (annotation.type === 'container_file_citation') {
@@ -524,7 +525,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       fileId: annotation.file_id,
                       containerId: annotation.container_id,
                       filename: annotation.filename,
-                    } satisfies SourceDocumentForContainerFileCitationSchema,
+                    } satisfies ResponsesSourceDocumentContainerFileCitationSchema,
                   },
                 });
               } else if (annotation.type === 'file_path') {
@@ -540,7 +541,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: annotation.type,
                       fileId: annotation.file_id,
                       index: annotation.index,
-                    } satisfies SourceDocumentForFilePathSchema,
+                    } satisfies ResponsesSourceDocumentFilePathSchema,
                   },
                 });
               }
@@ -1411,7 +1412,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       fileId: value.annotation.file_id,
                       filename: value.annotation.filename,
                       index: value.annotation.index,
-                    } satisfies SourceDocumentForFileCitationSchema,
+                    } satisfies ResponsesSourceDocumentFileCitationSchema,
                   },
                 });
               } else if (value.annotation.type === 'container_file_citation') {
@@ -1428,7 +1429,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       fileId: value.annotation.file_id,
                       containerId: value.annotation.container_id,
                       filename: value.annotation.filename,
-                    } satisfies SourceDocumentForContainerFileCitationSchema,
+                    } satisfies ResponsesSourceDocumentContainerFileCitationSchema,
                   },
                 });
               } else if (value.annotation.type === 'file_path') {
@@ -1444,7 +1445,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       index: value.annotation.index,
-                    } satisfies SourceDocumentForFilePathSchema,
+                    } satisfies ResponsesSourceDocumentFilePathSchema,
                   },
                 });
               }
@@ -1461,7 +1462,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     ...(ongoingAnnotations.length > 0 && {
                       annotations: ongoingAnnotations,
                     }),
-                  },
+                  } satisfies ResponsesOutputTextProviderMetadataSchema,
                 },
               });
             } else if (isErrorChunk(value)) {
