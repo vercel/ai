@@ -30,6 +30,16 @@ Custom fetch implementation. You can use it as a middleware to intercept
 requests, or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+ Poll interval in milliseconds between status checks. Defaults to 500ms.
+   */
+  pollIntervalMillis?: number;
+
+  /**
+ Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
+   */
+  pollTimeoutMillis?: number;
 }
 
 export interface BlackForestLabsProvider extends ProviderV3 {
@@ -69,6 +79,8 @@ export function createBlackForestLabs(
       baseURL: baseURL ?? defaultBaseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      pollIntervalMillis: options.pollIntervalMillis,
+      pollTimeoutMillis: options.pollTimeoutMillis,
     });
 
   return {

@@ -58,7 +58,7 @@
   "dependencies": {
     "cli-progress": "^3.12.0",
     "commander": "^12.1.0",
-    "debug": "^4.3.7",
+    "debug": "^4.4.3",
     "jscodeshift": "^17.1.1"
   }
 }
