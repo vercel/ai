@@ -349,16 +349,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               return;
             }
 
+            if (event.type === 'response.reasoning_summary_part.added') {
+              const blockId = `reasoning-${event.item_id}`;
+              
+              controller.enqueue({
+                type: 'reasoning-start',
+                id: blockId,
+              });
+            }
+
             if (event.type === 'response.reasoning_summary_text.delta') {
               const blockId = `reasoning-${event.item_id}`;
-
-              if (contentBlocks[blockId] == null) {
-                contentBlocks[blockId] = { type: 'text' };
-                controller.enqueue({
-                  type: 'reasoning-start',
-                  id: blockId,
-                });
-              }
 
               controller.enqueue({
                 type: 'reasoning-delta',
@@ -376,8 +377,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 type: 'reasoning-end',
                 id: blockId,
               });
-
-              delete contentBlocks[blockId]
             }
 
             if (event.type === 'response.output_text.delta') {
