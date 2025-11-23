@@ -9,8 +9,9 @@ tags: ['node', 'structured data', 'validation']
 You can use the `onStepFinish` callback in `generateObject` to validate the generated object and continue the generation loop with feedback if validation fails. This allows you to implement self-correcting loops where the model can fix its mistakes based on your specific validation logic.
 
 This is particularly useful when:
+
 1. You have complex validation rules that cannot be expressed in the schema alone (e.g., "age must be between 18 and 120").
-2. You want to give the model specific feedback on *why* the validation failed.
+2. You want to give the model specific feedback on _why_ the validation failed.
 3. You want to automatically retry generation a limited number of times.
 
 ## Example
@@ -35,14 +36,14 @@ const result = await generateObject({
     // If the schema validation failed (e.g. malformed JSON or type mismatch),
     // step.validationError will be populated.
     // You can also perform additional custom validation on step.object.
-    
+
     const issues: string[] = [];
 
     // Check for schema validation errors
     if (step.validationError) {
       issues.push(`Schema validation failed: ${step.validationError.message}`);
-    } 
-    
+    }
+
     // Custom validation logic on the successfully parsed object
     if (step.object) {
       if (step.object.name.length < 3 || step.object.name.length > 50) {
@@ -55,7 +56,9 @@ const result = await generateObject({
 
     // If there are issues, continue with feedback
     if (issues.length > 0) {
-      console.log(`Validation failed, retrying... Issues: ${issues.join(', ')}`);
+      console.log(
+        `Validation failed, retrying... Issues: ${issues.join(', ')}`,
+      );
       return {
         continue: true,
         messages: [
@@ -75,4 +78,3 @@ const result = await generateObject({
 
 console.log(JSON.stringify(result.object, null, 2));
 ```
-

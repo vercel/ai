@@ -1179,7 +1179,11 @@ describe('generateObject', () => {
     it('should retry with feedback when validation fails', async () => {
       const responses = [
         JSON.stringify({ name: 'Jo', email: 'invalid', age: 25 }), // Invalid: name too short, invalid email
-        JSON.stringify({ name: 'John Doe', email: 'john@example.com', age: 25 }), // Valid
+        JSON.stringify({
+          name: 'John Doe',
+          email: 'john@example.com',
+          age: 25,
+        }), // Valid
       ];
       let stepCount = 0;
 
@@ -1249,55 +1253,60 @@ describe('generateObject', () => {
       ]);
     });
 
-      it('should stop when onStepFinish returns continue: false', async () => {
-        const model = new MockLanguageModelV3({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: '{ "name": "Jo", "email": "invalid", "age": 25 }' }],
+    it('should stop when onStepFinish returns continue: false', async () => {
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'text',
+              text: '{ "name": "Jo", "email": "invalid", "age": 25 }',
+            },
+          ],
+        }),
+      });
+
+      let onStepFinishCallCount = 0;
+
+      try {
+        await generateObject({
+          model,
+          schema: z.object({
+            name: z.string().min(3),
+            email: z.string().email(),
+            age: z.number().int().min(18),
           }),
+          prompt: 'Generate a user',
+          onStepFinish: async (step): Promise<StepContinueResult> => {
+            onStepFinishCallCount++;
+            // Stop immediately even though validation failed
+            return { continue: false };
+          },
+          maxRetries: 5,
         });
 
-        let onStepFinishCallCount = 0;
-
-        try {
-          await generateObject({
-            model,
-            schema: z.object({
-              name: z.string().min(3),
-              email: z.string().email(),
-              age: z.number().int().min(18),
-            }),
-            prompt: 'Generate a user',
-            onStepFinish: async (step): Promise<StepContinueResult> => {
-              onStepFinishCallCount++;
-              // Stop immediately even though validation failed
-              return { continue: false };
-            },
-            maxRetries: 5,
-          });
-
-          fail('must throw error');
-        } catch (error) {
-          expect(onStepFinishCallCount).toBe(1);
-          expect(model.doGenerateCalls.length).toBe(1);
-          originalVerifyNoObjectGeneratedError(error, {
-            message: 'No object generated: response did not match schema.',
-            response: {
-              id: 'id-1',
-              timestamp: new Date(123),
-              modelId: 'm-1',
-            },
-            usage: {
-              inputTokens: 10,
-              outputTokens: 20,
-              totalTokens: 30,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-            finishReason: 'stop',
-          });
-        }
-      });
+        fail('must throw error');
+      } catch (error) {
+        expect(onStepFinishCallCount).toBe(1);
+        expect(model.doGenerateCalls.length).toBe(1);
+        originalVerifyNoObjectGeneratedError(error, {
+          message: 'No object generated: response did not match schema.',
+          response: {
+            id: 'id-1',
+            timestamp: new Date(123),
+            modelId: 'm-1',
+          },
+          usage: {
+            inputTokens: 10,
+            outputTokens: 20,
+            totalTokens: 30,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          },
+          finishReason: 'stop',
+        });
+      }
+    });
 
     it('should respect maxRetries limit', async () => {
       const model = new MockLanguageModelV3({
@@ -1362,7 +1371,11 @@ describe('generateObject', () => {
     it('should include continuation messages in prompt', async () => {
       const responses = [
         JSON.stringify({ name: 'Jo' }),
-        JSON.stringify({ name: 'John Doe', email: 'john@example.com', age: 25 }),
+        JSON.stringify({
+          name: 'John Doe',
+          email: 'john@example.com',
+          age: 25,
+        }),
       ];
       let stepCount = 0;
 

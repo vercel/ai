@@ -2184,7 +2184,9 @@ describe('generateText', () => {
       const secondCallPrompt = model.doGenerateCalls[1].prompt;
       const lastMessage = secondCallPrompt[secondCallPrompt.length - 1];
       expect(lastMessage.role).toBe('user');
-      expect(lastMessage.content).toEqual([{ type: 'text', text: 'retry please' }]);
+      expect(lastMessage.content).toEqual([
+        { type: 'text', text: 'retry please' },
+      ]);
     });
 
     it('should stop early when onStepFinish returns continue: false', async () => {
@@ -2493,7 +2495,9 @@ describe('generateText', () => {
       const model2Prompt = model2.doGenerateCalls[0].prompt;
       const lastMessage = model2Prompt[model2Prompt.length - 1];
       expect(lastMessage.role).toBe('user');
-      expect(lastMessage.content).toEqual([{ type: 'text', text: 'try again' }]);
+      expect(lastMessage.content).toEqual([
+        { type: 'text', text: 'try again' },
+      ]);
     });
 
     it('should work with continuation when prepareStep changes activeTools', async () => {

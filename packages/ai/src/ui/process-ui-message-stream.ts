@@ -672,7 +672,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               if (lastStepStartIndex !== -1) {
                 // Remove the last step and its start marker
-                state.message.parts = state.message.parts.slice(0, lastStepStartIndex);
+                state.message.parts = state.message.parts.slice(
+                  0,
+                  lastStepStartIndex,
+                );
               } else {
                 // No step boundary found (single step), clear everything
                 state.message.parts = [];

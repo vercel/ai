@@ -49,7 +49,7 @@ export default function TestObjectContinuation() {
       }
 
       const data = await response.json();
-      
+
       if (!response.ok || data.error) {
         // Handle validation errors when validation is disabled
         if (data.validationFailed) {
@@ -106,12 +106,15 @@ export default function TestObjectContinuation() {
         </div>
         <p className="text-xs text-gray-500">
           When enabled: Validates user object schema (name 3-50 chars, valid
-          email, age 18-120, bio at least 100 chars). Automatically retries on failure.
+          email, age 18-120, bio at least 100 chars). Automatically retries on
+          failure.
           <br />
           When disabled: Still validates but does not retry - returns first
           result even if invalid.
           <br />
-          <strong>Note:</strong> The default prompt intentionally asks for invalid values (short name "Jo", young age, short bio) to demonstrate the retry mechanism.
+          <strong>Note:</strong> The default prompt intentionally asks for
+          invalid values (short name "Jo", young age, short bio) to demonstrate
+          the retry mechanism.
         </p>
       </div>
 
@@ -125,9 +128,7 @@ export default function TestObjectContinuation() {
 
       {loading && (
         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-          <div className="text-blue-800 font-semibold mb-2">
-            Generating...
-          </div>
+          <div className="text-blue-800 font-semibold mb-2">Generating...</div>
           <div className="text-blue-600 text-sm">
             {validationEnabled
               ? 'Validating object against schema...'
@@ -205,11 +206,12 @@ export default function TestObjectContinuation() {
                         <div className="text-red-600 bg-red-50 p-2 rounded border border-red-200">
                           {step.validationError}
                         </div>
-                        {step.rawValidationError && step.rawValidationError !== step.validationError && (
-                          <div className="text-red-500 text-xs mt-1 italic">
-                            Raw error: {step.rawValidationError}
-                          </div>
-                        )}
+                        {step.rawValidationError &&
+                          step.rawValidationError !== step.validationError && (
+                            <div className="text-red-500 text-xs mt-1 italic">
+                              Raw error: {step.rawValidationError}
+                            </div>
+                          )}
                       </div>
                     )}
                     {step.feedbackMessage && (
@@ -242,8 +244,9 @@ export default function TestObjectContinuation() {
               <div className="text-red-600 text-sm mb-2">{result.error}</div>
               {!result.validationEnabled && (
                 <div className="text-xs text-red-600 mt-2">
-                  Validation was disabled, so the invalid object was not retried.
-                  Enable validation to automatically retry with feedback.
+                  Validation was disabled, so the invalid object was not
+                  retried. Enable validation to automatically retry with
+                  feedback.
                 </div>
               )}
             </div>
@@ -269,7 +272,8 @@ export default function TestObjectContinuation() {
                 {!result.validationEnabled && (
                   <>
                     <br />
-                    Validation: Disabled (object generated without retry on validation failure)
+                    Validation: Disabled (object generated without retry on
+                    validation failure)
                   </>
                 )}
               </div>
@@ -280,4 +284,3 @@ export default function TestObjectContinuation() {
     </div>
   );
 }
-
