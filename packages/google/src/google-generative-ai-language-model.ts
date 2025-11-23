@@ -458,7 +458,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
-              // Process text parts individually to handle reasoning parts
+              // Process all parts in a single loop to preserve original order
               const parts = content.parts ?? [];
               for (const part of parts) {
                 if ('executableCode' in part && part.executableCode?.code) {
@@ -576,12 +576,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         : undefined,
                     });
                   }
-                }
-              }
-
-              const inlineDataParts = getInlineDataParts(content.parts);
-              if (inlineDataParts != null) {
-                for (const part of inlineDataParts) {
+                } else if ('inlineData' in part) {
+                  // Process file parts inline to preserve order with text
                   controller.enqueue({
                     type: 'file',
                     mediaType: part.inlineData.mimeType,
@@ -723,16 +719,6 @@ function getToolCallsFromParts({ parts, generateId }: {
         ? { google: { thoughtSignature: part.thoughtSignature } }
         : undefined,
     }));
-}
-
-function getInlineDataParts(parts: ContentSchema['parts']) {
-  return parts?.filter(
-    (
-      part,
-    ): part is {
-      inlineData: { mimeType: string; data: string };
-    } => 'inlineData' in part,
-  );
 }
 
 function extractSources({

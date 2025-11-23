@@ -125,7 +125,7 @@ describe('GatewayImageModel', () => {
         size: '1024x1024',
         aspectRatio: '16:9',
         seed: 42,
-        vertex: { safetySettings: 'block_none' },
+        providerOptions: { vertex: { safetySettings: 'block_none' } },
       });
     });
 
@@ -146,6 +146,7 @@ describe('GatewayImageModel', () => {
       expect(requestBody).toEqual({
         prompt,
         n: 1,
+        providerOptions: {},
       });
       expect(requestBody).not.toHaveProperty('size');
       expect(requestBody).not.toHaveProperty('aspectRatio');
@@ -433,7 +434,7 @@ describe('GatewayImageModel', () => {
       ).rejects.toThrow();
     });
 
-    it('should flatten provider options in request body', async () => {
+    it('should include providerOptions object in request body', async () => {
       prepareJsonResponse();
 
       await createTestModel().doGenerate({
@@ -456,11 +457,13 @@ describe('GatewayImageModel', () => {
       expect(requestBody).toEqual({
         prompt: 'Test prompt',
         n: 1,
-        vertex: {
-          safetySettings: 'block_none',
-        },
-        openai: {
-          style: 'vivid',
+        providerOptions: {
+          vertex: {
+            safetySettings: 'block_none',
+          },
+          openai: {
+            style: 'vivid',
+          },
         },
       });
     });
@@ -481,6 +484,7 @@ describe('GatewayImageModel', () => {
       expect(requestBody).toEqual({
         prompt: 'Test prompt',
         n: 1,
+        providerOptions: {},
       });
     });
 
