@@ -76,10 +76,7 @@ export default function Page() {
               {message.parts.map((part) => {
                 if (part.type === "text") {
                   return (
-                    <Streamdown
-                      key={`${message.id}-text`}
-                      id={message.id}
-                    >
+                    <Streamdown key={`${message.id}-text`}>
                       {part.text}
                     </Streamdown>
                   );
