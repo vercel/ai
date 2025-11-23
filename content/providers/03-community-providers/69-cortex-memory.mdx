@@ -1,0 +1,580 @@
+---
+title: Cortex Memory
+description: Self-hosted persistent memory for AI applications powered by Convex
+---
+
+# Cortex Memory Provider
+
+<Note>
+The Cortex Memory Provider adds automatic persistent memory to Vercel AI SDK applications. Built on Convex for self-hosted, TypeScript-native memory management with zero vendor lock-in.
+</Note>
+
+## Overview
+
+Cortex Memory enables your AI applications to remember past conversations and user preferences across sessions. Unlike cloud-only memory solutions, Cortex is self-hosted on Convex, giving you full control over your data with no API keys or vendor dependencies.
+
+### Key Features
+
+- **🧠 Automatic Memory** - Retrieves relevant context before each response, stores conversations after
+- **🏠 Self-Hosted** - Deploy on Convex anywhere, no API keys or vendor lock-in
+- **📦 TypeScript Native** - Built for TypeScript from the ground up, not ported from Python
+- **⚡ Edge Compatible** - Works in Vercel Edge Functions, Cloudflare Workers
+- **🎯 Memory Spaces** - Isolate memory by user, team, or project for true multi-tenancy
+- **🐝 Hive Mode** - Share memory across multiple agents and applications
+- **📊 ACID Guarantees** - Never lose data with Convex transactions
+- **🔍 Semantic Search** - Find relevant memories with embeddings
+- **🔄 Automatic Versioning** - 10 versions tracked per memory
+
+## Setup
+
+<Steps>
+
+### Install Dependencies
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab value="npm">
+    ```bash
+    npm install @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex
+    ```
+  </Tab>
+</Tabs>
+
+### Deploy Cortex Backend
+
+Deploy the Cortex backend to Convex (one-time setup):
+
+```bash
+npx create-cortex-memories
+```
+
+Follow the interactive wizard to:
+1. Create a Convex account (if you don't have one)
+2. Deploy the Cortex schema to your Convex backend
+3. Get your `CONVEX_URL`
+
+### Configure Environment Variables
+
+Add your Convex deployment URL to `.env.local`:
+
+```bash filename=".env.local"
+CONVEX_URL=https://your-deployment.convex.cloud
+```
+
+</Steps>
+
+## Provider Instance
+
+Create a Cortex Memory provider instance and wrap any AI SDK model:
+
+```typescript filename="lib/cortex.ts"
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+
+export const cortexMemory = createCortexMemory({
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'my-chatbot',
+  userId: 'user-123',
+});
+```
+
+## Usage Examples
+
+### Basic Chat with Memory
+
+The simplest way to add persistent memory to your chat application:
+
+```typescript filename="app/api/chat/route.ts"
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const cortexMemory = createCortexMemory({
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'chat-app',
+  userId: () => getCurrentUserId(), // Get from session/auth
+});
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: cortexMemory(openai('gpt-4-turbo')),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+**That's it!** Memory is automatically:
+1. 🔍 Searched before generation (relevant context injected)
+2. 💾 Stored after generation (conversation remembered)
+
+### With Semantic Search (Embeddings)
+
+Enable semantic search for more relevant memory retrieval:
+
+```typescript filename="app/api/chat/route.ts"
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+import { openai } from '@ai-sdk/openai';
+import { embed, streamText } from 'ai';
+
+const cortexMemory = createCortexMemory({
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'semantic-chat',
+  userId: 'user-123',
+  
+  // Enable semantic search with embeddings
+  embeddingProvider: {
+    generate: async (text) => {
+      const { embedding } = await embed({
+        model: openai.embedding('text-embedding-3-small'),
+        value: text,
+      });
+      return embedding;
+    },
+  },
+  
+  memorySearchLimit: 10,
+  minMemoryRelevance: 0.75,
+});
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: cortexMemory(openai('gpt-4-turbo')),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+### Multi-Tenant SaaS Pattern
+
+Isolate memory by team or organization using Memory Spaces:
+
+```typescript filename="app/api/chat/route.ts"
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { teamId, userId, messages } = await req.json();
+
+  // Create isolated memory per team
+  const teamMemory = createCortexMemory({
+    convexUrl: process.env.CONVEX_URL!,
+    memorySpaceId: `team-${teamId}`, // Isolated per team
+    userId: userId,
+  });
+
+  const result = await streamText({
+    model: teamMemory(openai('gpt-4')),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+### Works with Any Provider
+
+Cortex works with all Vercel AI SDK providers:
+
+```typescript
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
+import { openai } from '@ai-sdk/openai';
+
+const cortexMemory = createCortexMemory({
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'multi-provider',
+  userId: 'user-123',
+});
+
+// Use with any provider
+const claude = cortexMemory(anthropic('claude-3-opus'));
+const gemini = cortexMemory(google('gemini-pro'));
+const gpt4 = cortexMemory(openai('gpt-4-turbo'));
+```
+
+### Manual Memory Control
+
+Access memory operations directly when you need fine-grained control:
+
+```typescript
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+
+const cortexMemory = createCortexMemory({
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'advanced-chat',
+  userId: 'user-123',
+});
+
+// Search memories manually
+const memories = await cortexMemory.search('user preferences', {
+  limit: 10,
+  minScore: 0.8,
+  tags: ['important'],
+});
+
+// Store memory manually
+await cortexMemory.remember(
+  'My favorite color is blue',
+  'Noted, I will remember that!',
+  { conversationId: 'conv-123' }
+);
+
+// Get all memories
+const allMemories = await cortexMemory.getMemories({ limit: 100 });
+
+// Clear memories (requires confirmation)
+await cortexMemory.clearMemories({ 
+  userId: 'user-123', 
+  confirm: true 
+});
+
+// Get current configuration
+const config = cortexMemory.getConfig();
+```
+
+### Hive Mode (Cross-Application Memory)
+
+Share memory across multiple applications and agents:
+
+```typescript filename="app/api/chat/route.ts"
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+import { openai } from '@ai-sdk/openai';
+
+const cortexMemory = createCortexMemory({
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'shared-workspace', // Shared across apps
+  userId: 'user-123',
+  
+  hiveMode: {
+    participantId: 'web-assistant', // Track which agent
+  },
+});
+
+// Now this agent's memories are visible to:
+// - Other apps in the same memory space
+// - Cursor MCP extension
+// - Claude Desktop integration
+// - Custom agents you build
+```
+
+## Configuration
+
+### Required Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `convexUrl` | `string` | Your Convex deployment URL |
+| `memorySpaceId` | `string` | Memory space for isolation (team, user, project) |
+| `userId` | `string \| () => string \| Promise<string>` | User identifier (can be async function) |
+
+### Memory Retrieval Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `memorySearchLimit` | `number` | `5` | Maximum memories to retrieve |
+| `minMemoryRelevance` | `number` | `0.7` | Minimum relevance score (0-1) |
+| `enableMemorySearch` | `boolean` | `true` | Enable automatic memory search |
+| `enableMemoryStorage` | `boolean` | `true` | Enable automatic memory storage |
+
+### Context Injection Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `contextInjectionStrategy` | `'system' \| 'user'` | `'system'` | Where to inject memory context |
+| `customContextBuilder` | `(memories) => string` | `undefined` | Custom function to build context |
+
+### Advanced Features
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `embeddingProvider` | `{ generate: (text) => Promise<number[]> }` | `undefined` | Embedding provider for semantic search |
+| `enableFactExtraction` | `boolean` | `false` | Extract structured facts from conversations |
+| `extractFacts` | `function` | `undefined` | Custom fact extraction function |
+| `enableGraphMemory` | `boolean` | `false` | Sync to graph database (requires adapter) |
+| `hiveMode` | `{ participantId: string }` | `undefined` | Cross-application memory sharing |
+| `defaultImportance` | `number` | `50` | Default importance score (0-100) |
+| `defaultTags` | `string[]` | `[]` | Default tags for memories |
+| `debug` | `boolean` | `false` | Enable debug logging |
+
+### Example: Full Configuration
+
+```typescript
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const cortexMemory = createCortexMemory({
+  // Required
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'production-chat',
+  userId: () => getUserIdFromSession(),
+  userName: 'User',
+  
+  // Memory search
+  memorySearchLimit: 10,
+  minMemoryRelevance: 0.75,
+  
+  // Embeddings
+  embeddingProvider: {
+    generate: async (text) => {
+      const { embedding } = await embed({
+        model: openai.embedding('text-embedding-3-small'),
+        value: text,
+      });
+      return embedding;
+    },
+  },
+  
+  // Context injection
+  contextInjectionStrategy: 'system',
+  
+  // Advanced features
+  enableFactExtraction: true,
+  enableGraphMemory: false,
+  
+  // Hive mode
+  hiveMode: {
+    participantId: 'web-app',
+  },
+  
+  // Defaults
+  defaultImportance: 50,
+  defaultTags: ['chat'],
+  
+  // Debug
+  debug: process.env.NODE_ENV === 'development',
+});
+```
+
+## How It Works
+
+Every time your AI generates a response, Cortex automatically:
+
+1. **🔍 Searches** past conversations for relevant context
+2. **💉 Injects** relevant memories into the system prompt
+3. **🤖 Generates** response with LLM using full context
+4. **💾 Stores** conversation for future reference
+
+```
+User: "Hi, my name is Alice"
+Agent: "Nice to meet you, Alice!"
+                ↓
+        [Stored in Cortex]
+                ↓
+[Refresh page / New session]
+                ↓
+User: "What's my name?"
+                ↓
+    [Cortex searches memories]
+                ↓
+    [Finds: "my name is Alice"]
+                ↓
+    [Injects into system prompt]
+                ↓
+Agent: "Your name is Alice!"
+```
+
+## Streaming Support
+
+Cortex automatically handles streaming responses:
+
+```typescript
+const result = await streamText({
+  model: cortexMemory(openai('gpt-4')),
+  messages,
+});
+
+// ✅ Stream is wrapped with TransformStream
+// ✅ Response buffered automatically
+// ✅ Stored AFTER stream completes
+// ✅ No manual buffering needed
+```
+
+The stream is transparently wrapped to collect the full response, then stored automatically when streaming completes.
+
+## Edge Runtime Compatible
+
+Works perfectly in Vercel Edge Functions:
+
+```typescript filename="app/api/chat/route.ts"
+export const runtime = 'edge';
+
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const cortexMemory = createCortexMemory({
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'edge-chat',
+  userId: 'user-123',
+});
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = await streamText({
+    model: cortexMemory(openai('gpt-4')),
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+## Pricing
+
+Cortex uses [Convex](https://www.convex.dev/pricing) for storage:
+
+- **Free Tier**: 1GB storage, 1M function calls/month (perfect for development)
+- **Pro**: $25/month for production applications
+- **No per-request fees** - Unlike cloud-only memory solutions
+
+### Example Cost Calculation
+
+- 10,000 conversations/month
+- 100KB average per conversation
+- **Total Cost**: ~$25/month (fixed)
+
+Compare this to per-API-call pricing of alternatives!
+
+## Comparison with Alternatives
+
+| Feature | Cortex | Cloud-only Solutions |
+|---------|--------|---------------------|
+| **Hosting** | ✅ Self-hosted (Convex) | ❌ Cloud only (API required) |
+| **API Key Required** | ✅ No | ❌ Yes |
+| **TypeScript Native** | ✅ Built for TS | ⚠️ Often Python ports |
+| **Edge Runtime** | ✅ Full support | ⚠️ Limited |
+| **Memory Spaces** | ✅ Built-in multi-tenancy | ❌ Not available |
+| **ACID Guarantees** | ✅ Full (Convex) | ⚠️ Eventual consistency |
+| **Versioning** | ✅ 10 auto-versions | ❌ None |
+| **Hive Mode** | ✅ Cross-app sharing | ❌ Not available |
+| **Real-time Updates** | ✅ Reactive queries | ❌ Polling/webhooks |
+| **Cost Model** | ✅ Fixed pricing | ⚠️ Per-API-call |
+| **Data Sovereignty** | ✅ Your infrastructure | ❌ Third-party cloud |
+
+## Migration from mem0
+
+Switching from mem0 to Cortex is straightforward:
+
+**Before (mem0):**
+```typescript
+import { createMem0 } from '@mem0/vercel-ai-provider';
+
+const mem0 = createMem0({
+  provider: 'openai',
+  mem0ApiKey: process.env.MEM0_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+const result = await streamText({
+  model: mem0('gpt-4', { user_id: 'user-123' }),
+  messages,
+});
+```
+
+**After (Cortex):**
+```typescript
+import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
+import { openai } from '@ai-sdk/openai';
+
+const cortexMemory = createCortexMemory({
+  convexUrl: process.env.CONVEX_URL!,
+  memorySpaceId: 'my-chatbot',
+  userId: 'user-123',
+});
+
+const result = await streamText({
+  model: cortexMemory(openai('gpt-4')),
+  messages,
+});
+```
+
+**Benefits:**
+- ✅ No mem0 API key needed (one less dependency)
+- ✅ Self-hosted (full control over data)
+- ✅ Memory Spaces (better isolation)
+- ✅ ACID guarantees (no data loss)
+- ✅ Versioning (track changes)
+
+[Complete migration guide →](https://github.com/SaintNick1214/Project-Cortex/blob/main/Documentation/08-integrations/vercel-ai-sdk/migration-from-mem0.md)
+
+## Troubleshooting
+
+### "Failed to connect to Convex"
+
+**Solution:** Ensure:
+1. Convex is running: `npx convex dev`
+2. `CONVEX_URL` is set correctly in `.env.local`
+3. Cortex backend is deployed to Convex
+
+### "Memory search returns no results"
+
+This is expected if:
+- No prior conversations have been stored
+- Using keyword search without embeddings (configure `embeddingProvider`)
+- Running on local Convex (vector search requires production deployment)
+
+**Solution:** Add embedding provider for semantic search or ensure conversations have been stored.
+
+### "Type errors with LanguageModelV1"
+
+**Solution:** Ensure compatible versions:
+- `ai`: ^3.0.0 || ^4.0.0 || ^5.0.0
+- `@cortexmemory/sdk`: ^0.10.0
+- `@cortexmemory/vercel-ai-provider`: ^0.1.0
+
+```bash
+npm install ai@latest @cortexmemory/sdk@latest @cortexmemory/vercel-ai-provider@latest
+```
+
+## Resources
+
+### Documentation
+- [Complete Documentation](https://docs.cortexmemory.dev)
+- [API Reference](https://docs.cortexmemory.dev/integrations/vercel-ai-sdk/api-reference)
+- [Advanced Usage Guide](https://docs.cortexmemory.dev/integrations/vercel-ai-sdk/advanced-usage)
+- [Memory Spaces Guide](https://docs.cortexmemory.dev/integrations/vercel-ai-sdk/memory-spaces)
+- [Hive Mode Guide](https://docs.cortexmemory.dev/integrations/vercel-ai-sdk/hive-mode)
+
+### Code & Examples
+- [NPM Package](https://www.npmjs.com/package/@cortexmemory/vercel-ai-provider)
+- [GitHub Repository](https://github.com/SaintNick1214/Project-Cortex)
+- [Example Applications](https://github.com/SaintNick1214/Project-Cortex/tree/main/packages/vercel-ai-provider/examples)
+- [Source Code](https://github.com/SaintNick1214/Project-Cortex/tree/main/packages/vercel-ai-provider/src)
+
+### Website & Community
+- [Official Website](https://cortexmemory.dev)
+- [GitHub Discussions](https://github.com/SaintNick1214/Project-Cortex/discussions)
+- [GitHub Issues](https://github.com/SaintNick1214/Project-Cortex/issues)
+
+## Support
+
+Need help? We're here for you:
+
+- **Documentation**: [docs.cortexmemory.dev](https://docs.cortexmemory.dev)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/SaintNick1214/Project-Cortex/issues)
+- **GitHub Discussions**: [Ask questions and share ideas](https://github.com/SaintNick1214/Project-Cortex/discussions)
+
+---
+
+**License**: Apache 2.0  
+**Maintained by**: [Saint Nick LLC](https://cortexmemory.dev)
