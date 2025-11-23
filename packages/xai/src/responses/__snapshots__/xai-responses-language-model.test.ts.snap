@@ -276,6 +276,314 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "type": "response-metadata",
   },
   {
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "First",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " question",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "What",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " specifically",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " notable",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " about",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " style",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " of",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Son",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " food",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "?"",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " This",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " seems",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " like",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " an",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " open",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-ended",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " question",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " about",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " cuisine",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " It's",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " not",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " closed",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-ended",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " science",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "/math",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "/search",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " so",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " should",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " make",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " it",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " maximally",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " informative",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " structured",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " easy",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " parse",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Use",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " sections",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " if",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " appropriate",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+
+## Investigating Sonoran Cuisine  
+- The question focuses on what makes Sonoran food's style notable, suggesting an exploration of its unique characteristics.",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "  
+- This is an open-ended question about cuisine, requiring a structured, informative response to highlight key aspects.",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-end",
+  },
+  {
     "id": "text-msg_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "type": "text-start",
   },
@@ -3476,6 +3784,314 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "modelId": "grok-code-fast-1",
     "timestamp": undefined,
     "type": "response-metadata",
+  },
+  {
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "First",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " question",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "What",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " specifically",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " notable",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " about",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " style",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " of",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Son",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " food",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "?"",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " This",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " seems",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " like",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " an",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " open",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-ended",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " question",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " about",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " cuisine",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " It's",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " not",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " closed",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-ended",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " science",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "/math",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "/search",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " so",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " should",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " make",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " it",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " maximally",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " informative",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " structured",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " easy",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " parse",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Use",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " sections",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " if",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " appropriate",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+
+## Investigating Sonoran Cuisine  
+- The question focuses on what makes Sonoran food's style notable, suggesting an exploration of its unique characteristics.",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "  
+- This is an open-ended question about cuisine, requiring a structured, informative response to highlight key aspects.",
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "type": "reasoning-end",
   },
   {
     "id": "text-msg_769f3302-64f9-4c72-2b48-860c87fd9b2a",
