@@ -30,7 +30,7 @@ async function main() {
   console.log('\n=== Code Interpreter Annotations ===');
   for await (const part of result.fullStream) {
     if (part.type === 'text-end') {
-      const annotations = part.providerMetadata?.openai?.annotations;
+      const annotations = part.providerMetadata?.azure?.annotations;
       if (annotations) {
         console.dir(annotations);
       }

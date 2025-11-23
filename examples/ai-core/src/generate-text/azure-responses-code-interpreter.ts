@@ -28,7 +28,7 @@ async function main() {
   console.log('\n=== Code Interpreter Annotations ===');
   for (const part of basicResult.content) {
     if (part.type === 'text') {
-      const annotations = part.providerMetadata?.openai?.annotations;
+      const annotations = part.providerMetadata?.azure?.annotations;
       if (annotations) {
         console.dir(annotations);
       }
