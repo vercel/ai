@@ -29,6 +29,23 @@ function getCachePoint(
   return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
 }
 
+/**
+ * Sanitizes tool names to match Bedrock's validation requirements.
+ * Bedrock requires tool names to match the pattern: [a-zA-Z0-9_-]+
+ * This function replaces any invalid characters with underscores.
+ *
+ * @param toolName - The original tool name that may contain invalid characters
+ * @returns A sanitized tool name that only contains alphanumeric chars, underscores, and hyphens
+ *
+ * @example
+ * sanitizeToolName('$READFILE') // Returns '_READFILE'
+ * sanitizeToolName('read@file!now') // Returns 'read_file_now'
+ * sanitizeToolName('valid_tool-123') // Returns 'valid_tool-123' (unchanged)
+ */
+function sanitizeToolName(toolName: string): string {
+  return toolName.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
 async function shouldEnableCitations(
   providerMetadata: SharedV3ProviderMetadata | undefined,
 ): Promise<boolean> {
@@ -303,7 +320,7 @@ export async function convertToBedrockChatMessages(
                 bedrockContent.push({
                   toolUse: {
                     toolUseId: part.toolCallId,
-                    name: part.toolName,
+                    name: sanitizeToolName(part.toolName),
                     input: part.input as JSONObject,
                   },
                 });
