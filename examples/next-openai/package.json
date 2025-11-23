@@ -41,7 +41,7 @@
     "react-dom": "^18",
     "redis": "^4.7.0",
     "resumable-stream": "^2.2.0",
-    "streamdown": "^1.6.3",
+    "streamdown": "^1.6.4",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "valibot": "1.1.0",
