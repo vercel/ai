@@ -8,6 +8,7 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
+import { Streamdown } from 'streamdown';
 
 export default function TestToolApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
@@ -31,7 +32,7 @@ export default function TestToolApproval() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               case 'dynamic-tool':
                 return (
                   <DynamicToolWithApprovalView

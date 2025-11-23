@@ -5,6 +5,7 @@ import ChatInput from '@/components/chat-input';
 import ImageGenerationView from '@/components/tool/openai-image-generation-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { Streamdown } from 'streamdown';
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } =
@@ -24,7 +25,7 @@ export default function TestOpenAIWebSearch() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               case 'tool-image':
                 return <ImageGenerationView key={index} invocation={part} />;
             }

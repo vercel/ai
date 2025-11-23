@@ -4,6 +4,7 @@ import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { ToolsMessage } from '../api/dynamic-tools/route';
+import { Streamdown } from 'streamdown';
 
 export default function Chat() {
   const { messages, sendMessage, status } = useChat<ToolsMessage>({
@@ -18,7 +19,7 @@ export default function Chat() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
 
               case 'step-start':
                 return index > 0 ? (

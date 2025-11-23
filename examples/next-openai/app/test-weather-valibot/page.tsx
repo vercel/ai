@@ -8,6 +8,7 @@ import {
 import ChatInput from '@/components/chat-input';
 import { WeatherValibotAgentUIMessage } from '@/agent/weather-valibot-agent';
 import WeatherValibotView from '@/components/tool/weather-valibot-view';
+import { Streamdown } from 'streamdown';
 
 export default function TestWeatherValibot() {
   const { status, sendMessage, messages } =
@@ -29,7 +30,7 @@ export default function TestWeatherValibot() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               case 'tool-weather':
                 return <WeatherValibotView key={index} invocation={part} />;
             }

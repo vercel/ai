@@ -12,6 +12,7 @@ import {
   HumanInTheLoopUIMessage,
   MyTools,
 } from '../api/use-chat-human-in-the-loop/types';
+import { Streamdown } from 'streamdown';
 
 export default function Chat() {
   const [input, setInput] = useState('');
@@ -40,7 +41,7 @@ export default function Chat() {
           <strong>{`${m.role}: `}</strong>
           {m.parts?.map((part, i) => {
             if (part.type === 'text') {
-              return <div key={i}>{part.text}</div>;
+              return <Streamdown key={i}>{part.text}</Streamdown>;
             }
             if (isToolUIPart<MyTools>(part)) {
               const toolInvocation = part;
