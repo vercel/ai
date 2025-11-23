@@ -118,13 +118,17 @@ await generateText({
 
 The following optional provider options are available for xAI chat models:
 
-- **parallel_function_calling** _boolean_
+- **reasoningEffort** _'low' | 'medium' | 'high'_
 
-  Whether to enable parallel function calling during tool use. When `true`, the model can call multiple functions in parallel. When `false`, the model will call functions sequentially. Defaults to `true`.
+  Reasoning effort for reasoning models.
 
-- **reasoningEffort** _'low' | 'high'_
+- **store** _boolean_
 
-  Reasoning effort for reasoning models. Only supported by `grok-3-mini` and `grok-3-mini-fast` models.
+  Whether to store the generation. Defaults to `true`.
+  
+- **previousResponseId** _string_
+
+  The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
 
 ## Responses API (Agentic Tools)
 
