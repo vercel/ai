@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- 5dd4c6a: fix(provider/gateway): Fix Gateway image model provider options not passing through
+
+## 2.0.0-beta.58
+
+### Patch Changes
+
+- 1425df5: feat(provider/gateway): Add Imagen 4 Ultra Generate to model string autocomplete list
+
 ## 2.0.0-beta.57
 
 ### Patch Changes
