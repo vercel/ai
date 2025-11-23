@@ -285,6 +285,8 @@ The `stream()` method returns a `StreamTextResult` object (see [`streamText`](/d
 
 Infers the UI message type for the given agent instance. Useful for type-safe UI and message exchanges.
 
+#### Basic Example
+
 ```ts
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
@@ -294,6 +296,36 @@ const weatherAgent = new ToolLoopAgent({
 });
 
 type WeatherAgentUIMessage = InferAgentUIMessage<typeof weatherAgent>;
+```
+
+#### Example with Message Metadata
+
+You can provide a second type argument to customize the metadata for each message. This is useful for tracking rich metadata returned by the agent (such as createdAt, tokens, finish reason, etc.).
+
+```ts
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
+import { z } from 'zod';
+
+// Example schema for message metadata
+const exampleMetadataSchema = z.object({
+  createdAt: z.number().optional(),
+  model: z.string().optional(),
+  totalTokens: z.number().optional(),
+  finishReason: z.string().optional(),
+});
+type ExampleMetadata = z.infer<typeof exampleMetadataSchema>;
+
+// Define agent as usual
+const metadataAgent = new ToolLoopAgent({
+  model: 'openai/gpt-4o',
+  // ...other options
+});
+
+// Type-safe UI message type with custom metadata
+type MetadataAgentUIMessage = InferAgentUIMessage<
+  typeof metadataAgent,
+  ExampleMetadata
+>;
 ```
 
 ## Examples
