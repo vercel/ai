@@ -44,7 +44,9 @@ export function Chat({
             {message.parts.map((part, partIndex) => {
               if (part.type === 'text') {
                 return (
-                  <Streamdown key={`${message.id}-${partIndex}`}>{part.text}</Streamdown>
+                  <Streamdown key={`${message.id}-${partIndex}`}>
+                    {part.text}
+                  </Streamdown>
                 );
               }
             })}

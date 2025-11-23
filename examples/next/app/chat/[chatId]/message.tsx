@@ -32,9 +32,11 @@ export default function Message({
       <div className="mb-1 text-xs text-gray-500">{date}</div>
       <div className="font-semibold">{isUser ? 'User:' : 'AI:'}</div>
       <div>
-        {message.parts.filter(part => part.type === 'text').map(part => (
-          <Streamdown key={part.id}>{part.text}</Streamdown>
-        ))}
+        {message.parts
+          .filter(part => part.type === 'text')
+          .map(part => (
+            <Streamdown key={part.id}>{part.text}</Streamdown>
+          ))}
       </div>
       {message.role === 'user' && (
         <>
