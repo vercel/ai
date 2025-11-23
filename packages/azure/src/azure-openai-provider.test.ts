@@ -1543,6 +1543,9 @@ describe('responses', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                "filename": "resource1.json",
+                "index": 145,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -1556,6 +1559,9 @@ describe('responses', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                "filename": "resource1.json",
+                "index": 192,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
