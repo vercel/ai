@@ -9,6 +9,8 @@ import {
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
   LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
+  LanguageModelV3Source,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,6 +19,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  generateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -37,6 +40,41 @@ import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 
+function createCitationSource(
+  citation: z.infer<typeof BedrockCitationSchema>,
+  citationDocuments: Array<{
+    title: string;
+    filename?: string;
+    mediaType: string;
+  }>,
+  generateId: () => string,
+): LanguageModelV3Source | undefined {
+  const location =
+    citation?.location?.documentPage ||
+    citation?.location?.documentChar ||
+    citation?.location?.documentChunk;
+  if (!location) {
+    return;
+  }
+
+  const documentInfo = citationDocuments[location.documentIndex];
+  if (!documentInfo) {
+    return;
+  }
+
+  return {
+    type: 'source' as const,
+    sourceType: 'document' as const,
+    id: generateId(),
+    mediaType: documentInfo.mediaType,
+    title: citation.title ?? documentInfo.title,
+    filename: documentInfo.filename,
+    providerMetadata: {
+      bedrock: { citation },
+    } satisfies SharedV3ProviderMetadata,
+  };
+}
+
 type BedrockChatConfig = {
   baseUrl: () => string;
   headers: Resolvable<Record<string, string | undefined>>;
@@ -48,10 +86,14 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
   readonly provider = 'amazon-bedrock';
 
+  private readonly generateId: () => string;
+
   constructor(
     readonly modelId: BedrockChatModelId,
     private readonly config: BedrockChatConfig,
-  ) {}
+  ) {
+    this.generateId = config.generateId ?? generateId;
+  }
 
   private async getArgs({
     prompt,
@@ -312,6 +354,49 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     return combineHeaders(await resolve(this.config.headers), headers);
   }
 
+  private extractCitationDocuments(prompt: LanguageModelV3Prompt): Array<{
+    title: string;
+    filename?: string;
+    mediaType: string;
+  }> {
+    const isCitationPart = (part: {
+      type: string;
+      mediaType?: string;
+      providerOptions?: { bedrock?: { citations?: { enabled?: boolean } } };
+    }) => {
+      if (part.type !== 'file') {
+        return false;
+      }
+
+      if (
+        part.mediaType !== 'application/pdf' &&
+        part.mediaType !== 'text/plain'
+      ) {
+        return false;
+      }
+
+      const bedrock = part.providerOptions?.bedrock;
+      const citationsConfig = bedrock?.citations as
+        | { enabled?: boolean }
+        | undefined;
+      return citationsConfig?.enabled ?? false;
+    };
+
+    return prompt
+      .filter(message => message.role === 'user')
+      .flatMap(message => message.content)
+      .filter(isCitationPart)
+      .map(part => {
+        // TypeScript knows this is a file part due to our filter
+        const filePart = part as Extract<typeof part, { type: 'file' }>;
+        return {
+          title: filePart.filename ?? 'Untitled Document',
+          filename: filePart.filename,
+          mediaType: filePart.mediaType,
+        };
+      });
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
@@ -337,6 +422,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
+    // Extract citation documents for response processing
+    const citationDocuments = this.extractCitationDocuments(options.prompt);
+
     const content: Array<LanguageModelV3Content> = [];
     let isJsonResponseFromTool = false;
 
@@ -345,6 +433,30 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       // text
       if (part.text) {
         content.push({ type: 'text', text: part.text });
+      }
+
+      // citations
+      if (part.citationsContent) {
+        // Push the generated content as text
+        for (const generatedContent of part.citationsContent.content) {
+          content.push({
+            type: 'text',
+            text: generatedContent.text,
+          });
+        }
+
+        // Convert citations to source chunks
+        for (const citation of part.citationsContent.citations) {
+          const source = createCitationSource(
+            citation,
+            citationDocuments,
+            this.generateId,
+          );
+
+          if (source) {
+            content.push(source);
+          }
+        }
       }
 
       // reasoning
@@ -450,6 +562,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
+    // Extract citation documents for response processing
+    const citationDocuments = this.extractCitationDocuments(options.prompt);
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
       headers: await this.getHeaders({ headers: options.headers }),
@@ -484,6 +598,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         }
       | { type: 'text' | 'reasoning' }
     > = {};
+
+    const generateId = this.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -609,6 +725,23 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                 id: String(blockIndex),
                 delta: value.contentBlockDelta.delta.text,
               });
+            }
+
+            if (
+              value.contentBlockDelta?.delta &&
+              'citation' in value.contentBlockDelta.delta &&
+              value.contentBlockDelta.delta.citation
+            ) {
+              const citation = value.contentBlockDelta.delta.citation;
+              const source = createCitationSource(
+                citation,
+                citationDocuments,
+                generateId,
+              );
+
+              if (source) {
+                controller.enqueue(source);
+              }
             }
 
             if (value.contentBlockStop?.contentBlockIndex != null) {
@@ -819,6 +952,39 @@ const BedrockRedactedReasoningSchema = z.object({
   data: z.string(),
 });
 
+const DocumentLocationSchema = z.object({
+  documentIndex: z.number(),
+  start: z.number().min(0),
+  end: z.number().min(0),
+});
+
+const BedrockCitationLocationSchema = z.object({
+  documentChar: DocumentLocationSchema.nullish(),
+  documentPage: DocumentLocationSchema.nullish(),
+  documentChunk: DocumentLocationSchema.nullish(),
+});
+
+const BedrockCitationSchema = z.object({
+  title: z.string().nullish(),
+  sourceContent: z
+    .array(
+      z.object({
+        text: z.string(),
+      }),
+    )
+    .nullish(),
+  location: BedrockCitationLocationSchema.nullish(),
+});
+
+const BedrockCitationsContentSchema = z.object({
+  content: z.array(
+    z.object({
+      text: z.string(),
+    }),
+  ),
+  citations: z.array(BedrockCitationSchema),
+});
+
 // limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
@@ -833,6 +999,7 @@ const BedrockResponseSchema = z.object({
         z.object({
           text: z.string().nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
+          citationsContent: BedrockCitationsContentSchema.nullish(),
           reasoningContent: z
             .union([
               z.object({
@@ -879,6 +1046,9 @@ const BedrockStreamSchema = z.object({
           }),
           z.object({
             reasoningContent: z.object({ data: z.string() }),
+          }),
+          z.object({
+            citation: BedrockCitationSchema,
           }),
         ])
         .nullish(),
