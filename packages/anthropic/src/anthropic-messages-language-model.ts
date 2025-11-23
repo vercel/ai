@@ -1476,3 +1476,10 @@ function getMaxOutputTokensForModel(modelId: string): {
     return { maxOutputTokens: 4096, knownModel: false };
   }
 }
+
+// see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+function supportsStructuredOutput(modelId: string): boolean {
+  return (
+    modelId.includes('claude-sonnet-4-5') || modelId.includes('claude-opus-4-1')
+  );
+}
