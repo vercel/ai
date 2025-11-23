@@ -554,6 +554,18 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(parts).toMatchSnapshot();
       });
+
+      it('should stream text deltas with reasoning', async () => {
+        prepareChunksFixtureResponse('xai-text-streaming.1');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toMatchSnapshot();
+      });
     });
 
     describe('tool call streaming', () => {
