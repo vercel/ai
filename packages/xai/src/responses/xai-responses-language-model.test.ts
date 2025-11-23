@@ -219,7 +219,7 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.reasoning_effort).toBe('high');
+        expect(requestBody.reasoning.effort).toBe('high');
       });
 
       it('should warn about unsupported stopSequences', async () => {

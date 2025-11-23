@@ -121,7 +121,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       temperature,
       top_p: topP,
       seed,
-      reasoning_effort: options.reasoningEffort,
+      ...(options.reasoningEffort != null && {
+        reasoning: { effort: options.reasoningEffort },
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {
@@ -351,7 +353,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
             if (event.type === 'response.reasoning_summary_part.added') {
               const blockId = `reasoning-${event.item_id}`;
-              
+
               controller.enqueue({
                 type: 'reasoning-start',
                 id: blockId,
