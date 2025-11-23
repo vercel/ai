@@ -807,6 +807,7 @@ const getContentSchema = () =>
               mimeType: z.string(),
               data: z.string(),
             }),
+            thoughtSignature: z.string().nullish(),
           }),
           z.object({
             executableCode: z
