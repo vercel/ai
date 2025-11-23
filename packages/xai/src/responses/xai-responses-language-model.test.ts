@@ -246,6 +246,29 @@ describe('XaiResponsesLanguageModel', () => {
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.store).toBe(false);
         });
+
+        it('previousResponseId', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                previousResponseId: 'resp_456',
+              } satisfies XaiResponsesProviderOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.previous_response_id).toBe('resp_456');
+        });
       });
 
       it('should warn about unsupported stopSequences', async () => {

@@ -20,6 +20,10 @@ export const xaiResponsesProviderOptions = z.object({
    * @default true
    */
   store: z.boolean().optional(),
+  /**
+   * The ID of the previous response from the model.
+   */
+  previousResponseId: z.string().optional(),
 });
 
 export type XaiResponsesProviderOptions = z.infer<
