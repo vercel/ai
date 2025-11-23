@@ -57,6 +57,8 @@ export interface MCPClientConfig {
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
+  /** Optional client version, defaults to '1.0.0' */
+  version?: string;
 }
 
 export async function createMCPClient(
@@ -132,6 +134,7 @@ class DefaultMCPClient implements MCPClient {
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
+    version = CLIENT_VERSION,
     onUncaughtError,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
@@ -162,7 +165,7 @@ class DefaultMCPClient implements MCPClient {
 
     this.clientInfo = {
       name,
-      version: CLIENT_VERSION,
+      version,
     };
   }
 
