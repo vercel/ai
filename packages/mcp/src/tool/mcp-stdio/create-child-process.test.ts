@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as getEnvironmentModule from './get-environment';
+import os from 'node:os';
 
 const DEFAULT_ENV = {
   PATH: 'path',
@@ -72,7 +73,7 @@ describe('createChildProcess', () => {
 
   it('should spawn a child process with cwd', async () => {
     const childProcessWithCwd = createChildProcess(
-      { command: process.execPath, cwd: '/tmp' },
+      { command: process.execPath, cwd: os.tmpdir() },
       new AbortController().signal,
     );
 
