@@ -6,7 +6,9 @@ description: Self-hosted persistent memory for AI applications powered by Convex
 # Cortex Memory Provider
 
 <Note>
-The Cortex Memory Provider adds automatic persistent memory to Vercel AI SDK applications. Built on Convex for self-hosted, TypeScript-native memory management with zero vendor lock-in.
+  The Cortex Memory Provider adds automatic persistent memory to Vercel AI SDK
+  applications. Built on Convex for self-hosted, TypeScript-native memory
+  management with zero vendor lock-in.
 </Note>
 
 ## Overview
@@ -33,19 +35,16 @@ Cortex Memory enables your AI applications to remember past conversations and us
 
 <Tabs items={['npm', 'pnpm', 'yarn']}>
   <Tab value="npm">
-    ```bash
-    npm install @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex
-    ```
+    ```bash npm install @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai
+    convex ```
   </Tab>
   <Tab value="pnpm">
-    ```bash
-    pnpm add @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex
-    ```
+    ```bash pnpm add @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai
+    convex ```
   </Tab>
   <Tab value="yarn">
-    ```bash
-    yarn add @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex
-    ```
+    ```bash yarn add @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai
+    convex ```
   </Tab>
 </Tabs>
 
@@ -58,6 +57,7 @@ npx create-cortex-memories
 ```
 
 Follow the interactive wizard to:
+
 1. Create a Convex account (if you don't have one)
 2. Deploy the Cortex schema to your Convex backend
 3. Get your `CONVEX_URL`
@@ -116,6 +116,7 @@ export async function POST(req: Request) {
 ```
 
 **That's it!** Memory is automatically:
+
 1. 🔍 Searched before generation (relevant context injected)
 2. 💾 Stored after generation (conversation remembered)
 
@@ -132,10 +133,10 @@ const cortexMemory = createCortexMemory({
   convexUrl: process.env.CONVEX_URL!,
   memorySpaceId: 'semantic-chat',
   userId: 'user-123',
-  
+
   // Enable semantic search with embeddings
   embeddingProvider: {
-    generate: async (text) => {
+    generate: async text => {
       const { embedding } = await embed({
         model: openai.embedding('text-embedding-3-small'),
         value: text,
@@ -143,7 +144,7 @@ const cortexMemory = createCortexMemory({
       return embedding;
     },
   },
-  
+
   memorySearchLimit: 10,
   minMemoryRelevance: 0.75,
 });
@@ -234,16 +235,16 @@ const memories = await cortexMemory.search('user preferences', {
 await cortexMemory.remember(
   'My favorite color is blue',
   'Noted, I will remember that!',
-  { conversationId: 'conv-123' }
+  { conversationId: 'conv-123' },
 );
 
 // Get all memories
 const allMemories = await cortexMemory.getMemories({ limit: 100 });
 
 // Clear memories (requires confirmation)
-await cortexMemory.clearMemories({ 
-  userId: 'user-123', 
-  confirm: true 
+await cortexMemory.clearMemories({
+  userId: 'user-123',
+  confirm: true,
 });
 
 // Get current configuration
@@ -262,7 +263,7 @@ const cortexMemory = createCortexMemory({
   convexUrl: process.env.CONVEX_URL!,
   memorySpaceId: 'shared-workspace', // Shared across apps
   userId: 'user-123',
-  
+
   hiveMode: {
     participantId: 'web-assistant', // Track which agent
   },
@@ -279,47 +280,47 @@ const cortexMemory = createCortexMemory({
 
 ### Required Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `convexUrl` | `string` | Your Convex deployment URL |
-| `memorySpaceId` | `string` | Memory space for isolation (team, user, project) |
-| `userId` | `string \| () => string \| Promise<string>` | User identifier (can be async function) |
+| Option          | Type                                        | Description                                      |
+| --------------- | ------------------------------------------- | ------------------------------------------------ |
+| `convexUrl`     | `string`                                    | Your Convex deployment URL                       |
+| `memorySpaceId` | `string`                                    | Memory space for isolation (team, user, project) |
+| `userId`        | `string \| () => string \| Promise<string>` | User identifier (can be async function)          |
 
 ### Optional Basic Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `userName` | `string` | `'User'` | Display name for the user |
-| `conversationId` | `string \| () => string` | Auto-generated | Conversation identifier |
+| Option           | Type                     | Default        | Description               |
+| ---------------- | ------------------------ | -------------- | ------------------------- |
+| `userName`       | `string`                 | `'User'`       | Display name for the user |
+| `conversationId` | `string \| () => string` | Auto-generated | Conversation identifier   |
 
 ### Memory Retrieval Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `memorySearchLimit` | `number` | `5` | Maximum memories to retrieve |
-| `minMemoryRelevance` | `number` | `0.7` | Minimum relevance score (0-1) |
-| `enableMemorySearch` | `boolean` | `true` | Enable automatic memory search |
-| `enableMemoryStorage` | `boolean` | `true` | Enable automatic memory storage |
+| Option                | Type      | Default | Description                     |
+| --------------------- | --------- | ------- | ------------------------------- |
+| `memorySearchLimit`   | `number`  | `5`     | Maximum memories to retrieve    |
+| `minMemoryRelevance`  | `number`  | `0.7`   | Minimum relevance score (0-1)   |
+| `enableMemorySearch`  | `boolean` | `true`  | Enable automatic memory search  |
+| `enableMemoryStorage` | `boolean` | `true`  | Enable automatic memory storage |
 
 ### Context Injection Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `contextInjectionStrategy` | `'system' \| 'user'` | `'system'` | Where to inject memory context |
-| `customContextBuilder` | `(memories) => string` | `undefined` | Custom function to build context |
+| Option                     | Type                   | Default     | Description                      |
+| -------------------------- | ---------------------- | ----------- | -------------------------------- |
+| `contextInjectionStrategy` | `'system' \| 'user'`   | `'system'`  | Where to inject memory context   |
+| `customContextBuilder`     | `(memories) => string` | `undefined` | Custom function to build context |
 
 ### Advanced Features
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `embeddingProvider` | `{ generate: (text) => Promise<number[]> }` | `undefined` | Embedding provider for semantic search |
-| `enableFactExtraction` | `boolean` | `false` | Extract structured facts from conversations |
-| `extractFacts` | `function` | `undefined` | Custom fact extraction function |
-| `enableGraphMemory` | `boolean` | `false` | Sync to graph database (requires adapter) |
-| `hiveMode` | `{ participantId: string }` | `undefined` | Cross-application memory sharing |
-| `defaultImportance` | `number` | `50` | Default importance score (0-100) |
-| `defaultTags` | `string[]` | `[]` | Default tags for memories |
-| `debug` | `boolean` | `false` | Enable debug logging |
+| Option                 | Type                                        | Default     | Description                                 |
+| ---------------------- | ------------------------------------------- | ----------- | ------------------------------------------- |
+| `embeddingProvider`    | `{ generate: (text) => Promise<number[]> }` | `undefined` | Embedding provider for semantic search      |
+| `enableFactExtraction` | `boolean`                                   | `false`     | Extract structured facts from conversations |
+| `extractFacts`         | `function`                                  | `undefined` | Custom fact extraction function             |
+| `enableGraphMemory`    | `boolean`                                   | `false`     | Sync to graph database (requires adapter)   |
+| `hiveMode`             | `{ participantId: string }`                 | `undefined` | Cross-application memory sharing            |
+| `defaultImportance`    | `number`                                    | `50`        | Default importance score (0-100)            |
+| `defaultTags`          | `string[]`                                  | `[]`        | Default tags for memories                   |
+| `debug`                | `boolean`                                   | `false`     | Enable debug logging                        |
 
 ### Example: Full Configuration
 
@@ -334,14 +335,14 @@ const cortexMemory = createCortexMemory({
   memorySpaceId: 'production-chat',
   userId: () => getUserIdFromSession(),
   userName: 'User',
-  
+
   // Memory search
   memorySearchLimit: 10,
   minMemoryRelevance: 0.75,
-  
+
   // Embeddings
   embeddingProvider: {
-    generate: async (text) => {
+    generate: async text => {
       const { embedding } = await embed({
         model: openai.embedding('text-embedding-3-small'),
         value: text,
@@ -349,23 +350,23 @@ const cortexMemory = createCortexMemory({
       return embedding;
     },
   },
-  
+
   // Context injection
   contextInjectionStrategy: 'system',
-  
+
   // Advanced features
   enableFactExtraction: true,
   enableGraphMemory: false,
-  
+
   // Hive mode
   hiveMode: {
     participantId: 'web-app',
   },
-  
+
   // Defaults
   defaultImportance: 50,
   defaultTags: ['chat'],
-  
+
   // Debug
   debug: process.env.NODE_ENV === 'development',
 });
@@ -464,25 +465,26 @@ Compare this to per-API-call pricing of alternatives!
 
 ## Comparison with Alternatives
 
-| Feature | Cortex | Cloud-only Solutions |
-|---------|--------|---------------------|
-| **Hosting** | ✅ Self-hosted (Convex) | ❌ Cloud only (API required) |
-| **API Key Required** | ✅ No | ❌ Yes |
-| **TypeScript Native** | ✅ Built for TS | ⚠️ Often Python ports |
-| **Edge Runtime** | ✅ Full support | ⚠️ Limited |
-| **Memory Spaces** | ✅ Built-in multi-tenancy | ❌ Not available |
-| **ACID Guarantees** | ✅ Full (Convex) | ⚠️ Eventual consistency |
-| **Versioning** | ✅ 10 auto-versions | ❌ None |
-| **Hive Mode** | ✅ Cross-app sharing | ❌ Not available |
-| **Real-time Updates** | ✅ Reactive queries | ❌ Polling/webhooks |
-| **Cost Model** | ✅ Fixed pricing | ⚠️ Per-API-call |
-| **Data Sovereignty** | ✅ Your infrastructure | ❌ Third-party cloud |
+| Feature               | Cortex                    | Cloud-only Solutions         |
+| --------------------- | ------------------------- | ---------------------------- |
+| **Hosting**           | ✅ Self-hosted (Convex)   | ❌ Cloud only (API required) |
+| **API Key Required**  | ✅ No                     | ❌ Yes                       |
+| **TypeScript Native** | ✅ Built for TS           | ⚠️ Often Python ports        |
+| **Edge Runtime**      | ✅ Full support           | ⚠️ Limited                   |
+| **Memory Spaces**     | ✅ Built-in multi-tenancy | ❌ Not available             |
+| **ACID Guarantees**   | ✅ Full (Convex)          | ⚠️ Eventual consistency      |
+| **Versioning**        | ✅ 10 auto-versions       | ❌ None                      |
+| **Hive Mode**         | ✅ Cross-app sharing      | ❌ Not available             |
+| **Real-time Updates** | ✅ Reactive queries       | ❌ Polling/webhooks          |
+| **Cost Model**        | ✅ Fixed pricing          | ⚠️ Per-API-call              |
+| **Data Sovereignty**  | ✅ Your infrastructure    | ❌ Third-party cloud         |
 
 ## Migration from mem0
 
 Switching from mem0 to Cortex is straightforward:
 
 **Before (mem0):**
+
 ```typescript
 import { createMem0 } from '@mem0/vercel-ai-provider';
 
@@ -499,6 +501,7 @@ const result = await streamText({
 ```
 
 **After (Cortex):**
+
 ```typescript
 import { createCortexMemory } from '@cortexmemory/vercel-ai-provider';
 import { openai } from '@ai-sdk/openai';
@@ -516,6 +519,7 @@ const result = await streamText({
 ```
 
 **Benefits:**
+
 - ✅ No mem0 API key needed (one less dependency)
 - ✅ Self-hosted (full control over data)
 - ✅ Memory Spaces (better isolation)
@@ -529,6 +533,7 @@ const result = await streamText({
 ### "Failed to connect to Convex"
 
 **Solution:** Ensure:
+
 1. Convex is running: `npx convex dev`
 2. `CONVEX_URL` is set correctly in `.env.local`
 3. Cortex backend is deployed to Convex
@@ -536,6 +541,7 @@ const result = await streamText({
 ### "Memory search returns no results"
 
 This is expected if:
+
 - No prior conversations have been stored
 - Using keyword search without embeddings (configure `embeddingProvider`)
 - Running on local Convex (vector search requires production deployment)
@@ -545,6 +551,7 @@ This is expected if:
 ### "Type errors with LanguageModelV1"
 
 **Solution:** Ensure compatible versions:
+
 - `ai`: ^3.0.0 || ^4.0.0 || ^5.0.0
 - `@cortexmemory/sdk`: ^0.10.0
 - `@cortexmemory/vercel-ai-provider`: ^0.1.0
@@ -556,6 +563,7 @@ npm install ai@latest @cortexmemory/sdk@latest @cortexmemory/vercel-ai-provider@
 ## Resources
 
 ### Documentation
+
 - [Complete Documentation](https://docs.cortexmemory.dev)
 - [API Reference](https://docs.cortexmemory.dev/integrations/vercel-ai-sdk/api-reference)
 - [Advanced Usage Guide](https://docs.cortexmemory.dev/integrations/vercel-ai-sdk/advanced-usage)
@@ -563,12 +571,14 @@ npm install ai@latest @cortexmemory/sdk@latest @cortexmemory/vercel-ai-provider@
 - [Hive Mode Guide](https://docs.cortexmemory.dev/integrations/vercel-ai-sdk/hive-mode)
 
 ### Code & Examples
+
 - [NPM Package](https://www.npmjs.com/package/@cortexmemory/vercel-ai-provider)
 - [GitHub Repository](https://github.com/SaintNick1214/Project-Cortex)
 - [Example Applications](https://github.com/SaintNick1214/Project-Cortex/tree/main/packages/vercel-ai-provider/examples)
 - [Source Code](https://github.com/SaintNick1214/Project-Cortex/tree/main/packages/vercel-ai-provider/src)
 
 ### Website & Community
+
 - [Official Website](https://cortexmemory.dev)
 - [GitHub Discussions](https://github.com/SaintNick1214/Project-Cortex/discussions)
 - [GitHub Issues](https://github.com/SaintNick1214/Project-Cortex/issues)
