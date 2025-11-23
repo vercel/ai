@@ -5,6 +5,7 @@
   "scripts": {
     "server:sse": "tsx src/sse/server.ts",
     "client:sse": "tsx src/sse/client.ts",
+    "client:sse-custom-fetch": "tsx src/sse-custom-fetch/client.ts",
     "server:http": "tsx src/http/server.ts",
     "client:http": "tsx src/http/client.ts",
     "server:mcp-with-auth": "tsx src/mcp-with-auth/server.ts",
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.0-beta.63",
+    "@ai-sdk/provider-utils": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.10.2",
     "ai": "6.0.0-beta.108",
     "dotenv": "16.4.5",

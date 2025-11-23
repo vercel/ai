@@ -40,6 +40,7 @@ Available examples/folders:
 - `mcp-prompts` - MCP prompts example
 - `mcp-resources` - MCP resources example
 - `stdio` - Stdio Transport (requires `pnpm stdio:build` first)
+- `sse-custom-fetch` - SSE Transport with custom fetch (Legacy)
 
 Example usage:
 
