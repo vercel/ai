@@ -7,6 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
+import { XaiResponsesProviderOptions } from './xai-responses-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -199,27 +200,102 @@ describe('XaiResponsesLanguageModel', () => {
         `);
       });
 
-      it('should send reasoning effort', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+      describe('provider options', () => {
+        it('reasoningEffort', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
 
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            xai: {
-              reasoningEffort: 'high',
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'high',
+              } satisfies XaiResponsesProviderOptions,
             },
-          },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.reasoning_effort).toBe('high');
+        it('store:true', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                store: true,
+              } satisfies XaiResponsesProviderOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.store).toBe(undefined);
+          expect(requestBody.include).toBe(undefined);
+        });
+
+        it('store:false', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                store: false,
+              } satisfies XaiResponsesProviderOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.store).toBe(false);
+          expect(requestBody.include).toStrictEqual([
+            'reasoning.encrypted_content',
+          ]);
+        });
+
+        it('previousResponseId', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                previousResponseId: 'resp_456',
+              } satisfies XaiResponsesProviderOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.previous_response_id).toBe('resp_456');
+        });
       });
 
       it('should warn about unsupported stopSequences', async () => {
@@ -544,43 +620,7 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should stream text deltas', async () => {
-        prepareStreamChunks([
-          JSON.stringify({
-            type: 'response.created',
-            response: {
-              id: 'resp_123',
-              object: 'response',
-              created_at: 1700000000,
-              model: 'grok-4-fast',
-              status: 'in_progress',
-              output: [],
-            },
-          }),
-          JSON.stringify({
-            type: 'response.output_text.delta',
-            item_id: 'msg_123',
-            output_index: 0,
-            content_index: 0,
-            delta: 'hello',
-          }),
-          JSON.stringify({
-            type: 'response.output_text.delta',
-            item_id: 'msg_123',
-            output_index: 0,
-            content_index: 0,
-            delta: ' world',
-          }),
-          JSON.stringify({
-            type: 'response.done',
-            response: {
-              id: 'resp_123',
-              object: 'response',
-              status: 'completed',
-              output: [],
-              usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 },
-            },
-          }),
-        ]);
+        prepareChunksFixtureResponse('xai-text-streaming.1');
 
         const { stream } = await createModel().doStream({
           prompt: TEST_PROMPT,
@@ -588,48 +628,33 @@ describe('XaiResponsesLanguageModel', () => {
 
         const parts = await convertReadableStreamToArray(stream);
 
-        expect(parts).toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_123",
-              "modelId": "grok-4-fast",
-              "timestamp": undefined,
-              "type": "response-metadata",
-            },
-            {
-              "id": "text-msg_123",
-              "type": "text-start",
-            },
-            {
-              "delta": "hello",
-              "id": "text-msg_123",
-              "type": "text-delta",
-            },
-            {
-              "delta": " world",
-              "id": "text-msg_123",
-              "type": "text-delta",
-            },
-            {
-              "id": "text-msg_123",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "type": "finish",
-              "usage": {
-                "inputTokens": 10,
-                "outputTokens": 5,
-                "reasoningTokens": undefined,
-                "totalTokens": 15,
-              },
-            },
-          ]
-        `);
+        expect(parts).toMatchSnapshot();
+      });
+
+      it('should stream text deltas with reasoning', async () => {
+        prepareChunksFixtureResponse('xai-text-with-reasoning-streaming.1');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toMatchSnapshot();
+      });
+
+      it('should stream text deltas with encrypted reasoning', async () => {
+        prepareChunksFixtureResponse(
+          'xai-text-with-reasoning-streaming-store-false.1',
+        );
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toMatchSnapshot();
       });
     });
 

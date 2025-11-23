@@ -104,6 +104,11 @@ const messageContentPartSchema = z.object({
   annotations: z.array(annotationSchema).optional(),
 });
 
+const reasoningSummaryPartSchema = z.object({
+  type: z.string(),
+  text: z.string(),
+});
+
 const toolCallSchema = z.object({
   name: z.string(),
   arguments: z.string(),
@@ -150,6 +155,12 @@ const outputItemSchema = z.discriminatedUnion('type', [
     arguments: z.string(),
     call_id: z.string(),
     id: z.string(),
+  }),
+  z.object({
+    type: z.literal('reasoning'),
+    id: z.string(),
+    summary: z.array(reasoningSummaryPartSchema),
+    status: z.string(),
   }),
 ]);
 
@@ -238,6 +249,34 @@ export const xaiResponsesChunkSchema = z.union([
     content_index: z.number(),
     annotation_index: z.number(),
     annotation: annotationSchema,
+  }),
+  z.object({
+    type: z.literal('response.reasoning_summary_part.added'),
+    item_id: z.string(),
+    output_index: z.number(),
+    summary_index: z.number(),
+    part: reasoningSummaryPartSchema,
+  }),
+  z.object({
+    type: z.literal('response.reasoning_summary_part.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    summary_index: z.number(),
+    part: reasoningSummaryPartSchema,
+  }),
+  z.object({
+    type: z.literal('response.reasoning_summary_text.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    summary_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.reasoning_summary_text.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    summary_index: z.number(),
+    text: z.string(),
   }),
   z.object({
     type: z.literal('response.done'),
