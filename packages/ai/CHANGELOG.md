@@ -1,5 +1,31 @@
 # ai
 
+## 6.0.0-beta.109
+
+### Patch Changes
+
+- 79ba99f: feat(agent): add message metadata support when inferring UI messages
+
+## 6.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [5dd4c6a]
+  - @ai-sdk/gateway@2.0.0-beta.59
+
+## 6.0.0-beta.107
+
+### Patch Changes
+
+- 8445d70: feat: export GatewayModelId and use to type LanguageModel
+
+## 6.0.0-beta.106
+
+### Patch Changes
+
+- Updated dependencies [1425df5]
+  - @ai-sdk/gateway@2.0.0-beta.58
+
 ## 6.0.0-beta.105
 
 ### Patch Changes

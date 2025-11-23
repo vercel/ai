@@ -1,5 +1,6 @@
 export type GatewayImageModelId =
   | 'google/imagen-4.0-generate'
+  | 'google/imagen-4.0-ultra-generate'
   | 'bfl/flux-kontext-max'
   | 'bfl/flux-kontext-pro'
   | 'bfl/flux-pro-1.0-fill'
