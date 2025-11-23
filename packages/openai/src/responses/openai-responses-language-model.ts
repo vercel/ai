@@ -817,7 +817,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     });
 
     const self = this;
-    const providerKey = this.config.provider.replace('.responses', ''); // come 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
+    const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
     const usage: LanguageModelV3Usage = {
