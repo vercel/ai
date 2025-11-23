@@ -349,6 +349,37 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               return;
             }
 
+            if (event.type === 'response.reasoning_summary_text.delta') {
+              const blockId = `reasoning-${event.item_id}`;
+
+              if (contentBlocks[blockId] == null) {
+                contentBlocks[blockId] = { type: 'text' };
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: blockId,
+                });
+              }
+
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: blockId,
+                delta: event.delta,
+              });
+
+              return;
+            }
+
+            if (event.type === 'response.reasoning_summary_text.done') {
+              const blockId = `reasoning-${event.item_id}`;
+
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: blockId,
+              });
+
+              delete contentBlocks[blockId]
+            }
+
             if (event.type === 'response.output_text.delta') {
               const blockId = `text-${event.item_id}`;
 
