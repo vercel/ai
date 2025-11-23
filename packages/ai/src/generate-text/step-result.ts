@@ -126,6 +126,25 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ProviderMetadata | undefined;
+
+  /**
+   * The parsed output if an output strategy is provided and parsing succeeded.
+   * This is only populated when using `experimental_output` or `output` options.
+   */
+  readonly output?: unknown;
+
+  /**
+   * The validation error if output parsing or validation failed.
+   * This is only populated when using `experimental_output` or `output` options
+   * and validation failed.
+   */
+  readonly validationError?: Error;
+
+  /**
+   * Whether the output validation passed.
+   * This is only populated when using `experimental_output` or `output` options.
+   */
+  readonly isOutputValid?: boolean;
 };
 
 export class DefaultStepResult<TOOLS extends ToolSet>
@@ -138,6 +157,9 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   readonly request: StepResult<TOOLS>['request'];
   readonly response: StepResult<TOOLS>['response'];
   readonly providerMetadata: StepResult<TOOLS>['providerMetadata'];
+  readonly output: StepResult<TOOLS>['output'];
+  readonly validationError: StepResult<TOOLS>['validationError'];
+  readonly isOutputValid: StepResult<TOOLS>['isOutputValid'];
 
   constructor({
     content,
@@ -147,6 +169,9 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     request,
     response,
     providerMetadata,
+    output,
+    validationError,
+    isOutputValid,
   }: {
     content: StepResult<TOOLS>['content'];
     finishReason: StepResult<TOOLS>['finishReason'];
@@ -155,6 +180,9 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     request: StepResult<TOOLS>['request'];
     response: StepResult<TOOLS>['response'];
     providerMetadata: StepResult<TOOLS>['providerMetadata'];
+    output?: StepResult<TOOLS>['output'];
+    validationError?: StepResult<TOOLS>['validationError'];
+    isOutputValid?: StepResult<TOOLS>['isOutputValid'];
   }) {
     this.content = content;
     this.finishReason = finishReason;
@@ -163,6 +191,9 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     this.request = request;
     this.response = response;
     this.providerMetadata = providerMetadata;
+    this.output = output;
+    this.validationError = validationError;
+    this.isOutputValid = isOutputValid;
   }
 
   get text() {

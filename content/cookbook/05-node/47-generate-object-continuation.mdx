@@ -1,0 +1,78 @@
+---
+title: Generate Object with Validation and Retries
+description: Learn how to use generateObject with onStepFinish for validation and automatic retries.
+tags: ['node', 'structured data', 'validation']
+---
+
+# Generate Object with Validation and Retries
+
+You can use the `onStepFinish` callback in `generateObject` to validate the generated object and continue the generation loop with feedback if validation fails. This allows you to implement self-correcting loops where the model can fix its mistakes based on your specific validation logic.
+
+This is particularly useful when:
+1. You have complex validation rules that cannot be expressed in the schema alone (e.g., "age must be between 18 and 120").
+2. You want to give the model specific feedback on *why* the validation failed.
+3. You want to automatically retry generation a limited number of times.
+
+## Example
+
+In this example, we'll generate a user object and validate that the name meets length requirements and the age is within a valid range.
+
+```ts file='index.ts'
+import { generateObject, type StepContinueResult } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+    age: z.number(),
+    email: z.string().email(),
+  }),
+  prompt: 'Generate a user object for a test user.',
+  maxRetries: 5, // Safety limit: max 5 attempts
+  onStepFinish: async (step): Promise<StepContinueResult> => {
+    // If the schema validation failed (e.g. malformed JSON or type mismatch),
+    // step.validationError will be populated.
+    // You can also perform additional custom validation on step.object.
+    
+    const issues: string[] = [];
+
+    // Check for schema validation errors
+    if (step.validationError) {
+      issues.push(`Schema validation failed: ${step.validationError.message}`);
+    } 
+    
+    // Custom validation logic on the successfully parsed object
+    if (step.object) {
+      if (step.object.name.length < 3 || step.object.name.length > 50) {
+        issues.push('Name must be between 3 and 50 characters');
+      }
+      if (step.object.age < 18 || step.object.age > 120) {
+        issues.push('Age must be between 18 and 120');
+      }
+    }
+
+    // If there are issues, continue with feedback
+    if (issues.length > 0) {
+      console.log(`Validation failed, retrying... Issues: ${issues.join(', ')}`);
+      return {
+        continue: true,
+        messages: [
+          {
+            role: 'user',
+            content: `Please fix the following issues: ${issues.join(', ')}`,
+          },
+        ],
+      };
+    }
+
+    console.log('Validation passed!');
+    // If validation succeeded, return { continue: false } to stop the loop
+    return { continue: false };
+  },
+});
+
+console.log(JSON.stringify(result.object, null, 2));
+```
+

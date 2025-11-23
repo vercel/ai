@@ -174,6 +174,9 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('message-metadata'),
         messageMetadata: z.unknown(),
       }),
+      z.strictObject({
+        type: z.literal('clear'),
+      }),
     ]),
   ),
 );
@@ -329,6 +332,9 @@ export type UIMessageChunk<
   | {
       type: 'message-metadata';
       messageMetadata: METADATA;
+    }
+  | {
+      type: 'clear';
     };
 
 export function isDataUIMessageChunk(

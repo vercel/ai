@@ -17,6 +17,7 @@ import {
 } from 'vitest';
 import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
+import { StepContinueResult } from '../generate-text/generate-text';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
@@ -1171,6 +1172,250 @@ describe('generateObject', () => {
           "content": "Hello, world!",
         }
       `);
+    });
+  });
+
+  describe('onStepFinish continuation', () => {
+    it('should retry with feedback when validation fails', async () => {
+      const responses = [
+        JSON.stringify({ name: 'Jo', email: 'invalid', age: 25 }), // Invalid: name too short, invalid email
+        JSON.stringify({ name: 'John Doe', email: 'john@example.com', age: 25 }), // Valid
+      ];
+      let stepCount = 0;
+
+      const model = new MockLanguageModelV3({
+        doGenerate: async ({ prompt }) => {
+          const text = responses[stepCount] || responses[responses.length - 1];
+          stepCount++;
+
+          // Check if continuation message is in prompt
+          const lastMessage = prompt[prompt.length - 1];
+          const hasFeedback =
+            lastMessage.role === 'user' &&
+            lastMessage.content.some(
+              c => c.type === 'text' && c.text.includes('Validation failed'),
+            );
+
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text }],
+          };
+        },
+      });
+
+      const result = await generateObject({
+        model,
+        schema: z.object({
+          name: z.string().min(3),
+          email: z.string().email(),
+          age: z.number().int().min(18),
+        }),
+        prompt: 'Generate a user',
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          if (step.validationError) {
+            return {
+              continue: true,
+              messages: [
+                {
+                  role: 'user',
+                  content:
+                    'Validation failed: Please fix the validation errors and regenerate.',
+                },
+              ],
+            };
+          }
+          return { continue: false };
+        },
+        maxRetries: 5,
+      });
+
+      expect(result.object).toEqual({
+        name: 'John Doe',
+        email: 'john@example.com',
+        age: 25,
+      });
+      expect(stepCount).toBe(2);
+      expect(model.doGenerateCalls.length).toBe(2);
+
+      // Verify continuation message was included in second call
+      const secondCallPrompt = model.doGenerateCalls[1].prompt;
+      const lastMessage = secondCallPrompt[secondCallPrompt.length - 1];
+      expect(lastMessage.role).toBe('user');
+      expect(lastMessage.content).toEqual([
+        {
+          type: 'text',
+          text: 'Validation failed: Please fix the validation errors and regenerate.',
+        },
+      ]);
+    });
+
+      it('should stop when onStepFinish returns continue: false', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "name": "Jo", "email": "invalid", "age": 25 }' }],
+          }),
+        });
+
+        let onStepFinishCallCount = 0;
+
+        try {
+          await generateObject({
+            model,
+            schema: z.object({
+              name: z.string().min(3),
+              email: z.string().email(),
+              age: z.number().int().min(18),
+            }),
+            prompt: 'Generate a user',
+            onStepFinish: async (step): Promise<StepContinueResult> => {
+              onStepFinishCallCount++;
+              // Stop immediately even though validation failed
+              return { continue: false };
+            },
+            maxRetries: 5,
+          });
+
+          fail('must throw error');
+        } catch (error) {
+          expect(onStepFinishCallCount).toBe(1);
+          expect(model.doGenerateCalls.length).toBe(1);
+          originalVerifyNoObjectGeneratedError(error, {
+            message: 'No object generated: response did not match schema.',
+            response: {
+              id: 'id-1',
+              timestamp: new Date(123),
+              modelId: 'm-1',
+            },
+            usage: {
+              inputTokens: 10,
+              outputTokens: 20,
+              totalTokens: 30,
+              reasoningTokens: undefined,
+              cachedInputTokens: undefined,
+            },
+            finishReason: 'stop',
+          });
+        }
+      });
+
+    it('should respect maxRetries limit', async () => {
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: '{ "name": "Jo" }' }], // Always invalid
+        }),
+      });
+
+      let onStepFinishCallCount = 0;
+
+      try {
+        await generateObject({
+          model,
+          schema: z.object({
+            name: z.string().min(3),
+            email: z.string().email(),
+            age: z.number().int().min(18),
+          }),
+          prompt: 'Generate a user',
+          onStepFinish: async (step): Promise<StepContinueResult> => {
+            onStepFinishCallCount++;
+            if (step.validationError) {
+              return {
+                continue: true,
+                messages: [
+                  {
+                    role: 'user',
+                    content: 'Try again',
+                  },
+                ],
+              };
+            }
+            return { continue: false };
+          },
+          maxRetries: 2, // Max 3 attempts total (initial + 2 retries)
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        expect(onStepFinishCallCount).toBe(3); // Called for each attempt
+        expect(model.doGenerateCalls.length).toBe(3);
+        originalVerifyNoObjectGeneratedError(error, {
+          message: 'No object generated: response did not match schema.',
+          response: {
+            id: 'id-1',
+            timestamp: new Date(123),
+            modelId: 'm-1',
+          },
+          usage: {
+            inputTokens: 10,
+            outputTokens: 20,
+            totalTokens: 30,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          },
+          finishReason: 'stop',
+        });
+      }
+    });
+
+    it('should include continuation messages in prompt', async () => {
+      const responses = [
+        JSON.stringify({ name: 'Jo' }),
+        JSON.stringify({ name: 'John Doe', email: 'john@example.com', age: 25 }),
+      ];
+      let stepCount = 0;
+
+      const model = new MockLanguageModelV3({
+        doGenerate: async ({ prompt }) => {
+          const text = responses[stepCount] || responses[responses.length - 1];
+          stepCount++;
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text }],
+          };
+        },
+      });
+
+      const result = await generateObject({
+        model,
+        schema: z.object({
+          name: z.string().min(3),
+          email: z.string().email(),
+          age: z.number().int().min(18),
+        }),
+        prompt: 'Generate a user',
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          if (step.validationError) {
+            return {
+              continue: true,
+              messages: [
+                {
+                  role: 'user',
+                  content: 'Add email and age fields',
+                },
+              ],
+            };
+          }
+          return { continue: false };
+        },
+        maxRetries: 5,
+      });
+
+      expect(result.object).toEqual({
+        name: 'John Doe',
+        email: 'john@example.com',
+        age: 25,
+      });
+
+      // Verify continuation message was included
+      expect(model.doGenerateCalls.length).toBe(2);
+      const secondCallPrompt = model.doGenerateCalls[1].prompt;
+      const lastMessage = secondCallPrompt[secondCallPrompt.length - 1];
+      expect(lastMessage.role).toBe('user');
+      expect(lastMessage.content).toEqual([
+        { type: 'text', text: 'Add email and age fields' },
+      ]);
     });
   });
 });

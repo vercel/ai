@@ -989,9 +989,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'onStepFinish',
-      type: '(result: onStepFinishResult) => Promise<void> | void',
+      type: '(result: onStepFinishResult) => Promise<StepContinueResult> | StepContinueResult | Promise<void> | void',
       isOptional: true,
-      description: 'Callback that is called when a step is finished.',
+      description:
+        'Callback that is called when a step is finished. Optionally returns a `StepContinueResult` to continue the loop with feedback messages. If `void` or `undefined` is returned, the loop continues normally based on tool calls and stop conditions. If `{ continue: true, messages }` is returned, the loop continues with the injected messages. If `{ continue: false }` is returned, the loop stops (even if tool calls exist).',
       properties: [
         {
           type: 'onStepFinishResult',

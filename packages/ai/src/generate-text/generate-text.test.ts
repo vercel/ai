@@ -29,7 +29,11 @@ import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
-import { generateText, GenerateTextOnFinishCallback } from './generate-text';
+import {
+  generateText,
+  GenerateTextOnFinishCallback,
+  StepContinueResult,
+} from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
@@ -835,6 +839,8 @@ describe('generateText', () => {
                 },
               ],
               "finishReason": "stop",
+              "isOutputValid": undefined,
+              "output": undefined,
               "providerMetadata": undefined,
               "request": {},
               "response": {
@@ -889,6 +895,7 @@ describe('generateText', () => {
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
+              "validationError": undefined,
               "warnings": [],
             },
           ],
@@ -1263,6 +1270,8 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -1310,6 +1319,7 @@ describe('generateText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
                 DefaultStepResult {
@@ -1320,6 +1330,8 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -1379,6 +1391,7 @@ describe('generateText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -1446,6 +1459,8 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -1493,6 +1508,7 @@ describe('generateText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
                 DefaultStepResult {
@@ -1503,6 +1519,8 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -1562,6 +1580,7 @@ describe('generateText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -1843,6 +1862,8 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -1890,6 +1911,7 @@ describe('generateText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -1922,6 +1944,8 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -1969,6 +1993,7 @@ describe('generateText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -1976,6 +2001,563 @@ describe('generateText', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('options.onStepFinish continuation', () => {
+    it('should continue loop on validation failure and recover', async () => {
+      let stepCount = 0;
+      const responses = [
+        'This is **bold** text', // fails validation (has markdown)
+        'This is plain text under 160 chars', // passes validation
+      ];
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            const text =
+              responses[stepCount] || responses[responses.length - 1];
+            stepCount++;
+            return {
+              content: [{ type: 'text', text }],
+              finishReason: 'stop',
+              usage: testUsage,
+              warnings: [],
+            };
+          },
+        }),
+        prompt: 'Generate a text message without markdown',
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          const text = step.text;
+          const hasMarkdown = /[*_`\[\]]/.test(text);
+
+          if (hasMarkdown) {
+            return {
+              continue: true,
+              messages: [
+                {
+                  role: 'user',
+                  content:
+                    'The message contains markdown. Please regenerate without any markdown symbols.',
+                },
+              ],
+            };
+          }
+
+          return { continue: false };
+        },
+        stopWhen: stepCountIs(5), // Safety limit
+      });
+
+      expect(result.text).toBe('This is plain text under 160 chars');
+      expect(result.steps.length).toBe(2); // Initial + retry
+      expect(stepCount).toBe(2);
+    });
+
+    it('should stop when onStepFinish returns void', async () => {
+      let stepCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            stepCount++;
+            return {
+              content: [{ type: 'text', text: 'Hello' }],
+              finishReason: 'stop',
+              usage: testUsage,
+              warnings: [],
+            };
+          },
+        }),
+        prompt: 'Say hello',
+        onStepFinish: async () => {
+          // Return void - should not continue
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      expect(result.text).toBe('Hello');
+      expect(result.steps.length).toBe(1);
+      expect(stepCount).toBe(1);
+    });
+
+    it('should respect stopWhen even when continuation is requested', async () => {
+      let stepCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            stepCount++;
+            return {
+              content: [{ type: 'text', text: 'Test' }],
+              finishReason: 'stop',
+              usage: testUsage,
+              warnings: [],
+            };
+          },
+        }),
+        prompt: 'Test',
+        onStepFinish: async (): Promise<StepContinueResult> => {
+          return {
+            continue: true,
+            messages: [
+              {
+                role: 'user',
+                content: 'Continue',
+              },
+            ],
+          };
+        },
+        stopWhen: stepCountIs(2), // Stop after 2 steps max
+      });
+
+      expect(result.steps.length).toBe(2);
+      expect(stepCount).toBe(2);
+    });
+
+    it('should handle empty messages array continuation', async () => {
+      let stepCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            stepCount++;
+            return {
+              content: [{ type: 'text', text: 'Test' }],
+              finishReason: 'stop',
+              usage: testUsage,
+              warnings: [],
+            };
+          },
+        }),
+        prompt: 'Test',
+        onStepFinish: async (): Promise<StepContinueResult> => {
+          // Return continuation with empty messages array
+          return {
+            continue: true,
+            messages: [],
+          };
+        },
+        stopWhen: stepCountIs(2), // Stop after 2 steps max
+      });
+
+      // Should continue even with empty messages array
+      expect(result.steps.length).toBe(2);
+      expect(stepCount).toBe(2);
+    });
+
+    it('should include continuation messages in next step prompt', async () => {
+      const responses = ['invalid', 'valid'];
+      let stepCount = 0;
+
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => {
+          const text = responses[stepCount] || responses[responses.length - 1];
+          stepCount++;
+          return {
+            content: [{ type: 'text', text }],
+            finishReason: 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          if (step.text === 'invalid') {
+            return {
+              continue: true,
+              messages: [{ role: 'user', content: 'retry please' }],
+            };
+          }
+          return { continue: false };
+        },
+        stopWhen: stepCountIs(3),
+      });
+
+      expect(result.steps.length).toBe(2);
+      expect(result.text).toBe('valid');
+      expect(stepCount).toBe(2);
+
+      // Verify continuation message was included in second step's prompt
+      expect(model.doGenerateCalls.length).toBe(2);
+      const secondCallPrompt = model.doGenerateCalls[1].prompt;
+      const lastMessage = secondCallPrompt[secondCallPrompt.length - 1];
+      expect(lastMessage.role).toBe('user');
+      expect(lastMessage.content).toEqual([{ type: 'text', text: 'retry please' }]);
+    });
+
+    it('should stop early when onStepFinish returns continue: false', async () => {
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => {
+          return {
+            content: [{ type: 'text', text: 'valid response' }],
+            finishReason: 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        onStepFinish: async (): Promise<StepContinueResult> => {
+          return { continue: false };
+        },
+        stopWhen: stepCountIs(5), // Would allow more steps
+      });
+
+      expect(result.steps.length).toBe(1);
+      expect(result.text).toBe('valid response');
+      expect(model.doGenerateCalls.length).toBe(1);
+
+      // Verify no continuation messages were added
+      const firstCallPrompt = model.doGenerateCalls[0].prompt;
+      expect(firstCallPrompt.length).toBe(1); // Only original prompt
+      expect(firstCallPrompt[0].role).toBe('user');
+    });
+
+    it('should clear continuation messages after use', async () => {
+      const responses = ['invalid1', 'invalid2', 'valid'];
+      let stepCount = 0;
+
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => {
+          const text = responses[stepCount] || responses[responses.length - 1];
+          stepCount++;
+          return {
+            content: [{ type: 'text', text }],
+            finishReason: 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          if (step.text === 'invalid1') {
+            return {
+              continue: true,
+              messages: [{ role: 'user', content: 'first feedback' }],
+            };
+          }
+          if (step.text === 'invalid2') {
+            return {
+              continue: true,
+              messages: [{ role: 'user', content: 'second feedback' }],
+            };
+          }
+          return { continue: false };
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      expect(result.steps.length).toBe(3);
+      expect(result.text).toBe('valid');
+      expect(stepCount).toBe(3);
+
+      // Verify messages are cleared and replaced between steps
+      expect(model.doGenerateCalls.length).toBe(3);
+
+      // Second call should have first feedback but not second
+      const secondCallPrompt = model.doGenerateCalls[1].prompt;
+      const secondLastMessage = secondCallPrompt[secondCallPrompt.length - 1];
+      expect(secondLastMessage.content).toEqual([
+        { type: 'text', text: 'first feedback' },
+      ]);
+
+      // Third call should have second feedback but not first
+      const thirdCallPrompt = model.doGenerateCalls[2].prompt;
+      const thirdLastMessage = thirdCallPrompt[thirdCallPrompt.length - 1];
+      expect(thirdLastMessage.content).toEqual([
+        { type: 'text', text: 'second feedback' },
+      ]);
+
+      // Verify first feedback is not in third call
+      const thirdCallHasFirstFeedback = thirdCallPrompt.some(
+        msg =>
+          msg.role === 'user' &&
+          msg.content.some(
+            c => c.type === 'text' && c.text === 'first feedback',
+          ),
+      );
+      expect(thirdCallHasFirstFeedback).toBe(false);
+    });
+
+    it('should propagate error when onStepFinish throws', async () => {
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => {
+          return {
+            content: [{ type: 'text', text: 'test response' }],
+            finishReason: 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const errorMessage = 'Validation failed';
+      await expect(
+        generateText({
+          model,
+          prompt: 'test',
+          onStepFinish: async () => {
+            throw new Error(errorMessage);
+          },
+          stopWhen: stepCountIs(5),
+        }),
+      ).rejects.toThrow(errorMessage);
+
+      // Verify only one step was executed before error
+      expect(model.doGenerateCalls.length).toBe(1);
+    });
+
+    it('should propagate error when onStepFinish throws during continuation', async () => {
+      const responses = ['invalid', 'valid'];
+      let stepCount = 0;
+
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => {
+          const text = responses[stepCount] || responses[responses.length - 1];
+          stepCount++;
+          return {
+            content: [{ type: 'text', text }],
+            finishReason: 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const errorMessage = 'Validation error';
+      await expect(
+        generateText({
+          model,
+          prompt: 'test',
+          onStepFinish: async (step): Promise<StepContinueResult> => {
+            if (step.text === 'invalid') {
+              throw new Error(errorMessage);
+            }
+            return { continue: false };
+          },
+          stopWhen: stepCountIs(5),
+        }),
+      ).rejects.toThrow(errorMessage);
+
+      // Verify only one step was executed and no continuation occurred
+      expect(model.doGenerateCalls.length).toBe(1);
+      expect(stepCount).toBe(1);
+    });
+
+    it('should parse structured output after continuation', async () => {
+      const responses = ['invalid', '{"value": "valid"}'];
+      let stepCount = 0;
+
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => {
+          const text = responses[stepCount] || responses[responses.length - 1];
+          stepCount++;
+          return {
+            content: [{ type: 'text', text }],
+            finishReason: 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          if (step.text === 'invalid') {
+            return {
+              continue: true,
+              messages: [{ role: 'user', content: 'try again' }],
+            };
+          }
+          return { continue: false };
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      expect(result.steps.length).toBe(2);
+      expect(result.output).toEqual({ value: 'valid' });
+      expect(result.text).toBe('{"value": "valid"}');
+    });
+
+    it('should only parse output when finishReason is stop', async () => {
+      const responses = ['invalid', '{"value": "valid"}'];
+      let stepCount = 0;
+
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => {
+          const text = responses[stepCount] || responses[responses.length - 1];
+          stepCount++;
+          // First step returns 'length' finish reason, second returns 'stop'
+          return {
+            content: [{ type: 'text', text }],
+            finishReason: stepCount === 1 ? 'length' : 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          if (step.text === 'invalid') {
+            return {
+              continue: true,
+              messages: [{ role: 'user', content: 'try again' }],
+            };
+          }
+          return { continue: false };
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      expect(result.steps.length).toBe(2);
+      // Output should be parsed because final step has finishReason: 'stop'
+      expect(result.output).toEqual({ value: 'valid' });
+      expect(result.text).toBe('{"value": "valid"}');
+      // Verify first step had finishReason 'length' and output was not parsed from it
+      expect(result.steps[0].finishReason).toBe('length');
+      expect(result.steps[1].finishReason).toBe('stop');
+    });
+
+    it('should include continuation messages when prepareStep changes model', async () => {
+      const model1 = new MockLanguageModelV3({
+        provider: 'model1',
+        modelId: 'model1',
+        doGenerate: async () => {
+          return {
+            content: [{ type: 'text', text: 'invalid' }],
+            finishReason: 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const model2 = new MockLanguageModelV3({
+        provider: 'model2',
+        modelId: 'model2',
+        doGenerate: async () => {
+          return {
+            content: [{ type: 'text', text: 'valid' }],
+            finishReason: 'stop',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model: model1,
+        prompt: 'test',
+        prepareStep: async ({ stepNumber }) => {
+          // Use model1 for step 0, model2 for step 1
+          return { model: stepNumber === 0 ? model1 : model2 };
+        },
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          if (step.text === 'invalid') {
+            return {
+              continue: true,
+              messages: [{ role: 'user', content: 'try again' }],
+            };
+          }
+          return { continue: false };
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      expect(result.steps.length).toBe(2);
+      expect(result.text).toBe('valid');
+      expect(model1.doGenerateCalls.length).toBe(1);
+      expect(model2.doGenerateCalls.length).toBe(1);
+
+      // Verify continuation messages were included in model2's prompt
+      const model2Prompt = model2.doGenerateCalls[0].prompt;
+      const lastMessage = model2Prompt[model2Prompt.length - 1];
+      expect(lastMessage.role).toBe('user');
+      expect(lastMessage.content).toEqual([{ type: 'text', text: 'try again' }]);
+    });
+
+    it('should work with continuation when prepareStep changes activeTools', async () => {
+      const model = new MockLanguageModelV3({
+        doGenerate: async () => {
+          return {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{"value": "test"}',
+              },
+            ],
+            finishReason: 'tool-calls',
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const tools = {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        }),
+        tool2: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result2',
+        }),
+      };
+
+      const result = await generateText({
+        model,
+        prompt: 'test',
+        tools,
+        prepareStep: async ({ stepNumber }) => {
+          // Use tool1 for step 0, tool2 for step 1
+          return {
+            activeTools: stepNumber === 0 ? ['tool1'] : ['tool2'],
+          };
+        },
+        onStepFinish: async (step): Promise<StepContinueResult> => {
+          if (step.toolCalls && step.toolCalls.length > 0) {
+            return {
+              continue: true,
+              messages: [{ role: 'user', content: 'continue after tool' }],
+            };
+          }
+          return { continue: false };
+        },
+        stopWhen: stepCountIs(5),
+      });
+
+      expect(result.steps.length).toBeGreaterThan(1);
+      // Verify continuation messages were included
+      expect(model.doGenerateCalls.length).toBeGreaterThan(1);
+      const secondCallPrompt = model.doGenerateCalls[1].prompt;
+      const lastMessage = secondCallPrompt[secondCallPrompt.length - 1];
+      expect(lastMessage.role).toBe('user');
+      expect(lastMessage.content).toEqual([
+        { type: 'text', text: 'continue after tool' },
+      ]);
     });
   });
 
@@ -3691,6 +4273,8 @@ describe('generateText', () => {
                 },
               ],
               "finishReason": "tool-calls",
+              "isOutputValid": undefined,
+              "output": undefined,
               "providerMetadata": undefined,
               "request": {},
               "response": {
@@ -3740,6 +4324,7 @@ describe('generateText', () => {
                 "outputTokens": 20,
                 "totalTokens": 30,
               },
+              "validationError": undefined,
               "warnings": [],
             },
           ]

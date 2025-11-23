@@ -16,6 +16,7 @@ import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { ModelMessage } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -69,6 +70,7 @@ import { Output, text } from './output';
 import { InferCompleteOutput, InferPartialOutput } from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
+import { StepContinueResult } from './generate-text';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
@@ -121,10 +123,19 @@ export type StreamTextOnErrorCallback = (event: {
 Callback that is set using the `onStepFinish` option.
 
 @param stepResult - The result of the step.
+
+@returns Optionally returns a `StepContinueResult` to continue the loop with feedback messages.
+If `void` or `undefined` is returned, the loop continues normally based on tool calls and stop conditions.
+If `{ continue: true, messages }` is returned, the loop continues with the injected messages.
+If `{ continue: false }` is returned, the loop stops (even if tool calls exist).
  */
 export type StreamTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   stepResult: StepResult<TOOLS>,
-) => PromiseLike<void> | void;
+) =>
+  | PromiseLike<StepContinueResult>
+  | StepContinueResult
+  | Promise<void>
+  | void;
 
 /**
 Callback that is set using the `onChunk` option.
@@ -656,6 +667,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
+    let stepContinueResult: StepContinueResult | undefined = undefined;
+    let nextStepContinuationMessages: Array<ModelMessage> = [];
 
     let rootSpan!: Span;
 
@@ -841,6 +854,37 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             tools,
           });
 
+          // Validate output if output strategy is provided and step finished with "stop"
+          let parsedOutput: unknown | undefined;
+          let validationError: Error | undefined;
+          let isOutputValid: boolean | undefined;
+
+          if (
+            self.outputSpecification != null &&
+            part.finishReason === 'stop'
+          ) {
+            const stepText = recordedContent
+              .filter(part => part.type === 'text')
+              .map(part => part.text)
+              .join('');
+            const outputSpecification = self.outputSpecification;
+            try {
+              parsedOutput = await outputSpecification.parseCompleteOutput(
+                { text: stepText },
+                {
+                  response: part.response,
+                  usage: part.usage,
+                  finishReason: part.finishReason,
+                },
+              );
+              isOutputValid = true;
+            } catch (error) {
+              validationError =
+                error instanceof Error ? error : new Error(String(error));
+              isOutputValid = false;
+            }
+          }
+
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: recordedContent,
@@ -853,9 +897,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               messages: [...recordedResponseMessages, ...stepMessages],
             },
             providerMetadata: part.providerMetadata,
+            output: parsedOutput,
+            validationError,
+            isOutputValid,
           });
 
-          await onStepFinish?.(currentStepResult);
+          const onStepFinishResult = await onStepFinish?.(currentStepResult);
 
           logWarnings({
             warnings: recordedWarnings,
@@ -866,6 +913,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           recordedSteps.push(currentStepResult);
 
           recordedResponseMessages.push(...stepMessages);
+
+          // Store continuation result for use in flush handler
+          stepContinueResult = undefined;
+          if (
+            onStepFinishResult != null &&
+            typeof onStepFinishResult === 'object' &&
+            'continue' in onStepFinishResult
+          ) {
+            stepContinueResult = onStepFinishResult;
+            if (stepContinueResult.continue === true) {
+              // Store continuation messages for the next step's input
+              nextStepContinuationMessages = stepContinueResult.messages;
+            }
+          }
 
           // resolve the promise to signal that the step has been fully processed
           // by the event processor:
@@ -1178,8 +1239,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const includeRawChunks = self.includeRawChunks;
 
           stepFinish = new DelayedPromise<void>();
+          stepContinueResult = undefined; // Reset continuation result for each step
 
-          const stepInputMessages = [...initialMessages, ...responseMessages];
+          const stepInputMessages = [
+            ...initialMessages,
+            ...responseMessages,
+            ...nextStepContinuationMessages,
+          ];
+          // Clear continuation messages after using them (they're only for this step)
+          nextStepContinuationMessages = [];
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -1586,38 +1654,66 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   );
 
                   if (
-                    clientToolCalls.length > 0 &&
-                    // all current tool calls have outputs (incl. execution errors):
-                    clientToolOutputs.length === clientToolCalls.length &&
-                    // continue until a stop condition is met:
-                    !(await isStopConditionMet({
-                      stopConditions,
-                      steps: recordedSteps,
-                    }))
+                    (clientToolCalls.length > 0 &&
+                      // all current tool calls have outputs (incl. execution errors):
+                      clientToolOutputs.length === clientToolCalls.length) ||
+                    // OR step continuation requested (even if no tool calls):
+                    stepContinueResult?.continue === true
                   ) {
-                    // append to messages for the next step:
-                    responseMessages.push(
-                      ...toResponseMessages({
-                        content:
-                          // use transformed content to create the messages for the next step:
-                          recordedSteps[recordedSteps.length - 1].content,
-                        tools,
-                      }),
-                    );
+                    // continue until a stop condition is met:
+                    if (
+                      !(await isStopConditionMet({
+                        stopConditions,
+                        steps: recordedSteps,
+                      }))
+                    ) {
+                      // append to messages for the next step (if not already appended via continuation):
+                      if (clientToolCalls.length > 0) {
+                        responseMessages.push(
+                          ...toResponseMessages({
+                            content:
+                              // use transformed content to create the messages for the next step:
+                              recordedSteps[recordedSteps.length - 1].content,
+                            tools,
+                          }),
+                        );
+                      }
 
-                    try {
-                      await streamStep({
-                        currentStep: currentStep + 1,
-                        responseMessages,
-                        usage: combinedUsage,
-                      });
-                    } catch (error) {
+                      // If continuation was requested (not tool-based), emit clear signal
+                      // to reset the UI before the next step starts
+                      if (
+                        stepContinueResult?.continue === true &&
+                        clientToolCalls.length === 0 &&
+                        // Check if clearing is enabled (default: true)
+                        (stepContinueResult.experimental_clearStep ?? true)
+                      ) {
+                        controller.enqueue({
+                          type: 'clear',
+                        });
+                      }
+
+                      try {
+                        await streamStep({
+                          currentStep: currentStep + 1,
+                          responseMessages,
+                          usage: combinedUsage,
+                        });
+                      } catch (error) {
+                        controller.enqueue({
+                          type: 'error',
+                          error,
+                        });
+
+                        self.closeStream();
+                      }
+                    } else {
                       controller.enqueue({
-                        type: 'error',
-                        error,
+                        type: 'finish',
+                        finishReason: stepFinishReason,
+                        totalUsage: combinedUsage,
                       });
 
-                      self.closeStream();
+                      self.closeStream(); // close the stitchable stream
                     }
                   } else {
                     controller.enqueue({
@@ -1837,6 +1933,11 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
     return this.finalStep.then(step => {
+      // Use already-parsed output if available
+      if (step.output !== undefined) {
+        return step.output as InferCompleteOutput<OUTPUT>;
+      }
+      // Parse output now (for backward compatibility or when output wasn't validated in loop)
       const output = this.outputSpecification ?? text();
       return output.parseCompleteOutput(
         { text: step.text },
@@ -2164,6 +2265,11 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'abort': {
               controller.enqueue(part);
+              break;
+            }
+
+            case 'clear': {
+              controller.enqueue({ type: 'clear' });
               break;
             }
 

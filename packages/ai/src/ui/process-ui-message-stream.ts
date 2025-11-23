@@ -655,6 +655,33 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'clear': {
+              // Reset message parts and active state trackers when continuation clears the stream
+              state.activeTextParts = {};
+              state.activeReasoningParts = {};
+              state.partialToolCalls = {};
+
+              // Find the last step-start part
+              let lastStepStartIndex = -1;
+              for (let i = state.message.parts.length - 1; i >= 0; i--) {
+                if (state.message.parts[i].type === 'step-start') {
+                  lastStepStartIndex = i;
+                  break;
+                }
+              }
+
+              if (lastStepStartIndex !== -1) {
+                // Remove the last step and its start marker
+                state.message.parts = state.message.parts.slice(0, lastStepStartIndex);
+              } else {
+                // No step boundary found (single step), clear everything
+                state.message.parts = [];
+              }
+
+              write();
+              break;
+            }
+
             case 'error': {
               onError?.(new Error(chunk.errorText));
               break;

@@ -274,6 +274,43 @@ try {
 }
 ```
 
+## Continuation with Validation
+
+You can use the `onStepFinish` callback to validate the generated object and continue the generation loop with feedback if validation fails.
+This is useful for cases where the model might generate an object that is valid JSON but does not meet your specific requirements (e.g. logical constraints).
+
+```ts
+import { generateObject, type StepContinueResult } from 'ai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: 'openai/gpt-4o-mini',
+  schema: z.object({
+    name: z.string().min(3).max(50),
+    age: z.number().int().min(18).max(120),
+  }),
+  prompt: 'Generate a user object with name (3-50 chars) and age (18-120)',
+  onStepFinish: async (step): Promise<StepContinueResult> => {
+    // if validation failed, you can return feedback to the model
+    if (step.validationError) {
+      return {
+        continue: true,
+        messages: [
+          {
+            role: 'user',
+            content: `Validation failed: ${step.validationError.message}. Please regenerate the object with valid values.`,
+          },
+        ],
+      };
+    }
+
+    // if validation succeeded, stop the loop
+    return { continue: false };
+  },
+  maxRetries: 5, // Safety limit: max 5 attempts
+});
+```
+
 ## Repairing Invalid or Malformed JSON
 
 <Note type="warning">
