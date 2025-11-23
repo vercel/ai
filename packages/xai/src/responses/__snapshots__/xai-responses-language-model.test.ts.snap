@@ -3773,6 +3773,3304 @@ Sonora's style emerged from indigenous Yaqui and Mayo tribes, who used desert fo
 ]
 `;
 
+exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream text deltas with encrypted reasoning 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "0b824fe9-3250-2588-0bbf-0810402fc822",
+    "modelId": "grok-code-fast-1",
+    "timestamp": undefined,
+    "type": "response-metadata",
+  },
+  {
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "First",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " question",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "What",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " specifically",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " notable",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " about",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " style",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " of",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Son",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " food",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "?"",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " This",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " an",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " open",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-ended",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " question",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " about",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " food",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " culture",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " specifically",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Son",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " cuisine",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " It's",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " not",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " closed",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-ended",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " math",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "/science",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " so",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " need",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " be",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " maximally",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " informative",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " structure",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " it",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " easily",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " pars",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "able",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " perhaps",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " with",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " sections",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " if",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " needed",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+
+## Investigating Sonoran Cuisine  
+- The question focuses on what makes Sonoran food style notable, indicating an open-ended exploration of its cultural and culinary significance.",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "  
+- Sonoran cuisine is part of food culture, suggesting a need for a structured, informative response to highlight its unique traits.",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "  
+- The task isn't math or science, so the approach will prioritize breadth and accessibility, possibly using sections for clarity.",
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "reasoning-end",
+  },
+  {
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-start",
+  },
+  {
+    "delta": "###",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Overview",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Son",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Cuisine",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Son",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cuisine",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " originates",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sonora",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " region",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " northwestern",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mexico",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " characterized",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " its",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " simplicity",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fresh",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ingredients",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " emphasis",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " grilling",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bold",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flavors",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " spic",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ier",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mexican",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cuisines",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " regions",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it's",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " notably",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " milder",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relying",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " region's",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " abundant",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " desert",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " produce",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " livestock",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " This",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " style",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " blends",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " indigenous",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " influences",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Ya",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "qui",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mayo",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " peoples",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Spanish",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " colonial",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " elements",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " resulting",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hearty",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " straightforward",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dishes",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " highlight",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " natural",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tastes",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " over",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complex",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " preparations",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "###",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Key",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Ingredients",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Flav",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ors",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "M",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ild",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Chil",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ies",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Heat",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " signature",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mexican",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sonora",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chile",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "a",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " mild",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fruity",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pepper",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " often",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " used",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fresh",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " roasted",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hotter",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " varieties",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Yuc",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "atán",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Oaxaca",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Son",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " food",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " avoids",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " excessive",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " spice",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " focusing",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " subtle",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sweetness",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " smok",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "iness",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Des",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ert",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Local",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Produce",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Staples",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " include",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " nop",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ales",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "c",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "actus",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pads",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " beans",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " corn",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tomatoes",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " onions",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " arid",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " climate",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " favors",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " grilled",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fresh",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " preparations",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " minimal",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sauces",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Prote",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ins",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Beef",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " especially",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " carne",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ada",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "gr",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "illed",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " skirt",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " steak",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dominant",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reflecting",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sonora",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cattle",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ranch",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ing",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " history",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Other",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " meats",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pork",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chicken",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " common",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " often",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " seasoned",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " simply",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " garlic",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lime",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " herbs",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Influence",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sea",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Land",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Coastal",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " areas",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " incorporate",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " seafood",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shrimp",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fish",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " while",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " inland",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " focuses",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ranch",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "raised",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " meats",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Dairy",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rare",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " emphasizing",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mexican",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " crema",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cheese",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sparingly",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "###",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Notable",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Dishes",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Preparation",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Styles",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Gr",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "illing",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Core",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Technique",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Many",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dishes",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cooked",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " over",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " open",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flames",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " com",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "al",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " impart",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ing",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " charred",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " smoky",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flavor",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " This",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " seen",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " carne",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ada",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " served",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tortillas",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gu",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "acamole",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pico",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " de",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gall",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "o",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Icon",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ic",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Foods",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " -",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Mach",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aca",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Shred",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ded",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dried",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " beef",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " slow",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-c",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ooked",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " eggs",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " onions",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chil",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ies",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "—",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " breakfast",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " staple",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that's",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " simple",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " yet",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flavorful",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " -",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Tam",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ales",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Ste",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "amed",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " corn",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " masa",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " filled",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " meat",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cheese",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " often",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wrapped",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " corn",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hus",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ks",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Son",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " versions",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " less",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sa",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "uced",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " than",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " those",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " central",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mexico",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " -",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Ch",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "im",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ich",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "angas",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Fried",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bur",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ritos",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sonora",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "flu",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "enced",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Tex",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-M",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ex",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " creation",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " highlighting",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " region's",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " border",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " proximity",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Arizona",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Bever",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ages",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Agua",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fresca",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "fruit",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " waters",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " local",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fruits",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " watermelon",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hib",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "iscus",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hor",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ch",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ata",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rice",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-based",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " drink",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complement",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " meals",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "###",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Cultural",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Regional",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Context",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Son",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "an's",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " style",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " practical",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " its",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hot",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dry",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " climate",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "—",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dis",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "hes",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " quick",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prepare",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " preserve",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " well",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " It's",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " less",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ornate",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " than",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Yuc",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ate",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "can",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Jal",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "iscan",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cuisines",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prioritizing",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sustenance",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " over",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " elaboration",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " In",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " U",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".S",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " especially",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Arizona",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Son",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oran",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " influences",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " appear",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fusion",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " foods",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Mexican",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hot",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dogs",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "b",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "acon",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-w",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "rapped",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " beans",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " salsa",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " This",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cuisine",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " notable",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " restraint",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " spice",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " focus",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " grilling",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " make",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " distinct",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " emphasizing",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " desert",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bounty",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " authentic",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " approachable",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": " meals",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "delta": "### Overview of Sonoran Cuisine
+Sonoran cuisine originates from the Sonora region in northwestern Mexico, characterized by its simplicity, fresh ingredients, and emphasis on grilling and bold flavors. Unlike spicier Mexican cuisines from other regions, it's notably milder, relying on the region's abundant desert produce and livestock. This style blends indigenous influences (e.g., from Yaqui and Mayo peoples) with Spanish colonial elements, resulting in hearty, straightforward dishes that highlight natural tastes over complex preparations.
+
+### Key Ingredients and Flavors
+- **Mild Chilies and Heat**: The signature is the Mexican Sonora chile (a mild, fruity pepper), often used fresh or roasted. Unlike hotter varieties in Yucatán or Oaxaca, Sonoran food avoids excessive spice, focusing on subtle sweetness and smokiness.
+- **Desert and Local Produce**: Staples include nopales (cactus pads), beans, corn, tomatoes, and onions. The arid climate favors grilled or fresh preparations, with minimal sauces.
+- **Proteins**: Beef, especially in carne asada (grilled skirt steak), is dominant, reflecting Sonora's cattle ranching history. Other meats like pork or chicken are common, often seasoned simply with garlic, lime, and herbs.
+- **Influence of the Sea and Land**: Coastal areas incorporate seafood (e.g., shrimp or fish), while inland focuses on ranch-raised meats. Dairy is rare, emphasizing Mexican crema or cheese sparingly.
+
+### Notable Dishes and Preparation Styles
+- **Grilling as a Core Technique**: Many dishes are cooked over open flames or on a comal, imparting a charred, smoky flavor. This is seen in carne asada, served with tortillas, guacamole, and pico de gallo.
+- **Iconic Foods**: 
+  - **Machaca**: Shredded, dried beef slow-cooked with eggs, onions, and chilies— a breakfast staple that's simple yet flavorful.
+  - **Tamales**: Steamed corn masa filled with meat or cheese, often wrapped in corn husks; Sonoran versions are less sauced than those in central Mexico.
+  - **Chimichangas**: Fried burritos, a Sonora-influenced Tex-Mex creation, highlighting the region's border proximity to Arizona.
+- **Beverages**: Agua fresca (fruit waters) from local fruits like watermelon or hibiscus, and horchata, a rice-based drink, complement meals.
+
+### Cultural and Regional Context
+Sonoran's style is practical for its hot, dry climate—dishes are quick to prepare and preserve well. It's less ornate than Yucatecan or Jaliscan cuisines, prioritizing sustenance over elaboration. In the U.S., especially Arizona, Sonoran influences appear in fusion foods like Mexican hot dogs (bacon-wrapped with beans and salsa). This cuisine's notable restraint in spice and focus on grilling make it distinct, emphasizing the desert's bounty for authentic, approachable meals.",
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-delta",
+  },
+  {
+    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "type": "finish",
+    "usage": {
+      "inputTokens": 216,
+      "outputTokens": 831,
+      "reasoningTokens": 253,
+      "totalTokens": 1047,
+    },
+  },
+]
+`;
+
 exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream text deltas with reasoning 1`] = `
 [
   {
