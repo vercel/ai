@@ -630,7 +630,7 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should stream text deltas with reasoning', async () => {
-        prepareChunksFixtureResponse('xai-text-streaming.1');
+        prepareChunksFixtureResponse('xai-text-with-reasoning-streaming.1');
 
         const { stream } = await createModel().doStream({
           prompt: TEST_PROMPT,
