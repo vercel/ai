@@ -272,7 +272,7 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "modelId": "grok-code-fast-1",
-    "timestamp": undefined,
+    "timestamp": 2025-11-22T23:18:20.000Z,
     "type": "response-metadata",
   },
   {
@@ -3782,7 +3782,7 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "0b824fe9-3250-2588-0bbf-0810402fc822",
     "modelId": "grok-code-fast-1",
-    "timestamp": undefined,
+    "timestamp": 2025-11-23T01:11:25.000Z,
     "type": "response-metadata",
   },
   {
@@ -7080,7 +7080,7 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   {
     "id": "bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "modelId": "grok-code-fast-1",
-    "timestamp": undefined,
+    "timestamp": 2025-11-22T23:54:28.000Z,
     "type": "response-metadata",
   },
   {
@@ -10495,7 +10495,7 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream w
   {
     "id": "98a8d4aa-fc8b-fd93-e673-d5a8f1c9cee8",
     "modelId": "grok-4-fast-reasoning",
-    "timestamp": undefined,
+    "timestamp": 2025-11-03T17:09:45.000Z,
     "type": "response-metadata",
   },
   {
