@@ -269,7 +269,9 @@ describe('XaiResponsesLanguageModel', () => {
 
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.store).toBe(false);
-          expect(requestBody.include).toStrictEqual(['reasoning.encrypted_content']);
+          expect(requestBody.include).toStrictEqual([
+            'reasoning.encrypted_content',
+          ]);
         });
 
         it('previousResponseId', async () => {
@@ -642,7 +644,9 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should stream text deltas with encrypted reasoning', async () => {
-        prepareChunksFixtureResponse('xai-text-with-reasoning-streaming-store-false.1');
+        prepareChunksFixtureResponse(
+          'xai-text-with-reasoning-streaming-store-false.1',
+        );
 
         const { stream } = await createModel().doStream({
           prompt: TEST_PROMPT,
