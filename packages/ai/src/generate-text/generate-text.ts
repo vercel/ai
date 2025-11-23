@@ -964,7 +964,9 @@ function asContent<TOOLS extends ToolSet>({
           return {
             type: 'file' as const,
             file: new DefaultGeneratedFile(part),
-            providerMetadata: part.providerMetadata,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           };
         }
 
