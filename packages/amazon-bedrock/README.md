@@ -48,13 +48,13 @@ const { text } = await generateText({
 
 #### Using Direct Configuration
 
-You can also pass the API key directly in the provider configuration:
+You can also pass the API key directly when creating a custom provider instance:
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
-const bedrockWithApiKey = bedrock.withSettings({
+const bedrockWithApiKey = createAmazonBedrock({
   apiKey: process.env.AWS_BEARER_TOKEN_BEDROCK, // or your API key directly
   region: 'us-east-1', // Optional: specify region
 });
@@ -90,7 +90,7 @@ This method requires standard AWS environment variables:
 
 The provider uses the following authentication precedence:
 
-1. **API key from direct configuration** (`apiKey` in `withSettings()`)
+1. **API key from direct configuration** (`apiKey` in `createAmazonBedrock()`)
 2. **API key from environment variable** (`AWS_BEARER_TOKEN_BEDROCK`)
 3. **SigV4 authentication** (AWS credential chain fallback)
 
