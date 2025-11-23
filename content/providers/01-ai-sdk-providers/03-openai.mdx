@@ -340,6 +340,7 @@ const result = await generateText({
   tools: {
     web_search: openai.tools.webSearch({
       // optional configuration:
+      externalWebAccess: true,
       searchContextSize: 'high',
       userLocation: {
         type: 'approximate',
@@ -364,6 +365,8 @@ for (const toolResult of result.toolResults) {
   }
 }
 ```
+
+For detailed information on configuration options see the [OpenAI Web Search Tool documentation](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses).
 
 #### File Search Tool
 

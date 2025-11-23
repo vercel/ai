@@ -109,6 +109,7 @@ export async function prepareResponsesTools({
                 args.filters != null
                   ? { allowed_domains: args.filters.allowedDomains }
                   : undefined,
+              external_web_access: args.externalWebAccess,
               search_context_size: args.searchContextSize,
               user_location: args.userLocation,
             });

@@ -152,6 +152,7 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'web_search';
+      external_web_access: boolean | undefined;
       filters: { allowed_domains: string[] | undefined } | undefined;
       search_context_size: 'low' | 'medium' | 'high' | undefined;
       user_location:
