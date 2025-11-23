@@ -17,6 +17,7 @@ import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+import type { GatewayImageModelId } from './gateway-image-model-settings';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
@@ -56,7 +57,7 @@ Creates a model for generating text embeddings.
   /**
 Creates a model for generating images.
 */
-  imageModel(modelId: string): ImageModelV3;
+  imageModel(modelId: GatewayImageModelId): ImageModelV3;
 }
 
 export interface GatewayProviderSettings {
@@ -222,7 +223,7 @@ export function createGatewayProvider(
   provider.specificationVersion = 'v3' as const;
   provider.getAvailableModels = getAvailableModels;
   provider.getCredits = getCredits;
-  provider.imageModel = (modelId: string) => {
+  provider.imageModel = (modelId: GatewayImageModelId) => {
     return new GatewayImageModel(modelId, {
       provider: 'gateway',
       baseURL,
