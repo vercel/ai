@@ -9,14 +9,14 @@ export function getResponseMetadata({
   created_at?: number | undefined | null;
   model?: string | undefined | null;
 }) {
+  const unixTime = created ?? created_at;
+
   return {
     id: id ?? undefined,
     modelId: model ?? undefined,
     timestamp:
-      created != null
-        ? new Date(created * 1000)
-        : created_at != null
-          ? new Date(created_at * 1000)
-          : undefined,
+      unixTime != null
+        ? new Date(unixTime * 1000)
+        : undefined,
   };
 }
