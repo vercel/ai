@@ -285,6 +285,13 @@ const cortexMemory = createCortexMemory({
 | `memorySpaceId` | `string` | Memory space for isolation (team, user, project) |
 | `userId` | `string \| () => string \| Promise<string>` | User identifier (can be async function) |
 
+### Optional Basic Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `userName` | `string` | `'User'` | Display name for the user |
+| `conversationId` | `string \| () => string` | Auto-generated | Conversation identifier |
+
 ### Memory Retrieval Options
 
 | Option | Type | Default | Description |
