@@ -535,8 +535,8 @@ importers:
         specifier: ^2.2.4
         version: 2.2.4
       streamdown:
-        specifier: ^1.6.4
-        version: 1.6.4(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.5
+        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
       throttleit:
         specifier: 2.1.0
         version: 2.1.0
@@ -599,8 +599,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.4
       streamdown:
-        specifier: ^1.6.4
-        version: 1.6.4(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.5
+        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -654,8 +654,8 @@ importers:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
       streamdown:
-        specifier: ^1.6.3
-        version: 1.6.3(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.5
+        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -888,8 +888,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.4
       streamdown:
-        specifier: ^1.6.4
-        version: 1.6.4(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.5
+        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
       tailwind-merge:
         specifier: ^3.0.2
         version: 3.3.1
@@ -1007,8 +1007,8 @@ importers:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
       streamdown:
-        specifier: ^1.6.4
-        version: 1.6.4(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.5
+        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -17013,13 +17013,8 @@ packages:
     resolution: {integrity: sha512-iCGQj+0l0HOdZ2AEeBADlsRC+vsnDsZsbdSiH1yNSjcfKM7fdpCMfqAL/dwF5BLiw/XhRft/Wax6zQbhq2BcjQ==}
     engines: {node: '>= 0.4'}
 
-  streamdown@1.6.3:
-    resolution: {integrity: sha512-gYldDeObnD5GFsbrVcSblKWBBYhU0G+jV9SsYdxQp7tpirdliw5xrMSyP5jLWRqy8SnByoukqDfw4Cm0cCa5aA==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0
-
-  streamdown@1.6.4:
-    resolution: {integrity: sha512-RW8oXmXiT0BmOHWvwRDojw8Pz/mOxar4QyIPL5NuS1PqOSevd+jnMYj14SOZupS7uP/guOJmhAp7yKK8GUbPVw==}
+  streamdown@1.6.6:
+    resolution: {integrity: sha512-LYKkpGwQblgItdlIkfuJMQGVP6H6fiUHZK5bm3gH3dmMmI06cNigmX8G1dJAZREqbYJSl3pcsnnS8EDzFO2vrQ==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
 
@@ -37076,37 +37071,7 @@ snapshots:
     dependencies:
       internal-slot: 1.0.7
 
-  streamdown@1.6.3(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5):
-    dependencies:
-      clsx: 2.1.1
-      hast: 1.0.0
-      hast-util-to-jsx-runtime: 2.3.6
-      html-url-attributes: 3.0.1
-      katex: 0.16.23
-      lucide-react: 0.542.0(react@18.3.1)
-      marked: 16.4.0
-      mermaid: 11.12.0
-      react: 18.3.1
-      rehype-harden: 1.1.5
-      rehype-katex: 7.0.1
-      rehype-raw: 7.0.0
-      remark-cjk-friendly: 1.2.3(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(unified@11.0.5)
-      remark-cjk-friendly-gfm-strikethrough: 1.2.3(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(unified@11.0.5)
-      remark-gfm: 4.0.1
-      remark-math: 6.0.0
-      remark-parse: 11.0.0
-      remark-rehype: 11.1.2
-      shiki: 3.13.0
-      tailwind-merge: 3.3.1
-      unist-util-visit: 5.0.0
-    transitivePeerDependencies:
-      - '@types/mdast'
-      - micromark
-      - micromark-util-types
-      - supports-color
-      - unified
-
-  streamdown@1.6.4(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5):
+  streamdown@1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5):
     dependencies:
       clsx: 2.1.1
       hast: 1.0.0
