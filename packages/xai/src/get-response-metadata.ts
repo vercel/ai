@@ -14,9 +14,6 @@ export function getResponseMetadata({
   return {
     id: id ?? undefined,
     modelId: model ?? undefined,
-    timestamp:
-      unixTime != null
-        ? new Date(unixTime * 1000)
-        : undefined,
+    timestamp: unixTime != null ? new Date(unixTime * 1000) : undefined,
   };
 }
