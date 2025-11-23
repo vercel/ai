@@ -34,8 +34,8 @@ export default function Message({
       <div>
         {message.parts
           .filter(part => part.type === 'text')
-          .map(part => (
-            <Streamdown key={part.id}>{part.text}</Streamdown>
+          .map((part, index) => (
+            <Streamdown key={index}>{part.text}</Streamdown>
           ))}
       </div>
       {message.role === 'user' && (
