@@ -124,6 +124,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       ...(options.reasoningEffort != null && {
         reasoning: { effort: options.reasoningEffort },
       }),
+      ...(options.store != null && { store: options.store })
     };
 
     if (xaiTools && xaiTools.length > 0) {

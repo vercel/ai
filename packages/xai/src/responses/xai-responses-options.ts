@@ -15,6 +15,11 @@ export const xaiResponsesProviderOptions = z.object({
    * Possible values are `low` (uses fewer reasoning tokens), `medium` and `high` (uses more reasoning tokens).
    */
   reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  /**
+   * Whether to store the input message(s) and model response for later retrieval.
+   * @default true
+   */
+  store: z.boolean().optional(),
 });
 
 export type XaiResponsesProviderOptions = z.infer<

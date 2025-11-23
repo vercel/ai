@@ -7,6 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
+import { XaiResponsesProviderOptions } from './xai-responses-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -199,27 +200,52 @@ describe('XaiResponsesLanguageModel', () => {
         `);
       });
 
-      it('should send reasoning effort', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+      describe('provider options', () => {
+        it('reasoningEffort', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
 
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: {
-            xai: {
-              reasoningEffort: 'high',
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'high',
+              } satisfies XaiResponsesProviderOptions,
             },
-          },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('high');
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.reasoning.effort).toBe('high');
+        it('store', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                store: false,
+              } satisfies XaiResponsesProviderOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.store).toBe(false);
+        });
       });
 
       it('should warn about unsupported stopSequences', async () => {
