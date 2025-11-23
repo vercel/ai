@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
 ## Client
 
-Finally, on the client, use the `useChat` hook to manage the chat state and render the chat interface. You can use the `Markdown` component to render the message contents in Markdown format without compromising on performance. Additionally, you can render the form in its own component so as to not trigger unnecessary re-renders of the chat messages. You can also use the `experimental_throttle` option that will throttle data updates to a specified interval, helping to manage rendering performance.
+Finally, on the client, use the `useChat` hook to manage the chat state and render the chat interface. You can use the `Streamdown` component to render the message contents in Markdown format without compromising on performance. Additionally, you can render the form in its own component so as to not trigger unnecessary re-renders of the chat messages. You can also use the `experimental_throttle` option that will throttle data updates to a specified interval, helping to manage rendering performance.
 
 Streamdown creates a memoized markdown component that will take in raw Markdown text into blocks and only updates when the content actually changes. This component splits Markdown content into blocks to identify discrete Markdown elements, then uses React's memoization features to optimize re-rendering by only updating blocks that have actually changed.
 
