@@ -224,7 +224,31 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
-        it('store', async () => {
+        it('store:true', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                store: true,
+              } satisfies XaiResponsesProviderOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.store).toBe(undefined);
+          expect(requestBody.include).toBe(undefined);
+        });
+
+        it('store:false', async () => {
           prepareJsonResponse({
             id: 'resp_123',
             object: 'response',
@@ -245,6 +269,7 @@ describe('XaiResponsesLanguageModel', () => {
 
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.store).toBe(false);
+          expect(requestBody.include).toStrictEqual(['reasoning.encrypted_content']);
         });
 
         it('previousResponseId', async () => {
