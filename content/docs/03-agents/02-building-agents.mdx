@@ -26,7 +26,7 @@ Define an agent by instantiating the Agent class with your desired configuration
 import { Experimental_Agent as Agent } from 'ai';
 
 const myAgent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   system: 'You are a helpful assistant.',
   tools: {
     // Your tools here
@@ -44,7 +44,7 @@ The Agent class accepts all the same settings as `generateText` and `streamText`
 import { Experimental_Agent as Agent } from 'ai';
 
 const agent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   system: 'You are an expert software engineer.',
 });
 ```
@@ -58,7 +58,7 @@ import { Experimental_Agent as Agent, tool } from 'ai';
 import { z } from 'zod';
 
 const codeAgent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   tools: {
     runCode: tool({
       description: 'Execute Python code',
@@ -84,7 +84,7 @@ To let agents call multiple tools in sequence, configure `stopWhen` to allow mor
 import { Experimental_Agent as Agent, stepCountIs } from 'ai';
 
 const agent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   stopWhen: stepCountIs(20), // Allow up to 20 steps
 });
 ```
@@ -100,7 +100,7 @@ You can combine multiple conditions:
 import { Experimental_Agent as Agent, stepCountIs } from 'ai';
 
 const agent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   stopWhen: [
     stepCountIs(20), // Maximum 20 steps
     yourCustomCondition(), // Custom logic for when to stop
@@ -118,7 +118,7 @@ Control how the agent uses tools:
 import { Experimental_Agent as Agent } from 'ai';
 
 const agent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   tools: {
     // your tools here
   },
@@ -134,7 +134,7 @@ You can also force the use of a specific tool:
 import { Experimental_Agent as Agent } from 'ai';
 
 const agent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   tools: {
     weather: weatherTool,
     cityAttractions: attractionsTool,
@@ -155,7 +155,7 @@ import { Experimental_Agent as Agent, Output, stepCountIs } from 'ai';
 import { z } from 'zod';
 
 const analysisAgent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   experimental_output: Output.object({
     schema: z.object({
       sentiment: z.enum(['positive', 'neutral', 'negative']),
@@ -181,7 +181,7 @@ Set the agent's role and expertise:
 
 ```ts
 const agent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   system:
     'You are an expert data analyst. You provide clear insights from complex data.',
 });
@@ -193,7 +193,7 @@ Provide specific guidelines for agent behavior:
 
 ```ts
 const codeReviewAgent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   system: `You are a senior software engineer conducting code reviews.
 
   Your approach:
@@ -211,7 +211,7 @@ Set boundaries and ensure consistent behavior:
 
 ```ts
 const customerSupportAgent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   system: `You are a customer support specialist for an e-commerce platform.
 
   Rules:
@@ -234,7 +234,7 @@ Guide how the agent should use available tools:
 
 ```ts
 const researchAgent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   system: `You are a research assistant with access to search and document tools.
 
   When researching:
@@ -257,7 +257,7 @@ Control the output format and communication style:
 
 ```ts
 const technicalWriterAgent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   system: `You are a technical documentation writer.
 
   Writing style:

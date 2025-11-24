@@ -75,7 +75,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = await streamText({
-    model: openai('gpt-4.1'),
+    model: 'anthropic/claude-sonnet-4.5',
     messages,
   });
 
@@ -103,7 +103,7 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
 
   return render({
     provider: openai,
-    model: 'gpt-4.1',
+    model: openai('gpt-4.1'),
     messages: [
       { role: 'system', content: 'You are a helpful assistant' },
       { role: 'user', content: userInput },
@@ -141,7 +141,7 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
   'use server';
 
   const result = await streamUI({
-    model: openai('gpt-4.1'),
+    model: openai('gpt-5'),
     system: 'You are a helpful assistant',
     messages: [{ role: 'user', content: userInput }],
     text: ({ content }) => <p>{content}</p>,
