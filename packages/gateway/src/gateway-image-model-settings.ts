@@ -7,4 +7,3 @@ export type GatewayImageModelId =
   | 'bfl/flux-pro-1.1'
   | 'bfl/flux-pro-1.1-ultra'
   | (string & {});
-  
