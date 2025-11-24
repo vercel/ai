@@ -341,7 +341,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "model": "claude-sonnet-4-5",
             "tool_choice": {
               "disable_parallel_tool_use": true,
-              "type": "any",
+              "name": "json",
+              "type": "tool",
             },
             "tools": [
               {
@@ -440,26 +441,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "model": "claude-3-haiku-20240307",
             "tool_choice": {
               "disable_parallel_tool_use": true,
-              "type": "any",
+              "name": "json",
+              "type": "tool",
             },
             "tools": [
-              {
-                "description": "Get the weather in a location",
-                "input_schema": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "additionalProperties": false,
-                  "properties": {
-                    "location": {
-                      "type": "string",
-                    },
-                  },
-                  "required": [
-                    "location",
-                  ],
-                  "type": "object",
-                },
-                "name": "get-weather",
-              },
               {
                 "description": "Respond with a JSON object.",
                 "input_schema": {
@@ -490,17 +475,15 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "{"location":"San Francisco"}",
-              "toolCallId": "toolu_01PQjhxo3eirCdKNvCJrKc8f",
-              "toolName": "weather",
-              "type": "tool-call",
+              "text": "{"location":"San Francisco"}",
+              "type": "text",
             },
           ]
         `);
       });
 
       it('should send tool-calls finish reason', async () => {
-        expect(result.finishReason).toBe('tool-calls');
+        expect(result.finishReason).toBe('stop');
       });
     });
 
@@ -2920,7 +2903,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "stream": true,
             "tool_choice": {
               "disable_parallel_tool_use": true,
-              "type": "any",
+              "name": "json",
+              "type": "tool",
             },
             "tools": [
               {
@@ -3052,7 +3036,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "stream": true,
             "tool_choice": {
               "disable_parallel_tool_use": true,
-              "type": "any",
+              "name": "json",
+              "type": "tool",
             },
             "tools": [
               {
@@ -3088,6 +3073,14 @@ describe('AnthropicMessagesLanguageModel', () => {
               "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
               "modelId": "claude-haiku-4-5-20251001",
               "type": "response-metadata",
+            },
+            {
+              "id": "0",
+              "type": "text-start",
+            },
+            {
+              "id": "0",
+              "type": "text-end",
             },
             {
               "id": "1",
@@ -3164,7 +3157,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             },
           ],
-        };
+        });
 
         const { stream } = await model.doStream({
           prompt: TEST_PROMPT,
@@ -3202,28 +3195,23 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
             "model": "claude-3-haiku-20240307",
             "stream": true,
-            "tool_choice": {
-              "disable_parallel_tool_use": true,
-              "name": "json",
-              "type": "tool",
-            },
             "tools": [
               {
-                "description": "Respond with a JSON object.",
+                "description": "Get the weather in a location",
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
                   "properties": {
-                    "name": {
+                    "location": {
                       "type": "string",
                     },
                   },
                   "required": [
-                    "name",
+                    "location",
                   ],
                   "type": "object",
                 },
-                "name": "json",
+                "name": "weather",
               },
             ],
           }
@@ -3238,8 +3226,8 @@ describe('AnthropicMessagesLanguageModel', () => {
               "warnings": [],
             },
             {
-              "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
-              "modelId": "claude-3-haiku-20240307",
+              "id": "msg_01CD3XaZfhNabxRt1SG5ybtK",
+              "modelId": "claude-haiku-4-5-20251001",
               "type": "response-metadata",
             },
             {
@@ -3247,61 +3235,45 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text-start",
             },
             {
+              "delta": "{"location": "San Francisco",
               "id": "0",
-              "type": "text-end",
-            },
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "delta": "{"value",
-              "id": "1",
               "type": "text-delta",
             },
             {
-              "delta": "":",
-              "id": "1",
+              "delta": ""}",
+              "id": "0",
               "type": "text-delta",
             },
             {
-              "delta": ""Spark",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": "le",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": " Day"}",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
+              "id": "0",
               "type": "text-end",
             },
             {
               "finishReason": "stop",
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
+                  "cacheCreationInputTokens": 0,
                   "container": null,
                   "stopSequence": null,
                   "usage": {
-                    "input_tokens": 441,
-                    "output_tokens": 65,
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 843,
+                    "output_tokens": 28,
+                    "service_tier": "standard",
                   },
                 },
               },
               "type": "finish",
               "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 441,
-                "outputTokens": 65,
-                "totalTokens": 506,
+                "cachedInputTokens": 0,
+                "inputTokens": 843,
+                "outputTokens": 28,
+                "totalTokens": 871,
               },
             },
           ]
