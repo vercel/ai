@@ -176,6 +176,32 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Reasoning section](#reasoning) for more details.
 
+- `effort` _"high" | "medium" | "low"_
+
+  Optional. See [Effort section](#effort) for more details.
+
+### Effort
+
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
+
+```ts highlight="8-10"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, usage } = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      effort: 'low',
+    } satisfies AnthropicProviderOptions,
+  },
+});
+
+console.log(text); // resulting text
+console.log(usage); // token usage
+```
+
 ### Reasoning
 
 Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-3-7-sonnet-20250219` models.
@@ -836,6 +862,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

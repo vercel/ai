@@ -249,6 +249,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(isThinking && {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
+      ...(anthropicOptions?.effort && {
+        output_config: { effort: anthropicOptions.effort },
+      }),
 
       // container with agent skills:
       ...(anthropicOptions?.container && {
@@ -341,6 +344,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           message: 'code execution tool is required when using skills',
         });
       }
+    }
+
+    if (anthropicOptions?.effort) {
+      betas.add('effort-2025-11-24');
     }
 
     const {
@@ -1360,7 +1367,20 @@ function getMaxOutputTokensForModel(modelId: string): {
   maxOutputTokens: number;
   knownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-sonnet-4-5')) {
+    return {
+      maxOutputTokens: 64000,
+      knownModel: true,
+    };
+  } else if (
+    modelId.includes('claude-opus-4-1') ||
+    modelId.includes('claude-opus-4-5')
+  ) {
+    return {
+      maxOutputTokens: 32000,
+      knownModel: true,
+    };
+  } else if (
     modelId.includes('claude-sonnet-4-') ||
     modelId.includes('claude-3-7-sonnet') ||
     modelId.includes('claude-haiku-4-5')

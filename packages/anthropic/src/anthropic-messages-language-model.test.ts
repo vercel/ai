@@ -2461,6 +2461,50 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.warnings).toMatchInlineSnapshot(`[]`);
       });
     });
+
+    it('should set effort', async () => {
+      prepareJsonResponse({});
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            effort: 'medium',
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+          "output_config": {
+            "effort": "medium",
+          },
+        }
+      `);
+      expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "anthropic-beta": "effort-2025-11-24",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "x-api-key": "test-api-key",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
   });
 
   describe('doStream', () => {
