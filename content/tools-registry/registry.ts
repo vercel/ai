@@ -115,4 +115,39 @@ console.log(text);`,
     websiteUrl: 'https://parallel.ai',
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
   },
+  {
+    slug: 'kernel',
+    name: 'Kernel',
+    description:
+      'Kernel provides crazy fast browser infrastructure. The playwrightExecuteTool allows an LLM to execute Playwright code using the Kernel Playwright execution API.',
+    packageName: '@onkernel/ai-sdk',
+    tags: ['browsers', 'playwright'],
+    apiKeyEnvName: 'KERNEL_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @onkernel/ai-sdk',
+      npm: 'npm install @onkernel/ai-sdk',
+      yarn: 'yarn add @onkernel/ai-sdk',
+      bun: 'bun add @onkernel/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway } from 'ai';
+import { playwrightExecuteTool } from '@onkernel/ai-sdk';
+import Kernel from '@onkernel/sdk';
+
+const client = new Kernel({ apiKey: process.env.KERNEL_API_KEY });
+const browser = await client.browsers.create({});
+const sessionId = browser.session_id;
+
+const { text } = await generateText({
+  model: gateway('google/gemini-3-pro-preview'),
+  prompt: 'Open https://news.ycombinator.com and give me the top 5 stories.',
+  tools: {
+    playwrightExecute: playwrightExecuteTool({ client, sessionId }),
+  },
+});
+
+console.log(text);`,
+    apiKeyUrl: 'https://docs.onkernel.com',
+    websiteUrl: 'https://www.onkernel.com',
+    npmUrl: 'https://www.npmjs.com/package/@onkernel/ai-sdk',
+  },
 ];
