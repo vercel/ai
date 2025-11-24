@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 2.0.47
+
+### Patch Changes
+
+- 3a7a427: 'fix(anthropic): Opus 4.5 `maxOutputTokens` bump `32000` -> `64000`'
+
+## 2.0.46
+
+### Patch Changes
+
+- 54a0480: Opus 4.5 and `effort` provider option
+
 ## 2.0.45
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.36
+
+### Patch Changes
+
+- 97b820b: fix(xai): responses model fixes
+
 ## 2.0.35
 
 ### Patch Changes

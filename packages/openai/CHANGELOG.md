@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.72
+
+### Patch Changes
+
+- 53d2fcc: added support for external_web_access parameter on web_search tool
+
 ## 2.0.71
 
 ### Patch Changes
