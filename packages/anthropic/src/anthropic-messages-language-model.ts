@@ -243,6 +243,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(isThinking && {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
+      ...(anthropicOptions?.effort && {
+        output_config: { effort: anthropicOptions.effort },
+      }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
@@ -359,6 +362,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           message: 'code execution tool is required when using skills',
         });
       }
+    }
+
+    if (anthropicOptions?.effort) {
+      betas.add('effort-2025-11-24');
     }
 
     // only when streaming: enable fine-grained tool streaming
