@@ -360,6 +360,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       modelId: this.modelId,
     });
 
+    const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
+
     const {
       responseHeaders,
       value: response,
@@ -408,7 +410,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'reasoning' as const,
               text: summary.text,
               providerMetadata: {
-                openai: {
+                [providerKey]: {
                   itemId: part.id,
                   reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
@@ -448,7 +450,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               action: part.action,
             } satisfies InferSchema<typeof localShellInputSchema>),
             providerMetadata: {
-              openai: {
+              [providerKey]: {
                 itemId: part.id,
               },
             },
@@ -477,7 +479,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                openai: providerMetadata,
+                [providerKey]: providerMetadata,
               },
             });
 
@@ -501,7 +503,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   ...(annotation.file_id
                     ? {
                         providerMetadata: {
-                          openai: {
+                          [providerKey]: {
                             fileId: annotation.file_id,
                           },
                         },
@@ -518,7 +520,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     annotation.filename ?? annotation.file_id ?? 'Document',
                   filename: annotation.filename ?? annotation.file_id,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       fileId: annotation.file_id,
                       containerId: annotation.container_id,
                       ...(annotation.index != null
@@ -536,7 +538,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   title: annotation.file_id,
                   filename: annotation.file_id,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       fileId: annotation.file_id,
                       ...(annotation.index != null
                         ? { index: annotation.index }
@@ -560,7 +562,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: part.name,
             input: part.arguments,
             providerMetadata: {
-              openai: {
+              [providerKey]: {
                 itemId: part.id,
               },
             },
@@ -745,15 +747,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     }
 
     const providerMetadata: SharedV3ProviderMetadata = {
-      openai: { responseId: response.id },
+      [providerKey]: { responseId: response.id },
     };
 
     if (logprobs.length > 0) {
-      providerMetadata.openai.logprobs = logprobs;
+      providerMetadata[providerKey].logprobs = logprobs;
     }
 
     if (typeof response.service_tier === 'string') {
-      providerMetadata.openai.serviceTier = response.service_tier;
+      providerMetadata[providerKey].serviceTier = response.service_tier;
     }
 
     const usage = response.usage!; // defined when there is no error
@@ -815,6 +817,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     });
 
     const self = this;
+    const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
     const usage: LanguageModelV3Usage = {
@@ -986,7 +989,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'text-start',
                   id: value.item.id,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       itemId: value.item.id,
                     },
                   },
@@ -1004,7 +1007,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-start',
                   id: `${value.item.id}:0`,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       itemId: value.item.id,
                       reasoningEncryptedContent:
                         value.item.encrypted_content ?? null,
@@ -1031,7 +1034,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: value.item.name,
                   input: value.item.arguments,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       itemId: value.item.id,
                     },
                   },
@@ -1186,7 +1189,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     },
                   } satisfies InferSchema<typeof localShellInputSchema>),
                   providerMetadata: {
-                    openai: { itemId: value.item.id },
+                    [providerKey]: { itemId: value.item.id },
                   },
                 });
               } else if (value.item.type === 'reasoning') {
@@ -1208,7 +1211,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     type: 'reasoning-end',
                     id: `${value.item.id}:${summaryIndex}`,
                     providerMetadata: {
-                      openai: {
+                      [providerKey]: {
                         itemId: value.item.id,
                         reasoningEncryptedContent:
                           value.item.encrypted_content ?? null,
@@ -1315,7 +1318,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: `${value.item_id}:${summaryIndex}`,
-                      providerMetadata: { openai: { itemId: value.item_id } },
+                      providerMetadata: {
+                        [providerKey]: { itemId: value.item_id },
+                      },
                     });
                     activeReasoningPart.summaryParts[summaryIndex] =
                       'concluded';
@@ -1326,7 +1331,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-start',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       itemId: value.item_id,
                       reasoningEncryptedContent:
                         activeReasoning[value.item_id]?.encryptedContent ??
@@ -1341,7 +1346,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 id: `${value.item_id}:${value.summary_index}`,
                 delta: value.delta,
                 providerMetadata: {
-                  openai: {
+                  [providerKey]: {
                     itemId: value.item_id,
                   },
                 },
@@ -1354,7 +1359,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-end',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    openai: { itemId: value.item_id },
+                    [providerKey]: { itemId: value.item_id },
                   },
                 });
 
@@ -1413,7 +1418,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   ...(value.annotation.file_id
                     ? {
                         providerMetadata: {
-                          openai: {
+                          [providerKey]: {
                             fileId: value.annotation.file_id,
                           },
                         },
@@ -1433,7 +1438,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   filename:
                     value.annotation.filename ?? value.annotation.file_id,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       fileId: value.annotation.file_id,
                       containerId: value.annotation.container_id,
                       ...(value.annotation.index != null
@@ -1451,7 +1456,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   title: value.annotation.file_id,
                   filename: value.annotation.file_id,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       fileId: value.annotation.file_id,
                       ...(value.annotation.index != null
                         ? { index: value.annotation.index }
@@ -1468,7 +1473,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 type: 'text-end',
                 id: value.item.id,
                 providerMetadata: {
-                  openai: {
+                  [providerKey]: {
                     itemId: value.item.id,
                     ...(ongoingAnnotations.length > 0 && {
                       annotations: ongoingAnnotations,
@@ -1483,17 +1488,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
           flush(controller) {
             const providerMetadata: SharedV3ProviderMetadata = {
-              openai: {
+              [providerKey]: {
                 responseId,
               },
             };
 
             if (logprobs.length > 0) {
-              providerMetadata.openai.logprobs = logprobs;
+              providerMetadata[providerKey].logprobs = logprobs;
             }
 
             if (serviceTier !== undefined) {
-              providerMetadata.openai.serviceTier = serviceTier;
+              providerMetadata[providerKey].serviceTier = serviceTier;
             }
 
             controller.enqueue({
