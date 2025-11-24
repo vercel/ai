@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- 983e394: chore(provider/anthropic): add missing provider options jsdoc
+
 ## 3.0.0-beta.55
 
 ### Patch Changes
