@@ -803,7 +803,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "anthropic": {
             "cacheCreationInputTokens": null,
             "container": null,
-            "context_management": null,
+            "contextManagement": null,
             "stopSequence": "STOP",
             "usage": {
               "input_tokens": 4,
@@ -1118,7 +1118,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
-              "context_management": null,
+              "contextManagement": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
@@ -1255,7 +1255,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
-              "context_management": null,
+              "contextManagement": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation": {
@@ -3051,7 +3051,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT
         });
 
-        expect(result.providerMetadata?.anthropic?.context_management).toEqual({
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
           appliedEdits: [{
             type: 'clear_tool_uses_20250919',
             clearedToolUses: 5,
@@ -3168,7 +3168,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
-                  "context_management": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3301,7 +3301,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
-                  "context_management": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3479,7 +3479,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "anthropic": {
                     "cacheCreationInputTokens": 0,
                     "container": null,
-                    "context_management": null,
+                    "contextManagement": null,
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -3665,7 +3665,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
-                "context_management": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3765,7 +3765,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
-                "context_management": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3847,7 +3847,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
-                "context_management": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3915,7 +3915,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
-                "context_management": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -4051,7 +4051,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
-                "context_management": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 441,
@@ -4262,7 +4262,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
-                "context_management": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -4337,7 +4337,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
-                "context_management": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation": {
@@ -4442,7 +4442,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
-                  "context_management": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -4491,7 +4491,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
-                  "context_management": null,
+                  "contextManagement": null,
                   "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
@@ -4727,7 +4727,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
-                  "context_management": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
