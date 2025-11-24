@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.41
+
+### Patch Changes
+
+- 248b540: fix(xai): responses model fixes
+
 ## 3.0.0-beta.40
 
 ### Patch Changes
