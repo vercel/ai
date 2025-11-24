@@ -2994,7 +2994,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             anthropic: {
-              context_management: {
+              contextManagement: {
                 edits: [{ type: 'clear_tool_uses_20250919' }]
               }
             }
@@ -3015,7 +3015,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             anthropic: {
-              context_management: {
+              contextManagement: {
                 edits: [{ type: 'clear_tool_uses_20250919' }]
               }
             }
