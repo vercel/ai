@@ -119,7 +119,7 @@ console.log(text);`,
     slug: 'tavily',
     name: 'Tavily',
     description:
-      'Tavily . Search, Extract, Crawl, and Map',
+      'Tavily is a web intelligence platform offering real-time web search optimized for AI applications. Tavily provides comprehensive web research capabilities including search, content extraction, website crawling, and site mapping to power AI agents with current information.',
     packageName: '@tavily/ai-sdk',
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'TAVILY_API_KEY',
