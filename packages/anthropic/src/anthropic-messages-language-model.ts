@@ -206,12 +206,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
-    const useStructuredOutput = supportsStructuredOutput;
+    const structureOutputMode =
+      anthropicOptions?.structuredOutputMode ?? 'auto';
+    const useStructuredOutput =
+      structureOutputMode === 'outputFormat' ||
+      (structureOutputMode === 'auto' && supportsStructuredOutput);
 
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !supportsStructuredOutput
+      !useStructuredOutput
         ? {
             type: 'function',
             name: 'json',
