@@ -4698,6 +4698,11 @@ describe('streamText', () => {
               "value": "test",
             },
             "output": "test-result",
+            "providerMetadata": {
+              "provider": {
+                "custom": "value",
+              },
+            },
             "toolCallId": "2",
             "toolName": "tool1",
             "type": "tool-result",

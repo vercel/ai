@@ -13,7 +13,7 @@ Unlike single-step calls like `generateText()`, an agent can iteratively invoke 
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5.1',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
@@ -225,6 +225,13 @@ const result = await agent.generate({
       type: 'Array<ModelMessage>',
       description: 'A full conversation history as a list of model messages.',
     },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal that can be used to cancel the call.',
+    },
   ]}
 />
 
@@ -258,6 +265,20 @@ for await (const chunk of stream.textStream) {
       type: 'Array<ModelMessage>',
       description: 'A full conversation history as a list of model messages.',
     },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'An optional abort signal that can be used to cancel the call.',
+    },
+    {
+      name: 'experimental_transform',
+      type: 'StreamTextTransform | Array<StreamTextTransform>',
+      isOptional: true,
+      description:
+        'Optional stream transformation(s). They are applied in the order provided and must maintain the stream structure. See `streamText` docs for details.',
+    },
   ]}
 />
 
@@ -271,15 +292,47 @@ The `stream()` method returns a `StreamTextResult` object (see [`streamText`](/d
 
 Infers the UI message type for the given agent instance. Useful for type-safe UI and message exchanges.
 
+#### Basic Example
+
 ```ts
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 const weatherAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5.1',
   tools: { weather: weatherTool },
 });
 
 type WeatherAgentUIMessage = InferAgentUIMessage<typeof weatherAgent>;
+```
+
+#### Example with Message Metadata
+
+You can provide a second type argument to customize the metadata for each message. This is useful for tracking rich metadata returned by the agent (such as createdAt, tokens, finish reason, etc.).
+
+```ts
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
+import { z } from 'zod';
+
+// Example schema for message metadata
+const exampleMetadataSchema = z.object({
+  createdAt: z.number().optional(),
+  model: z.string().optional(),
+  totalTokens: z.number().optional(),
+  finishReason: z.string().optional(),
+});
+type ExampleMetadata = z.infer<typeof exampleMetadataSchema>;
+
+// Define agent as usual
+const metadataAgent = new ToolLoopAgent({
+  model: 'openai/gpt-5.1',
+  // ...other options
+});
+
+// Type-safe UI message type with custom metadata
+type MetadataAgentUIMessage = InferAgentUIMessage<
+  typeof metadataAgent,
+  ExampleMetadata
+>;
 ```
 
 ## Examples
@@ -291,7 +344,7 @@ import { ToolLoopAgent, stepCountIs } from 'ai';
 import { weatherTool, calculatorTool } from './tools';
 
 const assistant = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5.1',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
@@ -312,7 +365,7 @@ console.log(result.steps); // Array of all steps taken by the agent
 
 ```ts
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5.1',
   instructions: 'You are a creative storyteller.',
 });
 
@@ -331,7 +384,7 @@ for await (const chunk of stream.textStream) {
 import { z } from 'zod';
 
 const analysisAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5.1',
   output: {
     schema: z.object({
       sentiment: z.enum(['positive', 'negative', 'neutral']),
@@ -356,7 +409,7 @@ import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-5.1',
   instructions: 'You are an agent with access to a weather API.',
   tools: {
     weather: openai.tools.weather({

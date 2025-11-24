@@ -1,5 +1,21 @@
 # @ai-sdk/deepgram
 
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 2.0.0-beta.34
+
+### Patch Changes
+
+- f118108: feat(deepgram): add text-to-speech support
+
+  Add text-to-speech support for Deepgram Aura models via the REST API. Supports all Aura voice models (aura-2-helena-en, aura-2-thalia-en, etc.) with proper audio format validation, encoding/container/sample_rate/bitrate combinations, and comprehensive parameter validation.
+
 ## 2.0.0-beta.33
 
 ### Patch Changes

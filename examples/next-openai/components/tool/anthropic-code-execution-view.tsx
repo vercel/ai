@@ -4,10 +4,12 @@ import { Download } from 'lucide-react';
 
 export default function AnthropicCodeExecutionView({
   invocation,
+  provider = 'anthropic',
 }: {
   invocation: UIToolInvocation<
     ReturnType<typeof anthropic.tools.codeExecution_20250825>
   >;
+  provider?: 'anthropic' | 'anthropic-microsoft';
 }) {
   switch (invocation.state) {
     case 'input-streaming':
@@ -51,7 +53,7 @@ export default function AnthropicCodeExecutionView({
                           key={file.file_id}
                           onClick={() =>
                             window.open(
-                              `/api/code-execution-files/anthropic/${file.file_id}`,
+                              `/api/code-execution-files/${provider}/${file.file_id}`,
                               '_blank',
                             )
                           }

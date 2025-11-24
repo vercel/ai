@@ -1,4 +1,4 @@
-import { UIMessageStreamOptions } from '../generate-text';
+import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
@@ -29,7 +29,11 @@ export async function createAgentUIStreamResponse<
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   messages: unknown[];
+  abortSignal?: AbortSignal;
   options?: CALL_OPTIONS;
+  experimental_transform?:
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>

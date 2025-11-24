@@ -1,5 +1,114 @@
 # ai
 
+## 6.0.0-beta.114
+
+### Patch Changes
+
+- 69768c2: chore(ai): remove UI message reference from model message validation
+
+## 6.0.0-beta.113
+
+### Patch Changes
+
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+
+## 6.0.0-beta.112
+
+### Patch Changes
+
+- e06b663: feat(agent): support experimental stream transforms
+
+## 6.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [e8694af]
+  - @ai-sdk/gateway@2.0.0-beta.61
+
+## 6.0.0-beta.110
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/gateway@2.0.0-beta.60
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 6.0.0-beta.109
+
+### Patch Changes
+
+- 79ba99f: feat(agent): add message metadata support when inferring UI messages
+
+## 6.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [5dd4c6a]
+  - @ai-sdk/gateway@2.0.0-beta.59
+
+## 6.0.0-beta.107
+
+### Patch Changes
+
+- 8445d70: feat: export GatewayModelId and use to type LanguageModel
+
+## 6.0.0-beta.106
+
+### Patch Changes
+
+- Updated dependencies [1425df5]
+  - @ai-sdk/gateway@2.0.0-beta.58
+
+## 6.0.0-beta.105
+
+### Patch Changes
+
+- Updated dependencies [bca7e61]
+  - @ai-sdk/gateway@2.0.0-beta.57
+
+## 6.0.0-beta.104
+
+### Patch Changes
+
+- 2d166e4: feat(provider/gateway): add support for image models
+- Updated dependencies [2d166e4]
+  - @ai-sdk/gateway@2.0.0-beta.56
+
+## 6.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [cc5170d]
+  - @ai-sdk/gateway@2.0.0-beta.55
+
+## 6.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [5f66123]
+  - @ai-sdk/gateway@2.0.0-beta.54
+
+## 6.0.0-beta.101
+
+### Patch Changes
+
+- Updated dependencies [3782645]
+  - @ai-sdk/gateway@2.0.0-beta.53
+
+## 6.0.0-beta.100
+
+### Patch Changes
+
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+
+## 6.0.0-beta.99
+
+### Patch Changes
+
+- 384142c: feat(agent): add abortSignal parameter to generate and stream
+
 ## 6.0.0-beta.98
 
 ### Patch Changes
