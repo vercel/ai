@@ -1506,7 +1506,10 @@ function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: true,
       isKnownModel: true,
     };
-  } else if (modelId.includes('claude-opus-4-1')) {
+  } else if (
+    modelId.includes('claude-opus-4-1') ||
+    modelId.includes('claude-opus-4-5')
+  ) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
