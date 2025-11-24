@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
 ## 3.0.0-beta.54
 
 ### Patch Changes

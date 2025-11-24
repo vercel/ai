@@ -1,5 +1,40 @@
 # ai
 
+## 6.0.0-beta.113
+
+### Patch Changes
+
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+
+## 6.0.0-beta.112
+
+### Patch Changes
+
+- e06b663: feat(agent): support experimental stream transforms
+
+## 6.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [e8694af]
+  - @ai-sdk/gateway@2.0.0-beta.61
+
+## 6.0.0-beta.110
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/gateway@2.0.0-beta.60
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 6.0.0-beta.109
+
+### Patch Changes
+
+- 79ba99f: feat(agent): add message metadata support when inferring UI messages
+
 ## 6.0.0-beta.108
 
 ### Patch Changes

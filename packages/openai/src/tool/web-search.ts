@@ -8,6 +8,7 @@ import { z } from 'zod/v4';
 export const webSearchArgsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      externalWebAccess: z.boolean().optional(),
       filters: z
         .object({ allowedDomains: z.array(z.string()).optional() })
         .optional(),
@@ -115,6 +116,13 @@ export const webSearchToolFactory =
       >;
     },
     {
+      /**
+       * Whether to use external web access for fetching live content.
+       * - true: Fetch live web content (default)
+       * - false: Use cached/indexed results
+       */
+      externalWebAccess?: boolean;
+
       /**
        * Filters for the search.
        */

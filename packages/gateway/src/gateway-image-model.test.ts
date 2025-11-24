@@ -35,10 +35,10 @@ describe('GatewayImageModel', () => {
       expect(model.modelId).toBe(TEST_MODEL_ID);
       expect(model.provider).toBe('gateway');
       expect(model.specificationVersion).toBe('v3');
-      expect(model.maxImagesPerCall).toBe(4);
+      expect(model.maxImagesPerCall).toBe(Number.MAX_SAFE_INTEGER);
     });
 
-    it('should use provider default maxImagesPerCall for BFL models (1)', () => {
+    it('should avoid client-side splitting even for BFL models', () => {
       const model = new GatewayImageModel('bfl/flux-pro-1.1', {
         provider: 'gateway',
         baseURL: 'https://api.test.com',
@@ -47,7 +47,7 @@ describe('GatewayImageModel', () => {
         o11yHeaders: {},
       });
 
-      expect(model.maxImagesPerCall).toBe(1);
+      expect(model.maxImagesPerCall).toBe(Number.MAX_SAFE_INTEGER);
     });
 
     it('should accept custom provider name', () => {
