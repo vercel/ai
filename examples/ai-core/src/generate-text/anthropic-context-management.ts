@@ -116,7 +116,7 @@ async function main() {
 
     console.log('Context Management:');
     console.log(JSON.stringify(
-        result.providerMetadata?.anthropic?.context_management,
+        result.providerMetadata?.anthropic?.contextManagement,
         null,
         2
     ));
