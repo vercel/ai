@@ -24,7 +24,7 @@ import { Experimental_Agent as Agent, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 
 const weatherAgent = new Agent({
-  model: 'openai/gpt-4o',
+  model: 'openai/gpt-5.1',
   tools: {
     weather: tool({
       description: 'Get the weather in a location (in Fahrenheit)',
