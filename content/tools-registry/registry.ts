@@ -134,7 +134,7 @@ import { tavilySearch } from '@tavily/ai-sdk';
 
 const { text } = await generateText({
   model: gateway('google/gemini-3-pro-preview'),
-  prompt: 'Who is Leo Messi?',
+  prompt: 'What are the latest developments in agentic search?',
   tools: {
     webSearch: tavilySearch(),
   },
