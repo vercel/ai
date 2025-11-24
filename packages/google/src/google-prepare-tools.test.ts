@@ -35,15 +35,17 @@ it('should correctly prepare function tools', () => {
     ],
     modelId: 'gemini-2.5-flash',
   });
-  expect(result.tools).toEqual({
-    functionDeclarations: [
-      {
-        name: 'testFunction',
-        description: 'A test function',
-        parameters: undefined,
-      },
-    ],
-  });
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: undefined,
+        },
+      ],
+    },
+  ]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
@@ -243,15 +245,17 @@ it('should handle tool choice "none"', () => {
     toolChoice: { type: 'none' },
     modelId: 'gemini-2.5-flash',
   });
-  expect(result.tools).toEqual({
-    functionDeclarations: [
-      {
-        name: 'testFunction',
-        description: 'Test',
-        parameters: {},
-      },
-    ],
-  });
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'Test',
+          parameters: {},
+        },
+      ],
+    },
+  ]);
   expect(result.toolConfig).toEqual({
     functionCallingConfig: { mode: 'NONE' },
   });

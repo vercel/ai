@@ -1,9 +1,13 @@
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
+import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 
+/**
+ * Parameters for calling an agent.
+ */
 export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
   ? { options?: never }
   : { options: CALL_OPTIONS }) &
@@ -46,6 +50,23 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
   };
 
 /**
+ * Parameters for streaming an output from an agent.
+ */
+export type AgentStreamParameters<
+  CALL_OPTIONS,
+  TOOLS extends ToolSet,
+> = AgentCallParameters<CALL_OPTIONS> & {
+  /**
+   * Optional stream transformations.
+   * They are applied in the order they are provided.
+   * The stream transformations must maintain the stream structure for streamText to work correctly.
+   */
+  experimental_transform?:
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
+};
+
+/**
  * An Agent receives a prompt (text or messages) and generates or streams an output
  * that consists of steps, tool calls, data parts, etc.
  *
@@ -84,6 +105,6 @@ export interface Agent<
    * Streams an output from the agent (streaming).
    */
   stream(
-    options: AgentCallParameters<CALL_OPTIONS>,
+    options: AgentStreamParameters<CALL_OPTIONS, TOOLS>,
   ): PromiseLike<StreamTextResult<TOOLS, OUTPUT>>;
 }

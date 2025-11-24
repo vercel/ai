@@ -1,5 +1,20 @@
 # @ai-sdk/huggingface
 
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/openai-compatible@2.0.0-beta.35
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 1.0.0-beta.30
+
+### Patch Changes
+
+- 1bbce64: extract reasoning content
+
 ## 1.0.0-beta.29
 
 ### Patch Changes

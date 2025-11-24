@@ -323,19 +323,6 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should throw error for non-PNG images in assistant messages', async () => {
-    expect(() =>
-      convertToGoogleGenerativeAIMessages([
-        {
-          role: 'assistant',
-          content: [
-            { type: 'file', data: 'AAECAw==', mediaType: 'image/jpeg' },
-          ],
-        },
-      ]),
-    ).toThrow('Only PNG images are supported in assistant messages');
-  });
-
   it('should throw error for URL file data in assistant messages', async () => {
     expect(() =>
       convertToGoogleGenerativeAIMessages([

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const { prompt } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4.1'),
+    model: 'openai/gpt-5.1',
     prompt,
     // forward the abort signal:
     abortSignal: req.signal,
@@ -93,7 +93,7 @@ Unlike `onFinish`, which is called when a stream completes normally, `onAbort` i
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-5.1',
   prompt: 'Write a long story...',
   abortSignal: controller.signal,
   onAbort: ({ steps }) => {
@@ -153,7 +153,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-5.1',
     messages: convertToModelMessages(messages),
     abortSignal: req.signal,
   });
