@@ -346,23 +346,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
     }
 
-<<<<<<< HEAD
-=======
     if (anthropicOptions?.effort) {
       betas.add('effort-2025-11-24');
     }
 
-    // only when streaming: enable fine-grained tool streaming
-    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
-      betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
-
-    // structured output:
-    if (useStructuredOutput) {
-      betas.add('structured-outputs-2025-11-13');
-    }
-
->>>>>>> 83aaad82c (feat(anthropic): Opus 4.5 and `effort` provider option (#10548))
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
