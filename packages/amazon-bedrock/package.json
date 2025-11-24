@@ -44,6 +44,8 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
+    "big-list-of-naughty-strings": "^1.0.0",
+    "fast-check": "^4.3.0",
     "tsup": "^8.3.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
