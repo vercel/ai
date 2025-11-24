@@ -121,7 +121,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       temperature,
       top_p: topP,
       seed,
-      reasoning_effort: options.reasoningEffort,
+      ...(options.reasoningEffort != null && {
+        reasoning: { effort: options.reasoningEffort },
+      }),
+      ...(options.store === false && {
+        store: options.store,
+        include: ['reasoning.encrypted_content'],
+      }),
+      ...(options.previousResponseId != null && {
+        previous_response_id: options.previousResponseId,
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {
@@ -347,6 +356,36 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                 isFirstChunk = false;
               }
               return;
+            }
+
+            if (event.type === 'response.reasoning_summary_part.added') {
+              const blockId = `reasoning-${event.item_id}`;
+
+              controller.enqueue({
+                type: 'reasoning-start',
+                id: blockId,
+              });
+            }
+
+            if (event.type === 'response.reasoning_summary_text.delta') {
+              const blockId = `reasoning-${event.item_id}`;
+
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: blockId,
+                delta: event.delta,
+              });
+
+              return;
+            }
+
+            if (event.type === 'response.reasoning_summary_text.done') {
+              const blockId = `reasoning-${event.item_id}`;
+
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: blockId,
+              });
             }
 
             if (event.type === 'response.output_text.delta') {
