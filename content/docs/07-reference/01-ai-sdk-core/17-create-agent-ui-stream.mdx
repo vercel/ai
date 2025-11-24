@@ -17,7 +17,7 @@ The `createAgentUIStream` function runs an [Agent](/docs/reference/ai-sdk-core/a
 import { ToolLoopAgent, createAgentUIStream } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-5.1',
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are a helpful assistant.',
   tools: { weather: weatherTool, calculator: calculatorTool },
 });

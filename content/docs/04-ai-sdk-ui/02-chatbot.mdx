@@ -80,7 +80,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'openai/gpt-5.1',
+    model: 'anthropic/claude-sonnet-4.5',
     system: 'You are a helpful assistant.',
     messages: convertToModelMessages(messages),
   });
@@ -592,7 +592,7 @@ export async function POST(req: Request) {
   messages.push(message);
 
   const result = streamText({
-    model: 'openai/gpt-5.1',
+    model: 'anthropic/claude-sonnet-4.5',
     messages: convertToModelMessages(messages),
   });
 
@@ -661,7 +661,7 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: 'openai/gpt-5.1',
+    model: 'anthropic/claude-sonnet-4.5',
     messages: convertToModelMessages(messages),
   });
 
@@ -689,7 +689,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'openai/gpt-5.1',
+    model: 'anthropic/claude-sonnet-4.5',
     messages: convertToModelMessages(messages),
   });
 
@@ -744,7 +744,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: MyUIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'openai/gpt-5.1',
+    model: 'anthropic/claude-sonnet-4.5',
     messages: convertToModelMessages(messages),
   });
 
