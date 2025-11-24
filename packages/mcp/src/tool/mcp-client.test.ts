@@ -9,6 +9,7 @@ import {
   ReadResourceResult,
   ListPromptsResult,
   GetPromptResult,
+  Configuration,
 } from './types';
 import { JSONRPCRequest } from './json-rpc-message';
 import {
@@ -538,7 +539,7 @@ describe('MCPClient', () => {
     const originalSend = mockTransport.send.bind(mockTransport);
     mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
       if (message.method === 'initialize' && message.params) {
-        capturedClientInfo = message.params.clientInfo;
+        capturedClientInfo = message.params.clientInfo as Configuration;
       }
       return originalSend(message);
     });
@@ -559,7 +560,7 @@ describe('MCPClient', () => {
     const originalSend = mockTransport.send.bind(mockTransport);
     mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
       if (message.method === 'initialize' && message.params) {
-        capturedClientInfo = message.params.clientInfo;
+        capturedClientInfo = message.params.clientInfo as Configuration;
       }
       return originalSend(message);
     });
