@@ -2941,7 +2941,7 @@ describe('AnthropicMessagesLanguageModel', () => {
   });
 
   describe('doStream', () => {
-    describe('json schema response format', () => {
+    describe('json schema response format (unsupported model)', () => {
       let result: Array<LanguageModelV3StreamPart>;
 
       beforeEach(async () => {
@@ -3205,7 +3205,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format with other tool response', () => {
+    describe('json schema response format with other tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doStream>>;
 
       beforeEach(async () => {
@@ -3379,6 +3379,105 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('json schema response format(supported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doStream>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-sonnet-4-5').doStream({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                characters: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      class: { type: 'string' },
+                      description: { type: 'string' },
+                    },
+                    required: ['name', 'class', 'description'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['characters'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "characters": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "class": {
+                          "type": "string",
+                        },
+                        "description": {
+                          "type": "string",
+                        },
+                        "name": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "name",
+                        "class",
+                        "description",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "characters",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+            "stream": true,
+          }
+        `);
+      });
+
+      it('should stream the text output', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
     });
 
