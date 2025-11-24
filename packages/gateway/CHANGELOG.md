@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.15
+
+### Patch Changes
+
+- c5a42ec: feat(provider/gateway): Server-side image request splitting
+
 ## 2.0.14
 
 ### Patch Changes
