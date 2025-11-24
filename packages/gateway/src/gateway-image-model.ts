@@ -15,13 +15,19 @@ import { z } from 'zod/v4';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
-import { getDefaultMaxImagesPerCallForModel } from './gateway-image-model-settings';
 
+<<<<<<< HEAD
 export class GatewayImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
   get maxImagesPerCall() {
     return getDefaultMaxImagesPerCallForModel(this.modelId) ?? 4;
   }
+=======
+export class GatewayImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3' as const;
+  // Set a very large number to prevent client-side splitting of requests
+  readonly maxImagesPerCall = Number.MAX_SAFE_INTEGER;
+>>>>>>> e8694aff4 (feat(provider/gateway): Server-side image request splitting (#10506))
 
   constructor(
     readonly modelId: string,
