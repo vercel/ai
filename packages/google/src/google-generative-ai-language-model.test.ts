@@ -148,6 +148,40 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].retrievedContext with fileSearchStore (new format)', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Sample content for testing...',
+            fileSearchStore: 'fileSearchStores/test-store-xyz',
+            title: 'Test Document',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with fileSearchStore and missing uri', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Content without uri field',
+            fileSearchStore: 'fileSearchStores/store-abc',
+            // Missing `uri` - should still be valid
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates partial grounding metadata', () => {
     const metadata = {
       webSearchQueries: ['sample query'],
@@ -860,6 +894,182 @@ describe('doGenerate', () => {
               "title": "External RAG Source",
               "type": "source",
               "url": "https://external-rag-source.com/page",
+            },
+          ]
+        `);
+  });
+
+  it('should extract sources from File Search retrievedContext (new format)', async () => {
+    prepareJsonResponse({
+      content: 'test response with File Search',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            retrievedContext: {
+              text: 'Sample content for testing...',
+              fileSearchStore: 'fileSearchStores/test-store-xyz',
+              title: 'Test Document',
+            },
+          },
+          {
+            retrievedContext: {
+              text: 'Another document content...',
+              fileSearchStore: 'fileSearchStores/another-store-abc',
+              // Missing title - should default to 'Unknown Document'
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with File Search",
+              "type": "text",
+            },
+            {
+              "filename": "test-store-xyz",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Test Document",
+              "type": "source",
+            },
+            {
+              "filename": "another-store-abc",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+          ]
+        `);
+  });
+
+  it('should handle URL sources with undefined title correctly', async () => {
+    prepareJsonResponse({
+      content: 'test response with URLs',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: {
+              uri: 'https://example.com/page1',
+              // No title provided
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://example.com/page2',
+              // No title provided
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with URLs",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://example.com/page1",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://example.com/page2",
+            },
+          ]
+        `);
+  });
+
+  it('should handle mixed source types with correct title defaults', async () => {
+    prepareJsonResponse({
+      content: 'test response with mixed sources',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: { uri: 'https://web.example.com' },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://external.example.com',
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'gs://bucket/document.pdf',
+            },
+          },
+          {
+            retrievedContext: {
+              fileSearchStore: 'fileSearchStores/store-123',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with mixed sources",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://web.example.com",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://external.example.com",
+            },
+            {
+              "filename": "document.pdf",
+              "id": "test-id",
+              "mediaType": "application/pdf",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+            {
+              "filename": "store-123",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
             },
           ]
         `);
