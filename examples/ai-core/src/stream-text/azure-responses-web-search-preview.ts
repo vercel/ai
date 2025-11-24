@@ -33,7 +33,7 @@ async function main() {
     switch (part.type) {
       case 'text-end':
         {
-          const annotations = part.providerMetadata?.openai?.annotations;
+          const annotations = part.providerMetadata?.azure?.annotations;
           if (annotations) {
             console.dir(annotations);
           }

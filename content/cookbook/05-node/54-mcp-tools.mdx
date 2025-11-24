@@ -14,7 +14,7 @@ If you prefer to use the official transports (optional), install the official Mo
 
 ```ts
 import {
-  experimental_createMCPClient,
+  experimental_createMCPClient as createMCPClient,
   generateText,
   stepCountIs,
 } from '@ai-sdk/mcp';
@@ -36,12 +36,12 @@ try {
     args: ['src/stdio/dist/server.js'],
   });
 
-  const clientOne = await experimental_createMCPClient({
+  const clientOne = await createMCPClient({
     transport,
   });
 
   // Connect to an HTTP MCP server directly via the client transport config
-  const clientTwo = await experimental_createMCPClient({
+  const clientTwo = await createMCPClient({
     transport: {
       type: 'http',
       url: 'http://localhost:3000/mcp',
@@ -55,7 +55,7 @@ try {
   });
 
   // Connect to a Server-Sent Events (SSE) MCP server directly via the client transport config
-  const clientThree = await experimental_createMCPClient({
+  const clientThree = await createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:3000/sse',
@@ -70,9 +70,9 @@ try {
 
   // Alternatively, you can create transports with the official SDKs instead of direct config:
   // const httpTransport = new StreamableHTTPClientTransport(new URL('http://localhost:3000/mcp'));
-  // clientTwo = await experimental_createMCPClient({ transport: httpTransport });
+  // clientTwo = await createMCPClient({ transport: httpTransport });
   // const sseTransport = new SSEClientTransport(new URL('http://localhost:3000/sse'));
-  // clientThree = await experimental_createMCPClient({ transport: sseTransport });
+  // clientThree = await createMCPClient({ transport: sseTransport });
 
   const toolSetOne = await clientOne.tools();
   const toolSetTwo = await clientTwo.tools();
