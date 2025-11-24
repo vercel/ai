@@ -67,10 +67,10 @@ export const anthropicProviderOptions = z.object({
    * Determines how structured outputs are generated.
    *
    * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
-   * - `tool`: Use a special 'json' tool to specify the structured output format.
+   * - `jsonTool`: Use a special 'json' tool to specify the structured output format.
    * - `auto`: Use 'output_format' when supported, otherwise use 'tool' (default).
    */
-  structuredOutputMode: z.enum(['outputFormat', 'tool', 'auto']).optional(),
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 
   /**
    * Configuration for enabling Claude's extended thinking.

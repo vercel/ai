@@ -293,7 +293,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             anthropic: {
-              structuredOutputMode: 'tool',
+              structuredOutputMode: 'jsonTool',
             } satisfies AnthropicProviderOptions,
           },
           responseFormat: {
