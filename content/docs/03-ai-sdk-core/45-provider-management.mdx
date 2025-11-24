@@ -100,7 +100,7 @@ import {
 
 export const myProvider = customProvider({
   languageModels: {
-    'text-medium': gateway('anthropic/claude-3-5-sonnet-20240620'),
+    'text-medium': gateway('anthropic/claude-sonnet-4.5'),
     'text-small': gateway('openai/gpt-5-mini'),
     'reasoning-medium': wrapLanguageModel({
       model: gateway('openai/gpt-5.1'),
