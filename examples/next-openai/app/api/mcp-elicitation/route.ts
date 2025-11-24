@@ -6,7 +6,10 @@ import {
   convertToModelMessages,
   stepCountIs,
 } from 'ai';
-import { experimental_createMCPClient as createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
+import {
+  experimental_createMCPClient as createMCPClient,
+  ElicitationRequestSchema,
+} from '@ai-sdk/mcp';
 import { MCPElicitationUIMessage } from './types';
 import { createPendingElicitation } from './elicitation-store';
 

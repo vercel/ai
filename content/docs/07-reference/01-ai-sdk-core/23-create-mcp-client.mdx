@@ -130,7 +130,8 @@ This feature is experimental and may change or be removed in the future.
               name: 'capabilities',
               type: 'ClientCapabilities',
               isOptional: true,
-              description: 'Optional client capabilities to advertise during initialization. For example, set { elicitation: {} } to enable handling elicitation requests from the server.',
+              description:
+                'Optional client capabilities to advertise during initialization. For example, set { elicitation: {} } to enable handling elicitation requests from the server.',
             },
           ],
         },
@@ -311,7 +312,8 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
         schema: typeof ElicitationRequestSchema,
         handler: (request: ElicitationRequest) => Promise<ElicitResult> | ElicitResult
       ) => void`,
-      description: 'Registers a handler for elicitation requests from the MCP server. The handler receives requests when the server needs additional input during tool execution.',
+      description:
+        'Registers a handler for elicitation requests from the MCP server. The handler receives requests when the server needs additional input during tool execution.',
       properties: [
         {
           type: 'parameters',
@@ -319,12 +321,14 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
             {
               name: 'schema',
               type: 'typeof ElicitationRequestSchema',
-              description: 'The schema to validate requests against. Must be ElicitationRequestSchema.',
+              description:
+                'The schema to validate requests against. Must be ElicitationRequestSchema.',
             },
             {
               name: 'handler',
               type: '(request: ElicitationRequest) => Promise<ElicitResult> | ElicitResult',
-              description: 'A function that handles the elicitation request. The request contains a message and requestedSchema. The handler must return an object with an action ("accept", "decline", or "cancel") and optionally content when accepting.',
+              description:
+                'A function that handles the elicitation request. The request contains a message and requestedSchema. The handler must return an object with an action ("accept", "decline", or "cancel") and optionally content when accepting.',
             },
           ],
         },

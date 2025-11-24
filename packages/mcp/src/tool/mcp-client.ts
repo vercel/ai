@@ -109,7 +109,9 @@ export interface MCPClient {
 
   onElicitationRequest(
     schema: typeof ElicitationRequestSchema,
-    handler: (request: ElicitationRequest) => Promise<ElicitResult> | ElicitResult,
+    handler: (
+      request: ElicitationRequest,
+    ) => Promise<ElicitResult> | ElicitResult,
   ): void;
 
   close: () => Promise<void>;
@@ -591,7 +593,9 @@ class DefaultMCPClient implements MCPClient {
 
   onElicitationRequest(
     schema: typeof ElicitationRequestSchema,
-    handler: (request: ElicitationRequest) => Promise<ElicitResult> | ElicitResult,
+    handler: (
+      request: ElicitationRequest,
+    ) => Promise<ElicitResult> | ElicitResult,
   ): void {
     if (schema !== ElicitationRequestSchema) {
       throw new MCPClientError({
