@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.113
+
+### Patch Changes
+
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+
 ## 6.0.0-beta.112
 
 ### Patch Changes
