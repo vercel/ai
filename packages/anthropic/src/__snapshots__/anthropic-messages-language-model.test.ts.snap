@@ -15,6 +15,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
         },
       ],
     },
+    "context_management": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -44,6 +45,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "id": "container_011CU6rVteVhydYXRyNs6G1M",
       "skills": null,
     },
+    "context_management": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -290,6 +292,7 @@ Both files have been exported and are ready for download!",
         "id": "container_011CUJar2mdkMcv7daEVAQw2",
         "skills": null,
       },
+      "context_management": null,
       "stopSequence": null,
       "usage": {
         "cache_creation": {
@@ -6055,6 +6058,7 @@ The presentation has",
             },
           ],
         },
+        "context_management": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11098,6 +11102,7 @@ Both",
           "id": "container_011CUJb5Pk4kFWskBpuCjwXj",
           "skills": null,
         },
+        "context_management": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12395,6 +12400,7 @@ The Fibonacci sequence starts with 0, ",
           "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
           "skills": null,
         },
+        "context_management": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12499,6 +12505,7 @@ It simply echoed back",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "context_management": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12898,6 +12905,7 @@ The page also discusses",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "context_management": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -13632,6 +13640,7 @@ The main tech story today appears to be Apple's significant",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "context_management": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {

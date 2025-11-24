@@ -12,7 +12,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
-import { createAnthropic } from './anthropic-provider';
+import { anthropic, createAnthropic } from './anthropic-provider';
 import { Citation } from './anthropic-messages-api';
 
 vi.mock('./version', () => ({
@@ -71,10 +71,10 @@ describe('AnthropicMessagesLanguageModel', () => {
     }: {
       content?: Array<
         | {
-            type: 'text';
-            text: string;
-            citations?: Array<Citation>;
-          }
+          type: 'text';
+          text: string;
+          citations?: Array<Citation>;
+        }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
       >;
@@ -803,6 +803,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "anthropic": {
             "cacheCreationInputTokens": null,
             "container": null,
+            "context_management": null,
             "stopSequence": "STOP",
             "usage": {
               "input_tokens": 4,
@@ -1117,6 +1118,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
+              "context_management": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
@@ -1253,6 +1255,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
+              "context_management": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation": {
@@ -2982,6 +2985,81 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(result.warnings).toStrictEqual([]);
     });
+
+    describe('context management', () => {
+      it('should send context_management in request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              context_management: {
+                edits: [{ type: 'clear_tool_uses_20250919' }]
+              }
+            }
+          }
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [{ type: 'clear_tool_uses_20250919' }]
+          }
+        });
+      });
+
+      it('should add context-management beta header', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              context_management: {
+                edits: [{ type: 'clear_tool_uses_20250919' }]
+              }
+            }
+          }
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain('context-management-2025-06-27');
+      });
+
+      it('should parse context_management from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [{
+                type: 'clear_tool_uses_20250919',
+                cleared_tool_uses: 5,
+                cleared_input_tokens: 10000
+              }]
+            }
+          }
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT
+        });
+
+        expect(result.providerMetadata?.anthropic?.context_management).toEqual({
+          appliedEdits: [{
+            type: 'clear_tool_uses_20250919',
+            clearedToolUses: 5,
+            clearedInputTokens: 10000
+          }]
+        });
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -3090,6 +3168,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
+                  "context_management": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3222,6 +3301,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
+                  "context_management": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3399,6 +3479,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "anthropic": {
                     "cacheCreationInputTokens": 0,
                     "container": null,
+                    "context_management": null,
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -3584,6 +3665,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "context_management": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3683,6 +3765,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "context_management": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3764,6 +3847,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "context_management": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3831,6 +3915,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "context_management": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3966,6 +4051,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "context_management": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 441,
@@ -4128,9 +4214,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],` +
-            `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
-            // send cache output tokens:
-            `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}      }\n\n`,
+          `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
+          // send cache output tokens:
+          `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}      }\n\n`,
           `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
           `data: {"type": "ping"}\n\n`,
           `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${'Hello'}"}              }\n\n`,
@@ -4176,6 +4262,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+                "context_management": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -4202,9 +4289,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],` +
-            `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
-            // send cache output tokens:
-            `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":10}}}}\n\n`,
+          `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
+          // send cache output tokens:
+          `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":10}}}}\n\n`,
           `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
           `data: {"type": "ping"}\n\n`,
           `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${'Hello'}"}              }\n\n`,
@@ -4250,6 +4337,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+                "context_management": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation": {
@@ -4354,6 +4442,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "context_management": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -4402,6 +4491,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "context_management": null,
                   "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
@@ -4637,6 +4727,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "context_management": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
