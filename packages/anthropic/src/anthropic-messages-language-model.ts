@@ -1380,14 +1380,10 @@ function getMaxOutputTokensForModel(modelId: string): {
   maxOutputTokens: number;
   knownModel: boolean;
 } {
-<<<<<<< HEAD
-  if (
-=======
   if (modelId.includes('claude-sonnet-4-5')) {
     return {
       maxOutputTokens: 64000,
-      supportsStructuredOutput: true,
-      isKnownModel: true,
+      knownModel: true,
     };
   } else if (
     modelId.includes('claude-opus-4-1') ||
@@ -1395,11 +1391,9 @@ function getMaxOutputTokensForModel(modelId: string): {
   ) {
     return {
       maxOutputTokens: 32000,
-      supportsStructuredOutput: true,
-      isKnownModel: true,
+      knownModel: true,
     };
   } else if (
->>>>>>> 83aaad82c (feat(anthropic): Opus 4.5 and `effort` provider option (#10548))
     modelId.includes('claude-sonnet-4-') ||
     modelId.includes('claude-3-7-sonnet') ||
     modelId.includes('claude-haiku-4-5')

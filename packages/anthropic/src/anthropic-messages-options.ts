@@ -103,24 +103,11 @@ export const anthropicProviderOptions = z.object({
         .optional(),
     })
     .optional(),
-<<<<<<< HEAD
-=======
-
-  /**
-   * Whether to enable tool streaming (and structured output streaming).
-   *
-   * When set to false, the model will return all tool calls and results
-   * at once after a delay.
-   *
-   * @default true
-   */
-  toolStreaming: z.boolean().optional(),
 
   /**
    * @default 'high'
    */
   effort: z.enum(['low', 'medium', 'high']).optional(),
->>>>>>> 83aaad82c (feat(anthropic): Opus 4.5 and `effort` provider option (#10548))
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
