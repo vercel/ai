@@ -25,8 +25,8 @@ import {
   CallToolResultSchema,
   ClientCapabilities,
   Configuration as ClientConfiguration,
-  ElicitRequest,
-  ElicitRequestSchema,
+  ElicitationRequest,
+  ElicitationRequestSchema,
   ElicitResult,
   ElicitResultSchema,
   InitializeResultSchema,
@@ -107,9 +107,9 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
 
-  onRequest(
-    schema: typeof ElicitRequestSchema,
-    handler: (request: ElicitRequest) => Promise<ElicitResult> | ElicitResult,
+  onElicitationRequest(
+    schema: typeof ElicitationRequestSchema,
+    handler: (request: ElicitationRequest) => Promise<ElicitResult> | ElicitResult,
   ): void;
 
   close: () => Promise<void>;
@@ -144,7 +144,7 @@ class DefaultMCPClient implements MCPClient {
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
   private elicitationRequestHandler?: (
-    request: ElicitRequest,
+    request: ElicitationRequest,
   ) => Promise<ElicitResult> | ElicitResult;
 
   constructor({
@@ -589,14 +589,14 @@ class DefaultMCPClient implements MCPClient {
     return this.getPromptInternal({ name, args, options });
   }
 
-  onRequest(
-    schema: typeof ElicitRequestSchema,
-    handler: (request: ElicitRequest) => Promise<ElicitResult> | ElicitResult,
+  onElicitationRequest(
+    schema: typeof ElicitationRequestSchema,
+    handler: (request: ElicitationRequest) => Promise<ElicitResult> | ElicitResult,
   ): void {
-    if (schema !== ElicitRequestSchema) {
+    if (schema !== ElicitationRequestSchema) {
       throw new MCPClientError({
         message:
-          'Unsupported request schema. Only ElicitRequestSchema is supported.',
+          'Unsupported request schema. Only ElicitationRequestSchema is supported.',
       });
     }
 
@@ -629,7 +629,7 @@ class DefaultMCPClient implements MCPClient {
         return;
       }
 
-      const parsedRequest = ElicitRequestSchema.safeParse({
+      const parsedRequest = ElicitationRequestSchema.safeParse({
         method: request.method,
         params: request.params,
       });

@@ -9,7 +9,7 @@ import {
   ReadResourceResult,
   ListPromptsResult,
   GetPromptResult,
-  ElicitRequestSchema,
+  ElicitationRequestSchema,
 } from './types';
 import {
   beforeEach,
@@ -461,7 +461,7 @@ describe('MCPClient', () => {
         },
       }));
 
-      client.onRequest(ElicitRequestSchema, handler);
+      client.onElicitationRequest(ElicitationRequestSchema, handler);
 
       const elicitationRequest = {
         jsonrpc: '2.0' as const,

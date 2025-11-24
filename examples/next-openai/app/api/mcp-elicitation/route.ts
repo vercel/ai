@@ -6,7 +6,7 @@ import {
   convertToModelMessages,
   stepCountIs,
 } from 'ai';
-import { experimental_createMCPClient, ElicitRequestSchema } from '@ai-sdk/mcp';
+import { experimental_createMCPClient as createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import { MCPElicitationUIMessage } from './types';
 import { createPendingElicitation } from './elicitation-store';
 
@@ -32,7 +32,7 @@ async function processMessages(
   writer: any,
 ) {
   // Create MCP client with elicitation capabilities
-  const mcpClient = await experimental_createMCPClient({
+  const mcpClient = await createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:8085/sse',
@@ -43,16 +43,10 @@ async function processMessages(
   });
 
   // Handle elicitation requests from the MCP server
-  mcpClient.onRequest(ElicitRequestSchema, async request => {
+  mcpClient.onElicitationRequest(ElicitationRequestSchema, async request => {
     const elicitationId = `elicit-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}`;
-
-    console.log('[route] ========================================');
-    console.log('[route] NEW ELICITATION REQUEST');
-    console.log('[route] ID:', elicitationId);
-    console.log('[route] Message:', request.params.message);
-    console.log('[route] ========================================');
 
     try {
       // Send elicitation request to the frontend
@@ -69,12 +63,6 @@ async function processMessages(
       // Wait for the user's response (will be resolved via the /respond endpoint)
       const userResponse = await createPendingElicitation(elicitationId);
 
-      console.log('[route] ========================================');
-      console.log('[route] USER RESPONSE RECEIVED');
-      console.log('[route] ID:', elicitationId);
-      console.log('[route] Action:', userResponse.action);
-      console.log('[route] ========================================');
-
       // Return the response in the format expected by the MCP server
       return {
         action: userResponse.action,
@@ -82,12 +70,6 @@ async function processMessages(
           userResponse.action === 'accept' ? userResponse.content : undefined,
       };
     } catch (error) {
-      console.error('[route] ========================================');
-      console.error('[route] ELICITATION ERROR');
-      console.error('[route] ID:', elicitationId);
-      console.error('[route] Error:', error);
-      console.error('[route] ========================================');
-
       // Return a declined response on error
       return {
         action: 'decline' as const,

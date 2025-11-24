@@ -52,6 +52,7 @@ export type RequestOptions = {
 
 export type Notification = z.infer<typeof RequestSchema>;
 
+/** @see https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation */
 const ElicitationCapabilitySchema = z
   .object({
     applyDefaults: z.optional(z.boolean()),
@@ -274,17 +275,17 @@ export const GetPromptResultSchema = ResultSchema.extend({
 });
 export type GetPromptResult = z.infer<typeof GetPromptResultSchema>;
 
-const ElicitRequestParamsSchema = BaseParamsSchema.extend({
+const ElicitationRequestParamsSchema = BaseParamsSchema.extend({
   message: z.string(),
   requestedSchema: z.unknown(),
 });
 
-export const ElicitRequestSchema = RequestSchema.extend({
+export const ElicitationRequestSchema = RequestSchema.extend({
   method: z.literal('elicitation/create'),
-  params: ElicitRequestParamsSchema,
+  params: ElicitationRequestParamsSchema,
 });
 
-export type ElicitRequest = z.infer<typeof ElicitRequestSchema>;
+export type ElicitationRequest = z.infer<typeof ElicitationRequestSchema>;
 
 export const ElicitResultSchema = ResultSchema.extend({
   action: z.union([

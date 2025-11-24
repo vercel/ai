@@ -1,4 +1,4 @@
-import { experimental_createMCPClient, ElicitRequestSchema } from '@ai-sdk/mcp';
+import { experimental_createMCPClient as createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
 import { createInterface } from 'node:readline/promises';
@@ -119,7 +119,7 @@ async function getInputFromUser(
 }
 
 async function main() {
-  const mcpClient = await experimental_createMCPClient({
+  const mcpClient = await createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:8084/sse',
@@ -129,7 +129,7 @@ async function main() {
     },
   });
 
-  mcpClient.onRequest(ElicitRequestSchema, async request => {
+  mcpClient.onElicitationRequest(ElicitationRequestSchema, async request => {
     const userResponse = await getInputFromUser(
       request.params.message,
       request.params.requestedSchema,

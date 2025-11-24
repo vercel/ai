@@ -10,9 +10,9 @@ export {
   type MCPClientConfig as experimental_MCPClientConfig,
   type MCPClient as experimental_MCPClient,
 } from './tool/mcp-client';
-export { ElicitRequestSchema, ElicitResultSchema } from './tool/types';
+export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
-  ElicitRequest,
+  ElicitationRequest,
   ElicitResult,
   ClientCapabilities as experimental_MCPClientCapabilities,
 } from './tool/types';
