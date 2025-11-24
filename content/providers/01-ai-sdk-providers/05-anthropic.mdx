@@ -159,7 +159,7 @@ const result = streamText({
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5`. It affects thinking, text responses, and function calls. It defaults to `high`. You can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
