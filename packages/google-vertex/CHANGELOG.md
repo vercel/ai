@@ -1,5 +1,105 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/google@3.0.0-beta.55
+  - @ai-sdk/anthropic@3.0.0-beta.55
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [bb28cac]
+  - @ai-sdk/google@3.0.0-beta.54
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- 88b2c7e: feat(provider/amazon-bedrock,provider/google-vertex-anthropic): add support for tool calling with structured output
+
+  Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
+
+  **Amazon Bedrock Changes:**
+
+  - Removed incorrect warning that prevented using tools with JSON response format
+  - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
+  - Added `isJsonResponseFromTool` parameter to finish reason mapping
+  - JSON tool responses are correctly converted to text content and finish reason is mapped from `tool_use` to `stop`
+  - Added comprehensive test coverage for combining tools with structured outputs
+  - Added example files demonstrating the feature
+
+  **Google Vertex Anthropic Changes:**
+
+  - Inherits support from underlying Anthropic provider implementation
+  - Added test coverage to verify the feature works correctly
+  - Added example files demonstrating the feature
+
+  This brings Anthropic provider's structured output capabilities to the Amazon Bedrock and Google Vertex Anthropic providers.
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- 33d9327: add `gemini-3-pro-preview` and `gemini-3-pro-image-preview` model IDs
+- Updated dependencies [33d9327]
+  - @ai-sdk/google@3.0.0-beta.53
+
+## 4.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [fff8d59]
+  - @ai-sdk/google@3.0.0-beta.52
+
+## 4.0.0-beta.72
+
+### Patch Changes
+
+- Updated dependencies [8370068]
+  - @ai-sdk/google@3.0.0-beta.51
+
+## 4.0.0-beta.71
+
+### Patch Changes
+
+- Updated dependencies [9be07c8]
+  - @ai-sdk/google@3.0.0-beta.50
+
+## 4.0.0-beta.70
+
+### Patch Changes
+
+- Updated dependencies [8ee8edc]
+  - @ai-sdk/google@3.0.0-beta.49
+
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [6078060]
+  - @ai-sdk/google@3.0.0-beta.48
+
+## 4.0.0-beta.68
+
+### Patch Changes
+
+- Updated dependencies [32a8c82]
+- Updated dependencies [599a97f]
+  - @ai-sdk/google@3.0.0-beta.47
+
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [1d15673]
+  - @ai-sdk/anthropic@3.0.0-beta.54
+
 ## 4.0.0-beta.66
 
 ### Patch Changes

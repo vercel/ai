@@ -1,5 +1,37 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/openai@3.0.0-beta.64
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- 423ba08: Set the annotations from the Responses API to doStream
+- Updated dependencies [423ba08]
+  - @ai-sdk/openai@3.0.0-beta.63
+
+## 3.0.0-beta.64
+
+### Patch Changes
+
+- 64aa48f: Azure OpenAI enabled web-search-preview
+- Updated dependencies [64aa48f]
+  - @ai-sdk/openai@3.0.0-beta.62
+
+## 3.0.0-beta.63
+
+### Patch Changes
+
+- Updated dependencies [23f132b]
+  - @ai-sdk/openai@3.0.0-beta.61
+
 ## 3.0.0-beta.62
 
 ### Patch Changes

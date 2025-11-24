@@ -1,5 +1,20 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/openai-compatible@2.0.0-beta.35
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- 4b4c37b: fix(xai): add cache input tokens
+
 ## 3.0.0-beta.38
 
 ### Patch Changes
