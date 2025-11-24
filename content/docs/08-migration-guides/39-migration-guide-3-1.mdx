@@ -141,7 +141,7 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
   'use server';
 
   const result = await streamUI({
-    model: openai("gpt-5"),
+    model: openai('gpt-5'),
     system: 'You are a helpful assistant',
     messages: [{ role: 'user', content: userInput }],
     text: ({ content }) => <p>{content}</p>,
