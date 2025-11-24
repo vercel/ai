@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 0.0.9
+
+### Patch Changes
+
+- 89b59d7: feat(mcp): add client elicitation support
+
 ## 0.0.8
 
 ### Patch Changes
