@@ -115,4 +115,36 @@ console.log(text);`,
     websiteUrl: 'https://parallel.ai',
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
   },
+  {
+    slug: 'tavily',
+    name: 'Tavily',
+    description:
+      'Tavily . Search, Extract, Crawl, and Map',
+    packageName: '@tavily/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'TAVILY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @tavily/ai-sdk',
+      npm: 'npm install @tavily/ai-sdk',
+      yarn: 'yarn add @tavily/ai-sdk',
+      bun: 'bun add @tavily/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { tavilySearch } from '@tavily/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('google/gemini-3-pro-preview'),
+  prompt: 'Who is Leo Messi?',
+  tools: {
+    webSearch: tavilySearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.tavily.com/documentation/integrations/vercel',
+    apiKeyUrl: 'app.tavily.com/home',
+    websiteUrl: 'https://tavily.com',
+    npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
+  },
 ];
