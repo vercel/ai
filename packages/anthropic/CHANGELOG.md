@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.46
+
+### Patch Changes
+
+- 54a0480: Opus 4.5 and `effort` provider option
+
 ## 2.0.45
 
 ### Patch Changes
