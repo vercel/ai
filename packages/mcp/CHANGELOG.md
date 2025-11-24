@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- ba2ca2d: feat(mcp): add the possibility to define client version in mcp client definition
+
 ## 1.0.0-beta.17
 
 ### Patch Changes
