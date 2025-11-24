@@ -116,6 +116,14 @@ The following optional provider options are available for Anthropic models:
 
   Whether to enable tool streaming (and structured output streaming). Default to `true`.
 
+- `structuredOutputMode` _"outputFormat" | "jsonTool" | "auto"_
+
+  Determines how structured outputs are generated. Optional.
+
+  - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
+  - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
+  - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
+
 ### Structured Outputs and Tool Input Streaming
 
 Tool call streaming is enabled by default. You can opt out by setting the

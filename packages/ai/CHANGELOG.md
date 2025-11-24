@@ -1,5 +1,23 @@
 # ai
 
+## 6.0.0-beta.114
+
+### Patch Changes
+
+- 69768c2: chore(ai): remove UI message reference from model message validation
+
+## 6.0.0-beta.113
+
+### Patch Changes
+
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+
+## 6.0.0-beta.112
+
+### Patch Changes
+
+- e06b663: feat(agent): support experimental stream transforms
+
 ## 6.0.0-beta.111
 
 ### Patch Changes

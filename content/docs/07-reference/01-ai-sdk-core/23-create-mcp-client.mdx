@@ -310,14 +310,17 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
 ## Example
 
 ```typescript
-import { experimental_createMCPClient, generateText } from '@ai-sdk/mcp';
+import {
+  experimental_createMCPClient as createMCPClient,
+  generateText,
+} from '@ai-sdk/mcp';
 import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 
 let client;
 
 try {
-  client = await experimental_createMCPClient({
+  client = await createMCPClient({
     transport: new Experimental_StdioMCPTransport({
       command: 'node server.js',
     }),
@@ -326,7 +329,7 @@ try {
   const tools = await client.tools();
 
   const response = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-5.1',
     tools,
     messages: [{ role: 'user', content: 'Query the data' }],
   });
