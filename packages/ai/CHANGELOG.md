@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.114
+
+### Patch Changes
+
+- 69768c2: chore(ai): remove UI message reference from model message validation
+
 ## 6.0.0-beta.113
 
 ### Patch Changes
