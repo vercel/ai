@@ -60,8 +60,6 @@ export type AnthropicFilePartProviderOptions = z.infer<
 export const anthropicProviderOptions = z.object({
   sendReasoning: z.boolean().optional(),
 
-<<<<<<< HEAD
-=======
   /**
    * Determines how structured outputs are generated.
    *
@@ -77,7 +75,6 @@ export const anthropicProviderOptions = z.object({
    * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
    */
->>>>>>> b8ea36ed4 (feat(provider/anthropic): Anthropic-native structured outputs (#10502))
   thinking: z
     .object({
       type: z.union([z.literal('enabled'), z.literal('disabled')]),

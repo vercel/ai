@@ -200,10 +200,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
     }
 
-<<<<<<< HEAD
-    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
-      responseFormat?.type === 'json' && responseFormat.schema != null
-=======
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
       providerOptions,
@@ -222,11 +218,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       structureOutputMode === 'outputFormat' ||
       (structureOutputMode === 'auto' && supportsStructuredOutput);
 
-    const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
+    const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       !useStructuredOutput
->>>>>>> b8ea36ed4 (feat(provider/anthropic): Anthropic-native structured outputs (#10502))
         ? {
             type: 'function',
             name: 'json',
@@ -266,11 +261,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(isThinking && {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
-<<<<<<< HEAD
       ...(anthropicOptions?.effort && {
         output_config: { effort: anthropicOptions.effort },
       }),
-=======
 
       // structured output:
       ...(useStructuredOutput &&
@@ -298,7 +291,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               : undefined,
           })),
         }),
->>>>>>> b8ea36ed4 (feat(provider/anthropic): Anthropic-native structured outputs (#10502))
 
       // container with agent skills:
       ...(anthropicOptions?.container && {
@@ -1425,20 +1417,12 @@ function getModelCapabilities(modelId: string): {
   supportsStructuredOutput: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-sonnet-4-5')) {
-    return {
-      maxOutputTokens: 64000,
-<<<<<<< HEAD
-      knownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-opus-4-1') ||
+  if (
+    modelId.includes('claude-sonnet-4-5') ||
     modelId.includes('claude-opus-4-5')
   ) {
     return {
-      maxOutputTokens: 32000,
-      knownModel: true,
-=======
+      maxOutputTokens: 64000,
       supportsStructuredOutput: true,
       isKnownModel: true,
     };
@@ -1447,7 +1431,6 @@ function getModelCapabilities(modelId: string): {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
       isKnownModel: true,
->>>>>>> b8ea36ed4 (feat(provider/anthropic): Anthropic-native structured outputs (#10502))
     };
   } else if (
     modelId.includes('claude-sonnet-4-') ||

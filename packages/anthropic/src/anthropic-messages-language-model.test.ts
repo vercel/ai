@@ -201,11 +201,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
-    describe('json schema response format', () => {
-=======
     describe('json schema response format with json tool response (unsupported model)', () => {
->>>>>>> b8ea36ed4 (feat(provider/anthropic): Anthropic-native structured outputs (#10502))
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
@@ -293,8 +289,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           ]
         `);
       });
-<<<<<<< HEAD
-=======
 
       it('should send stop finish reason', async () => {
         expect(result.finishReason).toBe('stop');
@@ -508,7 +502,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       it('should send tool-calls finish reason', async () => {
         expect(result.finishReason).toBe('tool-calls');
       });
->>>>>>> b8ea36ed4 (feat(provider/anthropic): Anthropic-native structured outputs (#10502))
     });
 
     describe('json schema response format with output format (supported model)', () => {
@@ -2883,33 +2876,8 @@ describe('AnthropicMessagesLanguageModel', () => {
   });
 
   describe('doStream', () => {
-<<<<<<< HEAD
-    describe('json schema response format', () => {
-      let result: Array<LanguageModelV2StreamPart>;
-
-      beforeEach(async () => {
-        server.urls['https://api.anthropic.com/v1/messages'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
-            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
-            `data: {"type": "ping"}\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
-            `data: {"type":"content_block_stop","index":0    }\n\n`,
-            `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"json","input":{}}      }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
-            `data: {"type":"content_block_stop","index":1              }\n\n`,
-            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
-            `data: {"type":"message_stop"           }\n\n`,
-=======
     describe('json schema response format (unsupported model)', () => {
-      let result: Array<LanguageModelV3StreamPart>;
+      let result: Array<LanguageModelV2StreamPart>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('anthropic-json-tool.1');
@@ -3041,7 +3009,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('json schema response format with text content prefix', () => {
-      let result: Array<LanguageModelV3StreamPart>;
+      let result: Array<LanguageModelV2StreamPart>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('anthropic-json-tool.2');
@@ -3195,7 +3163,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 $schema: 'http://json-schema.org/draft-07/schema#',
               },
             },
->>>>>>> b8ea36ed4 (feat(provider/anthropic): Anthropic-native structured outputs (#10502))
           ],
         };
 
