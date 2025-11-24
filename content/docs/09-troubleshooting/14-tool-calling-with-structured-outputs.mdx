@@ -11,18 +11,18 @@ You may want to combine tool calling with structured output generation. While `g
 
 ## Background
 
-To use tool calling with structured outputs, use `generateText` or `streamText` with the `experimental_output` option.
+To use tool calling with structured outputs, use `generateText` or `streamText` with the `output` option.
 
-**Important**: When using `experimental_output` with tool calling, the structured output generation counts as an additional step in the execution flow.
+**Important**: When using `output` with tool calling, the structured output generation counts as an additional step in the execution flow.
 
 ## Solution
 
-When using `experimental_output` with tool calling, adjust your `stopWhen` condition to account for the additional step required for structured output generation:
+When using `output` with tool calling, adjust your `stopWhen` condition to account for the additional step required for structured output generation:
 
 ```tsx
 const result = await generateText({
-  model: openai('gpt-4o'),
-  experimental_output: Output.object({
+  model: 'openai/gpt-5.1',
+  output: Output.object({
     schema: z.object({
       summary: z.string(),
       sentiment: z.enum(['positive', 'neutral', 'negative']),

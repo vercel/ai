@@ -23,7 +23,7 @@ When language models are provided with a set of function definitions and instruc
 ```tsx filename='app/actions.ts'
 const sendMessage = (prompt: string) =>
   generateText({
-    model: 'gpt-3.5-turbo',
+    model: 'openai/gpt-5.1',
     system: 'you are a friendly weather assistant!',
     prompt,
     tools: {

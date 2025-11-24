@@ -155,6 +155,7 @@ export function createFireworks(
 
   const provider = (modelId: FireworksChatModelId) => createChatModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;

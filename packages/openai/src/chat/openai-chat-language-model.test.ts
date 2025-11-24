@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -119,6 +121,19 @@ const model = provider.chat('gpt-3.5-turbo');
 const server = createTestServer({
   'https://api.openai.com/v1/chat/completions': {},
 });
+
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['https://api.openai.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
@@ -278,6 +293,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
@@ -471,7 +487,7 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o1-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -481,7 +497,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-mini',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'low',
     });
@@ -490,7 +506,7 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from settings', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o1-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -500,7 +516,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-mini',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
     });
@@ -1202,7 +1218,7 @@ describe('doGenerate', () => {
     it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
       prepareJsonResponse();
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o4-mini');
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1213,7 +1229,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'o1-preview',
+        model: 'o4-mini',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
@@ -1244,7 +1260,7 @@ describe('doGenerate', () => {
     it('should convert maxOutputTokens to max_completion_tokens', async () => {
       prepareJsonResponse();
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o4-mini');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1252,36 +1268,11 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'o1-preview',
+        model: 'o4-mini',
         messages: [{ role: 'user', content: 'Hello' }],
         max_completion_tokens: 1000,
       });
     });
-  });
-
-  it('should remove system messages for o1-preview and add a warning', async () => {
-    prepareJsonResponse();
-
-    const model = provider.chat('o1-preview');
-
-    const result = await model.doGenerate({
-      prompt: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
-      ],
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-preview',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
-
-    expect(result.warnings).toStrictEqual([
-      {
-        type: 'other',
-        message: 'system messages are removed for this model',
-      },
-    ]);
   });
 
   it('should use developer messages for o1', async () => {
@@ -1319,7 +1310,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const model = provider.chat('o1-preview');
+    const model = provider.chat('o4-mini');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1337,9 +1328,9 @@ describe('doGenerate', () => {
   });
 
   it('should send max_completion_tokens extension setting', async () => {
-    prepareJsonResponse({ model: 'o1-preview' });
+    prepareJsonResponse({ model: 'o4-mini' });
 
-    const model = provider.chat('o1-preview');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1351,7 +1342,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-preview',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       max_completion_tokens: 255,
     });
@@ -1443,6 +1434,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send promptCacheRetention extension value', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_retention: '24h',
+    });
+  });
+
   it('should send safetyIdentifier extension value', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -1531,7 +1541,7 @@ describe('doGenerate', () => {
   it('should send serviceTier flex processing setting', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1550,7 +1560,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "o3-mini",
+        "model": "o4-mini",
         "service_tier": "flex",
       }
     `);
@@ -1675,7 +1685,7 @@ describe('doGenerate', () => {
   it('should allow priority processing with o3 model without warnings', async () => {
     prepareJsonResponse();
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2594,6 +2604,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
@@ -2827,7 +2838,7 @@ describe('doStream', () => {
   it('should send serviceTier flex processing setting in streaming', async () => {
     prepareStreamResponse({ content: [] });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -2847,7 +2858,7 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "o3-mini",
+        "model": "o4-mini",
         "service_tier": "flex",
         "stream": true,
         "stream_options": {
@@ -2890,14 +2901,24 @@ describe('doStream', () => {
     `);
   });
 
+  it('should set .modelId for model-router request', async () => {
+    prepareChunksFixtureResponse('azure-model-router.1');
+
+    const result = await provider.chat('test-azure-model-router').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(result.stream)).toMatchSnapshot();
+  });
+
   describe('reasoning models', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
-        model: 'o1-preview',
+        model: 'o4-mini',
       });
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o4-mini');
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -2912,7 +2933,7 @@ describe('doStream', () => {
           },
           {
             "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
-            "modelId": "o1-preview",
+            "modelId": "o4-mini",
             "timestamp": 2023-12-15T16:17:00.000Z,
             "type": "response-metadata",
           },
@@ -2955,7 +2976,7 @@ describe('doStream', () => {
     it('should send reasoning tokens', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
-        model: 'o1-preview',
+        model: 'o4-mini',
         usage: {
           prompt_tokens: 15,
           completion_tokens: 20,
@@ -2966,7 +2987,7 @@ describe('doStream', () => {
         },
       });
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o4-mini');
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -2981,7 +3002,7 @@ describe('doStream', () => {
           },
           {
             "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
-            "modelId": "o1-preview",
+            "modelId": "o4-mini",
             "timestamp": 2023-12-15T16:17:00.000Z,
             "type": "response-metadata",
           },

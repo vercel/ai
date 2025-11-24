@@ -12,7 +12,6 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
@@ -66,7 +65,8 @@ import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
-import { Output } from './output';
+import { Output, text } from './output';
+import { InferCompleteOutput, InferPartialOutput } from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
@@ -226,8 +226,7 @@ A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
-  OUTPUT = never,
-  PARTIAL_OUTPUT = never,
+  OUTPUT extends Output = Output<string, string>,
 >({
   model,
   tools,
@@ -239,7 +238,8 @@ export function streamText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
-  experimental_output: output,
+  experimental_output,
+  output = experimental_output,
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
@@ -316,7 +316,14 @@ functionality that can be fully encapsulated in the provider.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
-    experimental_output?: Output<OUTPUT, PARTIAL_OUTPUT>;
+    output?: OUTPUT;
+
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+
+@deprecated Use `output` instead.
+ */
+    experimental_output?: OUTPUT;
 
     /**
 Optional function that you can use to provide different settings for a step.
@@ -405,8 +412,8 @@ Internal. For test use only. May change without notice.
       generateId?: IdGenerator;
       currentDate?: () => Date;
     };
-  }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
-  return new DefaultStreamTextResult<TOOLS, OUTPUT, PARTIAL_OUTPUT>({
+  }): StreamTextResult<TOOLS, OUTPUT> {
+  return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
@@ -446,28 +453,17 @@ type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
 
 function createOutputTransformStream<
   TOOLS extends ToolSet,
-  OUTPUT,
-  PARTIAL_OUTPUT,
+  OUTPUT extends Output,
 >(
-  output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined,
+  output: OUTPUT,
 ): TransformStream<
   TextStreamPart<TOOLS>,
-  EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+  EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
 > {
-  if (!output) {
-    return new TransformStream<
-      TextStreamPart<TOOLS>,
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
-    >({
-      transform(chunk, controller) {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
-      },
-    });
-  }
-
   let firstTextChunkId: string | undefined = undefined;
   let text = '';
   let textChunk = '';
+  let textProviderMetadata: ProviderMetadata | undefined = undefined;
   let lastPublishedJson = '';
 
   function publishTextChunk({
@@ -475,15 +471,16 @@ function createOutputTransformStream<
     partialOutput = undefined,
   }: {
     controller: TransformStreamDefaultController<
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >;
-    partialOutput?: PARTIAL_OUTPUT;
+    partialOutput?: InferPartialOutput<OUTPUT>;
   }) {
     controller.enqueue({
       part: {
         type: 'text-delta',
         id: firstTextChunkId!,
         text: textChunk,
+        providerMetadata: textProviderMetadata,
       },
       partialOutput,
     });
@@ -492,7 +489,7 @@ function createOutputTransformStream<
 
   return new TransformStream<
     TextStreamPart<TOOLS>,
-    EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+    EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
@@ -533,10 +530,13 @@ function createOutputTransformStream<
 
       text += chunk.text;
       textChunk += chunk.text;
+      textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
 
       // only publish if partial json can be parsed:
-      const result = await output.parsePartial({ text });
-      if (result != null) {
+      const result = await output.parsePartialOutput({ text });
+
+      // null should be allowed (valid JSON value) but undefined should not:
+      if (result !== undefined) {
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
         if (currentJson !== lastPublishedJson) {
@@ -548,17 +548,17 @@ function createOutputTransformStream<
   });
 }
 
-class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
-  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
+class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
+  implements StreamTextResult<TOOLS, OUTPUT>
 {
   private readonly _totalUsage = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['usage']>
   >();
   private readonly _finishReason = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['finishReason']>
   >();
   private readonly _steps = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
   >();
 
   private readonly addStream: (
@@ -567,9 +567,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private readonly closeStream: () => void;
 
-  private baseStream: ReadableStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>>;
+  private baseStream: ReadableStream<
+    EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
+  >;
 
-  private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
+  private outputSpecification: OUTPUT | undefined;
 
   private includeRawChunks: boolean;
 
@@ -621,7 +623,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
-    output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
+    output: OUTPUT | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     includeRawChunks: boolean;
@@ -638,7 +640,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
-    this.output = output;
+    this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
@@ -676,8 +678,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     > = {};
 
     const eventProcessor = new TransformStream<
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
-      EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+      EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
     >({
       async transform(chunk, controller) {
         controller.enqueue(chunk); // forward the chunk to the next stream
@@ -855,7 +857,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           await onStepFinish?.(currentStepResult);
 
-          logWarnings(recordedWarnings);
+          logWarnings({
+            warnings: recordedWarnings,
+            provider: model.provider,
+            model: model.modelId,
+          });
 
           recordedSteps.push(currentStepResult);
 
@@ -1022,7 +1028,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     }
 
     this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output))
+      .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
@@ -1455,7 +1461,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                       controller.enqueue({
                         ...chunk,
-                        dynamic: tool?.type === 'dynamic',
+                        dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
+                        title: tool?.title,
                       });
                       break;
                     }
@@ -1765,7 +1772,10 @@ However, the LLM results are expected to be small enough to not cause issues.
   get textStream(): AsyncIterableStream<string> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
-        new TransformStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
+        new TransformStream<
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+          string
+        >({
           transform({ part }, controller) {
             if (part.type === 'text-delta') {
               controller.enqueue(part.text);
@@ -1780,7 +1790,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
-          EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
           TextStreamPart<TOOLS>
         >({
           transform({ part }, controller) {
@@ -1802,16 +1812,18 @@ However, the LLM results are expected to be small enough to not cause issues.
     }
   }
 
-  get experimental_partialOutputStream(): AsyncIterableStream<PARTIAL_OUTPUT> {
-    if (this.output == null) {
-      throw new NoOutputSpecifiedError();
-    }
+  get experimental_partialOutputStream(): AsyncIterableStream<
+    InferPartialOutput<OUTPUT>
+  > {
+    return this.partialOutputStream;
+  }
 
+  get partialOutputStream(): AsyncIterableStream<InferPartialOutput<OUTPUT>> {
     return createAsyncIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
-          EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>,
-          PARTIAL_OUTPUT
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+          InferPartialOutput<OUTPUT>
         >({
           transform({ partialOutput }, controller) {
             if (partialOutput != null) {
@@ -1821,6 +1833,20 @@ However, the LLM results are expected to be small enough to not cause issues.
         }),
       ),
     );
+  }
+
+  get output(): Promise<InferCompleteOutput<OUTPUT>> {
+    return this.finalStep.then(step => {
+      const output = this.outputSpecification ?? text();
+      return output.parseCompleteOutput(
+        { text: step.text },
+        {
+          response: step.response,
+          usage: step.usage,
+          finishReason: step.finishReason,
+        },
+      );
+    });
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
@@ -1844,12 +1870,16 @@ However, the LLM results are expected to be small enough to not cause issues.
           })
         : undefined;
 
-    const toolNamesByCallId: Record<string, string> = {};
+    // TODO simplify once dynamic is no longer needed for invalid tool inputs
+    const isDynamic = (part: { toolName: string; dynamic?: boolean }) => {
+      const tool = this.tools?.[part.toolName];
 
-    const isDynamic = (toolCallId: string) => {
-      const toolName = toolNamesByCallId[toolCallId];
-      const dynamic = this.tools?.[toolName]?.type === 'dynamic';
-      return dynamic ? true : undefined; // only send when dynamic to reduce data transfer
+      // provider-executed, dynamic tools are not listed in the tools object
+      if (tool == null) {
+        return part.dynamic;
+      }
+
+      return tool?.type === 'dynamic' ? true : undefined;
     };
 
     const baseStream = this.fullStream.pipeThrough(
@@ -1973,8 +2003,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-input-start': {
-              toolNamesByCallId[part.id] = part.toolName;
-              const dynamic = isDynamic(part.id);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-input-start',
@@ -1984,6 +2013,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
+                ...(part.title != null ? { title: part.title } : {}),
               });
               break;
             }
@@ -1998,8 +2028,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-call': {
-              toolNamesByCallId[part.toolCallId] = part.toolName;
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               if (part.invalid) {
                 controller.enqueue({
@@ -2015,6 +2044,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   errorText: onError(part.error),
+                  ...(part.title != null ? { title: part.title } : {}),
                 });
               } else {
                 controller.enqueue({
@@ -2029,6 +2059,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
+                  ...(part.title != null ? { title: part.title } : {}),
                 });
               }
 
@@ -2045,7 +2076,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-result': {
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-output-available',
@@ -2063,7 +2094,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'tool-error': {
-              const dynamic = isDynamic(part.toolCallId);
+              const dynamic = isDynamic(part);
 
               controller.enqueue({
                 type: 'tool-output-error',
@@ -2122,6 +2153,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               if (sendFinish) {
                 controller.enqueue({
                   type: 'finish',
+                  finishReason: part.finishReason,
                   ...(messageMetadataValue != null
                     ? { messageMetadata: messageMetadataValue }
                     : {}),

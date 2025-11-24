@@ -5,11 +5,12 @@
   "sideEffects": false,
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "scripts": {
     "build": "pnpm generate-readme && prettier --write \"README.md\" && pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
@@ -57,7 +58,7 @@
   "dependencies": {
     "cli-progress": "^3.12.0",
     "commander": "^12.1.0",
-    "debug": "^4.3.7",
+    "debug": "^4.4.3",
     "jscodeshift": "^17.1.1"
   }
 }

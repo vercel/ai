@@ -17,7 +17,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-5.1',
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -45,7 +45,7 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-5.1',
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -69,7 +69,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-5.1',
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -89,7 +89,7 @@ and provide the list of possible values in the `enum` parameter.
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -568,7 +568,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'providerOptions',
-      type: 'Record<string,Record<string,JSONValue>> | undefined',
+      type: 'Record<string,JSONObject> | undefined',
       isOptional: true,
       description:
         'Provider-specific options. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -758,7 +758,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'providerMetadata',
-      type: 'Promise<Record<string,Record<string,JSONValue>> | undefined>',
+      type: 'Promise<Record<string,JSONObject> | undefined>',
       description:
         'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },

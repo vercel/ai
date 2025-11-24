@@ -1,0 +1,124 @@
+---
+title: createAgentUIStreamResponse
+description: API Reference for the createAgentUIStreamResponse utility.
+---
+
+# `createAgentUIStreamResponse`
+
+The `createAgentUIStreamResponse` function executes an [Agent](/docs/reference/ai-sdk-core/agent) and streams its output as a UI message stream in an HTTP [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) body. This is designed for building API endpoints that deliver real-time streaming results from an agent (for example, chat or tool-use applications).
+
+## Import
+
+<Snippet
+  text={`import { createAgentUIStreamResponse } from "ai"`}
+  prompt={false}
+/>
+
+## Usage
+
+```ts
+import { ToolLoopAgent, createAgentUIStreamResponse } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-5.1',
+  instructions: 'You are a helpful assistant.',
+  tools: { weather: weatherTool, calculator: calculatorTool },
+});
+
+// Typical usage with streaming options
+export async function POST(request: Request) {
+  const { messages } = await request.json();
+
+  // Optional: Use abortSignal for cancellation support (client-side disconnects)
+  const abortController = new AbortController();
+
+  return createAgentUIStreamResponse({
+    agent,
+    messages,
+    abortSignal: abortController.signal, // optional
+    // ...other UIMessageStreamOptions like sendSources, includeUsage, experimental_transform, etc.
+  });
+}
+```
+
+## Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'agent',
+      type: 'Agent',
+      isRequired: true,
+      description:
+        'The agent instance to use for streaming responses. Must implement `.stream({ prompt })` and define tools.',
+    },
+    {
+      name: 'messages',
+      type: 'unknown[]',
+      isRequired: true,
+      description:
+        'Array of input UI messages sent to the agent (typically user and assistant message objects).',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isRequired: false,
+      description:
+        'Optional abort signal to cancel streaming, e.g., when client disconnects. Useful for long-running or cancelable requests.',
+    },
+    {
+      name: '...options',
+      type: 'UIMessageStreamOptions',
+      isRequired: false,
+      description:
+        'Additional UI message streaming options, such as `sendSources`, `includeUsage`, `experimental_transform`, etc. See [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options) for details.',
+    },
+  ]}
+/>
+
+## Returns
+
+A `Promise<Response>` whose body is a stream of UI messages from the agent—suitable as an HTTP response in server-side API routes (Next.js, Express, serverless, or edge handlers).
+
+## Example: Next.js API Route Handler
+
+```ts
+import { createAgentUIStreamResponse } from 'ai';
+import { MyCustomAgent } from '@/agent/my-custom-agent';
+
+export async function POST(request: Request) {
+  const { messages } = await request.json();
+
+  return createAgentUIStreamResponse({
+    agent: MyCustomAgent,
+    messages,
+    sendSources: true, // optionally include sources in the UI message stream
+    includeUsage: true, // include token usage details if enabled by the agent
+    // Optionally, provide abortSignal for cancellation and other stream options
+  });
+}
+```
+
+## How It Works
+
+Under the hood, this function uses the internal `createAgentUIStream` utility and wraps its result as an HTTP `Response` readable stream:
+
+1. **Message Validation:** The incoming array of `messages` is validated and normalized according to the agent's tools and requirements. Messages not meeting spec will trigger an error.
+2. **Conversion:** Validated messages are transformed to the internal model message format expected by the agent.
+3. **Streaming:** The agent's `.stream({ prompt })` method is called, producing a stream of UI message chunks representing the agent's process and outputs.
+4. **HTTP Response:** The stream of UI message chunks is returned as a streaming `Response` object suitable for consumption by server-side API clients (such as a chat UI or live tool interface).
+
+## Notes
+
+- The agent **must** define its `tools` and implement `.stream({ prompt })`.
+- **Do not use in the browser**; call this from backend/API/server code only.
+- You can provide additional UI message streaming options (see [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options)) to customize the response, including experimental stream transforms.
+- The returned `Response` leverages [Readable Streams](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream). Make sure your client or framework can consume streamed HTTP responses.
+
+## See Also
+
+- [`Agent`](/docs/reference/ai-sdk-core/agent)
+- [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent)
+- [`UIMessage`](/docs/reference/ai-sdk-core/ui-message)
+- [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options)
+- [`createAgentUIStream`](/docs/reference/ai-sdk-core/create-agent-ui-stream)

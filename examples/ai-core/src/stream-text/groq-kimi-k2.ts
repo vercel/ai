@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: groq('moonshotai/kimi-k2-instruct'),
+    model: groq('moonshotai/kimi-k2-instruct-0905'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

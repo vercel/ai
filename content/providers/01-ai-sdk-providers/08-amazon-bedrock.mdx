@@ -442,6 +442,25 @@ console.log(text); // text response
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+## Extended Context Window
+
+Claude Sonnet 4 models on Amazon Bedrock support an extended context window of up to 1 million tokens when using the `context-1m-2025-08-07` beta feature.
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+  prompt: 'analyze this large document...',
+  providerOptions: {
+    bedrock: {
+      anthropicBeta: ['context-1m-2025-08-07'],
+    },
+  },
+});
+```
+
 ## Computer Use
 
 Via Anthropic, Amazon Bedrock provides three provider-defined tools that can be used to interact with external systems:
@@ -611,6 +630,7 @@ These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-202
 | `us.amazon.nova-pro-v1:0`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.amazon.nova-lite-v1:0`                     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.amazon.nova-micro-v1:0`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-haiku-4-5-20251001-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-sonnet-4-20250514-v1:0`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-sonnet-4-5-20250929-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-opus-4-20250514-v1:0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -723,6 +743,76 @@ The following optional provider options are available for Bedrock Titan embeddin
 | `cohere.embed-english-v3`      | 1024               | <Cross size={18} /> |
 | `cohere.embed-multilingual-v3` | 1024               | <Cross size={18} /> |
 
+## Reranking Models
+
+You can create models that call the [Bedrock Rerank API](https://docs.aws.amazon.com/bedrock/latest/userguide/rerank-api.html)
+using the `.reranking()` factory method.
+
+```ts
+const model = bedrock.reranking('cohere.rerank-v3-5:0');
+```
+
+You can use Amazon Bedrock reranking models to rerank documents with the `rerank` function:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { rerank } from 'ai';
+
+const documents = [
+  'sunny day at the beach',
+  'rainy afternoon in the city',
+  'snowy night in the mountains',
+];
+
+const { ranking } = await rerank({
+  model: bedrock.reranking('cohere.rerank-v3-5:0'),
+  documents,
+  query: 'talk about rain',
+  topN: 2,
+});
+
+console.log(ranking);
+// [
+//   { originalIndex: 1, score: 0.9, document: 'rainy afternoon in the city' },
+//   { originalIndex: 0, score: 0.3, document: 'sunny day at the beach' }
+// ]
+```
+
+Amazon Bedrock reranking models support additional provider options that can be passed via `providerOptions.bedrock`:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { rerank } from 'ai';
+
+const { ranking } = await rerank({
+  model: bedrock.reranking('cohere.rerank-v3-5:0'),
+  documents: ['sunny day at the beach', 'rainy afternoon in the city'],
+  query: 'talk about rain',
+  providerOptions: {
+    bedrock: {
+      nextToken: 'pagination_token_here',
+    },
+  },
+});
+```
+
+The following provider options are available:
+
+- **nextToken** _string_
+
+  Token for pagination of results.
+
+- **additionalModelRequestFields** _Record&lt;string, unknown&gt;_
+
+  Additional model-specific request fields.
+
+### Model Capabilities
+
+| Model                  |
+| ---------------------- |
+| `amazon.rerank-v1:0`   |
+| `cohere.rerank-v3-5:0` |
+
 ## Image Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/nova/latest/userguide/image-generation.html)
@@ -792,10 +882,10 @@ The following optional provider options are available for Amazon Nova Canvas:
 
 - **style** _string_
 
-  Predefined visual style for image generation.  
+  Predefined visual style for image generation.
   Accepts one of:
-  `3D_ANIMATED_FAMILY_FILM` · `DESIGN_SKETCH` · `FLAT_VECTOR_ILLUSTRATION` ·  
-  `GRAPHIC_NOVEL_ILLUSTRATION` · `MAXIMALISM` · `MIDCENTURY_RETRO` ·  
+  `3D_ANIMATED_FAMILY_FILM` · `DESIGN_SKETCH` · `FLAT_VECTOR_ILLUSTRATION` ·
+  `GRAPHIC_NOVEL_ILLUSTRATION` · `MAXIMALISM` · `MIDCENTURY_RETRO` ·
   `PHOTOREALISM` · `SOFT_DIGITAL_PAINTING`.
 
 Documentation for additional settings can be found within the [Amazon Bedrock

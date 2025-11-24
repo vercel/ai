@@ -5,7 +5,11 @@ description: Create a client for connecting to MCP servers
 
 # `experimental_createMCPClient()`
 
-Creates a lightweight Model Context Protocol (MCP) client that connects to an MCP server. The client's primary purpose is tool conversion between MCP tools and AI SDK tools.
+Creates a lightweight Model Context Protocol (MCP) client that connects to an MCP server. The client provides:
+
+- **Tools**: Automatic conversion between MCP tools and AI SDK tools
+- **Resources**: Methods to list, read, and discover resource templates from MCP servers
+- **Prompts**: Methods to list available prompts and retrieve prompt messages
 
 It currently does not support accepting notifications from an MCP server, and custom configuration of the client.
 
@@ -14,7 +18,7 @@ This feature is experimental and may change or be removed in the future.
 ## Import
 
 <Snippet
-  text={`import { experimental_createMCPClient } from "ai"`}
+  text={`import { experimental_createMCPClient } from "@ai-sdk/mcp"`}
   prompt={false}
 />
 
@@ -79,11 +83,11 @@ This feature is experimental and may change or be removed in the future.
                   ],
                 },
                 {
-                  type: 'McpSSEServerConfig',
+                  type: 'MCPTransportConfig',
                   parameters: [
                     {
                       name: 'type',
-                      type: "'sse'",
+                      type: "'sse' | 'http",
                       description: 'Use Server-Sent Events for communication',
                     },
                     {
@@ -97,6 +101,13 @@ This feature is experimental and may change or be removed in the future.
                       isOptional: true,
                       description:
                         'Additional HTTP headers to be sent with requests.',
+                    },
+                    {
+                      name: 'authProvider',
+                      type: 'OAuthClientProvider',
+                      isOptional: true,
+                      description:
+                        'Optional OAuth provider for authorization to access protected remote MCP servers.',
                     },
                   ],
                 },
@@ -149,6 +160,145 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
       ],
     },
     {
+      name: 'listResources',
+      type: `async (options?: {
+        params?: PaginatedRequest['params'];
+        options?: RequestOptions;
+      }) => Promise<ListResourcesResult>`,
+      description: 'Lists all available resources from the MCP server.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'params',
+              type: "PaginatedRequest['params']",
+              isOptional: true,
+              description: 'Optional pagination parameters including cursor.',
+            },
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'readResource',
+      type: `async (args: {
+        uri: string;
+        options?: RequestOptions;
+      }) => Promise<ReadResourceResult>`,
+      description: 'Reads the contents of a specific resource by URI.',
+      properties: [
+        {
+          type: 'args',
+          parameters: [
+            {
+              name: 'uri',
+              type: 'string',
+              description: 'The URI of the resource to read.',
+            },
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'listResourceTemplates',
+      type: `async (options?: {
+        options?: RequestOptions;
+      }) => Promise<ListResourceTemplatesResult>`,
+      description:
+        'Lists all available resource templates from the MCP server.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'listPrompts',
+      type: `async (options?: {
+        params?: PaginatedRequest['params'];
+        options?: RequestOptions;
+      }) => Promise<ListPromptsResult>`,
+      description: 'Lists available prompts from the MCP server.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'params',
+              type: "PaginatedRequest['params']",
+              isOptional: true,
+              description: 'Optional pagination parameters including cursor.',
+            },
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'getPrompt',
+      type: `async (args: {
+        name: string;
+        arguments?: Record<string, unknown>;
+        options?: RequestOptions;
+      }) => Promise<GetPromptResult>`,
+      description: 'Retrieves a prompt by name, optionally passing arguments.',
+      properties: [
+        {
+          type: 'args',
+          parameters: [
+            {
+              name: 'name',
+              type: 'string',
+              description: 'Prompt name to retrieve.',
+            },
+            {
+              name: 'arguments',
+              type: 'Record<string, unknown>',
+              isOptional: true,
+              description: 'Optional arguments to fill into the prompt.',
+            },
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'close',
       type: 'async () => void',
       description:
@@ -160,8 +310,8 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
 ## Example
 
 ```typescript
-import { experimental_createMCPClient, generateText } from 'ai';
-import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+import { experimental_createMCPClient, generateText } from '@ai-sdk/mcp';
+import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 
 let client;
@@ -176,7 +326,7 @@ try {
   const tools = await client.tools();
 
   const response = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-5.1',
     tools,
     messages: [{ role: 'user', content: 'Query the data' }],
   });

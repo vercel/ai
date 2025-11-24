@@ -13,7 +13,7 @@ When you create prompts that include tools, getting good results can be tricky a
 
 Here are a few tips to help you get the best results:
 
-1. Use a model that is strong at tool calling, such as `gpt-4` or `gpt-4.1`. Weaker models will often struggle to call tools effectively and flawlessly.
+1. Use a model that is strong at tool calling, such as `gpt-5` or `gpt-4.1`. Weaker models will often struggle to call tools effectively and flawlessly.
 1. Keep the number of tools low, e.g. to 5 or less.
 1. Keep the complexity of the tool parameters low. Complex Zod schemas with many nested and optional elements, unions, etc. can be challenging for the model to work with.
 1. Use semantically meaningful names for your tools, parameters, parameter properties, etc. The more information you pass to the model, the better it can understand what you want.
@@ -35,7 +35,7 @@ and then use a Zod transformer to convert the string to a Date object.
 
 ```ts highlight="7-10"
 const result = await generateObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-5.1',
   schema: z.object({
     events: z.array(
       z.object({
@@ -90,7 +90,7 @@ For tool calls and object generation, it's recommended to use `temperature: 0` t
 
 ```ts highlight="3"
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-5.1',
   temperature: 0, // Recommended for tool calls
   tools: {
     myTool: tool({
@@ -120,7 +120,7 @@ To check if your prompt, tools, and settings are handled correctly by the provid
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-5.1',
   prompt: 'Hello, world!',
 });
 
@@ -136,7 +136,7 @@ Request bodies are available via the `request.body` property of the response:
 
 ```ts highlight="6"
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-5.1',
   prompt: 'Hello, world!',
 });
 

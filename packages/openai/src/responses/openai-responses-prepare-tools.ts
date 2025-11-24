@@ -8,6 +8,7 @@ import { fileSearchArgsSchema } from '../tool/file-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
+import { mcpArgsSchema } from '../tool/mcp';
 import { OpenAIResponsesTool } from './openai-responses-api';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
@@ -30,6 +31,7 @@ export async function prepareResponsesTools({
     | { type: 'web_search' }
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
+    | { type: 'mcp' }
     | { type: 'image_generation' };
   toolWarnings: LanguageModelV3CallWarning[];
 }> {
@@ -107,6 +109,7 @@ export async function prepareResponsesTools({
                 args.filters != null
                   ? { allowed_domains: args.filters.allowedDomains }
                   : undefined,
+              external_web_access: args.externalWebAccess,
               search_context_size: args.searchContextSize,
               user_location: args.userLocation,
             });
@@ -155,6 +158,42 @@ export async function prepareResponsesTools({
             });
             break;
           }
+          case 'openai.mcp': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: mcpArgsSchema,
+            });
+
+            openaiTools.push({
+              type: 'mcp',
+              server_label: args.serverLabel,
+              allowed_tools: Array.isArray(args.allowedTools)
+                ? args.allowedTools
+                : args.allowedTools
+                  ? {
+                      read_only: args.allowedTools.readOnly,
+                      tool_names: args.allowedTools.toolNames,
+                    }
+                  : undefined,
+              authorization: args.authorization,
+              connector_id: args.connectorId,
+              headers: args.headers,
+              // require_approval:
+              //   typeof args.requireApproval === 'string'
+              //     ? args.requireApproval
+              //     : args.requireApproval
+              //       ? {
+              //           read_only: args.requireApproval.readOnly,
+              //           tool_names: args.requireApproval.toolNames,
+              //         }
+              //       : undefined,
+              require_approval: 'never',
+              server_description: args.serverDescription,
+              server_url: args.serverUrl,
+            });
+
+            break;
+          }
         }
         break;
       }
@@ -183,7 +222,8 @@ export async function prepareResponsesTools({
           toolChoice.toolName === 'file_search' ||
           toolChoice.toolName === 'image_generation' ||
           toolChoice.toolName === 'web_search_preview' ||
-          toolChoice.toolName === 'web_search'
+          toolChoice.toolName === 'web_search' ||
+          toolChoice.toolName === 'mcp'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,

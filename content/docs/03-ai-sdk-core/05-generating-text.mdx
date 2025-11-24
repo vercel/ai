@@ -23,7 +23,7 @@ You can generate text using the [`generateText`](/docs/reference/ai-sdk-core/gen
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -34,7 +34,7 @@ You can use more [advanced prompts](./prompts) to generate text with more comple
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   system:
     'You are a professional writer. ' +
     'You write simple, clear, and concise content.',
@@ -60,7 +60,7 @@ The result object of `generateText` contains several promises that resolve when 
 - `result.response`: Additional response information, including response messages and body.
 - `result.providerMetadata`: Additional provider-specific metadata.
 - `result.steps`: Details for all steps, useful for getting information about intermediate steps.
-- `result.experimental_output`: The generated structured output using the `experimental_output` specification.
+- `result.output`: The generated structured output using the `output` specification.
 
 ### Accessing response headers & body
 
@@ -91,7 +91,7 @@ It contains the text, usage information, finish reason, messages, steps, total u
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   prompt: 'Invent a new holiday and describe its traditions.',
   onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
@@ -111,7 +111,7 @@ AI SDK Core provides the [`streamText`](/docs/reference/ai-sdk-core/stream-text)
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -175,7 +175,7 @@ To log errors, you can provide an `onError` callback that is triggered when an e
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   prompt: 'Invent a new holiday and describe its traditions.',
   onError({ error }) {
     console.error(error); // your error logging logic here
@@ -202,7 +202,7 @@ It receives the following chunk types:
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   prompt: 'Invent a new holiday and describe its traditions.',
   onChunk({ chunk }) {
     // implement your own logic here, e.g.:
@@ -224,7 +224,7 @@ It contains the text, usage information, finish reason, messages, steps, total u
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   prompt: 'Invent a new holiday and describe its traditions.',
   onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
@@ -245,7 +245,7 @@ import { streamText } from 'ai';
 import { z } from 'zod';
 
 const result = streamText({
-  model: 'openai/gpt-4.1',
+  model: 'openai/gpt-5.1',
   tools: {
     cityAttractions: {
       inputSchema: z.object({ city: z.string() }),
@@ -503,7 +503,7 @@ When you use `generateText`, you can access the sources using the `sources` prop
 
 ```ts
 const result = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: 'google/gemini-2.5-flash',
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -525,7 +525,7 @@ When you use `streamText`, you can access the sources using the `fullStream` pro
 
 ```tsx
 const result = streamText({
-  model: google('gemini-2.5-flash'),
+  model: 'google/gemini-2.5-flash',
   tools: {
     google_search: google.tools.googleSearch({}),
   },

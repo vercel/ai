@@ -1,13 +1,10 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
-  EmbeddingModelV2,
   EmbeddingModelV3,
-  LanguageModelV2,
+  ImageModelV3,
   LanguageModelV3,
   ProviderV3,
-  SpeechModelV2,
   SpeechModelV3,
-  TranscriptionModelV2,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
@@ -15,46 +12,12 @@ import { EmbeddingModel } from '../types/embedding-model';
 import { LanguageModel } from '../types/language-model';
 import { SpeechModel } from '../types/speech-model';
 import { TranscriptionModel } from '../types/transcription-model';
-
-function transformToV3LanguageModel(model: LanguageModelV2): LanguageModelV3 {
-  return new Proxy(model, {
-    get(target, prop: keyof LanguageModelV2) {
-      if (prop === 'specificationVersion') return 'v3';
-      return target[prop];
-    },
-  }) as unknown as LanguageModelV3;
-}
-
-function transformToV3EmbeddingModel<VALUE>(
-  model: EmbeddingModelV2<VALUE>,
-): EmbeddingModelV3<VALUE> {
-  return new Proxy(model, {
-    get(target, prop: keyof EmbeddingModelV2<VALUE>) {
-      if (prop === 'specificationVersion') return 'v3';
-      return target[prop];
-    },
-  }) as unknown as EmbeddingModelV3<VALUE>;
-}
-
-function transformToV3TranscriptionModel(
-  model: TranscriptionModelV2,
-): TranscriptionModelV3 {
-  return new Proxy(model, {
-    get(target, prop: keyof TranscriptionModelV2) {
-      if (prop === 'specificationVersion') return 'v3';
-      return target[prop];
-    },
-  }) as unknown as TranscriptionModelV3;
-}
-
-function transformToV3SpeechModel(model: SpeechModelV2): SpeechModelV3 {
-  return new Proxy(model, {
-    get(target, prop: keyof SpeechModelV2) {
-      if (prop === 'specificationVersion') return 'v3';
-      return target[prop];
-    },
-  }) as unknown as SpeechModelV3;
-}
+import { asEmbeddingModelV3 } from './as-embedding-model-v3';
+import { asImageModelV3 } from './as-image-model-v3';
+import { asLanguageModelV3 } from './as-language-model-v3';
+import { asSpeechModelV3 } from './as-speech-model-v3';
+import { asTranscriptionModelV3 } from './as-transcription-model-v3';
+import { ImageModel } from '../types/image-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   if (typeof model !== 'string') {
@@ -69,10 +32,8 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
         modelId: unsupportedModel.modelId,
       });
     }
-    if (model.specificationVersion === 'v2') {
-      return transformToV3LanguageModel(model);
-    }
-    return model;
+
+    return asLanguageModelV3(model);
   }
 
   return getGlobalProvider().languageModel(model);
@@ -93,11 +54,8 @@ export function resolveEmbeddingModel<VALUE = string>(
         modelId: unsupportedModel.modelId,
       });
     }
-    if (model.specificationVersion === 'v2') {
-      return transformToV3EmbeddingModel(model);
-    }
 
-    return model;
+    return asEmbeddingModelV3(model);
   }
 
   // TODO AI SDK 6: figure out how to cleanly support different generic types
@@ -121,10 +79,7 @@ export function resolveTranscriptionModel(
         modelId: unsupportedModel.modelId,
       });
     }
-    if (model.specificationVersion === 'v2') {
-      return transformToV3TranscriptionModel(model);
-    }
-    return model;
+    return asTranscriptionModelV3(model);
   }
 
   return getGlobalProvider().transcriptionModel?.(model);
@@ -145,13 +100,30 @@ export function resolveSpeechModel(
         modelId: unsupportedModel.modelId,
       });
     }
-    if (model.specificationVersion === 'v2') {
-      return transformToV3SpeechModel(model);
-    }
-    return model;
+    return asSpeechModelV3(model);
   }
 
   return getGlobalProvider().speechModel?.(model);
+}
+
+export function resolveImageModel(model: ImageModel): ImageModelV3 {
+  if (typeof model !== 'string') {
+    if (
+      model.specificationVersion !== 'v3' &&
+      model.specificationVersion !== 'v2'
+    ) {
+      const unsupportedModel: any = model;
+      throw new UnsupportedModelVersionError({
+        version: unsupportedModel.specificationVersion,
+        provider: unsupportedModel.provider,
+        modelId: unsupportedModel.modelId,
+      });
+    }
+
+    return asImageModelV3(model);
+  }
+
+  return getGlobalProvider().imageModel(model);
 }
 
 function getGlobalProvider(): ProviderV3 {

@@ -1,5 +1,5 @@
 import {
-  JSONValue,
+  JSONObject,
   LanguageModelV3,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
@@ -78,7 +78,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
       >;
-      usage?: Record<string, JSONValue> & {
+      usage?: JSONObject & {
         input_tokens: number;
         output_tokens: number;
         cache_creation_input_tokens?: number;
@@ -111,8 +111,9 @@ describe('AnthropicMessagesLanguageModel', () => {
           content: [{ type: 'text', text: 'Hello, World!' }],
         });
 
-        const result = await model.doGenerate({
+        const result = await provider('claude-sonnet-4-5').doGenerate({
           prompt: TEST_PROMPT,
+          maxOutputTokens: 20000,
           temperature: 0.5,
           topP: 0.7,
           topK: 0.1,
@@ -123,17 +124,27 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          model: 'claude-3-haiku-20240307',
-          messages: [
-            {
-              role: 'user',
-              content: [{ type: 'text', text: 'Hello' }],
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 21000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "thinking": {
+              "budget_tokens": 1000,
+              "type": "enabled",
             },
-          ],
-          max_tokens: 4096 + 1000,
-          thinking: { type: 'enabled', budget_tokens: 1000 },
-        });
+          }
+        `);
 
         expect(result.warnings).toStrictEqual([
           {
@@ -190,22 +201,11 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format', () => {
+    describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
-        prepareJsonResponse({
-          content: [
-            { type: 'text', text: 'Some text\n\n' },
-            {
-              type: 'tool_use',
-              id: 'toolu_1',
-              name: 'json',
-              input: { name: 'example value' },
-            },
-          ],
-          stopReason: 'tool_use',
-        });
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
 
         result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -242,8 +242,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "model": "claude-3-haiku-20240307",
             "tool_choice": {
               "disable_parallel_tool_use": true,
-              "name": "json",
-              "type": "tool",
+              "type": "any",
             },
             "tools": [
               {
@@ -272,11 +271,379 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "text": "{"name":"example value"}",
+              "text": "{"elements":[{"location":"San Francisco","temperature":-5,"condition":"snowy"},{"location":"London","temperature":0,"condition":"snowy"},{"location":"Paris","temperature":23,"condition":"cloudy"},{"location":"Berlin","temperature":-9,"condition":"snowy"}]}",
               "type": "text",
             },
           ]
         `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with json tool response (supported model, tool mode)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'jsonTool',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"elements":[{"location":"San Francisco","temperature":-5,"condition":"snowy"},{"location":"London","temperature":0,"condition":"snowy"},{"location":"Paris","temperature":23,"condition":"cloudy"},{"location":"Berlin","temperature":-9,"condition":"snowy"}]}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with other tool response (unsupported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-other-tool.1');
+
+        result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'get-weather',
+              description: 'Get the weather in a location',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                },
+                required: ['location'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                weather: { type: 'string' },
+                temperature: { type: 'number' },
+              },
+              required: ['weather', 'temperature'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass the tool and the json schema response format as tools', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Get the weather in a location",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "name": "get-weather",
+              },
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "temperature": {
+                      "type": "number",
+                    },
+                    "weather": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "weather",
+                    "temperature",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the tool call', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"location":"San Francisco"}",
+              "toolCallId": "toolu_01PQjhxo3eirCdKNvCJrKc8f",
+              "toolName": "weather",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should send tool-calls finish reason', async () => {
+        expect(result.finishReason).toBe('tool-calls');
+      });
+    });
+
+    describe('json schema response format with output format (supported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"recipe":{"name":"Classic Lasagna","ingredients":[{"name":"lasagna noodles","amount":"12 sheets"},{"name":"ground beef","amount":"1 pound"},{"name":"Italian sausage","amount":"1/2 pound"},{"name":"onion","amount":"1 medium, diced"},{"name":"garlic","amount":"3 cloves, minced"},{"name":"crushed tomatoes","amount":"28 oz can"},{"name":"tomato paste","amount":"6 oz can"},{"name":"water","amount":"1/2 cup"},{"name":"sugar","amount":"2 tablespoons"},{"name":"dried basil","amount":"1 1/2 teaspoons"},{"name":"Italian seasoning","amount":"1 teaspoon"},{"name":"salt","amount":"1 teaspoon"},{"name":"black pepper","amount":"1/2 teaspoon"},{"name":"ricotta cheese","amount":"15 oz"},{"name":"egg","amount":"1 large"},{"name":"fresh parsley","amount":"2 tablespoons, chopped"},{"name":"mozzarella cheese","amount":"3 cups, shredded"},{"name":"parmesan cheese","amount":"3/4 cup, grated"}],"steps":["Cook lasagna noodles according to package directions, drain and set aside","In a large skillet, cook ground beef, sausage, onion, and garlic over medium heat until meat is browned, drain excess fat","Add crushed tomatoes, tomato paste, water, sugar, basil, Italian seasoning, salt, and pepper to the meat mixture, simmer for 30 minutes, stirring occasionally","In a bowl, combine ricotta cheese, egg, and parsley, mix well","Preheat oven to 375°F (190°C)","Spread 1 cup of meat sauce in the bottom of a 9x13 inch baking dish","Layer 4 lasagna noodles over the sauce","Spread half of the ricotta mixture over the noodles","Sprinkle with 1 cup mozzarella and 1/4 cup parmesan cheese","Top with 1 1/2 cups meat sauce","Repeat layers once more: 4 noodles, remaining ricotta mixture, 1 cup mozzarella, 1/4 cup parmesan, 1 1/2 cups meat sauce","Add final layer of 4 noodles, remaining meat sauce, remaining mozzarella and parmesan cheese","Cover with aluminum foil and bake for 25 minutes","Remove foil and bake an additional 25 minutes until cheese is golden and bubbly","Let stand for 15 minutes before serving"]}}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with output format (unknown model, forced)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-unknown').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'outputFormat',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-unknown",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"recipe":{"name":"Classic Lasagna","ingredients":[{"name":"lasagna noodles","amount":"12 sheets"},{"name":"ground beef","amount":"1 pound"},{"name":"Italian sausage","amount":"1/2 pound"},{"name":"onion","amount":"1 medium, diced"},{"name":"garlic","amount":"3 cloves, minced"},{"name":"crushed tomatoes","amount":"28 oz can"},{"name":"tomato paste","amount":"6 oz can"},{"name":"water","amount":"1/2 cup"},{"name":"sugar","amount":"2 tablespoons"},{"name":"dried basil","amount":"1 1/2 teaspoons"},{"name":"Italian seasoning","amount":"1 teaspoon"},{"name":"salt","amount":"1 teaspoon"},{"name":"black pepper","amount":"1/2 teaspoon"},{"name":"ricotta cheese","amount":"15 oz"},{"name":"egg","amount":"1 large"},{"name":"fresh parsley","amount":"2 tablespoons, chopped"},{"name":"mozzarella cheese","amount":"3 cups, shredded"},{"name":"parmesan cheese","amount":"3/4 cup, grated"}],"steps":["Cook lasagna noodles according to package directions, drain and set aside","In a large skillet, cook ground beef, sausage, onion, and garlic over medium heat until meat is browned, drain excess fat","Add crushed tomatoes, tomato paste, water, sugar, basil, Italian seasoning, salt, and pepper to the meat mixture, simmer for 30 minutes, stirring occasionally","In a bowl, combine ricotta cheese, egg, and parsley, mix well","Preheat oven to 375°F (190°C)","Spread 1 cup of meat sauce in the bottom of a 9x13 inch baking dish","Layer 4 lasagna noodles over the sauce","Spread half of the ricotta mixture over the noodles","Sprinkle with 1 cup mozzarella and 1/4 cup parmesan cheese","Top with 1 1/2 cups meat sauce","Repeat layers once more: 4 noodles, remaining ricotta mixture, 1 cup mozzarella, 1/4 cup parmesan, 1 1/2 cups meat sauce","Add final layer of 4 noodles, remaining meat sauce, remaining mozzarella and parmesan cheese","Cover with aluminum foil and bake for 25 minutes","Remove foil and bake an additional 25 minutes until cheese is golden and bubbly","Let stand for 15 minutes before serving"]}}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
       });
     });
 
@@ -435,6 +802,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         {
           "anthropic": {
             "cacheCreationInputTokens": null,
+            "container": null,
             "stopSequence": "STOP",
             "usage": {
               "input_tokens": 4,
@@ -472,7 +840,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should send the model id and settings', async () => {
       prepareJsonResponse({});
 
-      await model.doGenerate({
+      const { warnings } = await model.doGenerate({
         prompt: TEST_PROMPT,
         temperature: 0.5,
         maxOutputTokens: 100,
@@ -482,17 +850,105 @@ describe('AnthropicMessagesLanguageModel', () => {
         frequencyPenalty: 0.15,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 100,
-        stop_sequences: ['abc', 'def'],
-        temperature: 0.5,
-        top_k: 0.1,
-        top_p: 0.9,
-        messages: [
-          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
-        ],
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 100,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+          "stop_sequences": [
+            "abc",
+            "def",
+          ],
+          "temperature": 0.5,
+          "top_k": 0.1,
+          "top_p": 0.9,
+        }
+      `);
+
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "setting": "frequencyPenalty",
+            "type": "unsupported-setting",
+          },
+        ]
+      `);
+    });
+
+    it('should limit max output tokens to the model max and warn', async () => {
+      prepareJsonResponse({});
+
+      const { warnings } = await provider('claude-haiku-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 999999,
       });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 64000,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-haiku-4-5",
+        }
+      `);
+
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "999999 (maxOutputTokens + thinkingBudget) is greater than claude-haiku-4-5 64000 max output tokens. The max output tokens have been limited to 64000.",
+            "setting": "maxOutputTokens",
+            "type": "unsupported-setting",
+          },
+        ]
+      `);
+    });
+
+    it('should not limit max output tokens for unknown models', async () => {
+      prepareJsonResponse({});
+
+      const { warnings } = await provider('future-model').doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 123456,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 123456,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "future-model",
+        }
+      `);
+
+      expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should pass tools and toolChoice', async () => {
@@ -660,6 +1116,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
+              "container": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
@@ -688,6 +1145,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               ],
               "model": "claude-3-haiku-20240307",
               "stop_sequences": undefined,
+              "stream": undefined,
               "system": undefined,
               "temperature": undefined,
               "tool_choice": undefined,
@@ -794,6 +1252,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
+              "container": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation": {
@@ -827,6 +1286,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               ],
               "model": "claude-3-haiku-20240307",
               "stop_sequences": undefined,
+              "stream": undefined,
               "system": undefined,
               "temperature": undefined,
               "tool_choice": undefined,
@@ -903,6 +1363,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             ],
             "model": "claude-3-haiku-20240307",
             "stop_sequences": undefined,
+            "stream": undefined,
             "system": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
@@ -1413,7 +1874,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "tool-call",
             },
             {
-              "providerExecuted": true,
               "result": [
                 {
                   "encryptedContent": "encrypted_content_123",
@@ -1487,7 +1947,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "isError": true,
-              "providerExecuted": true,
               "result": {
                 "errorCode": "max_uses_exceeded",
                 "type": "web_search_tool_result_error",
@@ -1651,6 +2110,306 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('mcp servers', () => {
+      it('should send request body with include and tool', async () => {
+        prepareJsonFixtureResponse('anthropic-mcp.1');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              mcpServers: [
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.mcp.inevitable.fyi/mcp',
+                },
+              ],
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "mcp_servers": [
+              {
+                "name": "echo",
+                "type": "url",
+                "url": "https://echo.mcp.inevitable.fyi/mcp",
+              },
+            ],
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "mcp-client-2025-04-04",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include mcp tool call and result in content', async () => {
+        prepareJsonFixtureResponse('anthropic-mcp.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              mcpServers: [
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.mcp.inevitable.fyi/mcp',
+                },
+              ],
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('agent skills', () => {
+      it('should send request body with skills in container', async () => {
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                id: 'test-container-id',
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                  {
+                    type: 'custom',
+                    skillId: 'my-custom-skill',
+                    version: '1.0',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": {
+              "id": "test-container-id",
+              "skills": [
+                {
+                  "skill_id": "pptx",
+                  "type": "anthropic",
+                  "version": "latest",
+                },
+                {
+                  "skill_id": "my-custom-skill",
+                  "type": "custom",
+                  "version": "1.0",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+
+        expect(result.warnings).toMatchInlineSnapshot(`[]`);
+      });
+
+      it('should add a warning when the code execution tool is not present', async () => {
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              container: {
+                id: 'test-container-id',
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                  {
+                    type: 'custom',
+                    skillId: 'my-custom-skill',
+                    version: '1.0',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": {
+              "id": "test-container-id",
+              "skills": [
+                {
+                  "skill_id": "pptx",
+                  "type": "anthropic",
+                  "version": "latest",
+                },
+                {
+                  "skill_id": "my-custom-skill",
+                  "type": "custom",
+                  "version": "1.0",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+          }
+        `);
+
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "message": "code execution tool is required when using skills",
+              "type": "other",
+            },
+          ]
+        `);
+      });
+
+      it('should include beta headers when skills are configured', async () => {
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "code-execution-2025-08-25,skills-2025-10-02,files-api-2025-04-14",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should expose container information as provider metadata', async () => {
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [
+                  {
+                    type: 'anthropic',
+                    skillId: 'pptx',
+                    version: 'latest',
+                  },
+                ],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(result.providerMetadata).toMatchSnapshot();
+      });
+    });
+
     describe('memory 20250818', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-memory-20250818.1');
@@ -1787,6 +2546,42 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should expose container information as provider metadata', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.providerMetadata).toMatchSnapshot();
+      });
+
+      it('should include file id list in code execution tool generate call result.', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.2');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result).toMatchSnapshot();
+      });
     });
 
     describe('code execution 20250522', () => {
@@ -1835,15 +2630,38 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.tools).toHaveLength(1);
-        expect(requestBody.tools[0]).toEqual({
-          type: 'code_execution_20250522',
-          name: 'code_execution',
-        });
-        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
-          'code-execution-2025-05-22',
-        );
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Write a Python function to calculate factorial",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250522",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "code-execution-2025-05-22",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
       });
 
       it('should handle server-side code execution results', async () => {
@@ -1895,14 +2713,13 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "{\"code\":\"print(\\\"Hello, World!\\\")\"}",
+              "input": "{"code":"print(\\"Hello, World!\\")"}",
               "providerExecuted": true,
               "toolCallId": "tool_1",
               "toolName": "code_execution",
               "type": "tool-call",
             },
             {
-              "providerExecuted": true,
               "result": {
                 "return_code": 0,
                 "stderr": "",
@@ -1960,7 +2777,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "isError": true,
-              "providerExecuted": true,
               "result": {
                 "errorCode": "unavailable",
                 "type": "code_execution_tool_result_error",
@@ -2006,23 +2822,46 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
 
-        const requestBody = await server.calls[0].requestBodyJson;
-        expect(requestBody.tools).toHaveLength(2);
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Write a Python function to calculate factorial",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "description": "Calculate math expressions",
+                "input_schema": {
+                  "properties": {},
+                  "type": "object",
+                },
+                "name": "calculator",
+              },
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250522",
+              },
+            ],
+          }
+        `);
 
-        expect(requestBody.tools[0]).toMatchObject({
-          name: 'calculator',
-          description: 'Calculate math expressions',
-          input_schema: { type: 'object', properties: {} },
-        });
-        expect(requestBody.tools[0]).not.toHaveProperty('type');
-
-        expect(requestBody.tools[1]).toEqual({
-          type: 'code_execution_20250522',
-          name: 'code_execution',
-        });
-        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
-          'code-execution-2025-05-22',
-        );
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "code-execution-2025-05-22",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
       });
     });
 
@@ -2039,34 +2878,74 @@ describe('AnthropicMessagesLanguageModel', () => {
         }),
       ).rejects.toThrow('Overloaded');
     });
+
+    describe('temperature clamping', () => {
+      it('should clamp temperature above 1 to 1 and add warning', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 1.5,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(1);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "1.5 exceeds anthropic maximum of 1.0. clamped to 1.0",
+              "setting": "temperature",
+              "type": "unsupported-setting",
+            },
+          ]
+        `);
+      });
+
+      it('should clamp temperature below 0 to 0 and add warning', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: -0.5,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(0);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "-0.5 is below anthropic minimum of 0. clamped to 0",
+              "setting": "temperature",
+              "type": "unsupported-setting",
+            },
+          ]
+        `);
+      });
+
+      it('should not clamp valid temperature between 0 and 1', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(0.7);
+        expect(result.warnings).toMatchInlineSnapshot(`[]`);
+      });
+    });
   });
 
   describe('doStream', () => {
-    describe('json schema response format', () => {
+    describe('json schema response format (unsupported model)', () => {
       let result: Array<LanguageModelV3StreamPart>;
 
       beforeEach(async () => {
-        server.urls['https://api.anthropic.com/v1/messages'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
-            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
-            `data: {"type": "ping"}\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
-            `data: {"type":"content_block_stop","index":0    }\n\n`,
-            `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"json","input":{}}      }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
-            `data: {"type":"content_block_stop","index":1              }\n\n`,
-            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
-            `data: {"type":"message_stop"           }\n\n`,
-          ],
-        };
+        prepareChunksFixtureResponse('anthropic-json-tool.1');
 
         const { stream } = await model.doStream({
           prompt: TEST_PROMPT,
@@ -2106,8 +2985,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "stream": true,
             "tool_choice": {
               "disable_parallel_tool_use": true,
-              "name": "json",
-              "type": "tool",
+              "type": "any",
             },
             "tools": [
               {
@@ -2140,8 +3018,8 @@ describe('AnthropicMessagesLanguageModel', () => {
               "warnings": [],
             },
             {
-              "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
-              "modelId": "claude-3-haiku-20240307",
+              "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+              "modelId": "claude-haiku-4-5-20251001",
               "type": "response-metadata",
             },
             {
@@ -2149,35 +3027,144 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text-start",
             },
             {
+              "delta": "{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "delta": "}",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
               "id": "0",
               "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": 0,
+                  "container": null,
+                  "stopSequence": null,
+                  "usage": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 47,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": 0,
+                "inputTokens": 849,
+                "outputTokens": 47,
+                "totalTokens": 896,
+              },
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('json schema response format with text content prefix', () => {
+      let result: Array<LanguageModelV3StreamPart>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-tool.2');
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+
+        result = await convertReadableStreamToArray(stream);
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should stream the response', async () => {
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+              "modelId": "claude-haiku-4-5-20251001",
+              "type": "response-metadata",
             },
             {
               "id": "1",
               "type": "text-start",
             },
             {
-              "delta": "{"value",
+              "delta": "{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]",
               "id": "1",
               "type": "text-delta",
             },
             {
-              "delta": "":",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": ""Spark",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": "le",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": " Day"}",
+              "delta": "}",
               "id": "1",
               "type": "text-delta",
             },
@@ -2189,24 +3176,308 @@ describe('AnthropicMessagesLanguageModel', () => {
               "finishReason": "stop",
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
+                  "cacheCreationInputTokens": 0,
+                  "container": null,
                   "stopSequence": null,
                   "usage": {
-                    "input_tokens": 441,
-                    "output_tokens": 65,
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 47,
+                    "service_tier": "standard",
                   },
                 },
               },
               "type": "finish",
               "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 441,
-                "outputTokens": 65,
-                "totalTokens": 506,
+                "cachedInputTokens": 0,
+                "inputTokens": 849,
+                "outputTokens": 47,
+                "totalTokens": 896,
               },
             },
           ]
         `);
+      });
+    });
+
+    describe('json schema response format with other tool response (unsupported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doStream>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-other-tool.1');
+
+        result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'Get the weather in a location',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                },
+                required: ['location'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                weather: { type: 'string' },
+                temperature: { type: 'number' },
+              },
+              required: ['weather', 'temperature'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Get the weather in a location",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "name": "weather",
+              },
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "temperature": {
+                      "type": "number",
+                    },
+                    "weather": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "weather",
+                    "temperature",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should stream the tool call', async () => {
+        expect(await convertReadableStreamToArray(result.stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "msg_01CD3XaZfhNabxRt1SG5ybtK",
+                "modelId": "claude-haiku-4-5-20251001",
+                "type": "response-metadata",
+              },
+              {
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "toolName": "weather",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{"location": "San Francisco",
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": ""}",
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"location": "San Francisco"}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": 0,
+                    "container": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 843,
+                      "output_tokens": 28,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 843,
+                  "outputTokens": 28,
+                  "totalTokens": 871,
+                },
+              },
+            ]
+          `);
+      });
+    });
+
+    describe('json schema response format with output format (supported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doStream>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-sonnet-4-5').doStream({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                characters: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      class: { type: 'string' },
+                      description: { type: 'string' },
+                    },
+                    required: ['name', 'class', 'description'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['characters'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "characters": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "class": {
+                          "type": "string",
+                        },
+                        "description": {
+                          "type": "string",
+                        },
+                        "name": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "name",
+                        "class",
+                        "description",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "characters",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+            "stream": true,
+          }
+        `);
+      });
+
+      it('should stream the text output', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
     });
 
@@ -2268,6 +3539,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -2366,6 +3638,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -2446,6 +3719,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -2512,6 +3786,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -2646,6 +3921,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 441,
@@ -2793,6 +4069,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
+          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",
@@ -2854,6 +4131,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -2927,6 +4205,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
+                "container": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation": {
@@ -3030,6 +4309,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "container": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -3077,6 +4357,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "container": null,
                   "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
@@ -3311,6 +4592,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
+                  "container": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -3330,6 +4612,61 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
+      describe('mcp servers', () => {
+        it('should stream code execution tool results', async () => {
+          prepareChunksFixtureResponse('anthropic-mcp.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              anthropic: {
+                mcpServers: [
+                  {
+                    type: 'url',
+                    name: 'echo',
+                    url: 'https://echo.mcp.inevitable.fyi/mcp',
+                  },
+                ],
+              } satisfies AnthropicProviderOptions,
+            },
+          });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+
+      describe('agent skills', () => {
+        it('should stream code execution tool results', async () => {
+          prepareChunksFixtureResponse(
+            'anthropic-code-execution-20250825.pptx-skill',
+          );
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+            providerOptions: {
+              anthropic: {
+                container: {
+                  skills: [{ type: 'anthropic', skillId: 'pptx' }],
+                },
+              } satisfies AnthropicProviderOptions,
+            },
+          });
+
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+
       describe('code execution 20250825 tool', () => {
         it('should stream code execution tool results', async () => {
           prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
@@ -3345,6 +4682,26 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
           });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+
+        it('should include file id list in code execution tool call result.', async () => {
+          prepareChunksFixtureResponse('anthropic-code-execution-20250825.2');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+          });
+
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();

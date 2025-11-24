@@ -10,6 +10,7 @@ import {
   convertToBase64,
   parseProviderOptions,
   validateTypes,
+  isNonNullable,
 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
@@ -20,7 +21,7 @@ import {
   AnthropicWebFetchToolResultContent,
 } from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
-import { getCacheControl } from './get-cache-control';
+import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
@@ -50,16 +51,19 @@ export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
+  cacheControlValidator,
 }: {
   prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
   warnings: LanguageModelV3CallWarning[];
+  cacheControlValidator?: CacheControlValidator;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
 }> {
   const betas = new Set<string>();
   const blocks = groupIntoBlocks(prompt);
+  const validator = cacheControlValidator || new CacheControlValidator();
 
   let system: AnthropicMessagesPrompt['system'] = undefined;
   const messages: AnthropicMessagesPrompt['messages'] = [];
@@ -108,7 +112,10 @@ export async function convertToAnthropicMessagesPrompt({
         system = block.messages.map(({ content, providerOptions }) => ({
           type: 'text',
           text: content,
-          cache_control: getCacheControl(providerOptions),
+          cache_control: validator.getCacheControl(providerOptions, {
+            type: 'system message',
+            canCache: true,
+          }),
         }));
 
         break;
@@ -131,9 +138,15 @@ export async function convertToAnthropicMessagesPrompt({
                 const isLastPart = j === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerOptions) ??
+                  validator.getCacheControl(part.providerOptions, {
+                    type: 'user message part',
+                    canCache: true,
+                  }) ??
                   (isLastPart
-                    ? getCacheControl(message.providerOptions)
+                    ? validator.getCacheControl(message.providerOptions, {
+                        type: 'user message',
+                        canCache: true,
+                      })
                     : undefined);
 
                 switch (part.type) {
@@ -249,56 +262,88 @@ export async function convertToAnthropicMessagesPrompt({
                 const isLastPart = i === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerOptions) ??
+                  validator.getCacheControl(part.providerOptions, {
+                    type: 'tool result part',
+                    canCache: true,
+                  }) ??
                   (isLastPart
-                    ? getCacheControl(message.providerOptions)
+                    ? validator.getCacheControl(message.providerOptions, {
+                        type: 'tool result message',
+                        canCache: true,
+                      })
                     : undefined);
 
                 const output = part.output;
                 let contentValue: AnthropicToolResultContent['content'];
                 switch (output.type) {
                   case 'content':
-                    contentValue = output.value.map(contentPart => {
-                      switch (contentPart.type) {
-                        case 'text':
-                          return {
-                            type: 'text',
-                            text: contentPart.text,
-                            cache_control: undefined,
-                          };
-                        case 'media': {
-                          if (contentPart.mediaType.startsWith('image/')) {
+                    contentValue = output.value
+                      .map(contentPart => {
+                        switch (contentPart.type) {
+                          case 'text':
                             return {
-                              type: 'image',
+                              type: 'text' as const,
+                              text: contentPart.text,
+                            };
+                          case 'image-data': {
+                            return {
+                              type: 'image' as const,
                               source: {
-                                type: 'base64',
+                                type: 'base64' as const,
                                 media_type: contentPart.mediaType,
                                 data: contentPart.data,
                               },
-                              cache_control: undefined,
                             };
                           }
-
-                          if (contentPart.mediaType === 'application/pdf') {
-                            betas.add('pdfs-2024-09-25');
-
+                          case 'image-url': {
                             return {
-                              type: 'document',
+                              type: 'image' as const,
                               source: {
-                                type: 'base64',
-                                media_type: contentPart.mediaType,
-                                data: contentPart.data,
+                                type: 'url' as const,
+                                url: contentPart.url,
                               },
-                              cache_control: undefined,
                             };
                           }
+                          case 'file-url': {
+                            return {
+                              type: 'document' as const,
+                              source: {
+                                type: 'url' as const,
+                                url: contentPart.url,
+                              },
+                            };
+                          }
+                          case 'file-data': {
+                            if (contentPart.mediaType === 'application/pdf') {
+                              betas.add('pdfs-2024-09-25');
+                              return {
+                                type: 'document' as const,
+                                source: {
+                                  type: 'base64' as const,
+                                  media_type: contentPart.mediaType,
+                                  data: contentPart.data,
+                                },
+                              };
+                            }
 
-                          throw new UnsupportedFunctionalityError({
-                            functionality: `media type: ${contentPart.mediaType}`,
-                          });
+                            warnings.push({
+                              type: 'other',
+                              message: `unsupported tool content part type: ${contentPart.type} with media type: ${contentPart.mediaType}`,
+                            });
+
+                            return undefined;
+                          }
+                          default: {
+                            warnings.push({
+                              type: 'other',
+                              message: `unsupported tool content part type: ${contentPart.type}`,
+                            });
+
+                            return undefined;
+                          }
                         }
-                      }
-                    });
+                      })
+                      .filter(isNonNullable);
                     break;
                   case 'text':
                   case 'error-text':
@@ -344,6 +389,8 @@ export async function convertToAnthropicMessagesPrompt({
         // combines multiple assistant messages in this block into a single message:
         const anthropicContent: AnthropicAssistantMessage['content'] = [];
 
+        const mcpToolUseIds = new Set<string>();
+
         for (let j = 0; j < block.messages.length; j++) {
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
@@ -357,9 +404,15 @@ export async function convertToAnthropicMessagesPrompt({
             // for the last part of a message,
             // check also if the message has cache control.
             const cacheControl =
-              getCacheControl(part.providerOptions) ??
+              validator.getCacheControl(part.providerOptions, {
+                type: 'assistant message part',
+                canCache: true,
+              }) ??
               (isLastContentPart
-                ? getCacheControl(message.providerOptions)
+                ? validator.getCacheControl(message.providerOptions, {
+                    type: 'assistant message',
+                    canCache: true,
+                  })
                 : undefined);
 
             switch (part.type) {
@@ -389,17 +442,29 @@ export async function convertToAnthropicMessagesPrompt({
 
                   if (reasoningMetadata != null) {
                     if (reasoningMetadata.signature != null) {
+                      // Note: thinking blocks cannot have cache_control directly
+                      // They are cached implicitly when in previous assistant turns
+                      // Validate to provide helpful error message
+                      validator.getCacheControl(part.providerOptions, {
+                        type: 'thinking block',
+                        canCache: false,
+                      });
                       anthropicContent.push({
                         type: 'thinking',
                         thinking: part.text,
                         signature: reasoningMetadata.signature,
-                        cache_control: cacheControl,
                       });
                     } else if (reasoningMetadata.redactedData != null) {
+                      // Note: redacted thinking blocks cannot have cache_control directly
+                      // They are cached implicitly when in previous assistant turns
+                      // Validate to provide helpful error message
+                      validator.getCacheControl(part.providerOptions, {
+                        type: 'redacted thinking block',
+                        canCache: false,
+                      });
                       anthropicContent.push({
                         type: 'redacted_thinking',
                         data: reasoningMetadata.redactedData,
-                        cache_control: cacheControl,
                       });
                     } else {
                       warnings.push({
@@ -425,8 +490,34 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
-                  // code execution 20250825:
-                  if (
+                  const isMcpToolUse =
+                    part.providerOptions?.anthropic?.type === 'mcp-tool-use';
+
+                  if (isMcpToolUse) {
+                    mcpToolUseIds.add(part.toolCallId);
+
+                    const serverName =
+                      part.providerOptions?.anthropic?.serverName;
+
+                    if (serverName == null || typeof serverName !== 'string') {
+                      warnings.push({
+                        type: 'other',
+                        message:
+                          'mcp tool use server name is required and must be a string',
+                      });
+                      break;
+                    }
+
+                    anthropicContent.push({
+                      type: 'mcp_tool_use',
+                      id: part.toolCallId,
+                      name: part.toolName,
+                      input: part.input,
+                      server_name: serverName,
+                      cache_control: cacheControl,
+                    });
+                  } else if (
+                    // code execution 20250825:
                     part.toolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
@@ -475,7 +566,28 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-result': {
-                if (part.toolName === 'code_execution') {
+                if (mcpToolUseIds.has(part.toolCallId)) {
+                  const output = part.output;
+
+                  if (output.type !== 'json' && output.type !== 'error-json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  anthropicContent.push({
+                    type: 'mcp_tool_result',
+                    tool_use_id: part.toolCallId,
+                    is_error: output.type === 'error-json',
+                    content: output.value as unknown as
+                      | string
+                      | Array<{ type: 'text'; text: string }>,
+                    cache_control: cacheControl,
+                  });
+                } else if (part.toolName === 'code_execution') {
                   const output = part.output;
 
                   if (output.type !== 'json') {

@@ -7,6 +7,7 @@ export type BedrockChatModelId =
   | 'anthropic.claude-v2'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
+  | 'anthropic.claude-haiku-4-5-20251001-v1:0'
   | 'anthropic.claude-sonnet-4-20250514-v1:0'
   | 'anthropic.claude-sonnet-4-5-20250929-v1:0'
   | 'anthropic.claude-opus-4-20250514-v1:0'
@@ -103,6 +104,10 @@ export const bedrockProviderOptions = z.object({
       budgetTokens: z.number().optional(),
     })
     .optional(),
+  /**
+   * Anthropic beta features to enable
+   */
+  anthropicBeta: z.array(z.string()).optional(),
 });
 
 export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;

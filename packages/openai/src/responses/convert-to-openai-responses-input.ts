@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  isNonNullable,
   parseProviderOptions,
   validateTypes,
 } from '@ai-sdk/provider-utils';
@@ -14,6 +15,7 @@ import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
+import { webSearchOutputSchema } from '../tool/web-search';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -335,25 +337,38 @@ export async function convertToOpenAIResponsesInput({
               contentValue = JSON.stringify(output.value);
               break;
             case 'content':
-              contentValue = output.value.map(item => {
-                switch (item.type) {
-                  case 'text': {
-                    return { type: 'input_text' as const, text: item.text };
+              contentValue = output.value
+                .map(item => {
+                  switch (item.type) {
+                    case 'text': {
+                      return { type: 'input_text' as const, text: item.text };
+                    }
+
+                    case 'image-data': {
+                      return {
+                        type: 'input_image' as const,
+                        image_url: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    case 'file-data': {
+                      return {
+                        type: 'input_file' as const,
+                        filename: item.filename ?? 'data',
+                        file_data: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    default: {
+                      warnings.push({
+                        type: 'other',
+                        message: `unsupported tool content part type: ${item.type}`,
+                      });
+                      return undefined;
+                    }
                   }
-                  case 'media': {
-                    return item.mediaType.startsWith('image/')
-                      ? {
-                          type: 'input_image' as const,
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
-                        }
-                      : {
-                          type: 'input_file' as const,
-                          filename: 'data',
-                          file_data: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                  }
-                }
-              });
+                })
+                .filter(isNonNullable);
               break;
           }
 

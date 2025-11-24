@@ -6,7 +6,9 @@ export type BasetenChatModelId =
   | 'deepseek-ai/DeepSeek-V3-0324'
   | 'deepseek-ai/DeepSeek-V3.1'
   | 'moonshotai/Kimi-K2-Instruct-0905'
+  | 'moonshotai/Kimi-K2-Thinking'
   | 'Qwen/Qwen3-235B-A22B-Instruct-2507'
   | 'Qwen/Qwen3-Coder-480B-A35B-Instruct'
   | 'openai/gpt-oss-120b'
+  | 'zai-org/GLM-4.6'
   | (string & {});

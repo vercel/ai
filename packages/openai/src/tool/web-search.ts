@@ -8,6 +8,7 @@ import { z } from 'zod/v4';
 export const webSearchArgsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      externalWebAccess: z.boolean().optional(),
       filters: z
         .object({ allowedDomains: z.array(z.string()).optional() })
         .optional(),
@@ -45,6 +46,14 @@ export const webSearchOutputSchema = lazySchema(() =>
           pattern: z.string(),
         }),
       ]),
+      sources: z
+        .array(
+          z.discriminatedUnion('type', [
+            z.object({ type: z.literal('url'), url: z.string() }),
+            z.object({ type: z.literal('api'), name: z.string() }),
+          ]),
+        )
+        .optional(),
     }),
   ),
 );
@@ -98,8 +107,22 @@ export const webSearchToolFactory =
              */
             pattern: string;
           };
+
+      /**
+       * Optional sources cited by the model for the web search call.
+       */
+      sources?: Array<
+        { type: 'url'; url: string } | { type: 'api'; name: string }
+      >;
     },
     {
+      /**
+       * Whether to use external web access for fetching live content.
+       * - true: Fetch live web content (default)
+       * - false: Use cached/indexed results
+       */
+      externalWebAccess?: boolean;
+
       /**
        * Filters for the search.
        */

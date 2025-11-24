@@ -113,6 +113,7 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     return createLanguageModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
 

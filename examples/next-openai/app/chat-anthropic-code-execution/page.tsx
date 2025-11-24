@@ -1,6 +1,6 @@
 'use client';
 
-import { AnthropicCodeExecutionMessage } from '@/agent/anthropic-code-execution';
+import { AnthropicCodeExecutionMessage } from '@/agent/anthropic-code-execution-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import AnthropicCodeExecutionView from '@/components/tool/anthropic-code-execution-view';
@@ -14,6 +14,8 @@ export default function TestAnthropicCodeExecution() {
         api: '/api/chat-anthropic-code-execution',
       }),
     });
+
+  console.log(structuredClone(messages));
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">

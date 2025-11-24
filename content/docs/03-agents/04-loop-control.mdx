@@ -5,7 +5,14 @@ description: Control agent execution with built-in loop management using stopWhe
 
 # Loop Control
 
-You can control both the execution flow and the settings at each step of the agent loop. The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
+You can control both the execution flow and the settings at each step of the agent loop. The loop continues until:
+
+- A finish reasoning other than tool-calls is returned, or
+- A tool that is invoked does not have an execute function, or
+- A tool call needs approval, or
+- A stop condition is met
+
+The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
 
 ## Stop Conditions
 
@@ -18,10 +25,10 @@ When you provide `stopWhen`, the agent continues executing after tool calls unti
 The AI SDK provides several built-in stopping conditions:
 
 ```ts
-import { Agent, stepCountIs } from 'ai';
+import { ToolLoopAgent, stepCountIs } from 'ai';
 
-const agent = new Agent({
-  model: 'openai/gpt-4o',
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-5.1',
   tools: {
     // your tools
   },
@@ -38,10 +45,10 @@ const result = await agent.generate({
 Combine multiple stopping conditions. The loop stops when it meets any condition:
 
 ```ts
-import { Agent, stepCountIs, hasToolCall } from 'ai';
+import { ToolLoopAgent, stepCountIs, hasToolCall } from 'ai';
 
-const agent = new Agent({
-  model: 'openai/gpt-4o',
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-5.1',
   tools: {
     // your tools
   },
@@ -61,7 +68,7 @@ const result = await agent.generate({
 Build custom stopping conditions for specific requirements:
 
 ```ts
-import { Agent, StopCondition, ToolSet } from 'ai';
+import { ToolLoopAgent, StopCondition, ToolSet } from 'ai';
 
 const tools = {
   // your tools
@@ -72,8 +79,8 @@ const hasAnswer: StopCondition<typeof tools> = ({ steps }) => {
   return steps.some(step => step.text?.includes('ANSWER:')) ?? false;
 };
 
-const agent = new Agent({
-  model: 'openai/gpt-4o',
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-5.1',
   tools,
   stopWhen: hasAnswer,
 });
@@ -110,9 +117,9 @@ The `prepareStep` callback runs before each step in the loop and defaults to the
 Switch models based on step requirements:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o-mini', // Default model
   tools: {
     // your tools
@@ -121,7 +128,7 @@ const agent = new Agent({
     // Use a stronger model for complex reasoning after initial steps
     if (stepNumber > 2 && messages.length > 10) {
       return {
-        model: 'openai/gpt-4o',
+        model: 'openai/gpt-5.1',
       };
     }
     // Continue with default settings
@@ -139,10 +146,10 @@ const result = await agent.generate({
 Manage growing conversation history in long-running loops:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
-  model: 'openai/gpt-4o',
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-5.1',
   tools: {
     // your tools
   },
@@ -151,7 +158,7 @@ const agent = new Agent({
     if (messages.length > 20) {
       return {
         messages: [
-          messages[0], // Keep system message
+          messages[0], // Keep system instructions
           ...messages.slice(-10), // Keep last 10 messages
         ],
       };
@@ -170,10 +177,10 @@ const result = await agent.generate({
 Control which tools are available at each step:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
-  model: 'openai/gpt-4o',
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-5.1',
   tools: {
     search: searchTool,
     analyze: analyzeTool,
@@ -235,10 +242,10 @@ prepareStep: async ({ stepNumber }) => {
 Transform messages before sending them to the model:
 
 ```ts
-import { Agent } from 'ai';
+import { ToolLoopAgent } from 'ai';
 
-const agent = new Agent({
-  model: 'openai/gpt-4o',
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-5.1',
   tools: {
     // your tools
   },
@@ -307,7 +314,7 @@ const maxSteps = 10;
 
 while (step < maxSteps) {
   const result = await generateText({
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-5.1',
     messages,
     tools: {
       // your tools here
