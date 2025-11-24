@@ -25,6 +25,18 @@ async function main() {
   console.log('\n=== Other Outputs ===');
   console.dir(basicResult.toolCalls, { depth: Infinity });
   console.dir(basicResult.toolResults, { depth: Infinity });
+<<<<<<< HEAD
+=======
+  console.log('\n=== Code Interpreter Annotations ===');
+  for (const part of basicResult.content) {
+    if (part.type === 'text') {
+      const annotations = part.providerMetadata?.azure?.annotations;
+      if (annotations) {
+        console.dir(annotations);
+      }
+    }
+  }
+>>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
 }
 
 main().catch(console.error);

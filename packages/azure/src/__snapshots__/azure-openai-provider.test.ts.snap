@@ -4,7 +4,7 @@ exports[`responses > doGenerate > code interpreter tool > should include code in
 [
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_02ffbc38ae6fca1a0068ec8762f61881979bf5191564930c23",
         "reasoningEncryptedContent": null,
       },
@@ -42,7 +42,7 @@ Generated numbers:
   },
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_02ffbc38ae6fca1a0068ec8768f35c81979428e19fa11468f1",
       },
     },
@@ -64,7 +64,7 @@ exports[`responses > doGenerate > file search tool > with results include > shou
 [
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0365d26c32c64c650068cabb03bcc48194bfbd973152bca8f6",
         "reasoningEncryptedContent": null,
       },
@@ -142,7 +142,7 @@ providers and models, and which ones are available in the AI SDK.",
   },
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0365d26c32c64c650068cabb061740819491324d349d0f07ca",
         "reasoningEncryptedContent": null,
       },
@@ -152,7 +152,19 @@ providers and models, and which ones are available in the AI SDK.",
   },
   {
     "providerMetadata": {
+<<<<<<< HEAD
       "openai": {
+=======
+      "azure": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 350,
+            "type": "file_citation",
+          },
+        ],
+>>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
         "itemId": "msg_0365d26c32c64c650068cabb0e66b081949f66f61dacef39f3",
       },
     },
@@ -164,7 +176,7 @@ providers and models, and which ones are available in the AI SDK.",
     "id": "id-0",
     "mediaType": "text/plain",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
       },
     },
@@ -179,7 +191,7 @@ exports[`responses > doGenerate > file search tool > without results include > s
 [
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0a098396a8feca410068caae3b47208196957fe59419daad70",
         "reasoningEncryptedContent": null,
       },
@@ -211,7 +223,7 @@ exports[`responses > doGenerate > file search tool > without results include > s
   },
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0a098396a8feca410068caae3e21a081968e7ac588401c4a6a",
         "reasoningEncryptedContent": null,
       },
@@ -221,7 +233,19 @@ exports[`responses > doGenerate > file search tool > without results include > s
   },
   {
     "providerMetadata": {
+<<<<<<< HEAD
       "openai": {
+=======
+      "azure": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 438,
+            "type": "file_citation",
+          },
+        ],
+>>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
         "itemId": "msg_0a098396a8feca410068caae457c508196b2fcd079d1d3ec74",
       },
     },
@@ -233,7 +257,7 @@ exports[`responses > doGenerate > file search tool > without results include > s
     "id": "id-0",
     "mediaType": "text/plain",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
       },
     },
@@ -286,7 +310,20 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
   },
   {
     "providerMetadata": {
+<<<<<<< HEAD
       "openai": {
+=======
+      "azure": {
+        "annotations": [
+          {
+            "end_index": 576,
+            "start_index": 453,
+            "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+            "type": "url_citation",
+            "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+          },
+        ],
+>>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
         "itemId": "msg_015f6a6b41cacae400691daacf3e70819397c7d2d5d05e1605",
       },
     },
@@ -326,7 +363,7 @@ exports[`responses > doStream > should send code interpreter calls 1`] = `
   {
     "id": "rs_0ad69c3c5fcb01f60068eba78f12588193872253fcce2ef954:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0ad69c3c5fcb01f60068eba78f12588193872253fcce2ef954",
         "reasoningEncryptedContent": null,
       },
@@ -336,7 +373,7 @@ exports[`responses > doStream > should send code interpreter calls 1`] = `
   {
     "id": "rs_0ad69c3c5fcb01f60068eba78f12588193872253fcce2ef954:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0ad69c3c5fcb01f60068eba78f12588193872253fcce2ef954",
         "reasoningEncryptedContent": null,
       },
@@ -904,7 +941,7 @@ Generated numbers (formatted to 2 decimal places): 88.99, 51.21, 89.85, 88.97, 7
   {
     "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
       },
     },
@@ -2041,7 +2078,7 @@ Generated numbers (formatted to 2 decimal places): 88.99, 51.21, 89.85, 88.97, 7
   {
     "id": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_0ad69c3c5fcb01f60068eba7956c948193be6ab573376051d6",
       },
     },
@@ -2055,7 +2092,7 @@ Error message: Unexpected end of JSON input],
   {
     "finishReason": "error",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "responseId": "resp_0ad69c3c5fcb01f60068eba78cacd08193bf9a57724aa55ab8",
         "serviceTier": "default",
       },
@@ -2087,7 +2124,7 @@ exports[`responses > file search tool > should stream file search results with r
   {
     "id": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41",
         "reasoningEncryptedContent": null,
       },
@@ -2097,7 +2134,7 @@ exports[`responses > file search tool > should stream file search results with r
   {
     "id": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41",
         "reasoningEncryptedContent": null,
       },
@@ -2174,7 +2211,7 @@ providers and models, and which ones are available in the AI SDK.",
   {
     "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728",
         "reasoningEncryptedContent": null,
       },
@@ -2184,7 +2221,7 @@ providers and models, and which ones are available in the AI SDK.",
   {
     "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728",
         "reasoningEncryptedContent": null,
       },
@@ -2194,7 +2231,7 @@ providers and models, and which ones are available in the AI SDK.",
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
       },
     },
@@ -2575,7 +2612,7 @@ providers and models, and which ones are available in the AI SDK.",
     "id": "id-0",
     "mediaType": "text/plain",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
       },
     },
@@ -2591,7 +2628,7 @@ providers and models, and which ones are available in the AI SDK.",
   {
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "annotations": [
           {
             "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
@@ -2608,7 +2645,7 @@ providers and models, and which ones are available in the AI SDK.",
   {
     "finishReason": "stop",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "responseId": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
         "serviceTier": "default",
       },
@@ -2640,7 +2677,7 @@ exports[`responses > file search tool > should stream file search results withou
   {
     "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
         "reasoningEncryptedContent": null,
       },
@@ -2650,7 +2687,7 @@ exports[`responses > file search tool > should stream file search results withou
   {
     "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
         "reasoningEncryptedContent": null,
       },
@@ -2681,7 +2718,7 @@ exports[`responses > file search tool > should stream file search results withou
   {
     "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
         "reasoningEncryptedContent": null,
       },
@@ -2691,7 +2728,7 @@ exports[`responses > file search tool > should stream file search results withou
   {
     "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
         "reasoningEncryptedContent": null,
       },
@@ -2701,7 +2738,7 @@ exports[`responses > file search tool > should stream file search results withou
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
       },
     },
@@ -2877,7 +2914,7 @@ exports[`responses > file search tool > should stream file search results withou
     "id": "id-0",
     "mediaType": "text/plain",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
       },
     },
@@ -3095,7 +3132,7 @@ exports[`responses > file search tool > should stream file search results withou
     "id": "id-1",
     "mediaType": "text/plain",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
       },
     },
@@ -3111,7 +3148,7 @@ exports[`responses > file search tool > should stream file search results withou
   {
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "annotations": [
           {
             "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
@@ -3134,7 +3171,7 @@ exports[`responses > file search tool > should stream file search results withou
   {
     "finishReason": "stop",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
         "serviceTier": "default",
       },
@@ -3155,7 +3192,7 @@ exports[`responses > image generation tool > should include generate image tool 
 [
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0a33d15155cb126d0068c96c5527808195a933b468ccb5dfd9",
         "reasoningEncryptedContent": null,
       },
@@ -3181,7 +3218,7 @@ exports[`responses > image generation tool > should include generate image tool 
   },
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "rs_0a33d15155cb126d0068c96c6c0ef48195bc73e30faf832ba3",
         "reasoningEncryptedContent": null,
       },
@@ -3191,7 +3228,7 @@ exports[`responses > image generation tool > should include generate image tool 
   },
   {
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_0a33d15155cb126d0068c96c723ed88195b1405bc370bb8a65",
       },
     },
@@ -3245,7 +3282,7 @@ exports[`responses > web search preview tool > should stream web search preview 
   {
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "itemId": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
       },
     },
@@ -4999,7 +5036,7 @@ exports[`responses > web search preview tool > should stream web search preview 
   {
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "annotations": [
           {
             "end_index": 577,
@@ -5022,7 +5059,7 @@ Error message: Unexpected end of JSON input],
   {
     "finishReason": "error",
     "providerMetadata": {
-      "openai": {
+      "azure": {
         "responseId": "resp_0dcf1a118189f28100691daa5591108194a7dc13f2d6faa80c",
         "serviceTier": "default",
       },
