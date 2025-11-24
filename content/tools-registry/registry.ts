@@ -143,7 +143,7 @@ const { text } = await generateText({
 
 console.log(text);`,
     docsUrl: 'https://docs.tavily.com/documentation/integrations/vercel',
-    apiKeyUrl: 'app.tavily.com/home',
+    apiKeyUrl: 'https://app.tavily.com/home',
     websiteUrl: 'https://tavily.com',
     npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
   },
