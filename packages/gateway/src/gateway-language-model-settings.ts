@@ -25,6 +25,7 @@ export type GatewayModelId =
   | 'anthropic/claude-haiku-4.5'
   | 'anthropic/claude-opus-4'
   | 'anthropic/claude-opus-4.1'
+  | 'anthropic/claude-opus-4.5'
   | 'anthropic/claude-sonnet-4'
   | 'anthropic/claude-sonnet-4.5'
   | 'cohere/command-a'
