@@ -249,6 +249,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(isThinking && {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
+      ...(anthropicOptions?.effort && {
+        output_config: { effort: anthropicOptions.effort },
+      }),
 
       // container with agent skills:
       ...(anthropicOptions?.container && {
@@ -343,6 +346,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
     }
 
+<<<<<<< HEAD
+=======
+    if (anthropicOptions?.effort) {
+      betas.add('effort-2025-11-24');
+    }
+
+    // only when streaming: enable fine-grained tool streaming
+    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
+      betas.add('fine-grained-tool-streaming-2025-05-14');
+    }
+
+    // structured output:
+    if (useStructuredOutput) {
+      betas.add('structured-outputs-2025-11-13');
+    }
+
+>>>>>>> 83aaad82c (feat(anthropic): Opus 4.5 and `effort` provider option (#10548))
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -1360,7 +1380,26 @@ function getMaxOutputTokensForModel(modelId: string): {
   maxOutputTokens: number;
   knownModel: boolean;
 } {
+<<<<<<< HEAD
   if (
+=======
+  if (modelId.includes('claude-sonnet-4-5')) {
+    return {
+      maxOutputTokens: 64000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (
+    modelId.includes('claude-opus-4-1') ||
+    modelId.includes('claude-opus-4-5')
+  ) {
+    return {
+      maxOutputTokens: 32000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (
+>>>>>>> 83aaad82c (feat(anthropic): Opus 4.5 and `effort` provider option (#10548))
     modelId.includes('claude-sonnet-4-') ||
     modelId.includes('claude-3-7-sonnet') ||
     modelId.includes('claude-haiku-4-5')
