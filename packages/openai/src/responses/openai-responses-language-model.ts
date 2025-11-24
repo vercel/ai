@@ -470,13 +470,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-<<<<<<< HEAD
-                openai: {
-                  itemId: part.id,
-                },
-=======
-                [providerKey]: providerMetadata,
->>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
+                [providerKey]:{
+                  openai: {
+                    itemId: part.id,
+                  },
+                }
               },
             });
 
@@ -507,8 +505,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                       }
                     : {}),
                 });
-<<<<<<< HEAD
-=======
               } else if (annotation.type === 'container_file_citation') {
                 content.push({
                   type: 'source',
@@ -545,7 +541,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     },
                   },
                 });
->>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
               }
             }
           }
@@ -667,15 +662,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }
     }
 
-<<<<<<< HEAD
     const providerMetadata: SharedV2ProviderMetadata = {
-      openai: {
+      [providerKey]: {
         ...(response.id != null ? { responseId: response.id } : {}),
       },
-=======
-    const providerMetadata: SharedV3ProviderMetadata = {
-      [providerKey]: { responseId: response.id },
->>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
     };
 
     if (logprobs.length > 0) {
@@ -1283,48 +1273,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                       }
                     : {}),
                 });
-<<<<<<< HEAD
-=======
-              } else if (value.annotation.type === 'container_file_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title:
-                    value.annotation.filename ??
-                    value.annotation.file_id ??
-                    'Document',
-                  filename:
-                    value.annotation.filename ?? value.annotation.file_id,
-                  providerMetadata: {
-                    [providerKey]: {
-                      fileId: value.annotation.file_id,
-                      containerId: value.annotation.container_id,
-                      ...(value.annotation.index != null
-                        ? { index: value.annotation.index }
-                        : {}),
-                    },
-                  },
-                });
-              } else if (value.annotation.type === 'file_path') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'application/octet-stream',
-                  title: value.annotation.file_id,
-                  filename: value.annotation.file_id,
-                  providerMetadata: {
-                    [providerKey]: {
-                      fileId: value.annotation.file_id,
-                      ...(value.annotation.index != null
-                        ? { index: value.annotation.index }
-                        : {}),
-                    },
-                  },
-                });
->>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
               }
             } else if (
               isResponseOutputItemDoneChunk(value) &&
@@ -1348,13 +1296,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
-<<<<<<< HEAD
             const providerMetadata: SharedV2ProviderMetadata = {
-              openai: {
-=======
-            const providerMetadata: SharedV3ProviderMetadata = {
               [providerKey]: {
->>>>>>> d86b52f90 (feat(azure):distinguish between OpenAI and Azure in Responses API providerMetadata (#10252))
                 responseId,
               },
             };
