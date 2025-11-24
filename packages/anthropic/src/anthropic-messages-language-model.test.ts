@@ -3382,7 +3382,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format(supported model)', () => {
+    describe('json schema response format with output format (supported model)', () => {
       let result: Awaited<ReturnType<typeof model.doStream>>;
 
       beforeEach(async () => {

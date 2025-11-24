@@ -1136,6 +1136,626 @@ For the most current breaking tech news today, I'd recommend checking major tech
 ]
 `;
 
+exports[`AnthropicMessagesLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "{"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "characters"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":[{"name":"Th",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Iron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "heart","class":"warrior","description",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "":"A battle",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-scar",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "red veteran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " steel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "gray hair and a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prominent",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " scar across his left eye.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Wiel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ding a massive two",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-handed sword passe",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d down through his family for",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generations,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Theron fights",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with discipl",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ined precision h",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oned through decades",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of combat. Despite",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his gruff exterior, he harb",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ors a deep sense of honor and prot",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ects the weak",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " without",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hesitation.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ""},{"name":"Lyra",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Star",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "weaver","class":"mage","",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "description":"A young",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "digy in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " arcane arts with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flowing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silver ro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bes ador",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ned with celest",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ial patterns",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Her",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " eyes",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " g",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "low f",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aintly blue",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " when",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chann",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eling powerful",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sp",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ells.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lyra special",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "izes in ele",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "mental magic an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d ast",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ral div",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ination, having",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " studie",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d at",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the Gran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d Academy since",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " childhoo",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d. She is",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " curious",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and ide",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "alistic, often getting",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " while",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pursuing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " forbidden",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " knowledge."},{"name":"R",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ook",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Shadow",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ep",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "","class":"thief","description":"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "A nim",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ble and cun",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ning r",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ogue who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " moves through",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shadows",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a whis",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "per in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the night. With",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " jet",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-black hair,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " leather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " armor,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and an array of lock",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "picks an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d daggers hidden on",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his person, Rook makes his",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " living liber",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ating treas",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ures from those",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " he",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deems unworthy of",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " them",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Behin",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d his coc",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ky smile",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lies a trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d past and a strict",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " personal",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " code about",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deserves to be",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rob",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bed."}]}",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 313,
+          "output_tokens": 305,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 313,
+      "outputTokens": 305,
+      "totalTokens": 618,
+    },
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doStream > json schema response format(supported model) > should stream the text output 1`] = `
 [
   {
