@@ -272,6 +272,13 @@ for await (const chunk of stream.textStream) {
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'experimental_transform',
+      type: 'StreamTextTransform | Array<StreamTextTransform>',
+      isOptional: true,
+      description:
+        'Optional stream transformation(s). They are applied in the order provided and must maintain the stream structure. See `streamText` docs for details.',
+    },
   ]}
 />
 

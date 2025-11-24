@@ -1,4 +1,4 @@
-import { UIMessageStreamOptions } from '../generate-text';
+import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
 import { InferUIMessageChunk } from '../ui-message-stream';
@@ -25,11 +25,15 @@ export async function createAgentUIStream<
   agent,
   messages,
   options,
+  experimental_transform,
   ...uiMessageStreamOptions
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   messages: unknown[];
   options?: CALL_OPTIONS;
+  experimental_transform?:
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
 } & UIMessageStreamOptions<
   UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
 >): Promise<
@@ -51,6 +55,7 @@ export async function createAgentUIStream<
   const result = await agent.stream({
     prompt: modelMessages,
     options: options as CALL_OPTIONS,
+    experimental_transform,
   });
 
   return result.toUIMessageStream(uiMessageStreamOptions);
