@@ -180,7 +180,7 @@ Then, you can import and pass it into `generateText`, `streamText`, or your agen
 
 ```ts
 import { generateText, stepCountIs } from 'ai';
-import { tavilySearch } from '@tavily/ai-sdk';
+import { tavilySearch, tavilyExtract } from '@tavily/ai-sdk';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
