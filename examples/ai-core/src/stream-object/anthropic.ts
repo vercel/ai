@@ -6,8 +6,12 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamObject({
+<<<<<<< HEAD
     model: anthropic('claude-sonnet-4-20250514'),
     maxOutputTokens: 5000,
+=======
+    model: anthropic('claude-sonnet-4-5'),
+>>>>>>> b8ea36ed4 (feat(provider/anthropic): Anthropic-native structured outputs (#10502))
     schema: z.object({
       characters: z.array(
         z.object({
@@ -30,4 +34,6 @@ run(async () => {
     console.clear();
     console.log(partialObject);
   }
+
+  console.dir((await result.request).body, { depth: Infinity });
 });
