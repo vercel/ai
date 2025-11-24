@@ -11,7 +11,6 @@ import {
   LanguageModelV3ToolCall,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
-  TooManyEmbeddingValuesForCallError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
