@@ -314,14 +314,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 type: edit.type,
                 ...(edit.trigger !== undefined && { trigger: edit.trigger }),
                 ...(edit.keep !== undefined && { keep: edit.keep }),
-                ...(edit.clear_at_least !== undefined && {
-                  clear_at_least: edit.clear_at_least,
+                ...(edit.clearAtLeast !== undefined && {
+                  clear_at_least: edit.clearAtLeast,
                 }),
-                ...(edit.clear_tool_inputs !== undefined && {
-                  clear_tool_inputs: edit.clear_tool_inputs,
+                ...(edit.clearToolInputs !== undefined && {
+                  clear_tool_inputs: edit.clearToolInputs,
                 }),
-                ...(edit.exclude_tools !== undefined && {
-                  exclude_tools: edit.exclude_tools,
+                ...(edit.excludeTools !== undefined && {
+                  exclude_tools: edit.excludeTools,
                 }),
               };
             } else {

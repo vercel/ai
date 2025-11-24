@@ -183,14 +183,14 @@ export const anthropicProviderOptions = z.object({
                 value: z.number(),
               })
               .optional(),
-            clear_at_least: z
+            clearAtLeast: z
               .object({
                 type: z.literal('input_tokens'),
                 value: z.number(),
               })
               .optional(),
-            clear_tool_inputs: z.boolean().optional(),
-            exclude_tools: z.array(z.string()).optional(),
+            clearToolInputs: z.boolean().optional(),
+            excludeTools: z.array(z.string()).optional(),
           }),
           z.object({
             type: z.literal('clear_thinking_20251015'),
