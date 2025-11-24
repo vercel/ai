@@ -132,6 +132,7 @@
     "fifty-ligers-remember",
     "fix-array-output-type",
     "fix-async-iterator-cancel-cleanup",
+    "fix-google-file-search-uri",
     "fix-headers-normalization",
     "flat-birds-judge",
     "flat-geese-hammer",
