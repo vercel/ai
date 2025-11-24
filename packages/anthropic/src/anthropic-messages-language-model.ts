@@ -11,6 +11,7 @@ import {
   LanguageModelV3ToolCall,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
+  TooManyEmbeddingValuesForCallError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -194,8 +195,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions,
+      schema: anthropicProviderOptions,
+    });
+
+    const {
+      maxOutputTokens: maxOutputTokensForModel,
+      supportsStructuredOutput,
+      isKnownModel,
+    } = getModelCapabilities(this.modelId);
+
+    const useStructuredOutput = supportsStructuredOutput;
+
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
-      responseFormat?.type === 'json' && responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !supportsStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -203,12 +220,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             inputSchema: responseFormat.schema,
           }
         : undefined;
-
-    const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions,
-      schema: anthropicProviderOptions,
-    });
 
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
@@ -224,11 +235,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
-    const {
-      maxOutputTokens: maxOutputTokensForModel,
-      supportsStructuredOutput,
-      isKnownModel,
-    } = getModelCapabilities(this.modelId);
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
     const baseArgs = {
@@ -246,6 +252,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(isThinking && {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
+
+      // structured output:
+      ...(useStructuredOutput &&
+        responseFormat?.type === 'json' &&
+        responseFormat.schema != null && {
+          output_format: {
+            type: 'json_schema',
+            schema: responseFormat.schema,
+          },
+        }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
@@ -367,6 +383,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // only when streaming: enable fine-grained tool streaming
     if (stream && (anthropicOptions?.toolStreaming ?? true)) {
       betas.add('fine-grained-tool-streaming-2025-05-14');
+    }
+
+    // structured output:
+    if (useStructuredOutput) {
+      betas.add('structured-outputs-2025-11-13');
     }
 
     const {
