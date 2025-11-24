@@ -34,13 +34,8 @@ describe('GatewayImageModel', () => {
 
       expect(model.modelId).toBe(TEST_MODEL_ID);
       expect(model.provider).toBe('gateway');
-<<<<<<< HEAD
       expect(model.specificationVersion).toBe('v2');
-      expect(model.maxImagesPerCall).toBe(4);
-=======
-      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(Number.MAX_SAFE_INTEGER);
->>>>>>> e8694aff4 (feat(provider/gateway): Server-side image request splitting (#10506))
     });
 
     it('should avoid client-side splitting even for BFL models', () => {
