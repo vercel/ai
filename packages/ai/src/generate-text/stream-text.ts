@@ -1667,8 +1667,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                         steps: recordedSteps,
                       }))
                     ) {
-                      // append to messages for the next step (if not already appended via continuation):
-                      if (clientToolCalls.length > 0) {
+                      // append to messages for the next step:
+                      if (clientToolCalls.length > 0 || stepContinueResult?.continue === true) {
                         responseMessages.push(
                           ...toResponseMessages({
                             content:

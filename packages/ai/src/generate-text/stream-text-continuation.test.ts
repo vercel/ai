@@ -713,4 +713,101 @@ describe('streamText onStepFinish continuation', () => {
     const clearParts = parts.filter(p => p.type === 'clear');
     expect(clearParts).toHaveLength(1);
   });
+
+  it('should include assistant message from previous step when continuing without tool calls', async () => {
+    const model = new MockLanguageModelV3({
+      doStream: async ({ prompt }) => {
+        // Check if the prompt includes both an assistant message and user message
+        const hasAssistantMessage = prompt.some(
+          msg => msg.role === 'assistant',
+        );
+        const lastMessage = prompt[prompt.length - 1];
+        const hasContinuationMessage =
+          prompt.length > 0 &&
+          lastMessage.role === 'user' &&
+          Array.isArray(lastMessage.content) &&
+          lastMessage.content.some(
+            (c: any) => c.type === 'text' && c.text === 'user feedback',
+          );
+
+        // If this is the continuation step (both messages present)
+        if (hasAssistantMessage && hasContinuationMessage) {
+          // Good, the bug is fixed
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '2' },
+              { type: 'text-delta', delta: 'second response', id: '2' },
+              { type: 'text-end', id: '2' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+              },
+            ]),
+          };
+        }
+
+        // First step - just return text without tool calls
+        return {
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', delta: 'first response', id: '1' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+            },
+          ]),
+        };
+      },
+    });
+
+    const result = streamText({
+      model,
+      prompt: 'test',
+      stopWhen: stepCountIs(2),
+      onStepFinish: async ({ text }) => {
+        if (text === 'first response') {
+          // Request continuation without tool calls
+          return {
+            continue: true,
+            messages: [{ role: 'user', content: 'user feedback' }],
+          };
+        }
+        return { continue: false };
+      },
+    });
+
+    const parts = await convertAsyncIterableToArray(result.fullStream);
+    const textParts = parts.filter(p => p.type === 'text-delta');
+    expect(textParts.map(p => p.text)).toEqual([
+      'first response',
+      'second response',
+    ]);
+
+    // THE CRITICAL ASSERTION: Verify the second call includes the assistant's first response
+    expect(model.doStreamCalls.length).toBe(2);
+    const secondCallPrompt = model.doStreamCalls[1].prompt;
+
+    // Should have at least 3 messages: [initial context, assistant response, user feedback]
+    expect(secondCallPrompt.length).toBeGreaterThanOrEqual(2);
+
+    // Verify assistant message is present
+    const assistantMessages = secondCallPrompt.filter(
+      msg => msg.role === 'assistant',
+    );
+    expect(assistantMessages.length).toBeGreaterThan(0);
+
+    // Verify the user feedback is also present
+    const feedbackMessages = secondCallPrompt.filter(
+      msg =>
+        msg.role === 'user' &&
+        Array.isArray(msg.content) &&
+        msg.content.some(
+          (c: any) => c.type === 'text' && c.text === 'user feedback',
+        ),
+    );
+    expect(feedbackMessages.length).toBe(1);
+  });
 });
