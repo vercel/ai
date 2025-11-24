@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- f702df2: feat(mcp): add client elicitation support
+
 ## 1.0.0-beta.16
 
 ### Patch Changes
