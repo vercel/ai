@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- e8694af: feat(provider/gateway): Server-side image request splitting
+
 ## 2.0.0-beta.60
 
 ### Patch Changes
