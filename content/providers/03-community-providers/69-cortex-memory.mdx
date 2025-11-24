@@ -27,6 +27,18 @@ Cortex Memory enables your AI applications to remember past conversations and us
 - **🔍 Semantic Search** - Find relevant memories with embeddings
 - **🔄 Automatic Versioning** - 10 versions tracked per memory
 
+### What's New in v0.2.0
+
+Enhanced streaming capabilities powered by the new `rememberStream()` API:
+
+- **📊 Stream Metrics** - Real-time monitoring of latency, throughput, tokens, and costs
+- **🔄 Progressive Storage** - Store partial responses during streaming for resumability
+- **🪝 Streaming Hooks** - `onChunk`, `onProgress`, `onError`, `onComplete` callbacks
+- **🧬 Progressive Fact Extraction** - Extract facts incrementally during streaming
+- **🔁 Error Recovery** - Handle interrupted streams with resume tokens
+
+All features are opt-in and fully backward compatible.
+
 ## Setup
 
 <Steps>
@@ -34,19 +46,19 @@ Cortex Memory enables your AI applications to remember past conversations and us
 ### Install Dependencies
 
 <Tabs items={['npm', 'pnpm', 'yarn']}>
-  <Tab value="npm">
+  <Tab>
     <Snippet
       text="npm install @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex"
       dark
     />
   </Tab>
-  <Tab value="pnpm">
+  <Tab>
     <Snippet
       text="pnpm add @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex"
       dark
     />
   </Tab>
-  <Tab value="yarn">
+  <Tab>
     <Snippet
       text="yarn add @cortexmemory/vercel-ai-provider @cortexmemory/sdk ai convex"
       dark
