@@ -362,4 +362,288 @@ describe('prepareResponsesTools', () => {
       `);
     });
   });
+
+  describe('web search', () => {
+    it('should prepare web_search tool with no options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "external_web_access": undefined,
+              "filters": undefined,
+              "search_context_size": undefined,
+              "type": "web_search",
+              "user_location": undefined,
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare web_search tool with externalWebAccess set to true', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {
+              externalWebAccess: true,
+            },
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "external_web_access": true,
+              "filters": undefined,
+              "search_context_size": undefined,
+              "type": "web_search",
+              "user_location": undefined,
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare web_search tool with externalWebAccess set to false', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {
+              externalWebAccess: false,
+            },
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "external_web_access": false,
+              "filters": undefined,
+              "search_context_size": undefined,
+              "type": "web_search",
+              "user_location": undefined,
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare web_search tool with all options including externalWebAccess', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {
+              externalWebAccess: true,
+              filters: {
+                allowedDomains: ['example.com', 'test.org'],
+              },
+              searchContextSize: 'high',
+              userLocation: {
+                type: 'approximate',
+                country: 'US',
+                city: 'San Francisco',
+                region: 'California',
+                timezone: 'America/Los_Angeles',
+              },
+            },
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "external_web_access": true,
+              "filters": {
+                "allowed_domains": [
+                  "example.com",
+                  "test.org",
+                ],
+              },
+              "search_context_size": "high",
+              "type": "web_search",
+              "user_location": {
+                "city": "San Francisco",
+                "country": "US",
+                "region": "California",
+                "timezone": "America/Los_Angeles",
+                "type": "approximate",
+              },
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare web_search tool with filters but no externalWebAccess', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {
+              filters: {
+                allowedDomains: ['example.com'],
+              },
+            },
+          },
+        ],
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "external_web_access": undefined,
+              "filters": {
+                "allowed_domains": [
+                  "example.com",
+                ],
+              },
+              "search_context_size": undefined,
+              "type": "web_search",
+              "user_location": undefined,
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should handle tool choice selection with web_search', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {
+              externalWebAccess: true,
+            },
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'web_search',
+        },
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": {
+            "type": "web_search",
+          },
+          "toolWarnings": [],
+          "tools": [
+            {
+              "external_web_access": true,
+              "filters": undefined,
+              "search_context_size": undefined,
+              "type": "web_search",
+              "user_location": undefined,
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should handle multiple tools including web_search', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+          },
+          {
+            type: 'provider-defined',
+            id: 'openai.web_search',
+            name: 'web_search',
+            args: {
+              externalWebAccess: false,
+              searchContextSize: 'medium',
+            },
+          },
+        ],
+        strictJsonSchema: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {
+                  "input": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+            {
+              "external_web_access": false,
+              "filters": undefined,
+              "search_context_size": "medium",
+              "type": "web_search",
+              "user_location": undefined,
+            },
+          ],
+        }
+      `);
+    });
+  });
 });
