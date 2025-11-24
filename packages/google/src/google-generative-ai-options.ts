@@ -30,6 +30,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-2.5-flash-preview-09-2025'
   | 'gemini-3-pro-preview'
+  | 'gemini-3-pro-image-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -160,6 +161,7 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
               '21:9',
             ])
             .optional(),
+          imageSize: z.enum(['1K', '2K', '4K']).optional(),
         })
         .optional(),
     }),

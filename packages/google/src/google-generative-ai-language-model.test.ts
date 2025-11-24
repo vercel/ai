@@ -519,19 +519,21 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       generationConfig: {},
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      tools: {
-        functionDeclarations: [
-          {
-            name: 'test-tool',
-            description: '',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+              },
             },
-          },
-        ],
-      },
+          ],
+        },
+      ],
       toolConfig: {
         functionCallingConfig: {
           mode: 'ANY',
@@ -670,22 +672,24 @@ describe('doGenerate', () => {
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {},
       toolConfig: { functionCallingConfig: { mode: 'ANY' } },
-      tools: {
-        functionDeclarations: [
-          {
-            name: 'test-tool',
-            description: '',
-            parameters: {
-              properties: {
-                property1: { type: 'string' },
-                property2: { type: 'number' },
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                properties: {
+                  property1: { type: 'string' },
+                  property2: { type: 'number' },
+                },
+                required: ['property1', 'property2'],
+                type: 'object',
               },
-              required: ['property1', 'property2'],
-              type: 'object',
             },
-          },
-        ],
-      },
+          ],
+        },
+      ],
     });
   });
 
@@ -1407,6 +1411,7 @@ describe('doGenerate', () => {
         {
           "data": "base64encodedimagedata",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
@@ -1417,6 +1422,7 @@ describe('doGenerate', () => {
         {
           "data": "anotherbase64encodedimagedata",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
@@ -1469,11 +1475,13 @@ describe('doGenerate', () => {
         {
           "data": "imagedata1",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
           "data": "imagedata2",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
@@ -1588,11 +1596,13 @@ describe('doGenerate', () => {
         {
           "data": "validimagedata",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
           "data": "pdfdata",
           "mediaType": "application/pdf",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
@@ -2649,6 +2659,97 @@ describe('doStream', () => {
             "reasoningTokens": undefined,
             "totalTokens": 527,
           },
+        },
+      ]
+    `);
+  });
+
+  it('should stream text and files in correct order', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Step 1: ' },
+                  { inlineData: { data: 'image1', mimeType: 'image/png' } },
+                  { text: ' Step 2: ' },
+                  { inlineData: { data: 'image2', mimeType: 'image/jpeg' } },
+                  { text: ' Done' },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    // Filter to content events only (excluding metadata)
+    const contentEvents = events.filter(
+      event =>
+        event.type === 'text-start' ||
+        event.type === 'text-delta' ||
+        event.type === 'text-end' ||
+        event.type === 'file',
+    );
+
+    // Verify that text and file parts are interleaved in the correct order
+    expect(contentEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-start",
+        },
+        {
+          "delta": "Step 1: ",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "data": "image1",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+        {
+          "delta": " Step 2: ",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "data": "image2",
+          "mediaType": "image/jpeg",
+          "type": "file",
+        },
+        {
+          "delta": " Done",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
       ]
     `);

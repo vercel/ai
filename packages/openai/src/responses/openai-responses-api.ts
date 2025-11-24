@@ -152,6 +152,7 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'web_search';
+      external_web_access: boolean | undefined;
       filters: { allowed_domains: string[] | undefined } | undefined;
       search_context_size: 'low' | 'medium' | 'high' | undefined;
       user_location:
@@ -559,6 +560,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         annotation: z.discriminatedUnion('type', [
           z.object({
             type: z.literal('url_citation'),
+            start_index: z.number(),
+            end_index: z.number(),
             url: z.string(),
             title: z.string(),
           }),

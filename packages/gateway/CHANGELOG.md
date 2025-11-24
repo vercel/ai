@@ -1,5 +1,49 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- e8694af: feat(provider/gateway): Server-side image request splitting
+
+## 2.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- 5dd4c6a: fix(provider/gateway): Fix Gateway image model provider options not passing through
+
+## 2.0.0-beta.58
+
+### Patch Changes
+
+- 1425df5: feat(provider/gateway): Add Imagen 4 Ultra Generate to model string autocomplete list
+
+## 2.0.0-beta.57
+
+### Patch Changes
+
+- bca7e61: feat(provider/gateway): Change default maxImagesPerCall per-provider
+
+## 2.0.0-beta.56
+
+### Patch Changes
+
+- 2d166e4: feat(provider/gateway): add support for image models
+
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- cc5170d: feat(provider/gateway): update gateway model string autocomplete
+
 ## 2.0.0-beta.54
 
 ### Patch Changes

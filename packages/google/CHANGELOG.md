@@ -1,5 +1,32 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- bb28cac: Change streamText loop to merge file part processing into main parts loop
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- 33d9327: add `gemini-3-pro-preview` and `gemini-3-pro-image-preview` model IDs
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- fff8d59: feat(provider/google): Add support for the imageSize provider option
+
 ## 3.0.0-beta.51
 
 ### Patch Changes
