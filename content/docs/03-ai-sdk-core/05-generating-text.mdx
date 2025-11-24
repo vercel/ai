@@ -503,7 +503,7 @@ When you use `generateText`, you can access the sources using the `sources` prop
 
 ```ts
 const result = await generateText({
-  model: "google/gemini-2.5-flash",
+  model: 'google/gemini-2.5-flash',
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -525,7 +525,7 @@ When you use `streamText`, you can access the sources using the `fullStream` pro
 
 ```tsx
 const result = streamText({
-  model: "google/gemini-2.5-flash",
+  model: 'google/gemini-2.5-flash',
   tools: {
     google_search: google.tools.googleSearch({}),
   },
