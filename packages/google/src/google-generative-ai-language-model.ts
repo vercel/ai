@@ -877,7 +877,7 @@ const responseSchema = lazySchema(() =>
           groundingMetadata: getGroundingMetadataSchema().nullish(),
           urlContextMetadata: getUrlContextMetadataSchema().nullish(),
         }),
-      ),
+      ).optional(),
       usageMetadata: usageSchema.nullish(),
       promptFeedback: z
         .object({
