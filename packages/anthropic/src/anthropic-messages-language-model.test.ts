@@ -283,6 +283,93 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('json schema response format with json tool response (supported model, tool mode)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'tool',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"elements":[{"location":"San Francisco","temperature":-5,"condition":"snowy"},{"location":"London","temperature":0,"condition":"snowy"},{"location":"Paris","temperature":23,"condition":"cloudy"},{"location":"Berlin","temperature":-9,"condition":"snowy"}]}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
     describe('json schema response format with other tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
