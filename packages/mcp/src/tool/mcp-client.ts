@@ -62,8 +62,9 @@ export interface MCPClientConfig {
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
-  /** Optional client capabilities to advertise during initialization */
   /**
+   * Optional client capabilities to advertise during initialization
+   *
    * NOTE: It is up to the client application to handle the requests properly. This parameter just helps surface the request from the server
    */
   capabilities?: ClientCapabilities;
@@ -169,7 +170,7 @@ class DefaultMCPClient implements MCPClient {
     this.transport.onmessage = message => {
       if ('method' in message) {
         if ('id' in message) {
-          void this.onRequestMessage(message);
+          this.onRequestMessage(message);
         } else {
           this.onError(
             new MCPClientError({
