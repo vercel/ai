@@ -56,8 +56,19 @@ export type AnthropicFilePartProviderOptions = z.infer<
 >;
 
 export const anthropicProviderOptions = z.object({
+  /**
+   * Whether to send reasoning to the model.
+   *
+   * This allows you to deactivate reasoning inputs for models that do not support them.
+   */
   sendReasoning: z.boolean().optional(),
 
+  /**
+   * Configuration for enabling Claude's extended thinking.
+   *
+   * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
+   * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
+   */
   thinking: z
     .object({
       type: z.union([z.literal('enabled'), z.literal('disabled')]),
@@ -82,6 +93,9 @@ export const anthropicProviderOptions = z.object({
     })
     .optional(),
 
+  /**
+   * MCP servers to be utilized in this request.
+   */
   mcpServers: z
     .array(
       z.object({
