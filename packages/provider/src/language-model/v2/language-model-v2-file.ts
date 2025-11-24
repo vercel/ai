@@ -25,5 +25,8 @@ be returned as binary data.
  */
   data: string | Uint8Array;
   
+  /**
+Optional provider-specific metadata for the file part.
+   */
   providerMetadata?: SharedV2ProviderMetadata;
 };
