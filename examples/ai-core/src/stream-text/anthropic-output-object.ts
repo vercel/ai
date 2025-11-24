@@ -28,5 +28,5 @@ run(async () => {
     console.log(partialOutput);
   }
 
-  // console.dir((await result.request).body, { depth: Infinity });
+  console.dir((await result.request).body, { depth: Infinity });
 });
