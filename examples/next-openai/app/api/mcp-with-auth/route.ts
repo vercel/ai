@@ -7,7 +7,7 @@ import {
   createUIMessageStreamResponse,
 } from 'ai';
 import {
-  experimental_createMCPClient,
+  experimental_createMCPClient as createMCPClient,
   auth,
   type OAuthClientInformation,
   type OAuthClientMetadata,
@@ -230,7 +230,7 @@ export async function POST(req: Request) {
           });
         }
 
-        const mcpClient = await experimental_createMCPClient({
+        const mcpClient = await createMCPClient({
           transport: { type: 'http', url: serverUrl, authProvider },
         });
 
