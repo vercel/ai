@@ -201,7 +201,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format with json tool response', () => {
+    describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
@@ -283,7 +283,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format with other tool response', () => {
+    describe('json schema response format with other tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
@@ -402,6 +402,81 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       it('should send tool-calls finish reason', async () => {
         expect(result.finishReason).toBe('tool-calls');
+      });
+    });
+
+    describe('json schema response format with output format (supported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"recipe":{"name":"Classic Lasagna","ingredients":[{"name":"lasagna noodles","amount":"12 sheets"},{"name":"ground beef","amount":"1 pound"},{"name":"Italian sausage","amount":"1/2 pound"},{"name":"onion","amount":"1 medium, diced"},{"name":"garlic","amount":"3 cloves, minced"},{"name":"crushed tomatoes","amount":"28 oz can"},{"name":"tomato paste","amount":"6 oz can"},{"name":"water","amount":"1/2 cup"},{"name":"sugar","amount":"2 tablespoons"},{"name":"dried basil","amount":"1 1/2 teaspoons"},{"name":"Italian seasoning","amount":"1 teaspoon"},{"name":"salt","amount":"1 teaspoon"},{"name":"black pepper","amount":"1/2 teaspoon"},{"name":"ricotta cheese","amount":"15 oz"},{"name":"egg","amount":"1 large"},{"name":"fresh parsley","amount":"2 tablespoons, chopped"},{"name":"mozzarella cheese","amount":"3 cups, shredded"},{"name":"parmesan cheese","amount":"3/4 cup, grated"}],"steps":["Cook lasagna noodles according to package directions, drain and set aside","In a large skillet, cook ground beef, sausage, onion, and garlic over medium heat until meat is browned, drain excess fat","Add crushed tomatoes, tomato paste, water, sugar, basil, Italian seasoning, salt, and pepper to the meat mixture, simmer for 30 minutes, stirring occasionally","In a bowl, combine ricotta cheese, egg, and parsley, mix well","Preheat oven to 375°F (190°C)","Spread 1 cup of meat sauce in the bottom of a 9x13 inch baking dish","Layer 4 lasagna noodles over the sauce","Spread half of the ricotta mixture over the noodles","Sprinkle with 1 cup mozzarella and 1/4 cup parmesan cheese","Top with 1 1/2 cups meat sauce","Repeat layers once more: 4 noodles, remaining ricotta mixture, 1 cup mozzarella, 1/4 cup parmesan, 1 1/2 cups meat sauce","Add final layer of 4 noodles, remaining meat sauce, remaining mozzarella and parmesan cheese","Cover with aluminum foil and bake for 25 minutes","Remove foil and bake an additional 25 minutes until cheese is golden and bubbly","Let stand for 15 minutes before serving"]}}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
       });
     });
 
