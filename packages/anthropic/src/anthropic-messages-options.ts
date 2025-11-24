@@ -159,7 +159,7 @@ export const anthropicProviderOptions = z.object({
    */
   effort: z.enum(['low', 'medium', 'high']).optional(),
 
-  context_management: z
+  contextManagement: z
     .object({
       edits: z.array(
         z.discriminatedUnion('type', [

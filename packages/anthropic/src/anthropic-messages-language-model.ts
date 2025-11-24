@@ -230,7 +230,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         }
         : undefined;
 
-    const contextManagement = anthropicOptions?.context_management;
+    const contextManagement = anthropicOptions?.contextManagement;
 
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
@@ -886,7 +886,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 })) ?? null,
             }
             : null,
-          context_management: response.context_management
+          contextManagement: response.context_management
             ? {
               appliedEdits: response.context_management.applied_edits.map(
                 edit => {
@@ -1551,7 +1551,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       cacheCreationInputTokens,
                       stopSequence,
                       container,
-                      context_management: contextManagement
+                      contextManagement: contextManagement
                         ? {
                           appliedEdits: contextManagement.applied_edits.map(
                             edit => {
