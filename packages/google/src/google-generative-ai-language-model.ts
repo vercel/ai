@@ -694,7 +694,6 @@ function extractSources({
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
       const fileSearchStore = chunk.retrievedContext.fileSearchStore;
-      const title = chunk.retrievedContext.title ?? 'Unknown Document';
 
       if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
         // Old format: Google Search with HTTP/HTTPS URL
@@ -703,10 +702,11 @@ function extractSources({
           sourceType: 'url',
           id: generateId(),
           url: uri,
-          title,
+          title: chunk.retrievedContext.title ?? undefined,
         });
       } else if (uri) {
         // Old format: Document with file path (gs://, etc.)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
         let mediaType = 'application/octet-stream';
         let filename: string | undefined = undefined;
 
@@ -740,6 +740,7 @@ function extractSources({
         });
       } else if (fileSearchStore) {
         // New format: File Search with fileSearchStore (no uri)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
         sources.push({
           type: 'source',
           sourceType: 'document',
