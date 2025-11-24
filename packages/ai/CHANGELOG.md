@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.112
+
+### Patch Changes
+
+- e06b663: feat(agent): support experimental stream transforms
+
 ## 6.0.0-beta.111
 
 ### Patch Changes
