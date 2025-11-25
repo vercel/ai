@@ -2,19 +2,6 @@ import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIModelId =
-  // Stable models
-  // https://ai.google.dev/gemini-api/docs/models/gemini
-  | 'gemini-1.5-flash'
-  | 'gemini-1.5-flash-latest'
-  | 'gemini-1.5-flash-001'
-  | 'gemini-1.5-flash-002'
-  | 'gemini-1.5-flash-8b'
-  | 'gemini-1.5-flash-8b-latest'
-  | 'gemini-1.5-flash-8b-001'
-  | 'gemini-1.5-pro'
-  | 'gemini-1.5-pro-latest'
-  | 'gemini-1.5-pro-001'
-  | 'gemini-1.5-pro-002'
   | 'gemini-2.0-flash'
   | 'gemini-2.0-flash-001'
   | 'gemini-2.0-flash-live-001'
@@ -27,7 +14,6 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash-image-preview'
   | 'gemini-2.5-flash-lite'
   | 'gemini-2.5-flash-lite-preview-09-2025'
-  | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-2.5-flash-preview-09-2025'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
@@ -36,7 +22,6 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-flash-lite-latest'
   // Experimental models
   // https://ai.google.dev/gemini-api/docs/models/experimental-models
-  | 'gemini-2.5-pro-exp-03-25'
   | 'gemini-exp-1206'
   | 'gemma-3-12b-it'
   | 'gemma-3-27b-it'
