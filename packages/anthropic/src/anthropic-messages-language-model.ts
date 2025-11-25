@@ -275,23 +275,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           },
         }),
 
-      // mcp servers:
-      ...(anthropicOptions?.mcpServers &&
-        anthropicOptions.mcpServers.length > 0 && {
-          mcp_servers: anthropicOptions.mcpServers.map(server => ({
-            type: server.type,
-            name: server.name,
-            url: server.url,
-            authorization_token: server.authorizationToken,
-            tool_configuration: server.toolConfiguration
-              ? {
-                  allowed_tools: server.toolConfiguration.allowedTools,
-                  enabled: server.toolConfiguration.enabled,
-                }
-              : undefined,
-          })),
-        }),
-
       // container with agent skills:
       ...(anthropicOptions?.container && {
         container: {
