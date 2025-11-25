@@ -14,12 +14,11 @@ to render UIs as the object is being generated.
 You can use the [`streamObject`](/docs/reference/ai-sdk-core/stream-object) function to generate partial object streams.
 
 ```ts file='index.ts'
-import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   schema: z.object({
     recipe: z.object({
       name: z.string(),

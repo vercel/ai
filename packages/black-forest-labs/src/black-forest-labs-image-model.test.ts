@@ -113,6 +113,90 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
 
+    it('includes all cost and megapixel fields when provided by submit API', async () => {
+      server.urls['https://api.example.com/v1/test-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+          cost: 0.08,
+          input_mp: 1.5,
+          output_mp: 2.0,
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.blackForestLabs.images[0]).toMatchObject({
+        cost: 0.08,
+        inputMegapixels: 1.5,
+        outputMegapixels: 2.0,
+      });
+    });
+
+    it('omits cost and megapixel fields from providerMetadata when not provided by submit API', async () => {
+      server.urls['https://api.example.com/v1/test-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      const metadata = result.providerMetadata?.blackForestLabs.images[0];
+      expect(metadata).toBeDefined();
+      expect(metadata).not.toHaveProperty('cost');
+      expect(metadata).not.toHaveProperty('inputMegapixels');
+      expect(metadata).not.toHaveProperty('outputMegapixels');
+    });
+
+    it('handles null cost and megapixel fields from submit API', async () => {
+      server.urls['https://api.example.com/v1/test-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+          cost: null,
+          input_mp: null,
+          output_mp: null,
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      const metadata = result.providerMetadata?.blackForestLabs.images[0];
+      expect(metadata).toBeDefined();
+      expect(metadata).not.toHaveProperty('cost');
+      expect(metadata).not.toHaveProperty('inputMegapixels');
+      expect(metadata).not.toHaveProperty('outputMegapixels');
+    });
+
     it('calls the expected URLs in sequence', async () => {
       const model = createBasicModel();
 
@@ -209,7 +293,8 @@ describe('BlackForestLabsImageModel', () => {
       expect(result.warnings).toContainEqual({
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'Deriving aspect_ratio from size.',
+        details:
+          'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
     });
 
@@ -228,7 +313,8 @@ describe('BlackForestLabsImageModel', () => {
       expect(result.warnings).toContainEqual({
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'Black Forest Labs ignores size when aspectRatio is provided.',
+        details:
+          'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     });
 

@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- d86b52f: distinguish between OpenAI and Azure in Responses API providerMetadata
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- 38a4035: added support for external_web_access parameter on web_search tool
+
 ## 3.0.0-beta.64
 
 ### Patch Changes

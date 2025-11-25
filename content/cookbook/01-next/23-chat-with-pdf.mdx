@@ -22,14 +22,13 @@ Some language models like Anthropic's Claude Sonnet 3.5 and Google's Gemini 2.0 
 Create a route handler that will use Anthropic's Claude model to process messages and PDFs:
 
 ```tsx filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
   });
 

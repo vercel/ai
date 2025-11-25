@@ -1,5 +1,47 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [6fc35cb]
+  - @ai-sdk/anthropic@3.0.0-beta.60
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [2109385]
+  - @ai-sdk/anthropic@3.0.0-beta.59
+
+## 4.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [83aaad8]
+  - @ai-sdk/anthropic@3.0.0-beta.58
+
+## 4.0.0-beta.80
+
+### Patch Changes
+
+- Updated dependencies [e300a3b]
+  - @ai-sdk/google@3.0.0-beta.56
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [b8ea36e]
+  - @ai-sdk/anthropic@3.0.0-beta.57
+
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [983e394]
+  - @ai-sdk/anthropic@3.0.0-beta.56
+
 ## 4.0.0-beta.77
 
 ### Patch Changes

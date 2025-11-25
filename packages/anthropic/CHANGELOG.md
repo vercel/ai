@@ -1,5 +1,35 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 6fc35cb: Retain user-supplied betas.
+
+## 3.0.0-beta.59
+
+### Patch Changes
+
+- 2109385: 'fix(anthropic): Opus 4.5 `maxOutputTokens` bump `32000` -> `64000`'
+
+## 3.0.0-beta.58
+
+### Patch Changes
+
+- 83aaad8: Opus 4.5 and `effort` provider option
+
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- b8ea36e: feat(provider/anthropic): Anthropic-native structured outputs
+
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- 983e394: chore(provider/anthropic): add missing provider options jsdoc
+
 ## 3.0.0-beta.55
 
 ### Patch Changes

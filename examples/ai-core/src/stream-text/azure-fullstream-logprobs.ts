@@ -23,7 +23,7 @@ async function main() {
       case 'finish-step': {
         console.log(`finishReason: ${part.finishReason}`);
         console.log('metadata:', JSON.stringify(part.providerMetadata)); // object: { string, number, array}
-        console.log('Logprobs:', part.providerMetadata?.openai.logprobs); // object: { string, number, array}
+        console.log('Logprobs:', part.providerMetadata?.azure.logprobs); // object: { string, number, array}
       }
     }
   }

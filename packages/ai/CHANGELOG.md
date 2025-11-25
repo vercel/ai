@@ -1,5 +1,35 @@
 # ai
 
+## 6.0.0-beta.116
+
+### Patch Changes
+
+- 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
+
+## 6.0.0-beta.115
+
+### Patch Changes
+
+- 7da02d2: fix(ai): prune messages properly when toolCalls set to 'before-last-message'
+
+## 6.0.0-beta.114
+
+### Patch Changes
+
+- 69768c2: chore(ai): remove UI message reference from model message validation
+
+## 6.0.0-beta.113
+
+### Patch Changes
+
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+
+## 6.0.0-beta.112
+
+### Patch Changes
+
+- e06b663: feat(agent): support experimental stream transforms
+
 ## 6.0.0-beta.111
 
 ### Patch Changes
