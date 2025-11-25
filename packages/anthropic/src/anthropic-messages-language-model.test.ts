@@ -3839,7 +3839,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    it('should merge custom anthropic-beta header with fine-grained-tool-streaming beta', async () => {
+    it('should merge custom anthropic-beta header with automatic beta header', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3860,12 +3860,17 @@ describe('AnthropicMessagesLanguageModel', () => {
       await provider('claude-3-haiku-20240307').doStream({
         prompt: TEST_PROMPT,
         headers: { 'anthropic-beta': 'REQUEST-beta1,request-beta2' },
+        providerOptions: {
+          anthropic: {
+            effort: 'low', // triggers automatic effort-2025-11-24 beta header
+          } satisfies AnthropicProviderOptions,
+        },
       });
 
       expect(
         server.calls[0].requestHeaders['anthropic-beta'],
       ).toMatchInlineSnapshot(
-        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,request-beta1,request-beta2"`,
+        `"effort-2025-11-24,config-beta1,config-beta2,request-beta1,request-beta2"`,
       );
     });
 
