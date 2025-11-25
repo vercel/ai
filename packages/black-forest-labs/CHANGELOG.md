@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 0.0.5
+
+### Patch Changes
+
+- 473a3f5: feat(provider/black-forest-labs): Add new provider options
+
 ## 0.0.4
 
 ### Patch Changes
