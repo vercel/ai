@@ -1,8 +1,8 @@
 import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
-import { describe, expect, it } from 'vitest';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
+import { describe, expect, it, vi } from 'vitest';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from './tool-loop-agent';
-import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
@@ -81,6 +81,57 @@ describe('ToolLoopAgent', () => {
       });
 
       expect(doGenerateOptions?.abortSignal).toBe(abortController.signal);
+    });
+
+    describe('with generateText spy', () => {
+      it('should pass experimental_download to generateText', async () => {
+        const downloadFunction = vi
+          .fn()
+          .mockResolvedValue([
+            { data: new Uint8Array([1, 2, 3]), mediaType: 'image/png' },
+          ]);
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doGenerate: async options => {
+              return {
+                finishReason: 'stop' as const,
+                usage: {
+                  inputTokens: 3,
+                  outputTokens: 10,
+                  totalTokens: 13,
+                  reasoningTokens: undefined,
+                  cachedInputTokens: undefined,
+                },
+                warnings: [],
+                content: [{ type: 'text', text: 'reply' }],
+              };
+            },
+          }),
+          experimental_download: downloadFunction,
+        });
+
+        await agent.generate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: new URL('https://example.com/image.png'),
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(downloadFunction).toHaveBeenCalledWith([
+          {
+            url: new URL('https://example.com/image.png'),
+            isUrlSupportedByModel: false,
+          },
+        ]);
+      });
     });
   });
 
