@@ -124,6 +124,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       description: 'Experimental: Optional telemetry configuration.',
     },
     {
+      name: 'experimental_download',
+      type: 'DownloadFunction | undefined',
+      isOptional: true,
+      description:
+        'Experimental: Custom download function for fetching files/URLs for tool or model use. By default, files are downloaded if the model does not support the URL for a given media type.',
+    },
+    {
       name: 'maxOutputTokens',
       type: 'number',
       isOptional: true,
@@ -278,13 +285,6 @@ for await (const chunk of stream.textStream) {
       isOptional: true,
       description:
         'Optional stream transformation(s). They are applied in the order provided and must maintain the stream structure. See `streamText` docs for details.',
-    },
-  ]}
-/>
-
-#### Returns
-
-The `stream()` method returns a `StreamTextResult` object (see [`streamText`](/docs/reference/ai-sdk-core/stream-text#returns) for details).
 
 ## Types
 
