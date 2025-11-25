@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 0.0.3
+
+### Patch Changes
+
+- 7f40d34: feat (provider/black-forest-labs): include cost and megapixels in metadata
+
 ## 0.0.2
 
 ### Patch Changes
