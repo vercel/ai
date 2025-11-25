@@ -10,6 +10,12 @@ export {
   type MCPClientConfig as experimental_MCPClientConfig,
   type MCPClient as experimental_MCPClient,
 } from './tool/mcp-client';
+export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
+export type {
+  ElicitationRequest,
+  ElicitResult,
+  ClientCapabilities as experimental_MCPClientCapabilities,
+} from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';
 export type { OAuthClientProvider } from './tool/oauth';
 export type {

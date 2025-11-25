@@ -23,7 +23,12 @@ import {
 import {
   CallToolResult,
   CallToolResultSchema,
+  ClientCapabilities,
   Configuration as ClientConfiguration,
+  ElicitationRequest,
+  ElicitationRequestSchema,
+  ElicitResult,
+  ElicitResultSchema,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
   ListResourceTemplatesResult,
@@ -57,6 +62,14 @@ export interface MCPClientConfig {
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
+  /** Optional client version, defaults to '1.0.0' */
+  version?: string;
+  /**
+   * Optional client capabilities to advertise during initialization
+   *
+   * NOTE: It is up to the client application to handle the requests properly. This parameter just helps surface the request from the server
+   */
+  capabilities?: ClientCapabilities;
 }
 
 export async function createMCPClient(
@@ -97,6 +110,13 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
 
+  onElicitationRequest(
+    schema: typeof ElicitationRequestSchema,
+    handler: (
+      request: ElicitationRequest,
+    ) => Promise<ElicitResult> | ElicitResult,
+  ): void;
+
   close: () => Promise<void>;
 }
 
@@ -112,7 +132,6 @@ export interface MCPClient {
  * This client is meant to be used to communicate with a single server. To communicate and fetch tools across multiple servers, it's recommended to create a new client instance per server.
  *
  * Not supported:
- * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
  * - Accepting notifications
  * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
  * - Resumable SSE streams
@@ -121,6 +140,7 @@ class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
   private clientInfo: ClientConfiguration;
+  private clientCapabilities: ClientCapabilities;
   private requestMessageId = 0;
   private responseHandlers: Map<
     number,
@@ -128,13 +148,19 @@ class DefaultMCPClient implements MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
+  private elicitationRequestHandler?: (
+    request: ElicitationRequest,
+  ) => Promise<ElicitResult> | ElicitResult;
 
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
+    version = CLIENT_VERSION,
     onUncaughtError,
+    capabilities,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
+    this.clientCapabilities = capabilities ?? {};
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -146,14 +172,15 @@ class DefaultMCPClient implements MCPClient {
     this.transport.onerror = (error: Error) => this.onError(error);
     this.transport.onmessage = message => {
       if ('method' in message) {
-        // This lightweight client implementation does not support
-        // receiving notifications or requests from server.
-        // If we get an unsupported message, we can safely ignore it and pass to the onError handler:
-        this.onError(
-          new MCPClientError({
-            message: 'Unsupported message type',
-          }),
-        );
+        if ('id' in message) {
+          this.onRequestMessage(message);
+        } else {
+          this.onError(
+            new MCPClientError({
+              message: 'Unsupported message type',
+            }),
+          );
+        }
         return;
       }
 
@@ -162,7 +189,7 @@ class DefaultMCPClient implements MCPClient {
 
     this.clientInfo = {
       name,
-      version: CLIENT_VERSION,
+      version,
     };
   }
 
@@ -176,7 +203,7 @@ class DefaultMCPClient implements MCPClient {
           method: 'initialize',
           params: {
             protocolVersion: LATEST_PROTOCOL_VERSION,
-            capabilities: {},
+            capabilities: this.clientCapabilities,
             clientInfo: this.clientInfo,
           },
         },
@@ -559,6 +586,94 @@ class DefaultMCPClient implements MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  onElicitationRequest(
+    schema: typeof ElicitationRequestSchema,
+    handler: (
+      request: ElicitationRequest,
+    ) => Promise<ElicitResult> | ElicitResult,
+  ): void {
+    if (schema !== ElicitationRequestSchema) {
+      throw new MCPClientError({
+        message:
+          'Unsupported request schema. Only ElicitationRequestSchema is supported.',
+      });
+    }
+
+    this.elicitationRequestHandler = handler;
+  }
+
+  private async onRequestMessage(request: JSONRPCRequest): Promise<void> {
+    try {
+      if (request.method !== 'elicitation/create') {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32601,
+            message: `Unsupported request method: ${request.method}`,
+          },
+        });
+        return;
+      }
+
+      if (!this.elicitationRequestHandler) {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32601,
+            message: 'No elicitation handler registered on client',
+          },
+        });
+        return;
+      }
+
+      const parsedRequest = ElicitationRequestSchema.safeParse({
+        method: request.method,
+        params: request.params,
+      });
+
+      if (!parsedRequest.success) {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32602,
+            message: `Invalid elicitation request: ${parsedRequest.error.message}`,
+            data: parsedRequest.error.issues,
+          },
+        });
+        return;
+      }
+
+      try {
+        const result = await this.elicitationRequestHandler(parsedRequest.data);
+        const validatedResult = ElicitResultSchema.parse(result);
+
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          result: validatedResult,
+        });
+      } catch (error) {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32603,
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Failed to handle elicitation request',
+          },
+        });
+        this.onError(error);
+      }
+    } catch (error) {
+      this.onError(error);
+    }
   }
 
   private onClose(): void {
