@@ -13,7 +13,7 @@ Unlike single-step calls like `generateText()`, an agent can iteratively invoke 
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
@@ -122,6 +122,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'TelemetrySettings',
       isOptional: true,
       description: 'Experimental: Optional telemetry configuration.',
+    },
+    {
+      name: 'experimental_download',
+      type: 'DownloadFunction | undefined',
+      isOptional: true,
+      description:
+        'Experimental: Custom download function for fetching files/URLs for tool or model use. By default, files are downloaded if the model does not support the URL for a given media type.',
     },
     {
       name: 'maxOutputTokens',
@@ -272,6 +279,13 @@ for await (const chunk of stream.textStream) {
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'experimental_transform',
+      type: 'StreamTextTransform | Array<StreamTextTransform>',
+      isOptional: true,
+      description:
+        'Optional stream transformation(s). They are applied in the order provided and must maintain the stream structure. See `streamText` docs for details.',
+    },
   ]}
 />
 
@@ -285,15 +299,47 @@ The `stream()` method returns a `StreamTextResult` object (see [`streamText`](/d
 
 Infers the UI message type for the given agent instance. Useful for type-safe UI and message exchanges.
 
+#### Basic Example
+
 ```ts
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 const weatherAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   tools: { weather: weatherTool },
 });
 
 type WeatherAgentUIMessage = InferAgentUIMessage<typeof weatherAgent>;
+```
+
+#### Example with Message Metadata
+
+You can provide a second type argument to customize the metadata for each message. This is useful for tracking rich metadata returned by the agent (such as createdAt, tokens, finish reason, etc.).
+
+```ts
+import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
+import { z } from 'zod';
+
+// Example schema for message metadata
+const exampleMetadataSchema = z.object({
+  createdAt: z.number().optional(),
+  model: z.string().optional(),
+  totalTokens: z.number().optional(),
+  finishReason: z.string().optional(),
+});
+type ExampleMetadata = z.infer<typeof exampleMetadataSchema>;
+
+// Define agent as usual
+const metadataAgent = new ToolLoopAgent({
+  model: 'anthropic/claude-sonnet-4.5',
+  // ...other options
+});
+
+// Type-safe UI message type with custom metadata
+type MetadataAgentUIMessage = InferAgentUIMessage<
+  typeof metadataAgent,
+  ExampleMetadata
+>;
 ```
 
 ## Examples
@@ -305,7 +351,7 @@ import { ToolLoopAgent, stepCountIs } from 'ai';
 import { weatherTool, calculatorTool } from './tools';
 
 const assistant = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
@@ -326,7 +372,7 @@ console.log(result.steps); // Array of all steps taken by the agent
 
 ```ts
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are a creative storyteller.',
 });
 
@@ -345,7 +391,7 @@ for await (const chunk of stream.textStream) {
 import { z } from 'zod';
 
 const analysisAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   output: {
     schema: z.object({
       sentiment: z.enum(['positive', 'negative', 'neutral']),
@@ -370,7 +416,7 @@ import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are an agent with access to a weather API.',
   tools: {
     weather: openai.tools.weather({

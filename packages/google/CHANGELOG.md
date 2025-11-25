@@ -1,5 +1,32 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- e300a3b: Fixed Zod validation error when using `google.tools.fileSearch()`. The Google File Search API returns `fileSearchStore` instead of `uri` in `retrievedContext`. Updated `extractSources()` function to handle both the old format (Google Search with `uri`) and new format (File Search with `fileSearchStore`), maintaining backward compatibility while preventing validation errors. Also fixed title handling to use `undefined` for URL sources and `'Unknown Document'` for document sources.
+
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- bb28cac: Change streamText loop to merge file part processing into main parts loop
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- 33d9327: add `gemini-3-pro-preview` and `gemini-3-pro-image-preview` model IDs
+
 ## 3.0.0-beta.52
 
 ### Patch Changes

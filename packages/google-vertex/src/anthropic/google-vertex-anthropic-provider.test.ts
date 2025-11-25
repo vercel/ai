@@ -177,4 +177,23 @@ describe('google-vertex-anthropic-provider', () => {
       }),
     );
   });
+
+  it('should support combining tools with structured outputs (inherited from Anthropic)', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'us-east5',
+    });
+
+    // Create a model instance
+    const model = provider('claude-3-5-sonnet-v2@20241022');
+
+    // Verify the model was created using AnthropicMessagesLanguageModel
+    // which already supports combining tools with structured outputs
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'claude-3-5-sonnet-v2@20241022',
+      expect.objectContaining({
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
 });
