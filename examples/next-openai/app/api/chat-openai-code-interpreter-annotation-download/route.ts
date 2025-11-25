@@ -30,7 +30,7 @@ export type OpenAICodeInterpreterMessage = UIMessage<
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const uiMessages = await validateUIMessages({ messages });
+  const uiMessages = await validateUIMessages<OpenAICodeInterpreterMessage>({ messages });
 
   // Collect sources with container file citations as they're generated
   const containerFileSources: Array<{
@@ -57,6 +57,7 @@ export async function POST(req: Request) {
             const { openai } = providerMetadataParsed.data;
             if (openai.type === 'container_file_citation') {
               const { containerId, fileId, filename } = openai;
+              // Avoid duplicates
               const exists = containerFileSources.some(
                 s => s.containerId === containerId && s.fileId === fileId,
               );
