@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.49
+
+### Patch Changes
+
+- dcdfeb7: Retain user-supplied betas.
+
 ## 2.0.48
 
 ### Patch Changes
