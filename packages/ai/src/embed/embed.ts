@@ -71,7 +71,7 @@ Only applicable for HTTP-based providers.
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
-}): Promise<EmbedResult<string>> {
+}): Promise<EmbedResult> {
   const model = resolveEmbeddingModel(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
@@ -179,19 +179,19 @@ Only applicable for HTTP-based providers.
   });
 }
 
-class DefaultEmbedResult<VALUE> implements EmbedResult<VALUE> {
-  readonly value: EmbedResult<VALUE>['value'];
-  readonly embedding: EmbedResult<VALUE>['embedding'];
-  readonly usage: EmbedResult<VALUE>['usage'];
-  readonly providerMetadata: EmbedResult<VALUE>['providerMetadata'];
-  readonly response: EmbedResult<VALUE>['response'];
+class DefaultEmbedResult implements EmbedResult {
+  readonly value: EmbedResult['value'];
+  readonly embedding: EmbedResult['embedding'];
+  readonly usage: EmbedResult['usage'];
+  readonly providerMetadata: EmbedResult['providerMetadata'];
+  readonly response: EmbedResult['response'];
 
   constructor(options: {
-    value: EmbedResult<VALUE>['value'];
-    embedding: EmbedResult<VALUE>['embedding'];
-    usage: EmbedResult<VALUE>['usage'];
-    providerMetadata?: EmbedResult<VALUE>['providerMetadata'];
-    response?: EmbedResult<VALUE>['response'];
+    value: EmbedResult['value'];
+    embedding: EmbedResult['embedding'];
+    usage: EmbedResult['usage'];
+    providerMetadata?: EmbedResult['providerMetadata'];
+    response?: EmbedResult['response'];
   }) {
     this.value = options.value;
     this.embedding = options.embedding;

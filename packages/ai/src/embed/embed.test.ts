@@ -211,8 +211,8 @@ describe('telemetry', () => {
   });
 });
 
-function mockEmbed<VALUE>(
-  expectedValues: Array<VALUE>,
+function mockEmbed(
+  expectedValues: Array<string>,
   embeddings: Array<Embedding>,
   usage?: EmbeddingModelUsage,
   response: Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>['response'] = {
