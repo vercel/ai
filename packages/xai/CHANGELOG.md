@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.38
+
+### Patch Changes
+
+- c6eb78c: add grok-4-1 model IDs
+
 ## 2.0.37
 
 ### Patch Changes
