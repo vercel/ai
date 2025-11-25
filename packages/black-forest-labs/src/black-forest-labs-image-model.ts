@@ -190,6 +190,13 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
               ...(resultStartTime != null && { start_time: resultStartTime }),
               ...(resultEndTime != null && { end_time: resultEndTime }),
               ...(resultDuration != null && { duration: resultDuration }),
+              ...(submit.value.cost != null && { cost: submit.value.cost }),
+              ...(submit.value.input_mp != null && {
+                inputMegapixels: submit.value.input_mp,
+              }),
+              ...(submit.value.output_mp != null && {
+                outputMegapixels: submit.value.output_mp,
+              }),
             },
           ],
         },
@@ -331,6 +338,9 @@ function gcd(a: number, b: number): number {
 const bflSubmitSchema = z.object({
   id: z.string(),
   polling_url: z.url(),
+  cost: z.number().nullish(),
+  input_mp: z.number().nullish(),
+  output_mp: z.number().nullish(),
 });
 
 const bflStatus = z.union([

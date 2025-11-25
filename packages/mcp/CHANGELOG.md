@@ -1,5 +1,17 @@
 # @ai-sdk/mcp
 
+## 0.0.10
+
+### Patch Changes
+
+- 638de7b: feat(mcp): add the possibility to define client version in mcp client definition
+
+## 0.0.9
+
+### Patch Changes
+
+- 89b59d7: feat(mcp): add client elicitation support
+
 ## 0.0.8
 
 ### Patch Changes
