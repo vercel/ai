@@ -1,0 +1,393 @@
+---
+title: Responses API
+description: Use the OpenAI-compatible Responses API for advanced features like reasoning tokens.
+---
+
+# Responses API
+
+The Responses API is an alternative endpoint (`/responses`) for OpenAI-compatible providers that offers additional capabilities beyond the traditional Chat Completions API (`/chat/completions`). This API is particularly useful for models that support advanced features like reasoning tokens and step-by-step thought processes.
+
+## When to Use the Responses API
+
+Use the Responses API when:
+
+- You need access to **reasoning tokens** and internal model reasoning processes
+- You want to control whether responses are stored server-side
+- The provider explicitly supports the `/responses` endpoint
+- You need advanced reasoning capabilities with configurable effort levels
+
+For standard chat completions without these features, use the regular `chatModel()` method.
+
+## Setup
+
+The Responses API is available through the same `@ai-sdk/openai-compatible` package used for standard chat completions:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+## Creating a Responses Model
+
+To use the Responses API, create a provider instance and use the `responsesModel()` method:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+// Use responsesModel instead of chatModel
+const model = provider.responsesModel('model-id');
+
+const { text } = await generateText({
+  model,
+  prompt: 'Explain quantum computing',
+});
+```
+
+## Key Differences from Chat API
+
+The Responses API differs from the Chat Completions API in several ways:
+
+### Response Structure
+
+- **Input format**: Uses `input` array instead of `messages`
+- **Output format**: Returns `output` array with typed items (`message`, `reasoning`, `function_call`)
+- **Content types**: Includes `reasoning` content type alongside text and tool calls
+
+### API Endpoint
+
+- **Chat API**: `/chat/completions`
+- **Responses API**: `/responses`
+
+## Reasoning Features
+
+One of the most powerful features of the Responses API is support for model reasoning with configurable effort levels.
+
+### Basic Reasoning Example
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const provider = createOpenAICompatible({
+  name: 'xai',
+  apiKey: process.env.XAI_API_KEY,
+  baseURL: 'https://api.x.ai/v1',
+});
+
+const { text, experimental_reasoning, usage } = await generateText({
+  model: provider.responsesModel('grok-3-mini'),
+  prompt: 'Explain why the sky is blue',
+  providerOptions: {
+    xai: {
+      reasoningEffort: 'medium',
+      reasoningSummary: 'auto',
+    },
+  },
+});
+
+console.log('Reasoning:', experimental_reasoning);
+console.log('Response:', text);
+console.log('Reasoning tokens:', usage.reasoningTokens);
+```
+
+### Provider Options for Reasoning
+
+The Responses API supports several provider-specific options:
+
+```ts
+providerOptions: {
+  'provider-name': {
+    // Reasoning effort level - controls how much the model thinks
+    reasoningEffort: 'low' | 'medium' | 'high',
+
+    // Reasoning summary detail level
+    reasoningSummary: 'auto' | 'detailed' | 'brief',
+
+    // Whether to store responses server-side (default: true)
+    store: boolean,
+
+    // Additional data to include in the response
+    include: ['reasoning.encrypted_content'],
+
+    // User identifier for monitoring
+    user: string,
+
+    // Use strict JSON schema for structured outputs
+    strictJsonSchema: boolean,
+  }
+}
+```
+
+### Understanding Reasoning Tokens
+
+When using reasoning features, the model performs additional internal thinking before generating the final response. This thinking process consumes **reasoning tokens**, which are tracked separately in the usage metrics:
+
+```ts
+const { usage } = await generateText({
+  model: provider.responsesModel('model-id'),
+  prompt: 'Solve this complex problem...',
+  providerOptions: {
+    'provider-name': {
+      reasoningEffort: 'high',
+    },
+  },
+});
+
+console.log({
+  inputTokens: usage.inputTokens,
+  outputTokens: usage.outputTokens,
+  reasoningTokens: usage.reasoningTokens, // Tokens used for reasoning
+  totalTokens: usage.totalTokens,
+});
+```
+
+### Encrypted Reasoning Content
+
+When `store: false` is set, the provider may include encrypted reasoning content that can be used to continue conversations while preserving the model's internal reasoning state:
+
+```ts
+const { experimental_reasoning } = await generateText({
+  model: provider.responsesModel('model-id'),
+  prompt: 'Complex task...',
+  providerOptions: {
+    'provider-name': {
+      reasoningEffort: 'high',
+      store: false,
+      include: ['reasoning.encrypted_content'],
+    },
+  },
+});
+
+// experimental_reasoning may include encrypted content
+// that preserves the model's reasoning state
+```
+
+## Streaming with Reasoning
+
+The Responses API supports streaming both regular text and reasoning content:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: provider.responsesModel('model-id'),
+  prompt: 'Explain the theory of relativity',
+  providerOptions: {
+    'provider-name': {
+      reasoningEffort: 'medium',
+      reasoningSummary: 'auto',
+    },
+  },
+});
+
+// Stream reasoning and text separately
+for await (const chunk of result.fullStream) {
+  if (chunk.type === 'reasoning-delta') {
+    process.stdout.write(`[Reasoning] ${chunk.delta}`);
+  } else if (chunk.type === 'text-delta') {
+    process.stdout.write(chunk.delta);
+  }
+}
+```
+
+## Tool Calling
+
+The Responses API fully supports tool calling with the same interface as the Chat API:
+
+```ts
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const { text, toolCalls } = await generateText({
+  model: provider.responsesModel('model-id'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a location',
+      parameters: z.object({
+        location: z.string(),
+        unit: z.enum(['celsius', 'fahrenheit']),
+      }),
+      execute: async ({ location, unit }) => {
+        // Implementation
+        return { temperature: 72, unit };
+      },
+    }),
+  },
+});
+```
+
+## Provider Metadata
+
+The Responses API includes provider-specific metadata in responses:
+
+```ts
+const { providerMetadata, content } = await generateText({
+  model: provider.responsesModel('model-id'),
+  prompt: 'Hello',
+});
+
+// Response-level metadata
+console.log(providerMetadata['provider-name'].responseId);
+
+// Content-level metadata (itemId for each output item)
+content.forEach(item => {
+  if (item.type === 'text' || item.type === 'reasoning') {
+    console.log(item.providerMetadata?.['provider-name']?.itemId);
+  }
+
+  if (item.type === 'reasoning') {
+    console.log(
+      item.providerMetadata?.['provider-name']?.reasoningEncryptedContent,
+    );
+  }
+});
+```
+
+## Error Handling
+
+Errors from the Responses API follow the same patterns as other AI SDK errors:
+
+```ts
+import { APICallError } from 'ai';
+
+try {
+  const { text } = await generateText({
+    model: provider.responsesModel('model-id'),
+    prompt: 'Hello',
+  });
+} catch (error) {
+  if (APICallError.isInstance(error)) {
+    console.error('API call failed:', {
+      message: error.message,
+      statusCode: error.statusCode,
+      url: error.url,
+    });
+  }
+}
+```
+
+## Structured Outputs
+
+If the provider supports structured outputs, you can enable them when creating the provider:
+
+```ts
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  supportsStructuredOutputs: true,
+});
+
+const { object } = await generateObject({
+  model: provider.responsesModel('model-id'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe',
+});
+```
+
+## Complete Example
+
+Here's a comprehensive example using multiple Responses API features:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const provider = createOpenAICompatible({
+  name: 'xai',
+  apiKey: process.env.XAI_API_KEY,
+  baseURL: 'https://api.x.ai/v1',
+});
+
+async function generateWithReasoning() {
+  const result = streamText({
+    model: provider.responsesModel('grok-3-mini'),
+    prompt: 'Explain the P vs NP problem in computer science',
+    maxTokens: 500,
+    temperature: 0.7,
+    providerOptions: {
+      xai: {
+        reasoningEffort: 'high',
+        reasoningSummary: 'detailed',
+        store: true,
+        user: 'user-123',
+      },
+    },
+  });
+
+  // Track reasoning and response separately
+  let reasoning = '';
+  let response = '';
+
+  for await (const chunk of result.fullStream) {
+    switch (chunk.type) {
+      case 'reasoning-delta':
+        reasoning += chunk.delta;
+        console.log('[Reasoning]', chunk.delta);
+        break;
+
+      case 'text-delta':
+        response += chunk.delta;
+        console.log('[Response]', chunk.delta);
+        break;
+
+      case 'finish':
+        console.log('\n--- Usage ---');
+        console.log('Input tokens:', chunk.usage.inputTokens);
+        console.log('Output tokens:', chunk.usage.outputTokens);
+        console.log('Reasoning tokens:', chunk.usage.reasoningTokens);
+        console.log('Total tokens:', chunk.usage.totalTokens);
+        break;
+    }
+  }
+
+  return { reasoning, response };
+}
+
+generateWithReasoning();
+```
+
+## Best Practices
+
+1. **Use reasoning wisely**: Higher reasoning effort levels consume more tokens. Use `'low'` or `'medium'` for simple tasks, reserve `'high'` for complex problems.
+
+2. **Monitor reasoning tokens**: Reasoning tokens can significantly increase costs. Track `usage.reasoningTokens` to understand your usage.
+
+3. **Store parameter**: Set `store: true` (default) for most use cases. Only use `store: false` if you need encrypted content for specific continuation scenarios.
+
+4. **Provider compatibility**: Verify that your provider supports the `/responses` endpoint before using `responsesModel()`.
+
+5. **Streaming reasoning**: When streaming, handle both `reasoning-delta` and `text-delta` chunks to provide a complete user experience.
+
+## Supported Providers
+
+Not all OpenAI-compatible providers support the Responses API. Check your provider's documentation to confirm `/responses` endpoint availability. Known providers that support this API include:
+
+- xAI (Grok models)
+- Huggingface (Beta)
+
+For providers that don't support the Responses API, use the standard `chatModel()` method instead.
