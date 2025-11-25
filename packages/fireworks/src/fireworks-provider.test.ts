@@ -139,12 +139,12 @@ describe('FireworksProvider', () => {
     });
   });
 
-  describe('textEmbeddingModel', () => {
+  describe('embeddingModel', () => {
     it('should construct a text embedding model with correct configuration', () => {
       const provider = createFireworks();
       const modelId = 'fireworks-embedding-model';
 
-      const model = provider.textEmbeddingModel(modelId);
+      const model = provider.embeddingModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
     });
