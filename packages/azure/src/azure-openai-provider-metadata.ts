@@ -12,10 +12,10 @@ import {
 
 // zod parse for text providerMetadata come from annotation(ex.code interpreter)
 export const azureResponsesOutputTextProviderMetadataSchema = z.object({
-  openai: responsesOutputTextProviderMetadataSchema,
+  azure: responsesOutputTextProviderMetadataSchema,
 });
 
 // zod parse for source-document providerMetadata come from annotation(ex.code interpreter)
 export const azureResponsesSourceDocumentProviderMetadataSchema = z.object({
-  openai: responsesSourceDocumentProviderMetadataSchema,
+  azure: responsesSourceDocumentProviderMetadataSchema,
 });
