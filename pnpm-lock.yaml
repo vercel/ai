@@ -688,7 +688,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.85
+        specifier: 4.0.0-beta.86
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.0-beta.118
@@ -810,7 +810,7 @@ importers:
         specifier: 3.0.0-beta.58
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.85
+        specifier: 4.0.0-beta.86
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.0-beta.38
@@ -38707,7 +38707,7 @@ snapshots:
       '@vitest/spy': 2.1.4
       '@vitest/utils': 2.1.4
       chai: 5.1.2
-      debug: 4.3.7
+      debug: 4.4.3(supports-color@9.4.0)
       expect-type: 1.1.0
       magic-string: 0.30.12
       pathe: 1.1.2
