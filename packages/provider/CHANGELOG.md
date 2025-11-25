@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.18
+
+### Patch Changes
+
+- 10d819b: fix(packages/provider): fix CallWarning and allow strings as type
+
 ## 3.0.0-beta.17
 
 ### Patch Changes
