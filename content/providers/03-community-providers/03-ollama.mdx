@@ -136,10 +136,10 @@ const { text } = await generateText({
 ## Embedding Models
 
 You can create models that call the [Ollama embeddings API](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-embeddings)
-using the `.textEmbeddingModel()` factory method.
+using the `..embeddingModel()` factory method.
 
 ```ts
-const model = ollama.textEmbeddingModel('nomic-embed-text');
+const model = ollama..embeddingModel('nomic-embed-text');
 
 const { embeddings } = await embedMany({
   model: model,

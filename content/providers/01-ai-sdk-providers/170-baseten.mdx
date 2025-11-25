@@ -122,7 +122,7 @@ const { text } = await generateText({
 
 ## Embedding Models
 
-You can create models that call the Baseten embeddings API using the `.textEmbeddingModel()` factory method. The Baseten provider uses the high-performance `@basetenlabs/performance-client` for optimal embedding performance.
+You can create models that call the Baseten embeddings API using the `..embeddingModel()` factory method. The Baseten provider uses the high-performance `@basetenlabs/performance-client` for optimal embedding performance.
 
 <Note>
   **Important:** Embedding models require a dedicated deployment with a custom
@@ -138,7 +138,7 @@ const baseten = createBaseten({
   modelURL: 'https://model-{MODEL_ID}.api.baseten.co/sync',
 });
 
-const embeddingModel = baseten.textEmbeddingModel();
+const embeddingModel = baseten..embeddingModel();
 
 // Single embedding
 const { embedding } = await embed({
@@ -200,7 +200,7 @@ try {
 ```ts
 // Embeddings require a modelURL
 try {
-  baseten.textEmbeddingModel();
+  baseten..embeddingModel();
 } catch (error) {
   // Error: "No model URL provided for embeddings. Please set modelURL option for embeddings."
 }
@@ -221,7 +221,7 @@ const baseten = createBaseten({
   modelURL:
     'https://model-{MODEL_ID}.api.baseten.co/environments/production/sync/v1',
 });
-const embeddingModel = baseten.textEmbeddingModel(); // This works fine!
+const embeddingModel = baseten..embeddingModel(); // This works fine!
 
 // /predict endpoints are not supported for embeddings
 try {
@@ -229,7 +229,7 @@ try {
     modelURL:
       'https://model-{MODEL_ID}.api.baseten.co/environments/production/predict',
   });
-  baseten.textEmbeddingModel(); // This will throw an error
+  baseten..embeddingModel(); // This will throw an error
 } catch (error) {
   // Error: "Not supported. You must use a /sync or /sync/v1 endpoint for embeddings."
 }

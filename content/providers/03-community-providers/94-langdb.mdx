@@ -122,7 +122,7 @@ const langdb = createLangDB({
 
 export async function generateEmbeddings() {
   const { embedding } = await embed({
-    model: langdb.textEmbeddingModel('text-embedding-3-small'),
+    model: langdb..embeddingModel('text-embedding-3-small'),
     value: 'sunny day at the beach',
   });
 

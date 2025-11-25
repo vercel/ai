@@ -17,7 +17,7 @@ import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: openai.textEmbeddingModel('text-embedding-3-small'),
+    model: openai..embeddingModel('text-embedding-3-small'),
     value: 'sunny day at the beach',
   });
 

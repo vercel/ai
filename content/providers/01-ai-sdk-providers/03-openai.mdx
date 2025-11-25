@@ -1409,10 +1409,10 @@ The following optional provider options are available for OpenAI completion mode
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
-using the `.textEmbedding()` factory method.
+using the `..embedding()` factory method.
 
 ```ts
-const model = openai.textEmbedding('text-embedding-3-large');
+const model = openai..embedding('text-embedding-3-large');
 ```
 
 OpenAI embedding models support several additional provider options.
@@ -1423,7 +1423,7 @@ import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: openai.textEmbedding('text-embedding-3-large'),
+  model: openai..embedding('text-embedding-3-large'),
   value: 'sunny day at the beach',
   providerOptions: {
     openai: {

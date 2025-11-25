@@ -147,10 +147,10 @@ const model = fireworks.completion('accounts/fireworks/models/firefunction-v1');
 
 ## Embedding Models
 
-You can create models that call the Fireworks embeddings API using the `.textEmbedding()` factory method:
+You can create models that call the Fireworks embeddings API using the `..embedding()` factory method:
 
 ```ts
-const model = fireworks.textEmbedding('nomic-ai/nomic-embed-text-v1.5');
+const model = fireworks..embedding('nomic-ai/nomic-embed-text-v1.5');
 ```
 
 You can use Fireworks embedding models to generate embeddings with the `embed` function:
@@ -160,7 +160,7 @@ import { fireworks } from '@ai-sdk/fireworks';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: fireworks.textEmbedding('nomic-ai/nomic-embed-text-v1.5'),
+  model: fireworks..embedding('nomic-ai/nomic-embed-text-v1.5'),
   value: 'sunny day at the beach',
 });
 ```

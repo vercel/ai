@@ -107,7 +107,7 @@ Creates a completion model for text generation.
   /**
 Creates a text embedding model for text generation.
 */
-  textEmbeddingModel(
+  .embeddingModel(
     modelId: ExampleEmbeddingModelId,
     settings?: ExampleEmbeddingSettings,
   ): EmbeddingModelV3<string>;
@@ -177,7 +177,7 @@ export function createExample(
       getCommonModelConfig('completion'),
     );
 
-  const createTextEmbeddingModel = (
+  const create.embeddingModel = (
     modelId: ExampleEmbeddingModelId,
     settings: ExampleEmbeddingSettings = {},
   ) =>
@@ -204,7 +204,7 @@ export function createExample(
 
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
-  provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider..embeddingModel = create.embeddingModel;
   provider.imageModel = createImageModel;
 
   return provider;
