@@ -4138,12 +4138,12 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const provider = createAnthropic({
         apiKey: 'test-api-key',
-        headers: { 'anthropic-beta': 'config-beta1,config-beta2' },
+        headers: { 'anthropic-beta': 'CONFIG-beta1,config-beta2' },
       });
 
       await provider('claude-3-haiku-20240307').doStream({
         prompt: TEST_PROMPT,
-        headers: { 'anthropic-beta': 'request-beta1,request-beta2' },
+        headers: { 'anthropic-beta': 'REQUEST-beta1,request-beta2' },
       });
 
       expect(

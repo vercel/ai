@@ -127,21 +127,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getBetasFromHeaders(
-    requestHeaders: Record<string, string | undefined> | undefined,
-  ) {
-    const configHeaders = await resolve(this.config.headers);
-
-    const configBetaHeader = configHeaders['anthropic-beta'] ?? '';
-    const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
-
-    return new Set(
-      [...configBetaHeader.split(','), ...requestBetaHeader.split(',')]
-        .map(beta => beta.trim())
-        .filter(beta => beta !== ''),
-    );
-  }
-
   private async getArgs({
     userSuppliedBetas,
     prompt,
@@ -467,6 +452,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       await resolve(this.config.headers),
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
+    );
+  }
+
+  private async getBetasFromHeaders(
+    requestHeaders: Record<string, string | undefined> | undefined,
+  ) {
+    const configHeaders = await resolve(this.config.headers);
+
+    const configBetaHeader = configHeaders['anthropic-beta'] ?? '';
+    const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
+
+    return new Set(
+      [
+        ...configBetaHeader.toLowerCase().split(','),
+        ...requestBetaHeader.toLowerCase().split(','),
+      ]
+        .map(beta => beta.trim())
+        .filter(beta => beta !== ''),
     );
   }
 
