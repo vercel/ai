@@ -4138,19 +4138,18 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const provider = createAnthropic({
         apiKey: 'test-api-key',
-        headers: {
-          'anthropic-beta': 'context-1m-2025-08-07',
-        },
+        headers: { 'anthropic-beta': 'config-beta1,config-beta2' },
       });
 
       await provider('claude-3-haiku-20240307').doStream({
         prompt: TEST_PROMPT,
+        headers: { 'anthropic-beta': 'options-beta1,options-beta2' },
       });
 
       expect(
         server.calls[0].requestHeaders['anthropic-beta'],
       ).toMatchInlineSnapshot(
-        `"fine-grained-tool-streaming-2025-05-14 context-1m-2025-08-07"`,
+        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,options-beta1,options-beta2"`,
       );
     });
 
