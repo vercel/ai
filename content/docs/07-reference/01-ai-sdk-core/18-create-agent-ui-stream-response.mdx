@@ -20,7 +20,7 @@ The `createAgentUIStreamResponse` function executes an [Agent](/docs/reference/a
 import { ToolLoopAgent, createAgentUIStreamResponse } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are a helpful assistant.',
   tools: { weather: weatherTool, calculator: calculatorTool },
 });

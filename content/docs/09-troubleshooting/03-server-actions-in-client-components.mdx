@@ -25,13 +25,12 @@ Learn more about [Server Actions and Mutations](https://nextjs.org/docs/app/api-
 'use server';
 
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
 
 export async function getAnswer(question: string) {
   'use server';
 
   const { text } = await generateText({
-    model: openai.chat('gpt-3.5-turbo'),
+    model: 'anthropic/claude-sonnet-4.5',
     prompt: question,
   });
 

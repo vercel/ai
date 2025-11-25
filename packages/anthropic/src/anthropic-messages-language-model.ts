@@ -194,8 +194,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions,
+      schema: anthropicProviderOptions,
+    });
+
+    const {
+      maxOutputTokens: maxOutputTokensForModel,
+      supportsStructuredOutput,
+      isKnownModel,
+    } = getModelCapabilities(this.modelId);
+
+    const structureOutputMode =
+      anthropicOptions?.structuredOutputMode ?? 'auto';
+    const useStructuredOutput =
+      structureOutputMode === 'outputFormat' ||
+      (structureOutputMode === 'auto' && supportsStructuredOutput);
+
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
-      responseFormat?.type === 'json' && responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !useStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -203,12 +223,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             inputSchema: responseFormat.schema,
           }
         : undefined;
-
-    const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions,
-      schema: anthropicProviderOptions,
-    });
 
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
@@ -224,8 +238,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
-    const { maxOutputTokens: maxOutputTokensForModel, knownModel } =
-      getMaxOutputTokensForModel(this.modelId);
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
     const baseArgs = {
@@ -243,6 +255,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(isThinking && {
         thinking: { type: 'enabled', budget_tokens: thinkingBudget },
       }),
+      ...(anthropicOptions?.effort && {
+        output_config: { effort: anthropicOptions.effort },
+      }),
+
+      // structured output:
+      ...(useStructuredOutput &&
+        responseFormat?.type === 'json' &&
+        responseFormat.schema != null && {
+          output_format: {
+            type: 'json_schema',
+            schema: responseFormat.schema,
+          },
+        }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
@@ -317,7 +342,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
-    if (knownModel && baseArgs.max_tokens > maxOutputTokensForModel) {
+    if (isKnownModel && baseArgs.max_tokens > maxOutputTokensForModel) {
       // only warn if max output tokens is provided as input:
       if (maxOutputTokens != null) {
         warnings.push({
@@ -361,9 +386,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
+    if (anthropicOptions?.effort) {
+      betas.add('effort-2025-11-24');
+    }
+
     // only when streaming: enable fine-grained tool streaming
     if (stream && (anthropicOptions?.toolStreaming ?? true)) {
       betas.add('fine-grained-tool-streaming-2025-05-14');
+    }
+
+    // structured output:
+    if (useStructuredOutput) {
+      betas.add('structured-outputs-2025-11-13');
     }
 
     const {
@@ -1455,24 +1489,65 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   }
 }
 
-// see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
-function getMaxOutputTokensForModel(modelId: string): {
+/**
+ * Returns the capabilities of a Claude model that are used for defaults and feature selection.
+ *
+ * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
+ * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+ */
+function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
-  knownModel: boolean;
+  supportsStructuredOutput: boolean;
+  isKnownModel: boolean;
 } {
   if (
+    modelId.includes('claude-sonnet-4-5') ||
+    modelId.includes('claude-opus-4-5')
+  ) {
+    return {
+      maxOutputTokens: 64000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-opus-4-1')) {
+    return {
+      maxOutputTokens: 32000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-sonnet-4-') ||
     modelId.includes('claude-3-7-sonnet') ||
     modelId.includes('claude-haiku-4-5')
   ) {
-    return { maxOutputTokens: 64000, knownModel: true };
+    return {
+      maxOutputTokens: 64000,
+      supportsStructuredOutput: false,
+      isKnownModel: true,
+    };
   } else if (modelId.includes('claude-opus-4-')) {
-    return { maxOutputTokens: 32000, knownModel: true };
+    return {
+      maxOutputTokens: 32000,
+      supportsStructuredOutput: false,
+      isKnownModel: true,
+    };
   } else if (modelId.includes('claude-3-5-haiku')) {
-    return { maxOutputTokens: 8192, knownModel: true };
+    return {
+      maxOutputTokens: 8192,
+      supportsStructuredOutput: false,
+      isKnownModel: true,
+    };
   } else if (modelId.includes('claude-3-haiku')) {
-    return { maxOutputTokens: 4096, knownModel: true };
+    return {
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      isKnownModel: true,
+    };
   } else {
-    return { maxOutputTokens: 4096, knownModel: false };
+    return {
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      isKnownModel: false,
+    };
   }
 }

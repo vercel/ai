@@ -13,7 +13,7 @@ Unlike single-step calls like `generateText()`, an agent can iteratively invoke 
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
@@ -122,6 +122,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'TelemetrySettings',
       isOptional: true,
       description: 'Experimental: Optional telemetry configuration.',
+    },
+    {
+      name: 'experimental_download',
+      type: 'DownloadFunction | undefined',
+      isOptional: true,
+      description:
+        'Experimental: Custom download function for fetching files/URLs for tool or model use. By default, files are downloaded if the model does not support the URL for a given media type.',
     },
     {
       name: 'maxOutputTokens',
@@ -298,7 +305,7 @@ Infers the UI message type for the given agent instance. Useful for type-safe UI
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 const weatherAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   tools: { weather: weatherTool },
 });
 
@@ -324,7 +331,7 @@ type ExampleMetadata = z.infer<typeof exampleMetadataSchema>;
 
 // Define agent as usual
 const metadataAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   // ...other options
 });
 
@@ -344,7 +351,7 @@ import { ToolLoopAgent, stepCountIs } from 'ai';
 import { weatherTool, calculatorTool } from './tools';
 
 const assistant = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
@@ -365,7 +372,7 @@ console.log(result.steps); // Array of all steps taken by the agent
 
 ```ts
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are a creative storyteller.',
 });
 
@@ -384,7 +391,7 @@ for await (const chunk of stream.textStream) {
 import { z } from 'zod';
 
 const analysisAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   output: {
     schema: z.object({
       sentiment: z.enum(['positive', 'negative', 'neutral']),
@@ -409,7 +416,7 @@ import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: 'anthropic/claude-sonnet-4.5',
   instructions: 'You are an agent with access to a weather API.',
   tools: {
     weather: openai.tools.weather({
