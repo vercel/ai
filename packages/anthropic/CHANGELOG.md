@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.48
+
+### Patch Changes
+
+- f2c6cbd: feat(provider/anthropic): Anthropic-native structured outputs
+
 ## 2.0.47
 
 ### Patch Changes
