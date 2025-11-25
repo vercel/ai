@@ -38,11 +38,11 @@ chore(provider): remove generics from EmbeddingModelV3
 Before
 
 ```ts
-model.textEmbeddingModel('my-model-id')
+model.textEmbeddingModel('my-model-id');
 ```
 
 After
 
 ```ts
-model.embeddingModel('my-model-id')
+model.embeddingModel('my-model-id');
 ```
