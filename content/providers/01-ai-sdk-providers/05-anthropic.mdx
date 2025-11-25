@@ -268,7 +268,7 @@ const result = await generateText({
         edits: [
           {
             type: 'clear_thinking_20251015',
-            keep: { type: 'thinking_blocks', value: 2 },
+            keep: { type: 'thinking_turns', value: 2 },
           },
         ],
       },
@@ -290,7 +290,7 @@ if (metadata?.appliedEdits) {
       console.log(`Cleared ${edit.clearedToolUses} tool uses`);
       console.log(`Freed ${edit.clearedInputTokens} tokens`);
     } else if (edit.type === 'clear_thinking_20251015') {
-      console.log(`Cleared ${edit.clearedThinkingBlocks} thinking blocks`);
+      console.log(`Cleared ${edit.clearedThinkingTurns} thinking turns`);
       console.log(`Freed ${edit.clearedInputTokens} tokens`);
     }
   });
