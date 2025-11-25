@@ -19,11 +19,7 @@
       "path": "../provider"
       },
       {
-<<<<<<< HEAD
       "path": "../test-server"
-=======
-      "path": "../provider-utils"
->>>>>>> 670119212 (chore(mcp): improve developer experience and test portability (#10402))
       }
   ]
 }
