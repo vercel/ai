@@ -118,7 +118,7 @@ This project will use the following stack:
 
 - [Next.js](https://nextjs.org) 14 (App Router)
 - [ AI SDK ](/docs)
-- [OpenAI](https://openai.com)
+- [ Vercel AI Gateway ](/providers/ai-sdk-providers/ai-gateway)
 - [ Drizzle ORM ](https://orm.drizzle.team)
 - [ Postgres ](https://www.postgresql.org/) with [ pgvector ](https://github.com/pgvector/pgvector)
 - [ shadcn-ui ](https://ui.shadcn.com) and [ TailwindCSS ](https://tailwindcss.com) for styling
@@ -194,11 +194,24 @@ This will first add the `pgvector` extension to your database. Then it will crea
   section](#troubleshooting-migration-error) below.
 </Note>
 
-### OpenAI API Key
+### Vercel AI Gateway Key
 
-For this guide, you will need an OpenAI API key. To generate an API key, go to [platform.openai.com](http://platform.openai.com/).
+For this guide, you will need a Vercel AI Gateway API key, which gives you access to hundreds of models from different providers with one API key. If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
 
-Once you have your API key, paste it into your `.env` file (`OPENAI_API_KEY`).
+<Note>
+  The AI SDK's Vercel AI Gateway Provider is the default global provider, so you
+  can access models using a simple string in the model configuration. If you
+  prefer to use a specific provider like OpenAI directly, see the [provider
+  management](/docs/ai-sdk-core/provider-management) documentation.
+</Note>
+
+Now, open your `.env` file and add your API Gateway key:
+
+```env filename=".env"
+AI_GATEWAY_API_KEY=your-api-key
+```
+
+Replace `your-api-key` with your actual Vercel AI Gateway API key.
 
 ## Build
 
@@ -282,9 +295,9 @@ This function will take an input string and split it by periods, filtering out a
 
 You will use the AI SDK to create embeddings. This will require two more dependencies, which you can install by running the following command:
 
-<Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" />
+<Snippet text="pnpm add ai @ai-sdk/react" />
 
-This will install the [AI SDK](/docs), AI SDK's React hooks, and AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai).
+This will install the [AI SDK](/docs) and the AI SDK's React hooks.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -453,7 +466,7 @@ export default function Chat() {
 }
 ```
 
-The `useChat` hook enables the streaming of chat messages from your AI provider (you will be using OpenAI), manages the state for chat input, and updates the UI automatically as new messages are received.
+The `useChat` hook enables the streaming of chat messages from your AI provider (you will be using OpenAI via the Vercel AI Gateway), manages the state for chat input, and updates the UI automatically as new messages are received.
 
 Run the following command to start the Next.js dev server:
 
