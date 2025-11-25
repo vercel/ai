@@ -1,54 +1,52 @@
 'use client';
 
 import { Response } from '@/components/ai-elements/response';
+import { openaiResponsesOutputTextProviderMetadataSchema } from '@ai-sdk/openai';
+import { azureResponsesOutputTextProviderMetadataSchema } from '@ai-sdk/azure';
 import { TextUIPart } from 'ai';
 import { z } from 'zod/v4';
 
-export const openaiResponsesTextUIPartProviderMetadataSchema = z.object({
-  openai: z.object({
-    itemId: z.string(),
-    annotations: z
-      .array(
-        z.discriminatedUnion('type', [
-          z.object({
-            type: z.literal('url_citation'),
-            url: z.string(),
-            title: z.string(),
-            start_index: z.number(),
-            end_index: z.number(),
-          }),
-          z.object({
-            type: z.literal('file_citation'),
-            file_id: z.string(),
-            filename: z.string(),
-            index: z.number(),
-            quote: z.string().nullish(),
-          }),
-          z.object({
-            type: z.literal('container_file_citation'),
-            container_id: z.string(),
-            file_id: z.string(),
-            filename: z.string(),
-            start_index: z.number(),
-            end_index: z.number(),
-          }),
-        ]),
-      )
-      .optional(),
-  }),
-});
+const responsesOutputTextProviderMetadataSchema = z.union([
+  openaiResponsesOutputTextProviderMetadataSchema,
+  azureResponsesOutputTextProviderMetadataSchema,
+]);
+
+function extractProviderAndAnnotations(
+  data: z.infer<typeof responsesOutputTextProviderMetadataSchema>,
+) {
+  if ('openai' in data) {
+    return {
+      provider: 'openai',
+      itemId: data.openai.itemId,
+      annotations: data.openai.annotations,
+    } as const;
+  }
+  if ('azure' in data) {
+    return {
+      provider: 'azure',
+      itemId: data.azure.itemId,
+      annotations: data.azure.annotations,
+    } as const;
+  }
+  // never
+  const _exhaustive: never = data;
+  return _exhaustive;
+}
 
 export function OpenaiResponsesText({ part }: { part: TextUIPart }) {
   if (!part.providerMetadata) return <Response>{part.text}</Response>;
 
   const providerMetadataParsed =
-    openaiResponsesTextUIPartProviderMetadataSchema.safeParse(
-      part.providerMetadata,
-    );
+    responsesOutputTextProviderMetadataSchema.safeParse(part.providerMetadata);
 
   if (!providerMetadataParsed.success) return <Response>{part.text}</Response>;
 
-  const { annotations } = providerMetadataParsed.data.openai;
+  const {
+    provider, // 'openai' or 'azure'
+    itemId: _,
+    annotations,
+  } = extractProviderAndAnnotations(providerMetadataParsed.data);
+
   if (!annotations) return <Response>{part.text}</Response>;
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -68,7 +66,7 @@ export function OpenaiResponsesText({ part }: { part: TextUIPart }) {
           if (cur.start_index === 0 && cur.end_index === 0) return acc;
           return (
             acc.slice(0, cur.start_index) +
-            `${baseUrl}/api/download-container-file?container_id=${encodeURIComponent(cur.container_id)}&file_id=${encodeURIComponent(cur.file_id)}&filename=${encodeURIComponent(cur.filename)}` +
+            `${baseUrl}/api/download-container-file/${provider}?container_id=${encodeURIComponent(cur.container_id)}&file_id=${encodeURIComponent(cur.file_id)}&filename=${encodeURIComponent(cur.filename)}` +
             acc.slice(cur.end_index)
           );
         default:

@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       if (part.type === 'finish' && containerFileSources.length > 0) {
         const downloadLinks = containerFileSources.map(source => ({
           filename: source.filename,
-          url: `/api/download-container-file?container_id=${encodeURIComponent(source.containerId)}&file_id=${encodeURIComponent(source.fileId)}&filename=${encodeURIComponent(source.filename)}`,
+          url: `/api/download-container-file/openai?container_id=${encodeURIComponent(source.containerId)}&file_id=${encodeURIComponent(source.fileId)}&filename=${encodeURIComponent(source.filename)}`,
         }));
 
         return {
