@@ -55,9 +55,9 @@ export async function POST(req: Request) {
               source.providerMetadata,
             );
           if (providerMetadataParsed.success) {
-            const { openai } = providerMetadataParsed.data;
-            if (openai.type === 'container_file_citation') {
-              const { containerId, fileId, filename } = openai;
+            const { azure } = providerMetadataParsed.data;
+            if (azure.type === 'container_file_citation') {
+              const { containerId, fileId, filename } = azure;
               const exists = containerFileSources.some(
                 s => s.containerId === containerId && s.fileId === fileId,
               );

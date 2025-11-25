@@ -39,9 +39,9 @@ async function main() {
           part.providerMetadata,
         );
       if (providerMetadataParsed.success) {
-        const { openai } = providerMetadataParsed.data;
+        const { azure } = providerMetadataParsed.data;
         console.log('-- text-part-- ');
-        console.dir({ openai }, { depth: Infinity });
+        console.dir({ azure }, { depth: Infinity });
       }
     } else if (part.type === 'source') {
       if (part.sourceType === 'document') {
@@ -50,9 +50,9 @@ async function main() {
             part.providerMetadata,
           );
         if (providerMetadataParsed.success) {
-          const { openai } = providerMetadataParsed.data;
+          const { azure } = providerMetadataParsed.data;
           console.log('-- source-document-part-- ');
-          console.dir({ openai }, { depth: Infinity });
+          console.dir({ azure }, { depth: Infinity });
         }
       }
     }

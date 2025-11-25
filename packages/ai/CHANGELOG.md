@@ -1,5 +1,58 @@
 # ai
 
+## 6.0.0-beta.116
+
+### Patch Changes
+
+- 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
+
+## 6.0.0-beta.115
+
+### Patch Changes
+
+- 7da02d2: fix(ai): prune messages properly when toolCalls set to 'before-last-message'
+
+## 6.0.0-beta.114
+
+### Patch Changes
+
+- 69768c2: chore(ai): remove UI message reference from model message validation
+
+## 6.0.0-beta.113
+
+### Patch Changes
+
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+
+## 6.0.0-beta.112
+
+### Patch Changes
+
+- e06b663: feat(agent): support experimental stream transforms
+
+## 6.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [e8694af]
+  - @ai-sdk/gateway@2.0.0-beta.61
+
+## 6.0.0-beta.110
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/gateway@2.0.0-beta.60
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 6.0.0-beta.109
+
+### Patch Changes
+
+- 79ba99f: feat(agent): add message metadata support when inferring UI messages
+
 ## 6.0.0-beta.108
 
 ### Patch Changes

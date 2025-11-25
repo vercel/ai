@@ -270,6 +270,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           type: 'file' as const,
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
+          providerMetadata: part.thoughtSignature
+            ? { google: { thoughtSignature: part.thoughtSignature } }
+            : undefined,
         });
       }
     }
@@ -421,7 +424,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
-              // Process text parts individually to handle reasoning parts
+              // Process all parts in a single loop to preserve original order
               const parts = content.parts ?? [];
               for (const part of parts) {
                 if ('executableCode' in part && part.executableCode?.code) {
@@ -535,12 +538,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         : undefined,
                     });
                   }
-                }
-              }
-
-              const inlineDataParts = getInlineDataParts(content.parts);
-              if (inlineDataParts != null) {
-                for (const part of inlineDataParts) {
+                } else if ('inlineData' in part) {
+                  // Process file parts inline to preserve order with text
                   controller.enqueue({
                     type: 'file',
                     mediaType: part.inlineData.mimeType,
@@ -668,16 +667,6 @@ function getToolCallsFromParts({
       }));
 }
 
-function getInlineDataParts(parts: ContentSchema['parts']) {
-  return parts?.filter(
-    (
-      part,
-    ): part is {
-      inlineData: { mimeType: string; data: string };
-    } => 'inlineData' in part,
-  );
-}
-
 function extractSources({
   groundingMetadata,
   generateId,
@@ -704,8 +693,10 @@ function extractSources({
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
-      if (uri.startsWith('http://') || uri.startsWith('https://')) {
-        // It's a URL
+      const fileSearchStore = chunk.retrievedContext.fileSearchStore;
+
+      if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
+        // Old format: Google Search with HTTP/HTTPS URL
         sources.push({
           type: 'source',
           sourceType: 'url',
@@ -713,13 +704,12 @@ function extractSources({
           url: uri,
           title: chunk.retrievedContext.title ?? undefined,
         });
-      } else {
-        // It's a document (gs://, file path, etc.)
+      } else if (uri) {
+        // Old format: Document with file path (gs://, etc.)
         const title = chunk.retrievedContext.title ?? 'Unknown Document';
-        let mediaType = 'application/octet-stream'; // Default
+        let mediaType = 'application/octet-stream';
         let filename: string | undefined = undefined;
 
-        // Infer media type from URI extension
         if (uri.endsWith('.pdf')) {
           mediaType = 'application/pdf';
           filename = uri.split('/').pop();
@@ -737,7 +727,6 @@ function extractSources({
           mediaType = 'text/markdown';
           filename = uri.split('/').pop();
         } else {
-          // Extract filename from path for unknown types
           filename = uri.split('/').pop();
         }
 
@@ -748,6 +737,17 @@ function extractSources({
           mediaType,
           title,
           filename,
+        });
+      } else if (fileSearchStore) {
+        // New format: File Search with fileSearchStore (no uri)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
+        sources.push({
+          type: 'source',
+          sourceType: 'document',
+          id: generateId(),
+          mediaType: 'application/octet-stream',
+          title,
+          filename: fileSearchStore.split('/').pop(),
         });
       }
     }
@@ -769,9 +769,10 @@ export const getGroundingMetadataSchema = () =>
             .nullish(),
           retrievedContext: z
             .object({
-              uri: z.string(),
+              uri: z.string().nullish(),
               title: z.string().nullish(),
               text: z.string().nullish(),
+              fileSearchStore: z.string().nullish(),
             })
             .nullish(),
         }),
@@ -821,6 +822,7 @@ const getContentSchema = () =>
               mimeType: z.string(),
               data: z.string(),
             }),
+            thoughtSignature: z.string().nullish(),
           }),
           z.object({
             executableCode: z

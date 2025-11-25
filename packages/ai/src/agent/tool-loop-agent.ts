@@ -6,7 +6,7 @@ import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt';
-import { Agent, AgentCallParameters } from './agent';
+import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 /**
@@ -96,13 +96,15 @@ export class ToolLoopAgent<
    */
   async stream({
     abortSignal,
+    experimental_transform,
     ...options
-  }: AgentCallParameters<CALL_OPTIONS>): Promise<
+  }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
     StreamTextResult<TOOLS, OUTPUT>
   > {
     return streamText({
       ...(await this.prepareCall(options)),
       abortSignal,
+      experimental_transform,
     });
   }
 }
