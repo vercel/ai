@@ -14,7 +14,7 @@ const mockRerankingModel = new MockRerankingModelV3();
 const mockFallbackProvider = {
   specificationVersion: 'v3' as const,
   languageModel: vi.fn(),
-  textEmbeddingModel: vi.fn(),
+  embeddingModel: vi.fn(),
   imageModel: vi.fn(),
   transcriptionModel: vi.fn(),
   speechModel: vi.fn(),
@@ -51,7 +51,7 @@ describe('languageModel', () => {
   });
 });
 
-describe('textEmbeddingModel', () => {
+describe('embeddingModel', () => {
   it('should return the embedding model if it exists', () => {
     const provider = customProvider({
       embeddingModels: { 'test-model': mockEmbeddingModel },
@@ -61,14 +61,14 @@ describe('textEmbeddingModel', () => {
   });
 
   it('should use fallback provider if model not found and fallback exists', () => {
-    mockFallbackProvider.textEmbeddingModel.mockReturnValue(mockEmbeddingModel);
+    mockFallbackProvider.embeddingModel.mockReturnValue(mockEmbeddingModel);
 
     const provider = customProvider({
       fallbackProvider: mockFallbackProvider,
     });
 
     expect(provider.embeddingModel('test-model')).toBe(mockEmbeddingModel);
-    expect(mockFallbackProvider.textEmbeddingModel).toHaveBeenCalledWith(
+    expect(mockFallbackProvider.embeddingModel).toHaveBeenCalledWith(
       'test-model',
     );
   });
