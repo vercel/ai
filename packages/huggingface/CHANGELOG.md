@@ -1,5 +1,28 @@
 # @ai-sdk/huggingface
 
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/openai-compatible@2.0.0-beta.37
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
 ## 1.0.0-beta.32
 
 ### Patch Changes
