@@ -115,4 +115,36 @@ console.log(text);`,
     websiteUrl: 'https://parallel.ai',
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
   },
+  {
+    slug: 'firecrawl',
+    name: 'Firecrawl',
+    description:
+      'Firecrawl tools for Vercel AI SDK. Web scraping, search, crawling, and data extraction for AI applications. Scrape any website into clean markdown, search the web, crawl entire sites, and extract structured data.',
+    packageName: 'firecrawl-aisdk',
+    tags: ['scraping', 'search', 'crawling', 'extraction', 'web'],
+    apiKeyEnvName: 'FIRECRAWL_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install firecrawl-aisdk',
+      npm: 'npm install firecrawl-aisdk',
+      yarn: 'yarn add firecrawl-aisdk',
+      bun: 'bun add firecrawl-aisdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { scrapeTool } from 'firecrawl-aisdk';
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  prompt: 'Scrape https://firecrawl.dev and summarize what it does',
+  tools: {
+    scrape: scrapeTool,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.firecrawl.dev/integrations/ai-sdk',
+    apiKeyUrl: 'https://firecrawl.dev/app/api-keys',
+    websiteUrl: 'https://firecrawl.dev',
+    npmUrl: 'https://www.npmjs.com/package/firecrawl-aisdk',
+  },
 ];
