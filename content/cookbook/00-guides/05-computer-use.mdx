@@ -95,6 +95,7 @@ You can add Computer Use to your AI SDK applications using provider-defined-clie
 Here's how you could set up the Computer Tool with the AI SDK:
 
 ```ts
+import { anthropic } from "@ai-sdk/anthropic"
 import { getScreenshot, executeComputerAction } from '@/utils/computer-use';
 
 const computerTool = anthropic.tools.computer_20250124({
