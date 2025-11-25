@@ -44,20 +44,9 @@ Creates a model for image generation.
    */
   generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
-  /**
-@deprecated Use `textEmbedding()` instead.
-   */
-  embedding(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
 
-  textEmbedding(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
-
-  textEmbeddingModel(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embeddingModel(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
 
   tools: typeof googleTools;
 }
@@ -178,11 +167,11 @@ export function createGoogleGenerativeAI(
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
   provider.embedding = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.tools = googleTools;
+
   return provider as GoogleGenerativeAIProvider;
 }
 
