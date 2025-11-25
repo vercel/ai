@@ -46,11 +46,8 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@vitest/coverage-v8": "^4.0.13",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "vite": "^6.2.7",
-    "vitest": "^4.0.13",
     "zod": "3.25.76"
   },
   "peerDependencies": {
