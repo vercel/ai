@@ -106,7 +106,6 @@ To build a multi-modal agent, you will need to:
 Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -116,7 +115,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
   });
 
@@ -362,16 +361,14 @@ With the AI SDK's unified provider interface you can easily switch to other prov
 
 ```tsx filename="app/api/chat/route.ts"
 // Using Anthropic
-import { anthropic } from '@ai-sdk/anthropic';
 const result = streamText({
-  model: anthropic('claude-sonnet-4-20250514'),
+  model: 'anthropic/claude-sonnet-4-20250514',
   messages: convertToModelMessages(messages),
 });
 
 // Using Google
-import { google } from '@ai-sdk/google';
 const result = streamText({
-  model: google('gemini-2.5-flash'),
+  model: 'google/gemini-2.5-flash',
   messages: convertToModelMessages(messages),
 });
 ```

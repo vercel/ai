@@ -300,9 +300,8 @@ Let’s add a function to generate embeddings. Copy the following code into your
 
 ```tsx filename="lib/ai/embedding.ts" highlight="1-2,4,13-22"
 import { embedMany } from 'ai';
-import { openai } from '@ai-sdk/openai';
 
-const embeddingModel = openai.embedding('text-embedding-ada-002');
+const embeddingModel = 'openai/text-embedding-ada-002';
 
 const generateChunks = (input: string): string[] => {
   return input
@@ -475,7 +474,6 @@ Create a file at `app/api/chat/route.ts` by running the following command:
 Open the file and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -485,7 +483,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
   });
 
@@ -504,7 +502,6 @@ While you now have a working agent, it isn't doing anything special.
 Let’s add system instructions to refine and restrict the model’s behavior. In this case, you want the model to only use information it has retrieved to generate responses. Update your route handler with the following code:
 
 ```tsx filename="app/api/chat/route.ts" highlight="12-14"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -514,7 +511,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
@@ -541,7 +538,6 @@ Update your route handler with the following code:
 
 ```tsx filename="app/api/chat/route.ts" highlight="18-29"
 import { createResource } from '@/lib/actions/resources';
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, tool, UIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -552,7 +548,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
@@ -665,7 +661,6 @@ Open your root page (`api/chat/route.ts`) and add the following key to the `stre
 
 ```tsx filename="api/chat/route.ts" highlight="8,24"
 import { createResource } from '@/lib/actions/resources';
-import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   streamText,
@@ -682,7 +677,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
@@ -716,12 +711,11 @@ To find similar content, you will need to embed the users query, search the data
 
 ```tsx filename="lib/ai/embedding.ts" highlight="1,3-5,27-34,36-49"
 import { embed, embedMany } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { db } from '../db';
 import { cosineDistance, desc, gt, sql } from 'drizzle-orm';
 import { embeddings } from '../db/schema/embeddings';
 
-const embeddingModel = openai.embedding('text-embedding-ada-002');
+const embeddingModel = 'openai/text-embedding-ada-002';
 
 const generateChunks = (input: string): string[] => {
   return input
@@ -777,7 +771,6 @@ Go back to your route handler (`api/chat/route.ts`) and add a new tool called `g
 
 ```ts filename="api/chat/route.ts" highlight="11,37-43"
 import { createResource } from '@/lib/actions/resources';
-import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   streamText,
@@ -795,7 +788,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.

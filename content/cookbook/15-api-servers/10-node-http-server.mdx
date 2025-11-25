@@ -28,13 +28,12 @@ curl -X POST http://localhost:8080
 You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data to the server response.
 
 ```ts filename='index.ts'
-import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { createServer } from 'http';
 
 createServer(async (req, res) => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -47,7 +46,6 @@ createServer(async (req, res) => {
 `createUIMessageStream` and `pipeUIMessageStreamToResponse` can be used to send custom data to the client.
 
 ```ts filename='index.ts'
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStream,
   pipeUIMessageStreamToResponse,
@@ -71,7 +69,7 @@ createServer(async (req, res) => {
           });
 
           const result = streamText({
-            model: openai('gpt-4o'),
+            model: 'openai/gpt-4o',
             prompt: 'Invent a new holiday and describe its traditions.',
           });
 
@@ -101,13 +99,12 @@ createServer(async (req, res) => {
 You can send a text stream to the client using `pipeTextStreamToResponse`.
 
 ```ts filename='index.ts'
-import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { createServer } from 'http';
 
 createServer(async (req, res) => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

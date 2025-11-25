@@ -23,7 +23,6 @@ Use cases for intercepting requests include:
 
 ```ts file='index.ts' highlight="5-13"
 import { generateText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
 
 const openai = createOpenAI({
   // example fetch wrapper that logs the input to the API call:
@@ -38,7 +37,7 @@ const openai = createOpenAI({
 });
 
 const { text } = await generateText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-4o',
   prompt: 'Why is the sky blue?',
 });
 ```
