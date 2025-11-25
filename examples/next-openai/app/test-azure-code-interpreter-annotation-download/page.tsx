@@ -27,7 +27,7 @@ export default function TestAzureOpenAICodeInterpreter() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <ResponsesText key={index} part={part}/>;
+                return <ResponsesText key={index} part={part} />;
               case 'tool-code_interpreter':
                 return <CodeInterpreterView key={index} invocation={part} />;
             }
