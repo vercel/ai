@@ -78,11 +78,7 @@ export function prepareTools({
     providerDefinedTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          // <<<<<<< HEAD
           if (IsToolSupported(GOOGLE_SEARCH_UNSUPPORTED_MODELS, modelId)) {
-            // =======
-            //           if (isGemini2orNewer) {
-            // >>>>>>> origin/main
             googleTools.push({ googleSearch: {} });
           } else {
             toolWarnings.push({
@@ -93,11 +89,7 @@ export function prepareTools({
           }
           break;
         case 'google.url_context':
-          // <<<<<<< HEAD
           if (IsToolSupported(URL_CONTEXT_UNSUPPORTED_MODELS, modelId)) {
-            // =======
-            //           if (isGemini2orNewer) {
-            // >>>>>>> origin/main
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
@@ -108,11 +100,7 @@ export function prepareTools({
           }
           break;
         case 'google.code_execution':
-          // <<<<<<< HEAD
           if (IsToolSupported(CODE_EXECUTION_UNSUPPORTED_MODELS, modelId)) {
-            // =======
-            //           if (isGemini2orNewer) {
-            // >>>>>>> origin/main
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
