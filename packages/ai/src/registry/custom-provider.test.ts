@@ -54,10 +54,10 @@ describe('languageModel', () => {
 describe('textEmbeddingModel', () => {
   it('should return the embedding model if it exists', () => {
     const provider = customProvider({
-      textEmbeddingModels: { 'test-model': mockEmbeddingModel },
+      embeddingModels: { 'test-model': mockEmbeddingModel },
     });
 
-    expect(provider.textEmbeddingModel('test-model')).toBe(mockEmbeddingModel);
+    expect(provider.embeddingModel('test-model')).toBe(mockEmbeddingModel);
   });
 
   it('should use fallback provider if model not found and fallback exists', () => {
@@ -67,7 +67,7 @@ describe('textEmbeddingModel', () => {
       fallbackProvider: mockFallbackProvider,
     });
 
-    expect(provider.textEmbeddingModel('test-model')).toBe(mockEmbeddingModel);
+    expect(provider.embeddingModel('test-model')).toBe(mockEmbeddingModel);
     expect(mockFallbackProvider.textEmbeddingModel).toHaveBeenCalledWith(
       'test-model',
     );
@@ -76,7 +76,7 @@ describe('textEmbeddingModel', () => {
   it('should throw NoSuchModelError if model not found and no fallback', () => {
     const provider = customProvider({});
 
-    expect(() => provider.textEmbeddingModel('test-model')).toThrow(
+    expect(() => provider.embeddingModel('test-model')).toThrow(
       NoSuchModelError,
     );
   });

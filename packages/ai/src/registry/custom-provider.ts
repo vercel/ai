@@ -16,26 +16,26 @@ import { asProviderV3 } from '../model/as-provider-v3';
  *
  * @param {Object} options - The options for creating the custom provider.
  * @param {Record<string, LanguageModel>} [options.languageModels] - A record of language models, where keys are model IDs and values are LanguageModel instances.
- * @param {Record<string, EmbeddingModel<string>>} [options.textEmbeddingModels] - A record of text embedding models, where keys are model IDs and values are EmbeddingModel<string> instances.
+ * @param {Record<string, EmbeddingModel>} [options.embeddingModels] - A record of text embedding models, where keys are model IDs and values are EmbeddingModel<string> instances.
  * @param {Record<string, ImageModel>} [options.imageModels] - A record of image models, where keys are model IDs and values are ImageModel instances.
  * @param {Record<string, TranscriptionModel>} [options.transcriptionModels] - A record of transcription models, where keys are model IDs and values are TranscriptionModel instances.
  * @param {Record<string, SpeechModel>} [options.speechModels] - A record of speech models, where keys are model IDs and values are SpeechModel instances.
- * @param {Record<string, RerankingModel<string>>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are RerankingModel<string> instances.
+ * @param {Record<string, RerankingModel>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are RerankingModel<string> instances.
  * @param {Provider} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
- * @returns {Provider} A Provider object with languageModel, textEmbeddingModel, imageModel, transcriptionModel, and speechModel methods.
+ * @returns {Provider} A Provider object with languageModel, embeddingModel, imageModel, transcriptionModel, and speechModel methods.
  *
  * @throws {NoSuchModelError} Throws when a requested model is not found and no fallback provider is available.
  */
 export function customProvider<
   LANGUAGE_MODELS extends Record<string, LanguageModelV3>,
-  EMBEDDING_MODELS extends Record<string, EmbeddingModelV3<string>>,
+  EMBEDDING_MODELS extends Record<string, EmbeddingModelV3>,
   IMAGE_MODELS extends Record<string, ImageModelV3>,
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV3>,
   SPEECH_MODELS extends Record<string, SpeechModelV3>,
   RERANKING_MODELS extends Record<string, RerankingModelV3>,
 >({
   languageModels,
-  textEmbeddingModels,
+  embeddingModels,
   imageModels,
   transcriptionModels,
   speechModels,
@@ -43,7 +43,7 @@ export function customProvider<
   fallbackProvider: fallbackProviderArg,
 }: {
   languageModels?: LANGUAGE_MODELS;
-  textEmbeddingModels?: EMBEDDING_MODELS;
+  embeddingModels?: EMBEDDING_MODELS;
   imageModels?: IMAGE_MODELS;
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
@@ -51,9 +51,7 @@ export function customProvider<
   fallbackProvider?: ProviderV3 | ProviderV2;
 }): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
-  textEmbeddingModel(
-    modelId: ExtractModelId<EMBEDDING_MODELS>,
-  ): EmbeddingModelV3<string>;
+  embeddingModel(modelId: ExtractModelId<EMBEDDING_MODELS>): EmbeddingModelV3;
   imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV3;
   transcriptionModel(
     modelId: ExtractModelId<TRANSCRIPTION_MODELS>,
@@ -79,18 +77,18 @@ export function customProvider<
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },
 
-    textEmbeddingModel(
+    embeddingModel(
       modelId: ExtractModelId<EMBEDDING_MODELS>,
-    ): EmbeddingModelV3<string> {
-      if (textEmbeddingModels != null && modelId in textEmbeddingModels) {
-        return textEmbeddingModels[modelId];
+    ): EmbeddingModelV3 {
+      if (embeddingModels != null && modelId in embeddingModels) {
+        return embeddingModels[modelId];
       }
 
       if (fallbackProvider) {
-        return (fallbackProvider as ProviderV3).textEmbeddingModel(modelId);
+        return (fallbackProvider as ProviderV3).embeddingModel(modelId);
       }
 
-      throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+      throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
     },
 
     imageModel(modelId: ExtractModelId<IMAGE_MODELS>): ImageModelV3 {
