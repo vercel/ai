@@ -495,6 +495,11 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         result = await provider('claude-sonnet-4-5').doGenerate({
           prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'outputFormat',
+            } satisfies AnthropicProviderOptions,
+          },
           responseFormat: {
             type: 'json',
             schema: {
@@ -3141,6 +3146,11 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         result = await provider('claude-sonnet-4-5').doStream({
           prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'auto',
+            } satisfies AnthropicProviderOptions,
+          },
           responseFormat: {
             type: 'json',
             schema: {

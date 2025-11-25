@@ -213,7 +213,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     } = getModelCapabilities(this.modelId);
 
     const structureOutputMode =
-      anthropicOptions?.structuredOutputMode ?? 'auto';
+      anthropicOptions?.structuredOutputMode ?? 'jsonTool';
     const useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
       (structureOutputMode === 'auto' && supportsStructuredOutput);
