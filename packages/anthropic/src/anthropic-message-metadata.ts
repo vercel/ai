@@ -48,15 +48,15 @@ export interface AnthropicMessageMetadata {
   contextManagement: {
     appliedEdits: Array<
       | {
-        type: 'clear_tool_uses_20250919';
-        clearedToolUses: number;
-        clearedInputTokens: number;
-      }
+          type: 'clear_tool_uses_20250919';
+          clearedToolUses: number;
+          clearedInputTokens: number;
+        }
       | {
-        type: 'clear_thinking_20251015';
-        clearedThinkingTurns: number;
-        clearedInputTokens: number;
-      }
+          type: 'clear_thinking_20251015';
+          clearedThinkingTurns: number;
+          clearedInputTokens: number;
+        }
     >;
   } | null;
 }

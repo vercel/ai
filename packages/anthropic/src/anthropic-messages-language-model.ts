@@ -76,15 +76,15 @@ function createCitationSource(
       anthropic:
         citation.type === 'page_location'
           ? {
-            citedText: citation.cited_text,
-            startPageNumber: citation.start_page_number,
-            endPageNumber: citation.end_page_number,
-          }
+              citedText: citation.cited_text,
+              startPageNumber: citation.start_page_number,
+              endPageNumber: citation.end_page_number,
+            }
           : {
-            citedText: citation.cited_text,
-            startCharIndex: citation.start_char_index,
-            endCharIndex: citation.end_char_index,
-          },
+              citedText: citation.cited_text,
+              startCharIndex: citation.start_char_index,
+              endCharIndex: citation.end_char_index,
+            },
     } satisfies SharedV3ProviderMetadata,
   };
 }
@@ -220,14 +220,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
       responseFormat?.type === 'json' &&
-        responseFormat.schema != null &&
-        !useStructuredOutput
+      responseFormat.schema != null &&
+      !useStructuredOutput
         ? {
-          type: 'function',
-          name: 'json',
-          description: 'Respond with a JSON object.',
-          inputSchema: responseFormat.schema,
-        }
+            type: 'function',
+            name: 'json',
+            description: 'Respond with a JSON object.',
+            inputSchema: responseFormat.schema,
+          }
         : undefined;
 
     const contextManagement = anthropicOptions?.contextManagement;
@@ -271,28 +271,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(useStructuredOutput &&
         responseFormat?.type === 'json' &&
         responseFormat.schema != null && {
-        output_format: {
-          type: 'json_schema',
-          schema: responseFormat.schema,
-        },
-      }),
+          output_format: {
+            type: 'json_schema',
+            schema: responseFormat.schema,
+          },
+        }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
         anthropicOptions.mcpServers.length > 0 && {
-        mcp_servers: anthropicOptions.mcpServers.map(server => ({
-          type: server.type,
-          name: server.name,
-          url: server.url,
-          authorization_token: server.authorizationToken,
-          tool_configuration: server.toolConfiguration
-            ? {
-              allowed_tools: server.toolConfiguration.allowedTools,
-              enabled: server.toolConfiguration.enabled,
-            }
-            : undefined,
-        })),
-      }),
+          mcp_servers: anthropicOptions.mcpServers.map(server => ({
+            type: server.type,
+            name: server.name,
+            url: server.url,
+            authorization_token: server.authorizationToken,
+            tool_configuration: server.toolConfiguration
+              ? {
+                  allowed_tools: server.toolConfiguration.allowedTools,
+                  enabled: server.toolConfiguration.enabled,
+                }
+              : undefined,
+          })),
+        }),
 
       // container with agent skills:
       ...(anthropicOptions?.container && {
@@ -313,26 +313,32 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(contextManagement && {
         context_management: {
           edits: contextManagement.edits.map(edit => {
-            if (edit.type === 'clear_tool_uses_20250919') {
-              return {
-                type: edit.type,
-                ...(edit.trigger !== undefined && { trigger: edit.trigger }),
-                ...(edit.keep !== undefined && { keep: edit.keep }),
-                ...(edit.clearAtLeast !== undefined && {
-                  clear_at_least: edit.clearAtLeast,
-                }),
-                ...(edit.clearToolInputs !== undefined && {
-                  clear_tool_inputs: edit.clearToolInputs,
-                }),
-                ...(edit.excludeTools !== undefined && {
-                  exclude_tools: edit.excludeTools,
-                }),
-              };
-            } else {
-              return {
-                type: edit.type,
-                ...(edit.keep !== undefined && { keep: edit.keep }),
-              };
+            const strategy = edit.type;
+            switch (strategy) {
+              case 'clear_tool_uses_20250919':
+                return {
+                  type: edit.type,
+                  ...(edit.trigger !== undefined && { trigger: edit.trigger }),
+                  ...(edit.keep !== undefined && { keep: edit.keep }),
+                  ...(edit.clearAtLeast !== undefined && {
+                    clear_at_least: edit.clearAtLeast,
+                  }),
+                  ...(edit.clearToolInputs !== undefined && {
+                    clear_tool_inputs: edit.clearToolInputs,
+                  }),
+                  ...(edit.excludeTools !== undefined && {
+                    exclude_tools: edit.excludeTools,
+                  }),
+                };
+
+              case 'clear_thinking_20251015':
+                return {
+                  type: edit.type,
+                  ...(edit.keep !== undefined && { keep: edit.keep }),
+                };
+
+              default:
+                throw new Error(`Unknown strategy: ${strategy}`);
             }
           }),
         },
@@ -448,17 +454,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-          tools: [...(tools ?? []), jsonResponseTool],
-          toolChoice: { type: 'required' },
-          disableParallelToolUse: true,
-          cacheControlValidator,
-        }
+            tools: [...(tools ?? []), jsonResponseTool],
+            toolChoice: { type: 'required' },
+            disableParallelToolUse: true,
+            cacheControlValidator,
+          }
         : {
-          tools: tools ?? [],
-          toolChoice,
-          disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
-          cacheControlValidator,
-        },
+            tools: tools ?? [],
+            toolChoice,
+            disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+            cacheControlValidator,
+          },
     );
 
     // Extract cache control warnings once at the end
@@ -876,36 +882,42 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           stopSequence: response.stop_sequence ?? null,
           container: response.container
             ? {
-              expiresAt: response.container.expires_at,
-              id: response.container.id,
-              skills:
-                response.container.skills?.map(skill => ({
-                  type: skill.type,
-                  skillId: skill.skill_id,
-                  version: skill.version,
-                })) ?? null,
-            }
+                expiresAt: response.container.expires_at,
+                id: response.container.id,
+                skills:
+                  response.container.skills?.map(skill => ({
+                    type: skill.type,
+                    skillId: skill.skill_id,
+                    version: skill.version,
+                  })) ?? null,
+              }
             : null,
           contextManagement: response.context_management
             ? {
-              appliedEdits: response.context_management.applied_edits.map(
-                edit => {
-                  if (edit.type === 'clear_tool_uses_20250919') {
-                    return {
-                      type: edit.type,
-                      clearedToolUses: edit.cleared_tool_uses,
-                      clearedInputTokens: edit.cleared_input_tokens,
-                    };
-                  } else {
-                    return {
-                      type: edit.type,
-                      clearedThinkingTurns: edit.cleared_thinking_turns,
-                      clearedInputTokens: edit.cleared_input_tokens,
-                    };
-                  }
-                },
-              ),
-            }
+                appliedEdits: response.context_management.applied_edits.map(
+                  edit => {
+                    const strategy = edit.type;
+                    switch (strategy) {
+                      case 'clear_tool_uses_20250919':
+                        return {
+                          type: edit.type,
+                          clearedToolUses: edit.cleared_tool_uses,
+                          clearedInputTokens: edit.cleared_input_tokens,
+                        };
+
+                      case 'clear_thinking_20251015':
+                        return {
+                          type: edit.type,
+                          clearedThinkingTurns: edit.cleared_thinking_turns,
+                          clearedInputTokens: edit.cleared_input_tokens,
+                        };
+
+                      default:
+                        throw new Error(`Unknown strategy: ${strategy}`);
+                    }
+                  },
+                ),
+              }
             : null,
         } satisfies AnthropicMessageMetadata,
       },
@@ -953,13 +965,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const contentBlocks: Record<
       number,
       | {
-        type: 'tool-call';
-        toolCallId: string;
-        toolName: string;
-        input: string;
-        providerExecuted?: boolean;
-        firstDelta: boolean;
-      }
+          type: 'tool-call';
+          toolCallId: string;
+          toolName: string;
+          input: string;
+          providerExecuted?: boolean;
+          firstDelta: boolean;
+        }
       | { type: 'text' | 'reasoning' }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
@@ -1114,7 +1126,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       // map tool names for the code execution 20250825 tool:
                       const mappedToolName =
                         part.name === 'text_editor_code_execution' ||
-                          part.name === 'bash_code_execution'
+                        part.name === 'bash_code_execution'
                           ? 'code_execution'
                           : part.name;
 
@@ -1338,7 +1350,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         const toolName =
                           contentBlock.toolName ===
                             'text_editor_code_execution' ||
-                            contentBlock.toolName === 'bash_code_execution'
+                          contentBlock.toolName === 'bash_code_execution'
                             ? 'code_execution'
                             : contentBlock.toolName;
 
@@ -1440,7 +1452,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         contentBlock.firstDelta &&
                         (contentBlock.toolName === 'bash_code_execution' ||
                           contentBlock.toolName ===
-                          'text_editor_code_execution')
+                            'text_editor_code_execution')
                       ) {
                         delta = `{"type": "${contentBlock.toolName}",${delta.substring(1)}`;
                       }
@@ -1517,15 +1529,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 container =
                   value.delta.container != null
                     ? {
-                      expiresAt: value.delta.container.expires_at,
-                      id: value.delta.container.id,
-                      skills:
-                        value.delta.container.skills?.map(skill => ({
-                          type: skill.type,
-                          skillId: skill.skill_id,
-                          version: skill.version,
-                        })) ?? null,
-                    }
+                        expiresAt: value.delta.container.expires_at,
+                        id: value.delta.container.id,
+                        skills:
+                          value.delta.container.skills?.map(skill => ({
+                            type: skill.type,
+                            skillId: skill.skill_id,
+                            version: skill.version,
+                          })) ?? null,
+                      }
                     : null;
 
                 if (value.delta.context_management) {
@@ -1553,27 +1565,35 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       container,
                       contextManagement: contextManagement
                         ? {
-                          appliedEdits: contextManagement.applied_edits.map(
-                            edit => {
-                              if (edit.type === 'clear_tool_uses_20250919') {
-                                return {
-                                  type: edit.type,
-                                  clearedToolUses: edit.cleared_tool_uses,
-                                  clearedInputTokens:
-                                    edit.cleared_input_tokens,
-                                };
-                              } else {
-                                return {
-                                  type: edit.type,
-                                  clearedThinkingTurns:
-                                    edit.cleared_thinking_turns,
-                                  clearedInputTokens:
-                                    edit.cleared_input_tokens,
-                                };
-                              }
-                            },
-                          ),
-                        }
+                            appliedEdits: contextManagement.applied_edits.map(
+                              edit => {
+                                const strategy = edit.type;
+                                switch (strategy) {
+                                  case 'clear_tool_uses_20250919':
+                                    return {
+                                      type: edit.type,
+                                      clearedToolUses: edit.cleared_tool_uses,
+                                      clearedInputTokens:
+                                        edit.cleared_input_tokens,
+                                    };
+
+                                  case 'clear_thinking_20251015':
+                                    return {
+                                      type: edit.type,
+                                      clearedThinkingTurns:
+                                        edit.cleared_thinking_turns,
+                                      clearedInputTokens:
+                                        edit.cleared_input_tokens,
+                                    };
+
+                                  default:
+                                    throw new Error(
+                                      `Unknown strategy: ${strategy}`,
+                                    );
+                                }
+                              },
+                            ),
+                          }
                         : null,
                     } satisfies AnthropicMessageMetadata,
                   },

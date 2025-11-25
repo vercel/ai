@@ -208,6 +208,97 @@ console.log(text); // text response
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+### Context Management
+
+Anthropic's Context Management feature allows you to automatically manage conversation context by clearing tool uses or thinking content when certain conditions are met. This helps optimize token usage and manage long conversations more efficiently.
+
+You can configure context management using the `contextManagement` provider option:
+
+```ts highlight="7-20"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-3-7-sonnet-20250219'),
+  prompt: 'Continue our conversation...',
+  providerOptions: {
+    anthropic: {
+      contextManagement: {
+        edits: [
+          {
+            type: 'clear_tool_uses_20250919',
+            trigger: { type: 'input_tokens', value: 10000 },
+            keep: { type: 'tool_uses', value: 5 },
+            clearAtLeast: { type: 'input_tokens', value: 1000 },
+            clearToolInputs: true,
+            excludeTools: ['important_tool'],
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+
+// Check what was cleared
+console.log(result.providerMetadata?.anthropic?.contextManagement);
+```
+
+#### Clear Tool Uses
+
+The `clear_tool_uses_20250919` edit type removes old tool calls from the conversation history:
+
+- **trigger** - Condition that triggers the clearing (e.g., `{ type: 'input_tokens', value: 10000 }`)
+- **keep** - How many recent tool uses to preserve (e.g., `{ type: 'tool_uses', value: 5 }`)
+- **clearAtLeast** - Minimum amount to clear (e.g., `{ type: 'input_tokens', value: 1000 }`)
+- **clearToolInputs** - Whether to clear tool input parameters (boolean)
+- **excludeTools** - Array of tool names to never clear
+
+#### Clear Thinking
+
+The `clear_thinking_20251015` edit type removes thinking/reasoning content:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Continue reasoning...',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+      contextManagement: {
+        edits: [
+          {
+            type: 'clear_thinking_20251015',
+            keep: { type: 'thinking_blocks', value: 2 },
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+#### Applied Edits Metadata
+
+After generation, you can check which edits were applied in the provider metadata:
+
+```ts
+const metadata = result.providerMetadata?.anthropic?.contextManagement;
+
+if (metadata?.appliedEdits) {
+  metadata.appliedEdits.forEach(edit => {
+    if (edit.type === 'clear_tool_uses_20250919') {
+      console.log(`Cleared ${edit.clearedToolUses} tool uses`);
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    } else if (edit.type === 'clear_thinking_20251015') {
+      console.log(`Cleared ${edit.clearedThinkingBlocks} thinking blocks`);
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    }
+  });
+}
+```
+
+For more details, see [Anthropic's Context Management documentation](https://docs.anthropic.com/en/docs/build-with-claude/context-management).
+
 ### Cache Control
 
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
