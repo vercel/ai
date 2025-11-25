@@ -83,55 +83,53 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.abortSignal).toBe(abortController.signal);
     });
 
-    describe('with generateText spy', () => {
-      it('should pass experimental_download to generateText', async () => {
-        const downloadFunction = vi
-          .fn()
-          .mockResolvedValue([
-            { data: new Uint8Array([1, 2, 3]), mediaType: 'image/png' },
-          ]);
-
-        const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
-            doGenerate: async options => {
-              return {
-                finishReason: 'stop' as const,
-                usage: {
-                  inputTokens: 3,
-                  outputTokens: 10,
-                  totalTokens: 13,
-                  reasoningTokens: undefined,
-                  cachedInputTokens: undefined,
-                },
-                warnings: [],
-                content: [{ type: 'text', text: 'reply' }],
-              };
-            },
-          }),
-          experimental_download: downloadFunction,
-        });
-
-        await agent.generate({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  image: new URL('https://example.com/image.png'),
-                },
-              ],
-            },
-          ],
-        });
-
-        expect(downloadFunction).toHaveBeenCalledWith([
-          {
-            url: new URL('https://example.com/image.png'),
-            isUrlSupportedByModel: false,
-          },
+    it('should pass experimental_download to generateText', async () => {
+      const downloadFunction = vi
+        .fn()
+        .mockResolvedValue([
+          { data: new Uint8Array([1, 2, 3]), mediaType: 'image/png' },
         ]);
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            return {
+              finishReason: 'stop' as const,
+              usage: {
+                inputTokens: 3,
+                outputTokens: 10,
+                totalTokens: 13,
+                reasoningTokens: undefined,
+                cachedInputTokens: undefined,
+              },
+              warnings: [],
+              content: [{ type: 'text', text: 'reply' }],
+            };
+          },
+        }),
+        experimental_download: downloadFunction,
       });
+
+      await agent.generate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: new URL('https://example.com/image.png'),
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(downloadFunction).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/image.png'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
     });
   });
 
