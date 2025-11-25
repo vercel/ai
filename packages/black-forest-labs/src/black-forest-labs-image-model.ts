@@ -69,13 +69,15 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'Deriving aspect_ratio from size.',
+        details:
+          'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
     } else if (size && aspectRatio) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'Black Forest Labs ignores size when aspectRatio is provided.',
+        details:
+          'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     }
 
@@ -91,10 +93,22 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       prompt,
       seed,
       aspect_ratio: finalAspectRatio,
-      ...(size && { width: Number(widthStr), height: Number(heightStr) }),
+      width: bflOptions?.width ?? (size ? Number(widthStr) : undefined),
+      height: bflOptions?.height ?? (size ? Number(heightStr) : undefined),
+      steps: bflOptions?.steps,
+      guidance: bflOptions?.guidance,
       image_prompt_strength: bflOptions?.imagePromptStrength,
       image_prompt: bflOptions?.imagePrompt,
       input_image: bflOptions?.inputImage,
+      input_image_2: bflOptions?.inputImage2,
+      input_image_3: bflOptions?.inputImage3,
+      input_image_4: bflOptions?.inputImage4,
+      input_image_5: bflOptions?.inputImage5,
+      input_image_6: bflOptions?.inputImage6,
+      input_image_7: bflOptions?.inputImage7,
+      input_image_8: bflOptions?.inputImage8,
+      input_image_9: bflOptions?.inputImage9,
+      input_image_10: bflOptions?.inputImage10,
       output_format: bflOptions?.outputFormat,
       prompt_upsampling: bflOptions?.promptUpsampling,
       raw: bflOptions?.raw,
@@ -290,6 +304,19 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
       imagePrompt: z.string().optional(),
       imagePromptStrength: z.number().min(0).max(1).optional(),
       inputImage: z.string().optional(),
+      inputImage2: z.string().optional(),
+      inputImage3: z.string().optional(),
+      inputImage4: z.string().optional(),
+      inputImage5: z.string().optional(),
+      inputImage6: z.string().optional(),
+      inputImage7: z.string().optional(),
+      inputImage8: z.string().optional(),
+      inputImage9: z.string().optional(),
+      inputImage10: z.string().optional(),
+      steps: z.number().int().positive().optional(),
+      guidance: z.number().min(0).optional(),
+      width: z.number().int().min(256).max(1920).optional(),
+      height: z.number().int().min(256).max(1920).optional(),
       outputFormat: z.enum(['jpeg', 'png']).optional(),
       promptUpsampling: z.boolean().optional(),
       raw: z.boolean().optional(),

@@ -293,7 +293,8 @@ describe('BlackForestLabsImageModel', () => {
       expect(result.warnings).toContainEqual({
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'Deriving aspect_ratio from size.',
+        details:
+          'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
     });
 
@@ -312,7 +313,8 @@ describe('BlackForestLabsImageModel', () => {
       expect(result.warnings).toContainEqual({
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'Black Forest Labs ignores size when aspectRatio is provided.',
+        details:
+          'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     });
 
