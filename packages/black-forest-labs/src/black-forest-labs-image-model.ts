@@ -338,9 +338,9 @@ function gcd(a: number, b: number): number {
 const bflSubmitSchema = z.object({
   id: z.string(),
   polling_url: z.url(),
-  cost: z.number().optional(),
-  input_mp: z.number().optional(),
-  output_mp: z.number().optional(),
+  cost: z.number().nullish(),
+  input_mp: z.number().nullish(),
+  output_mp: z.number().nullish(),
 });
 
 const bflStatus = z.union([
