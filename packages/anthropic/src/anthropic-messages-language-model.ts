@@ -127,6 +127,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   }
 
   private async getArgs({
+    userSuppliedBetas,
     prompt,
     maxOutputTokens,
     temperature,
@@ -140,7 +141,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV2['doGenerate']>[0] & {
+    userSuppliedBetas: Set<string>;
+  }) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (frequencyPenalty != null) {
@@ -408,7 +411,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         tool_choice: anthropicToolChoice,
       },
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
-      betas: new Set([...betas, ...toolsBetas]),
+      betas: new Set([...betas, ...toolsBetas, ...userSuppliedBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
     };
   }
@@ -422,8 +425,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   }) {
     return combineHeaders(
       await resolve(this.config.headers),
-      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
       headers,
+      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
+    );
+  }
+
+  private async getBetasFromHeaders(
+    requestHeaders: Record<string, string | undefined> | undefined,
+  ) {
+    const configHeaders = await resolve(this.config.headers);
+
+    const configBetaHeader = configHeaders['anthropic-beta'] ?? '';
+    const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
+
+    return new Set(
+      [
+        ...configBetaHeader.toLowerCase().split(','),
+        ...requestBetaHeader.toLowerCase().split(','),
+      ]
+        .map(beta => beta.trim())
+        .filter(beta => beta !== ''),
     );
   }
 
@@ -484,8 +505,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
+    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
+      ...options,
+      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
@@ -781,8 +804,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
+    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
+      ...options,
+      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
