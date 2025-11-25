@@ -219,24 +219,32 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
-  const TEST_URL_GEMINI_2_0_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent';
+  const TEST_URL_GEMINI_2_0_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+  const TEST_URL_GEMINI_2_5_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+  const TEST_URL_GEMINI_2_0_FLASH_LITE =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH_LITE =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
   const TEST_URL_GEMINI_2_0_FLASH_EXP =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
-  const TEST_URL_GEMINI_1_0_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent';
-
-  const TEST_URL_GEMINI_1_5_FLASH =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-
   const server = createTestServer({
+    [TEST_URL_GEMINI_2_0_FLASH_LITE]: {},
     [TEST_URL_GEMINI_PRO]: {},
-    [TEST_URL_GEMINI_2_0_PRO]: {},
+    [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
+    [TEST_URL_GEMINI_2_5_PRO]: {},
+    [TEST_URL_GEMINI_2_5_FLASH]: {},
+    [TEST_URL_GEMINI_2_0_FLASH]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
-    [TEST_URL_GEMINI_1_0_PRO]: {},
-    [TEST_URL_GEMINI_1_5_FLASH]: {},
   });
 
   const prepareJsonResponse = ({
@@ -260,10 +268,12 @@ describe('doGenerate', () => {
     groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
     url?:
       | typeof TEST_URL_GEMINI_PRO
-      | typeof TEST_URL_GEMINI_2_0_PRO
-      | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
-      | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
+      | typeof TEST_URL_GEMINI_2_5_PRO
+      | typeof TEST_URL_GEMINI_2_5_FLASH
+      | typeof TEST_URL_GEMINI_2_0_FLASH_LITE
+      | typeof TEST_URL_GEMINI_2_5_FLASH_LITE
+      | typeof TEST_URL_GEMINI_2_0_FLASH
+      | typeof TEST_URL_GEMINI_2_0_FLASH_EXP;
   }) => {
     server.urls[url].response = {
       type: 'json-value',
@@ -1063,8 +1073,18 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should handle code execution tool calls', async () => {
-    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+  it.each([
+    ['gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    ['gemini-2.5-flash-lite', TEST_URL_GEMINI_2_5_FLASH_LITE],
+  ])('should handle code execution tool calls', async (modelName, url) => {
+    server.urls[
+      url as
+        | typeof TEST_URL_GEMINI_2_5_FLASH_LITE
+        | typeof TEST_URL_GEMINI_2_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_PRO
+        | typeof TEST_URL_GEMINI_2_0_FLASH_LITE
+    ].response = {
       type: 'json-value',
       body: {
         candidates: [
@@ -1092,7 +1112,7 @@ describe('doGenerate', () => {
       },
     };
 
-    const model = provider.languageModel('gemini-2.0-pro');
+    const model = provider.languageModel(modelName);
     const { content } = await model.doGenerate({
       tools: [
         provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
@@ -1103,7 +1123,7 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tools).toEqual([{ codeExecution: {} }]);
 
-    expect(content).toMatchInlineSnapshot(`
+    expect(content).toMatchSnapshot(`
       [
         {
           "input": "{"language":"PYTHON","code":"print(1+1)"}",
@@ -1125,138 +1145,174 @@ describe('doGenerate', () => {
     `);
   });
 
-  describe('search tool selection', () => {
+  it.each([['gemini-2.0-flash-lite', TEST_URL_GEMINI_2_0_FLASH_LITE]])(
+    'should NOT handle code execution tool calls when model does not support them',
+    async (modelName, url) => {
+      server.urls[url as typeof TEST_URL_GEMINI_2_0_FLASH_LITE].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: 'print(1+1)',
+                    },
+                  },
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_OK',
+                      output: '2',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        },
+      };
+
+      const model = provider.languageModel(modelName);
+      const { content } = await model.doGenerate({
+        tools: [
+          provider.tools.codeExecution(
+            {},
+          ) as LanguageModelV3ProviderDefinedTool,
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tools).not.toEqual([{ codeExecution: {} }]);
+    },
+  );
+
+  describe('google search grounding tool', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });
 
-    it('should use googleSearch for gemini-2.0-pro', async () => {
-      prepareJsonResponse({
-        url: TEST_URL_GEMINI_2_0_PRO,
-      });
+    it.each([
+      ['gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+      ['gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+      ['gemini-2.5-flash-lite', TEST_URL_GEMINI_2_5_FLASH_LITE],
+    ])(
+      'Should use googleSearch for search grounding supported models',
+      async (modelName, url) => {
+        prepareJsonResponse({ url: url as any });
 
-      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
-      await gemini2Pro.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {},
-          },
-        ],
-      });
+        const gemini = provider.languageModel(modelName);
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearch: {} }],
-      });
-    });
-
-    it('should use googleSearch for gemini-2.0-flash-exp', async () => {
-      prepareJsonResponse({
-        url: TEST_URL_GEMINI_2_0_FLASH_EXP,
-      });
-
-      const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp');
-      await gemini2Flash.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {},
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearch: {} }],
-      });
-    });
-
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
-      prepareJsonResponse({
-        url: TEST_URL_GEMINI_1_0_PRO,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.0-pro');
-      await geminiPro.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {},
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearchRetrieval: {} }],
-      });
-    });
-
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareJsonResponse({
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+        await gemini.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'google.google_search',
+              name: 'google_search',
+              args: {},
             },
-          },
-        ],
-      });
+          ],
+        });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
-              },
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tools: [{ googleSearch: {} }],
+        });
+      },
+    );
+
+    it.each([['gemini-2.0-flash-lite', TEST_URL_GEMINI_2_0_FLASH_LITE]])(
+      'If a model does not support search grounding, it should not call googleSearch.',
+      async (modelName, url) => {
+        prepareJsonResponse({ url: url as any });
+
+        const gemini = provider.languageModel(modelName);
+
+        await gemini.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'google.google_search',
+              name: 'google_search',
+              args: {},
             },
-          },
-        ],
-      });
-    });
-    it('should use urlContextTool for gemini-2.0-pro', async () => {
-      prepareJsonResponse({
-        url: TEST_URL_GEMINI_2_0_PRO,
-      });
+          ],
+        });
 
-      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
-      await gemini2Pro.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.url_context',
-            name: 'url_context',
-            args: {},
-          },
-        ],
-      });
+        expect(await server.calls[0].requestBodyJson).not.toMatchObject({
+          tools: [{ googleSearch: {} }],
+        });
+      },
+    );
+  });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ urlContext: {} }],
-      });
+  describe('URL Context tool', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
     });
+
+    it.each([
+      ['gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+      ['gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    ])(
+      'should use URL Context tool for URL Context supported models',
+      async (modelName, url) => {
+        prepareJsonResponse({ url: url as any });
+
+        const gemini = provider.languageModel(modelName);
+
+        await gemini.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'google.url_context',
+              name: 'url_context',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tools: [{ urlContext: {} }],
+        });
+      },
+    );
+
+    it.each([
+      ['gemini-2.0-flash-lite', TEST_URL_GEMINI_2_0_FLASH_LITE],
+      ['gemini-2.0-flash', TEST_URL_GEMINI_2_0_FLASH],
+    ])(
+      'If a model does not support URL Context, it should not call URL Context.',
+      async (modelName, url) => {
+        prepareJsonResponse({ url: url as any });
+
+        const gemini = provider.languageModel(modelName);
+
+        await gemini.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'google.url_context',
+              name: 'url_context',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toMatchObject({
+          tools: [{ urlContext: {} }],
+        });
+      },
+    );
   });
 
   it('should extract image file outputs', async () => {
@@ -1801,18 +1857,30 @@ describe('doStream', () => {
   const TEST_URL_GEMINI_2_0_FLASH_EXP =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent';
 
-  const TEST_URL_GEMINI_1_0_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:streamGenerateContent';
+  const TEST_URL_GEMINI_2_0_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent';
 
-  const TEST_URL_GEMINI_1_5_FLASH =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent';
+  const TEST_URL_GEMINI_2_5_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:streamGenerateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent';
+
+  const TEST_URL_GEMINI_2_0_FLASH_LITE =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:streamGenerateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH_LITE =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent';
 
   const server = createTestServer({
+    [TEST_URL_GEMINI_2_0_FLASH_LITE]: {},
+    [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
-    [TEST_URL_GEMINI_1_0_PRO]: {},
-    [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_2_0_FLASH]: {},
+    [TEST_URL_GEMINI_2_5_PRO]: {},
+    [TEST_URL_GEMINI_2_5_FLASH]: {},
   });
 
   const prepareStreamResponse = ({
@@ -1830,8 +1898,8 @@ describe('doStream', () => {
       | typeof TEST_URL_GEMINI_PRO
       | typeof TEST_URL_GEMINI_2_0_PRO
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
-      | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
+      | typeof TEST_URL_GEMINI_2_0_FLASH_LITE
+      | typeof TEST_URL_GEMINI_2_5_FLASH_LITE;
   }) => {
     server.urls[url].response = {
       headers,
@@ -2197,125 +2265,72 @@ describe('doStream', () => {
     `);
   });
 
-  describe('search tool selection', () => {
+  describe('google search grounding tool', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });
 
-    it('should use googleSearch for gemini-2.0-pro', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_2_0_PRO,
-      });
+    it.each([
+      ['gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+      ['gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+      ['gemini-2.5-flash-lite', TEST_URL_GEMINI_2_5_FLASH_LITE],
+      ['gemini-2.0-flash-exp', TEST_URL_GEMINI_2_0_FLASH_EXP],
+    ])(
+      'Should use googleSearch for search grounding supported models',
+      async (modelName, url) => {
+        prepareStreamResponse({
+          content: [''],
+          url: url as any,
+        });
 
-      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
-      await gemini2Pro.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {},
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearch: {} }],
-      });
-    });
-
-    it('should use googleSearch for gemini-2.0-flash-exp', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_2_0_FLASH_EXP,
-      });
-
-      const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp');
-
-      await gemini2Flash.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {},
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearch: {} }],
-      });
-    });
-
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_1_0_PRO,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.0-pro');
-      await geminiPro.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {},
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearchRetrieval: {} }],
-      });
-    });
-
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+        const gemini = provider.languageModel(modelName);
+        await gemini.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'google.google_search',
+              name: 'google_search',
+              args: {},
             },
-          },
-        ],
-      });
+          ],
+        });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
-              },
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tools: [{ googleSearch: {} }],
+        });
+      },
+    );
+
+    it.each([['gemini-2.0-flash-lite', TEST_URL_GEMINI_2_0_FLASH_LITE]])(
+      'If a model does not support search grounding, it should not call googleSearch.',
+      async (modelName, url) => {
+        prepareStreamResponse({
+          content: [''],
+          url: url as any,
+        });
+
+        const gemini = provider.languageModel(modelName);
+        await gemini.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'google.google_search',
+              name: 'google_search',
+              args: {},
             },
-          },
-        ],
-      });
-    });
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toMatchObject({
+          tools: [{ googleSearch: {} }],
+        });
+      },
+    );
   });
 
   it('should stream source events', async () => {
