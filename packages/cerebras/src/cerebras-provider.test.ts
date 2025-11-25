@@ -115,7 +115,7 @@ describe('CerebrasProvider', () => {
       const provider = createCerebras();
 
       expect(() => provider.embeddingModel('any-model')).toThrow(
-        'No such textEmbeddingModel: any-model',
+        'No such embeddingModel: any-model',
       );
     });
   });
