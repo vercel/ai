@@ -119,7 +119,7 @@ console.log(text);`,
     slug: 'firecrawl',
     name: 'Firecrawl',
     description:
-      'Firecrawl tools for Vercel AI SDK. Web scraping, search, crawling, and data extraction for AI applications. Scrape any website into clean markdown, search the web, crawl entire sites, and extract structured data.',
+      'Firecrawl tools for the AI SDK. Web scraping, search, crawling, and data extraction for AI applications. Scrape any website into clean markdown, search the web, crawl entire sites, and extract structured data.',
     packageName: 'firecrawl-aisdk',
     tags: ['scraping', 'search', 'crawling', 'extraction', 'web'],
     apiKeyEnvName: 'FIRECRAWL_API_KEY',
