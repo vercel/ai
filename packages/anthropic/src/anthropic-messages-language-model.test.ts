@@ -4143,13 +4143,13 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await provider('claude-3-haiku-20240307').doStream({
         prompt: TEST_PROMPT,
-        headers: { 'anthropic-beta': 'options-beta1,options-beta2' },
+        headers: { 'anthropic-beta': 'request-beta1,request-beta2' },
       });
 
       expect(
         server.calls[0].requestHeaders['anthropic-beta'],
       ).toMatchInlineSnapshot(
-        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,options-beta1,options-beta2"`,
+        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,request-beta1,request-beta2"`,
       );
     });
 
