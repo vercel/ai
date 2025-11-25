@@ -3158,24 +3158,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ],
         });
-
-        const { stream } = await model.doStream({
-          prompt: TEST_PROMPT,
-          responseFormat: {
-            type: 'json',
-            schema: {
-              type: 'object',
-              properties: {
-                name: { type: 'string' },
-              },
-              required: ['name'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        });
-
-        result = await convertReadableStreamToArray(stream);
       });
 
       it('should pass json schema response format as a tool', async () => {
