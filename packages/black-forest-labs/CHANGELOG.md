@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 0.0.4
+
+### Patch Changes
+
+- 539e89d: fix (provider/black-forest-labs): allow null for cost and megapixel in provider response
+
 ## 0.0.3
 
 ### Patch Changes
