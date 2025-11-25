@@ -10,7 +10,9 @@ some settings might not be supported, which can lead to suboptimal results.
 export type LanguageModelV3CallWarning =
   | {
       type: 'unsupported-setting';
-      setting: Omit<keyof LanguageModelV3CallOptions, 'prompt'>; // TODO allow string
+      setting:
+        | Exclude<keyof LanguageModelV3CallOptions, 'prompt'>
+        | (string & {});
       details?: string;
     }
   | {
