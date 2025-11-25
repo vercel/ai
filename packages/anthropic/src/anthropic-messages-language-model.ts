@@ -141,17 +141,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-<<<<<<< HEAD
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const warnings: LanguageModelV2CallWarning[] = [];
-=======
-    stream,
-  }: Parameters<LanguageModelV3['doGenerate']>[0] & {
-    stream: boolean;
+  }: Parameters<LanguageModelV2['doGenerate']>[0] & {
     userSuppliedBetas: Set<string>;
   }) {
-    const warnings: LanguageModelV3CallWarning[] = [];
->>>>>>> 6fc35cb6b (fix(provider/anthropic): retain user supplied beta headers (#10158))
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -510,20 +503,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-<<<<<<< HEAD
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
-=======
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
       ...options,
-      stream: false,
       userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
     });
->>>>>>> 6fc35cb6b (fix(provider/anthropic): retain user supplied beta headers (#10158))
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
@@ -817,25 +802,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-<<<<<<< HEAD
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } =
-      await this.getArgs(options);
-=======
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
-    const {
-      args: body,
-      warnings,
-      betas,
-      usesJsonResponseTool,
-    } = await this.getArgs({
+    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
       ...options,
-      stream: true,
       userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
     });
->>>>>>> 6fc35cb6b (fix(provider/anthropic): retain user supplied beta headers (#10158))
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
