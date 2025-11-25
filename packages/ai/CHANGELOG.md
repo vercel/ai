@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.115
+
+### Patch Changes
+
+- 7da02d2: fix(ai): prune messages properly when toolCalls set to 'before-last-message'
+
 ## 6.0.0-beta.114
 
 ### Patch Changes
