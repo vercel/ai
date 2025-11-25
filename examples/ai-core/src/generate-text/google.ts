@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3-pro-preview'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

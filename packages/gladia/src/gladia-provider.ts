@@ -78,25 +78,25 @@ export function createGladia(
   provider.transcriptionModel = createTranscriptionModel;
 
   // Required ProviderV3 methods that are not supported
-  provider.languageModel = () => {
+  provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'languageModel',
       message: 'Gladia does not provide language models',
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'Gladia does not provide text embedding models',
+      modelId,
+      modelType: 'embeddingModel',
+      message: 'Gladia does not provide embedding models',
     });
   };
 
-  provider.imageModel = () => {
+  provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'imageModel',
       message: 'Gladia does not provide image models',
     });

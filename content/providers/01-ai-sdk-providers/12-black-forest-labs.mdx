@@ -137,11 +137,18 @@ Black Forest Labs image models support flexible provider options through the `pr
 - **imagePromptStrength** - Strength of the image prompt influence on generation (0.0 to 1.0)
 - **inputImage** - Base64 encoded image or URL of image to use as reference. Supports up to 20MB or 20 megapixels.
 - **outputFormat** - Desired format of the output image. Can be “jpeg” or “png”.
-- **promptUpsampling** - If true, performs upsampling on the prompt.
+- **promptUpsampling** - If true, performs upsampling on the prompt
 - **raw** - Enable raw mode for more natural, authentic aesthetics
 - **safetyTolerance** - Moderation level for inputs and outputs. Value ranges from 0 (most strict) to 6 (more permissive).
 - **webhookSecret** - Secret for webhook signature verification, sent in the `X-Webhook-Secret` header.
 - **webhookUrl** - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL.
+- **pollIntervalMillis** - Interval in milliseconds between polling attempts (default 500ms)
+- **pollTimeoutMillis** - Overall timeout in milliseconds for polling before timing out (default 60s)
+- **width** - Output width in pixels for models that support explicit dimensions. Range 256–1920, default 1024. When set, this overrides any width derived from `size`.
+- **height** - Output height in pixels for models that support explicit dimensions. Range 256–1920, default 768. When set, this overrides any height derived from `size`.
+- **steps** - Number of inference steps. Higher values may improve quality but increase generation time
+- **guidance** - Guidance scale for generation. Higher values follow the prompt more closely
+- **inputImage2 … inputImage10** - Additional reference images (base64 string or URL) for models that support multiple inputs, used alongside `inputImage`.
 
 ### Regional Endpoints
 

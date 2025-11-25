@@ -12,11 +12,10 @@ The function requires you to provide a schema using [zod](https://zod.dev), a li
 
 ```ts file='index.ts'
 import { generateObject } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const result = await generateObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   schema: z.object({
     recipe: z.object({
       name: z.string(),

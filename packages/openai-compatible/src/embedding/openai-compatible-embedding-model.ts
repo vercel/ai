@@ -38,9 +38,7 @@ Override the parallelism of embedding calls.
   errorStructure?: ProviderErrorStructure<any>;
 };
 
-export class OpenAICompatibleEmbeddingModel
-  implements EmbeddingModelV3<string>
-{
+export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 
@@ -75,8 +73,8 @@ export class OpenAICompatibleEmbeddingModel
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
     const compatibleOptions = Object.assign(
       (await parseProviderOptions({

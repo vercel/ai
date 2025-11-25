@@ -13,7 +13,7 @@ export class MockProviderV3 implements ProviderV3 {
   readonly specificationVersion = 'v3' as const;
 
   languageModel: ProviderV3['languageModel'];
-  textEmbeddingModel: ProviderV3['textEmbeddingModel'];
+  embeddingModel: ProviderV3['embeddingModel'];
   imageModel: ProviderV3['imageModel'];
   transcriptionModel: ProviderV3['transcriptionModel'];
   speechModel: ProviderV3['speechModel'];
@@ -28,7 +28,7 @@ export class MockProviderV3 implements ProviderV3 {
     rerankingModels,
   }: {
     languageModels?: Record<string, LanguageModelV3>;
-    embeddingModels?: Record<string, EmbeddingModelV3<string>>;
+    embeddingModels?: Record<string, EmbeddingModelV3>;
     imageModels?: Record<string, ImageModelV3>;
     transcriptionModels?: Record<string, TranscriptionModelV3>;
     speechModels?: Record<string, SpeechModelV3>;
@@ -40,11 +40,11 @@ export class MockProviderV3 implements ProviderV3 {
       }
       return languageModels[modelId];
     };
-    this.textEmbeddingModel = (modelId: string) => {
+    this.embeddingModel = (modelId: string) => {
       if (!embeddingModels?.[modelId]) {
         throw new NoSuchModelError({
           modelId,
-          modelType: 'textEmbeddingModel',
+          modelType: 'embeddingModel',
         });
       }
       return embeddingModels[modelId];

@@ -54,7 +54,7 @@ createFeatureTestSuite({
     ],
     embeddingModels: [
       createEmbeddingModelWithCapabilities(
-        provider.textEmbeddingModel('gemini-embedding-001'),
+        provider.embeddingModel('gemini-embedding-001'),
       ),
     ],
     imageModels: [createImageModel('imagen-3.0-generate-002')],

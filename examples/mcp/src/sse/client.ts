@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
-import { experimental_createMCPClient } from '@ai-sdk/mcp';
+import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
 
 import 'dotenv/config';
 
 async function main() {
-  const mcpClient = await experimental_createMCPClient({
+  const mcpClient = await createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:8080/sse',

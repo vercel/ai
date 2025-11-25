@@ -24,14 +24,16 @@ export function prepareTools({
   modelId: GoogleGenerativeAIModelId;
 }): {
   tools:
-    | {
-        functionDeclarations: Array<{
-          name: string;
-          description: string;
-          parameters: unknown;
-        }>;
-      }
-    | Record<string, any>
+    | Array<
+        | {
+            functionDeclarations: Array<{
+              name: string;
+              description: string;
+              parameters: unknown;
+            }>;
+          }
+        | Record<string, any>
+      >
     | undefined;
   toolConfig:
     | undefined
@@ -76,7 +78,11 @@ export function prepareTools({
     providerDefinedTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
+          // <<<<<<< HEAD
           if (IsToolSupported(GOOGLE_SEARCH_UNSUPPORTED_MODELS, modelId)) {
+            // =======
+            //           if (isGemini2orNewer) {
+            // >>>>>>> origin/main
             googleTools.push({ googleSearch: {} });
           } else {
             toolWarnings.push({
@@ -87,7 +93,11 @@ export function prepareTools({
           }
           break;
         case 'google.url_context':
+          // <<<<<<< HEAD
           if (IsToolSupported(URL_CONTEXT_UNSUPPORTED_MODELS, modelId)) {
+            // =======
+            //           if (isGemini2orNewer) {
+            // >>>>>>> origin/main
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
@@ -98,7 +108,11 @@ export function prepareTools({
           }
           break;
         case 'google.code_execution':
+          // <<<<<<< HEAD
           if (IsToolSupported(CODE_EXECUTION_UNSUPPORTED_MODELS, modelId)) {
+            // =======
+            //           if (isGemini2orNewer) {
+            // >>>>>>> origin/main
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
@@ -118,6 +132,18 @@ export function prepareTools({
               details: `The file search tool is not supported on the following models: ${getUnsupportedModelsString(FILE_SEARCH_UNSUPPORTED_MODELS)}. Current model: ${modelId}`,
             });
           }
+          break;
+        case 'google.vertex_rag_store':
+          googleTools.push({
+            retrieval: {
+              vertex_rag_store: {
+                rag_resources: {
+                  rag_corpus: tool.args.ragCorpus,
+                },
+                similarity_top_k: tool.args.topK as number | undefined,
+              },
+            },
+          });
           break;
         default:
           toolWarnings.push({ type: 'unsupported-tool', tool });
@@ -150,7 +176,7 @@ export function prepareTools({
 
   if (toolChoice == null) {
     return {
-      tools: { functionDeclarations },
+      tools: [{ functionDeclarations }],
       toolConfig: undefined,
       toolWarnings,
     };
@@ -161,25 +187,25 @@ export function prepareTools({
   switch (type) {
     case 'auto':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
         toolWarnings,
       };
     case 'none':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'NONE' } },
         toolWarnings,
       };
     case 'required':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'ANY' } },
         toolWarnings,
       };
     case 'tool':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
             mode: 'ANY',

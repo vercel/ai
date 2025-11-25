@@ -86,14 +86,50 @@ describe('BlackForestLabs provider', () => {
     );
   });
 
+  it('uses provider polling options for timeout behavior', async () => {
+    server.urls['https://api.example.com/poll'].response = ({
+      callNumber,
+    }) => ({
+      type: 'json-value',
+      body: { status: 'Pending', callNumber },
+    });
+
+    const provider = createBlackForestLabs({
+      apiKey: 'test-api-key',
+      baseURL: 'https://api.example.com/v1',
+      pollIntervalMillis: 10,
+      pollTimeoutMillis: 25,
+    });
+
+    const model = provider.image('flux-pro-1.1');
+
+    await expect(
+      model.doGenerate({
+        prompt: 'Timeout test',
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      }),
+    ).rejects.toThrow('Black Forest Labs generation timed out.');
+
+    const pollCalls = server.calls.filter(
+      c =>
+        c.requestMethod === 'GET' &&
+        c.requestUrl.startsWith('https://api.example.com/poll'),
+    );
+    expect(pollCalls.length).toBe(3);
+  });
+
   it('throws NoSuchModelError for unsupported model types', () => {
     const provider = createBlackForestLabs();
 
     expect(() => provider.languageModel('some-id')).toThrowError(
       'No such languageModel',
     );
-    expect(() => provider.textEmbeddingModel('some-id')).toThrowError(
-      'No such textEmbeddingModel',
+    expect(() => provider.embeddingModel('some-id')).toThrowError(
+      'No such embeddingModel',
     );
   });
 });

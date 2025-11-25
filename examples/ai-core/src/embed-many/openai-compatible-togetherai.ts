@@ -10,7 +10,7 @@ async function main() {
       Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
     },
   });
-  const model = togetherai.textEmbeddingModel('BAAI/bge-large-en-v1.5');
+  const model = togetherai.embeddingModel('BAAI/bge-large-en-v1.5');
   const { embeddings, usage } = await embedMany({
     model,
     values: [

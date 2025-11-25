@@ -20,13 +20,21 @@ import type { BlackForestLabsAspectRatio } from './black-forest-labs-image-setti
 import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
-const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
+const DEFAULT_POLL_TIMEOUT_MILLIS = 60000;
 
 interface BlackForestLabsImageModelConfig {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  /**
+   Poll interval in milliseconds between status checks. Defaults to 500ms.
+   */
+  pollIntervalMillis?: number;
+  /**
+   Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
+   */
+  pollTimeoutMillis?: number;
   _internal?: {
     currentDate?: () => Date;
   };
@@ -61,13 +69,15 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'Deriving aspect_ratio from size.',
+        details:
+          'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
     } else if (size && aspectRatio) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'size',
-        details: 'Black Forest Labs ignores size when aspectRatio is provided.',
+        details:
+          'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     }
 
@@ -83,10 +93,22 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       prompt,
       seed,
       aspect_ratio: finalAspectRatio,
-      ...(size && { width: Number(widthStr), height: Number(heightStr) }),
+      width: bflOptions?.width ?? (size ? Number(widthStr) : undefined),
+      height: bflOptions?.height ?? (size ? Number(heightStr) : undefined),
+      steps: bflOptions?.steps,
+      guidance: bflOptions?.guidance,
       image_prompt_strength: bflOptions?.imagePromptStrength,
       image_prompt: bflOptions?.imagePrompt,
       input_image: bflOptions?.inputImage,
+      input_image_2: bflOptions?.inputImage2,
+      input_image_3: bflOptions?.inputImage3,
+      input_image_4: bflOptions?.inputImage4,
+      input_image_5: bflOptions?.inputImage5,
+      input_image_6: bflOptions?.inputImage6,
+      input_image_7: bflOptions?.inputImage7,
+      input_image_8: bflOptions?.inputImage8,
+      input_image_9: bflOptions?.inputImage9,
+      input_image_10: bflOptions?.inputImage10,
       output_format: bflOptions?.outputFormat,
       prompt_upsampling: bflOptions?.promptUpsampling,
       raw: bflOptions?.raw,
@@ -120,6 +142,12 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       abortSignal,
     } as Parameters<ImageModelV3['doGenerate']>[0]);
 
+    const bflOptions = await parseProviderOptions({
+      provider: 'blackForestLabs',
+      providerOptions,
+      schema: blackForestLabsImageProviderOptionsSchema,
+    });
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
       await resolve(this.config.headers),
@@ -150,6 +178,10 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       requestId,
       headers: combinedHeaders,
       abortSignal,
+      pollOverrides: {
+        pollIntervalMillis: bflOptions?.pollIntervalMillis,
+        pollTimeoutMillis: bflOptions?.pollTimeoutMillis,
+      },
     });
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
@@ -172,6 +204,13 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
               ...(resultStartTime != null && { start_time: resultStartTime }),
               ...(resultEndTime != null && { end_time: resultEndTime }),
               ...(resultDuration != null && { duration: resultDuration }),
+              ...(submit.value.cost != null && { cost: submit.value.cost }),
+              ...(submit.value.input_mp != null && {
+                inputMegapixels: submit.value.input_mp,
+              }),
+              ...(submit.value.output_mp != null && {
+                outputMegapixels: submit.value.output_mp,
+              }),
             },
           ],
         },
@@ -189,11 +228,16 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     requestId,
     headers,
     abortSignal,
+    pollOverrides,
   }: {
     pollUrl: string;
     requestId: string;
     headers: Record<string, string | undefined>;
     abortSignal: AbortSignal | undefined;
+    pollOverrides?: {
+      pollIntervalMillis?: number;
+      pollTimeoutMillis?: number;
+    };
   }): Promise<{
     imageUrl: string;
     seed?: number;
@@ -201,12 +245,24 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     end_time?: number;
     duration?: number;
   }> {
+    const pollIntervalMillis =
+      pollOverrides?.pollIntervalMillis ??
+      this.config.pollIntervalMillis ??
+      DEFAULT_POLL_INTERVAL_MILLIS;
+    const pollTimeoutMillis =
+      pollOverrides?.pollTimeoutMillis ??
+      this.config.pollTimeoutMillis ??
+      DEFAULT_POLL_TIMEOUT_MILLIS;
+    const maxPollAttempts = Math.ceil(
+      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
+    );
+
     const url = new URL(pollUrl);
     if (!url.searchParams.has('id')) {
       url.searchParams.set('id', requestId);
     }
 
-    for (let i = 0; i < DEFAULT_MAX_POLL_ATTEMPTS; i++) {
+    for (let i = 0; i < maxPollAttempts; i++) {
       const { value } = await getFromApi({
         url: url.toString(),
         headers,
@@ -235,7 +291,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
         throw new Error('Black Forest Labs generation failed.');
       }
 
-      await delay(DEFAULT_POLL_INTERVAL_MILLIS);
+      await delay(pollIntervalMillis);
     }
 
     throw new Error('Black Forest Labs generation timed out.');
@@ -248,12 +304,27 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
       imagePrompt: z.string().optional(),
       imagePromptStrength: z.number().min(0).max(1).optional(),
       inputImage: z.string().optional(),
+      inputImage2: z.string().optional(),
+      inputImage3: z.string().optional(),
+      inputImage4: z.string().optional(),
+      inputImage5: z.string().optional(),
+      inputImage6: z.string().optional(),
+      inputImage7: z.string().optional(),
+      inputImage8: z.string().optional(),
+      inputImage9: z.string().optional(),
+      inputImage10: z.string().optional(),
+      steps: z.number().int().positive().optional(),
+      guidance: z.number().min(0).optional(),
+      width: z.number().int().min(256).max(1920).optional(),
+      height: z.number().int().min(256).max(1920).optional(),
       outputFormat: z.enum(['jpeg', 'png']).optional(),
       promptUpsampling: z.boolean().optional(),
       raw: z.boolean().optional(),
       safetyTolerance: z.number().int().min(0).max(6).optional(),
       webhookSecret: z.string().optional(),
       webhookUrl: z.url().optional(),
+      pollIntervalMillis: z.number().int().positive().optional(),
+      pollTimeoutMillis: z.number().int().positive().optional(),
     }),
   ),
 );
@@ -294,6 +365,9 @@ function gcd(a: number, b: number): number {
 const bflSubmitSchema = z.object({
   id: z.string(),
   polling_url: z.url(),
+  cost: z.number().nullish(),
+  input_mp: z.number().nullish(),
+  output_mp: z.number().nullish(),
 });
 
 const bflStatus = z.union([
