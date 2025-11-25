@@ -128,8 +128,8 @@ describe('BlackForestLabs provider', () => {
     expect(() => provider.languageModel('some-id')).toThrowError(
       'No such languageModel',
     );
-    expect(() => provider.textEmbeddingModel('some-id')).toThrowError(
-      'No such textEmbeddingModel',
+    expect(() => provider.embeddingModel('some-id')).toThrowError(
+      'No such embeddingModel',
     );
   });
 });

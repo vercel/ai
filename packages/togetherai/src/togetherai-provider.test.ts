@@ -43,7 +43,7 @@ vi.mock('./reranking/togetherai-reranking-model', () => ({
 
 describe('TogetherAIProvider', () => {
   let mockLanguageModel: LanguageModelV3;
-  let mockEmbeddingModel: EmbeddingModelV3<string>;
+  let mockEmbeddingModel: EmbeddingModelV3;
   let mockRerankingModel: RerankingModelV3;
 
   beforeEach(() => {
@@ -53,7 +53,7 @@ describe('TogetherAIProvider', () => {
     } as LanguageModelV3;
     mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV3
-    } as EmbeddingModelV3<string>;
+    } as EmbeddingModelV3;
     mockRerankingModel = {
       // Add any required methods for RerankingModelV3
     } as RerankingModelV3;
@@ -132,12 +132,12 @@ describe('TogetherAIProvider', () => {
     });
   });
 
-  describe('textEmbeddingModel', () => {
+  describe('embeddingModel', () => {
     it('should construct a text embedding model with correct configuration', () => {
       const provider = createTogetherAI();
       const modelId = 'together-embedding-model';
 
-      const model = provider.textEmbeddingModel(modelId);
+      const model = provider.embeddingModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
     });

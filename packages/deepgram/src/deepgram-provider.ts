@@ -100,25 +100,25 @@ export function createDeepgram(
   provider.speechModel = createSpeechModel;
 
   // Required ProviderV3 methods that are not supported
-  provider.languageModel = () => {
+  provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'languageModel',
       message: 'Deepgram does not provide language models',
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
+      modelId,
+      modelType: 'embeddingModel',
       message: 'Deepgram does not provide text embedding models',
     });
   };
 
-  provider.imageModel = () => {
+  provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'imageModel',
       message: 'Deepgram does not provide image models',
     });
