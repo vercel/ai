@@ -33,7 +33,7 @@ function extractProviderAndAnnotations(
   return _exhaustive;
 }
 
-export function OpenaiResponsesText({ part }: { part: TextUIPart }) {
+export function ResponsesText({ part }: { part: TextUIPart }) {
   if (!part.providerMetadata) return <Response>{part.text}</Response>;
 
   const providerMetadataParsed =
