@@ -5,6 +5,14 @@ import {
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import {
+  CODE_EXECUTION_UNSUPPORTED_MODELS,
+  FILE_SEARCH_UNSUPPORTED_MODELS,
+  GOOGLE_SEARCH_UNSUPPORTED_MODELS,
+  URL_CONTEXT_UNSUPPORTED_MODELS,
+  getUnsupportedModelsString,
+  IsToolSupported,
+} from './gemini-tool-capabilities';
 
 export function prepareTools({
   tools,
@@ -40,18 +48,6 @@ export function prepareTools({
 
   const toolWarnings: LanguageModelV3CallWarning[] = [];
 
-  const isLatest = (
-    [
-      'gemini-flash-latest',
-      'gemini-flash-lite-latest',
-      'gemini-pro-latest',
-    ] as const satisfies GoogleGenerativeAIModelId[]
-  ).some(id => id === modelId);
-  const isGemini2 = modelId.includes('gemini-2') || isLatest;
-  const supportsDynamicRetrieval =
-    modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
-  const supportsFileSearch = modelId.includes('gemini-2.5');
-
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
   }
@@ -80,60 +76,46 @@ export function prepareTools({
     providerDefinedTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          if (isGemini2) {
+          if (IsToolSupported(GOOGLE_SEARCH_UNSUPPORTED_MODELS, modelId)) {
             googleTools.push({ googleSearch: {} });
-          } else if (supportsDynamicRetrieval) {
-            // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
-            googleTools.push({
-              googleSearchRetrieval: {
-                dynamicRetrievalConfig: {
-                  mode: tool.args.mode as
-                    | 'MODE_DYNAMIC'
-                    | 'MODE_UNSPECIFIED'
-                    | undefined,
-                  dynamicThreshold: tool.args.dynamicThreshold as
-                    | number
-                    | undefined,
-                },
-              },
-            });
           } else {
-            googleTools.push({ googleSearchRetrieval: {} });
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details: `Google search grounding is not supported on the following models: ${getUnsupportedModelsString(GOOGLE_SEARCH_UNSUPPORTED_MODELS)}. Current model: ${modelId}`,
+            });
           }
           break;
         case 'google.url_context':
-          if (isGemini2) {
+          if (IsToolSupported(URL_CONTEXT_UNSUPPORTED_MODELS, modelId)) {
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported-tool',
               tool,
-              details:
-                'The URL context tool is not supported with other Gemini models than Gemini 2.',
+              details: `The URL context tool is not supported on the following models: ${getUnsupportedModelsString(URL_CONTEXT_UNSUPPORTED_MODELS)}. Current model: ${modelId}`,
             });
           }
           break;
         case 'google.code_execution':
-          if (isGemini2) {
+          if (IsToolSupported(CODE_EXECUTION_UNSUPPORTED_MODELS, modelId)) {
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
               type: 'unsupported-tool',
               tool,
-              details:
-                'The code execution tools is not supported with other Gemini models than Gemini 2.',
+              details: `The code execution tool is not supported on the following models: ${getUnsupportedModelsString(CODE_EXECUTION_UNSUPPORTED_MODELS)}. Current model: ${modelId}`,
             });
           }
           break;
         case 'google.file_search':
-          if (supportsFileSearch) {
+          if (IsToolSupported(FILE_SEARCH_UNSUPPORTED_MODELS, modelId)) {
             googleTools.push({ fileSearch: { ...tool.args } });
           } else {
             toolWarnings.push({
               type: 'unsupported-tool',
               tool,
-              details:
-                'The file search tool is only supported with Gemini 2.5 models.',
+              details: `The file search tool is not supported on the following models: ${getUnsupportedModelsString(FILE_SEARCH_UNSUPPORTED_MODELS)}. Current model: ${modelId}`,
             });
           }
           break;

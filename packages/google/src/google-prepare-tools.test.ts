@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { expect, it, describe } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 import { LanguageModelV3ProviderDefinedTool } from '@ai-sdk/provider';
 
@@ -123,40 +123,6 @@ it('should add warnings for unsupported tools', () => {
           "args": {},
           "id": "unsupported.tool",
           "name": "unsupported_tool",
-          "type": "provider-defined",
-        },
-        "type": "unsupported-tool",
-      },
-    ]
-  `);
-});
-
-it('should add warnings for file search on unsupported models', () => {
-  const tool: LanguageModelV3ProviderDefinedTool = {
-    type: 'provider-defined' as const,
-    id: 'google.file_search',
-    name: 'file_search',
-    args: { fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'] },
-  };
-
-  const result = prepareTools({
-    tools: [tool],
-    modelId: 'gemini-1.5-flash-8b',
-  });
-
-  expect(result.tools).toBeUndefined();
-  expect(result.toolWarnings).toMatchInlineSnapshot(`
-    [
-      {
-        "details": "The file search tool is only supported with Gemini 2.5 models.",
-        "tool": {
-          "args": {
-            "fileSearchStoreNames": [
-              "projects/foo/fileSearchStores/bar",
-            ],
-          },
-          "id": "google.file_search",
-          "name": "file_search",
           "type": "provider-defined",
         },
         "type": "unsupported-tool",
@@ -409,4 +375,144 @@ it('should handle url context tool alone', () => {
   expect(result.tools).toEqual([{ urlContext: {} }]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
+});
+
+describe('Warnings for unsupported models', () => {
+  it.each([['gemini-2.0-flash-lite'], ['gemini-2.5-flash-image-preview']])(
+    'should add warnings for google search grounding on unsupported models',
+    async modelId => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
+          },
+        ],
+        modelId: modelId,
+      });
+
+      expect(result.tools).toBeUndefined();
+      expect(result.toolConfig).toBeUndefined();
+      expect(result.toolWarnings).toEqual([
+        {
+          details: `Google search grounding is not supported on the following models: gemini-2.5-flash-image-preview, gemini-2.0-flash-lite. Current model: ${modelId}`,
+          tool: {
+            args: {},
+            id: 'google.google_search',
+            name: 'google_search',
+            type: 'provider-defined',
+          },
+          type: 'unsupported-tool',
+        },
+      ]);
+    },
+  );
+
+  it.each([
+    ['gemini-2.0-flash-lite'],
+    ['gemini-2.0-flash'],
+    ['gemini-2.0-flash-001'],
+    ['gemini-2.0-flash-exp'],
+    ['gemini-2.5-flash-image-preview'],
+  ])('should add warnings for URL Context on unsupported models', async () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'google.url_context',
+          name: 'url_context',
+          args: {},
+        },
+      ],
+      modelId: 'gemini-2.0-flash-lite',
+    });
+
+    expect(result.tools).toBeUndefined();
+    expect(result.toolConfig).toBeUndefined();
+    expect(result.toolWarnings).toEqual([
+      {
+        details:
+          'The URL context tool is not supported on the following models: gemini-2.0-flash-lite, gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-exp, gemini-2.5-flash-image-preview. Current model: gemini-2.0-flash-lite',
+        tool: {
+          args: {},
+          id: 'google.url_context',
+          name: 'url_context',
+          type: 'provider-defined',
+        },
+        type: 'unsupported-tool',
+      },
+    ]);
+  });
+
+  it('should add warnings for code execution on unsupported models', async () => {
+    const result = prepareTools({
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      modelId: 'gemini-2.0-flash-lite',
+    });
+
+    expect(result.tools).toBeUndefined();
+    expect(result.toolConfig).toBeUndefined();
+    expect(result.toolWarnings).toEqual([
+      {
+        details:
+          'The code execution tool is not supported on the following models: gemini-2.0-flash-lite. Current model: gemini-2.0-flash-lite',
+        tool: {
+          args: {},
+          id: 'google.code_execution',
+          name: 'code_execution',
+          type: 'provider-defined',
+        },
+        type: 'unsupported-tool',
+      },
+    ]);
+  });
+
+  it.each([
+    ['gemini-2.0-flash-lite'],
+    ['gemini-2.0-flash'],
+    ['gemini-2.0-flash-001'],
+    ['gemini-2.0-flash-exp'],
+    ['gemini-2.0-flash-live-001'],
+    ['gemini-2.5-flash-image-preview'],
+  ])(
+    'should add warnings for file search on unsupported models',
+    async modelId => {
+      const tool: LanguageModelV3ProviderDefinedTool = {
+        type: 'provider-defined' as const,
+        id: 'google.file_search',
+        name: 'file_search',
+        args: { fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'] },
+      };
+
+      const result = prepareTools({
+        tools: [tool],
+        modelId: modelId,
+      });
+
+      expect(result.tools).toBeUndefined();
+      expect(result.toolWarnings).toEqual([
+        {
+          details: `The file search tool is not supported on the following models: gemini-2.0-flash-lite, gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-exp, gemini-2.0-flash-live-001, gemini-2.5-flash-image-preview. Current model: ${modelId}`,
+          tool: {
+            args: {
+              fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+            },
+            id: 'google.file_search',
+            name: 'file_search',
+            type: 'provider-defined',
+          },
+          type: 'unsupported-tool',
+        },
+      ]);
+    },
+  );
 });
