@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.116
+
+### Patch Changes
+
+- 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
+
 ## 6.0.0-beta.115
 
 ### Patch Changes
