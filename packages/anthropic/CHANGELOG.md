@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 6fc35cb: Retain user-supplied betas.
+
 ## 3.0.0-beta.59
 
 ### Patch Changes
