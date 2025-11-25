@@ -22,6 +22,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { applyPatchInputSchema } from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
@@ -136,6 +137,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
+        hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
       });
 
     warnings.push(...inputWarnings);
@@ -743,6 +745,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           });
           break;
         }
+
+        case 'apply_patch_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: 'apply_patch',
+            input: JSON.stringify({
+              callId: part.call_id,
+              operation: part.operation,
+            } satisfies InferSchema<typeof applyPatchInputSchema>),
+            providerMetadata: {
+              [providerKey]: {
+                itemId: part.id,
+              },
+            },
+          });
+
+          break;
+        }
       }
     }
 
@@ -983,6 +1004,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   input: '{}',
                   providerExecuted: true,
                 });
+              } else if (value.item.type === 'apply_patch_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: 'apply_patch',
+                  toolCallId: value.item.call_id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: 'apply_patch',
+                  input: JSON.stringify({
+                    callId: value.item.call_id,
+                    operation: value.item.operation,
+                  } satisfies InferSchema<typeof applyPatchInputSchema>),
+                  providerMetadata: {
+                    [providerKey]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
@@ -1192,6 +1233,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     [providerKey]: { itemId: value.item.id },
                   },
                 });
+              } else if (value.item.type === 'apply_patch_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                // The tool call was already emitted in the 'added' event
+                // for apply_patch_call, we just clear the ongoing tool call
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
 

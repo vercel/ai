@@ -3,6 +3,7 @@ import {
   LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { applyPatchArgsSchema } from '../tool/apply-patch';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { webSearchArgsSchema } from '../tool/web-search';
@@ -83,6 +84,12 @@ export async function prepareResponsesTools({
           case 'openai.local_shell': {
             openaiTools.push({
               type: 'local_shell',
+            });
+            break;
+          }
+          case 'openai.apply_patch': {
+            openaiTools.push({
+              type: 'apply_patch',
             });
             break;
           }
