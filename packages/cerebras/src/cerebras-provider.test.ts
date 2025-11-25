@@ -110,12 +110,12 @@ describe('CerebrasProvider', () => {
     });
   });
 
-  describe('textEmbeddingModel', () => {
+  describe('embeddingModel', () => {
     it('should throw NoSuchModelError when attempting to create embedding model', () => {
       const provider = createCerebras();
 
-      expect(() => provider.textEmbeddingModel('any-model')).toThrow(
-        'No such textEmbeddingModel: any-model',
+      expect(() => provider.embeddingModel('any-model')).toThrow(
+        'No such embeddingModel: any-model',
       );
     });
   });

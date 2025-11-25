@@ -1,10 +1,10 @@
 import { SharedV3Headers, SharedV3ProviderOptions } from '../../shared';
 
-export type EmbeddingModelCallOptions<VALUE> = {
+export type EmbeddingModelCallOptions = {
   /**
- List of values to embed.
+ List of text values to generate embeddings for.
  */
-  values: Array<VALUE>;
+  values: Array<string>;
 
   /**
  Abort signal for cancelling the operation.

@@ -25,9 +25,9 @@ type BedrockEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>;
+type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>;
 
-export class BedrockEmbeddingModel implements EmbeddingModelV3<string> {
+export class BedrockEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly provider = 'amazon-bedrock';
   readonly maxEmbeddingsPerCall = 1;
@@ -48,9 +48,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<
-    EmbeddingModelV3<string>['doEmbed']
-  >[0]): Promise<DoEmbedResponse> {
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<DoEmbedResponse> {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,

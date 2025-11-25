@@ -80,9 +80,7 @@ Creates a chat model for text generation.
   /**
 Creates a text embedding model for text generation.
 */
-  textEmbeddingModel(
-    modelId: FireworksEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV3;
 
   /**
 Creates a model for image generation.
@@ -141,7 +139,7 @@ export function createFireworks(
       errorStructure: fireworksErrorStructure,
     });
 
-  const createTextEmbeddingModel = (modelId: FireworksEmbeddingModelId) =>
+  const createEmbeddingModel = (modelId: FireworksEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(modelId, {
       ...getCommonModelConfig('embedding'),
       errorStructure: fireworksErrorStructure,
@@ -159,7 +157,7 @@ export function createFireworks(
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
-  provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   return provider;
