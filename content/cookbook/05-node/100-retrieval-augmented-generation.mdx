@@ -17,7 +17,6 @@ For a more in-depth guide, check out the [RAG Chatbot Guide](/docs/guides/rag-ch
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import { openai } from '@ai-sdk/openai';
 import { cosineSimilarity, embed, embedMany, generateText } from 'ai';
 
 dotenv.config();
@@ -32,7 +31,7 @@ async function main() {
     .filter(chunk => chunk.length > 0 && chunk !== '\n');
 
   const { embeddings } = await embedMany({
-    model: openai.embeddingModel('text-embedding-3-small'),
+    model: 'openai/text-embedding-3-small',
     values: chunks,
   });
   embeddings.forEach((e, i) => {
@@ -46,7 +45,7 @@ async function main() {
     'What were the two main things the author worked on before college?';
 
   const { embedding } = await embed({
-    model: openai.embeddingModel('text-embedding-3-small'),
+    model: 'openai/text-embedding-3-small',
     value: input,
   });
   const context = db
@@ -60,7 +59,7 @@ async function main() {
     .join('\n');
 
   const { text } = await generateText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     prompt: `Answer the following question based only on the provided context:
              ${context}
 

@@ -11,13 +11,12 @@ Text embeddings are numerical representations of text that capture semantic mean
 This example demonstrates how to convert text into embeddings using a text embedding model. The resulting embedding is a high-dimensional vector that represents the semantic meaning of the input text. For a more practical application of embeddings, check out our [RAG example](/cookbook/node/retrieval-augmented-generation) which shows how embeddings can be used for document retrieval.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: openai.embeddingModel('text-embedding-3-small'),
+    model: 'openai/text-embedding-3-small',
     value: 'sunny day at the beach',
   });
 

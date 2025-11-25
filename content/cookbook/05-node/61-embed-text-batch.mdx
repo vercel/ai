@@ -11,13 +11,12 @@ When working with large datasets or multiple pieces of text, processing embeddin
 This example shows how to embed multiple text inputs in a single operation using the AI SDK. For single text embedding, see our [Embed Text](/cookbook/node/embed-text) example, or for a practical application, check out our [RAG example](/cookbook/node/retrieval-augmented-generation) which demonstrates how batch embeddings can be used in a document retrieval system.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { embedMany } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const { embeddings, usage } = await embedMany({
-    model: openai.embeddingModel('text-embedding-3-small'),
+    model: 'openai/text-embedding-3-small',
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',
