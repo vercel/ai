@@ -173,4 +173,3 @@ export const applyPatchToolFactory =
  * @returns A provider-defined tool for applying patches.
  */
 export const applyPatch = () => applyPatchToolFactory({});
-

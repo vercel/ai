@@ -45,14 +45,13 @@ const SECTION_TERMINATORS = [
 function normalizeDiffLines(diff: string): string[] {
   return diff
     .split(/\r?\n/)
-    .map((line) => line.replace(/\r$/, ''))
+    .map(line => line.replace(/\r$/, ''))
     .filter((line, idx, arr) => !(idx === arr.length - 1 && line === ''));
 }
 
 function isDone(state: ParserState, prefixes: string[]): boolean {
   if (state.index >= state.lines.length) return true;
-  if (prefixes.some((p) => state.lines[state.index]?.startsWith(p)))
-    return true;
+  if (prefixes.some(p => state.lines[state.index]?.startsWith(p))) return true;
   return false;
 }
 
@@ -150,7 +149,7 @@ function advanceCursorToAnchor(
 ): number {
   let found = false;
 
-  if (!inputLines.slice(0, cursor).some((s) => s === anchor)) {
+  if (!inputLines.slice(0, cursor).some(s => s === anchor)) {
     for (let i = cursor; i < inputLines.length; i += 1) {
       if (inputLines[i] === anchor) {
         cursor = i + 1;
@@ -162,7 +161,7 @@ function advanceCursorToAnchor(
 
   if (
     !found &&
-    !inputLines.slice(0, cursor).some((s) => s.trim() === anchor.trim())
+    !inputLines.slice(0, cursor).some(s => s.trim() === anchor.trim())
   ) {
     for (let i = cursor; i < inputLines.length; i += 1) {
       if (inputLines[i].trim() === anchor.trim()) {
@@ -297,15 +296,14 @@ function findContextCore(
   }
 
   for (let i = start; i < lines.length; i += 1) {
-    if (equalsSlice(lines, context, i, (s) => s))
-      return { newIndex: i, fuzz: 0 };
+    if (equalsSlice(lines, context, i, s => s)) return { newIndex: i, fuzz: 0 };
   }
   for (let i = start; i < lines.length; i += 1) {
-    if (equalsSlice(lines, context, i, (s) => s.trimEnd()))
+    if (equalsSlice(lines, context, i, s => s.trimEnd()))
       return { newIndex: i, fuzz: 1 };
   }
   for (let i = start; i < lines.length; i += 1) {
-    if (equalsSlice(lines, context, i, (s) => s.trim()))
+    if (equalsSlice(lines, context, i, s => s.trim()))
       return { newIndex: i, fuzz: 100 };
   }
 

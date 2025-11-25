@@ -3,7 +3,10 @@ import { generateText } from 'ai';
 import 'dotenv/config';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { ApplyPatchOperation, WorkspaceEditor } from '../lib/apply-patch-file-editor';
+import {
+  ApplyPatchOperation,
+  WorkspaceEditor,
+} from '../lib/apply-patch-file-editor';
 
 async function main() {
   const workspaceRoot = path.join(__dirname, '../output');
@@ -67,7 +70,6 @@ async function main() {
 
     // Step 2: Send results back and ask for an update
     if (patchResults.length > 0 && createdFilePath) {
-
       // Read the created file using the actual path from the patch operation
       const fileContent = await fs.readFile(
         path.join(workspaceRoot, createdFilePath),
@@ -84,7 +86,7 @@ async function main() {
         messages: [
           {
             role: 'tool' as const,
-            content: patchResults.map((pr) => ({
+            content: patchResults.map(pr => ({
               type: 'tool-result' as const,
               toolCallId: pr.toolCallId,
               toolName: 'apply_patch' as const,
@@ -164,4 +166,3 @@ async function main() {
 }
 
 main().catch(console.error);
-
