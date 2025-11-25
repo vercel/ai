@@ -4,13 +4,11 @@ import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
 
 /**
 Specification for an embedding model that implements the embedding model
-interface version 1.
+interface version 3.
 
-VALUE is the type of the values that the model can embed.
-This will allow us to go beyond text embeddings in the future,
-e.g. to support image embeddings
+It is specific to text embeddings.
  */
-export type EmbeddingModelV3<VALUE> = {
+export type EmbeddingModelV3 = {
   /**
 The embedding model must specify which embedding model interface
 version it implements. This will allow us to evolve the embedding
@@ -51,7 +49,7 @@ Generates a list of embeddings for the given input text.
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
-  doEmbed(options: EmbeddingModelCallOptions<VALUE>): PromiseLike<{
+  doEmbed(options: EmbeddingModelCallOptions): PromiseLike<{
     /**
 Generated embeddings. They are in the same order as the input values.
      */

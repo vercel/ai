@@ -1,5 +1,52 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/openai@3.0.0-beta.68
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/openai@3.0.0-beta.67
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- d86b52f: distinguish between OpenAI and Azure in Responses API providerMetadata
+- Updated dependencies [d86b52f]
+  - @ai-sdk/openai@3.0.0-beta.66
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [38a4035]
+  - @ai-sdk/openai@3.0.0-beta.65
+
 ## 3.0.0-beta.66
 
 ### Patch Changes

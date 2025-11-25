@@ -1,5 +1,41 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.58
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- e300a3b: Fixed Zod validation error when using `google.tools.fileSearch()`. The Google File Search API returns `fileSearchStore` instead of `uri` in `retrievedContext`. Updated `extractSources()` function to handle both the old format (Google Search with `uri`) and new format (File Search with `fileSearchStore`), maintaining backward compatibility while preventing validation errors. Also fixed title handling to use `undefined` for URL sources and `'Unknown Document'` for document sources.
+
 ## 3.0.0-beta.55
 
 ### Patch Changes

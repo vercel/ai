@@ -1,5 +1,61 @@
 # ai
 
+## 6.0.0-beta.118
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/gateway@2.0.0-beta.63
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 6.0.0-beta.117
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/gateway@2.0.0-beta.62
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 6.0.0-beta.116
+
+### Patch Changes
+
+- 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
+
+## 6.0.0-beta.115
+
+### Patch Changes
+
+- 7da02d2: fix(ai): prune messages properly when toolCalls set to 'before-last-message'
+
+## 6.0.0-beta.114
+
+### Patch Changes
+
+- 69768c2: chore(ai): remove UI message reference from model message validation
+
+## 6.0.0-beta.113
+
+### Patch Changes
+
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+
 ## 6.0.0-beta.112
 
 ### Patch Changes

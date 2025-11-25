@@ -1,5 +1,81 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/anthropic@3.0.0-beta.62
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/google@3.0.0-beta.58
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/anthropic@3.0.0-beta.61
+  - @ai-sdk/google@3.0.0-beta.57
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [6fc35cb]
+  - @ai-sdk/anthropic@3.0.0-beta.60
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [2109385]
+  - @ai-sdk/anthropic@3.0.0-beta.59
+
+## 4.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [83aaad8]
+  - @ai-sdk/anthropic@3.0.0-beta.58
+
+## 4.0.0-beta.80
+
+### Patch Changes
+
+- Updated dependencies [e300a3b]
+  - @ai-sdk/google@3.0.0-beta.56
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [b8ea36e]
+  - @ai-sdk/anthropic@3.0.0-beta.57
+
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [983e394]
+  - @ai-sdk/anthropic@3.0.0-beta.56
+
 ## 4.0.0-beta.77
 
 ### Patch Changes

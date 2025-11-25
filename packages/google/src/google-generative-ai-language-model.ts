@@ -693,8 +693,10 @@ function extractSources({
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
-      if (uri.startsWith('http://') || uri.startsWith('https://')) {
-        // It's a URL
+      const fileSearchStore = chunk.retrievedContext.fileSearchStore;
+
+      if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
+        // Old format: Google Search with HTTP/HTTPS URL
         sources.push({
           type: 'source',
           sourceType: 'url',
@@ -702,13 +704,12 @@ function extractSources({
           url: uri,
           title: chunk.retrievedContext.title ?? undefined,
         });
-      } else {
-        // It's a document (gs://, file path, etc.)
+      } else if (uri) {
+        // Old format: Document with file path (gs://, etc.)
         const title = chunk.retrievedContext.title ?? 'Unknown Document';
-        let mediaType = 'application/octet-stream'; // Default
+        let mediaType = 'application/octet-stream';
         let filename: string | undefined = undefined;
 
-        // Infer media type from URI extension
         if (uri.endsWith('.pdf')) {
           mediaType = 'application/pdf';
           filename = uri.split('/').pop();
@@ -726,7 +727,6 @@ function extractSources({
           mediaType = 'text/markdown';
           filename = uri.split('/').pop();
         } else {
-          // Extract filename from path for unknown types
           filename = uri.split('/').pop();
         }
 
@@ -737,6 +737,17 @@ function extractSources({
           mediaType,
           title,
           filename,
+        });
+      } else if (fileSearchStore) {
+        // New format: File Search with fileSearchStore (no uri)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
+        sources.push({
+          type: 'source',
+          sourceType: 'document',
+          id: generateId(),
+          mediaType: 'application/octet-stream',
+          title,
+          filename: fileSearchStore.split('/').pop(),
         });
       }
     }
@@ -758,9 +769,10 @@ export const getGroundingMetadataSchema = () =>
             .nullish(),
           retrievedContext: z
             .object({
-              uri: z.string(),
+              uri: z.string().nullish(),
               title: z.string().nullish(),
               text: z.string().nullish(),
+              fileSearchStore: z.string().nullish(),
             })
             .nullish(),
         }),

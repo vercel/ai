@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 describe('asEmbeddingModelV3', () => {
   describe('when an embedding model v3 is provided', () => {
     it('should return the same v3 model unchanged', () => {
-      const originalModel = new MockEmbeddingModelV3<string>({
+      const originalModel = new MockEmbeddingModelV3({
         provider: 'test-provider',
         modelId: 'test-model-id',
       });
@@ -19,7 +19,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should preserve all v3 model properties', () => {
-      const originalModel = new MockEmbeddingModelV3<string>({
+      const originalModel = new MockEmbeddingModelV3({
         provider: 'test-provider-v3',
         modelId: 'test-model-v3',
         maxEmbeddingsPerCall: 10,
@@ -38,7 +38,7 @@ describe('asEmbeddingModelV3', () => {
 
   describe('when an embedding model v2 is provided', () => {
     it('should convert v2 to v3 and change specificationVersion', () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',
       });
@@ -50,7 +50,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should preserve provider property', () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider-v2',
         modelId: 'test-model-id',
       });
@@ -61,7 +61,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should preserve modelId property', () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-v2',
       });
@@ -72,7 +72,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should preserve maxEmbeddingsPerCall property', () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',
         maxEmbeddingsPerCall: 5,
@@ -84,7 +84,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should preserve maxEmbeddingsPerCall as undefined', () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',
         maxEmbeddingsPerCall: null,
@@ -96,7 +96,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should preserve supportsParallelCalls property', () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',
         supportsParallelCalls: true,
@@ -108,7 +108,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should preserve supportsParallelCalls as promise', async () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',
         supportsParallelCalls: Promise.resolve(true),
@@ -120,7 +120,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should make doEmbed method callable', async () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',
         doEmbed: async () => ({
@@ -139,7 +139,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should handle doEmbed with multiple embeddings', async () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',
         doEmbed: async () => ({
@@ -162,7 +162,7 @@ describe('asEmbeddingModelV3', () => {
     });
 
     it('should handle doEmbed with usage information', async () => {
-      const v2Model = new MockEmbeddingModelV2<string>({
+      const v2Model = new MockEmbeddingModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',
         doEmbed: async () => ({
@@ -269,24 +269,6 @@ describe('asEmbeddingModelV3', () => {
 
       expect(result.customMethod()).toBe('custom-value');
       expect(result.specificationVersion).toBe('v3');
-    });
-
-    it('should work with different value types', async () => {
-      const v2Model = new MockEmbeddingModelV2<number>({
-        provider: 'test-provider',
-        modelId: 'test-model-id',
-        doEmbed: async () => ({
-          embeddings: [[0.1, 0.2, 0.3]],
-        }),
-      });
-
-      const result = asEmbeddingModelV3(v2Model);
-
-      const response = await result.doEmbed({
-        values: [123, 456],
-      });
-
-      expect(response.embeddings).toHaveLength(1);
     });
   });
 });

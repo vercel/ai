@@ -1,5 +1,29 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+## 3.0.0-beta.18
+
+### Patch Changes
+
+- 10d819b: fix(packages/provider): fix CallWarning and allow strings as type
+
 ## 3.0.0-beta.17
 
 ### Patch Changes

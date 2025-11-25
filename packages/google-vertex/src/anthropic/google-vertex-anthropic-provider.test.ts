@@ -82,7 +82,7 @@ describe('google-vertex-anthropic-provider', () => {
   it('should throw NoSuchModelError for textEmbeddingModel', () => {
     const provider = createVertexAnthropic({ project: 'test-project' });
 
-    expect(() => provider.textEmbeddingModel('invalid-model-id')).toThrow(
+    expect(() => provider.embeddingModel('invalid-model-id')).toThrow(
       NoSuchModelError,
     );
   });

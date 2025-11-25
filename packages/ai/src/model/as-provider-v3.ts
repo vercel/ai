@@ -13,20 +13,23 @@ export function asProviderV3(provider: ProviderV2 | ProviderV3): ProviderV3 {
     return provider;
   }
 
+  // v3 providers have already been returned
+  const v2Provider: ProviderV2 = provider as ProviderV2;
+
   return {
     specificationVersion: 'v3',
     languageModel: (modelId: string) =>
-      asLanguageModelV3(provider.languageModel(modelId)),
-    textEmbeddingModel: (modelId: string) =>
-      asEmbeddingModelV3(provider.textEmbeddingModel(modelId)),
+      asLanguageModelV3(v2Provider.languageModel(modelId)),
+    embeddingModel: (modelId: string) =>
+      asEmbeddingModelV3(v2Provider.textEmbeddingModel(modelId)),
     imageModel: (modelId: string) =>
-      asImageModelV3(provider.imageModel(modelId)),
-    transcriptionModel: provider.transcriptionModel
+      asImageModelV3(v2Provider.imageModel(modelId)),
+    transcriptionModel: v2Provider.transcriptionModel
       ? (modelId: string) =>
-          asTranscriptionModelV3(provider.transcriptionModel!(modelId))
+          asTranscriptionModelV3(v2Provider.transcriptionModel!(modelId))
       : undefined,
-    speechModel: provider.speechModel
-      ? (modelId: string) => asSpeechModelV3(provider.speechModel!(modelId))
+    speechModel: v2Provider.speechModel
+      ? (modelId: string) => asSpeechModelV3(v2Provider.speechModel!(modelId))
       : undefined,
     rerankingModel: undefined, // v2 providers don't have reranking models
   };

@@ -29,6 +29,7 @@ export async function createAgentUIStreamResponse<
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   messages: unknown[];
+  abortSignal?: AbortSignal;
   options?: CALL_OPTIONS;
   experimental_transform?:
     | StreamTextTransform<TOOLS>
