@@ -4147,8 +4147,11 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain('fine-grained-tool-streaming-2025-05-14');
-      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain('context-1m-2025-08-07');
+      expect(
+        server.calls[0].requestHeaders['anthropic-beta'],
+      ).toMatchInlineSnapshot(
+        `"fine-grained-tool-streaming-2025-05-14 context-1m-2025-08-07"`,
+      );
     });
 
     it('should support cache control', async () => {
