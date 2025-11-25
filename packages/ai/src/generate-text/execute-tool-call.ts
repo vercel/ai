@@ -89,6 +89,9 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           input,
           error,
           dynamic: tool.type === 'dynamic',
+          ...(toolCall.providerMetadata != null
+            ? { providerMetadata: toolCall.providerMetadata }
+            : {}),
         } as TypedToolError<TOOLS>;
       }
 
@@ -117,6 +120,9 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         input,
         output,
         dynamic: tool.type === 'dynamic',
+        ...(toolCall.providerMetadata != null
+          ? { providerMetadata: toolCall.providerMetadata }
+          : {}),
       } as TypedToolResult<TOOLS>;
     },
   });

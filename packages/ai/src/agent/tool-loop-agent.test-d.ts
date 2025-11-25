@@ -4,7 +4,7 @@ import { Output } from '../generate-text';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { DeepPartial } from '../util/deep-partial';
-import { AgentCallParameters } from './agent';
+import { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('ToolLoopAgent', () => {
@@ -78,7 +78,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        AgentCallParameters<{ callOption: string }>
+        AgentStreamParameters<{ callOption: string }, {}>
       >();
     });
 
@@ -88,7 +88,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        AgentCallParameters<never>
+        AgentStreamParameters<never, {}>
       >();
     });
 

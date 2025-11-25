@@ -118,7 +118,7 @@ This project will use the following stack:
 
 - [Next.js](https://nextjs.org) 14 (App Router)
 - [ AI SDK ](/docs)
-- [OpenAI](https://openai.com)
+- [ Vercel AI Gateway ](/providers/ai-sdk-providers/ai-gateway)
 - [ Drizzle ORM ](https://orm.drizzle.team)
 - [ Postgres ](https://www.postgresql.org/) with [ pgvector ](https://github.com/pgvector/pgvector)
 - [ shadcn-ui ](https://ui.shadcn.com) and [ TailwindCSS ](https://tailwindcss.com) for styling
@@ -194,11 +194,24 @@ This will first add the `pgvector` extension to your database. Then it will crea
   section](#troubleshooting-migration-error) below.
 </Note>
 
-### OpenAI API Key
+### Vercel AI Gateway Key
 
-For this guide, you will need an OpenAI API key. To generate an API key, go to [platform.openai.com](http://platform.openai.com/).
+For this guide, you will need a Vercel AI Gateway API key, which gives you access to hundreds of models from different providers with one API key. If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
 
-Once you have your API key, paste it into your `.env` file (`OPENAI_API_KEY`).
+<Note>
+  The AI SDK's Vercel AI Gateway Provider is the default global provider, so you
+  can access models using a simple string in the model configuration. If you
+  prefer to use a specific provider like OpenAI directly, see the [provider
+  management](/docs/ai-sdk-core/provider-management) documentation.
+</Note>
+
+Now, open your `.env` file and add your API Gateway key:
+
+```env filename=".env"
+AI_GATEWAY_API_KEY=your-api-key
+```
+
+Replace `your-api-key` with your actual Vercel AI Gateway API key.
 
 ## Build
 
@@ -282,9 +295,9 @@ This function will take an input string and split it by periods, filtering out a
 
 You will use the AI SDK to create embeddings. This will require two more dependencies, which you can install by running the following command:
 
-<Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" />
+<Snippet text="pnpm add ai @ai-sdk/react" />
 
-This will install the [AI SDK](/docs), AI SDK's React hooks, and AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai).
+This will install the [AI SDK](/docs) and the AI SDK's React hooks.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -300,9 +313,8 @@ Let’s add a function to generate embeddings. Copy the following code into your
 
 ```tsx filename="lib/ai/embedding.ts" highlight="1-2,4,13-22"
 import { embedMany } from 'ai';
-import { openai } from '@ai-sdk/openai';
 
-const embeddingModel = openai.embedding('text-embedding-ada-002');
+const embeddingModel = 'openai/text-embedding-ada-002';
 
 const generateChunks = (input: string): string[] => {
   return input
@@ -454,7 +466,7 @@ export default function Chat() {
 }
 ```
 
-The `useChat` hook enables the streaming of chat messages from your AI provider (you will be using OpenAI), manages the state for chat input, and updates the UI automatically as new messages are received.
+The `useChat` hook enables the streaming of chat messages from your AI provider (you will be using OpenAI via the Vercel AI Gateway), manages the state for chat input, and updates the UI automatically as new messages are received.
 
 Run the following command to start the Next.js dev server:
 
@@ -475,7 +487,6 @@ Create a file at `app/api/chat/route.ts` by running the following command:
 Open the file and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -485,7 +496,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
   });
 
@@ -504,7 +515,6 @@ While you now have a working agent, it isn't doing anything special.
 Let’s add system instructions to refine and restrict the model’s behavior. In this case, you want the model to only use information it has retrieved to generate responses. Update your route handler with the following code:
 
 ```tsx filename="app/api/chat/route.ts" highlight="12-14"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -514,7 +524,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
@@ -541,7 +551,6 @@ Update your route handler with the following code:
 
 ```tsx filename="app/api/chat/route.ts" highlight="18-29"
 import { createResource } from '@/lib/actions/resources';
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, tool, UIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -552,7 +561,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
@@ -665,7 +674,6 @@ Open your root page (`api/chat/route.ts`) and add the following key to the `stre
 
 ```tsx filename="api/chat/route.ts" highlight="8,24"
 import { createResource } from '@/lib/actions/resources';
-import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   streamText,
@@ -682,7 +690,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
     Only respond to questions using information from tool calls.
     if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
@@ -716,12 +724,11 @@ To find similar content, you will need to embed the users query, search the data
 
 ```tsx filename="lib/ai/embedding.ts" highlight="1,3-5,27-34,36-49"
 import { embed, embedMany } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { db } from '../db';
 import { cosineDistance, desc, gt, sql } from 'drizzle-orm';
 import { embeddings } from '../db/schema/embeddings';
 
-const embeddingModel = openai.embedding('text-embedding-ada-002');
+const embeddingModel = 'openai/text-embedding-ada-002';
 
 const generateChunks = (input: string): string[] => {
   return input
@@ -777,7 +784,6 @@ Go back to your route handler (`api/chat/route.ts`) and add a new tool called `g
 
 ```ts filename="api/chat/route.ts" highlight="11,37-43"
 import { createResource } from '@/lib/actions/resources';
-import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   streamText,
@@ -795,7 +801,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     system: `You are a helpful assistant. Check your knowledge base before answering any questions.
