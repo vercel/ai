@@ -201,7 +201,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format', () => {
+    describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
@@ -288,6 +288,362 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ]
         `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with json tool response (supported model, tool mode)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'jsonTool',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "name": "json",
+              "type": "tool",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"elements":[{"location":"San Francisco","temperature":-5,"condition":"snowy"},{"location":"London","temperature":0,"condition":"snowy"},{"location":"Paris","temperature":23,"condition":"cloudy"},{"location":"Berlin","temperature":-9,"condition":"snowy"}]}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with other tool response (unsupported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-other-tool.1');
+
+        result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'get-weather',
+              description: 'Get the weather in a location',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                },
+                required: ['location'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                weather: { type: 'string' },
+                temperature: { type: 'number' },
+              },
+              required: ['weather', 'temperature'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass the tool and the json schema response format as tools', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "name": "json",
+              "type": "tool",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "temperature": {
+                      "type": "number",
+                    },
+                    "weather": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "weather",
+                    "temperature",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the tool call', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"location":"San Francisco"}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send tool-calls finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with output format (supported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'outputFormat',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"recipe":{"name":"Classic Lasagna","ingredients":[{"name":"lasagna noodles","amount":"12 sheets"},{"name":"ground beef","amount":"1 pound"},{"name":"Italian sausage","amount":"1/2 pound"},{"name":"onion","amount":"1 medium, diced"},{"name":"garlic","amount":"3 cloves, minced"},{"name":"crushed tomatoes","amount":"28 oz can"},{"name":"tomato paste","amount":"6 oz can"},{"name":"water","amount":"1/2 cup"},{"name":"sugar","amount":"2 tablespoons"},{"name":"dried basil","amount":"1 1/2 teaspoons"},{"name":"Italian seasoning","amount":"1 teaspoon"},{"name":"salt","amount":"1 teaspoon"},{"name":"black pepper","amount":"1/2 teaspoon"},{"name":"ricotta cheese","amount":"15 oz"},{"name":"egg","amount":"1 large"},{"name":"fresh parsley","amount":"2 tablespoons, chopped"},{"name":"mozzarella cheese","amount":"3 cups, shredded"},{"name":"parmesan cheese","amount":"3/4 cup, grated"}],"steps":["Cook lasagna noodles according to package directions, drain and set aside","In a large skillet, cook ground beef, sausage, onion, and garlic over medium heat until meat is browned, drain excess fat","Add crushed tomatoes, tomato paste, water, sugar, basil, Italian seasoning, salt, and pepper to the meat mixture, simmer for 30 minutes, stirring occasionally","In a bowl, combine ricotta cheese, egg, and parsley, mix well","Preheat oven to 375°F (190°C)","Spread 1 cup of meat sauce in the bottom of a 9x13 inch baking dish","Layer 4 lasagna noodles over the sauce","Spread half of the ricotta mixture over the noodles","Sprinkle with 1 cup mozzarella and 1/4 cup parmesan cheese","Top with 1 1/2 cups meat sauce","Repeat layers once more: 4 noodles, remaining ricotta mixture, 1 cup mozzarella, 1/4 cup parmesan, 1 1/2 cups meat sauce","Add final layer of 4 noodles, remaining meat sauce, remaining mozzarella and parmesan cheese","Cover with aluminum foil and bake for 25 minutes","Remove foil and bake an additional 25 minutes until cheese is golden and bubbly","Let stand for 15 minutes before serving"]}}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with output format (unknown model, forced)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-unknown').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'outputFormat',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-unknown",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"recipe":{"name":"Classic Lasagna","ingredients":[{"name":"lasagna noodles","amount":"12 sheets"},{"name":"ground beef","amount":"1 pound"},{"name":"Italian sausage","amount":"1/2 pound"},{"name":"onion","amount":"1 medium, diced"},{"name":"garlic","amount":"3 cloves, minced"},{"name":"crushed tomatoes","amount":"28 oz can"},{"name":"tomato paste","amount":"6 oz can"},{"name":"water","amount":"1/2 cup"},{"name":"sugar","amount":"2 tablespoons"},{"name":"dried basil","amount":"1 1/2 teaspoons"},{"name":"Italian seasoning","amount":"1 teaspoon"},{"name":"salt","amount":"1 teaspoon"},{"name":"black pepper","amount":"1/2 teaspoon"},{"name":"ricotta cheese","amount":"15 oz"},{"name":"egg","amount":"1 large"},{"name":"fresh parsley","amount":"2 tablespoons, chopped"},{"name":"mozzarella cheese","amount":"3 cups, shredded"},{"name":"parmesan cheese","amount":"3/4 cup, grated"}],"steps":["Cook lasagna noodles according to package directions, drain and set aside","In a large skillet, cook ground beef, sausage, onion, and garlic over medium heat until meat is browned, drain excess fat","Add crushed tomatoes, tomato paste, water, sugar, basil, Italian seasoning, salt, and pepper to the meat mixture, simmer for 30 minutes, stirring occasionally","In a bowl, combine ricotta cheese, egg, and parsley, mix well","Preheat oven to 375°F (190°C)","Spread 1 cup of meat sauce in the bottom of a 9x13 inch baking dish","Layer 4 lasagna noodles over the sauce","Spread half of the ricotta mixture over the noodles","Sprinkle with 1 cup mozzarella and 1/4 cup parmesan cheese","Top with 1 1/2 cups meat sauce","Repeat layers once more: 4 noodles, remaining ricotta mixture, 1 cup mozzarella, 1/4 cup parmesan, 1 1/2 cups meat sauce","Add final layer of 4 noodles, remaining meat sauce, remaining mozzarella and parmesan cheese","Cover with aluminum foil and bake for 25 minutes","Remove foil and bake an additional 25 minutes until cheese is golden and bubbly","Let stand for 15 minutes before serving"]}}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
       });
     });
 
@@ -2508,31 +2864,11 @@ describe('AnthropicMessagesLanguageModel', () => {
   });
 
   describe('doStream', () => {
-    describe('json schema response format', () => {
+    describe('json schema response format (unsupported model)', () => {
       let result: Array<LanguageModelV2StreamPart>;
 
       beforeEach(async () => {
-        server.urls['https://api.anthropic.com/v1/messages'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
-            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
-            `data: {"type": "ping"}\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
-            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
-            `data: {"type":"content_block_stop","index":0    }\n\n`,
-            `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"json","input":{}}      }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
-            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
-            `data: {"type":"content_block_stop","index":1              }\n\n`,
-            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
-            `data: {"type":"message_stop"           }\n\n`,
-          ],
-        };
+        prepareChunksFixtureResponse('anthropic-json-tool.1');
 
         const { stream } = await model.doStream({
           prompt: TEST_PROMPT,
@@ -2606,8 +2942,141 @@ describe('AnthropicMessagesLanguageModel', () => {
               "warnings": [],
             },
             {
-              "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
-              "modelId": "claude-3-haiku-20240307",
+              "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+              "modelId": "claude-haiku-4-5-20251001",
+              "type": "response-metadata",
+            },
+            {
+              "id": "0",
+              "type": "text-start",
+            },
+            {
+              "delta": "{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "delta": "}",
+              "id": "0",
+              "type": "text-delta",
+            },
+            {
+              "id": "0",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": {
+                "anthropic": {
+                  "cacheCreationInputTokens": 0,
+                  "container": null,
+                  "stopSequence": null,
+                  "usage": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 47,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": 0,
+                "inputTokens": 849,
+                "outputTokens": 47,
+                "totalTokens": 896,
+              },
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('json schema response format with text content prefix', () => {
+      let result: Array<LanguageModelV2StreamPart>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-tool.2');
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+
+        result = await convertReadableStreamToArray(stream);
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "name": "json",
+              "type": "tool",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should stream the response', async () => {
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+              "modelId": "claude-haiku-4-5-20251001",
               "type": "response-metadata",
             },
             {
@@ -2623,27 +3092,12 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text-start",
             },
             {
-              "delta": "{"value",
+              "delta": "{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]",
               "id": "1",
               "type": "text-delta",
             },
             {
-              "delta": "":",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": ""Spark",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": "le",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": " Day"}",
+              "delta": "}",
               "id": "1",
               "type": "text-delta",
             },
@@ -2655,25 +3109,136 @@ describe('AnthropicMessagesLanguageModel', () => {
               "finishReason": "stop",
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
+                  "cacheCreationInputTokens": 0,
                   "container": null,
                   "stopSequence": null,
                   "usage": {
-                    "input_tokens": 441,
-                    "output_tokens": 65,
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 47,
+                    "service_tier": "standard",
                   },
                 },
               },
               "type": "finish",
               "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 441,
-                "outputTokens": 65,
-                "totalTokens": 506,
+                "cachedInputTokens": 0,
+                "inputTokens": 849,
+                "outputTokens": 47,
+                "totalTokens": 896,
               },
             },
           ]
         `);
+      });
+    });
+
+    describe('json schema response format with output format (supported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doStream>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-sonnet-4-5').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'auto',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                characters: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      class: { type: 'string' },
+                      description: { type: 'string' },
+                    },
+                    required: ['name', 'class', 'description'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['characters'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "characters": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "class": {
+                          "type": "string",
+                        },
+                        "description": {
+                          "type": "string",
+                        },
+                        "name": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "name",
+                        "class",
+                        "description",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "characters",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+            "stream": true,
+          }
+        `);
+      });
+
+      it('should stream the text output', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
     });
 
@@ -3272,6 +3837,41 @@ describe('AnthropicMessagesLanguageModel', () => {
           "x-api-key": "test-api-key",
         }
       `);
+    });
+
+    it('should merge custom anthropic-beta header with automatic beta header', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({
+        apiKey: 'test-api-key',
+        headers: { 'anthropic-beta': 'CONFIG-beta1,config-beta2' },
+      });
+
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        headers: { 'anthropic-beta': 'REQUEST-beta1,request-beta2' },
+        providerOptions: {
+          anthropic: {
+            effort: 'low', // triggers automatic effort-2025-11-24 beta header
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(
+        server.calls[0].requestHeaders['anthropic-beta'],
+      ).toMatchInlineSnapshot(
+        `"effort-2025-11-24,config-beta1,config-beta2,request-beta1,request-beta2"`,
+      );
     });
 
     it('should support cache control', async () => {

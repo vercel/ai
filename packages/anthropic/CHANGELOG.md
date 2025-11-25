@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 2.0.49
+
+### Patch Changes
+
+- dcdfeb7: Retain user-supplied betas.
+
+## 2.0.48
+
+### Patch Changes
+
+- f2c6cbd: feat(provider/anthropic): Anthropic-native structured outputs
+
 ## 2.0.47
 
 ### Patch Changes

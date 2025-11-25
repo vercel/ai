@@ -60,6 +60,21 @@ export type AnthropicFilePartProviderOptions = z.infer<
 export const anthropicProviderOptions = z.object({
   sendReasoning: z.boolean().optional(),
 
+  /**
+   * Determines how structured outputs are generated.
+   *
+   * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
+   * - `jsonTool`: Use a special 'json' tool to specify the structured output format (default).
+   * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool'.
+   */
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
+
+  /**
+   * Configuration for enabling Claude's extended thinking.
+   *
+   * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
+   * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
+   */
   thinking: z
     .object({
       type: z.union([z.literal('enabled'), z.literal('disabled')]),
