@@ -23,7 +23,7 @@ Embed a value using an embedding model. The type of the value is defined by the 
 
 @returns A result object that contains the embedding, the value, and additional information.
  */
-export async function embed<VALUE = string>({
+export async function embed({
   model: modelArg,
   value,
   providerOptions,
@@ -35,12 +35,12 @@ export async function embed<VALUE = string>({
   /**
 The embedding model to use.
      */
-  model: EmbeddingModel<VALUE>;
+  model: EmbeddingModel;
 
   /**
 The value that should be embedded.
    */
-  value: VALUE;
+  value: string;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -71,8 +71,8 @@ Only applicable for HTTP-based providers.
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
-}): Promise<EmbedResult<VALUE>> {
-  const model = resolveEmbeddingModel<VALUE>(modelArg);
+}): Promise<EmbedResult<string>> {
+  const model = resolveEmbeddingModel(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
