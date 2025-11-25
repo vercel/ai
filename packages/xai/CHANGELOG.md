@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.37
+
+### Patch Changes
+
+- 864881c: Fix Responses API validation errors for server-side tools (web_search, x_search, code_execution). Add missing custom_tool_call type and streaming event schemas.
+
 ## 2.0.36
 
 ### Patch Changes
