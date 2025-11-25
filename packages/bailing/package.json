@@ -1,0 +1,72 @@
+{
+  "name": "@ai-sdk/bailing",
+  "version": "0.0.0",
+  "description": "AI SDK provider for Bailing AI models",
+  "keywords": [
+    "ai",
+    "sdk",
+    "bailing",
+    "ai-sdk",
+    "ai-sdk-provider"
+  ],
+  "license": "Apache-2.0",
+  "files": [
+    "dist/**/*",
+    "internal.d.ts"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist",
+    "dev": "tsup --watch",
+    "lint": "eslint src/**/*.ts",
+    "test": "pnpm test:node && pnpm test:edge",
+    "test:edge": "vitest --config vitest.edge.config.js --run",
+    "test:node": "vitest --config vitest.node.config.js --run"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./internal": {
+      "types": "./dist/internal.d.ts",
+      "import": "./dist/internal.mjs",
+      "require": "./dist/internal.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*",
+    "ai": "workspace:^"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.64",
+    "@vitest/coverage-v8": "^2.1.8",
+    "tsup": "^8.3.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "homepage": "https://sdk.vercel.ai/docs"
+}
