@@ -471,9 +471,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               text: contentPart.text,
               providerMetadata: {
                 [providerKey]: {
-                  openai: {
-                    itemId: part.id,
-                  },
+                  itemId: part.id,
                 },
               },
             });
