@@ -119,7 +119,7 @@ const { image } = await generateImage({
                 'A function that returns a language model by its id.',
             },
             {
-              name: '.embeddingModel',
+              name: 'embeddingModel',,
               type: '(id: string) => EmbeddingModel<string>',
               description:
                 'A function that returns a text embedding model by its id.',
@@ -167,7 +167,7 @@ The `createProviderRegistry` function returns a `Provider` instance. It has the 
         'A function that returns a language model by its id (format: providerId:modelId)',
     },
     {
-      name: '.embeddingModel',
+      name: 'embeddingModel',,
       type: '(id: string) => EmbeddingModel<string>',
       description:
         'A function that returns a text embedding model by its id (format: providerId:modelId)',
