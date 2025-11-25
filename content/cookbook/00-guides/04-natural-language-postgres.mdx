@@ -264,7 +264,6 @@ In this action, you'll use the `generateObject` function from the AI SDK which a
 ```ts filename="app/actions.ts"
 /* ...other imports... */
 import { generateObject } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 /* ...rest of the file... */
@@ -273,7 +272,7 @@ export const generateQuery = async (input: string) => {
   'use server';
   try {
     const result = await generateObject({
-      model: openai('gpt-4o'),
+      model: 'openai/gpt-4o',
       system: `You are a SQL (postgres) ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Generate the query necessary to retrieve the data the user wants: ${input}`,
       schema: z.object({
@@ -388,7 +387,7 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   'use server';
   try {
     const result = await generateObject({
-      model: openai('gpt-4o'),
+      model: 'openai/gpt-4o',
       system: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Explain the SQL query you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down the query into steps. Be concise.
 
@@ -435,7 +434,7 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   'use server';
   try {
     const result = await generateObject({
-      model: openai('gpt-4o'),
+      model: 'openai/gpt-4o',
       system: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Explain the SQL query you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down the query into steps. Be concise.
 
@@ -589,7 +588,7 @@ export const generateChartConfig = async (
 
   try {
     const { object: config } = await generateObject({
-      model: openai('gpt-4o'),
+      model: 'openai/gpt-4o',
       system: 'You are a data visualization expert.',
       prompt: `Given the following data from a SQL query result, generate the chart config that best visualises the data and answers the users query.
       For multiple groups use multi-lines.

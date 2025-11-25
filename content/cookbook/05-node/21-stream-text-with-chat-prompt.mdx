@@ -13,10 +13,9 @@ rather than have users wait for it to finish.
 
 ```ts file='index.ts'
 import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
 
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: 'openai/gpt-4o',
   maxOutputTokens: 1024,
   system: 'You are a helpful chatbot.',
   messages: [
