@@ -70,12 +70,12 @@ You can use the following optional settings to customize the Voyage provider ins
 ## Text Embedding Models
 
 You can create models that call the [Voyage embeddings API](https://docs.voyageai.com/reference/embeddings-api)
-using the `..embeddingModel()` factory method.
+using the `.embeddingModel()` factory method.
 
 ```ts
 import { voyage } from 'voyage-ai-provider';
 
-const embeddingModel = voyage..embeddingModel('voyage-3.5-lite');
+const embeddingModel = voyage.embeddingModel('voyage-3.5-lite');
 ```
 
 You can use Voyage embedding models to generate embeddings with the `embed` or `embedMany` function:
@@ -85,7 +85,7 @@ import { voyage } from 'voyage-ai-provider';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: voyage..embeddingModel('voyage-3.5-lite'),
+  model: voyage.embeddingModel('voyage-3.5-lite'),
   value: 'sunny day at the beach',
   providerOptions: {
     voyage: {
@@ -102,7 +102,7 @@ import { voyage } from 'voyage-ai-provider';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: voyage..embeddingModel('voyage-3.5-lite'),
+  model: voyage.embeddingModel('voyage-3.5-lite'),
   value: 'sunny day at the beach',
   providerOptions: {
     voyage: {

@@ -154,10 +154,10 @@ main().catch(console.error);
 ## Embedding Models
 
 You can create models that call the [Cohere embed API](https://docs.cohere.com/v2/reference/embed)
-using the `..embedding()` factory method.
+using the `.embedding()` factory method.
 
 ```ts
-const model = cohere..embedding('embed-english-v3.0');
+const model = cohere.embedding('embed-english-v3.0');
 ```
 
 You can use Cohere embedding models to generate embeddings with the `embed` function:
@@ -167,7 +167,7 @@ import { cohere } from '@ai-sdk/cohere';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: cohere..embedding('embed-english-v3.0'),
+  model: cohere.embedding('embed-english-v3.0'),
   value: 'sunny day at the beach',
   providerOptions: {
     cohere: {
@@ -184,7 +184,7 @@ import { cohere } from '@ai-sdk/cohere';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: cohere..embedding('embed-english-v3.0'),
+  model: cohere.embedding('embed-english-v3.0'),
   value: 'sunny day at the beach',
   providerOptions: {
     cohere: {

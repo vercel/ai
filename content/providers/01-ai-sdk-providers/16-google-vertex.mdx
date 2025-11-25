@@ -591,10 +591,10 @@ The following Zod features are known to not work with Google Vertex:
 
 ### Embedding Models
 
-You can create models that call the Google Vertex AI embeddings API using the `..embeddingModel()` factory method:
+You can create models that call the Google Vertex AI embeddings API using the `.embeddingModel()` factory method:
 
 ```ts
-const model = vertex..embeddingModel('text-embedding-004');
+const model = vertex.embeddingModel('text-embedding-004');
 ```
 
 Google Vertex AI embedding models support additional settings. You can pass them as an options argument:
@@ -603,7 +603,7 @@ Google Vertex AI embedding models support additional settings. You can pass them
 import { vertex } from '@ai-sdk/google-vertex';
 import { embed } from 'ai';
 
-const model = vertex..embeddingModel('text-embedding-004');
+const model = vertex.embeddingModel('text-embedding-004');
 
 const { embedding } = await embed({
   model,

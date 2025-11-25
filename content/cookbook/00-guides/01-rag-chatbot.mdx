@@ -387,7 +387,7 @@ export const createResource = async (input: NewResourceParams) => {
     await db.insert(embeddingsTable).values(
       embeddings.map(embedding => ({
         resourceId: resource.id,
-        ...embedding,
+        ..embedding,
       })),
     );
 
