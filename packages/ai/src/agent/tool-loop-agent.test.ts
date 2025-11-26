@@ -134,23 +134,22 @@ describe('ToolLoopAgent', () => {
           ]
         `);
       });
-    });
 
-    it('should pass system message instructions', async () => {
-      const agent = new ToolLoopAgent({
-        model: mockModel,
-        instructions: {
-          role: 'system',
-          content: 'INSTRUCTIONS',
-          providerOptions: { test: { value: 'test' } },
-        },
-      });
+      it('should pass system message instructions', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          instructions: {
+            role: 'system',
+            content: 'INSTRUCTIONS',
+            providerOptions: { test: { value: 'test' } },
+          },
+        });
 
-      await agent.generate({
-        prompt: 'Hello, world!',
-      });
+        await agent.generate({
+          prompt: 'Hello, world!',
+        });
 
-      expect(doGenerateOptions?.prompt).toMatchInlineSnapshot(`
+        expect(doGenerateOptions?.prompt).toMatchInlineSnapshot(`
         [
           {
             "content": "INSTRUCTIONS",
@@ -173,6 +172,7 @@ describe('ToolLoopAgent', () => {
           },
         ]
       `);
+      });
     });
   });
 
@@ -268,6 +268,79 @@ describe('ToolLoopAgent', () => {
       await result.consumeStream();
 
       expect(doStreamOptions?.abortSignal).toBe(abortController.signal);
+    });
+
+    it('should pass string instructions', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        instructions: 'INSTRUCTIONS',
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "INSTRUCTIONS",
+            "role": "system",
+          },
+          {
+            "content": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should pass system message instructions', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        instructions: {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+          providerOptions: { test: { value: 'test' } },
+        },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.prompt).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "INSTRUCTIONS",
+          "providerOptions": {
+            "test": {
+              "value": "test",
+            },
+          },
+          "role": "system",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "providerOptions": undefined,
+          "role": "user",
+        },
+      ]
+    `);
     });
   });
 });
