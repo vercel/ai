@@ -437,35 +437,37 @@ describe('Warnings for unsupported models', () => {
     ['gemini-2.0-flash-001'],
     ['gemini-2.0-flash-exp'],
     ['gemini-2.5-flash-image-preview'],
-  ])('should add warnings for URL Context on unsupported models', async () => {
-    const result = prepareTools({
-      tools: [
-        {
-          type: 'provider-defined',
-          id: 'google.url_context',
-          name: 'url_context',
-          args: {},
-        },
-      ],
-      modelId: 'gemini-2.0-flash-lite',
-    });
+  ])(
+    'should add warnings for URL Context on unsupported models',
+    async modelId => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.url_context',
+            name: 'url_context',
+            args: {},
+          },
+        ],
+        modelId: modelId,
+      });
 
-    expect(result.tools).toBeUndefined();
-    expect(result.toolConfig).toBeUndefined();
-    expect(result.toolWarnings).toEqual([
-      {
-        details:
-          'The URL context tool is not supported on the following models: gemini-2.0-flash-lite, gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-exp, gemini-2.5-flash-image-preview. Current model: gemini-2.0-flash-lite',
-        tool: {
-          args: {},
-          id: 'google.url_context',
-          name: 'url_context',
-          type: 'provider-defined',
+      expect(result.tools).toBeUndefined();
+      expect(result.toolConfig).toBeUndefined();
+      expect(result.toolWarnings).toEqual([
+        {
+          details: `The URL context tool is not supported on the following models: gemini-2.0-flash-lite, gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-exp, gemini-2.5-flash-image-preview. Current model: ${modelId}`,
+          tool: {
+            args: {},
+            id: 'google.url_context',
+            name: 'url_context',
+            type: 'provider-defined',
+          },
+          type: 'unsupported-tool',
         },
-        type: 'unsupported-tool',
-      },
-    ]);
-  });
+      ]);
+    },
+  );
 
   it('should add warnings for code execution on unsupported models', async () => {
     const result = prepareTools({
