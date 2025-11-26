@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- 1d0de66: refactoring(provider/openai): simplify code
+
 ## 3.0.0-beta.68
 
 ### Patch Changes
