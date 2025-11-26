@@ -154,6 +154,11 @@ describe('ToolLoopAgent', () => {
         [
           {
             "content": "INSTRUCTIONS",
+            "providerOptions": {
+              "test": {
+                "value": "test",
+              },
+            },
             "role": "system",
           },
           {

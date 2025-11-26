@@ -68,8 +68,6 @@ export class ToolLoopAgent<
 
     const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
 
-    // TODO figure out how to handle different instruction types
-
     return {
       ...callArgs,
 
