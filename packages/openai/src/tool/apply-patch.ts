@@ -6,48 +6,31 @@ import {
 import { z } from 'zod/v4';
 
 /**
- * Schema for the create_file operation.
- */
-const createFileOperationSchema = z.object({
-  type: z.literal('create_file'),
-  path: z.string(),
-  diff: z.string(),
-});
-
-/**
- * Schema for the delete_file operation.
- */
-const deleteFileOperationSchema = z.object({
-  type: z.literal('delete_file'),
-  path: z.string(),
-});
-
-/**
- * Schema for the update_file operation.
- */
-const updateFileOperationSchema = z.object({
-  type: z.literal('update_file'),
-  path: z.string(),
-  diff: z.string(),
-});
-
-/**
- * Combined operation schema (discriminated union).
- */
-const operationSchema = z.discriminatedUnion('type', [
-  createFileOperationSchema,
-  deleteFileOperationSchema,
-  updateFileOperationSchema,
-]);
-
-/**
  * Schema for the apply_patch input - what the model sends.
+ * 
+ * Refer the official spec here: https://platform.openai.com/docs/api-reference/responses/create#responses_create-input-input_item_list-item-apply_patch_tool_call
+ * 
  */
 export const applyPatchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
       callId: z.string(),
-      operation: operationSchema,
+      operation: z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('create_file'),
+          path: z.string(),
+          diff: z.string(),
+        }),
+        z.object({
+          type: z.literal('delete_file'),
+          path: z.string(),
+        }),
+        z.object({
+          type: z.literal('update_file'),
+          path: z.string(),
+          diff: z.string(),
+        }),
+      ]),
     }),
   ),
 );
@@ -114,19 +97,6 @@ export type ApplyPatchOperation =
  * - Receives patch operations from the model (create_file, update_file, delete_file)
  * - Returns the status of applying those patches (completed or failed)
  *
- * @example
- * ```ts
- * import { openai } from '@ai-sdk/openai';
- * import { generateText } from 'ai';
- *
- * const result = await generateText({
- *   model: openai.responses('gpt-5.1'),
- *   tools: {
- *     apply_patch: openai.tools.applyPatch(),
- *   },
- *   prompt: 'Rename the function foo() to bar() in src/utils.ts',
- * });
- * ```
  */
 export const applyPatchToolFactory =
   createProviderDefinedToolFactoryWithOutputSchema<

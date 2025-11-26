@@ -1010,20 +1010,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: value.item.call_id,
                 };
 
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.call_id,
-                  toolName: 'apply_patch',
-                  input: JSON.stringify({
-                    callId: value.item.call_id,
-                    operation: value.item.operation,
-                  } satisfies InferSchema<typeof applyPatchInputSchema>),
-                  providerMetadata: {
-                    [providerKey]: {
-                      itemId: value.item.id,
+                // Only emit tool-call when status is 'completed' to ensure we have the complete diff
+                if (value.item.status === 'completed') {
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: value.item.call_id,
+                    toolName: 'apply_patch',
+                    input: JSON.stringify({
+                      callId: value.item.call_id,
+                      operation: value.item.operation,
+                    } satisfies InferSchema<typeof applyPatchInputSchema>),
+                    providerMetadata: {
+                      [providerKey]: {
+                        itemId: value.item.id,
+                      },
                     },
-                  },
-                });
+                  });
+                }
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
@@ -1197,6 +1200,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       : {}),
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
+              } else if (value.item.type === 'apply_patch_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                // Emit the final tool-call with complete diff when status is 'completed'
+                if (value.item.status === 'completed') {
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: value.item.call_id,
+                    toolName: 'apply_patch',
+                    input: JSON.stringify({
+                      callId: value.item.call_id,
+                      operation: value.item.operation,
+                    } satisfies InferSchema<typeof applyPatchInputSchema>),
+                    providerMetadata: {
+                      [providerKey]: {
+                        itemId: value.item.id,
+                      },
+                    },
+                  });
+                }
               } else if (value.item.type === 'mcp_approval_request') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -1233,11 +1256,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     [providerKey]: { itemId: value.item.id },
                   },
                 });
-              } else if (value.item.type === 'apply_patch_call') {
-                ongoingToolCalls[value.output_index] = undefined;
-
-                // The tool call was already emitted in the 'added' event
-                // for apply_patch_call, we just clear the ongoing tool call
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
 
