@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, Experimental_Warning } from 'ai';
+import { generateText, type Warning } from 'ai';
 import 'dotenv/config';
 
 // globalThis.AI_SDK_LOG_WARNINGS = false;
