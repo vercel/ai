@@ -4,10 +4,7 @@ import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-err
 import { logWarnings } from '../logger/log-warnings';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import {
-  TranscriptionWarning,
-  TranscriptionModel,
-} from '../types/transcription-model';
+import { TranscriptionModel } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,

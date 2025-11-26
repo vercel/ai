@@ -75,7 +75,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV3 {
     speed,
     providerOptions,
   }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const elevenLabsOptions = await parseProviderOptions({
@@ -199,8 +199,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV3 {
 
     if (instructions) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'instructions',
+        type: 'unsupported',
+        feature: 'instructions',
         details: `ElevenLabs speech models do not support instructions. Instructions parameter was ignored.`,
       });
     }
