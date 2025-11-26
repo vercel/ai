@@ -1,5 +1,14 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
 ## 1.0.0-beta.7
 
 ### Patch Changes
