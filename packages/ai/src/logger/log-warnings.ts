@@ -1,8 +1,31 @@
 import { Warning } from '../types';
 
+/**
+ * A function for logging warnings.
+ *
+ * You can assign it to the `AI_SDK_LOG_WARNINGS` global variable to use it as the default warning logger.
+ *
+ * @example
+ * ```ts
+ * globalThis.AI_SDK_LOG_WARNINGS = (options) => {
+ *   console.log('WARNINGS:', options.warnings, options.provider, options.model);
+ * };
+ * ```
+ */
 export type LogWarningsFunction = (options: {
+  /**
+   * The warnings returned by the model provider.
+   */
   warnings: Warning[];
+
+  /**
+   * The provider id used for the call.
+   */
   provider: string;
+
+  /**
+   * The model id used for the call.
+   */
   model: string;
 }) => void;
 
