@@ -13,7 +13,6 @@ When building a chatbot, you may want to allow the user to generate an image. Th
 Let's create an endpoint at `/api/chat` that generates the assistant's response based on the conversation history. You will also define a tool called `generateImage` that will generate an image based on the assistant's response.
 
 ```typescript filename='tools/generate-image.ts'
-import { openai } from '@ai-sdk/openai';
 import { experimental_generateImage, tool } from 'ai';
 import z from 'zod';
 
@@ -34,7 +33,6 @@ export const generateImage = tool({
 ```
 
 ```typescript filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   type InferUITools,
@@ -55,7 +53,7 @@ export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     tools,

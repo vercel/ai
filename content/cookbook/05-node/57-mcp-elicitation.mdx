@@ -17,7 +17,6 @@ import {
   experimental_createMCPClient as createMCPClient,
   ElicitationRequestSchema,
 } from '@ai-sdk/mcp';
-import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 // Create the MCP client with elicitation capability enabled
@@ -54,7 +53,7 @@ try {
   const tools = await mcpClient.tools();
 
   const { text } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: 'openai/gpt-4o-mini',
     tools,
     prompt: 'Register a new user account',
   });

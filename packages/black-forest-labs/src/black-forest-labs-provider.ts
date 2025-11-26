@@ -16,7 +16,7 @@ Black Forest Labs API key. Default value is taken from the `BFL_API_KEY` environ
   apiKey?: string;
 
   /**
-Base URL for the API calls. Defaults to `https://api.bfl.ai/v1`. 
+Base URL for the API calls. Defaults to `https://api.bfl.ai/v1`.
    */
   baseURL?: string;
 
@@ -87,16 +87,16 @@ export function createBlackForestLabs(
     specificationVersion: 'v3',
     imageModel: createImageModel,
     image: createImageModel,
-    languageModel: () => {
+    languageModel: (modelId: string) => {
       throw new NoSuchModelError({
-        modelId: 'languageModel',
+        modelId,
         modelType: 'languageModel',
       });
     },
-    textEmbeddingModel: () => {
+    embeddingModel: (modelId: string) => {
       throw new NoSuchModelError({
-        modelId: 'textEmbeddingModel',
-        modelType: 'textEmbeddingModel',
+        modelId,
+        modelType: 'embeddingModel',
       });
     },
   };

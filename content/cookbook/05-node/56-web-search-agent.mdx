@@ -21,17 +21,17 @@ There are several models that offer native web-searching capabilities (Perplexit
 
 ### OpenAI Responses API
 
-OpenAI's Responses API has a built-in web search tool that can be used to search the web and return search results. This tool is called `web_search_preview` and is accessed via the `openai` provider.
+OpenAI's Responses API has a built-in web search tool that can be used to search the web and return search results. This tool is called `web_search` and is accessed via the `openai` provider.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: 'openai/gpt-5-mini',
   prompt: 'What happened in San Francisco last week?',
   tools: {
-    web_search_preview: openai.tools.webSearchPreview({}),
+    web_search: openai.tools.webSearch({}),
   },
 });
 
@@ -46,7 +46,7 @@ import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: 'openai/gpt-5-mini',
   tools: {
     web_search: openai.tools.webSearch({
       searchContextSize: 'low',
@@ -76,11 +76,10 @@ for (const toolResult of toolResults) {
 Perplexity's Sonar models combines real-time web search with natural language processing. Each response is grounded in current web data and includes detailed citations.
 
 ```ts
-import { perplexity } from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: perplexity('sonar-pro'),
+  model: 'perplexity/sonar-pro',
   prompt: 'What are the latest developments in quantum computing?',
 });
 
@@ -97,7 +96,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: 'google/gemini-2.5-flash',
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -150,10 +149,9 @@ Then, you can import and pass it into `generateText`, `streamText`, or your agen
 ```ts
 import { generateText, stepCountIs } from 'ai';
 import { webSearch } from '@exalabs/ai-sdk';
-import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: 'anthropic/claude-sonnet-4.5',
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
@@ -213,10 +211,9 @@ Then, you can import and pass the tools into `generateText`, `streamText`, or yo
 ```ts
 import { generateText, stepCountIs } from 'ai';
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
-import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: 'anthropic/claude-sonnet-4.5',
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
@@ -267,7 +264,7 @@ export const webSearch = tool({
 });
 
 const { text } = await generateText({
-  model: 'openai/gpt-4o-mini', // can be any model that supports tools
+  model: 'anthropic/claude-sonnet-4.5', // can be any model that supports tools
   prompt: 'What happened in San Francisco last week?',
   tools: {
     webSearch,
@@ -318,7 +315,7 @@ export const webSearch = tool({
 
 const main = async () => {
   const { text } = await generateText({
-    model: 'openai/gpt-4o-mini', // can be any model that supports tools
+    model: 'anthropic/claude-sonnet-4.5', // can be any model that supports tools
     prompt: 'Get the latest blog post from vercel.com/blog',
     tools: {
       webSearch,

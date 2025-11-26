@@ -1,5 +1,52 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.86
+
+### Patch Changes
+
+- 0e29b86: Add claude-opus-4-5@20251101 to Google Vertex Anthropic models
+
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/anthropic@3.0.0-beta.62
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/google@3.0.0-beta.58
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/anthropic@3.0.0-beta.61
+  - @ai-sdk/google@3.0.0-beta.57
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [6fc35cb]
+  - @ai-sdk/anthropic@3.0.0-beta.60
+
 ## 4.0.0-beta.82
 
 ### Patch Changes

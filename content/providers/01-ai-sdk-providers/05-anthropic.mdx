@@ -331,8 +331,10 @@ const result = await generateText({
 
 The minimum cacheable prompt length is:
 
-- 1024 tokens for Claude 3.7 Sonnet, Claude 3.5 Sonnet and Claude 3 Opus
-- 2048 tokens for Claude 3.5 Haiku and Claude 3 Haiku
+- 4096 tokens for Claude Opus 4.5
+- 1024 tokens for Claude Opus 4.1, Claude Opus 4, Claude Sonnet 4.5, Claude Sonnet 4, Claude Sonnet 3.7, and Claude Opus 3
+- 4096 tokens for Claude Haiku 4.5
+- 2048 tokens for Claude Haiku 3.5 and Claude Haiku 3
 
 Shorter prompts cannot be cached, even if marked with `cacheControl`. Any requests to cache fewer than this number of tokens will be processed without caching.
 

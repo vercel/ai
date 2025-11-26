@@ -63,7 +63,7 @@ describe('google-provider', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
     });
-    provider.textEmbeddingModel('embedding-001');
+    provider.embeddingModel('embedding-001');
 
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledWith(
       'embedding-001',
@@ -187,7 +187,7 @@ describe('google-provider', () => {
 
     provider.generativeAI('gemini-pro');
     provider.embedding('embedding-001');
-    provider.textEmbedding('embedding-001');
+    provider.embeddingModel('embedding-001');
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledTimes(1);
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledTimes(2);

@@ -74,11 +74,9 @@ Creates a completion model for text generation.
   completionModel(modelId: DeepInfraCompletionModelId): LanguageModelV3;
 
   /**
-Creates a text embedding model for text generation.
+Creates a embedding model for text generation.
 */
-  textEmbeddingModel(
-    modelId: DeepInfraEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV3;
 }
 
 export function createDeepInfra(
@@ -127,7 +125,7 @@ export function createDeepInfra(
       getCommonModelConfig('completion'),
     );
 
-  const createTextEmbeddingModel = (modelId: DeepInfraEmbeddingModelId) =>
+  const createEmbeddingModel = (modelId: DeepInfraEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(
       modelId,
       getCommonModelConfig('embedding'),
@@ -149,7 +147,7 @@ export function createDeepInfra(
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.languageModel = createChatModel;
-  provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
 
   return provider;
 }
