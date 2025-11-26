@@ -2,7 +2,10 @@ import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { ToolLoopAgent, InferAgentUIMessage, tool } from 'ai';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
-import { WorkspaceEditor, ApplyPatchOperation } from '@/lib/apply-patch-file-editor';
+import {
+  WorkspaceEditor,
+  ApplyPatchOperation,
+} from '@/lib/apply-patch-file-editor';
 
 // Create a workspace editor instance for the agent
 const workspaceRoot = path.join(process.cwd(), 'workspace');
@@ -26,7 +29,6 @@ export const openaiApplyPatchAgent = new ToolLoopAgent({
     apply_patch: tool({
       ...baseApplyPatchTool,
       async execute(input: { callId: string; operation: ApplyPatchOperation }) {
-        
         let result: { status: 'completed' | 'failed'; output?: string };
         switch (input.operation.type) {
           case 'create_file':
@@ -54,4 +56,3 @@ export const openaiApplyPatchAgent = new ToolLoopAgent({
 export type OpenAIApplyPatchMessage = InferAgentUIMessage<
   typeof openaiApplyPatchAgent
 >;
-

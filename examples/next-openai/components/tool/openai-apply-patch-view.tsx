@@ -287,4 +287,3 @@ export default function OpenAIApplyPatchView({
     }
   }
 }
-

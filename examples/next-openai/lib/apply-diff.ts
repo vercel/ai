@@ -406,4 +406,3 @@ export function parseDiffForVisualization(diff: string): {
 
   return { lines: orderedLines, addedLines, removedLines, contextLines };
 }
-
