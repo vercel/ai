@@ -177,48 +177,54 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('stream', () => {
-    it('should use prepareCall', async () => {
-      let doStreamOptions: LanguageModelV3CallOptions | undefined;
+    let doStreamOptions: LanguageModelV3CallOptions | undefined;
+    let mockModel: MockLanguageModelV3;
 
+    beforeEach(() => {
+      doStreamOptions = undefined;
+      mockModel = new MockLanguageModelV3({
+        doStream: async options => {
+          doStreamOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'stream-start',
+                warnings: [],
+              },
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', ' },
+              { type: 'text-delta', id: '1', delta: `world!` },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: {
+                  inputTokens: 3,
+                  outputTokens: 10,
+                  totalTokens: 13,
+                  reasoningTokens: undefined,
+                  cachedInputTokens: undefined,
+                },
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
+                },
+              },
+            ]),
+          };
+        },
+      });
+    });
+
+    it('should use prepareCall', async () => {
       const agent = new ToolLoopAgent<{ value: string }>({
-        model: new MockLanguageModelV3({
-          doStream: async options => {
-            doStreamOptions = options;
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'stream-start',
-                  warnings: [],
-                },
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                { type: 'text-start', id: '1' },
-                { type: 'text-delta', id: '1', delta: 'Hello' },
-                { type: 'text-delta', id: '1', delta: ', ' },
-                { type: 'text-delta', id: '1', delta: `world!` },
-                { type: 'text-end', id: '1' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: {
-                    inputTokens: 3,
-                    outputTokens: 10,
-                    totalTokens: 13,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
-                  },
-                  providerMetadata: {
-                    testProvider: { testKey: 'testValue' },
-                  },
-                },
-              ]),
-            };
-          },
-        }),
+        model: mockModel,
         prepareCall: ({ options, ...rest }) => {
           return {
             ...rest,
@@ -249,47 +255,9 @@ describe('ToolLoopAgent', () => {
 
     it('should pass abortSignal to streamText', async () => {
       const abortController = new AbortController();
-      let doStreamOptions: LanguageModelV3CallOptions | undefined;
 
       const agent = new ToolLoopAgent({
-        model: new MockLanguageModelV3({
-          doStream: async options => {
-            doStreamOptions = options;
-            return {
-              stream: convertArrayToReadableStream([
-                {
-                  type: 'stream-start',
-                  warnings: [],
-                },
-                {
-                  type: 'response-metadata',
-                  id: 'id-0',
-                  modelId: 'mock-model-id',
-                  timestamp: new Date(0),
-                },
-                { type: 'text-start', id: '1' },
-                { type: 'text-delta', id: '1', delta: 'Hello' },
-                { type: 'text-delta', id: '1', delta: ', ' },
-                { type: 'text-delta', id: '1', delta: `world!` },
-                { type: 'text-end', id: '1' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: {
-                    inputTokens: 3,
-                    outputTokens: 10,
-                    totalTokens: 13,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
-                  },
-                  providerMetadata: {
-                    testProvider: { testKey: 'testValue' },
-                  },
-                },
-              ]),
-            };
-          },
-        }),
+        model: mockModel,
       });
 
       const result = await agent.stream({
