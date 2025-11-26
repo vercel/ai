@@ -7,9 +7,9 @@ import { z } from 'zod/v4';
 
 /**
  * Schema for the apply_patch input - what the model sends.
- * 
+ *
  * Refer the official spec here: https://platform.openai.com/docs/api-reference/responses/create#responses_create-input-input_item_list-item-apply_patch_tool_call
- * 
+ *
  */
 export const applyPatchInputSchema = lazySchema(() =>
   zodSchema(
