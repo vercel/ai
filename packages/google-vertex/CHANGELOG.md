@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.80
+
+### Patch Changes
+
+- 4c4713d: Add claude-opus-4-5@20251101 to Google Vertex Anthropic models
+
 ## 3.0.79
 
 ### Patch Changes
