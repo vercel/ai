@@ -1,7 +1,7 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderDefinedTool,
@@ -46,6 +46,7 @@ import { stepCountIs } from './stop-condition';
 import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { features } from 'node:process';
 
 const defaultSettings = () =>
   ({
@@ -107,7 +108,7 @@ function createTestModel({
   stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV3CallWarning[];
+  warnings?: SharedV3Warning[];
 } = {}): LanguageModelV3 {
   return new MockLanguageModelV3({
     doStream: async () => ({ stream, request, response, warnings }),
@@ -14385,8 +14386,8 @@ describe('streamText', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting' as const,
-          setting: 'temperature',
+          type: 'unsupported' as const,
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];

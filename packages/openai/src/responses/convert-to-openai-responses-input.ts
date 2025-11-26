@@ -1,5 +1,5 @@
 import {
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Prompt,
   LanguageModelV3ToolCallPart,
   UnsupportedFunctionalityError,
@@ -48,10 +48,10 @@ export async function convertToOpenAIResponsesInput({
   hasApplyPatchTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
-  warnings: Array<LanguageModelV3CallWarning>;
+  warnings: Array<SharedV3Warning>;
 }> {
   const input: OpenAIResponsesInput = [];
-  const warnings: Array<LanguageModelV3CallWarning> = [];
+  const warnings: Array<SharedV3Warning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {

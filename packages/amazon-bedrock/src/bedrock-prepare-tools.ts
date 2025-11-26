@@ -1,7 +1,7 @@
 import {
   JSONObject,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
@@ -23,9 +23,9 @@ export async function prepareTools({
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
   betas: Set<string>;
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV3Warning[];
 }> {
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
   const betas = new Set<string>();
 
   if (tools == null || tools.length === 0) {
@@ -44,8 +44,8 @@ export async function prepareTools({
       tool.id === 'anthropic.web_search_20250305'
     ) {
       toolWarnings.push({
-        type: 'unsupported-tool',
-        tool,
+        type: 'unsupported',
+        feature: 'web_search_20250305 tool',
         details:
           'The web_search_20250305 tool is not supported on Amazon Bedrock.',
       });
@@ -79,8 +79,9 @@ export async function prepareTools({
   if (usingAnthropicTools) {
     if (functionTools.length > 0) {
       toolWarnings.push({
-        type: 'unsupported-setting',
-        setting: 'tools',
+        type: 'unsupported',
+        feature:
+          'mixing Anthropic provider-defined tools and standard function tools',
         details:
           'Mixed Anthropic provider-defined tools and standard function tools are not supported in a single call to Bedrock. Only Anthropic tools will be used.',
       });
@@ -125,13 +126,13 @@ export async function prepareTools({
           },
         });
       } else {
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({ type: 'unsupported', feature: 'tool ${tool.id}' });
       }
     }
   } else {
     // Report unsupported provider-defined tools for non-anthropic models
     for (const tool of providerDefinedTools) {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
+      toolWarnings.push({ type: 'unsupported', feature: `tool ${tool.id}` });
     }
   }
 

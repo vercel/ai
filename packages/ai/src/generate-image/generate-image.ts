@@ -2,22 +2,22 @@ import { ImageModelV3, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
+  DefaultGeneratedFile,
+  GeneratedFile,
+} from '../generate-text/generated-file';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveImageModel } from '../model/resolve-model';
+import type { ImageModel } from '../types/image-model';
+import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import { addImageModelUsage, ImageModelUsage } from '../types/usage';
+import { Warning } from '../types/warning';
+import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
-import {
-  DefaultGeneratedFile,
-  GeneratedFile,
-} from '../generate-text/generated-file';
-import { ImageGenerationWarning } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { GenerateImageResult } from './generate-image-result';
-import { logWarnings } from '../logger/log-warnings';
 import { VERSION } from '../version';
-import { addImageModelUsage, ImageModelUsage } from '../types/usage';
-import { resolveImageModel } from '../model/resolve-model';
-import type { ImageModel } from '../types/image-model';
+import { GenerateImageResult } from './generate-image-result';
 
 /**
 Generates images using an image model.
@@ -165,7 +165,7 @@ Only applicable for HTTP-based providers.
 
   // collect result images, warnings, and response metadata
   const images: Array<DefaultGeneratedFile> = [];
-  const warnings: Array<ImageGenerationWarning> = [];
+  const warnings: Array<Warning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
   const providerMetadata: ImageModelV3ProviderMetadata = {};
   let totalUsage: ImageModelUsage = {
@@ -244,14 +244,14 @@ Only applicable for HTTP-based providers.
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
-  readonly warnings: Array<ImageGenerationWarning>;
+  readonly warnings: Array<Warning>;
   readonly responses: Array<ImageModelResponseMetadata>;
   readonly providerMetadata: ImageModelV3ProviderMetadata;
   readonly usage: ImageModelUsage;
 
   constructor(options: {
     images: Array<GeneratedFile>;
-    warnings: Array<ImageGenerationWarning>;
+    warnings: Array<Warning>;
     responses: Array<ImageModelResponseMetadata>;
     providerMetadata: ImageModelV3ProviderMetadata;
     usage: ImageModelUsage;

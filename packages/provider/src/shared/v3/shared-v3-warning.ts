@@ -1,14 +1,24 @@
 /**
- * Warning from the model that certain features are e.g. unsupported or that compatibility
+ * Warning from the model.
+ *
+ * For example, that certain features are unsupported or compatibility
  * functionality is used (which might lead to suboptimal results).
  */
 export type SharedV3Warning =
   | {
       /**
-       * A configuration setting is not supported by the model.
+       * A feature is not supported by the model.
        */
-      type: 'unsupported-setting';
-      setting: string;
+      type: 'unsupported';
+
+      /**
+       * The feature that is not supported.
+       */
+      feature: string;
+
+      /**
+       * Additional details about the warning.
+       */
       details?: string;
     }
   | {
@@ -16,7 +26,15 @@ export type SharedV3Warning =
        * A compatibility feature is used that might lead to suboptimal results.
        */
       type: 'compatibility';
+
+      /**
+       * The feature that is used in a compatibility mode.
+       */
       feature: string;
+
+      /**
+       * Additional details about the warning.
+       */
       details?: string;
     }
   | {
@@ -24,5 +42,9 @@ export type SharedV3Warning =
        * Other warning.
        */
       type: 'other';
+
+      /**
+       * The message of the warning.
+       */
       message: string;
     };

@@ -248,18 +248,20 @@ describe('LumaImageModel', () => {
           aspectRatio: undefined,
         });
 
-        expect(result.warnings).toContainEqual({
-          type: 'unsupported-setting',
-          setting: 'seed',
-          details: 'This model does not support the `seed` option.',
-        });
-
-        expect(result.warnings).toContainEqual({
-          type: 'unsupported-setting',
-          setting: 'size',
-          details:
-            'This model does not support the `size` option. Use `aspectRatio` instead.',
-        });
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "This model does not support the \`seed\` option.",
+              "feature": "seed",
+              "type": "unsupported",
+            },
+            {
+              "details": "This model does not support the \`size\` option. Use \`aspectRatio\` instead.",
+              "feature": "size",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
     });
 

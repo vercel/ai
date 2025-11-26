@@ -3151,8 +3151,8 @@ describe('doGenerate', () => {
       [
         {
           "details": "Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.",
-          "setting": "toolContent",
-          "type": "unsupported-setting",
+          "feature": "toolContent",
+          "type": "unsupported",
         },
       ]
     `);
@@ -3365,13 +3365,15 @@ describe('doGenerate', () => {
       responseFormat: { type: 'xml' as any },
     });
 
-    expect(result.warnings).toEqual([
-      {
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
-        details: 'Only text and json response formats are supported.',
-      },
-    ]);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Only text and json response formats are supported.",
+          "feature": "responseFormat",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
@@ -3451,8 +3453,8 @@ describe('doGenerate', () => {
       [
         {
           "details": "1.5 exceeds bedrock maximum of 1.0. clamped to 1.0",
-          "setting": "temperature",
-          "type": "unsupported-setting",
+          "feature": "temperature",
+          "type": "unsupported",
         },
       ]
     `);
@@ -3473,8 +3475,8 @@ describe('doGenerate', () => {
       [
         {
           "details": "-0.5 is below bedrock minimum of 0. clamped to 0",
-          "setting": "temperature",
-          "type": "unsupported-setting",
+          "feature": "temperature",
+          "type": "unsupported",
         },
       ]
     `);

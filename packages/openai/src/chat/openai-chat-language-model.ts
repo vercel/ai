@@ -2,7 +2,7 @@ import {
   InvalidResponseDataError,
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -78,7 +78,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     toolChoice,
     providerOptions,
   }: LanguageModelV3CallOptions) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const openaiOptions =
@@ -91,10 +91,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     const structuredOutputs = openaiOptions.structuredOutputs ?? true;
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (
@@ -103,8 +100,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       !structuredOutputs
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details:
           'JSON response format schema is only supported with structuredOutputs',
       });
@@ -189,32 +186,32 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'temperature is not supported for reasoning models',
         });
       }
       if (baseArgs.top_p != null) {
         baseArgs.top_p = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topP',
+          type: 'unsupported',
+          feature: 'topP',
           details: 'topP is not supported for reasoning models',
         });
       }
       if (baseArgs.frequency_penalty != null) {
         baseArgs.frequency_penalty = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'frequencyPenalty',
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
           details: 'frequencyPenalty is not supported for reasoning models',
         });
       }
       if (baseArgs.presence_penalty != null) {
         baseArgs.presence_penalty = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'presencePenalty',
+          type: 'unsupported',
+          feature: 'presencePenalty',
           details: 'presencePenalty is not supported for reasoning models',
         });
       }
@@ -254,8 +251,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details:
             'temperature is not supported for the search preview models and has been removed.',
         });
@@ -268,8 +265,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       !supportsFlexProcessing(this.modelId)
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
+        type: 'unsupported',
+        feature: 'serviceTier',
         details:
           'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
@@ -282,8 +279,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       !supportsPriorityProcessing(this.modelId)
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
+        type: 'unsupported',
+        feature: 'serviceTier',
         details:
           'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });

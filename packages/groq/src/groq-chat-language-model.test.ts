@@ -514,14 +514,15 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(warnings).toEqual([
-      {
-        details:
-          'JSON response format schema is only supported with structuredOutputs',
-        setting: 'responseFormat',
-        type: 'unsupported-setting',
-      },
-    ]);
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "JSON response format schema is only supported with structuredOutputs",
+          "feature": "responseFormat",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should use json_schema format when structuredOutputs explicitly enabled', async () => {
@@ -747,8 +748,8 @@ describe('doGenerate', () => {
       [
         {
           "details": "JSON response format schema is only supported with structuredOutputs",
-          "setting": "responseFormat",
-          "type": "unsupported-setting",
+          "feature": "responseFormat",
+          "type": "unsupported",
         },
       ]
     `);

@@ -1,6 +1,6 @@
 import {
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
@@ -23,13 +23,13 @@ export async function prepareTools({
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV3Warning[];
   betas: Set<string>;
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
   const betas = new Set<string>();
   const validator = cacheControlValidator || new CacheControlValidator();
 
@@ -204,7 +204,10 @@ export async function prepareTools({
           }
 
           default: {
-            toolWarnings.push({ type: 'unsupported-tool', tool });
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
+            });
             break;
           }
         }
@@ -212,7 +215,10 @@ export async function prepareTools({
       }
 
       default: {
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `tool ${tool}`,
+        });
         break;
       }
     }

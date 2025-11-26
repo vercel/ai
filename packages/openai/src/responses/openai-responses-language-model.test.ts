@@ -274,13 +274,13 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([
           {
             details: 'temperature is not supported for reasoning models',
-            setting: 'temperature',
-            type: 'unsupported-setting',
+            feature: 'temperature',
+            type: 'unsupported',
           },
           {
             details: 'topP is not supported for reasoning models',
-            setting: 'topP',
-            type: 'unsupported-setting',
+            feature: 'topP',
+            type: 'unsupported',
           },
         ]);
       });
@@ -313,13 +313,13 @@ describe('OpenAIResponsesLanguageModel', () => {
           expect(warnings).toStrictEqual([
             {
               details: 'temperature is not supported for reasoning models',
-              setting: 'temperature',
-              type: 'unsupported-setting',
+              feature: 'temperature',
+              type: 'unsupported',
             },
             {
               details: 'topP is not supported for reasoning models',
-              setting: 'topP',
-              type: 'unsupported-setting',
+              feature: 'topP',
+              type: 'unsupported',
             },
           ]);
         },
@@ -617,8 +617,8 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(warnings).toStrictEqual([
           {
-            type: 'unsupported-setting',
-            setting: 'conversation',
+            type: 'unsupported',
+            feature: 'conversation',
             details:
               'conversation and previousResponseId cannot be used together',
           },
@@ -722,8 +722,8 @@ describe('OpenAIResponsesLanguageModel', () => {
 
           expect(warnings).toStrictEqual([
             {
-              type: 'unsupported-setting',
-              setting: 'reasoningEffort',
+              type: 'unsupported',
+              feature: 'reasoningEffort',
               details:
                 'reasoningEffort is not supported for non-reasoning models',
             },
@@ -1173,13 +1173,30 @@ describe('OpenAIResponsesLanguageModel', () => {
           seed: 42,
         });
 
-        expect(warnings).toStrictEqual([
-          { type: 'unsupported-setting', setting: 'topK' },
-          { type: 'unsupported-setting', setting: 'seed' },
-          { type: 'unsupported-setting', setting: 'presencePenalty' },
-          { type: 'unsupported-setting', setting: 'frequencyPenalty' },
-          { type: 'unsupported-setting', setting: 'stopSequences' },
-        ]);
+        expect(warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "feature": "topK",
+              "type": "unsupported",
+            },
+            {
+              "feature": "seed",
+              "type": "unsupported",
+            },
+            {
+              "feature": "presencePenalty",
+              "type": "unsupported",
+            },
+            {
+              "feature": "frequencyPenalty",
+              "type": "unsupported",
+            },
+            {
+              "feature": "stopSequences",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
 
       it('should extract logprobs in providerMetadata', async () => {

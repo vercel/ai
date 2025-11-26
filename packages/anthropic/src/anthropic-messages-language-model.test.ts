@@ -146,23 +146,25 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
 
-        expect(result.warnings).toStrictEqual([
-          {
-            type: 'unsupported-setting',
-            setting: 'temperature',
-            details: 'temperature is not supported when thinking is enabled',
-          },
-          {
-            type: 'unsupported-setting',
-            details: 'topK is not supported when thinking is enabled',
-            setting: 'topK',
-          },
-          {
-            type: 'unsupported-setting',
-            details: 'topP is not supported when thinking is enabled',
-            setting: 'topP',
-          },
-        ]);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "temperature is not supported when thinking is enabled",
+              "feature": "temperature",
+              "type": "unsupported",
+            },
+            {
+              "details": "topK is not supported when thinking is enabled",
+              "feature": "topK",
+              "type": "unsupported",
+            },
+            {
+              "details": "topP is not supported when thinking is enabled",
+              "feature": "topP",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
 
       it('should extract reasoning response', async () => {
@@ -878,8 +880,8 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(warnings).toMatchInlineSnapshot(`
         [
           {
-            "setting": "frequencyPenalty",
-            "type": "unsupported-setting",
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
           },
         ]
       `);
@@ -915,8 +917,8 @@ describe('AnthropicMessagesLanguageModel', () => {
         [
           {
             "details": "999999 (maxOutputTokens + thinkingBudget) is greater than claude-haiku-4-5 64000 max output tokens. The max output tokens have been limited to 64000.",
-            "setting": "maxOutputTokens",
-            "type": "unsupported-setting",
+            "feature": "maxOutputTokens",
+            "type": "unsupported",
           },
         ]
       `);
@@ -2895,8 +2897,8 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "details": "1.5 exceeds anthropic maximum of 1.0. clamped to 1.0",
-              "setting": "temperature",
-              "type": "unsupported-setting",
+              "feature": "temperature",
+              "type": "unsupported",
             },
           ]
         `);
@@ -2917,8 +2919,8 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "details": "-0.5 is below anthropic minimum of 0. clamped to 0",
-              "setting": "temperature",
-              "type": "unsupported-setting",
+              "feature": "temperature",
+              "type": "unsupported",
             },
           ]
         `);

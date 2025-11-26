@@ -1,6 +1,6 @@
 import {
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { applyPatchArgsSchema } from '../tool/apply-patch';
@@ -35,12 +35,12 @@ export async function prepareResponsesTools({
     | { type: 'mcp' }
     | { type: 'image_generation' }
     | { type: 'apply_patch' };
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV3Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -206,7 +206,10 @@ export async function prepareResponsesTools({
         break;
       }
       default:
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `function tool ${tool}`,
+        });
         break;
     }
   }

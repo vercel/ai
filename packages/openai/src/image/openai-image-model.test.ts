@@ -127,18 +127,19 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    expect(result.warnings).toStrictEqual([
-      {
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
-        details:
-          'This model does not support aspect ratio. Use `size` instead.',
-      },
-      {
-        type: 'unsupported-setting',
-        setting: 'seed',
-      },
-    ]);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "This model does not support aspect ratio. Use \`size\` instead.",
+          "feature": "aspectRatio",
+          "type": "unsupported",
+        },
+        {
+          "feature": "seed",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should respect maxImagesPerCall setting', async () => {

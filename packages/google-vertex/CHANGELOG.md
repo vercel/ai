@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/anthropic@3.0.0-beta.63
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/google@3.0.0-beta.59
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
 ## 4.0.0-beta.86
 
 ### Patch Changes
