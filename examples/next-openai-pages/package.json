@@ -15,7 +15,7 @@
     "next": "^15.5.7",
     "react": "^18",
     "react-dom": "^18",
-    "streamdown": "^1.6.5",
+    "streamdown": "^1.6.8",
     "zod": "3.25.76"
   },
   "devDependencies": {
