@@ -82,7 +82,7 @@ describe('google-vertex-anthropic-provider', () => {
   it('should throw NoSuchModelError for textEmbeddingModel', () => {
     const provider = createVertexAnthropic({ project: 'test-project' });
 
-    expect(() => provider.textEmbeddingModel('invalid-model-id')).toThrow(
+    expect(() => provider.embeddingModel('invalid-model-id')).toThrow(
       NoSuchModelError,
     );
   });
@@ -173,6 +173,25 @@ describe('google-vertex-anthropic-provider', () => {
       expect.objectContaining({
         baseURL:
           'https://us-east5-aiplatform.googleapis.com/v1/projects/test-project/locations/us-east5/publishers/anthropic/models',
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
+
+  it('should support combining tools with structured outputs (inherited from Anthropic)', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'us-east5',
+    });
+
+    // Create a model instance
+    const model = provider('claude-3-5-sonnet-v2@20241022');
+
+    // Verify the model was created using AnthropicMessagesLanguageModel
+    // which already supports combining tools with structured outputs
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'claude-3-5-sonnet-v2@20241022',
+      expect.objectContaining({
         provider: 'vertex.anthropic.messages',
       }),
     );

@@ -13,7 +13,7 @@ async function main() {
   });
 
   const { embedding, usage } = await embed({
-    model: baseten.textEmbeddingModel(),
+    model: baseten.embeddingModel(),
     value: 'sunny day at the beach',
   });
 

@@ -1,5 +1,73 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- d86b52f: distinguish between OpenAI and Azure in Responses API providerMetadata
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- 38a4035: added support for external_web_access parameter on web_search tool
+
+## 3.0.0-beta.64
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 3.0.0-beta.63
+
+### Patch Changes
+
+- 423ba08: Set the annotations from the Responses API to doStream
+
+## 3.0.0-beta.62
+
+### Patch Changes
+
+- 64aa48f: Azure OpenAI enabled web-search-preview
+
+## 3.0.0-beta.61
+
+### Patch Changes
+
+- 23f132b: fix: error schema for Responses API
+
 ## 3.0.0-beta.60
 
 ### Patch Changes

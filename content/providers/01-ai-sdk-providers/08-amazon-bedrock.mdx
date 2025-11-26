@@ -442,6 +442,25 @@ console.log(text); // text response
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+## Extended Context Window
+
+Claude Sonnet 4 models on Amazon Bedrock support an extended context window of up to 1 million tokens when using the `context-1m-2025-08-07` beta feature.
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+  prompt: 'analyze this large document...',
+  providerOptions: {
+    bedrock: {
+      anthropicBeta: ['context-1m-2025-08-07'],
+    },
+  },
+});
+```
+
 ## Computer Use
 
 Via Anthropic, Amazon Bedrock provides three provider-defined tools that can be used to interact with external systems:
@@ -678,10 +697,10 @@ These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-202
 ## Embedding Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
-using the `.textEmbedding()` factory method.
+using the `.embedding()` factory method.
 
 ```ts
-const model = bedrock.textEmbedding('amazon.titan-embed-text-v1');
+const model = bedrock.embedding('amazon.titan-embed-text-v1');
 ```
 
 Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several additional settings.
@@ -691,7 +710,7 @@ You can pass them as an options argument:
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
-const model = bedrock.textEmbedding('amazon.titan-embed-text-v2:0');
+const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
 
 const { embedding } = await embed({
   model,

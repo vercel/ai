@@ -1,5 +1,91 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.63
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 2.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- e8694af: feat(provider/gateway): Server-side image request splitting
+
+## 2.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- 5dd4c6a: fix(provider/gateway): Fix Gateway image model provider options not passing through
+
+## 2.0.0-beta.58
+
+### Patch Changes
+
+- 1425df5: feat(provider/gateway): Add Imagen 4 Ultra Generate to model string autocomplete list
+
+## 2.0.0-beta.57
+
+### Patch Changes
+
+- bca7e61: feat(provider/gateway): Change default maxImagesPerCall per-provider
+
+## 2.0.0-beta.56
+
+### Patch Changes
+
+- 2d166e4: feat(provider/gateway): add support for image models
+
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- cc5170d: feat(provider/gateway): update gateway model string autocomplete
+
+## 2.0.0-beta.54
+
+### Patch Changes
+
+- 5f66123: chore(provider/gateway): Update gateway language model settings
+
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- 3782645: bump `@vercel/oidc` to 3.0.5
+
 ## 2.0.0-beta.52
 
 ### Patch Changes
