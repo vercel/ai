@@ -41,8 +41,8 @@ export async function standardizePrompt(
   if (
     prompt.system != null &&
     typeof prompt.system !== 'string' &&
-    'type' in prompt.system &&
-    prompt.system.type !== 'system'
+    'role' in prompt.system &&
+    prompt.system.role !== 'system'
   ) {
     throw new InvalidPromptError({
       prompt,
