@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, type Warning } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 // globalThis.AI_SDK_LOG_WARNINGS = false;
 
@@ -8,7 +8,7 @@ import 'dotenv/config';
 //   console.log('WARNINGS:', warnings);
 // };
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: openai('gpt-5-nano'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -16,6 +16,4 @@ async function main() {
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});
