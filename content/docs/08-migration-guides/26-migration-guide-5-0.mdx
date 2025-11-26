@@ -3224,7 +3224,7 @@ Search Grounding is now called "Google Search" and is now a provider defined too
 
 ```tsx filename="AI SDK 4.0"
 const { text, providerMetadata } = await generateText({
-  model: google('gemini-1.5-pro', {
+  model: google('gemini-2.5-pro', {
     useSearchGrounding: true,
   }),
   prompt: 'List the top 5 San Francisco news from the past week.',
@@ -3234,7 +3234,7 @@ const { text, providerMetadata } = await generateText({
 ```tsx filename="AI SDK 5.0"
 import { google } from '@ai-sdk/google';
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-1.5-pro'),
+  model: google('gemini-2.5-pro'),
   prompt:
     'List the top 5 San Francisco news from the past week.'
   tools: {

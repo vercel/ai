@@ -232,10 +232,10 @@ You can use the following optional settings to customize the provider instance:
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-1.5-pro`.
+The first argument is the model id, e.g. `gemini-2.5-pro`.
 
 ```ts
-const model = vertex('gemini-1.5-pro');
+const model = vertex('gemini-2.5-pro');
 ```
 
 <Note>
@@ -249,7 +249,7 @@ of the [standard call settings](/docs/ai-sdk-core/settings). You can pass them a
 an options argument:
 
 ```ts
-const model = vertex('gemini-1.5-pro');
+const model = vertex('gemini-2.5-pro');
 
 await generateText({
   model,
@@ -324,7 +324,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-pro'),
+  model: vertex('gemini-2.5-pro'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -456,7 +456,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-pro'),
+  model: vertex('gemini-2.5-pro'),
   messages: [
     {
       role: 'user',
@@ -544,7 +544,7 @@ You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
 const result = await generateObject({
-  model: vertex('gemini-1.5-pro'),
+  model: vertex('gemini-2.5-pro'),
   providerOptions: {
     google: {
       structuredOutputs: false,
@@ -579,8 +579,6 @@ The following Zod features are known to not work with Google Vertex:
 | ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gemini-2.0-flash-001` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.0-flash-exp` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Google Vertex AI
