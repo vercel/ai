@@ -536,7 +536,7 @@ class CustomChatLanguageModel implements LanguageModelV3 {
 
   // Convert AI SDK prompt to provider format
   private getArgs(options: LanguageModelV3CallOptions) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Map messages to provider format
     const messages = this.convertToProviderMessages(options.prompt);
@@ -692,7 +692,7 @@ private convertToProviderMessages(prompt: LanguageModelV3Prompt) {
 Create a streaming transformer that converts provider chunks to AI SDK stream parts:
 
 ```ts filename="custom-chat-language-model.ts#L150-200"
-private createTransformer(warnings: LanguageModelV3CallWarning[]) {
+private createTransformer(warnings: SharedV3Warning[]) {
   let isFirstChunk = true;
 
   return new TransformStream<ParsedChunk, LanguageModelV3StreamPart>({

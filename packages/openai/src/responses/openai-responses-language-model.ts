@@ -1,7 +1,7 @@
 import {
   APICallError,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3ProviderDefinedTool,
@@ -86,33 +86,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     toolChoice,
     responseFormat,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const modelConfig = getResponsesModelConfig(this.modelId);
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
+      warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
     if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
     if (stopSequences != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     const openaiOptions = await parseProviderOptions({
@@ -123,8 +117,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'conversation',
+        type: 'unsupported',
+        feature: 'conversation',
         details: 'conversation and previousResponseId cannot be used together',
       });
     }
@@ -263,8 +257,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'temperature is not supported for reasoning models',
         });
       }
@@ -272,24 +266,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       if (baseArgs.top_p != null) {
         baseArgs.top_p = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topP',
+          type: 'unsupported',
+          feature: 'topP',
           details: 'topP is not supported for reasoning models',
         });
       }
     } else {
       if (openaiOptions?.reasoningEffort != null) {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'reasoningEffort',
+          type: 'unsupported',
+          feature: 'reasoningEffort',
           details: 'reasoningEffort is not supported for non-reasoning models',
         });
       }
 
       if (openaiOptions?.reasoningSummary != null) {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'reasoningSummary',
+          type: 'unsupported',
+          feature: 'reasoningSummary',
           details: 'reasoningSummary is not supported for non-reasoning models',
         });
       }
@@ -301,8 +295,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       !modelConfig.supportsFlexProcessing
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
+        type: 'unsupported',
+        feature: 'serviceTier',
         details:
           'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
@@ -316,8 +310,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       !modelConfig.supportsPriorityProcessing
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
+        type: 'unsupported',
+        feature: 'serviceTier',
         details:
           'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });

@@ -316,8 +316,8 @@ describe('XaiResponsesLanguageModel', () => {
         expect(result.warnings).toMatchInlineSnapshot(`
           [
             {
-              "setting": "stopSequences",
-              "type": "unsupported-setting",
+              "feature": "stopSequences",
+              "type": "unsupported",
             },
           ]
         `);

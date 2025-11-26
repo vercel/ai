@@ -1,6 +1,5 @@
 export * from './language-model-v3';
 export * from './language-model-v3-call-options';
-export * from './language-model-v3-call-warning';
 export * from './language-model-v3-content';
 export * from './language-model-v3-data-content';
 export * from './language-model-v3-file';

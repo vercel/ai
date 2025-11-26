@@ -1,6 +1,6 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -60,27 +60,18 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
     seed,
     providerOptions,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     if (seed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
+      warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     return {

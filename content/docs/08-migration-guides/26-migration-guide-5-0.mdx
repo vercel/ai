@@ -2790,7 +2790,7 @@ type LanguageModelV3StreamPart =
     }
 
   // Stream lifecycle events
-  | { type: 'stream-start'; warnings: Array<LanguageModelV3CallWarning> }
+  | { type: 'stream-start'; warnings: Array<SharedV3Warning> }
   | {
       type: 'finish';
       usage: LanguageModelV3Usage;

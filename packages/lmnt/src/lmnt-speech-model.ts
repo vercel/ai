@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -103,7 +103,7 @@ export class LMNTSpeechModel implements SpeechModelV3 {
     language,
     providerOptions,
   }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const lmntOptions = await parseProviderOptions({
@@ -126,8 +126,8 @@ export class LMNTSpeechModel implements SpeechModelV3 {
         requestBody.response_format = outputFormat;
       } else {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'outputFormat',
+          type: 'unsupported',
+          feature: 'outputFormat',
           details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`,
         });
       }

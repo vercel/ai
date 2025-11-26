@@ -246,24 +246,24 @@ describe('HuggingFaceResponsesLanguageModel', () => {
         expect(warnings).toMatchInlineSnapshot(`
           [
             {
-              "setting": "topK",
-              "type": "unsupported-setting",
+              "feature": "topK",
+              "type": "unsupported",
             },
             {
-              "setting": "seed",
-              "type": "unsupported-setting",
+              "feature": "seed",
+              "type": "unsupported",
             },
             {
-              "setting": "presencePenalty",
-              "type": "unsupported-setting",
+              "feature": "presencePenalty",
+              "type": "unsupported",
             },
             {
-              "setting": "frequencyPenalty",
-              "type": "unsupported-setting",
+              "feature": "frequencyPenalty",
+              "type": "unsupported",
             },
             {
-              "setting": "stopSequences",
-              "type": "unsupported-setting",
+              "feature": "stopSequences",
+              "type": "unsupported",
             },
           ]
         `);
@@ -799,8 +799,8 @@ describe('HuggingFaceResponsesLanguageModel', () => {
       expect(warnings).toMatchInlineSnapshot(`
         [
           {
-            "setting": "tool messages",
-            "type": "unsupported-setting",
+            "feature": "tool messages",
+            "type": "unsupported",
           },
         ]
       `);

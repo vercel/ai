@@ -1,6 +1,6 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -66,7 +66,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // parse xai-specific provider options
     const options =
@@ -78,31 +78,19 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
     // check for unsupported parameters
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
     if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     // convert ai sdk messages to xai format

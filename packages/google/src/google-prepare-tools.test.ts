@@ -121,13 +121,33 @@ it('should add warnings for unsupported tools', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "tool": {
-          "args": {},
-          "id": "unsupported.tool",
-          "name": "unsupported_tool",
-          "type": "provider-defined",
-        },
-        "type": "unsupported-tool",
+        "feature": "provider-defined tool unsupported.tool",
+        "type": "unsupported",
+      },
+    ]
+  `);
+});
+
+it('should add warnings for file search on unsupported models', () => {
+  const tool: LanguageModelV3ProviderDefinedTool = {
+    type: 'provider-defined' as const,
+    id: 'google.file_search',
+    name: 'file_search',
+    args: { fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'] },
+  };
+
+  const result = prepareTools({
+    tools: [tool],
+    modelId: 'gemini-2.0-flash-lite',
+  });
+
+  expect(result.tools).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "The file search tool is not supported on the following models: gemini-2.0-flash-lite, gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-exp, gemini-2.0-flash-live-001, gemini-2.5-flash-image-preview. Current model: gemini-2.0-flash-lite",
+        "feature": "provider-defined tool google.file_search",
+        "type": "unsupported",
       },
     ]
   `);
@@ -267,23 +287,16 @@ it('should warn when mixing function and provider-defined tools', () => {
     modelId: 'gemini-2.5-flash',
   });
 
-  // Should only include provider-defined tools as array
   expect(result.tools).toEqual([{ googleSearch: {} }]);
 
-  // Should have warning about mixed tool types
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'function',
-        name: 'testFunction',
-        description: 'A test function',
-        inputSchema: { type: 'object', properties: {} },
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "feature": "combination of function and provider-defined tools",
+        "type": "unsupported",
       },
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: testFunction. Please use either function tools or provider-defined tools, but not both.',
-    },
-  ]);
+    ]
+  `);
 
   expect(result.toolConfig).toBeUndefined();
 });
@@ -308,26 +321,18 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
     modelId: 'gemini-2.5-flash',
   });
 
-  // Should only include provider-defined tools as array
   expect(result.tools).toEqual([{ googleSearch: {} }]);
 
-  // Should apply tool choice to provider-defined tools
   expect(result.toolConfig).toEqual(undefined);
 
-  // Should have warning about mixed tool types
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'function',
-        name: 'testFunction',
-        description: 'A test function',
-        inputSchema: { type: 'object', properties: {} },
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "feature": "combination of function and provider-defined tools",
+        "type": "unsupported",
       },
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: testFunction. Please use either function tools or provider-defined tools, but not both.',
-    },
-  ]);
+    ]
+  `);
 });
 
 it('should handle latest modelId for provider-defined tools correctly', () => {
@@ -419,13 +424,8 @@ describe('Warnings for unsupported models', () => {
       expect(result.toolWarnings).toEqual([
         {
           details: `Google search grounding is not supported on the following models: gemini-2.5-flash-image-preview, gemini-2.0-flash-lite. Current model: ${modelId}`,
-          tool: {
-            args: {},
-            id: 'google.google_search',
-            name: 'google_search',
-            type: 'provider-defined',
-          },
-          type: 'unsupported-tool',
+          feature: 'provider-defined tool google.google_search',
+          type: 'unsupported',
         },
       ]);
     },
@@ -457,13 +457,8 @@ describe('Warnings for unsupported models', () => {
       expect(result.toolWarnings).toEqual([
         {
           details: `The URL context tool is not supported on the following models: gemini-2.0-flash-lite, gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-exp, gemini-2.5-flash-image-preview. Current model: ${modelId}`,
-          tool: {
-            args: {},
-            id: 'google.url_context',
-            name: 'url_context',
-            type: 'provider-defined',
-          },
-          type: 'unsupported-tool',
+          feature: 'provider-defined tool google.url_context',
+          type: 'unsupported',
         },
       ]);
     },
@@ -488,13 +483,8 @@ describe('Warnings for unsupported models', () => {
       {
         details:
           'The code execution tool is not supported on the following models: gemini-2.0-flash-lite. Current model: gemini-2.0-flash-lite',
-        tool: {
-          args: {},
-          id: 'google.code_execution',
-          name: 'code_execution',
-          type: 'provider-defined',
-        },
-        type: 'unsupported-tool',
+        feature: 'provider-defined tool google.code_execution',
+        type: 'unsupported',
       },
     ]);
   });
@@ -525,15 +515,8 @@ describe('Warnings for unsupported models', () => {
       expect(result.toolWarnings).toEqual([
         {
           details: `The file search tool is not supported on the following models: gemini-2.0-flash-lite, gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-exp, gemini-2.0-flash-live-001, gemini-2.5-flash-image-preview. Current model: ${modelId}`,
-          tool: {
-            args: {
-              fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
-            },
-            id: 'google.file_search',
-            name: 'file_search',
-            type: 'provider-defined',
-          },
-          type: 'unsupported-tool',
+          feature: 'provider-defined tool google.file_search',
+          type: 'unsupported',
         },
       ]);
     },

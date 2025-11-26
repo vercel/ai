@@ -6,6 +6,77 @@ import {
 } from './convert-to-language-model-prompt';
 
 describe('convertToLanguageModelPrompt', () => {
+  describe('system message', () => {
+    it('should convert a string system message', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          system: 'INSTRUCTIONS',
+          messages: [{ role: 'user', content: 'Hello, world!' }],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "INSTRUCTIONS",
+            "role": "system",
+          },
+          {
+            "content": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should convert a SystemModelMessage system message', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          system: {
+            role: 'system',
+            content: 'INSTRUCTIONS',
+            providerOptions: { test: { value: 'test' } },
+          },
+          messages: [{ role: 'user', content: 'Hello, world!' }],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "INSTRUCTIONS",
+            "providerOptions": {
+              "test": {
+                "value": "test",
+              },
+            },
+            "role": "system",
+          },
+          {
+            "content": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('user message', () => {
     describe('image parts', () => {
       it('should download images for user image parts with URLs when model does not support image URLs', async () => {

@@ -1,4 +1,4 @@
-import type { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -60,22 +60,22 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     seed,
     providerOptions,
   }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    const warnings: Array<SharedV3Warning> = [];
 
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
 
     if (size && !aspectRatio) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
+        type: 'unsupported',
+        feature: 'size',
         details:
           'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
     } else if (size && aspectRatio) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
+        type: 'unsupported',
+        feature: 'size',
         details:
           'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });

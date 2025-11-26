@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.71
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/anthropic@3.0.0-beta.63
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
 ## 4.0.0-beta.70
 
 ### Patch Changes

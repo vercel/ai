@@ -3756,8 +3756,8 @@ describe('generateText', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting' as const,
-          setting: 'temperature',
+          type: 'unsupported' as const,
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];
