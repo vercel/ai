@@ -1,0 +1,155 @@
+---
+title: Migrate AI SDK 5.0 to 6.0
+description: Learn how to upgrade AI SDK 5.0 to 6.0.
+---
+
+# Migrate AI SDK 5.0 to 6.0
+
+## Recommended Migration Process
+
+1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
+1. Upgrade to AI SDK 6.0.
+1. Automatically migrate your code using one of these approaches:
+   - Use the [AI SDK 6 Migration MCP Server](#ai-sdk-6-migration-mcp-server) for AI-assisted migration in Cursor or other MCP-compatible coding agents
+   - Use [codemods](#codemods) to automatically transform your code
+1. Follow the breaking changes guide below.
+1. Verify your project is working as expected.
+1. Commit your changes.
+
+## AI SDK 6 Migration MCP Server
+
+{/* TODO */}
+
+The [AI SDK 6 Migration Model Context Protocol (MCP) Server](https://github.com/vercel-labs/ai-sdk-6-migration-mcp-server) provides an automated way to migrate your project using a coding agent. This server has been designed for Cursor, but should work with any coding agent that supports MCP.
+
+To get started, create or edit `.cursor/mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "ai-sdk-6-migration": {
+      "url": "https://ai-sdk-6-migration-mcp-server.vercel.app/api/mcp"
+    }
+  }
+}
+```
+
+After saving, open the command palette (Cmd+Shift+P on macOS, Ctrl+Shift+P on Windows/Linux) and search for "View: Open MCP Settings". Verify the new server appears and is toggled on.
+
+Then use this prompt:
+
+```
+Please migrate this project to AI SDK 6 using the ai-sdk-6-migration mcp server. Start by creating a checklist.
+```
+
+For more information, see the [AI SDK 6 Migration MCP Server repository](https://github.com/vercel-labs/ai-sdk-6-migration-mcp-server).
+
+## AI SDK 6.0 Package Versions
+
+You need to update the following packages to the following versions in your `package.json` file(s):
+
+{/* TODO */}
+
+- `ai` package: `6.0.0`
+- `@ai-sdk/provider` package: `3.0.0`
+- `@ai-sdk/provider-utils` package: `4.0.0`
+- `@ai-sdk/*` packages: `3.0.0` (other `@ai-sdk` packages)
+
+An example upgrade command would be:
+
+```
+pnpm install ai @ai-sdk/react @ai-sdk/openai
+```
+
+## Codemods
+
+The AI SDK provides Codemod transformations to help upgrade your codebase when a
+feature is deprecated, removed, or otherwise changed.
+
+Codemods are transformations that run on your codebase automatically. They
+allow you to easily apply many changes without having to manually go through
+every file.
+
+<Note>
+  Codemods are intended as a tool to help you with the upgrade process. They may
+  not cover all of the changes you need to make. You may need to make additional
+  changes manually.
+</Note>
+
+You can run all codemods provided as part of the 6.0 upgrade process by running
+the following command from the root of your project:
+
+```sh
+npx @ai-sdk/codemod upgrade
+```
+
+To run only the v6 codemods (v5 → v6 migration):
+
+```sh
+npx @ai-sdk/codemod v6
+```
+
+Individual codemods can be run by specifying the name of the codemod:
+
+```sh
+npx @ai-sdk/codemod <codemod-name> <path>
+```
+
+For example, to run a specific v6 codemod:
+
+```sh
+npx @ai-sdk/codemod v6/example-codemod src/
+```
+
+See also the [table of codemods](#codemod-table). In addition, the latest set of
+codemods can be found in the
+[`@ai-sdk/codemod`](https://github.com/vercel/ai/tree/main/packages/codemod/src/codemods)
+repository.
+
+## AI SDK Core Changes
+
+{/* TODO */}
+
+### generateText and streamText Changes
+
+{/* TODO */}
+
+### Message and Type System Changes
+
+{/* TODO */}
+
+### Tool Changes
+
+{/* TODO */}
+
+### Streaming Changes
+
+{/* TODO */}
+
+### Provider Changes
+
+{/* TODO */}
+
+## AI SDK UI Changes
+
+{/* TODO */}
+
+### useChat Changes
+
+{/* TODO */}
+
+### useCompletion Changes
+
+{/* TODO */}
+
+### Component Changes
+
+{/* TODO */}
+
+## Codemod Table
+
+{/* TODO */}
+
+| Codemod Name | Description |
+| ------------ | ----------- |
+| TBD          | TBD         |
