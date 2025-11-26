@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+
 ## 3.0.0-beta.19
 
 ### Patch Changes
