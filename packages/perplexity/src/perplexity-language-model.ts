@@ -63,24 +63,15 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
     const warnings: SharedV3Warning[] = [];
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     if (seed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
+      warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     return {

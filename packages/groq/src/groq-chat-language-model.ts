@@ -84,10 +84,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (
@@ -96,8 +93,8 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       !structuredOutputs
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details:
           'JSON response format schema is only supported with structuredOutputs',
       });

@@ -79,10 +79,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       })) ?? {};
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     const webSearchToolName = tools?.find(

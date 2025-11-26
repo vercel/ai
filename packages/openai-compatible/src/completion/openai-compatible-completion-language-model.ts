@@ -109,21 +109,21 @@ export class OpenAICompatibleCompletionLanguageModel
       })) ?? {};
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (tools?.length) {
-      warnings.push({ type: 'unsupported-setting', setting: 'tools' });
+      warnings.push({ type: 'unsupported', feature: 'tools' });
     }
 
     if (toolChoice != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'toolChoice' });
+      warnings.push({ type: 'unsupported', feature: 'toolChoice' });
     }
 
     if (responseFormat != null && responseFormat.type !== 'text') {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details: 'JSON response format is not supported.',
       });
     }
