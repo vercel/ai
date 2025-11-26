@@ -70,17 +70,14 @@ describe('prepareTools', () => {
 
     expect(result.tools).toEqual([]);
     expect(result.toolChoice).toBeUndefined();
-    expect(result.toolWarnings).toEqual([
-      {
-        type: 'unsupported-tool',
-        tool: {
-          type: 'provider-defined',
-          id: 'some.unsupported_tool',
-          name: 'unsupported_tool',
-          args: {},
+    expect(result.toolWarnings).toMatchInlineSnapshot(`
+      [
+        {
+          "feature": "provider-defined tool some.unsupported_tool",
+          "type": "unsupported",
         },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should handle tool choice "auto"', () => {
@@ -186,16 +183,15 @@ describe('prepareTools', () => {
       });
 
       expect(result.tools).toEqual([]);
-      expect(result.toolWarnings).toHaveLength(1);
-      expect(result.toolWarnings[0]).toEqual({
-        type: 'unsupported-tool',
-        tool: expect.objectContaining({
-          id: 'groq.browser_search',
-        }),
-        details: expect.stringContaining(
-          'Browser search is only supported on the following models: openai/gpt-oss-20b, openai/gpt-oss-120b',
-        ),
-      });
+      expect(result.toolWarnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Browser search is only supported on the following models: openai/gpt-oss-20b, openai/gpt-oss-120b. Current model: gemma2-9b-it",
+            "feature": "provider-defined tool groq.browser_search",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should handle mixed tools with model validation', () => {

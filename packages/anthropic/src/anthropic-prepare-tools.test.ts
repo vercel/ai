@@ -301,18 +301,13 @@ describe('prepareTools', () => {
     expect(result.tools).toEqual([]);
     expect(result.toolChoice).toBeUndefined();
     expect(result.toolWarnings).toMatchInlineSnapshot(`
-    [
-      {
-        "tool": {
-          "args": {},
-          "id": "unsupported.tool",
-          "name": "unsupported_tool",
-          "type": "provider-defined",
+      [
+        {
+          "feature": "provider-defined tool unsupported.tool",
+          "type": "unsupported",
         },
-        "type": "unsupported-tool",
-      },
-    ]
-  `);
+      ]
+    `);
   });
 
   it('should handle tool choice "auto"', async () => {
@@ -477,11 +472,14 @@ describe('prepareTools', () => {
     // 5th should be rejected (cache_control should be undefined)
     expect(result.tools?.[4]).toHaveProperty('cache_control', undefined);
 
-    // Should have warning
-    expect(cacheControlValidator.getWarnings()).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'cacheControl',
-      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
-    });
+    expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Maximum 4 cache breakpoints exceeded (found 5). This breakpoint will be ignored.",
+          "feature": "cacheControl breakpoint limit",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 });

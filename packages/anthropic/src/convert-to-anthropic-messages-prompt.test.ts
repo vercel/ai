@@ -1905,12 +1905,15 @@ describe('cache control', () => {
         betas: new Set(),
       });
 
-      expect(cacheControlValidator.getWarnings()).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'cacheControl',
-        details:
-          'cache_control cannot be set on thinking block. It will be ignored.',
-      });
+      expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "cache_control cannot be set on thinking block. It will be ignored.",
+            "feature": "cache_control on non-cacheable context",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should reject cache_control on redacted thinking blocks', async () => {
@@ -1943,12 +1946,15 @@ describe('cache control', () => {
         'cache_control',
       );
 
-      expect(cacheControlValidator.getWarnings()).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'cacheControl',
-        details:
-          'cache_control cannot be set on redacted thinking block. It will be ignored.',
-      });
+      expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "cache_control cannot be set on redacted thinking block. It will be ignored.",
+            "feature": "cache_control on non-cacheable context",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
   });
 
@@ -2031,11 +2037,15 @@ describe('cache control', () => {
     expect(result.prompt.messages[2].content[0].cache_control).toBeUndefined();
 
     // Should have warning about exceeding limit
-    expect(cacheControlValidator.getWarnings()).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'cacheControl',
-      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
-    });
+    expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Maximum 4 cache breakpoints exceeded (found 5). This breakpoint will be ignored.",
+          "feature": "cacheControl breakpoint limit",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 });
 
