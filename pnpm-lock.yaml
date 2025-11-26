@@ -141,7 +141,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: workspace:*
@@ -235,7 +235,7 @@ importers:
         specifier: 2.0.0-beta.118
         version: link:../../packages/angular
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.2
@@ -308,7 +308,7 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.118
@@ -336,7 +336,7 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.118
@@ -361,7 +361,7 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
@@ -389,7 +389,7 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
@@ -426,7 +426,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -575,7 +575,7 @@ importers:
   examples/next-agent:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.118
@@ -688,7 +688,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.85
+        specifier: 4.0.0-beta.86
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.0-beta.118
@@ -795,7 +795,7 @@ importers:
         specifier: 3.0.0-beta.62
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 3.0.0-beta.70
+        specifier: 3.0.0-beta.71
         version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 3.0.0-beta.37
@@ -810,7 +810,7 @@ importers:
         specifier: 3.0.0-beta.58
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.85
+        specifier: 4.0.0-beta.86
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.0-beta.38
@@ -822,7 +822,7 @@ importers:
         specifier: 3.0.0-beta.38
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
         specifier: 3.0.0-beta.38
@@ -934,7 +934,7 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.118
@@ -989,7 +989,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.118
@@ -1041,7 +1041,7 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.118
@@ -1105,7 +1105,7 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.118
@@ -1175,7 +1175,7 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.118
@@ -1233,7 +1233,7 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.118
@@ -1258,7 +1258,7 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: 3.0.0-beta.118
@@ -1313,7 +1313,7 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.68
+        specifier: 3.0.0-beta.69
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
         specifier: 4.0.0-beta.36
@@ -2286,6 +2286,9 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+      vitest:
+        specifier: 2.1.4
+        version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@20.17.24)(jsdom@26.0.0)(less@4.4.0)(msw@2.7.0(@types/node@20.17.24)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -27677,6 +27680,15 @@ snapshots:
       msw: 2.6.4(@types/node@20.17.24)(typescript@5.8.3)
       vite: 5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)
 
+  '@vitest/mocker@2.1.4(msw@2.7.0(@types/node@20.17.24)(typescript@5.8.3))(vite@5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))':
+    dependencies:
+      '@vitest/spy': 2.1.4
+      estree-walker: 3.0.3
+      magic-string: 0.30.17
+    optionalDependencies:
+      msw: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)
+      vite: 5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)
+
   '@vitest/mocker@2.1.4(msw@2.7.0(@types/node@22.7.4)(typescript@5.8.3))(vite@5.4.11(@types/node@22.7.4)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))':
     dependencies:
       '@vitest/spy': 2.1.4
@@ -38652,6 +38664,43 @@ snapshots:
     dependencies:
       '@vitest/expect': 2.1.4
       '@vitest/mocker': 2.1.4(msw@2.6.4(@types/node@20.17.24)(typescript@5.8.3))(vite@5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))
+      '@vitest/pretty-format': 2.1.4
+      '@vitest/runner': 2.1.4
+      '@vitest/snapshot': 2.1.4
+      '@vitest/spy': 2.1.4
+      '@vitest/utils': 2.1.4
+      chai: 5.1.2
+      debug: 4.4.3(supports-color@9.4.0)
+      expect-type: 1.1.0
+      magic-string: 0.30.12
+      pathe: 1.1.2
+      std-env: 3.7.0
+      tinybench: 2.9.0
+      tinyexec: 0.3.1
+      tinypool: 1.0.1
+      tinyrainbow: 1.2.0
+      vite: 5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)
+      vite-node: 2.1.4(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@edge-runtime/vm': 5.0.0
+      '@types/node': 20.17.24
+      jsdom: 26.0.0
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - msw
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+
+  vitest@2.1.4(@edge-runtime/vm@5.0.0)(@types/node@20.17.24)(jsdom@26.0.0)(less@4.4.0)(msw@2.7.0(@types/node@20.17.24)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1):
+    dependencies:
+      '@vitest/expect': 2.1.4
+      '@vitest/mocker': 2.1.4(msw@2.7.0(@types/node@20.17.24)(typescript@5.8.3))(vite@5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))
       '@vitest/pretty-format': 2.1.4
       '@vitest/runner': 2.1.4
       '@vitest/snapshot': 2.1.4
