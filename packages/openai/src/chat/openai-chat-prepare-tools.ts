@@ -1,6 +1,6 @@
 import {
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -21,12 +21,12 @@ export function prepareChatTools({
 }): {
   tools?: OpenAIChatFunctionTool[];
   toolChoice?: OpenAIChatToolChoice;
-  toolWarnings: Array<LanguageModelV3CallWarning>;
+  toolWarnings: Array<SharedV3Warning>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -48,7 +48,10 @@ export function prepareChatTools({
         });
         break;
       default:
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `tool type: ${tool.type}`,
+        });
         break;
     }
   }

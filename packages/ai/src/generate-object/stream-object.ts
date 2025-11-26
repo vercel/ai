@@ -1,6 +1,6 @@
 import {
   JSONValue,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
@@ -581,7 +581,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         self._request.resolve(request ?? {});
 
         // store information for onFinish callback:
-        let warnings: LanguageModelV3CallWarning[] | undefined;
+        let warnings: SharedV3Warning[] | undefined;
         let usage: LanguageModelUsage = {
           inputTokens: undefined,
           outputTokens: undefined,
@@ -979,7 +979,7 @@ export type ObjectStreamInputPart =
   | string
   | {
       type: 'stream-start';
-      warnings: LanguageModelV3CallWarning[];
+      warnings: SharedV3Warning[];
     }
   | {
       type: 'error';

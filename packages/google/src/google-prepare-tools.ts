@@ -1,6 +1,6 @@
 import {
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -35,12 +35,12 @@ export function prepareTools({
           allowedFunctionNames?: string[];
         };
       };
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV3Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
 
   const isLatest = (
     [
@@ -66,11 +66,9 @@ export function prepareTools({
   );
 
   if (hasFunctionTools && hasProviderDefinedTools) {
-    const functionTools = tools.filter(tool => tool.type === 'function');
     toolWarnings.push({
-      type: 'unsupported-tool',
-      tool: tools.find(tool => tool.type === 'function')!,
-      details: `Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: ${functionTools.map(t => t.name).join(', ')}. Please use either function tools or provider-defined tools, but not both.`,
+      type: 'unsupported',
+      feature: `combination of function and provider-defined tools`,
     });
   }
 
@@ -109,8 +107,8 @@ export function prepareTools({
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
-              type: 'unsupported-tool',
-              tool,
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
               details:
                 'The URL context tool is not supported with other Gemini models than Gemini 2.',
             });
@@ -121,8 +119,8 @@ export function prepareTools({
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
-              type: 'unsupported-tool',
-              tool,
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
               details:
                 'The code execution tools is not supported with other Gemini models than Gemini 2.',
             });
@@ -133,8 +131,8 @@ export function prepareTools({
             googleTools.push({ fileSearch: { ...tool.args } });
           } else {
             toolWarnings.push({
-              type: 'unsupported-tool',
-              tool,
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
               details:
                 'The file search tool is only supported with Gemini 2.5 models.',
             });
@@ -154,15 +152,18 @@ export function prepareTools({
             });
           } else {
             toolWarnings.push({
-              type: 'unsupported-tool',
-              tool,
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
               details:
                 'The RAG store tool is not supported with other Gemini models than Gemini 2.',
             });
           }
           break;
         default:
-          toolWarnings.push({ type: 'unsupported-tool', tool });
+          toolWarnings.push({
+            type: 'unsupported',
+            feature: `provider-defined tool ${tool.id}`,
+          });
           break;
       }
     });
@@ -185,7 +186,10 @@ export function prepareTools({
         });
         break;
       default:
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `function tool ${tool.name}`,
+        });
         break;
     }
   }

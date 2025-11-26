@@ -2,20 +2,22 @@ import { JSONObject } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { logWarnings } from '../logger/log-warnings';
-import { SpeechWarning, SpeechModel } from '../types/speech-model';
+import { resolveSpeechModel } from '../model/resolve-model';
+import { SpeechModel } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
+import { Warning } from '../types/warning';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
+import { VERSION } from '../version';
 import { SpeechResult } from './generate-speech-result';
 import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from './generated-audio-file';
-import { VERSION } from '../version';
-import { resolveSpeechModel } from '../model/resolve-model';
+
 /**
 Generates speech audio using a speech model.
 
@@ -170,13 +172,13 @@ Only applicable for HTTP-based providers.
 
 class DefaultSpeechResult implements SpeechResult {
   readonly audio: GeneratedAudioFile;
-  readonly warnings: Array<SpeechWarning>;
+  readonly warnings: Array<Warning>;
   readonly responses: Array<SpeechModelResponseMetadata>;
   readonly providerMetadata: Record<string, JSONObject>;
 
   constructor(options: {
     audio: GeneratedAudioFile;
-    warnings: Array<SpeechWarning>;
+    warnings: Array<Warning>;
     responses: Array<SpeechModelResponseMetadata>;
     providerMetadata: Record<string, JSONObject> | undefined;
   }) {

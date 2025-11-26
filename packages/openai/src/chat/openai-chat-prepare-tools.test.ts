@@ -77,13 +77,8 @@ it('should add warnings for unsupported tools', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "tool": {
-          "args": {},
-          "id": "openai.unsupported_tool",
-          "name": "unsupported_tool",
-          "type": "provider-defined",
-        },
-        "type": "unsupported-tool",
+        "feature": "tool type: provider-defined",
+        "type": "unsupported",
       },
     ]
   `);

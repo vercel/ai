@@ -1,4 +1,4 @@
-import { LanguageModelV3, LanguageModelV3CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   InferSchema,
   ProviderOptions,
@@ -290,7 +290,7 @@ functionality that can be fully encapsulated in the provider.
     try {
       let content = '';
       let hasToolCall = false;
-      let warnings: LanguageModelV3CallWarning[] | undefined;
+      let warnings: SharedV3Warning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {

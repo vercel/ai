@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV3CallWarning } from '@ai-sdk/provider';
+import { SharedV3Warning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 
@@ -824,7 +824,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -876,7 +876,7 @@ describe('assistant messages', () => {
   });
 
   it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -928,7 +928,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -979,7 +979,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1025,7 +1025,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call and result parts', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1106,7 +1106,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call and result parts', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1202,7 +1202,7 @@ describe('assistant messages', () => {
 
   describe('code_execution 20250522', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1279,7 +1279,7 @@ describe('assistant messages', () => {
 
   describe('code_execution 20250825', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1406,7 +1406,7 @@ describe('assistant messages', () => {
 
   describe('mcp tool use', () => {
     it('should convert anthropic mcp tool use parts', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1862,7 +1862,7 @@ describe('cache control', () => {
 
   describe('cache control validation', () => {
     it('should reject cache_control on thinking blocks', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -1905,16 +1905,19 @@ describe('cache control', () => {
         betas: new Set(),
       });
 
-      expect(cacheControlValidator.getWarnings()).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'cacheControl',
-        details:
-          'cache_control cannot be set on thinking block. It will be ignored.',
-      });
+      expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "cache_control cannot be set on thinking block. It will be ignored.",
+            "feature": "cache_control on non-cacheable context",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should reject cache_control on redacted thinking blocks', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -1943,17 +1946,20 @@ describe('cache control', () => {
         'cache_control',
       );
 
-      expect(cacheControlValidator.getWarnings()).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'cacheControl',
-        details:
-          'cache_control cannot be set on redacted thinking block. It will be ignored.',
-      });
+      expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "cache_control cannot be set on redacted thinking block. It will be ignored.",
+            "feature": "cache_control on non-cacheable context",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
   });
 
   it('should limit cache breakpoints to 4', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const cacheControlValidator = new CacheControlValidator();
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
@@ -2031,11 +2037,15 @@ describe('cache control', () => {
     expect(result.prompt.messages[2].content[0].cache_control).toBeUndefined();
 
     // Should have warning about exceeding limit
-    expect(cacheControlValidator.getWarnings()).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'cacheControl',
-      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
-    });
+    expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Maximum 4 cache breakpoints exceeded (found 5). This breakpoint will be ignored.",
+          "feature": "cacheControl breakpoint limit",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 });
 

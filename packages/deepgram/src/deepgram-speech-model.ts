@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -61,7 +61,7 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
     instructions,
     providerOptions,
   }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const deepgramOptions = await parseProviderOptions({
@@ -222,8 +222,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
               !['wav', 'none'].includes(deepgramOptions.container.toLowerCase())
             ) {
               warnings.push({
-                type: 'unsupported-setting',
-                setting: 'providerOptions',
+                type: 'unsupported',
+                feature: 'providerOptions',
                 details: `Encoding "${newEncoding}" only supports containers "wav" or "none". Container "${deepgramOptions.container}" was ignored.`,
               });
             } else {
@@ -234,8 +234,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
             queryParams.container = 'ogg';
           } else if (['mp3', 'flac', 'aac'].includes(newEncoding)) {
             warnings.push({
-              type: 'unsupported-setting',
-              setting: 'providerOptions',
+              type: 'unsupported',
+              feature: 'providerOptions',
               details: `Encoding "${newEncoding}" does not support container parameter. Container "${deepgramOptions.container}" was ignored.`,
             });
             // Remove container if it was set by outputFormat
@@ -304,8 +304,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
         if (encoding === 'linear16') {
           if (![8000, 16000, 24000, 32000, 48000].includes(sampleRate)) {
             warnings.push({
-              type: 'unsupported-setting',
-              setting: 'providerOptions',
+              type: 'unsupported',
+              feature: 'providerOptions',
               details: `Encoding "linear16" only supports sample rates: 8000, 16000, 24000, 32000, 48000. Sample rate ${sampleRate} was ignored.`,
             });
           } else {
@@ -314,8 +314,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
         } else if (encoding === 'mulaw' || encoding === 'alaw') {
           if (![8000, 16000].includes(sampleRate)) {
             warnings.push({
-              type: 'unsupported-setting',
-              setting: 'providerOptions',
+              type: 'unsupported',
+              feature: 'providerOptions',
               details: `Encoding "${encoding}" only supports sample rates: 8000, 16000. Sample rate ${sampleRate} was ignored.`,
             });
           } else {
@@ -324,8 +324,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
         } else if (encoding === 'flac') {
           if (![8000, 16000, 22050, 32000, 48000].includes(sampleRate)) {
             warnings.push({
-              type: 'unsupported-setting',
-              setting: 'providerOptions',
+              type: 'unsupported',
+              feature: 'providerOptions',
               details: `Encoding "flac" only supports sample rates: 8000, 16000, 22050, 32000, 48000. Sample rate ${sampleRate} was ignored.`,
             });
           } else {
@@ -333,8 +333,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
           }
         } else if (['mp3', 'opus', 'aac'].includes(encoding)) {
           warnings.push({
-            type: 'unsupported-setting',
-            setting: 'providerOptions',
+            type: 'unsupported',
+            feature: 'providerOptions',
             details: `Encoding "${encoding}" has a fixed sample rate and does not support sample_rate parameter. Sample rate ${sampleRate} was ignored.`,
           });
         } else {
@@ -351,8 +351,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
         if (encoding === 'mp3') {
           if (![32000, 48000].includes(Number(bitRate))) {
             warnings.push({
-              type: 'unsupported-setting',
-              setting: 'providerOptions',
+              type: 'unsupported',
+              feature: 'providerOptions',
               details: `Encoding "mp3" only supports bit rates: 32000, 48000. Bit rate ${bitRate} was ignored.`,
             });
           } else {
@@ -362,8 +362,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
           const bitRateNum = Number(bitRate);
           if (bitRateNum < 4000 || bitRateNum > 650000) {
             warnings.push({
-              type: 'unsupported-setting',
-              setting: 'providerOptions',
+              type: 'unsupported',
+              feature: 'providerOptions',
               details: `Encoding "opus" supports bit rates between 4000 and 650000. Bit rate ${bitRate} was ignored.`,
             });
           } else {
@@ -373,8 +373,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
           const bitRateNum = Number(bitRate);
           if (bitRateNum < 4000 || bitRateNum > 192000) {
             warnings.push({
-              type: 'unsupported-setting',
-              setting: 'providerOptions',
+              type: 'unsupported',
+              feature: 'providerOptions',
               details: `Encoding "aac" supports bit rates between 4000 and 192000. Bit rate ${bitRate} was ignored.`,
             });
           } else {
@@ -382,8 +382,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
           }
         } else if (['linear16', 'mulaw', 'alaw', 'flac'].includes(encoding)) {
           warnings.push({
-            type: 'unsupported-setting',
-            setting: 'providerOptions',
+            type: 'unsupported',
+            feature: 'providerOptions',
             details: `Encoding "${encoding}" does not support bit_rate parameter. Bit rate ${bitRate} was ignored.`,
           });
         } else {
@@ -414,8 +414,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
     // If voice is provided and different from model, warn user
     if (voice && voice !== this.modelId) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'voice',
+        type: 'unsupported',
+        feature: 'voice',
         details: `Deepgram TTS models embed the voice in the model ID. The voice parameter "${voice}" was ignored. Use the model ID to select a voice (e.g., "aura-2-helena-en").`,
       });
     }
@@ -423,8 +423,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
     // Handle speed - not supported in Deepgram REST API
     if (speed != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'speed',
+        type: 'unsupported',
+        feature: 'speed',
         details: `Deepgram TTS REST API does not support speed adjustment. Speed parameter was ignored.`,
       });
     }
@@ -432,8 +432,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
     // Handle language - Deepgram models are language-specific via model ID
     if (language) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'language',
+        type: 'unsupported',
+        feature: 'language',
         details: `Deepgram TTS models are language-specific via the model ID. Language parameter "${language}" was ignored. Select a model with the appropriate language suffix (e.g., "-en" for English).`,
       });
     }
@@ -441,8 +441,8 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
     // Handle instructions - not supported in Deepgram REST API
     if (instructions) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'instructions',
+        type: 'unsupported',
+        feature: 'instructions',
         details: `Deepgram TTS REST API does not support instructions. Instructions parameter was ignored.`,
       });
     }

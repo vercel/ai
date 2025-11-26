@@ -1,7 +1,4 @@
-import {
-  LanguageModelV3CallWarning,
-  LanguageModelV3StreamPart,
-} from '@ai-sdk/provider';
+import { SharedV3Warning, LanguageModelV3StreamPart } from '@ai-sdk/provider';
 import {
   getErrorMessage,
   IdGenerator,
@@ -89,7 +86,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | { type: 'stream-start'; warnings: LanguageModelV3CallWarning[] }
+  | { type: 'stream-start'; warnings: SharedV3Warning[] }
   | {
       type: 'response-metadata';
       id?: string;

@@ -1,7 +1,7 @@
 import {
   JSONObject,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
@@ -147,40 +147,31 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     stream: boolean;
     userSuppliedBetas: Set<string>;
   }) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
     if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
     if (seed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
+      warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     if (temperature != null && temperature > 1) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'temperature',
+        type: 'unsupported',
+        feature: 'temperature',
         details: `${temperature} exceeds anthropic maximum of 1.0. clamped to 1.0`,
       });
       temperature = 1;
     } else if (temperature != null && temperature < 0) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'temperature',
+        type: 'unsupported',
+        feature: 'temperature',
         details: `${temperature} is below anthropic minimum of 0. clamped to 0`,
       });
       temperature = 0;
@@ -189,8 +180,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     if (responseFormat?.type === 'json') {
       if (responseFormat.schema == null) {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'responseFormat',
+          type: 'unsupported',
+          feature: 'responseFormat',
           details:
             'JSON response format requires a schema. ' +
             'The response format is ignored.',
@@ -317,8 +308,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'temperature is not supported when thinking is enabled',
         });
       }
@@ -326,8 +317,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       if (topK != null) {
         baseArgs.top_k = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topK',
+          type: 'unsupported',
+          feature: 'topK',
           details: 'topK is not supported when thinking is enabled',
         });
       }
@@ -335,8 +326,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       if (topP != null) {
         baseArgs.top_p = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topP',
+          type: 'unsupported',
+          feature: 'topP',
           details: 'topP is not supported when thinking is enabled',
         });
       }
@@ -350,8 +341,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       // only warn if max output tokens is provided as input:
       if (maxOutputTokens != null) {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'maxOutputTokens',
+          type: 'unsupported',
+          feature: 'maxOutputTokens',
           details:
             `${baseArgs.max_tokens} (maxOutputTokens + thinkingBudget) is greater than ${this.modelId} ${maxOutputTokensForModel} max output tokens. ` +
             `The max output tokens have been limited to ${maxOutputTokensForModel}.`,

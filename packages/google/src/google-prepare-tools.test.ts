@@ -121,13 +121,8 @@ it('should add warnings for unsupported tools', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "tool": {
-          "args": {},
-          "id": "unsupported.tool",
-          "name": "unsupported_tool",
-          "type": "provider-defined",
-        },
-        "type": "unsupported-tool",
+        "feature": "provider-defined tool unsupported.tool",
+        "type": "unsupported",
       },
     ]
   `);
@@ -151,17 +146,8 @@ it('should add warnings for file search on unsupported models', () => {
     [
       {
         "details": "The file search tool is only supported with Gemini 2.5 models.",
-        "tool": {
-          "args": {
-            "fileSearchStoreNames": [
-              "projects/foo/fileSearchStores/bar",
-            ],
-          },
-          "id": "google.file_search",
-          "name": "file_search",
-          "type": "provider-defined",
-        },
-        "type": "unsupported-tool",
+        "feature": "provider-defined tool google.file_search",
+        "type": "unsupported",
       },
     ]
   `);
@@ -301,23 +287,16 @@ it('should warn when mixing function and provider-defined tools', () => {
     modelId: 'gemini-2.5-flash',
   });
 
-  // Should only include provider-defined tools as array
   expect(result.tools).toEqual([{ googleSearch: {} }]);
 
-  // Should have warning about mixed tool types
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'function',
-        name: 'testFunction',
-        description: 'A test function',
-        inputSchema: { type: 'object', properties: {} },
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "feature": "combination of function and provider-defined tools",
+        "type": "unsupported",
       },
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: testFunction. Please use either function tools or provider-defined tools, but not both.',
-    },
-  ]);
+    ]
+  `);
 
   expect(result.toolConfig).toBeUndefined();
 });
@@ -342,26 +321,18 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
     modelId: 'gemini-2.5-flash',
   });
 
-  // Should only include provider-defined tools as array
   expect(result.tools).toEqual([{ googleSearch: {} }]);
 
-  // Should apply tool choice to provider-defined tools
   expect(result.toolConfig).toEqual(undefined);
 
-  // Should have warning about mixed tool types
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported-tool',
-      tool: {
-        type: 'function',
-        name: 'testFunction',
-        description: 'A test function',
-        inputSchema: { type: 'object', properties: {} },
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "feature": "combination of function and provider-defined tools",
+        "type": "unsupported",
       },
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: testFunction. Please use either function tools or provider-defined tools, but not both.',
-    },
-  ]);
+    ]
+  `);
 });
 
 it('should handle latest modelId for provider-defined tools correctly', () => {
