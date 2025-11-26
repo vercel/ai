@@ -6,6 +6,7 @@ import {
   getErrorMessage,
   IdGenerator,
   ModelMessage,
+  SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -120,7 +121,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-  system: string | undefined;
+  system: string | SystemModelMessage | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
