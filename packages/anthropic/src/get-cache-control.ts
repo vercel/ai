@@ -36,8 +36,8 @@ export class CacheControlValidator {
     // Validate that cache_control is allowed in this context
     if (!context.canCache) {
       this.warnings.push({
-        type: 'unsupported-setting',
-        setting: 'cacheControl',
+        type: 'unsupported',
+        feature: 'cache_control on non-cacheable context',
         details: `cache_control cannot be set on ${context.type}. It will be ignored.`,
       });
       return undefined;
@@ -47,8 +47,8 @@ export class CacheControlValidator {
     this.breakpointCount++;
     if (this.breakpointCount > MAX_CACHE_BREAKPOINTS) {
       this.warnings.push({
-        type: 'unsupported-setting',
-        setting: 'cacheControl',
+        type: 'unsupported',
+        feature: 'cacheControl breakpoint limit',
         details: `Maximum ${MAX_CACHE_BREAKPOINTS} cache breakpoints exceeded (found ${this.breakpointCount}). This breakpoint will be ignored.`,
       });
       return undefined;

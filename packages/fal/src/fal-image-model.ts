@@ -1,4 +1,4 @@
-import type { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -47,7 +47,7 @@ export class FalImageModel implements ImageModelV3 {
     seed,
     providerOptions,
   }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    const warnings: Array<SharedV3Warning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {

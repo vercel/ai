@@ -46,8 +46,8 @@ export function prepareResponsesTools({
         break;
       case 'provider-defined':
         toolWarnings.push({
-          type: 'unsupported-tool',
-          tool,
+          type: 'unsupported',
+          feature: `provider-defined tool ${tool.id}`,
         });
         break;
       default: {

@@ -96,10 +96,7 @@ export async function convertToHuggingFaceResponsesMessages({
       }
 
       case 'tool': {
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'tool messages',
-        });
+        warnings.push({ type: 'unsupported', feature: 'tool messages' });
         break;
       }
 

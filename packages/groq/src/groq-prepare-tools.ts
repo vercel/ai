@@ -69,8 +69,8 @@ export function prepareTools({
       if (tool.id === 'groq.browser_search') {
         if (!isBrowserSearchSupportedModel(modelId)) {
           toolWarnings.push({
-            type: 'unsupported-tool',
-            tool,
+            type: 'unsupported',
+            feature: `provider-defined tool ${tool.id}`,
             details: `Browser search is only supported on the following models: ${getSupportedModelsString()}. Current model: ${modelId}`,
           });
         } else {
@@ -79,7 +79,10 @@ export function prepareTools({
           });
         }
       } else {
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `provider-defined tool ${tool.id}`,
+        });
       }
     } else {
       groqTools.push({
