@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 // globalThis.AI_SDK_LOG_WARNINGS = false;
 
-// globalThis.AI_SDK_LOG_WARNINGS = (warnings: Experimental_Warning[]) => {
+// globalThis.AI_SDK_LOG_WARNINGS = (warnings: Warning[]) => {
 //   console.log('WARNINGS:', warnings);
 // };
 
