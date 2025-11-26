@@ -229,24 +229,19 @@ describe('logWarnings', () => {
       logWarnings({ warnings, provider: 'zzz', model: 'MMM' });
 
       expect(mockConsoleInfo).toHaveBeenCalledTimes(1);
-      expect(mockConsoleWarn).toHaveBeenCalledTimes(4);
+      expect(mockConsoleWarn).toHaveBeenCalledTimes(3);
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         1,
         'AI SDK Warning (zzz / MMM): ' +
-          'The "mediaType" setting is not supported. detail',
+          'The feature "mediaType" is not supported. detail',
       );
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         2,
         'AI SDK Warning (zzz / MMM): ' +
-          'The "voice" setting is not supported. detail2',
+          'The feature "voice" is not supported. detail2',
       );
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         3,
-        'AI SDK Warning (zzz / MMM): ' +
-          'The tool "n" is not supported. detail3',
-      );
-      expect(mockConsoleWarn).toHaveBeenNthCalledWith(
-        4,
         'AI SDK Warning (zzz / MMM): other msg',
       );
     });
