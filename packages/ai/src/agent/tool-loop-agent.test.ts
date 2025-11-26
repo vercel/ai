@@ -135,6 +135,40 @@ describe('ToolLoopAgent', () => {
         `);
       });
     });
+
+    it('should pass system message instructions', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        instructions: {
+          role: 'system',
+          content: 'INSTRUCTIONS',
+          providerOptions: { test: { value: 'test' } },
+        },
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+      });
+
+      expect(doGenerateOptions?.prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "INSTRUCTIONS",
+            "role": "system",
+          },
+          {
+            "content": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+    });
   });
 
   describe('stream', () => {
