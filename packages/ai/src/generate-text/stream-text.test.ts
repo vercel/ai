@@ -46,6 +46,7 @@ import { stepCountIs } from './stop-condition';
 import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { features } from 'node:process';
 
 const defaultSettings = () =>
   ({
@@ -14385,8 +14386,8 @@ describe('streamText', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting' as const,
-          setting: 'temperature',
+          type: 'unsupported' as const,
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];

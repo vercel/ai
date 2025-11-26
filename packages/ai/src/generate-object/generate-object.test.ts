@@ -186,8 +186,8 @@ describe('generateObject', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];

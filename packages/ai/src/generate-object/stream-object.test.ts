@@ -1833,8 +1833,8 @@ describe('streamObject', () => {
     it('should resolve warnings promise with warnings when warnings are present', async () => {
       const expectedWarnings: SharedV3Warning[] = [
         {
-          type: 'unsupported-setting',
-          setting: 'frequency_penalty',
+          type: 'unsupported',
+          feature: 'frequency_penalty',
           details: 'This model does not support the frequency_penalty setting.',
         },
         {
@@ -1869,8 +1869,8 @@ describe('streamObject', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];
