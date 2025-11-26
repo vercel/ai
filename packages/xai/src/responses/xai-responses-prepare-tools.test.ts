@@ -486,8 +486,14 @@ describe('prepareResponsesTools', () => {
         ],
       });
 
-      expect(result.toolWarnings).toHaveLength(1);
-      expect(result.toolWarnings[0].type).toBe('unsupported-tool');
+      expect(result.toolWarnings).toMatchInlineSnapshot(`
+        [
+          {
+            "feature": "provider-defined tool unsupported",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
   });
 });
