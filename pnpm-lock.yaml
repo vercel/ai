@@ -535,8 +535,8 @@ importers:
         specifier: ^2.2.4
         version: 2.2.4
       streamdown:
-        specifier: ^1.6.5
-        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.8
+        version: 1.6.8(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
       throttleit:
         specifier: 2.1.0
         version: 2.1.0
@@ -599,8 +599,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.4
       streamdown:
-        specifier: ^1.6.5
-        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.8
+        version: 1.6.8(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -654,8 +654,8 @@ importers:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
       streamdown:
-        specifier: ^1.6.5
-        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.8
+        version: 1.6.8(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -888,8 +888,8 @@ importers:
         specifier: ^2.2.0
         version: 2.2.4
       streamdown:
-        specifier: ^1.6.5
-        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.8
+        version: 1.6.8(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
       tailwind-merge:
         specifier: ^3.0.2
         version: 3.3.1
@@ -1007,8 +1007,8 @@ importers:
         specifier: ^18
         version: 18.3.1(react@18.3.1)
       streamdown:
-        specifier: ^1.6.5
-        version: 1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
+        specifier: ^1.6.8
+        version: 1.6.8(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5)
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -12663,10 +12663,6 @@ packages:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
     engines: {node: 6.* || 8.* || >= 10.*}
 
-  get-east-asian-width@1.2.0:
-    resolution: {integrity: sha512-2nk+7SIVb14QrgXFHcm84tD4bKQz0RxPuMT8Ag5KPOq7J5fEmAg0UbXdTOSHqNuHSU28k55qnceesxXRZGzKWA==}
-    engines: {node: '>=18'}
-
   get-east-asian-width@1.4.0:
     resolution: {integrity: sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q==}
     engines: {node: '>=18'}
@@ -13201,9 +13197,6 @@ packages:
   ini@5.0.0:
     resolution: {integrity: sha512-+N0ngpO3e7cRUWOJAS7qw0IZIVc6XPrW4MlFBdD066F2L4k1L6ker3hLqSq7iXxU5tgS4WGkIUElWn5vogAEnw==}
     engines: {node: ^18.17.0 || >=20.5.0}
-
-  inline-style-parser@0.2.4:
-    resolution: {integrity: sha512-0aO8FkhNZlj/ZIbNi7Lxxr12obT7cL1moPfE4tg1LkX7LlLfC6DeX4l2ZEud1ukP9jNQyNnfzQVqwbwmAATY4Q==}
 
   inline-style-parser@0.2.7:
     resolution: {integrity: sha512-Nb2ctOyNR8DqQoR0OwRG95uNWIC0C1lCgf5Naz5H6Ji72KZ8OcFZLz2P5sNgwlyoJ8Yif11oMuYs5pBQa86csA==}
@@ -17013,8 +17006,8 @@ packages:
     resolution: {integrity: sha512-iCGQj+0l0HOdZ2AEeBADlsRC+vsnDsZsbdSiH1yNSjcfKM7fdpCMfqAL/dwF5BLiw/XhRft/Wax6zQbhq2BcjQ==}
     engines: {node: '>= 0.4'}
 
-  streamdown@1.6.6:
-    resolution: {integrity: sha512-LYKkpGwQblgItdlIkfuJMQGVP6H6fiUHZK5bm3gH3dmMmI06cNigmX8G1dJAZREqbYJSl3pcsnnS8EDzFO2vrQ==}
+  streamdown@1.6.8:
+    resolution: {integrity: sha512-SmVS8MRLfEQIYWx1EWmQQ6lCxiY7n9Hlg/EDXl17ZYcbCdTd8caMVngBNlIHxwQPvQDyXozrEzcgkhzYyMmN/w==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
 
@@ -17133,9 +17126,6 @@ packages:
 
   style-to-object@1.0.14:
     resolution: {integrity: sha512-LIN7rULI0jBscWQYaSswptyderlarFkjQ+t79nzty8tcIAceVomEVlLzH5VP4Cmsv6MtKhs7qaAiwlcp+Mgaxw==}
-
-  style-to-object@1.0.8:
-    resolution: {integrity: sha512-xT47I/Eo0rwJmaXC4oilDGDWLohVhR6o/xAQcPQN8q6QBuZVL8qMYL85kLmST5cPjAorwvqIA4qXTRQoYHaL6g==}
 
   styled-jsx@5.1.6:
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
@@ -28174,7 +28164,7 @@ snapshots:
 
   acorn-loose@8.4.0:
     dependencies:
-      acorn: 8.14.1
+      acorn: 8.15.0
 
   acorn-walk@8.3.3:
     dependencies:
@@ -30410,7 +30400,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.34.1(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -30498,8 +30488,8 @@ snapshots:
       debug: 4.4.3(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       fast-glob: 3.3.3
       get-tsconfig: 4.8.1
       is-core-module: 2.16.1
@@ -30549,7 +30539,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -30625,7 +30615,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -30635,7 +30625,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -31556,8 +31546,6 @@ snapshots:
 
   get-caller-file@2.0.5: {}
 
-  get-east-asian-width@1.2.0: {}
-
   get-east-asian-width@1.4.0: {}
 
   get-intrinsic@1.2.4:
@@ -32234,8 +32222,6 @@ snapshots:
   ini@4.1.1: {}
 
   ini@5.0.0: {}
-
-  inline-style-parser@0.2.4: {}
 
   inline-style-parser@0.2.7: {}
 
@@ -37071,7 +37057,7 @@ snapshots:
     dependencies:
       internal-slot: 1.0.7
 
-  streamdown@1.6.6(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5):
+  streamdown@1.6.8(@types/mdast@4.0.4)(micromark-util-types@2.0.0)(micromark@4.0.0)(react@18.3.1)(unified@11.0.5):
     dependencies:
       clsx: 2.1.1
       hast: 1.0.0
@@ -37132,7 +37118,7 @@ snapshots:
   string-width@7.2.0:
     dependencies:
       emoji-regex: 10.3.0
-      get-east-asian-width: 1.2.0
+      get-east-asian-width: 1.4.0
       strip-ansi: 7.1.0
 
   string.prototype.includes@2.0.0:
@@ -37242,10 +37228,6 @@ snapshots:
     dependencies:
       inline-style-parser: 0.2.7
 
-  style-to-object@1.0.8:
-    dependencies:
-      inline-style-parser: 0.2.4
-
   styled-jsx@5.1.6(react@18.3.1):
     dependencies:
       client-only: 0.0.1
@@ -37347,7 +37329,7 @@ snapshots:
     dependencies:
       clsx: 2.1.1
       runed: 0.23.4(svelte@5.32.1)
-      style-to-object: 1.0.8
+      style-to-object: 1.0.14
       svelte: 5.32.1
 
   svelte2tsx@0.7.34(svelte@5.32.1)(typescript@5.8.3):
@@ -39098,11 +39080,11 @@ snapshots:
   webpack@5.96.1:
     dependencies:
       '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
       '@webassemblyjs/ast': 1.12.1
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1
-      acorn: 8.14.1
+      acorn: 8.15.0
       browserslist: 4.24.0
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.17.1
