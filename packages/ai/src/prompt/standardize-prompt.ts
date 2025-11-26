@@ -1,5 +1,9 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
-import { ModelMessage, safeValidateTypes } from '@ai-sdk/provider-utils';
+import {
+  ModelMessage,
+  safeValidateTypes,
+  SystemModelMessage,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { modelMessageSchema } from './message';
 import { Prompt } from './prompt';
@@ -8,7 +12,7 @@ export type StandardizedPrompt = {
   /**
    * System message.
    */
-  system?: string;
+  system?: string | SystemModelMessage;
 
   /**
    * Messages.
@@ -33,8 +37,13 @@ export async function standardizePrompt(
     });
   }
 
-  // validate that system is a string
-  if (prompt.system != null && typeof prompt.system !== 'string') {
+  // validate that system is a string or a SystemModelMessage
+  if (
+    prompt.system != null &&
+    typeof prompt.system !== 'string' &&
+    'role' in prompt.system &&
+    prompt.system.role !== 'system'
+  ) {
     throw new InvalidPromptError({
       prompt,
       message: 'system must be a string',

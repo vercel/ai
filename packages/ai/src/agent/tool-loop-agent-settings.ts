@@ -2,6 +2,7 @@ import {
   FlexibleSchema,
   MaybePromiseLike,
   ProviderOptions,
+  SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
@@ -32,8 +33,10 @@ export type ToolLoopAgentSettings<
 
   /**
    * The instructions for the agent.
+   *
+   * It can be a string, or, if you need to pass additional provider options (e.g. for caching), a `SystemModelMessage`.
    */
-  instructions?: string;
+  instructions?: string | SystemModelMessage;
 
   /**
 The language model to use.
