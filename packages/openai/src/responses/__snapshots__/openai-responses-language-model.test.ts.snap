@@ -1,5 +1,21 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > apply_patch tool > create_file operation > should include apply_patch tool call and result in content 1`] = `
+[
+  {
+    "input": "{"callId":"call_CdXiGtcRl49Q6Ek20tG9lYOr","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"+## Shopping Checklist\\n+\\n+- [ ] Milk\\n+- [ ] Bread\\n+- [ ] Eggs\\n+- [ ] Apples\\n+- [ ] Coffee\\n+\\n"}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "apc_0b04c5f8dfc43af500692749bd60908197b0e453c38f30191a",
+      },
+    },
+    "toolCallId": "call_CdXiGtcRl49Q6Ek20tG9lYOr",
+    "toolName": "apply_patch",
+    "type": "tool-call",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > should include code interpreter tool call, result, and annotations in content 1`] = `
 [
   {

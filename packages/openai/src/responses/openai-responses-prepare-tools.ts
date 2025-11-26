@@ -33,7 +33,8 @@ export async function prepareResponsesTools({
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
-    | { type: 'image_generation' };
+    | { type: 'image_generation' }
+    | { type: 'apply_patch' };
   toolWarnings: LanguageModelV3CallWarning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -230,7 +231,8 @@ export async function prepareResponsesTools({
           toolChoice.toolName === 'image_generation' ||
           toolChoice.toolName === 'web_search_preview' ||
           toolChoice.toolName === 'web_search' ||
-          toolChoice.toolName === 'mcp'
+          toolChoice.toolName === 'mcp' ||
+          toolChoice.toolName === 'apply_patch'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
