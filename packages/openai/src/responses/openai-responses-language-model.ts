@@ -886,7 +886,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'text-end',
                   id: value.item.id,
                   providerMetadata: {
-                    [providerKey]: {
+                    openai: {
                       itemId: value.item.id,
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
@@ -1241,25 +1241,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     : {}),
                 });
               }
-<<<<<<< HEAD
-            } else if (
-              isResponseOutputItemDoneChunk(value) &&
-              value.item.type === 'message'
-            ) {
-              controller.enqueue({
-                type: 'text-end',
-                id: value.item.id,
-                providerMetadata: {
-                  openai: {
-                    itemId: value.item.id,
-                    ...(ongoingAnnotations.length > 0 && {
-                      annotations: ongoingAnnotations,
-                    }),
-                  },
-                },
-              });
-=======
->>>>>>> 1d0de66fb (refactoring(provider/openai): simplify code (#10586))
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }
