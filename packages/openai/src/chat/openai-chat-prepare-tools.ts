@@ -48,7 +48,10 @@ export function prepareChatTools({
         });
         break;
       default:
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `tool ${tool}`,
+        });
         break;
     }
   }

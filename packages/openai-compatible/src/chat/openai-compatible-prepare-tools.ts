@@ -49,7 +49,10 @@ export function prepareTools({
 
   for (const tool of tools) {
     if (tool.type === 'provider-defined') {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: `provider-defined tool ${tool.id}`,
+      });
     } else {
       openaiCompatTools.push({
         type: 'function',

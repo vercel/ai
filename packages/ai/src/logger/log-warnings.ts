@@ -1,17 +1,4 @@
-import {
-  ImageModelV3CallWarning,
-  SharedV3Warning,
-  SharedV3Warning,
-  SpeechModelV3CallWarning,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
-
-export type Warning =
-  | SharedV3Warning
-  | ImageModelV3CallWarning
-  | SpeechModelV3CallWarning
-  | TranscriptionModelV3CallWarning
-  | SharedV3Warning;
+import { Warning } from '../types';
 
 export type LogWarningsFunction = (options: {
   warnings: Warning[];
@@ -34,8 +21,8 @@ function formatWarning({
   const prefix = `AI SDK Warning (${provider} / ${model}):`;
 
   switch (warning.type) {
-    case 'unsupported-setting': {
-      let message = `${prefix} The "${warning.setting}" setting is not supported.`;
+    case 'unsupported': {
+      let message = `${prefix} The feature "${warning.feature}" is not supported.`;
       if (warning.details) {
         message += ` ${warning.details}`;
       }
@@ -43,17 +30,7 @@ function formatWarning({
     }
 
     case 'compatibility': {
-      let message = `${prefix} The "${warning.feature}" feature is not fully supported.`;
-      if (warning.details) {
-        message += ` ${warning.details}`;
-      }
-      return message;
-    }
-
-    case 'unsupported-tool': {
-      const toolName =
-        'name' in warning.tool ? warning.tool.name : 'unknown tool';
-      let message = `${prefix} The tool "${toolName}" is not supported.`;
+      let message = `${prefix} The feature "${warning.feature}" is used in a compatibility mode.`;
       if (warning.details) {
         message += ` ${warning.details}`;
       }

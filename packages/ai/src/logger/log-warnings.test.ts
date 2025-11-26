@@ -1,16 +1,11 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import type { SharedV3Warning } from '@ai-sdk/provider';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Warning } from '../types/warning';
 import {
+  FIRST_WARNING_INFO_MESSAGE,
   logWarnings,
   resetLogWarningsState,
-  FIRST_WARNING_INFO_MESSAGE,
-  type Warning,
 } from './log-warnings';
-import type {
-  SharedV3Warning,
-  ImageModelV3CallWarning,
-  SpeechModelV3CallWarning,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
 
 // Mock console.warn and console.info
 const mockConsoleWarn = vi.fn();
@@ -53,11 +48,11 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning 1',
-        } as SharedV3Warning,
+        },
         {
           type: 'other',
           message: 'Test warning 2',
-        } as ImageModelV3CallWarning,
+        },
       ];
 
       logWarnings({ warnings, provider: 'provider', model: 'model' });
@@ -110,14 +105,14 @@ describe('logWarnings', () => {
 
       const warnings: Warning[] = [
         {
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'Temperature not supported',
-        } as SharedV3Warning,
+        },
         {
           type: 'other',
           message: 'Another warning',
-        } as ImageModelV3CallWarning,
+        },
       ];
 
       const opts = { warnings, provider: 'provider', model: 'model' };
@@ -216,28 +211,19 @@ describe('logWarnings', () => {
     it('should handle various warning types per formatWarning', () => {
       const warnings: Warning[] = [
         {
-          type: 'unsupported-setting',
-          setting: 'mediaType',
+          type: 'unsupported',
+          feature: 'mediaType',
           details: 'detail',
-        } as TranscriptionModelV3CallWarning,
+        },
         {
-          type: 'unsupported-setting',
-          setting: 'voice',
+          type: 'unsupported',
+          feature: 'voice',
           details: 'detail2',
-        } as SpeechModelV3CallWarning,
-        {
-          type: 'unsupported-tool',
-          tool: {
-            type: 'function',
-            name: 'n',
-            inputSchema: { type: 'object', properties: {} },
-          },
-          details: 'detail3',
-        } as SharedV3Warning,
+        },
         {
           type: 'other',
           message: 'other msg',
-        } as ImageModelV3CallWarning,
+        },
       ];
 
       logWarnings({ warnings, provider: 'zzz', model: 'MMM' });

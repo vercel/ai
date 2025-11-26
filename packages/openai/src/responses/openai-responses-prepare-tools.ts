@@ -198,7 +198,10 @@ export async function prepareResponsesTools({
         break;
       }
       default:
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `function tool ${tool}`,
+        });
         break;
     }
   }

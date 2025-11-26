@@ -217,7 +217,7 @@ export async function prepareTools({
       default: {
         toolWarnings.push({
           type: 'unsupported',
-          feature: `tool ${tool.id}`,
+          feature: `tool ${tool}`,
         });
         break;
       }
