@@ -210,13 +210,23 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const candidate = response.candidates[0];
+    const candidate = response.candidates?.[0];
     const content: Array<LanguageModelV3Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate.content?.parts ?? [];
+    const parts = candidate?.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
+    const warningsWithMissingCandidate: LanguageModelV3CallWarning[] =
+      candidate == null
+        ? [
+            ...warnings,
+            {
+              type: 'other',
+              message: 'No candidates returned from Google Generative AI.',
+            },
+          ]
+        : warnings;
 
     // Associates a code execution result with its preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
@@ -279,7 +289,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const sources =
       extractSources({
-        groundingMetadata: candidate.groundingMetadata,
+        groundingMetadata: candidate?.groundingMetadata,
         generateId: this.config.generateId,
       }) ?? [];
     for (const source of sources) {
@@ -289,7 +299,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapGoogleGenerativeAIFinishReason({
-        finishReason: candidate.finishReason,
+        finishReason: candidate?.finishReason,
         hasToolCalls: content.some(part => part.type === 'tool-call'),
       }),
       usage: {
@@ -299,13 +309,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         reasoningTokens: usageMetadata?.thoughtsTokenCount ?? undefined,
         cachedInputTokens: usageMetadata?.cachedContentTokenCount ?? undefined,
       },
-      warnings,
+      warnings: warningsWithMissingCandidate,
       providerMetadata: {
         google: {
           promptFeedback: response.promptFeedback ?? null,
-          groundingMetadata: candidate.groundingMetadata ?? null,
-          urlContextMetadata: candidate.urlContextMetadata ?? null,
-          safetyRatings: candidate.safetyRatings ?? null,
+          groundingMetadata: candidate?.groundingMetadata ?? null,
+          urlContextMetadata: candidate?.urlContextMetadata ?? null,
+          safetyRatings: candidate?.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
         },
       },
@@ -645,14 +655,15 @@ function getToolCallsFromParts({
   parts: ContentSchema['parts'];
   generateId: () => string;
 }) {
-  const functionCallParts = parts?.filter(
-    part => 'functionCall' in part,
-  ) as Array<
-    GoogleGenerativeAIContentPart & {
+  const functionCallParts = (parts ?? []).filter(
+    (
+      part,
+    ): part is GoogleGenerativeAIContentPart & {
       functionCall: { name: string; args: unknown };
       thoughtSignature?: string | null;
-    }
-  >;
+    } =>
+      typeof part === 'object' && part != null && 'functionCall' in part,
+  );
 
   return functionCallParts == null || functionCallParts.length === 0
     ? undefined
@@ -903,24 +914,21 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type ContentSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['content']
->;
+type CandidatesSchema = NonNullable<InferSchema<typeof responseSchema>['candidates']>;
+type CandidateSchema = CandidatesSchema[number];
+
+type ContentSchema = NonNullable<CandidateSchema['content']>;
 export type GroundingMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
+  CandidateSchema['groundingMetadata']
 >;
 
 type GroundingChunkSchema = NonNullable<
   GroundingMetadataSchema['groundingChunks']
 >[number];
 
-export type UrlContextMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
->;
+export type UrlContextMetadataSchema = NonNullable<CandidateSchema['urlContextMetadata']>;
 
-export type SafetyRatingSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
->[number];
+export type SafetyRatingSchema = NonNullable<CandidateSchema['safetyRatings']>[number];
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
