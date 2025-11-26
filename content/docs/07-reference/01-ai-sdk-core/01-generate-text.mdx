@@ -40,7 +40,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'system',
-      type: 'string',
+      type: 'string | SystemModelMessage',
       description:
         'The system prompt to use that specifies the behavior of the model.',
     },
@@ -581,7 +581,7 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'Change which tools are active for this step.',
             },
             {
-              name: 'system',
+              name: 'system | SystemModelMessage',
               type: 'string',
               isOptional: true,
               description: 'Change the system prompt for this step.',
@@ -622,7 +622,7 @@ To see `generateText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'system',
-              type: 'string | undefined',
+              type: 'string | SystemModelMessage | undefined',
               description: 'The system prompt.',
             },
             {
