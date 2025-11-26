@@ -2,7 +2,7 @@ import { GatewayModelId } from '@ai-sdk/gateway';
 import {
   LanguageModelV2,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3FinishReason,
   LanguageModelV3Source,
 } from '@ai-sdk/provider';
@@ -77,7 +77,7 @@ export type FinishReason = LanguageModelV3FinishReason;
 Warning from the model provider for this call. The call will proceed, but e.g.
 some settings might not be supported, which can lead to suboptimal results.
 */
-export type CallWarning = LanguageModelV3CallWarning;
+export type CallWarning = SharedV3Warning;
 
 /**
 A source that has been used as input to generate the response.

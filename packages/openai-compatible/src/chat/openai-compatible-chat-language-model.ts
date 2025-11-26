@@ -2,7 +2,7 @@ import {
   APICallError,
   InvalidResponseDataError,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -112,7 +112,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     toolChoice,
     tools,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const compatibleOptions = Object.assign(

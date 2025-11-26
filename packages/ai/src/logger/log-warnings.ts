@@ -1,13 +1,13 @@
 import {
   ImageModelV3CallWarning,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   SharedV3Warning,
   SpeechModelV3CallWarning,
   TranscriptionModelV3CallWarning,
 } from '@ai-sdk/provider';
 
 export type Warning =
-  | LanguageModelV3CallWarning
+  | SharedV3Warning
   | ImageModelV3CallWarning
   | SpeechModelV3CallWarning
   | TranscriptionModelV3CallWarning

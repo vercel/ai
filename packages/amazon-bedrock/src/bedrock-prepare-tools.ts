@@ -1,7 +1,7 @@
 import {
   JSONObject,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
@@ -23,9 +23,9 @@ export async function prepareTools({
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
   betas: Set<string>;
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV3Warning[];
 }> {
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
   const betas = new Set<string>();
 
   if (tools == null || tools.length === 0) {

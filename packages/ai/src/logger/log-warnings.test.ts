@@ -6,7 +6,7 @@ import {
   type Warning,
 } from './log-warnings';
 import type {
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   ImageModelV3CallWarning,
   SpeechModelV3CallWarning,
   TranscriptionModelV3CallWarning,
@@ -39,7 +39,7 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning',
-        } as LanguageModelV3CallWarning,
+        } as SharedV3Warning,
       ];
 
       logWarnings({ warnings, provider: 'providerX', model: 'modelY' });
@@ -53,7 +53,7 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning 1',
-        } as LanguageModelV3CallWarning,
+        } as SharedV3Warning,
         {
           type: 'other',
           message: 'Test warning 2',
@@ -73,9 +73,7 @@ describe('logWarnings', () => {
       expect(mockConsoleInfo).not.toHaveBeenCalled();
 
       logWarnings({
-        warnings: [
-          { type: 'other', message: 'foo' } as LanguageModelV3CallWarning,
-        ],
+        warnings: [{ type: 'other', message: 'foo' } as SharedV3Warning],
         provider: 'p1',
         model: 'm1',
       });
@@ -94,7 +92,7 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning',
-        } as LanguageModelV3CallWarning,
+        } as SharedV3Warning,
       ];
 
       const options = { warnings, provider: 'pp', model: 'mm' };
@@ -115,7 +113,7 @@ describe('logWarnings', () => {
           type: 'unsupported-setting',
           setting: 'temperature',
           details: 'Temperature not supported',
-        } as LanguageModelV3CallWarning,
+        } as SharedV3Warning,
         {
           type: 'other',
           message: 'Another warning',
@@ -147,7 +145,7 @@ describe('logWarnings', () => {
 
   describe('when AI_SDK_LOG_WARNINGS is unset/undefined (default behavior)', () => {
     it('should show console.info once for first warning(s), then log to console.warn for each warning', () => {
-      const warning: LanguageModelV3CallWarning = {
+      const warning: SharedV3Warning = {
         type: 'other',
         message: 'Test warning message',
       };
@@ -165,10 +163,10 @@ describe('logWarnings', () => {
 
     it('should only show console.info on the first non-empty call', () => {
       const first: Warning[] = [
-        { type: 'other', message: '1' } as LanguageModelV3CallWarning,
+        { type: 'other', message: '1' } as SharedV3Warning,
       ];
       const second: Warning[] = [
-        { type: 'other', message: '2' } as LanguageModelV3CallWarning,
+        { type: 'other', message: '2' } as SharedV3Warning,
       ];
 
       logWarnings({ warnings: first, provider: 'a', model: 'b' });
@@ -195,9 +193,7 @@ describe('logWarnings', () => {
       expect(mockConsoleInfo).not.toHaveBeenCalled();
 
       logWarnings({
-        warnings: [
-          { type: 'other', message: 't1' } as LanguageModelV3CallWarning,
-        ],
+        warnings: [{ type: 'other', message: 't1' } as SharedV3Warning],
         provider: 'prov',
         model: 'mod',
       });
@@ -209,9 +205,7 @@ describe('logWarnings', () => {
       expect(mockConsoleWarn).toHaveBeenCalledOnce();
 
       logWarnings({
-        warnings: [
-          { type: 'other', message: 't2' } as LanguageModelV3CallWarning,
-        ],
+        warnings: [{ type: 'other', message: 't2' } as SharedV3Warning],
         provider: 'prov',
         model: 'mod',
       });
@@ -239,7 +233,7 @@ describe('logWarnings', () => {
             inputSchema: { type: 'object', properties: {} },
           },
           details: 'detail3',
-        } as LanguageModelV3CallWarning,
+        } as SharedV3Warning,
         {
           type: 'other',
           message: 'other msg',
@@ -273,9 +267,7 @@ describe('logWarnings', () => {
 
     it('should include warning even with "unknown provider" and "unknown model"', () => {
       logWarnings({
-        warnings: [
-          { type: 'other', message: 'messx' } as LanguageModelV3CallWarning,
-        ],
+        warnings: [{ type: 'other', message: 'messx' } as SharedV3Warning],
         provider: 'unknown provider',
         model: 'unknown model',
       });
@@ -293,7 +285,7 @@ describe('logWarnings', () => {
     });
 
     it('should use default behavior and log to console.warn', () => {
-      const warning: LanguageModelV3CallWarning = {
+      const warning: SharedV3Warning = {
         type: 'other',
         message: 'Test warning with undefined logger',
       };
@@ -327,9 +319,7 @@ describe('logWarnings', () => {
       expect(mockConsoleWarn).not.toHaveBeenCalled();
 
       logWarnings({
-        warnings: [
-          { type: 'other', message: 'foo' } as LanguageModelV3CallWarning,
-        ],
+        warnings: [{ type: 'other', message: 'foo' } as SharedV3Warning],
         provider: 'abc',
         model: 'bbb',
       });
@@ -337,9 +327,7 @@ describe('logWarnings', () => {
       expect(mockConsoleWarn).toHaveBeenCalledTimes(1);
 
       logWarnings({
-        warnings: [
-          { type: 'other', message: 'bar' } as LanguageModelV3CallWarning,
-        ],
+        warnings: [{ type: 'other', message: 'bar' } as SharedV3Warning],
         provider: 'abc',
         model: 'bbb',
       });
@@ -352,9 +340,7 @@ describe('logWarnings', () => {
       globalThis.AI_SDK_LOG_WARNINGS = customLogger;
 
       logWarnings({
-        warnings: [
-          { type: 'other', message: 'Message' } as LanguageModelV3CallWarning,
-        ],
+        warnings: [{ type: 'other', message: 'Message' } as SharedV3Warning],
         provider: 'provV',
         model: 'modZ',
       });
@@ -371,7 +357,7 @@ describe('logWarnings', () => {
           {
             type: 'other',
             message: 'Suppressed',
-          } as LanguageModelV3CallWarning,
+          } as SharedV3Warning,
         ],
         provider: 'notProv',
         model: 'notModel',

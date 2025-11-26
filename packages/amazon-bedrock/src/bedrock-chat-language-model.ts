@@ -1,7 +1,7 @@
 import {
   JSONObject,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3Reasoning,
@@ -69,7 +69,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     providerOptions,
   }: Parameters<LanguageModelV3['doGenerate']>[0]): Promise<{
     command: BedrockConverseInput;
-    warnings: LanguageModelV3CallWarning[];
+    warnings: SharedV3Warning[];
     usesJsonResponseTool: boolean;
     betas: Set<string>;
   }> {
@@ -81,7 +81,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         schema: bedrockProviderOptions,
       })) ?? {};
 
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({

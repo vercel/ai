@@ -1,7 +1,7 @@
 import {
   JSONObject,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
@@ -147,7 +147,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     stream: boolean;
     userSuppliedBetas: Set<string>;
   }) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({

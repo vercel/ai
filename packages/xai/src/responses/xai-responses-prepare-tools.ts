@@ -1,6 +1,6 @@
 import {
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
@@ -30,11 +30,11 @@ export async function prepareResponsesTools({
 }): Promise<{
   tools: Array<XaiResponsesTool> | undefined;
   toolChoice: XaiResponsesToolChoice | undefined;
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV3Warning[];
 }> {
   const normalizedTools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
 
   if (normalizedTools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -117,7 +117,10 @@ export async function prepareResponsesTools({
         }
 
         default: {
-          toolWarnings.push({ type: 'unsupported-tool', tool });
+          toolWarnings.push({
+            type: 'unsupported',
+            feature: `provider-defined tool ${tool.name}`,
+          });
           break;
         }
       }
@@ -201,7 +204,10 @@ export async function prepareResponsesTools({
               toolWarnings,
             };
           default:
-            toolWarnings.push({ type: 'unsupported-tool', tool: selectedTool });
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: `provider-defined tool ${selectedTool.name}`,
+            });
             return { tools: xaiTools, toolChoice: undefined, toolWarnings };
         }
       }

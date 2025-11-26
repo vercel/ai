@@ -2,7 +2,7 @@ import {
   InvalidResponseDataError,
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -78,7 +78,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     toolChoice,
     providerOptions,
   }: LanguageModelV3CallOptions) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const openaiOptions =

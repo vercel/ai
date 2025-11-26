@@ -1,7 +1,4 @@
-import {
-  LanguageModelV3CallWarning,
-  SharedV3ProviderMetadata,
-} from '@ai-sdk/provider';
+import { SharedV3Warning, SharedV3ProviderMetadata } from '@ai-sdk/provider';
 import { AnthropicCacheControl } from './anthropic-messages-api';
 
 // Anthropic allows a maximum of 4 cache breakpoints per request
@@ -24,7 +21,7 @@ function getCacheControl(
 
 export class CacheControlValidator {
   private breakpointCount = 0;
-  private warnings: LanguageModelV3CallWarning[] = [];
+  private warnings: SharedV3Warning[] = [];
 
   getCacheControl(
     providerMetadata: SharedV3ProviderMetadata | undefined,
@@ -60,7 +57,7 @@ export class CacheControlValidator {
     return cacheControlValue;
   }
 
-  getWarnings(): LanguageModelV3CallWarning[] {
+  getWarnings(): SharedV3Warning[] {
     return this.warnings;
   }
 }

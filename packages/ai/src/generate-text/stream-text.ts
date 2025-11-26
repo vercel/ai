@@ -1,7 +1,7 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -1291,7 +1291,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const stepRequest = request ?? {};
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-          let warnings: LanguageModelV3CallWarning[] | undefined;
+          let warnings: SharedV3Warning[] | undefined;
 
           const activeToolCallToolNames: Record<string, string> = {};
 

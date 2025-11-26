@@ -1,7 +1,7 @@
 import {
   InvalidResponseDataError,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3Prompt,
@@ -73,7 +73,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   }: Parameters<LanguageModelV3['doGenerate']>[0] & {
     stream: boolean;
   }) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
