@@ -85,7 +85,6 @@ Before submitting your tool, ensure you have:
 
    Use the PR title format: `feat(tools-registry): add your-tool-name`
 
-
 ## Questions?
 
 If you have questions about adding your tool to the registry:
