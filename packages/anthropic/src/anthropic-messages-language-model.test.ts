@@ -1,16 +1,9 @@
 import {
-<<<<<<< HEAD
+  APICallError,
   JSONValue,
   LanguageModelV2,
   LanguageModelV2Prompt,
   LanguageModelV2StreamPart,
-=======
-  APICallError,
-  JSONObject,
-  LanguageModelV3,
-  LanguageModelV3Prompt,
-  LanguageModelV3StreamPart,
->>>>>>> 03849b0ed (fix(anthropic): throw error in doStream when the first stream chunk is an error (#10653))
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
