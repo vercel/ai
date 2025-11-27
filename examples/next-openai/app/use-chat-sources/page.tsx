@@ -4,6 +4,7 @@ import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { SourcesChatMessage } from '@/app/api/use-chat-sources/route';
+import { Streamdown } from 'streamdown';
 
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } =
@@ -20,7 +21,7 @@ export default function Chat() {
           {message.role === 'user' ? 'User: ' : 'AI: '}
           {message.parts.map((part, index) => {
             if (part.type === 'text') {
-              return <div key={index}>{part.text}</div>;
+              return <Streamdown key={index}>{part.text}</Streamdown>;
             }
 
             if (part.type === 'tool-web_search') {

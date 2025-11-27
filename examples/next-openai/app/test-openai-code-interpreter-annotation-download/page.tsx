@@ -5,6 +5,7 @@ import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/components/chat-input';
 import { OpenAICodeInterpreterMessage } from '@/app/api/chat-openai-code-interpreter-annotation-download/route';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
+import { Streamdown } from 'streamdown';
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } =
@@ -24,7 +25,7 @@ export default function TestOpenAIWebSearch() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               case 'tool-code_interpreter':
                 return <CodeInterpreterView key={index} invocation={part} />;
             }

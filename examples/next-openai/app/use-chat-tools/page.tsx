@@ -7,6 +7,7 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
 import { UseChatToolsMessage } from '../api/use-chat-tools/route';
+import { Streamdown } from 'streamdown';
 
 export default function Chat() {
   const { messages, sendMessage, addToolOutput, status } =
@@ -44,7 +45,7 @@ export default function Chat() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
 
               case 'step-start':
                 return index > 0 ? (

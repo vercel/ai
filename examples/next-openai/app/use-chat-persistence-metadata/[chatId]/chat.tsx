@@ -5,6 +5,7 @@ import { zodSchema } from '@ai-sdk/provider-utils';
 import { UIMessage, useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { z } from 'zod';
+import { Streamdown } from 'streamdown';
 
 export default function Chat({
   id,
@@ -38,7 +39,7 @@ export default function Chat({
           )}
           {m.parts.map((part, index) => {
             if (part.type === 'text') {
-              return <div key={index}>{part.text}</div>;
+              return <Streamdown key={index}>{part.text}</Streamdown>;
             }
           })}
         </div>

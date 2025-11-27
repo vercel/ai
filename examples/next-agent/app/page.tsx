@@ -4,6 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import ChatInput from '@/component/chat-input';
 import type { WeatherAgentUIMessage } from '@/agent/weather-agent';
 import WeatherView from '@/component/weather-view';
+import { Streamdown } from 'streamdown';
 
 export default function Chat() {
   const { status, sendMessage, messages } = useChat<WeatherAgentUIMessage>();
@@ -16,7 +17,7 @@ export default function Chat() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
 
               case 'step-start':
                 return index > 0 ? (

@@ -4,6 +4,7 @@ import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, UIMessage, type FinishReason } from 'ai';
 import { useState } from 'react';
+import { Streamdown } from 'streamdown';
 
 type MyMessage = UIMessage<
   never,
@@ -69,7 +70,7 @@ export default function Chat() {
             .filter(part => part.type !== 'data-weather')
             .map((part, index) => {
               if (part.type === 'text') {
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               }
             })}
         </div>
