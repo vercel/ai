@@ -91,6 +91,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
+import { getTool } from '../util/get-tool';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1475,7 +1476,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
                     case 'tool-input-delta': {
                       const toolName = activeToolCallToolNames[chunk.id];
-                      const tool = tools?.[toolName];
+
+                      const tool = getTool(
+                        toolName,
+                        tools,
+                      ) as TOOLS[keyof TOOLS & string];
 
                       if (tool?.onInputDelta != null) {
                         await tool.onInputDelta({

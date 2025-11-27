@@ -104,6 +104,12 @@ export type Tool<
   OUTPUT extends JSONValue | unknown | never = any,
 > = {
   /**
+An optional name for the tool
+This is usually used by provider-defined tools
+   */
+  name?: string;
+
+  /**
 An optional description of what the tool does.
 Will be used by the language model to decide whether to use the tool.
 Not used for provider-defined tools.

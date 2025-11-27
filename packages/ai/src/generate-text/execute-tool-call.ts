@@ -9,6 +9,7 @@ import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
+import { getTool } from '../util/get-tool';
 
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
@@ -30,7 +31,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
-  const tool = tools?.[toolName];
+
+  const tool = getTool(toolName, tools) as TOOLS[keyof TOOLS & string];
 
   if (tool?.execute == null) {
     return undefined;

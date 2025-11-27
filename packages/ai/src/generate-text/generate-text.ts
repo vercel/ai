@@ -62,6 +62,7 @@ import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 import { NoOutputGeneratedError } from '../error';
+import { getTool } from '../util/get-tool';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -565,7 +566,10 @@ A function that attempts to repair a tool call that failed to parse.
               continue; // ignore invalid tool calls
             }
 
-            const tool = tools?.[toolCall.toolName];
+            const tool = getTool(
+              toolCall.toolName,
+              tools,
+            ) as TOOLS[keyof TOOLS & string];
 
             if (tool == null) {
               // ignore tool calls for tools that are not available,

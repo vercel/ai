@@ -11,6 +11,7 @@ import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { DynamicToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
+import { getTool } from '../util/get-tool';
 
 export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,
@@ -131,7 +132,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
 }): Promise<TypedToolCall<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
 
-  const tool = tools[toolName];
+  const tool = getTool(toolName, tools) as TOOLS[keyof TOOLS & string];
 
   if (tool == null) {
     // provider-executed dynamic tools are not part of our list of tools:

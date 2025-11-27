@@ -27,6 +27,7 @@ import {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { getTool } from '../util/get-tool';
 
 /**
 Converts an array of UI messages from useChat into an array of ModelMessages that can be used
@@ -210,7 +211,10 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           part.state === 'output-error'
                             ? part.errorText
                             : part.output,
-                        tool: options?.tools?.[toolName],
+                        tool: getTool(
+                          toolName,
+                          options?.tools,
+                        ) as ToolSet[keyof ToolSet & string],
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
@@ -298,7 +302,10 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                               toolPart.state === 'output-error'
                                 ? toolPart.errorText
                                 : toolPart.output,
-                            tool: options?.tools?.[toolName],
+                            tool: getTool(
+                              toolName,
+                              options?.tools,
+                            ) as ToolSet[keyof ToolSet & string],
                             errorMode:
                               toolPart.state === 'output-error'
                                 ? 'text'
