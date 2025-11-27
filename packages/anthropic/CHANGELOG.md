@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.64
+
+### Patch Changes
+
+- 03849b0: throw 500 error when the first stream chunk is an error
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
 ## 3.0.0-beta.63
 
 ### Patch Changes

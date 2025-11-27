@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- 03849b0: move DelayedPromise into provider utils
+
 ## 4.0.0-beta.37
 
 ### Patch Changes
