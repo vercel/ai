@@ -1,4 +1,5 @@
 import {
+  APICallError,
   JSONObject,
   LanguageModelV3,
   LanguageModelV3Prompt,
@@ -2867,7 +2868,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
@@ -2875,10 +2876,19 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       await expect(
-        model.doGenerate({
-          prompt: TEST_PROMPT,
+        model.doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrowError(
+        new APICallError({
+          message: 'Overloaded',
+          url: 'https://api.anthropic.com/v1/messages',
+          requestBodyValues: {},
+          statusCode: 529,
+          responseHeaders: {},
+          responseBody:
+            '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
+          isRetryable: true,
         }),
-      ).rejects.toThrow('Overloaded');
+      );
     });
 
     describe('temperature clamping', () => {
@@ -4845,16 +4855,128 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
         body: '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
       };
 
-      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
-        'Overloaded',
-      );
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect({
+          message: apiCallError.message,
+          url: apiCallError.url,
+          requestBodyValues: apiCallError.requestBodyValues,
+          statusCode: apiCallError.statusCode,
+          responseHeaders: apiCallError.responseHeaders,
+          responseBody: apiCallError.responseBody,
+          isRetryable: apiCallError.isRetryable,
+        }).toMatchInlineSnapshot(`
+          {
+            "isRetryable": true,
+            "message": "Overloaded",
+            "requestBodyValues": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "stream": true,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+            "responseBody": "{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}",
+            "responseHeaders": {
+              "content-length": "90",
+              "content-type": "text/plain",
+            },
+            "statusCode": 529,
+            "url": "https://api.anthropic.com/v1/messages",
+          }
+        `);
+      }
+    });
+
+    it('should throw an api error when the first stream chunk is an overloaded error', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
+        ],
+      };
+
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect({
+          message: apiCallError.message,
+          url: apiCallError.url,
+          requestBodyValues: apiCallError.requestBodyValues,
+          statusCode: apiCallError.statusCode,
+          responseHeaders: apiCallError.responseHeaders,
+          responseBody: apiCallError.responseBody,
+          isRetryable: apiCallError.isRetryable,
+        }).toMatchInlineSnapshot(`
+          {
+            "isRetryable": true,
+            "message": "Overloaded",
+            "requestBodyValues": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "stream": true,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+            "responseBody": "{"type":"overloaded_error","message":"Overloaded"}",
+            "responseHeaders": {
+              "cache-control": "no-cache",
+              "connection": "keep-alive",
+              "content-type": "text/event-stream",
+            },
+            "statusCode": 529,
+            "url": "https://api.anthropic.com/v1/messages",
+          }
+        `);
+      }
     });
 
     it('should forward overloaded error during streaming', async () => {
