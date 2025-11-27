@@ -153,15 +153,7 @@ console.log(text);`,
     description:
       'Fully managed Browser and Code Interpreter tools for AI agents. Browser is a fast and secure cloud-based runtime for interacting with web applications, filling forms, navigating websites, and extracting information. Code Interpreter provides an isolated sandbox for executing Python, JavaScript, and TypeScript code to solve complex tasks.',
     packageName: 'bedrock-agentcore',
-    tags: [
-      'code-execution',
-      'browser-automation',
-      'sandbox',
-      'web-automation',
-      'aws',
-      'bedrock',
-      'agentcore',
-    ],
+    tags: ['code-execution', 'browser-automation', 'sandbox'],
     apiKeyEnvName: 'AWS_ROLE_ARN',
     installCommand: {
       pnpm: 'pnpm install bedrock-agentcore',
