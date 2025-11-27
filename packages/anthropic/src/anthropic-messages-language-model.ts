@@ -865,8 +865,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
 
+    const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.buildRequestUrl(true),
+      url,
       headers: await this.getHeaders({ betas, headers: options.headers }),
       body: this.transformRequestBody(body),
       failedResponseHandler: anthropicFailedResponseHandler,
@@ -965,7 +966,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               returnPromise.reject(
                 new APICallError({
                   message: chunk.value.error.message,
-                  url: '123', // this.config.baseURL,
+                  url,
                   requestBodyValues: body,
                   statusCode:
                     chunk.value.error.type === 'overloaded_error' ? 529 : 500,
