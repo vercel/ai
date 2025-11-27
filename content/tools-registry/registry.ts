@@ -147,4 +147,56 @@ console.log(text);`,
     websiteUrl: 'https://firecrawl.dev',
     npmUrl: 'https://www.npmjs.com/package/firecrawl-aisdk',
   },
+  {
+    slug: 'bedrock-agentcore',
+    name: 'AWS Bedrock AgentCore',
+    description:
+      'Fully managed tools for AI agents to execute code (Python, TypeScript, JavaScript) in isolated environments and interact with web applications through a secure browser. Eliminates custom infrastructure setup with built-in security controls and IAM integration.',
+    packageName: 'bedrock-agentcore',
+    tags: [
+      'code-execution',
+      'browser-automation',
+      'sandbox',
+      'web-automation',
+      'aws',
+      'bedrock',
+      'agentcore',
+    ],
+    apiKeyEnvName: 'AWS_ROLE_ARN',
+    installCommand: {
+      pnpm: 'pnpm install bedrock-agentcore',
+      npm: 'npm install bedrock-agentcore',
+      yarn: 'yarn add bedrock-agentcore',
+      bun: 'bun add bedrock-agentcore',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider';
+import { CodeInterpreterTools } from 'bedrock-agentcore/code-interpreter/vercel-ai';
+import { BrowserTools } from 'bedrock-agentcore/browser/vercel-ai';
+
+const credentialsProvider = awsCredentialsProvider({
+  roleArn: process.env.AWS_ROLE_ARN!,
+});
+
+const codeInterpreter = new CodeInterpreterTools({ credentialsProvider });
+const browser = new BrowserTools({ credentialsProvider });
+
+const { text } = await generateText({
+  model: bedrock('global.anthropic.claude-sonnet-4-20250514-v1:0'),
+  prompt: 'Visit news.ycombinator.com and analyze the top 5 stories',
+  tools: {
+    ...codeInterpreter.tools,
+    ...browser.tools,
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/aws/bedrock-agentcore-sdk-typescript',
+    apiKeyUrl: 'https://vercel.com/docs/oidc/aws',
+    websiteUrl:
+      'https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/built-in-tools.html',
+    npmUrl: 'https://www.npmjs.com/package/bedrock-agentcore',
+  },
 ];
