@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  DelayedPromise,
   FlexibleSchema,
   ProviderOptions,
   type InferSchema,
@@ -45,7 +46,6 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
