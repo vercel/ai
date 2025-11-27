@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.104
+
+### Patch Changes
+
+- d1dbe5d: move DelayedPromise into provider utils
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+  - @ai-sdk/gateway@2.0.17
+
 ## 5.0.103
 
 ### Patch Changes
