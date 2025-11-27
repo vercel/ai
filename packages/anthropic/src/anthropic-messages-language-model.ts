@@ -967,8 +967,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   message: chunk.value.error.message,
                   url: '123', // this.config.baseURL,
                   requestBodyValues: body,
-                  statusCode: 500,
+                  statusCode:
+                    chunk.value.error.type === 'overloaded_error' ? 529 : 500,
                   responseHeaders,
+                  responseBody: JSON.stringify(chunk.value.error),
+                  isRetryable: chunk.value.error.type === 'overloaded_error',
                 }),
               );
 
