@@ -182,17 +182,22 @@ const credentialsProvider = awsCredentialsProvider({
 const codeInterpreter = new CodeInterpreterTools({ credentialsProvider });
 const browser = new BrowserTools({ credentialsProvider });
 
-const { text } = await generateText({
-  model: bedrock('global.anthropic.claude-sonnet-4-20250514-v1:0'),
-  prompt: 'Visit news.ycombinator.com and analyze the top 5 stories',
-  tools: {
-    ...codeInterpreter.tools,
-    ...browser.tools,
-  },
-  stopWhen: stepCountIs(5),
-});
+try {
+  const { text } = await generateText({
+    model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+    prompt: 'Go to https://news.ycombinator.com and get the first story title. Then use Python to reverse the string.',
+    tools: {
+      ...codeInterpreter.tools,
+      ...browser.tools,
+    },
+    stopWhen: stepCountIs(5),
+  });
 
-console.log(text);`,
+  console.log(text);
+} finally {
+  await codeInterpreter.stopSession();
+  await browser.stopSession();
+}`,
     docsUrl: 'https://github.com/aws/bedrock-agentcore-sdk-typescript',
     apiKeyUrl: 'https://vercel.com/docs/oidc/aws',
     websiteUrl:
