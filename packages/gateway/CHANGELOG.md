@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.65
+
+### Patch Changes
+
+- cdd0bc2: feat (provider/gateway): add intellect-3 model id
+
 ## 2.0.0-beta.64
 
 ### Patch Changes
