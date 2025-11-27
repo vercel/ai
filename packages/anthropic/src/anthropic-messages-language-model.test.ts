@@ -1,4 +1,5 @@
 import {
+  APICallError,
   JSONObject,
   LanguageModelV3,
   LanguageModelV3Prompt,
@@ -2867,7 +2868,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
@@ -2875,10 +2876,19 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       await expect(
-        model.doGenerate({
-          prompt: TEST_PROMPT,
+        model.doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrowError(
+        new APICallError({
+          message: 'Overloaded',
+          url: 'https://api.anthropic.com/v1/messages',
+          requestBodyValues: {},
+          statusCode: 529,
+          responseHeaders: {},
+          responseBody:
+            '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
+          isRetryable: true,
         }),
-      ).rejects.toThrow('Overloaded');
+      );
     });
 
     describe('temperature clamping', () => {
@@ -4845,15 +4855,50 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
         body: '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
       };
 
-      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
-        'Overloaded',
+      await expect(
+        model.doStream({ prompt: TEST_PROMPT }),
+      ).rejects.toThrowError(
+        new APICallError({
+          message: 'Overloaded',
+          url: 'https://api.anthropic.com/v1/messages',
+          requestBodyValues: {},
+          statusCode: 529,
+          responseHeaders: {},
+          responseBody:
+            '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
+          isRetryable: false,
+        }),
+      );
+    });
+
+    it('should throw an api error when the first stream chunk is an overloaded error', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
+        ],
+      };
+
+      await expect(
+        model.doStream({ prompt: TEST_PROMPT }),
+      ).rejects.toThrowError(
+        new APICallError({
+          message: 'Overloaded',
+          url: 'https://api.anthropic.com/v1/messages',
+          requestBodyValues: {},
+          statusCode: 529,
+          responseHeaders: {},
+          responseBody:
+            '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
+          isRetryable: false,
+        }),
       );
     });
 
