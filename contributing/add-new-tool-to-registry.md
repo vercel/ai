@@ -1,10 +1,6 @@
-# AI SDK Tools Registry
+# AI SDK Tools Registry - Contributing a Tool
 
-This registry sources tools for [ai-sdk.dev/tools-registry](https://ai-sdk.dev/tools-registry).
-
-## Contributing a Tool
-
-You can add your tool to the registry by submitting a pull request that updates the `content/tools-registry/registry.ts` file.
+You can add your tool to the [registry](https://ai-sdk.dev/tools-registry) by submitting a pull request that updates the `content/tools-registry/registry.ts` file.
 
 ### Prerequisites
 

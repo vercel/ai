@@ -1,3 +1,6 @@
+// CONTRIBUTING GUIDE
+// https://github.com/vercel/ai/blob/main/contributing/add-new-tool-to-registry.md
+
 export interface Tool {
   slug: string;
   name: string;
