@@ -308,7 +308,7 @@ describe('GoogleVertexImageModel', () => {
             addWatermark: false,
             negativePrompt: 'negative prompt',
             personGeneration: 'allow_all',
-            imageSize: '2K',
+            sampleImageSize: '2K',
             foo: 'bar',
           },
         },
@@ -322,7 +322,7 @@ describe('GoogleVertexImageModel', () => {
           negativePrompt: 'negative prompt',
           personGeneration: 'allow_all',
           aspectRatio: '16:9',
-          imageSize: '2K',
+          sampleImageSize: '2K',
         },
       });
     });
