@@ -1,5 +1,13 @@
 # @ai-sdk/rsc
 
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+  - ai@5.0.104
+
 ## 1.0.104
 
 ### Patch Changes
