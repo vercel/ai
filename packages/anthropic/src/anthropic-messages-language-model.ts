@@ -918,6 +918,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | undefined = undefined;
 
     const generateId = this.generateId;
+    let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
