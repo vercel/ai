@@ -150,11 +150,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             responseFormat?.type === 'json' ? 'application/json' : undefined,
           responseSchema:
             responseFormat?.type === 'json' &&
-            responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
-            // TODO convert into provider option
-            (googleOptions?.structuredOutputs ?? true)
+              responseFormat.schema != null &&
+              // Google GenAI does not support all OpenAPI Schema features,
+              // so this is needed as an escape hatch:
+              // TODO convert into provider option
+              (googleOptions?.structuredOutputs ?? true)
               ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
               : undefined,
           ...(googleOptions?.audioTimestamp && {
@@ -220,12 +220,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     const warningsWithMissingCandidate: LanguageModelV3CallWarning[] =
       candidate == null
         ? [
-            ...warnings,
-            {
-              type: 'other',
-              message: 'No candidates returned from Google Generative AI.',
-            },
-          ]
+          ...warnings,
+          {
+            type: 'other',
+            message: 'No candidates returned from Google Generative AI.',
+          },
+        ]
         : warnings;
 
     // Associates a code execution result with its preceding call.
@@ -493,10 +493,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         id: currentReasoningBlockId,
                         providerMetadata: part.thoughtSignature
                           ? {
-                              google: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
+                            google: {
+                              thoughtSignature: part.thoughtSignature,
+                            },
+                          }
                           : undefined,
                       });
                     }
@@ -507,8 +507,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       delta: part.text,
                       providerMetadata: part.thoughtSignature
                         ? {
-                            google: { thoughtSignature: part.thoughtSignature },
-                          }
+                          google: { thoughtSignature: part.thoughtSignature },
+                        }
                         : undefined,
                     });
                   } else {
@@ -529,10 +529,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         id: currentTextBlockId,
                         providerMetadata: part.thoughtSignature
                           ? {
-                              google: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
+                            google: {
+                              thoughtSignature: part.thoughtSignature,
+                            },
+                          }
                           : undefined,
                       });
                     }
@@ -543,8 +543,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       delta: part.text,
                       providerMetadata: part.thoughtSignature
                         ? {
-                            google: { thoughtSignature: part.thoughtSignature },
-                          }
+                          google: { thoughtSignature: part.thoughtSignature },
+                        }
                         : undefined,
                     });
                   }
@@ -668,14 +668,14 @@ function getToolCallsFromParts({
   return functionCallParts == null || functionCallParts.length === 0
     ? undefined
     : functionCallParts.map(part => ({
-        type: 'tool-call' as const,
-        toolCallId: generateId(),
-        toolName: part.functionCall.name,
-        args: JSON.stringify(part.functionCall.args),
-        providerMetadata: part.thoughtSignature
-          ? { google: { thoughtSignature: part.thoughtSignature } }
-          : undefined,
-      }));
+      type: 'tool-call' as const,
+      toolCallId: generateId(),
+      toolName: part.functionCall.name,
+      args: JSON.stringify(part.functionCall.args),
+      providerMetadata: part.thoughtSignature
+        ? { google: { thoughtSignature: part.thoughtSignature } }
+        : undefined,
+    }));
 }
 
 function extractSources({
@@ -914,8 +914,8 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type CandidatesSchema = NonNullable<InferSchema<typeof responseSchema>['candidates']>;
-type CandidateSchema = CandidatesSchema[number];
+type CandidatesSchema = InferSchema<typeof responseSchema>['candidates'];
+type CandidateSchema = NonNullable<CandidatesSchema>[number];
 
 type ContentSchema = NonNullable<CandidateSchema['content']>;
 export type GroundingMetadataSchema = NonNullable<
