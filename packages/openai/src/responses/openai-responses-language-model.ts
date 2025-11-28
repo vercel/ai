@@ -135,6 +135,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         'openai.web_search': 'web_search',
         'openai.web_search_preview': 'web_search_preview',
         'openai.mcp': 'mcp',
+        'openai.apply_patch': 'apply_patch',
       },
     });
 
@@ -765,7 +766,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
-            toolName: 'apply_patch',
+            toolName: toolNameMapping.toCustomToolName('apply_patch'),
             input: JSON.stringify({
               callId: part.call_id,
               operation: part.operation,
@@ -1031,7 +1032,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               } else if (value.item.type === 'apply_patch_call') {
                 ongoingToolCalls[value.output_index] = {
-                  toolName: 'apply_patch',
+                  toolName: toolNameMapping.toCustomToolName('apply_patch'),
                   toolCallId: value.item.call_id,
                 };
 
@@ -1041,7 +1042,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId: value.item.call_id,
-                    toolName: 'apply_patch',
+                    toolName: toolNameMapping.toCustomToolName('apply_patch'),
                     input: JSON.stringify({
                       callId: value.item.call_id,
                       operation: value.item.operation,
@@ -1248,7 +1249,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId: value.item.call_id,
-                    toolName: 'apply_patch',
+                    toolName: toolNameMapping.toCustomToolName('apply_patch'),
                     input: JSON.stringify({
                       callId: value.item.call_id,
                       operation: value.item.operation,

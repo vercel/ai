@@ -14,7 +14,6 @@ export const openaiTools = {
    * emits patch operations that your application applies and then reports back on,
    * enabling iterative, multi-step code editing workflows.
    *
-   * Must have name `apply_patch`.
    */
   applyPatch,
 
