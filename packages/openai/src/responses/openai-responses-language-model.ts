@@ -585,7 +585,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('web_search'),
+            toolName: toolNameMapping.toCustomToolName(
+              webSearchToolName ?? 'web_search',
+            ),
             input: JSON.stringify({}),
             providerExecuted: true,
           });
@@ -593,7 +595,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('web_search'),
+            toolName: toolNameMapping.toCustomToolName(
+              webSearchToolName ?? 'web_search',
+            ),
             result: mapWebSearchOutput(part.action),
           });
 
