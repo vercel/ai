@@ -558,7 +558,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search sources schema r
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_api_sources",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -579,7 +579,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search sources schema r
       ],
     },
     "toolCallId": "ws_api_sources",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
@@ -6033,7 +6033,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   {
     "id": "ws_test",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
@@ -6044,7 +6044,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_test",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -6055,7 +6055,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
       },
     },
     "toolCallId": "ws_test",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {

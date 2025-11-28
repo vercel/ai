@@ -2161,7 +2161,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.code_interpreter',
-              name: 'code_interpreter',
+              name: 'codeExecution',
               args: {},
             },
           ],
@@ -2238,7 +2238,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.image_generation',
-              name: 'image_generation',
+              name: 'generateImage',
               args: {
                 outputFormat: 'webp',
                 quality: 'low',
@@ -2295,7 +2295,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.local_shell',
-              name: 'local_shell',
+              name: 'shell',
               args: {},
             },
           ],
@@ -2453,7 +2453,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.web_search',
-              name: 'web_search',
+              name: 'webSearch',
               args: {},
             },
           ],
@@ -2475,7 +2475,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.mcp',
-              name: 'mcp',
+              name: 'MCP',
               args: {
                 serverLabel: 'dmcp',
                 serverUrl: 'https://mcp.exa.ai/mcp',
@@ -2532,7 +2532,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               {
                 type: 'provider-defined',
                 id: 'openai.file_search',
-                name: 'file_search',
+                name: 'fileSearch',
                 args: {
                   vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
                   maxNumResults: 5,
@@ -2603,7 +2603,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               {
                 type: 'provider-defined',
                 id: 'openai.file_search',
-                name: 'file_search',
+                name: 'fileSearch',
                 args: {
                   vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
                   maxNumResults: 5,
@@ -2729,7 +2729,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           {
             type: 'provider-defined',
             id: 'openai.computer_use',
-            name: 'computer_use',
+            name: 'computerUse',
             args: {},
           },
         ],
@@ -3847,7 +3847,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.web_search',
-              name: 'web_search',
+              name: 'webSearch',
               args: {},
             },
           ],
@@ -3868,7 +3868,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.file_search',
-              name: 'file_search',
+              name: 'fileSearch',
               args: {
                 vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
               },
@@ -3890,7 +3890,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.file_search',
-              name: 'file_search',
+              name: 'fileSearch',
               args: {
                 vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
               },
@@ -3919,7 +3919,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.code_interpreter',
-              name: 'code_interpreter',
+              name: 'codeExecution',
               args: {},
             },
           ],
@@ -3967,7 +3967,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.image_generation',
-              name: 'image_generation',
+              name: 'generateImage',
               args: {},
             },
           ],
@@ -3989,7 +3989,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.local_shell',
-              name: 'local_shell',
+              name: 'shell',
               args: {},
             },
           ],
@@ -4010,7 +4010,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.mcp',
-              name: 'mcp',
+              name: 'MCP',
               args: {
                 serverLabel: 'dmcp',
                 serverUrl: 'https://mcp.exa.ai/mcp',
