@@ -62,6 +62,7 @@ import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { applyToolInputModifications } from './apply-tool-input-modifications';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
@@ -1108,10 +1109,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
+            const toolCallsToExecute = applyToolInputModifications({
+              approvals: approvedToolApprovals,
+              tools,
+            });
+
             await Promise.all(
-              approvedToolApprovals.map(async toolApproval => {
+              toolCallsToExecute.map(async toolCall => {
                 const result = await executeToolCall({
-                  toolCall: toolApproval.toolCall,
+                  toolCall,
                   tools,
                   tracer,
                   telemetry,
