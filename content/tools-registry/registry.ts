@@ -147,8 +147,6 @@ console.log(text);`,
     websiteUrl: 'https://firecrawl.dev',
     npmUrl: 'https://www.npmjs.com/package/firecrawl-aisdk',
   },
-<<<<<<< HEAD
-=======
   {
     slug: 'bedrock-agentcore',
     name: 'AWS Bedrock AgentCore',
@@ -233,5 +231,4 @@ console.log(text);`,
     websiteUrl: 'https://superagent.sh',
     npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
   },
->>>>>>> 84bfff952 (feat: add Superagent Guardrails to the tools registry (#10666))
 ];
