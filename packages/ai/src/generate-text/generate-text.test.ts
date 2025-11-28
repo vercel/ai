@@ -4700,6 +4700,213 @@ describe('generateText', () => {
         `);
       });
     });
+
+    describe('when a tool with allowInputModification is approved with modifiedInput', () => {
+      let result: GenerateTextResult<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any>;
+
+      beforeEach(async () => {
+        executeFunction = vi.fn().mockReturnValue('result-from-modified-input');
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Executed with modified input',
+                  },
+                ],
+                finishReason: 'stop',
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+              needsApproval: true,
+              allowInputModification: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: {
+                    value: 'original-value',
+                  },
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'approval-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'approval-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                  modifiedInput: { value: 'modified-value' },
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should execute the tool with modified input', async () => {
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'modified-value' },
+          expect.objectContaining({
+            toolCallId: 'call-1',
+            messages: expect.any(Array),
+          }),
+        );
+      });
+    });
+
+    describe('when a tool without allowInputModification is approved with modifiedInput', () => {
+      it('should throw error', async () => {
+        await expect(
+          generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async () => {
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Should not reach here',
+                    },
+                  ],
+                  finishReason: 'stop',
+                };
+              },
+            }),
+            tools: {
+              tool1: tool({
+                inputSchema: z.object({ value: z.string() }),
+                execute: async () => 'result',
+                needsApproval: true,
+              }),
+            },
+            messages: [
+              { role: 'user', content: 'test-input' },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    input: { value: 'original-value' },
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    type: 'tool-call',
+                  },
+                  {
+                    approvalId: 'approval-1',
+                    toolCallId: 'call-1',
+                    type: 'tool-approval-request',
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    approvalId: 'approval-1',
+                    type: 'tool-approval-response',
+                    approved: true,
+                    modifiedInput: { value: 'modified-value' },
+                  },
+                ],
+              },
+            ],
+          }),
+        ).rejects.toThrowError(
+          "Tool 'tool1' does not allow input modification. Set allowInputModification: true to enable this feature.",
+        );
+      });
+    });
+
+    describe('when a tool with allowInputModification is denied with modifiedInput', () => {
+      let result: GenerateTextResult<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any>;
+
+      beforeEach(async () => {
+        executeFunction = vi.fn();
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Tool was denied',
+                  },
+                ],
+                finishReason: 'tool-calls',
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: executeFunction,
+              needsApproval: true,
+              allowInputModification: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: { value: 'original-value' },
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'approval-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'approval-1',
+                  type: 'tool-approval-response',
+                  approved: false,
+                  reason: 'user-denied',
+                  modifiedInput: { value: 'modified-value' },
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should not execute the tool', async () => {
+        expect(executeFunction).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('prepareStep with model switch and image URLs', () => {

@@ -2003,6 +2003,176 @@ describe('convertToModelMessages', () => {
         ]
       `);
     });
+
+    it('should convert an approved tool approval request with modifiedInput (static tool)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                reason: undefined,
+                modifiedInput: {
+                  city: 'Osaka',
+                },
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "modifiedInput": {
+                  "city": "Osaka",
+                },
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert a denied tool approval request with modifiedInput (static tool)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: false,
+                id: 'approval-1',
+                reason: 'Invalid city',
+                modifiedInput: {
+                  city: 'Osaka',
+                },
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "modifiedInput": {
+                  "city": "Osaka",
+                },
+                "reason": "Invalid city",
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
   });
 
   describe('data part conversion', () => {
