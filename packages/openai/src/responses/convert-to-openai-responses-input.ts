@@ -1,7 +1,7 @@
 import {
-  SharedV3Warning,
   LanguageModelV3Prompt,
   LanguageModelV3ToolCallPart,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -15,7 +15,6 @@ import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
-import { webSearchOutputSchema } from '../tool/web-search';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,

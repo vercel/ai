@@ -123,6 +123,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
+    // todo create tool name mapping
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,

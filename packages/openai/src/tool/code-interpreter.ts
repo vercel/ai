@@ -93,7 +93,6 @@ export const codeInterpreterToolFactory =
     CodeInterpreterArgs
   >({
     id: 'openai.code_interpreter',
-    name: 'code_interpreter',
     inputSchema: codeInterpreterInputSchema,
     outputSchema: codeInterpreterOutputSchema,
   });

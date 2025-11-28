@@ -192,14 +192,9 @@ Tool with provider-defined input and output schemas.
         type: 'provider-defined';
 
         /**
-The ID of the tool. Should follow the format `<provider-name>.<unique-tool-name>`.
+The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
    */
         id: `${string}.${string}`;
-
-        /**
-The name of the tool that the user must use in the tool set.
- */
-        name: string;
 
         /**
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.

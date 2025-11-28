@@ -47,6 +47,5 @@ export const fileSearch = createProviderDefinedToolFactory<
   GoogleFileSearchToolArgs
 >({
   id: 'google.file_search',
-  name: 'file_search',
   inputSchema: fileSearchArgsSchema,
 });

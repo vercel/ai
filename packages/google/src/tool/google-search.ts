@@ -27,7 +27,6 @@ export const googleSearch = createProviderDefinedToolFactory<
   }
 >({
   id: 'google.google_search',
-  name: 'google_search',
   inputSchema: lazySchema(() =>
     zodSchema(
       z.object({

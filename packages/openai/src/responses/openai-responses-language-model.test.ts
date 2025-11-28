@@ -3740,6 +3740,24 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
 
+      it('should map custom tool name when streaming web search results (sources, tool calls, tool results)', async () => {
+        prepareChunksFixtureResponse('openai-web-search-tool.1');
+
+        const { stream } = await createModel('gpt-5-nano').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'someToolName',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+
       it('should handle streaming web search with action query field', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',

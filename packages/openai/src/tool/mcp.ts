@@ -153,7 +153,6 @@ export const mcpToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
   McpArgs
 >({
   id: 'openai.mcp',
-  name: 'mcp',
   inputSchema: mcpInputSchema,
   outputSchema: mcpOutputSchema,
 });

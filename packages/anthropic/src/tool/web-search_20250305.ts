@@ -124,7 +124,6 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'anthropic.web_search_20250305',
-  name: 'web_search',
   inputSchema: webSearch_20250305InputSchema,
   outputSchema: webSearch_20250305OutputSchema,
 });

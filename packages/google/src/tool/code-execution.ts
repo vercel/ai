@@ -22,7 +22,6 @@ export const codeExecution = createProviderDefinedToolFactoryWithOutputSchema<
   {}
 >({
   id: 'google.code_execution',
-  name: 'code_execution',
   inputSchema: z.object({
     language: z.string().describe('The programming language of the code.'),
     code: z.string().describe('The code to be executed.'),

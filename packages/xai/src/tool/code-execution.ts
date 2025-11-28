@@ -9,7 +9,6 @@ const codeExecutionOutputSchema = z.object({
 const codeExecutionToolFactory =
   createProviderDefinedToolFactoryWithOutputSchema({
     id: 'xai.code_execution',
-    name: 'code_execution',
     inputSchema: z.object({}).describe('no input parameters'),
     outputSchema: codeExecutionOutputSchema,
   });
