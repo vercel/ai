@@ -152,7 +152,7 @@ console.log(text);`,
   },
   {
     slug: 'bedrock-agentcore',
-    name: 'AWS Bedrock AgentCore',
+    name: 'Amazon Bedrock AgentCore',
     description:
       'Fully managed Browser and Code Interpreter tools for AI agents. Browser is a fast and secure cloud-based runtime for interacting with web applications, filling forms, navigating websites, and extracting information. Code Interpreter provides an isolated sandbox for executing Python, JavaScript, and TypeScript code to solve complex tasks.',
     packageName: 'bedrock-agentcore',
