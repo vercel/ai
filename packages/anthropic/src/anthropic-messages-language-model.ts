@@ -372,7 +372,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       if (
         !tools?.some(
           tool =>
-            tool.type === 'provider-defined' &&
+            tool.type === 'provider' &&
             tool.id === 'anthropic.code_execution_20250825',
         )
       ) {

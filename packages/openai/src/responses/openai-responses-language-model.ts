@@ -4,7 +4,7 @@ import {
   SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
@@ -166,9 +166,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     function hasOpenAITool(id: string) {
       return (
-        tools?.find(
-          tool => tool.type === 'provider-defined' && tool.id === id,
-        ) != null
+        tools?.find(tool => tool.type === 'provider' && tool.id === id) != null
       );
     }
 
@@ -188,10 +186,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const webSearchToolName = (
       tools?.find(
         tool =>
-          tool.type === 'provider-defined' &&
+          tool.type === 'provider' &&
           (tool.id === 'openai.web_search' ||
             tool.id === 'openai.web_search_preview'),
-      ) as LanguageModelV3ProviderDefinedTool | undefined
+      ) as LanguageModelV3ProviderTool | undefined
     )?.name;
 
     if (webSearchToolName) {

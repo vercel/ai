@@ -189,7 +189,7 @@ The types of input and output are not known at development time.
         /**
 Tool with provider-defined input and output schemas.
      */
-        type: 'provider-defined';
+        type: 'provider';
 
         /**
 The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.

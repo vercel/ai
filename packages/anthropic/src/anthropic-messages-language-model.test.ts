@@ -1536,7 +1536,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_search_20250305',
                 name: 'web_search',
                 args: {
@@ -1621,7 +1621,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1658,7 +1658,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1693,7 +1693,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1740,7 +1740,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1783,7 +1783,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1857,7 +1857,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1936,7 +1936,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1985,7 +1985,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               inputSchema: { type: 'object', properties: {} },
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -2023,7 +2023,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2074,7 +2074,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2098,7 +2098,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2199,7 +2199,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2348,7 +2348,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2388,7 +2388,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2421,7 +2421,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.memory_20250818',
               name: 'memory',
               args: {},
@@ -2470,7 +2470,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.memory_20250818',
               name: 'memory',
               args: {},
@@ -2490,7 +2490,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2539,7 +2539,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2557,7 +2557,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2575,7 +2575,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2625,7 +2625,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2705,7 +2705,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2768,7 +2768,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2817,7 +2817,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               inputSchema: { type: 'object', properties: {} },
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -4732,7 +4732,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4761,7 +4761,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4780,7 +4780,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4805,7 +4805,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               prompt: TEST_PROMPT,
               tools: [
                 {
-                  type: 'provider-defined',
+                  type: 'provider',
                   id: 'anthropic.web_fetch_20250910',
                   name: 'web_fetch',
                   args: { maxUses: 1 },
@@ -4832,7 +4832,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_search_20250305',
                 name: 'web_search',
                 args: {

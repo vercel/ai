@@ -58,7 +58,7 @@ export async function prepareResponsesTools({
           strict: strictJsonSchema,
         });
         break;
-      case 'provider-defined': {
+      case 'provider': {
         switch (tool.id) {
           case 'openai.file_search': {
             const args = await validateTypes({

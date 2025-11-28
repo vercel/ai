@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactory,
+  createProviderToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -42,7 +42,7 @@ const fileSearchArgsSchema = lazySchema(() =>
   zodSchema(fileSearchArgsBaseSchema),
 );
 
-export const fileSearch = createProviderDefinedToolFactory<
+export const fileSearch = createProviderToolFactory<
   {},
   GoogleFileSearchToolArgs
 >({

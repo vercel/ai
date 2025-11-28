@@ -23,7 +23,7 @@ vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
     anthropicTools: {
       ...original.anthropicTools,
       bash_20241022: (args: any) => ({
-        type: 'provider-defined',
+        type: 'provider',
         id: 'anthropic.bash_20241022',
         name: 'bash',
         args,
@@ -2552,7 +2552,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'anthropic.bash_20241022',
           name: 'bash',
           args: {},
@@ -2657,7 +2657,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'anthropic.bash_20241022',
           name: 'bash',
           args: {},
@@ -2702,7 +2702,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'anthropic.bash_20241022',
           name: 'bash',
           args: {},
