@@ -319,7 +319,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "id": "provider.tool-id",
             "name": "providerTool",
-            "type": "provider-defined",
+            "type": "provider",
           },
         ],
       }

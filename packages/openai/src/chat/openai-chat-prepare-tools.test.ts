@@ -77,7 +77,7 @@ it('should add warnings for unsupported tools', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "feature": "tool type: provider-defined",
+        "feature": "tool type: provider",
         "type": "unsupported",
       },
     ]
