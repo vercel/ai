@@ -140,6 +140,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
+        toolNameMapping,
         systemMessageMode: modelConfig.systemMessageMode,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,

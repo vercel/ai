@@ -8,6 +8,7 @@ import {
   convertToBase64,
   isNonNullable,
   parseProviderOptions,
+  ToolNameMapping,
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -32,12 +33,14 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
 
 export async function convertToOpenAIResponsesInput({
   prompt,
+  toolNameMapping,
   systemMessageMode,
   fileIdPrefixes,
   store,
   hasLocalShellTool = false,
 }: {
   prompt: LanguageModelV3Prompt;
+  toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
   store: boolean;
@@ -137,7 +140,6 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
-        const toolCallParts: Record<string, LanguageModelV3ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
@@ -161,8 +163,6 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
-              toolCallParts[part.toolCallId] = part;
-
               if (part.providerExecuted) {
                 break;
               }
