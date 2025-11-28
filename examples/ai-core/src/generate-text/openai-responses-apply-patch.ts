@@ -1,14 +1,14 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import {
   ApplyPatchOperation,
   WorkspaceEditor,
 } from '../lib/apply-patch-file-editor';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const workspaceRoot = path.join(__dirname, '../output');
   await fs.mkdir(workspaceRoot, { recursive: true });
 
@@ -163,6 +163,4 @@ async function main() {
     console.error('Error:', error);
   }
   console.log(`\nFiles saved in: ${workspaceRoot}`);
-}
-
-main().catch(console.error);
+});
