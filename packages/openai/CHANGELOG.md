@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- 88fc415: feat(openai): add the new provider 'apply_patch' tool
+
 ## 3.0.0-beta.73
 
 ### Patch Changes

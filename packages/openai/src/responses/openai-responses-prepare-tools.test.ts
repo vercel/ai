@@ -663,4 +663,117 @@ describe('prepareResponsesTools', () => {
       `);
     });
   });
+
+  describe('apply_patch', () => {
+    it('should prepare apply_patch tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.apply_patch',
+            name: 'apply_patch',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "apply_patch",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should handle tool choice selection with apply_patch', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.apply_patch',
+            name: 'apply_patch',
+            args: {},
+          },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'apply_patch',
+        },
+        strictJsonSchema: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": {
+            "type": "apply_patch",
+          },
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "apply_patch",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should handle multiple tools including apply_patch', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.apply_patch',
+            name: 'apply_patch',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+        strictJsonSchema: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {
+                  "input": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+            {
+              "type": "apply_patch",
+            },
+          ],
+        }
+      `);
+    });
+  });
 });
