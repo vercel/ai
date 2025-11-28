@@ -21,6 +21,8 @@ export function convertJSONSchemaToOpenAPISchema(
     required,
     properties,
     items,
+    minItems,
+    maxItems,
     allOf,
     anyOf,
     oneOf,
@@ -80,6 +82,14 @@ export function convertJSONSchemaToOpenAPISchema(
     result.items = Array.isArray(items)
       ? items.map(convertJSONSchemaToOpenAPISchema)
       : convertJSONSchemaToOpenAPISchema(items);
+  }
+
+  if (minItems !== undefined) {
+    result.minItems = minItems;
+  }
+
+  if (maxItems !== undefined) {
+    result.maxItems = maxItems;
   }
 
   if (allOf) {
