@@ -53,6 +53,10 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
           description: tool.description,
           inputSchema: await asSchema(tool.inputSchema).jsonSchema,
           providerOptions: tool.providerOptions,
+          // Advanced tool use features (experimental)
+          deferLoading: tool.experimental_deferLoading,
+          allowedCallers: tool.experimental_allowedCallers,
+          inputExamples: tool.experimental_inputExamples,
         });
         break;
       case 'provider-defined':

@@ -272,12 +272,40 @@ export interface AnthropicMcpToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+/**
+ * Standard function tool with optional advanced tool use features.
+ */
+export type AnthropicFunctionTool = {
+  name: string;
+  description: string | undefined;
+  input_schema: JSONSchema7;
+  cache_control: AnthropicCacheControl | undefined;
+  /**
+   * When true, the tool's full definition is deferred and not loaded into context initially.
+   * Requires the Tool Search Tool to be enabled.
+   * @see https://www.anthropic.com/engineering/advanced-tool-use
+   */
+  defer_loading?: boolean;
+  /**
+   * Specifies which callers are allowed to invoke this tool.
+   * Set to ['code_execution_20250825'] to enable programmatic tool calling.
+   * @see https://www.anthropic.com/engineering/advanced-tool-use
+   */
+  allowed_callers?: string[];
+  /**
+   * Example inputs that demonstrate how to use the tool correctly.
+   * Helps the model understand proper parameter formats and conventions.
+   * @see https://www.anthropic.com/engineering/advanced-tool-use
+   */
+  input_examples?: unknown[];
+};
+
 export type AnthropicTool =
+  | AnthropicFunctionTool
   | {
+      type: 'tool_search_tool_regex_20251119';
       name: string;
-      description: string | undefined;
-      input_schema: JSONSchema7;
-      cache_control: AnthropicCacheControl | undefined;
+      cache_control?: AnthropicCacheControl | undefined;
     }
   | {
       type: 'code_execution_20250522';

@@ -47,11 +47,31 @@ export async function prepareTools({
           canCache: true,
         });
 
+        // Check if any advanced tool use features are used
+        const hasAdvancedFeatures =
+          tool.deferLoading ||
+          (tool.allowedCallers && tool.allowedCallers.length > 0) ||
+          (tool.inputExamples && tool.inputExamples.length > 0);
+
+        if (hasAdvancedFeatures) {
+          betas.add('advanced-tool-use-2025-11-20');
+        }
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          // Advanced tool use features
+          ...(tool.deferLoading && { defer_loading: tool.deferLoading }),
+          ...(tool.allowedCallers &&
+            tool.allowedCallers.length > 0 && {
+              allowed_callers: tool.allowedCallers,
+            }),
+          ...(tool.inputExamples &&
+            tool.inputExamples.length > 0 && {
+              input_examples: tool.inputExamples,
+            }),
         });
         break;
       }
@@ -61,6 +81,15 @@ export async function prepareTools({
         // so cache_control cannot be set on them. The Anthropic API supports caching all tools,
         // but the SDK would need to be updated to expose providerOptions on provider-defined tools.
         switch (tool.id) {
+          case 'anthropic.tool_search_20251119': {
+            betas.add('advanced-tool-use-2025-11-20');
+            anthropicTools.push({
+              type: 'tool_search_tool_regex_20251119',
+              name: 'tool_search_tool_regex',
+              cache_control: undefined,
+            });
+            break;
+          }
           case 'anthropic.code_execution_20250522': {
             betas.add('code-execution-2025-05-22');
             anthropicTools.push({

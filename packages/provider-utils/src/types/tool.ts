@@ -158,6 +158,55 @@ Whether the tool needs approval before it can be executed.
       input: [INPUT] extends [never] ? unknown : INPUT;
     } & ToolCallOptions,
   ) => void | PromiseLike<void>;
+
+  /**
+   * When true, the tool's full definition is deferred and not loaded into context
+   * initially. The tool can be dynamically discovered through a tool search mechanism.
+   * This reduces token usage when you have many tools.
+   *
+   * Requires the Tool Search Tool to be enabled.
+   *
+   * @experimental This feature is experimental and may change in future versions.
+   * Currently only supported by Anthropic Claude models.
+   *
+   * @see https://www.anthropic.com/engineering/advanced-tool-use
+   */
+  experimental_deferLoading?: boolean;
+
+  /**
+   * Specifies which callers are allowed to invoke this tool.
+   * When set to ['code_execution_20250825'], the tool can only be called from
+   * within code execution contexts, enabling programmatic tool orchestration.
+   *
+   * This keeps intermediate results out of Claude's context, reducing token usage
+   * and enabling complex multi-step workflows.
+   *
+   * Requires the Code Execution Tool to be enabled.
+   *
+   * @experimental This feature is experimental and may change in future versions.
+   * Currently only supported by Anthropic Claude models.
+   *
+   * @see https://www.anthropic.com/engineering/advanced-tool-use
+   */
+  experimental_allowedCallers?: string[];
+
+  /**
+   * Example inputs that demonstrate how to use the tool correctly.
+   * These examples help the model understand proper parameter formats,
+   * conventions, and usage patterns beyond what JSON Schema can express.
+   *
+   * Include examples that show:
+   * - Minimal parameters (required fields only)
+   * - Partial parameters (some optional fields)
+   * - Full parameters (all fields populated)
+   * - Domain-specific conventions and formats
+   *
+   * @experimental This feature is experimental and may change in future versions.
+   * Currently only supported by Anthropic Claude models.
+   *
+   * @see https://www.anthropic.com/engineering/advanced-tool-use
+   */
+  experimental_inputExamples?: unknown[];
 } & ToolOutputProperties<INPUT, OUTPUT> & {
     /**
 Optional conversion function that maps the tool result to an output that can be used by the language model.

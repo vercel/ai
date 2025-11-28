@@ -9,6 +9,7 @@ import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { textEditor_20250728 } from './tool/text-editor_20250728';
+import { toolSearch_20251119 } from './tool/tool-search_20251119';
 import { webFetch_20250910 } from './tool/web-fetch-20250910';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 
@@ -173,4 +174,20 @@ export const anthropicTools = {
    * @param userLocation - Optional user location information to provide geographically relevant search results.
    */
   webSearch_20250305,
+
+  /**
+   * Creates a Tool Search Tool that enables Claude to dynamically discover tools on-demand.
+   *
+   * The Tool Search Tool allows Claude to search for relevant tools using regex patterns
+   * rather than loading all tool definitions upfront. This can significantly reduce token usage
+   * (up to 85% reduction) when working with many tools.
+   *
+   * Use this tool in combination with `deferLoading: true` on your other tools to enable
+   * dynamic tool discovery.
+   *
+   * Tool name must be `tool_search_tool_regex`.
+   *
+   * @see https://www.anthropic.com/engineering/advanced-tool-use
+   */
+  toolSearch_20251119,
 };

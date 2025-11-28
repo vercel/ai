@@ -50,6 +50,31 @@ export function prepareTools({
         feature: `provider-defined tool ${tool.id}`,
       });
     } else {
+      // Warn about unsupported advanced tool use features (Anthropic-only)
+      if (tool.deferLoading) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `deferLoading on tool '${tool.name}'`,
+          details: 'deferLoading is only supported by Anthropic Claude models',
+        });
+      }
+      if (tool.allowedCallers && tool.allowedCallers.length > 0) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `allowedCallers on tool '${tool.name}'`,
+          details:
+            'allowedCallers is only supported by Anthropic Claude models',
+        });
+      }
+      if (tool.inputExamples && tool.inputExamples.length > 0) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `inputExamples on tool '${tool.name}'`,
+          details:
+            'inputExamples is only supported by Anthropic Claude models',
+        });
+      }
+
       mistralTools.push({
         type: 'function',
         function: {
