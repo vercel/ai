@@ -177,7 +177,11 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              if (hasLocalShellTool && part.toolName === 'local_shell') {
+              const resolvedToolName = toolNameMapping.toProviderToolName(
+                part.toolName,
+              );
+
+              if (hasLocalShellTool && resolvedToolName === 'local_shell') {
                 const parsedInput = await validateTypes({
                   value: part.input,
                   schema: localShellInputSchema,
@@ -202,7 +206,7 @@ export async function convertToOpenAIResponsesInput({
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
-                name: part.toolName,
+                name: resolvedToolName,
                 arguments: JSON.stringify(part.input),
                 id,
               });
@@ -304,9 +308,13 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           const output = part.output;
 
+          const resolvedToolName = toolNameMapping.toProviderToolName(
+            part.toolName,
+          );
+
           if (
             hasLocalShellTool &&
-            part.toolName === 'local_shell' &&
+            resolvedToolName === 'local_shell' &&
             output.type === 'json'
           ) {
             const parsedOutput = await validateTypes({
