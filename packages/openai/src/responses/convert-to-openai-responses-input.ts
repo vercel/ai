@@ -122,7 +122,7 @@ export async function convertToOpenAIResponsesInput({
                       ? { file_id: part.data }
                       : {
                           filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                          file_url: `data:application/pdf;base64,${convertToBase64(part.data)}`,
                         }),
                   };
                 } else {
@@ -362,7 +362,7 @@ export async function convertToOpenAIResponsesInput({
                       return {
                         type: 'input_file' as const,
                         filename: item.filename ?? 'data',
-                        file_data: `data:${item.mediaType};base64,${item.data}`,
+                        file_url: `data:${item.mediaType};base64,${item.data}`,
                       };
                     }
 
