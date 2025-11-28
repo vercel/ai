@@ -77,7 +77,7 @@ export default function OpenAIWebSearchView({
               <div className="pl-5 text-sm text-green-900 break-all">
                 <span className="font-semibold">URL:</span>{' '}
                 <a
-                  href={output.action.url}
+                  href={output.action.url ?? undefined}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-green-700"
@@ -105,7 +105,7 @@ export default function OpenAIWebSearchView({
               <div className="pl-5 text-sm text-yellow-900 break-all">
                 <span className="font-semibold">In URL:</span>{' '}
                 <a
-                  href={output.action.url}
+                  href={output.action.url ?? undefined}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-yellow-700"
