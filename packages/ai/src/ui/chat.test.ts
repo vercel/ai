@@ -2385,6 +2385,7 @@ describe('Chat', () => {
                   "approval": {
                     "approved": true,
                     "id": "approval-1",
+                    "modifiedInput": undefined,
                     "reason": undefined,
                   },
                   "input": {
@@ -2496,6 +2497,7 @@ describe('Chat', () => {
                   "approval": {
                     "approved": true,
                     "id": "approval-1",
+                    "modifiedInput": undefined,
                     "reason": undefined,
                   },
                   "errorText": undefined,
