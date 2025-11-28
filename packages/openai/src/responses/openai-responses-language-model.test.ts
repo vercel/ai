@@ -2342,7 +2342,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.web_search',
-              name: 'web_search',
+              name: 'webSearch',
               args: {},
             },
           ],
@@ -3811,25 +3811,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'provider-defined',
               id: 'openai.web_search',
-              name: 'web_search',
-              args: {},
-            },
-          ],
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
-      });
-
-      it('should map custom tool name when streaming web search results (sources, tool calls, tool results)', async () => {
-        prepareChunksFixtureResponse('openai-web-search-tool.1');
-
-        const { stream } = await createModel('gpt-5-nano').doStream({
-          tools: [
-            {
-              type: 'provider-defined',
-              id: 'openai.web_search',
-              name: 'someToolName',
+              name: 'webSearch',
               args: {},
             },
           ],
