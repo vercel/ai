@@ -62,7 +62,7 @@ it('should add warnings for unsupported tools', () => {
   const result = prepareChatTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'openai.unsupported_tool',
         name: 'unsupported_tool',
         args: {},

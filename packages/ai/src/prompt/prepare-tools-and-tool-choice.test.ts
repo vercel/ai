@@ -14,8 +14,8 @@ const mockTools = {
   }),
 };
 
-const mockProviderDefinedTool: Tool = {
-  type: 'provider-defined',
+const mockProviderTool: Tool = {
+  type: 'provider',
   id: 'provider.tool-id',
   args: { key: 'value' },
   inputSchema: z.object({}),
@@ -23,7 +23,7 @@ const mockProviderDefinedTool: Tool = {
 
 const mockToolsWithProviderDefined = {
   ...mockTools,
-  providerTool: mockProviderDefinedTool,
+  providerTool: mockProviderTool,
 };
 
 describe('prepareToolsAndToolChoice', () => {

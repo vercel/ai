@@ -46,7 +46,7 @@ export async function prepareResponsesTools({
   for (const tool of normalizedTools) {
     toolByName.set(tool.name, tool);
 
-    if (tool.type === 'provider-defined') {
+    if (tool.type === 'provider') {
       switch (tool.id) {
         case 'xai.web_search': {
           const args = await validateTypes({
@@ -159,7 +159,7 @@ export async function prepareResponsesTools({
         };
       }
 
-      if (selectedTool.type === 'provider-defined') {
+      if (selectedTool.type === 'provider') {
         switch (selectedTool.id) {
           case 'xai.web_search':
             return {

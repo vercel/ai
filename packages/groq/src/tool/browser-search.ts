@@ -1,4 +1,4 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
+import { createProviderToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
@@ -13,7 +13,7 @@ import { z } from 'zod/v4';
  *
  * @see https://console.groq.com/docs/browser-search
  */
-export const browserSearch = createProviderDefinedToolFactory<
+export const browserSearch = createProviderToolFactory<
   {
     // Browser search doesn't take input parameters - it's controlled by the prompt
     // The tool is activated automatically when included in the tools array

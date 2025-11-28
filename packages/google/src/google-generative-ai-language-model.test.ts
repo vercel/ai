@@ -1,6 +1,6 @@
 import {
   LanguageModelV3Prompt,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -1367,7 +1367,7 @@ describe('doGenerate', () => {
     const { content } = await model.doGenerate({
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'google.code_execution',
           name: 'code_execution',
           args: {},
@@ -1417,7 +1417,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1440,7 +1440,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1463,7 +1463,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1487,7 +1487,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {
@@ -1521,7 +1521,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.url_context',
             name: 'url_context',
             args: {},
@@ -1543,7 +1543,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.vertex_rag_store',
             name: 'vertex_rag_store',
             args: {
@@ -2470,7 +2470,7 @@ describe('doStream', () => {
     const { stream } = await model.doStream({
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'google.code_execution',
           name: 'code_execution',
           args: {},
@@ -2526,7 +2526,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2552,7 +2552,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2577,7 +2577,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2603,7 +2603,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {

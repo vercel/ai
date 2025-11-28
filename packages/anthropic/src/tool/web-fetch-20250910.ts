@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -52,7 +52,7 @@ const webFetch_20250910InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderDefinedToolFactoryWithOutputSchema<
+const factory = createProviderToolFactoryWithOutputSchema<
   {
     /**
      * The URL to fetch.
