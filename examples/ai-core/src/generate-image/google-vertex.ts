@@ -7,7 +7,7 @@ import 'dotenv/config';
 import { presentImages } from '../lib/present-image';
 
 async function main() {
-  const { image } = await generateImage({
+  const result = await generateImage({
     model: vertex.image('imagen-3.0-generate-002'),
     prompt: 'A burrito launched through a tunnel',
     aspectRatio: '1:1',
@@ -18,7 +18,12 @@ async function main() {
     },
   });
 
-  await presentImages([image]);
+  await presentImages(result.images);
+
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(result.providerMetadata, null, 2),
+  );
 }
 
 main().catch(console.error);
