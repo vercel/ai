@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
 import {
   LanguageModelV3FunctionTool,
   LanguageModelV3ProviderDefinedTool,
 } from '@ai-sdk/provider';
-import { createToolNameMapping } from './tool-name-mapping';
+import { describe, expect, it } from 'vitest';
+import { createToolNameMapping } from './create-tool-name-mapping';
 
 describe('createToolNameMapping', () => {
   it('should create mappings for provider-defined tools', () => {
