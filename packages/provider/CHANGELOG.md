@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+
 ## 3.0.0-beta.20
 
 ### Patch Changes
