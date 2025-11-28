@@ -102,5 +102,35 @@ Include metadata in tool results so the model knows the user modified the input:
     output: result,
     metadata: { userModifiedInput: true, ... } // Rather than denying first to avoid using context
 }
-
 Must be opt in on tool config
+
+Expose tool schemas so developers can validate modifiedInput on the client before sending
+
+
+Outputs: Some tools have no execute function → user must provide via addToolOutput
+Inputs: LLM always generates inputs → user can optionally modify via addToolApprovalResponse({ modifiedInput })
+
+All UI framework chat hooks (via AbstractChat)
+
+overrideInput instead of modifiedInput?
+
+lg tool approval PR:
+'''
+Background
+Tool execution approval (e.g. for human-in-the-loop) requires complex logic for checking and tool execution.
+
+Summary
+introduce needsApproval flag on Tool
+introduce ToolApprovalRequest part on assistant model message
+introduce ToolApprovalResponse part on tool model message
+introduce ToolApprovalRequestOutput
+add execution-denied tool output to language model v3 prompt specification
+add tool approval logic to generateText and streamText
+extract executeToolCall function
+add UIMessage and UI message chunk support for tool approvals
+add addToolApprovalResponse function to Chat
+add ChatAddToolApproveResponseFunction type
+update conversion and validation function for UI messages, model messages, and language model emssages
+Missing tool approvals are not handled in any special way, because some models may support tool calls without results. If the used model requires tool results for tool calls, the corresponding API will throw errors.
+'''
+
