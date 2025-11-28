@@ -32,7 +32,8 @@ export async function prepareResponsesTools({
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
-    | { type: 'image_generation' };
+    | { type: 'image_generation' }
+    | { type: 'apply_patch' };
   toolWarnings: SharedV3Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -83,6 +84,12 @@ export async function prepareResponsesTools({
           case 'openai.local_shell': {
             openaiTools.push({
               type: 'local_shell',
+            });
+            break;
+          }
+          case 'openai.apply_patch': {
+            openaiTools.push({
+              type: 'apply_patch',
             });
             break;
           }
@@ -217,7 +224,8 @@ export async function prepareResponsesTools({
           toolChoice.toolName === 'image_generation' ||
           toolChoice.toolName === 'web_search_preview' ||
           toolChoice.toolName === 'web_search' ||
-          toolChoice.toolName === 'mcp'
+          toolChoice.toolName === 'mcp' ||
+          toolChoice.toolName === 'apply_patch'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,

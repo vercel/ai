@@ -1,3 +1,4 @@
+import { applyPatch } from './tool/apply-patch';
 import { codeInterpreter } from './tool/code-interpreter';
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
@@ -7,6 +8,15 @@ import { webSearchPreview } from './tool/web-search-preview';
 import { mcp } from './tool/mcp';
 
 export const openaiTools = {
+  /**
+   * The apply_patch tool lets GPT-5.1 create, update, and delete files in your
+   * codebase using structured diffs. Instead of just suggesting edits, the model
+   * emits patch operations that your application applies and then reports back on,
+   * enabling iterative, multi-step code editing workflows.
+   *
+   */
+  applyPatch,
+
   /**
    * The Code Interpreter tool allows models to write and run Python code in a
    * sandboxed environment to solve complex problems in domains like data analysis,
