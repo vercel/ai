@@ -4,22 +4,19 @@ import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
 
 async function main() {
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = 'A blue cream Persian cat in Kyoto in the style of ukiyo-e';
   const result = await generateImage({
     model: openai.image('gpt-image-1-mini'),
     prompt,
-  });
-
-  // @ts-expect-error
-  const revisedPrompt = result.providerMetadata.openai.images[0]?.revisedPrompt;
-
-  console.log({
-    prompt,
-    revisedPrompt,
-    usage: result.usage,
+    n: 3,
   });
 
   await presentImages([result.image]);
+
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(result.providerMetadata, null, 2),
+  );
 }
 
 main().catch(console.error);

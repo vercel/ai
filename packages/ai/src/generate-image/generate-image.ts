@@ -197,29 +197,46 @@ Only applicable for HTTP-based providers.
       for (const [providerName, metadata] of Object.entries<{
         images: unknown;
       }>(result.providerMetadata)) {
-        if (providerName === 'gateway') {
-          const currentEntry = providerMetadata[providerName];
-          if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
-          } else {
-            providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
+        const existingMetadata = providerMetadata[providerName];
+        if (existingMetadata != null && typeof existingMetadata === 'object') {
+          // Merge existing with new metadata
+          providerMetadata[providerName] = {
+            ...(existingMetadata as object),
+            ...metadata,
+          } as ImageModelV3ProviderMetadata[string];
+
+          // Concatenate images arrays from multiple calls
+          if (
+            'images' in existingMetadata &&
+            Array.isArray(existingMetadata.images) &&
+            Array.isArray(metadata.images)
+          ) {
+            (providerMetadata[providerName] as { images: unknown[] }).images = [
+              ...existingMetadata.images,
+              ...metadata.images,
+            ];
           }
-          const imagesValue = (
-            providerMetadata[providerName] as { images?: unknown }
-          ).images;
-          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
-            delete (providerMetadata[providerName] as { images?: unknown })
-              .images;
+
+          // Concatenate responses arrays from multiple calls
+          if (
+            'responses' in existingMetadata &&
+            Array.isArray(existingMetadata.responses) &&
+            'responses' in metadata &&
+            Array.isArray(metadata.responses)
+          ) {
+            (
+              providerMetadata[providerName] as unknown as {
+                responses: unknown[];
+              }
+            ).responses = [
+              ...existingMetadata.responses,
+              ...metadata.responses,
+            ];
           }
         } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+          // First time seeing this provider
+          providerMetadata[providerName] =
+            metadata as ImageModelV3ProviderMetadata[string];
         }
       }
     }

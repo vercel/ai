@@ -112,6 +112,16 @@ export class OpenAIImageModel implements ImageModelV3 {
                 }
               : null,
           ),
+          responses: [
+            {
+              created: response.created ?? undefined,
+              size: response.size ?? undefined,
+              quality: response.quality ?? undefined,
+              background: response.background ?? undefined,
+              outputFormat: response.output_format ?? undefined,
+              imageCount: response.data.length,
+            },
+          ],
         },
       },
     };
