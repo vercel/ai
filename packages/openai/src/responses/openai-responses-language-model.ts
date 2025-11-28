@@ -14,6 +14,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createToolNameMapping,
   generateId,
   InferSchema,
   parseProviderOptions,
@@ -123,7 +124,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
-    // todo create tool name mapping
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'openai.code_interpreter': 'code_interpreter',
+        'openai.file_search': 'file_search',
+        'openai.image_generation': 'image_generation',
+        'openai.local_shell': 'local_shell',
+        'openai.web_search': 'web_search',
+        'openai.web_search_preview': 'web_search_preview',
+        'openai.mcp': 'mcp',
+      },
+    });
 
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({

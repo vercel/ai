@@ -31,15 +31,15 @@ export interface ToolNameMapping {
  * @param providerToolNames - Maps the provider tool ids to the provider tool names.
  */
 export function createToolNameMapping({
-  tools,
+  tools = [],
   providerToolNames,
 }: {
   /**
    * Tools that were passed to the language model.
    */
-  tools: Array<
-    LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool
-  >;
+  tools:
+    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool>
+    | undefined;
 
   /**
    * Maps the provider tool ids to the provider tool names.
