@@ -669,7 +669,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.apply_patch',
             name: 'apply_patch',
             args: {},
@@ -696,7 +696,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.apply_patch',
             name: 'apply_patch',
             args: {},
@@ -739,7 +739,7 @@ describe('prepareResponsesTools', () => {
             },
           },
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.apply_patch',
             name: 'apply_patch',
             args: {},

@@ -2684,7 +2684,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.apply_patch',
                 name: 'apply_patch',
                 args: {},
@@ -5035,7 +5035,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.apply_patch',
               name: 'apply_patch',
               args: {},
