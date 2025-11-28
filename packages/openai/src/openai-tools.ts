@@ -13,8 +13,6 @@ export const openaiTools = {
    * coding, and math.
    *
    * @param container - The container to use for the code interpreter.
-   *
-   * Must have name `code_interpreter`.
    */
   codeInterpreter,
 
@@ -22,8 +20,6 @@ export const openaiTools = {
    * File search is a tool available in the Responses API. It enables models to
    * retrieve information in a knowledge base of previously uploaded files through
    * semantic and keyword search.
-   *
-   * Must have name `file_search`.
    *
    * @param vectorStoreIds - The vector store IDs to use for the file search.
    * @param maxNumResults - The maximum number of results to return.
@@ -36,8 +32,6 @@ export const openaiTools = {
    * The image generation tool allows you to generate images using a text prompt,
    * and optionally image inputs. It leverages the GPT Image model,
    * and automatically optimizes text inputs for improved performance.
-   *
-   * Must have name `image_generation`.
    *
    * @param background - Background type for the generated image. One of 'auto', 'opaque', or 'transparent'.
    * @param inputFidelity - Input fidelity for the generated image. One of 'low' or 'high'.
@@ -57,8 +51,6 @@ export const openaiTools = {
    * on a machine you or the user provides.
    *
    * Supported models: `gpt-5-codex` and `codex-mini-latest`
-   *
-   * Must have name `local_shell`.
    */
   localShell,
 
@@ -66,20 +58,14 @@ export const openaiTools = {
    * Web search allows models to access up-to-date information from the internet
    * and provide answers with sourced citations.
    *
-   * Must have name `web_search_preview`.
-   *
    * @param searchContextSize - The search context size to use for the web search.
    * @param userLocation - The user location to use for the web search.
-   *
-   * @deprecated Use `webSearch` instead.
    */
   webSearchPreview,
 
   /**
    * Web search allows models to access up-to-date information from the internet
    * and provide answers with sourced citations.
-   *
-   * Must have name `web_search`.
    *
    * @param filters - The filters to use for the web search.
    * @param searchContextSize - The search context size to use for the web search.
@@ -90,8 +76,6 @@ export const openaiTools = {
   /**
    * MCP (Model Context Protocol) allows models to call tools exposed by
    * remote MCP servers or service connectors.
-   *
-   * Must have name `mcp`.
    *
    * @param serverLabel - Label to identify the MCP server.
    * @param allowedTools - Allowed tool names or filter object.
