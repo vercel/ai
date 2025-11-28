@@ -1,13 +1,14 @@
 import {
-  SharedV3Warning,
   LanguageModelV3Prompt,
   LanguageModelV3ToolCallPart,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
   isNonNullable,
   parseProviderOptions,
+  ToolNameMapping,
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -15,7 +16,6 @@ import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
-import { webSearchOutputSchema } from '../tool/web-search';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -33,12 +33,14 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
 
 export async function convertToOpenAIResponsesInput({
   prompt,
+  toolNameMapping,
   systemMessageMode,
   fileIdPrefixes,
   store,
   hasLocalShellTool = false,
 }: {
   prompt: LanguageModelV3Prompt;
+  toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
   store: boolean;
@@ -138,7 +140,6 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
-        const toolCallParts: Record<string, LanguageModelV3ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
@@ -162,8 +163,6 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
-              toolCallParts[part.toolCallId] = part;
-
               if (part.providerExecuted) {
                 break;
               }
@@ -178,7 +177,11 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              if (hasLocalShellTool && part.toolName === 'local_shell') {
+              const resolvedToolName = toolNameMapping.toProviderToolName(
+                part.toolName,
+              );
+
+              if (hasLocalShellTool && resolvedToolName === 'local_shell') {
                 const parsedInput = await validateTypes({
                   value: part.input,
                   schema: localShellInputSchema,
@@ -203,7 +206,7 @@ export async function convertToOpenAIResponsesInput({
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
-                name: part.toolName,
+                name: resolvedToolName,
                 arguments: JSON.stringify(part.input),
                 id,
               });
@@ -305,9 +308,13 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           const output = part.output;
 
+          const resolvedToolName = toolNameMapping.toProviderToolName(
+            part.toolName,
+          );
+
           if (
             hasLocalShellTool &&
-            part.toolName === 'local_shell' &&
+            resolvedToolName === 'local_shell' &&
             output.type === 'json'
           ) {
             const parsedOutput = await validateTypes({

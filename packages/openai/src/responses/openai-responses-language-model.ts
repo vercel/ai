@@ -14,6 +14,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createToolNameMapping,
   generateId,
   InferSchema,
   parseProviderOptions,
@@ -123,9 +124,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'openai.code_interpreter': 'code_interpreter',
+        'openai.file_search': 'file_search',
+        'openai.image_generation': 'image_generation',
+        'openai.local_shell': 'local_shell',
+        'openai.web_search': 'web_search',
+        'openai.web_search_preview': 'web_search_preview',
+        'openai.mcp': 'mcp',
+      },
+    });
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
+        toolNameMapping,
         systemMessageMode: modelConfig.systemMessageMode,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
@@ -338,6 +353,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       },
       warnings: [...warnings, ...toolWarnings],
       store,
+      toolNameMapping,
     };
   }
 
@@ -348,6 +364,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       args: body,
       warnings,
       webSearchToolName,
+      toolNameMapping,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
@@ -418,7 +435,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'image_generation',
+            toolName: toolNameMapping.toCustomToolName('image_generation'),
             input: '{}',
             providerExecuted: true,
           });
@@ -426,7 +443,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'image_generation',
+            toolName: toolNameMapping.toCustomToolName('image_generation'),
             result: {
               result: part.result,
             } satisfies InferSchema<typeof imageGenerationOutputSchema>,
@@ -439,7 +456,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
-            toolName: 'local_shell',
+            toolName: toolNameMapping.toCustomToolName('local_shell'),
             input: JSON.stringify({
               action: part.action,
             } satisfies InferSchema<typeof localShellInputSchema>),
@@ -568,7 +585,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: webSearchToolName ?? 'web_search',
+            toolName: toolNameMapping.toCustomToolName(
+              webSearchToolName ?? 'web_search',
+            ),
             input: JSON.stringify({}),
             providerExecuted: true,
           });
@@ -576,7 +595,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: webSearchToolName ?? 'web_search',
+            toolName: toolNameMapping.toCustomToolName(
+              webSearchToolName ?? 'web_search',
+            ),
             result: mapWebSearchOutput(part.action),
           });
 
@@ -587,7 +608,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'mcp',
+            toolName: toolNameMapping.toCustomToolName('mcp'),
             input: JSON.stringify({}),
             providerExecuted: true,
           });
@@ -595,7 +616,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'mcp',
+            toolName: toolNameMapping.toCustomToolName('mcp'),
             result: {
               type: 'call',
               serverLabel: part.server_label,
@@ -614,7 +635,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'mcp',
+            toolName: toolNameMapping.toCustomToolName('mcp'),
             input: JSON.stringify({}),
             providerExecuted: true,
           });
@@ -622,7 +643,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'mcp',
+            toolName: toolNameMapping.toCustomToolName('mcp'),
             result: {
               type: 'listTools',
               serverLabel: part.server_label,
@@ -646,7 +667,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'mcp',
+            toolName: toolNameMapping.toCustomToolName('mcp'),
             input: JSON.stringify({}),
             providerExecuted: true,
           });
@@ -654,7 +675,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'mcp',
+            toolName: toolNameMapping.toCustomToolName('mcp'),
             result: {
               type: 'approvalRequest',
               serverLabel: part.server_label,
@@ -670,7 +691,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'computer_use',
+            toolName: toolNameMapping.toCustomToolName('computer_use'),
             input: '',
             providerExecuted: true,
           });
@@ -678,7 +699,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'computer_use',
+            toolName: toolNameMapping.toCustomToolName('computer_use'),
             result: {
               type: 'computer_use_tool_result',
               status: part.status || 'completed',
@@ -691,7 +712,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'file_search',
+            toolName: toolNameMapping.toCustomToolName('file_search'),
             input: '{}',
             providerExecuted: true,
           });
@@ -699,7 +720,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'file_search',
+            toolName: toolNameMapping.toCustomToolName('file_search'),
             result: {
               queries: part.queries,
               results:
@@ -719,7 +740,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'code_interpreter',
+            toolName: toolNameMapping.toCustomToolName('code_interpreter'),
             input: JSON.stringify({
               code: part.code,
               containerId: part.container_id,
@@ -730,7 +751,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'code_interpreter',
+            toolName: toolNameMapping.toCustomToolName('code_interpreter'),
             result: {
               outputs: part.outputs,
             } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
@@ -789,6 +810,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       args: body,
       warnings,
       webSearchToolName,
+      toolNameMapping,
       store,
     } = await this.getArgs(options);
 
@@ -893,14 +915,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
-                  toolName: webSearchToolName ?? 'web_search',
+                  toolName: toolNameMapping.toCustomToolName(
+                    webSearchToolName ?? 'web_search',
+                  ),
                   toolCallId: value.item.id,
                 };
 
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
-                  toolName: webSearchToolName ?? 'web_search',
+                  toolName: toolNameMapping.toCustomToolName(
+                    webSearchToolName ?? 'web_search',
+                  ),
                   providerExecuted: true,
                 });
 
@@ -912,25 +938,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: webSearchToolName ?? 'web_search',
+                  toolName: toolNameMapping.toCustomToolName(
+                    webSearchToolName ?? 'web_search',
+                  ),
                   input: JSON.stringify({}),
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = {
-                  toolName: 'computer_use',
+                  toolName: toolNameMapping.toCustomToolName('computer_use'),
                   toolCallId: value.item.id,
                 };
 
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
-                  toolName: 'computer_use',
+                  toolName: toolNameMapping.toCustomToolName('computer_use'),
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = {
-                  toolName: 'code_interpreter',
+                  toolName:
+                    toolNameMapping.toCustomToolName('code_interpreter'),
                   toolCallId: value.item.id,
                   codeInterpreter: {
                     containerId: value.item.container_id,
@@ -940,7 +969,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
-                  toolName: 'code_interpreter',
+                  toolName:
+                    toolNameMapping.toCustomToolName('code_interpreter'),
                   providerExecuted: true,
                 });
 
@@ -953,7 +983,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'file_search',
+                  toolName: toolNameMapping.toCustomToolName('file_search'),
                   input: '{}',
                   providerExecuted: true,
                 });
@@ -961,7 +991,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'image_generation',
+                  toolName:
+                    toolNameMapping.toCustomToolName('image_generation'),
                   input: '{}',
                   providerExecuted: true,
                 });
@@ -973,7 +1004,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'mcp',
+                  toolName: toolNameMapping.toCustomToolName('mcp'),
                   input: '{}',
                   providerExecuted: true,
                 });
@@ -1049,7 +1080,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: webSearchToolName ?? 'web_search',
+                  toolName: toolNameMapping.toCustomToolName(
+                    webSearchToolName ?? 'web_search',
+                  ),
                   result: mapWebSearchOutput(value.item.action),
                 });
               } else if (value.item.type === 'computer_call') {
@@ -1063,7 +1096,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'computer_use',
+                  toolName: toolNameMapping.toCustomToolName('computer_use'),
                   input: '',
                   providerExecuted: true,
                 });
@@ -1071,7 +1104,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'computer_use',
+                  toolName: toolNameMapping.toCustomToolName('computer_use'),
                   result: {
                     type: 'computer_use_tool_result',
                     status: value.item.status || 'completed',
@@ -1083,7 +1116,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'file_search',
+                  toolName: toolNameMapping.toCustomToolName('file_search'),
                   result: {
                     queries: value.item.queries,
                     results:
@@ -1102,7 +1135,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'code_interpreter',
+                  toolName:
+                    toolNameMapping.toCustomToolName('code_interpreter'),
                   result: {
                     outputs: value.item.outputs,
                   } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
@@ -1111,7 +1145,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'image_generation',
+                  toolName:
+                    toolNameMapping.toCustomToolName('image_generation'),
                   result: {
                     result: value.item.result,
                   } satisfies InferSchema<typeof imageGenerationOutputSchema>,
@@ -1122,7 +1157,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'mcp',
+                  toolName: toolNameMapping.toCustomToolName('mcp'),
                   result: {
                     type: 'call',
                     serverLabel: value.item.server_label,
@@ -1142,7 +1177,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'mcp',
+                  toolName: toolNameMapping.toCustomToolName('mcp'),
                   result: {
                     type: 'listTools',
                     serverLabel: value.item.server_label,
@@ -1166,7 +1201,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'mcp',
+                  toolName: toolNameMapping.toCustomToolName('mcp'),
                   result: {
                     type: 'approvalRequest',
                     serverLabel: value.item.server_label,
@@ -1181,7 +1216,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.call_id,
-                  toolName: 'local_shell',
+                  toolName: toolNameMapping.toCustomToolName('local_shell'),
                   input: JSON.stringify({
                     action: {
                       type: 'exec',
@@ -1240,7 +1275,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'tool-result',
                 toolCallId: value.item_id,
-                toolName: 'image_generation',
+                toolName: toolNameMapping.toCustomToolName('image_generation'),
                 result: {
                   result: value.partial_image_b64,
                 } satisfies InferSchema<typeof imageGenerationOutputSchema>,
@@ -1277,7 +1312,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: toolCall.toolCallId,
-                  toolName: 'code_interpreter',
+                  toolName:
+                    toolNameMapping.toCustomToolName('code_interpreter'),
                   input: JSON.stringify({
                     code: value.code,
                     containerId: toolCall.codeInterpreter!.containerId,

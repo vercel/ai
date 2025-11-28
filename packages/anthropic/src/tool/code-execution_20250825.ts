@@ -211,7 +211,6 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'anthropic.code_execution_20250825',
-  name: 'code_execution',
   inputSchema: codeExecution_20250825InputSchema,
   outputSchema: codeExecution_20250825OutputSchema,
 });

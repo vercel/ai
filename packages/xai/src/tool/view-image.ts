@@ -11,7 +11,6 @@ const viewImageOutputSchema = z.object({
 
 const viewImageToolFactory = createProviderDefinedToolFactoryWithOutputSchema({
   id: 'xai.view_image',
-  name: 'view_image',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: viewImageOutputSchema,
 });

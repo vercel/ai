@@ -116,7 +116,6 @@ const imageGenerationToolFactory =
     ImageGenerationArgs
   >({
     id: 'openai.image_generation',
-    name: 'image_generation',
     inputSchema: imageGenerationInputSchema,
     outputSchema: imageGenerationOutputSchema,
   });

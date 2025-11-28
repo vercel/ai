@@ -4,7 +4,7 @@ import { InferAgentUIMessage, ToolLoopAgent } from 'ai';
 export const openaiImageGenerationAgent = new ToolLoopAgent({
   model: openai('gpt-5-nano'),
   tools: {
-    image_generation: openai.tools.imageGeneration({
+    image: openai.tools.imageGeneration({
       partialImages: 3,
       quality: 'low',
       size: '1024x1024',

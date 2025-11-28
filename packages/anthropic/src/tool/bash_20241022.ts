@@ -29,6 +29,5 @@ export const bash_20241022 = createProviderDefinedToolFactory<
   {}
 >({
   id: 'anthropic.bash_20241022',
-  name: 'bash',
   inputSchema: bash_20241022InputSchema,
 });

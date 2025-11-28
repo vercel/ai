@@ -24,6 +24,5 @@ export const browserSearch = createProviderDefinedToolFactory<
   }
 >({
   id: 'groq.browser_search',
-  name: 'browser_search',
   inputSchema: z.object({}),
 });

@@ -1366,7 +1366,12 @@ describe('doGenerate', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { content } = await model.doGenerate({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
+        {
+          type: 'provider-defined',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
       ],
       prompt: TEST_PROMPT,
     });
@@ -2464,7 +2469,12 @@ describe('doStream', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { stream } = await model.doStream({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
+        {
+          type: 'provider-defined',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
       ],
       prompt: TEST_PROMPT,
     });

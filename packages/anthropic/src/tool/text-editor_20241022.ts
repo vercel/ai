@@ -59,6 +59,5 @@ export const textEditor_20241022 = createProviderDefinedToolFactory<
   {}
 >({
   id: 'anthropic.text_editor_20241022',
-  name: 'str_replace_editor',
   inputSchema: textEditor_20241022InputSchema,
 });

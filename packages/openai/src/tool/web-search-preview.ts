@@ -135,7 +135,6 @@ export const webSearchPreview =
     }
   >({
     id: 'openai.web_search_preview',
-    name: 'web_search_preview',
     inputSchema: webSearchPreviewInputSchema,
     outputSchema: webSearchPreviewOutputSchema,
   });

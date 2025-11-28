@@ -1,5 +1,9 @@
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
+export {
+  createToolNameMapping,
+  type ToolNameMapping,
+} from './create-tool-name-mapping';
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
 export * from './extract-response-headers';

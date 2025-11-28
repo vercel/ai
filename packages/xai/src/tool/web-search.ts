@@ -47,7 +47,6 @@ const webSearchToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'xai.web_search',
-  name: 'web_search',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
   outputSchema: webSearchOutputSchema,
 });

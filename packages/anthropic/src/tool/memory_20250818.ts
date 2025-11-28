@@ -58,6 +58,5 @@ export const memory_20250818 = createProviderDefinedToolFactory<
   {}
 >({
   id: 'anthropic.memory_20250818',
-  name: 'memory',
   inputSchema: memory_20250818InputSchema,
 });
