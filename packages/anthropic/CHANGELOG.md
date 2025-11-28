@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+
 ## 3.0.0-beta.64
 
 ### Patch Changes
