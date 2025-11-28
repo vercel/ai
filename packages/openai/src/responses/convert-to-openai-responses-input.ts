@@ -12,6 +12,7 @@ import {
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { applyPatchOutputSchema } from '../tool/apply-patch';
 import {
   localShellInputSchema,
   localShellOutputSchema,
@@ -38,6 +39,7 @@ export async function convertToOpenAIResponsesInput({
   fileIdPrefixes,
   store,
   hasLocalShellTool = false,
+  hasApplyPatchTool = false,
 }: {
   prompt: LanguageModelV3Prompt;
   toolNameMapping: ToolNameMapping;
@@ -45,6 +47,7 @@ export async function convertToOpenAIResponsesInput({
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasLocalShellTool?: boolean;
+  hasApplyPatchTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV3Warning>;
@@ -325,6 +328,25 @@ export async function convertToOpenAIResponsesInput({
             input.push({
               type: 'local_shell_call_output',
               call_id: part.toolCallId,
+              output: parsedOutput.output,
+            });
+            break;
+          }
+
+          if (
+            hasApplyPatchTool &&
+            part.toolName === 'apply_patch' &&
+            output.type === 'json'
+          ) {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: applyPatchOutputSchema,
+            });
+
+            input.push({
+              type: 'apply_patch_call_output',
+              call_id: part.toolCallId,
+              status: parsedOutput.status,
               output: parsedOutput.output,
             });
             break;

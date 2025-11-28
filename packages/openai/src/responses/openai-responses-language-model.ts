@@ -23,6 +23,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { applyPatchInputSchema } from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
@@ -134,6 +135,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         'openai.web_search': 'web_search',
         'openai.web_search_preview': 'web_search_preview',
         'openai.mcp': 'mcp',
+        'openai.apply_patch': 'apply_patch',
       },
     });
 
@@ -145,6 +147,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
+        hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
       });
 
     warnings.push(...inputWarnings);
@@ -756,6 +759,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           });
           break;
         }
+
+        case 'apply_patch_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName('apply_patch'),
+            input: JSON.stringify({
+              callId: part.call_id,
+              operation: part.operation,
+            } satisfies InferSchema<typeof applyPatchInputSchema>),
+            providerMetadata: {
+              [providerKey]: {
+                itemId: part.id,
+              },
+            },
+          });
+
+          break;
+        }
       }
     }
 
@@ -1006,6 +1028,30 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   input: '{}',
                   providerExecuted: true,
                 });
+              } else if (value.item.type === 'apply_patch_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: toolNameMapping.toCustomToolName('apply_patch'),
+                  toolCallId: value.item.call_id,
+                };
+
+                // TODO: look into partial diff streaming from the model
+                // Only emit tool-call when status is 'completed' to ensure we have the complete diff
+                if (value.item.status === 'completed') {
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: value.item.call_id,
+                    toolName: toolNameMapping.toCustomToolName('apply_patch'),
+                    input: JSON.stringify({
+                      callId: value.item.call_id,
+                      operation: value.item.operation,
+                    } satisfies InferSchema<typeof applyPatchInputSchema>),
+                    providerMetadata: {
+                      [providerKey]: {
+                        itemId: value.item.id,
+                      },
+                    },
+                  });
+                }
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
@@ -1193,6 +1239,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       : {}),
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
+              } else if (value.item.type === 'apply_patch_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                // Emit the final tool-call with complete diff when status is 'completed'
+                if (value.item.status === 'completed') {
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: value.item.call_id,
+                    toolName: toolNameMapping.toCustomToolName('apply_patch'),
+                    input: JSON.stringify({
+                      callId: value.item.call_id,
+                      operation: value.item.operation,
+                    } satisfies InferSchema<typeof applyPatchInputSchema>),
+                    providerMetadata: {
+                      [providerKey]: {
+                        itemId: value.item.id,
+                      },
+                    },
+                  });
+                }
               } else if (value.item.type === 'mcp_approval_request') {
                 ongoingToolCalls[value.output_index] = undefined;
 
