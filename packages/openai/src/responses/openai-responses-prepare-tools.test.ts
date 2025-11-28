@@ -675,6 +675,7 @@ describe('prepareResponsesTools', () => {
             args: {},
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -744,6 +745,7 @@ describe('prepareResponsesTools', () => {
             args: {},
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: true,
       });
 
