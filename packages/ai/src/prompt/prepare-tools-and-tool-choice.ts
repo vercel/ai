@@ -1,6 +1,6 @@
 import {
   LanguageModelV3FunctionTool,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
   LanguageModelV3ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
@@ -18,7 +18,7 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   activeTools: Array<keyof TOOLS> | undefined;
 }): Promise<{
   tools:
-    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool>
+    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderTool>
     | undefined;
   toolChoice: LanguageModelV3ToolChoice | undefined;
 }> {
@@ -38,7 +38,7 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
       : Object.entries(tools);
 
   const languageModelTools: Array<
-    LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool
+    LanguageModelV3FunctionTool | LanguageModelV3ProviderTool
   > = [];
   for (const [name, tool] of filteredTools) {
     const toolType = tool.type;
@@ -55,9 +55,9 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
           providerOptions: tool.providerOptions,
         });
         break;
-      case 'provider-defined':
+      case 'provider':
         languageModelTools.push({
-          type: 'provider-defined' as const,
+          type: 'provider' as const,
           name,
           id: tool.id,
           args: tool.args,

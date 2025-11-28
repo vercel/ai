@@ -2159,7 +2159,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
               name: 'codeExecution',
               args: {},
@@ -2236,7 +2236,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.image_generation',
               name: 'generateImage',
               args: {
@@ -2293,7 +2293,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.local_shell',
               name: 'shell',
               args: {},
@@ -2340,7 +2340,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         result = await createModel('gpt-5-nano').doGenerate({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search',
               name: 'webSearch',
               args: {},
@@ -2451,7 +2451,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search',
               name: 'webSearch',
               args: {},
@@ -2473,7 +2473,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.mcp',
               name: 'MCP',
               args: {
@@ -2530,7 +2530,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'fileSearch',
                 args: {
@@ -2601,7 +2601,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'fileSearch',
                 args: {
@@ -2727,7 +2727,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         ],
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.computer_use',
             name: 'computerUse',
             args: {},
@@ -3809,7 +3809,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { stream } = await createModel('gpt-5-nano').doStream({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search',
               name: 'webSearch',
               args: {},
@@ -3845,7 +3845,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { stream } = await createModel('gpt-5-nano').doStream({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search',
               name: 'webSearch',
               args: {},
@@ -3866,7 +3866,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
               name: 'fileSearch',
               args: {
@@ -3888,7 +3888,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
               name: 'fileSearch',
               args: {
@@ -3917,7 +3917,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
               name: 'codeExecution',
               args: {},
@@ -3965,7 +3965,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.image_generation',
               name: 'generateImage',
               args: {},
@@ -3987,7 +3987,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.local_shell',
               name: 'shell',
               args: {},
@@ -4008,7 +4008,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { stream } = await createModel('gpt-5-mini').doStream({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.mcp',
               name: 'MCP',
               args: {

@@ -1,6 +1,6 @@
 import {
   LanguageModelV3FunctionTool,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
 } from '@ai-sdk/provider';
 
 /**
@@ -38,7 +38,7 @@ export function createToolNameMapping({
    * Tools that were passed to the language model.
    */
   tools:
-    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool>
+    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderTool>
     | undefined;
 
   /**
@@ -50,7 +50,7 @@ export function createToolNameMapping({
   const providerToolNameToCustomToolName: Record<string, string> = {};
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined' && tool.id in providerToolNames) {
+    if (tool.type === 'provider' && tool.id in providerToolNames) {
       const providerToolName = providerToolNames[tool.id];
       customToolNameToProviderToolName[tool.name] = providerToolName;
       providerToolNameToCustomToolName[providerToolName] = tool.name;

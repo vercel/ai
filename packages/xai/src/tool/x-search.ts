@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -34,7 +34,7 @@ const xSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-const xSearchToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
+const xSearchToolFactory = createProviderToolFactoryWithOutputSchema<
   Record<string, never>,
   {
     query: string;

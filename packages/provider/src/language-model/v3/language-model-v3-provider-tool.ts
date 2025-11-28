@@ -1,11 +1,15 @@
 /**
- * The configuration of a tool that is defined by the provider.
+ * The configuration of a provider tool.
+ *
+ * Provider tools are tools that are specific to a certain provider.
+ * The input and output schemas are defined be the provider, and
+ * some of the tools are also executed on the provider systems.
  */
-export type LanguageModelV3ProviderDefinedTool = {
+export type LanguageModelV3ProviderTool = {
   /**
-   * The type of the tool (always 'provider-defined').
+   * The type of the tool (always 'provider').
    */
-  type: 'provider-defined';
+  type: 'provider';
 
   /**
    * The ID of the tool. Should follow the format `<provider-id>.<unique-tool-name>`.
