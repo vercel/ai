@@ -18,6 +18,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createToolNameMapping,
   DelayedPromise,
   FetchFunction,
   generateId,
@@ -224,12 +225,32 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
 
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'anthropic.code_execution_20250522': 'code_execution',
+        'anthropic.code_execution_20250825': 'code_execution',
+        'anthropic.computer_20241022': 'computer',
+        'anthropic.computer_20250124': 'computer',
+        'anthropic.text_editor_20241022': 'str_replace_editor',
+        'anthropic.text_editor_20250124': 'str_replace_editor',
+        'anthropic.text_editor_20250429': 'str_replace_based_edit_tool',
+        'anthropic.text_editor_20250728': 'str_replace_based_edit_tool',
+        'anthropic.bash_20241022': 'bash',
+        'anthropic.bash_20250124': 'bash',
+        'anthropic.memory_20250818': 'memory',
+        'anthropic.web_search_20250305': 'web_search',
+        'anthropic.web_fetch_20250910': 'web_fetch',
+      },
+    });
+
     const { prompt: messagesPrompt, betas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
         cacheControlValidator,
+        toolNameMapping,
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
@@ -431,6 +452,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
       betas: new Set([...betas, ...toolsBetas, ...userSuppliedBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
+      toolNameMapping,
     };
   }
 
@@ -523,11 +545,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
-      ...options,
-      stream: false,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
-    });
+    const { args, warnings, betas, usesJsonResponseTool, toolNameMapping } =
+      await this.getArgs({
+        ...options,
+        stream: false,
+        userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
@@ -632,7 +655,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
-              toolName: 'code_execution',
+              toolName: toolNameMapping.toCustomToolName('code_execution'),
               input: JSON.stringify({ type: part.name, ...part.input }),
               providerExecuted: true,
             });
@@ -644,7 +667,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
-              toolName: part.name,
+              toolName: toolNameMapping.toCustomToolName(part.name),
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
@@ -687,7 +710,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'web_fetch',
+              toolName: toolNameMapping.toCustomToolName('web_fetch'),
               result: {
                 type: 'web_fetch_result',
                 url: part.content.url,
@@ -708,7 +731,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'web_fetch',
+              toolName: toolNameMapping.toCustomToolName('web_fetch'),
               isError: true,
               result: {
                 type: 'web_fetch_tool_result_error',
@@ -723,7 +746,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'web_search',
+              toolName: toolNameMapping.toCustomToolName('web_search'),
               result: part.content.map(result => ({
                 url: result.url,
                 title: result.title,
@@ -751,7 +774,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'web_search',
+              toolName: toolNameMapping.toCustomToolName('web_search'),
               isError: true,
               result: {
                 type: 'web_search_tool_result_error',
@@ -768,7 +791,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'code_execution',
+              toolName: toolNameMapping.toCustomToolName('code_execution'),
               result: {
                 type: part.content.type,
                 stdout: part.content.stdout,
@@ -780,7 +803,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'code_execution',
+              toolName: toolNameMapping.toCustomToolName('code_execution'),
               isError: true,
               result: {
                 type: 'code_execution_tool_result_error',
@@ -797,7 +820,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.tool_use_id,
-            toolName: 'code_execution',
+            toolName: toolNameMapping.toCustomToolName('code_execution'),
             result: part.content,
           });
           break;
@@ -856,6 +879,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       warnings,
       betas,
       usesJsonResponseTool,
+      toolNameMapping,
     } = await this.getArgs({
       ...options,
       stream: true,
@@ -1085,26 +1109,29 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       'bash_code_execution',
                     ].includes(part.name)
                   ) {
-                    contentBlocks[value.index] = {
-                      type: 'tool-call',
-                      toolCallId: part.id,
-                      toolName: part.name,
-                      input: '',
-                      providerExecuted: true,
-                      firstDelta: true,
-                    };
-
                     // map tool names for the code execution 20250825 tool:
-                    const mappedToolName =
+                    const providerToolName =
                       part.name === 'text_editor_code_execution' ||
                       part.name === 'bash_code_execution'
                         ? 'code_execution'
                         : part.name;
 
+                    const customToolName =
+                      toolNameMapping.toCustomToolName(providerToolName);
+
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: '',
+                      providerExecuted: true,
+                      firstDelta: true,
+                    };
+
                     controller.enqueue({
                       type: 'tool-input-start',
                       id: part.id,
-                      toolName: mappedToolName,
+                      toolName: customToolName,
                       providerExecuted: true,
                     });
                   }
@@ -1117,7 +1144,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'web_fetch',
+                      toolName: toolNameMapping.toCustomToolName('web_fetch'),
                       result: {
                         type: 'web_fetch_result',
                         url: part.content.url,
@@ -1140,7 +1167,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'web_fetch',
+                      toolName: toolNameMapping.toCustomToolName('web_fetch'),
                       isError: true,
                       result: {
                         type: 'web_fetch_tool_result_error',
@@ -1157,7 +1184,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'web_search',
+                      toolName: toolNameMapping.toCustomToolName('web_search'),
                       result: part.content.map(result => ({
                         url: result.url,
                         title: result.title,
@@ -1185,7 +1212,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'web_search',
+                      toolName: toolNameMapping.toCustomToolName('web_search'),
                       isError: true,
                       result: {
                         type: 'web_search_tool_result_error',
@@ -1202,7 +1229,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'code_execution',
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
                       result: {
                         type: part.content.type,
                         stdout: part.content.stdout,
@@ -1216,7 +1244,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'code_execution',
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
                       isError: true,
                       result: {
                         type: 'code_execution_tool_result_error',
@@ -1234,7 +1263,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-result',
                     toolCallId: part.tool_use_id,
-                    toolName: 'code_execution',
+                    toolName:
+                      toolNameMapping.toCustomToolName('code_execution'),
                     result: part.content,
                   });
                   return;
@@ -1316,18 +1346,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         id: contentBlock.toolCallId,
                       });
 
-                      // map tool names for the code execution 20250825 tool:
-                      const toolName =
-                        contentBlock.toolName ===
-                          'text_editor_code_execution' ||
-                        contentBlock.toolName === 'bash_code_execution'
-                          ? 'code_execution'
-                          : contentBlock.toolName;
-
                       controller.enqueue({
                         type: 'tool-call',
                         toolCallId: contentBlock.toolCallId,
-                        toolName,
+                        toolName: contentBlock.toolName,
                         input: contentBlock.input,
                         providerExecuted: contentBlock.providerExecuted,
                       });
