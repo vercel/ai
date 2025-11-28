@@ -4920,7 +4920,9 @@ describe('AnthropicMessagesLanguageModel', () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
+          `event: error\n`,
+          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n`,
+          `\n`,
         ],
       };
 
