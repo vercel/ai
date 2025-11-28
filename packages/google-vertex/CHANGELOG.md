@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/anthropic@3.0.0-beta.66
+  - @ai-sdk/provider@3.0.0-beta.22
+  - @ai-sdk/google@3.0.0-beta.62
+
 ## 4.0.0-beta.89
 
 ### Patch Changes

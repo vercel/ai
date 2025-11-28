@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider@3.0.0-beta.22
+
 ## 4.0.0-beta.39
 
 ### Patch Changes
