@@ -103,6 +103,40 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
+  it('should handle valid JSON-RPC messages without an explicit event type', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    const connectPromise = transport.start();
+
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+
+    await connectPromise;
+
+    const testMessage = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    controller.write(`data: ${JSON.stringify(testMessage)}\n\n`);
+
+    expect(await messagePromise).toEqual(testMessage);
+
+    await transport.close();
+  });
+
   it('should handle invalid JSON-RPC messages', async () => {
     const controller = new TestResponseController();
 
