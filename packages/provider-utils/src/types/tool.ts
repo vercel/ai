@@ -135,6 +135,12 @@ Whether the tool needs approval before it can be executed.
   needsApproval?:
     | boolean
     | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
+
+  /**
+Whether the tool allows input modification during approval.
+   */
+  allowInputModification?: boolean;
+
   /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
@@ -249,6 +255,11 @@ export function dynamicTool(tool: {
    * Whether the tool needs approval before it can be executed.
    */
   needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
+
+  /**
+   * Whether the tool allows input modification during approval.
+   */
+  allowInputModification?: boolean;
 }): Tool<unknown, unknown> & {
   type: 'dynamic';
 } {

@@ -265,6 +265,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: boolean;
         reason?: string;
+        modifiedInput?: asUITool<TOOL>['input'];
       };
     }
   | {
@@ -278,6 +279,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        modifiedInput?: asUITool<TOOL>['input'];
       };
     }
   | {
@@ -291,6 +293,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        modifiedInput?: asUITool<TOOL>['input'];
       };
     }
   | {
@@ -303,6 +306,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
+        modifiedInput?: asUITool<TOOL>['input'];
       };
     }
 );
@@ -369,6 +373,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: boolean;
         reason?: string;
+        modifiedInput?: unknown;
       };
     }
   | {
@@ -382,6 +387,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        modifiedInput?: unknown;
       };
     }
   | {
@@ -394,6 +400,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        modifiedInput?: unknown;
       };
     }
   | {
@@ -406,6 +413,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
+        modifiedInput?: unknown;
       };
     }
 );

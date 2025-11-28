@@ -62,6 +62,7 @@ import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 import { NoOutputGeneratedError } from '../error';
+import { applyToolInputModifications } from './apply-tool-input-modifications';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -347,10 +348,13 @@ A function that attempts to repair a tool call that failed to parse.
           deniedToolApprovals.length > 0 ||
           approvedToolApprovals.length > 0
         ) {
+          const toolCallsToExecute = applyToolInputModifications({
+            approvals: approvedToolApprovals,
+            tools,
+          });
+
           const toolOutputs = await executeTools({
-            toolCalls: approvedToolApprovals.map(
-              toolApproval => toolApproval.toolCall,
-            ),
+            toolCalls: toolCallsToExecute,
             tools: tools as TOOLS,
             tracer,
             telemetry,
