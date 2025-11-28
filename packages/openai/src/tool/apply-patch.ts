@@ -129,7 +129,6 @@ export const applyPatchToolFactory =
     {}
   >({
     id: 'openai.apply_patch',
-    name: 'apply_patch',
     inputSchema: applyPatchInputSchema,
     outputSchema: applyPatchOutputSchema,
   });
