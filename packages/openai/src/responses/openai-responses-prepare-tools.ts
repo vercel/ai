@@ -3,15 +3,14 @@ import {
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { applyPatchArgsSchema } from '../tool/apply-patch';
+import { validateTypes } from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
-import { webSearchArgsSchema } from '../tool/web-search';
-import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
 import { mcpArgsSchema } from '../tool/mcp';
+import { webSearchArgsSchema } from '../tool/web-search';
+import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { OpenAIResponsesTool } from './openai-responses-api';
-import { validateTypes } from '@ai-sdk/provider-utils';
 
 export async function prepareResponsesTools({
   tools,
@@ -19,7 +18,7 @@ export async function prepareResponsesTools({
   strictJsonSchema,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
   strictJsonSchema: boolean;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
@@ -186,15 +185,6 @@ export async function prepareResponsesTools({
               authorization: args.authorization,
               connector_id: args.connectorId,
               headers: args.headers,
-              // require_approval:
-              //   typeof args.requireApproval === 'string'
-              //     ? args.requireApproval
-              //     : args.requireApproval
-              //       ? {
-              //           read_only: args.requireApproval.readOnly,
-              //           tool_names: args.requireApproval.toolNames,
-              //         }
-              //       : undefined,
               require_approval: 'never',
               server_description: args.serverDescription,
               server_url: args.serverUrl,

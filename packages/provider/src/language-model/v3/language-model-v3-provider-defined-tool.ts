@@ -13,7 +13,7 @@ export type LanguageModelV3ProviderDefinedTool = {
   id: `${string}.${string}`;
 
   /**
-   * The name of the tool that the user must use in the tool set.
+   * The name of the tool. Unique within this model call.
    */
   name: string;
 

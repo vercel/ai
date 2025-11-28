@@ -126,6 +126,5 @@ export const computer_20250124 = createProviderDefinedToolFactory<
   }
 >({
   id: 'anthropic.computer_20250124',
-  name: 'computer',
   inputSchema: computer_20250124InputSchema,
 });

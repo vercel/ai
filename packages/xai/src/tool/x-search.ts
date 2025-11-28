@@ -55,7 +55,6 @@ const xSearchToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'xai.x_search',
-  name: 'x_search',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
   outputSchema: xSearchOutputSchema,
 });

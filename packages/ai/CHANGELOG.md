@@ -1,5 +1,31 @@
 # ai
 
+## 6.0.0-beta.123
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/gateway@2.0.0-beta.67
+
+## 6.0.0-beta.122
+
+### Patch Changes
+
+- 03849b0: move DelayedPromise into provider utils
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/gateway@2.0.0-beta.66
+
+## 6.0.0-beta.121
+
+### Patch Changes
+
+- Updated dependencies [cdd0bc2]
+  - @ai-sdk/gateway@2.0.0-beta.65
+
 ## 6.0.0-beta.120
 
 ### Patch Changes

@@ -12,6 +12,5 @@ export const urlContext = createProviderDefinedToolFactory<
   {}
 >({
   id: 'google.url_context',
-  name: 'url_context',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
 });

@@ -708,7 +708,6 @@ describe('toResponseMessages', () => {
           web_search: tool({
             type: 'provider-defined',
             id: 'test.web_search',
-            name: 'web_search',
             inputSchema: z.object({
               query: z.string(),
             }),

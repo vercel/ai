@@ -171,7 +171,6 @@ export const webSearchToolFactory =
     }
   >({
     id: 'openai.web_search',
-    name: 'web_search',
     inputSchema: webSearchInputSchema,
     outputSchema: webSearchOutputSchema,
   });

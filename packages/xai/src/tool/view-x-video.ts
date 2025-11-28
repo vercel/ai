@@ -9,7 +9,6 @@ const viewXVideoOutputSchema = z.object({
 
 const viewXVideoToolFactory = createProviderDefinedToolFactoryWithOutputSchema({
   id: 'xai.view_x_video',
-  name: 'view_x_video',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: viewXVideoOutputSchema,
 });

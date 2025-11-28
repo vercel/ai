@@ -2621,7 +2621,6 @@ describe('generateText', () => {
             web_search: {
               type: 'provider-defined',
               id: 'test.web_search',
-              name: 'web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
               args: {},

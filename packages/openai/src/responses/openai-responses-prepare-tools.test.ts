@@ -1,3 +1,4 @@
+import { ToolNameMapping } from '@ai-sdk/provider-utils';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
@@ -13,6 +14,7 @@ describe('prepareResponsesTools', () => {
             args: {},
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -45,6 +47,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -76,6 +79,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -114,6 +118,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -148,6 +153,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -227,6 +233,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: true,
       });
 
@@ -277,6 +284,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -348,6 +356,7 @@ describe('prepareResponsesTools', () => {
             args: {},
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -376,6 +385,7 @@ describe('prepareResponsesTools', () => {
             args: {},
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -408,6 +418,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -440,6 +451,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -483,6 +495,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -528,6 +541,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: false,
       });
 
@@ -614,6 +628,7 @@ describe('prepareResponsesTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
         strictJsonSchema: true,
       });
 

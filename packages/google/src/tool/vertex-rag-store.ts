@@ -24,7 +24,6 @@ export const vertexRagStore = createProviderDefinedToolFactory<
   }
 >({
   id: 'google.vertex_rag_store',
-  name: 'vertex_rag_store',
   inputSchema: z.object({
     ragCorpus: z.string(),
     topK: z.number().optional(),

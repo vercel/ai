@@ -1,5 +1,23 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/openai-compatible@2.0.0-beta.40
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/openai-compatible@2.0.0-beta.39
+
 ## 3.0.0-beta.45
 
 ### Patch Changes
