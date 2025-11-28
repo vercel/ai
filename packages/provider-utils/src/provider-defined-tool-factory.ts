@@ -99,7 +99,6 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
     tool({
       type: 'provider-defined',
       id,
-      name,
       args,
       inputSchema,
       outputSchema,
