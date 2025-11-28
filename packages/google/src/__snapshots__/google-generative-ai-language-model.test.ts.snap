@@ -1,0 +1,121 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doGenerate > should handle code execution tool calls > 
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(1+1)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "2",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+     1`] = `
+[
+  {
+    "input": "{"language":"PYTHON","code":"print(1+1)"}",
+    "providerExecuted": true,
+    "toolCallId": "test-id",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "outcome": "OUTCOME_OK",
+      "output": "2",
+    },
+    "toolCallId": "test-id",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+]
+`;
+
+exports[`doGenerate > should handle code execution tool calls > 
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(1+1)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "2",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+     2`] = `
+[
+  {
+    "input": "{"language":"PYTHON","code":"print(1+1)"}",
+    "providerExecuted": true,
+    "toolCallId": "test-id",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "outcome": "OUTCOME_OK",
+      "output": "2",
+    },
+    "toolCallId": "test-id",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+]
+`;
+
+exports[`doGenerate > should handle code execution tool calls > 
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(1+1)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "2",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+     3`] = `
+[
+  {
+    "input": "{"language":"PYTHON","code":"print(1+1)"}",
+    "providerExecuted": true,
+    "toolCallId": "test-id",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "outcome": "OUTCOME_OK",
+      "output": "2",
+    },
+    "toolCallId": "test-id",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+]
+`;
