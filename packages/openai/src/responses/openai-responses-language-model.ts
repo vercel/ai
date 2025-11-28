@@ -1035,6 +1035,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: value.item.call_id,
                 };
 
+                // TODO: look into partial diff streaming from the model
                 // Only emit tool-call when status is 'completed' to ensure we have the complete diff
                 if (value.item.status === 'completed') {
                   controller.enqueue({
