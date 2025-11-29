@@ -2012,7 +2012,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert an approved tool approval request with modifiedInput (static tool)', () => {
+    it('should convert approved tool approval with modifiedInput (static tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -2032,10 +2032,7 @@ describe('convertToModelMessages', () => {
               approval: {
                 approved: true,
                 id: 'approval-1',
-                reason: undefined,
-                modifiedInput: {
-                  city: 'Osaka',
-                },
+                modifiedInput: { city: 'Paris' },
               },
               input: {
                 city: 'Tokyo',
@@ -2085,7 +2082,7 @@ describe('convertToModelMessages', () => {
                 "approvalId": "approval-1",
                 "approved": true,
                 "modifiedInput": {
-                  "city": "Osaka",
+                  "city": "Paris",
                 },
                 "reason": undefined,
                 "type": "tool-approval-response",
@@ -2097,7 +2094,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert a denied tool approval request with modifiedInput (static tool)', () => {
+    it('should convert approved tool approval with modifiedInput (dynamic tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -2115,19 +2112,17 @@ describe('convertToModelMessages', () => {
             },
             {
               approval: {
-                approved: false,
+                approved: true,
                 id: 'approval-1',
-                reason: 'Invalid city',
-                modifiedInput: {
-                  city: 'Osaka',
-                },
+                modifiedInput: { city: 'London' },
               },
               input: {
                 city: 'Tokyo',
               },
               state: 'approval-responded',
               toolCallId: 'call-1',
-              type: 'tool-weather',
+              type: 'dynamic-tool',
+              toolName: 'weather',
             },
           ],
           role: 'assistant',
@@ -2168,11 +2163,11 @@ describe('convertToModelMessages', () => {
             "content": [
               {
                 "approvalId": "approval-1",
-                "approved": false,
+                "approved": true,
                 "modifiedInput": {
-                  "city": "Osaka",
+                  "city": "London",
                 },
-                "reason": "Invalid city",
+                "reason": undefined,
                 "type": "tool-approval-response",
               },
             ],

@@ -1143,7 +1143,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               role: 'tool',
               content: [
                 // add regular tool results for approved tool calls:
-              ...allToolOutputs.map(output => ({
+                ...allToolOutputs.map(output => ({
                   type: 'tool-result' as const,
                   toolCallId: output.toolCallId,
                   toolName: output.toolName,

@@ -37,8 +37,7 @@ export function validateApprovedToolInputs<TOOLS extends ToolSet>({
 
     validToolCalls.push({
       ...approval.toolCall,
-      input:
-        approval.approvalResponse.modifiedInput ?? approval.toolCall.input,
+      input: approval.approvalResponse.modifiedInput ?? approval.toolCall.input,
     });
   }
 

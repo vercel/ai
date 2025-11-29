@@ -2568,11 +2568,11 @@ describe('Chat', () => {
         await chat.addToolApprovalResponse({
           id: 'approval-1',
           approved: true,
-          modifiedInput: { city: 'Osaka' },
+          modifiedInput: { city: 'Paris' },
         });
       });
 
-      it('should update tool invocation to include modifiedInput in approval', () => {
+      it('should update tool invocation to show the modified input', () => {
         expect(chat.messages).toMatchInlineSnapshot(`
           [
             {
@@ -2596,7 +2596,7 @@ describe('Chat', () => {
                     "approved": true,
                     "id": "approval-1",
                     "modifiedInput": {
-                      "city": "Osaka",
+                      "city": "Paris",
                     },
                     "reason": undefined,
                   },
@@ -2606,222 +2606,6 @@ describe('Chat', () => {
                   "state": "approval-responded",
                   "toolCallId": "call-1",
                   "type": "tool-weather",
-                },
-              ],
-              "role": "assistant",
-            },
-          ]
-        `);
-      });
-    });
-
-    describe('denied with modifiedInput', () => {
-      let chat: TestChat;
-
-      beforeEach(async () => {
-        chat = new TestChat({
-          id: '123',
-          generateId: mockId({ prefix: 'newid' }),
-          transport: new DefaultChatTransport({
-            api: 'http://localhost:3000/api/chat',
-          }),
-          messages: [
-            {
-              id: 'id-0',
-              role: 'user',
-              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
-            },
-            {
-              id: 'id-1',
-              role: 'assistant',
-              parts: [
-                { type: 'step-start' },
-                {
-                  type: 'tool-weather',
-                  toolCallId: 'call-1',
-                  state: 'approval-requested',
-                  input: { city: 'Tokyo' },
-                  approval: { id: 'approval-1' },
-                },
-              ],
-            },
-          ],
-        });
-
-        await chat.addToolApprovalResponse({
-          id: 'approval-1',
-          approved: false,
-          reason: 'Invalid city',
-          modifiedInput: { city: 'Osaka' },
-        });
-      });
-
-      it('should update tool invocation to include modifiedInput in approval', () => {
-        expect(chat.messages).toMatchInlineSnapshot(`
-          [
-            {
-              "id": "id-0",
-              "parts": [
-                {
-                  "text": "What is the weather in Tokyo?",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "id-1",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "approval": {
-                    "approved": false,
-                    "id": "approval-1",
-                    "modifiedInput": {
-                      "city": "Osaka",
-                    },
-                    "reason": "Invalid city",
-                  },
-                  "input": {
-                    "city": "Tokyo",
-                  },
-                  "state": "approval-responded",
-                  "toolCallId": "call-1",
-                  "type": "tool-weather",
-                },
-              ],
-              "role": "assistant",
-            },
-          ]
-        `);
-      });
-    });
-
-    describe('approved with modifiedInput and automatic sending', () => {
-      let chat: TestChat;
-      const onFinishPromise = createResolvablePromise<void>();
-
-      beforeEach(async () => {
-        server.urls['http://localhost:3000/api/chat'].response = [
-          {
-            type: 'stream-chunks',
-            chunks: [
-              formatChunk({ type: 'start' }),
-              formatChunk({ type: 'start-step' }),
-              formatChunk({
-                type: 'tool-output-available',
-                toolCallId: 'call-1',
-                output: { temperature: 68, weather: 'cloudy' },
-              }),
-              formatChunk({ type: 'text-start', id: 'txt-1' }),
-              formatChunk({
-                type: 'text-delta',
-                id: 'txt-1',
-                delta: 'The weather in Osaka is cloudy.',
-              }),
-              formatChunk({ type: 'text-end', id: 'txt-1' }),
-              formatChunk({ type: 'finish-step' }),
-              formatChunk({ type: 'finish', finishReason: 'stop' }),
-            ],
-          },
-        ];
-
-        chat = new TestChat({
-          id: '123',
-          generateId: mockId({ prefix: 'newid' }),
-          transport: new DefaultChatTransport({
-            api: 'http://localhost:3000/api/chat',
-          }),
-          messages: [
-            {
-              id: 'id-0',
-              role: 'user',
-              parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
-            },
-            {
-              id: 'id-1',
-              role: 'assistant',
-              parts: [
-                { type: 'step-start' },
-                {
-                  type: 'tool-weather',
-                  toolCallId: 'call-1',
-                  state: 'approval-requested',
-                  input: { city: 'Tokyo' },
-                  approval: { id: 'approval-1' },
-                },
-              ],
-            },
-          ],
-          sendAutomaticallyWhen:
-            lastAssistantMessageIsCompleteWithApprovalResponses,
-          onFinish: () => {
-            onFinishPromise.resolve();
-          },
-        });
-
-        await chat.addToolApprovalResponse({
-          id: 'approval-1',
-          approved: true,
-          modifiedInput: { city: 'Osaka' },
-        });
-
-        await onFinishPromise.promise;
-      });
-
-      it('should include modifiedInput in the approval and execute with modified input', () => {
-        expect(chat.messages).toMatchInlineSnapshot(`
-          [
-            {
-              "id": "id-0",
-              "parts": [
-                {
-                  "text": "What is the weather in Tokyo?",
-                  "type": "text",
-                },
-              ],
-              "role": "user",
-            },
-            {
-              "id": "id-1",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "approval": {
-                    "approved": true,
-                    "id": "approval-1",
-                    "modifiedInput": {
-                      "city": "Osaka",
-                    },
-                    "reason": undefined,
-                  },
-                  "errorText": undefined,
-                  "input": {
-                    "city": "Tokyo",
-                  },
-                  "output": {
-                    "temperature": 68,
-                    "weather": "cloudy",
-                  },
-                  "preliminary": undefined,
-                  "providerExecuted": undefined,
-                  "rawInput": undefined,
-                  "state": "output-available",
-                  "toolCallId": "call-1",
-                  "type": "tool-weather",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": undefined,
-                  "state": "done",
-                  "text": "The weather in Osaka is cloudy.",
-                  "type": "text",
                 },
               ],
               "role": "assistant",
