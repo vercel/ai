@@ -140,6 +140,49 @@ const result = await generateText({
 });
 ```
 
+#### Continuing the loop with feedback
+
+You can return a `StepContinueResult` from `onStepFinish` to continue the generation loop with injected feedback messages. This is useful for validating outputs and automatically retrying when validation fails.
+
+```tsx highlight="5-20"
+import { generateText, stepCountIs, type StepContinueResult } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-4o-mini',
+  prompt: 'Generate a text message for SMS: no markdown, under 160 characters',
+  onStepFinish: async (step): Promise<StepContinueResult> => {
+    const text = step.text;
+    const hasMarkdown = /[*_`\[\]#]/.test(text);
+    const tooLong = text.length > 160;
+
+    if (hasMarkdown || tooLong) {
+      return {
+        continue: true,
+        messages: [
+          {
+            role: 'user',
+            content: `Validation failed: The message ${
+              hasMarkdown ? 'contains markdown symbols' : ''
+            }${hasMarkdown && tooLong ? ' and ' : ''}${
+              tooLong ? `is ${text.length} characters (max 160)` : ''
+            }. Please regenerate a plain text message without markdown and under 160 characters.`,
+          },
+        ],
+      };
+    }
+
+    return { continue: false };
+  },
+  stopWhen: stepCountIs(5), // Safety limit: max 5 attempts
+});
+```
+
+The `StepContinueResult` type can be:
+
+- `{ continue: true, messages: Array<ModelMessage> }` - Continue the loop with injected feedback messages
+- `{ continue: false }` - Stop the loop (even if tool calls exist)
+- `undefined` or `void` - Continue normally based on tool calls and stop conditions
+
 ### `prepareStep` callback
 
 The `prepareStep` callback is called before a step is started.

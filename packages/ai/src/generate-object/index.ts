@@ -7,3 +7,4 @@ export type {
   ObjectStreamPart,
   StreamObjectResult,
 } from './stream-object-result';
+export type { StepContinueResult } from '../generate-text/generate-text';

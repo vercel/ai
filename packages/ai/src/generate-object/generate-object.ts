@@ -7,12 +7,14 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { StepContinueResult } from '../generate-text/generate-text';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { ModelMessage } from '../prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -106,6 +108,9 @@ to enable JSON parsing.
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
 
+@param onStepFinish - Callback that is called when each generation attempt is finished.
+Can return a `StepContinueResult` to continue the loop with feedback messages when validation fails.
+
 @returns
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
@@ -195,10 +200,31 @@ Default and recommended: 'auto' (best mode for the model).
 
       /**
   Additional provider-specific options. They are passed through
-  to the provider from the AI SDK and enable provider-specific
-  functionality that can be fully encapsulated in the provider.
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
    */
       providerOptions?: ProviderOptions;
+
+      /**
+       * Callback that is called when each generation attempt is finished.
+       * Can return a `StepContinueResult` to continue the loop with feedback messages when validation fails.
+       */
+      onStepFinish?: (step: {
+        object?: RESULT;
+        text: string;
+        validationError?: Error;
+        finishReason: FinishReason;
+        usage: LanguageModelUsage;
+        warnings: CallWarning[] | undefined;
+        response: LanguageModelResponseMetadata;
+        request: LanguageModelRequestMetadata;
+        providerMetadata: ProviderMetadata | undefined;
+        reasoning: string | undefined;
+      }) =>
+        | PromiseLike<StepContinueResult>
+        | StepContinueResult
+        | Promise<void>
+        | void;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -222,6 +248,7 @@ Default and recommended: 'auto' (best mode for the model).
     experimental_telemetry: telemetry,
     experimental_download: download,
     providerOptions,
+    onStepFinish,
     _internal: {
       generateId = originalGenerateId,
       currentDate = () => new Date(),
@@ -300,6 +327,16 @@ Default and recommended: 'auto' (best mode for the model).
       }),
       tracer,
       fn: async span => {
+        const standardizedPrompt = await standardizePrompt({
+          system,
+          prompt,
+          messages,
+        } as Prompt);
+
+        const initialMessages = standardizedPrompt.messages;
+        let currentMessages: Array<ModelMessage> = [...initialMessages];
+        let nextStepContinuationMessages: Array<ModelMessage> = [];
+
         let result: string;
         let finishReason: FinishReason;
         let usage: LanguageModelUsage;
@@ -308,147 +345,223 @@ Default and recommended: 'auto' (best mode for the model).
         let request: LanguageModelRequestMetadata;
         let resultProviderMetadata: ProviderMetadata | undefined;
         let reasoning: string | undefined;
+        let object: RESULT;
 
-        const standardizedPrompt = await standardizePrompt({
-          system,
-          prompt,
-          messages,
-        } as Prompt);
+        let attemptCount = 0;
+        const maxAttempts = maxRetries + 1;
 
-        const promptMessages = await convertToLanguageModelPrompt({
-          prompt: standardizedPrompt,
-          supportedUrls: await model.supportedUrls,
-          download,
-        });
+        do {
+          attemptCount++;
 
-        const generateResult = await retry(() =>
-          recordSpan({
-            name: 'ai.generateObject.doGenerate',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.generateObject.doGenerate',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                'ai.prompt.messages': {
-                  input: () => stringifyForTelemetry(promptMessages),
+          // Combine initial messages with continuation messages
+          const stepInputMessages = [
+            ...currentMessages,
+            ...nextStepContinuationMessages,
+          ];
+          nextStepContinuationMessages = []; // Clear after use
+
+          const promptMessages = await convertToLanguageModelPrompt({
+            prompt: {
+              system: standardizedPrompt.system,
+              messages: stepInputMessages,
+            },
+            supportedUrls: await model.supportedUrls,
+            download,
+          });
+
+          const generateResult = await retry(() =>
+            recordSpan({
+              name: 'ai.generateObject.doGenerate',
+              attributes: selectTelemetryAttributes({
+                telemetry,
+                attributes: {
+                  ...assembleOperationName({
+                    operationId: 'ai.generateObject.doGenerate',
+                    telemetry,
+                  }),
+                  ...baseTelemetryAttributes,
+                  'ai.prompt.messages': {
+                    input: () => stringifyForTelemetry(promptMessages),
+                  },
+
+                  // standardized gen-ai llm span attributes:
+                  'gen_ai.system': model.provider,
+                  'gen_ai.request.model': model.modelId,
+                  'gen_ai.request.frequency_penalty':
+                    callSettings.frequencyPenalty,
+                  'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                  'gen_ai.request.presence_penalty':
+                    callSettings.presencePenalty,
+                  'gen_ai.request.temperature': callSettings.temperature,
+                  'gen_ai.request.top_k': callSettings.topK,
+                  'gen_ai.request.top_p': callSettings.topP,
                 },
+              }),
+              tracer,
+              fn: async span => {
+                const result = await model.doGenerate({
+                  responseFormat: {
+                    type: 'json',
+                    schema: jsonSchema,
+                    name: schemaName,
+                    description: schemaDescription,
+                  },
+                  ...prepareCallSettings(settings),
+                  prompt: promptMessages,
+                  providerOptions,
+                  abortSignal,
+                  headers: headersWithUserAgent,
+                });
 
-                // standardized gen-ai llm span attributes:
-                'gen_ai.system': model.provider,
-                'gen_ai.request.model': model.modelId,
-                'gen_ai.request.frequency_penalty':
-                  callSettings.frequencyPenalty,
-                'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
-                'gen_ai.request.presence_penalty': callSettings.presencePenalty,
-                'gen_ai.request.temperature': callSettings.temperature,
-                'gen_ai.request.top_k': callSettings.topK,
-                'gen_ai.request.top_p': callSettings.topP,
+                const responseData = {
+                  id: result.response?.id ?? generateId(),
+                  timestamp: result.response?.timestamp ?? currentDate(),
+                  modelId: result.response?.modelId ?? model.modelId,
+                  headers: result.response?.headers,
+                  body: result.response?.body,
+                };
+
+                const text = extractTextContent(result.content);
+                const reasoning = extractReasoningContent(result.content);
+
+                if (text === undefined) {
+                  throw new NoObjectGeneratedError({
+                    message:
+                      'No object generated: the model did not return a response.',
+                    response: responseData,
+                    usage: result.usage,
+                    finishReason: result.finishReason,
+                  });
+                }
+
+                // Add response information to the span:
+                span.setAttributes(
+                  await selectTelemetryAttributes({
+                    telemetry,
+                    attributes: {
+                      'ai.response.finishReason': result.finishReason,
+                      'ai.response.object': { output: () => text },
+                      'ai.response.id': responseData.id,
+                      'ai.response.model': responseData.modelId,
+                      'ai.response.timestamp':
+                        responseData.timestamp.toISOString(),
+                      'ai.response.providerMetadata': JSON.stringify(
+                        result.providerMetadata,
+                      ),
+
+                      // TODO rename telemetry attributes to inputTokens and outputTokens
+                      'ai.usage.promptTokens': result.usage.inputTokens,
+                      'ai.usage.completionTokens': result.usage.outputTokens,
+
+                      // standardized gen-ai llm span attributes:
+                      'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.response.id': responseData.id,
+                      'gen_ai.response.model': responseData.modelId,
+                      'gen_ai.usage.input_tokens': result.usage.inputTokens,
+                      'gen_ai.usage.output_tokens': result.usage.outputTokens,
+                    },
+                  }),
+                );
+
+                return {
+                  ...result,
+                  objectText: text,
+                  reasoning,
+                  responseData,
+                };
               },
             }),
-            tracer,
-            fn: async span => {
-              const result = await model.doGenerate({
-                responseFormat: {
-                  type: 'json',
-                  schema: jsonSchema,
-                  name: schemaName,
-                  description: schemaDescription,
-                },
-                ...prepareCallSettings(settings),
-                prompt: promptMessages,
-                providerOptions,
-                abortSignal,
-                headers: headersWithUserAgent,
-              });
+          );
 
-              const responseData = {
-                id: result.response?.id ?? generateId(),
-                timestamp: result.response?.timestamp ?? currentDate(),
-                modelId: result.response?.modelId ?? model.modelId,
-                headers: result.response?.headers,
-                body: result.response?.body,
-              };
+          result = generateResult.objectText;
+          finishReason = generateResult.finishReason;
+          usage = generateResult.usage;
+          warnings = generateResult.warnings;
+          resultProviderMetadata = generateResult.providerMetadata;
+          request = generateResult.request ?? {};
+          response = generateResult.responseData;
+          reasoning = generateResult.reasoning;
 
-              const text = extractTextContent(result.content);
-              const reasoning = extractReasoningContent(result.content);
+          logWarnings({
+            warnings,
+            provider: model.provider,
+            model: model.modelId,
+          });
 
-              if (text === undefined) {
-                throw new NoObjectGeneratedError({
-                  message:
-                    'No object generated: the model did not return a response.',
-                  response: responseData,
-                  usage: result.usage,
-                  finishReason: result.finishReason,
-                });
+          // Try to parse and validate
+          let validationError: Error | undefined;
+          let parsedObject: RESULT | undefined;
+
+          try {
+            parsedObject = await parseAndValidateObjectResultWithRepair(
+              result,
+              outputStrategy,
+              repairText,
+              {
+                response,
+                usage,
+                finishReason,
+              },
+            );
+          } catch (error) {
+            validationError =
+              error instanceof Error ? error : new Error(String(error));
+          }
+
+          // Call onStepFinish if provided
+          let shouldContinue = false;
+          if (onStepFinish != null) {
+            const onStepFinishResult = await onStepFinish({
+              object: parsedObject,
+              text: result,
+              validationError,
+              finishReason,
+              usage,
+              warnings,
+              response,
+              request,
+              providerMetadata: resultProviderMetadata,
+              reasoning,
+            });
+
+            if (
+              onStepFinishResult != null &&
+              typeof onStepFinishResult === 'object' &&
+              'continue' in onStepFinishResult
+            ) {
+              if (onStepFinishResult.continue === true) {
+                // Store continuation messages for the next step's input
+                nextStepContinuationMessages = onStepFinishResult.messages;
+                shouldContinue = true;
               }
+              // continue: false means stop
+            }
+          }
 
-              // Add response information to the span:
-              span.setAttributes(
-                await selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.response.finishReason': result.finishReason,
-                    'ai.response.object': { output: () => text },
-                    'ai.response.id': responseData.id,
-                    'ai.response.model': responseData.modelId,
-                    'ai.response.timestamp':
-                      responseData.timestamp.toISOString(),
-                    'ai.response.providerMetadata': JSON.stringify(
-                      result.providerMetadata,
-                    ),
+          // If validation succeeded and no continuation requested, break
+          if (parsedObject != null && !shouldContinue) {
+            object = parsedObject;
+            break;
+          }
 
-                    // TODO rename telemetry attributes to inputTokens and outputTokens
-                    'ai.usage.promptTokens': result.usage.inputTokens,
-                    'ai.usage.completionTokens': result.usage.outputTokens,
+          // If validation failed and no continuation requested, throw error
+          if (validationError != null && !shouldContinue) {
+            throw validationError;
+          }
 
-                    // standardized gen-ai llm span attributes:
-                    'gen_ai.response.finish_reasons': [result.finishReason],
-                    'gen_ai.response.id': responseData.id,
-                    'gen_ai.response.model': responseData.modelId,
-                    'gen_ai.usage.input_tokens': result.usage.inputTokens,
-                    'gen_ai.usage.output_tokens': result.usage.outputTokens,
-                  },
-                }),
-              );
-
-              return {
-                ...result,
-                objectText: text,
-                reasoning,
-                responseData,
-              };
-            },
-          }),
-        );
-
-        result = generateResult.objectText;
-        finishReason = generateResult.finishReason;
-        usage = generateResult.usage;
-        warnings = generateResult.warnings;
-        resultProviderMetadata = generateResult.providerMetadata;
-        request = generateResult.request ?? {};
-        response = generateResult.responseData;
-        reasoning = generateResult.reasoning;
-
-        logWarnings({
-          warnings,
-          provider: model.provider,
-          model: model.modelId,
-        });
-
-        const object = await parseAndValidateObjectResultWithRepair(
-          result,
-          outputStrategy,
-          repairText,
-          {
-            response,
-            usage,
-            finishReason,
-          },
-        );
+          // If we've exceeded max attempts, throw the last validation error or a generic error
+          if (attemptCount >= maxAttempts) {
+            if (validationError != null) {
+              throw validationError;
+            }
+            throw new NoObjectGeneratedError({
+              message: `No object generated after ${maxAttempts} attempts.`,
+              response,
+              usage,
+              finishReason,
+            });
+          }
+        } while (true);
 
         // Add response information to the span:
         span.setAttributes(
