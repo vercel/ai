@@ -1174,15 +1174,13 @@ describe('generateImage', () => {
                 images: [pngBase64],
                 providerMetaData: {
                   openai: {
-                    images: [null],
-                    responses: [
+                    images: [
                       {
                         created: 1764370484,
                         size: '1024x1536',
                         quality: 'high',
                         background: 'opaque',
                         outputFormat: 'png',
-                        imageCount: 1,
                       },
                     ],
                   },
@@ -1193,15 +1191,13 @@ describe('generateImage', () => {
         });
 
         expect(result.providerMetadata.openai).toStrictEqual({
-          images: [null],
-          responses: [
+          images: [
             {
               created: 1764370484,
               size: '1024x1536',
               quality: 'high',
               background: 'opaque',
               outputFormat: 'png',
-              imageCount: 1,
             },
           ],
         });
@@ -1216,15 +1212,20 @@ describe('generateImage', () => {
                 images: [pngBase64, jpegBase64],
                 providerMetaData: {
                   openai: {
-                    images: [null, null],
-                    responses: [
+                    images: [
                       {
                         created: 1764370685,
                         size: '1024x1536',
                         quality: 'high',
                         background: 'opaque',
                         outputFormat: 'png',
-                        imageCount: 2,
+                      },
+                      {
+                        created: 1764370685,
+                        size: '1024x1536',
+                        quality: 'high',
+                        background: 'opaque',
+                        outputFormat: 'png',
                       },
                     ],
                   },
@@ -1236,15 +1237,20 @@ describe('generateImage', () => {
         });
 
         expect(result.providerMetadata.openai).toStrictEqual({
-          images: [null, null],
-          responses: [
+          images: [
             {
               created: 1764370685,
               size: '1024x1536',
               quality: 'high',
               background: 'opaque',
               outputFormat: 'png',
-              imageCount: 2,
+            },
+            {
+              created: 1764370685,
+              size: '1024x1536',
+              quality: 'high',
+              background: 'opaque',
+              outputFormat: 'png',
             },
           ],
         });
@@ -1263,15 +1269,13 @@ describe('generateImage', () => {
                     images: [pngBase64],
                     providerMetaData: {
                       openai: {
-                        images: [null],
-                        responses: [
+                        images: [
                           {
                             created: 1764370484,
                             size: '1024x1536',
                             quality: 'high',
                             background: 'opaque',
                             outputFormat: 'png',
-                            imageCount: 1,
                           },
                         ],
                       },
@@ -1282,15 +1286,14 @@ describe('generateImage', () => {
                     images: [jpegBase64],
                     providerMetaData: {
                       openai: {
-                        images: [{ revisedPrompt: 'a beautiful sunset' }],
-                        responses: [
+                        images: [
                           {
+                            revisedPrompt: 'a beautiful sunset',
                             created: 1764370685,
                             size: '1024x1536',
                             quality: 'high',
                             background: 'opaque',
                             outputFormat: 'png',
-                            imageCount: 1,
                           },
                         ],
                       },
@@ -1305,25 +1308,23 @@ describe('generateImage', () => {
           n: 2,
         });
 
-        // Images array concatenates, responses array concatenates (preserving all per-response metadata)
+        // Images array concatenates (each image has complete metadata including response fields)
         expect(result.providerMetadata.openai).toStrictEqual({
-          images: [null, { revisedPrompt: 'a beautiful sunset' }],
-          responses: [
+          images: [
             {
               created: 1764370484,
               size: '1024x1536',
               quality: 'high',
               background: 'opaque',
               outputFormat: 'png',
-              imageCount: 1,
             },
             {
+              revisedPrompt: 'a beautiful sunset',
               created: 1764370685,
               size: '1024x1536',
               quality: 'high',
               background: 'opaque',
               outputFormat: 'png',
-              imageCount: 1,
             },
           ],
         });
@@ -1422,15 +1423,13 @@ describe('generateImage', () => {
                     generationId: 'gen-789',
                   },
                   openai: {
-                    images: [null],
-                    responses: [
+                    images: [
                       {
                         created: 1764370484,
                         size: '1024x1536',
                         quality: 'high',
                         background: 'opaque',
                         outputFormat: 'png',
-                        imageCount: 1,
                       },
                     ],
                   },
@@ -1448,15 +1447,13 @@ describe('generateImage', () => {
             generationId: 'gen-789',
           },
           openai: {
-            images: [null],
-            responses: [
+            images: [
               {
                 created: 1764370484,
                 size: '1024x1536',
                 quality: 'high',
                 background: 'opaque',
                 outputFormat: 'png',
-                imageCount: 1,
               },
             ],
           },
@@ -1481,15 +1478,13 @@ describe('generateImage', () => {
                         cost: '0.04',
                       },
                       openai: {
-                        images: [null],
-                        responses: [
+                        images: [
                           {
                             created: 1764370484,
                             size: '1024x1536',
                             quality: 'high',
                             background: undefined,
                             outputFormat: undefined,
-                            imageCount: 1,
                           },
                         ],
                       },
@@ -1504,15 +1499,14 @@ describe('generateImage', () => {
                         generationId: 'gen-combined',
                       },
                       openai: {
-                        images: [{ revisedPrompt: 'enhanced prompt' }],
-                        responses: [
+                        images: [
                           {
+                            revisedPrompt: 'enhanced prompt',
                             created: 1764370685,
                             size: undefined,
                             quality: undefined,
                             background: 'opaque',
                             outputFormat: 'png',
-                            imageCount: 1,
                           },
                         ],
                       },
@@ -1535,23 +1529,21 @@ describe('generateImage', () => {
             generationId: 'gen-combined',
           },
           openai: {
-            images: [null, { revisedPrompt: 'enhanced prompt' }],
-            responses: [
+            images: [
               {
                 created: 1764370484,
                 size: '1024x1536',
                 quality: 'high',
                 background: undefined,
                 outputFormat: undefined,
-                imageCount: 1,
               },
               {
+                revisedPrompt: 'enhanced prompt',
                 created: 1764370685,
                 size: undefined,
                 quality: undefined,
                 background: 'opaque',
                 outputFormat: 'png',
-                imageCount: 1,
               },
             ],
           },
@@ -1573,15 +1565,20 @@ describe('generateImage', () => {
                     generationId: 'gen-double',
                   },
                   openai: {
-                    images: [null, null],
-                    responses: [
+                    images: [
                       {
                         created: 1764370685,
                         size: '1024x1536',
                         quality: 'high',
                         background: 'opaque',
                         outputFormat: 'png',
-                        imageCount: 2,
+                      },
+                      {
+                        created: 1764370685,
+                        size: '1024x1536',
+                        quality: 'high',
+                        background: 'opaque',
+                        outputFormat: 'png',
                       },
                     ],
                   },
@@ -1600,15 +1597,20 @@ describe('generateImage', () => {
             generationId: 'gen-double',
           },
           openai: {
-            images: [null, null],
-            responses: [
+            images: [
               {
                 created: 1764370685,
                 size: '1024x1536',
                 quality: 'high',
                 background: 'opaque',
                 outputFormat: 'png',
-                imageCount: 2,
+              },
+              {
+                created: 1764370685,
+                size: '1024x1536',
+                quality: 'high',
+                background: 'opaque',
+                outputFormat: 'png',
               },
             ],
           },

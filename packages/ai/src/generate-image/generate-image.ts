@@ -216,23 +216,6 @@ Only applicable for HTTP-based providers.
               ...metadata.images,
             ];
           }
-
-          // Concatenate responses arrays from multiple calls
-          if (
-            'responses' in existingMetadata &&
-            Array.isArray(existingMetadata.responses) &&
-            'responses' in metadata &&
-            Array.isArray(metadata.responses)
-          ) {
-            (
-              providerMetadata[providerName] as unknown as {
-                responses: unknown[];
-              }
-            ).responses = [
-              ...existingMetadata.responses,
-              ...metadata.responses,
-            ];
-          }
         } else {
           // First time seeing this provider
           providerMetadata[providerName] =
