@@ -1,10 +1,16 @@
-import {
-  openai,
-  openaiResponsesOutputTextProviderMetadataSchema,
-  openaiResponsesSourceDocumentProviderMetadataSchema,
+import { openai } from '@ai-sdk/openai';
+import type {
+  OpenaiResponsesTextProviderMetadata,
+  OpenaiResponsesSourceDocumentProviderMetadata,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import 'dotenv/config';
+import { z } from 'zod/v4';
+
+const openaiResponsesTextProviderMetadataSchema =
+  z.custom<OpenaiResponsesTextProviderMetadata>();
+const openaiResponsesSourceDocumentProviderMetadataSchema =
+  z.custom<OpenaiResponsesSourceDocumentProviderMetadata>();
 
 async function main() {
   // Basic text generation
@@ -26,7 +32,7 @@ async function main() {
   for (const part of basicResult.content) {
     if (part.type === 'text') {
       const providerMetadataParsed =
-        openaiResponsesOutputTextProviderMetadataSchema.safeParse(
+        openaiResponsesTextProviderMetadataSchema.safeParse(
           part.providerMetadata,
         );
       if (providerMetadataParsed.success) {

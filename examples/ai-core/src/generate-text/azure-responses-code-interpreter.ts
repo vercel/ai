@@ -1,10 +1,11 @@
-import {
-  azure,
-  azureResponsesOutputTextProviderMetadataSchema,
-  azureResponsesSourceDocumentProviderMetadataSchema,
+import { azure } from '@ai-sdk/azure';
+import type {
+  AzureResponsesTextProviderMetadata,
+  AzureResponsesSourceDocumentProviderMetadata,
 } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 import 'dotenv/config';
+import { z } from 'zod/v4';
 
 /**
  * prepare
@@ -12,6 +13,11 @@ import 'dotenv/config';
  * AZURE_RESOURCE_NAME="<your_resource_name>"
  * AZURE_API_KEY="<your_api_key>"
  */
+
+const azureResponsesTextProviderMetadataSchema =
+  z.custom<AzureResponsesTextProviderMetadata>();
+const azureResponsesSourceDocumentProviderMetadataSchema =
+  z.custom<AzureResponsesSourceDocumentProviderMetadata>();
 
 async function main() {
   // Basic text generation
@@ -33,7 +39,7 @@ async function main() {
   for (const part of basicResult.content) {
     if (part.type === 'text') {
       const providerMetadataParsed =
-        azureResponsesOutputTextProviderMetadataSchema.safeParse(
+        azureResponsesTextProviderMetadataSchema.safeParse(
           part.providerMetadata,
         );
       if (providerMetadataParsed.success) {
