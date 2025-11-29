@@ -112,6 +112,7 @@ export class OpenAIImageModel implements ImageModelV3 {
                 }
               : null,
           ),
+          foo: 'bar',
         },
       },
     };
