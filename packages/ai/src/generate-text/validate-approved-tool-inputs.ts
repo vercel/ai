@@ -19,14 +19,14 @@ export function validateApprovedToolInputs<TOOLS extends ToolSet>({
 
   for (const approval of approvals) {
     if (
-      approval.approvalResponse.modifiedInput !== undefined &&
+      approval.approvalResponse.editedInput !== undefined &&
       !approval.approvalRequest.inputEditable
     ) {
       invalidToolErrors.push({
         type: 'tool-error' as const,
         toolCallId: approval.toolCall.toolCallId,
         toolName: approval.toolCall.toolName,
-        input: approval.approvalResponse.modifiedInput,
+        input: approval.approvalResponse.editedInput,
         error: `Tool '${approval.toolCall.toolName}' does not allow input modification. Set inputEditable: true to enable this feature.`,
         dynamic: true,
       });
@@ -37,7 +37,7 @@ export function validateApprovedToolInputs<TOOLS extends ToolSet>({
 
     validToolCalls.push({
       ...approval.toolCall,
-      input: approval.approvalResponse.modifiedInput ?? approval.toolCall.input,
+      input: approval.approvalResponse.editedInput ?? approval.toolCall.input,
     });
   }
 

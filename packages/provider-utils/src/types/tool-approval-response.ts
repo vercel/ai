@@ -22,5 +22,5 @@ export type ToolApprovalResponse = {
   /**
    * Optional modified input provided by the reviewer.
    */
-  modifiedInput?: unknown;
+  editedInput?: unknown;
 };

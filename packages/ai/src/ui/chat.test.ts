@@ -2385,7 +2385,7 @@ describe('Chat', () => {
                   "approval": {
                     "approved": true,
                     "id": "approval-1",
-                    "modifiedInput": undefined,
+                    "editedInput": undefined,
                     "reason": undefined,
                   },
                   "input": {
@@ -2497,7 +2497,7 @@ describe('Chat', () => {
                   "approval": {
                     "approved": true,
                     "id": "approval-1",
-                    "modifiedInput": undefined,
+                    "editedInput": undefined,
                     "reason": undefined,
                   },
                   "errorText": undefined,
@@ -2532,7 +2532,7 @@ describe('Chat', () => {
       });
     });
 
-    describe('approved with modifiedInput', () => {
+    describe('approved with editedInput', () => {
       let chat: TestChat;
 
       beforeEach(async () => {
@@ -2568,7 +2568,7 @@ describe('Chat', () => {
         await chat.addToolApprovalResponse({
           id: 'approval-1',
           approved: true,
-          modifiedInput: { city: 'Paris' },
+          editedInput: { city: 'Paris' },
         });
       });
 
@@ -2595,7 +2595,7 @@ describe('Chat', () => {
                   "approval": {
                     "approved": true,
                     "id": "approval-1",
-                    "modifiedInput": {
+                    "editedInput": {
                       "city": "Paris",
                     },
                     "reason": undefined,

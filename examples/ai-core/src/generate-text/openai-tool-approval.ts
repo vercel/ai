@@ -68,20 +68,20 @@ run(async () => {
           const approved = ['y', 'yes', 'e', 'edit'].includes(answer.toLowerCase());
           const edit = ['e', 'edit'].includes(answer.toLowerCase());
 
-          let modifiedInput = undefined;
+          let editedInput = undefined;
 
           if (edit) {
             const newLocation = await terminal.question(
               `Enter new location (current: ${part.toolCall.input.location}): `,
             );
-            modifiedInput = { location: newLocation };
+            editedInput = { location: newLocation };
           }
 
           approvals.push({
             type: 'tool-approval-response',
             approvalId: part.approvalId,
             approved,
-            modifiedInput,
+            editedInput,
           });
         }
       }

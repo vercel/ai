@@ -3,7 +3,7 @@ import { validateApprovedToolInputs } from './validate-approved-tool-inputs';
 import { CollectedToolApprovals } from './collect-tool-approvals';
 
 describe('validateApprovedToolInputs', () => {
-  it('should return valid tool calls when no modifiedInput is provided', () => {
+  it('should return valid tool calls when no editedInput is provided', () => {
     const approvals: CollectedToolApprovals<any>[] = [
       {
         toolCall: {
@@ -39,7 +39,7 @@ describe('validateApprovedToolInputs', () => {
     expect(result.invalidToolErrors).toEqual([]);
   });
 
-  it('should return valid tool calls when modifiedInput is provided and allowed', () => {
+  it('should return valid tool calls when editedInput is provided and allowed', () => {
     const approvals: CollectedToolApprovals<any>[] = [
       {
         toolCall: {
@@ -58,7 +58,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-1',
           approved: true,
-          modifiedInput: { city: 'Paris' },
+          editedInput: { city: 'Paris' },
         },
       },
     ];
@@ -76,7 +76,7 @@ describe('validateApprovedToolInputs', () => {
     expect(result.invalidToolErrors).toEqual([]);
   });
 
-  it('should return invalid tool error when modifiedInput is provided but not allowed', () => {
+  it('should return invalid tool error when editedInput is provided but not allowed', () => {
     const approvals: CollectedToolApprovals<any>[] = [
       {
         toolCall: {
@@ -95,7 +95,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-1',
           approved: true,
-          modifiedInput: { expression: '2+2' },
+          editedInput: { expression: '2+2' },
         },
       },
     ];
@@ -119,7 +119,7 @@ describe('validateApprovedToolInputs', () => {
     `);
   });
 
-  it('should return invalid tool error when modifiedInput is provided but inputEditable is undefined', () => {
+  it('should return invalid tool error when editedInput is provided but inputEditable is undefined', () => {
     const approvals: CollectedToolApprovals<any>[] = [
       {
         toolCall: {
@@ -138,7 +138,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-1',
           approved: true,
-          modifiedInput: { duration: 120 },
+          editedInput: { duration: 120 },
         },
       },
     ];
@@ -181,7 +181,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-1',
           approved: true,
-          modifiedInput: { city: 'Paris' },
+          editedInput: { city: 'Paris' },
         },
       },
       {
@@ -201,7 +201,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-2',
           approved: true,
-          modifiedInput: { expression: '2+2' },
+          editedInput: { expression: '2+2' },
         },
       },
       {
@@ -221,7 +221,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-3',
           approved: true,
-          // No modifiedInput
+          // No editedInput
         },
       },
     ];
@@ -276,7 +276,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-1',
           approved: true,
-          modifiedInput: { city: 'Paris' },
+          editedInput: { city: 'Paris' },
         },
       },
     ];
@@ -294,7 +294,7 @@ describe('validateApprovedToolInputs', () => {
     });
   });
 
-  it('should use original input when modifiedInput is not provided', () => {
+  it('should use original input when editedInput is not provided', () => {
     const approvals: CollectedToolApprovals<any>[] = [
       {
         toolCall: {
@@ -313,7 +313,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-1',
           approved: true,
-          // No modifiedInput
+          // No editedInput
         },
       },
     ];

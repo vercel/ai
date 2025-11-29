@@ -1340,7 +1340,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "modifiedInput": undefined,
+                "editedInput": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1421,7 +1421,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "modifiedInput": undefined,
+                "editedInput": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1507,7 +1507,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
-                "modifiedInput": undefined,
+                "editedInput": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1603,7 +1603,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
-                "modifiedInput": undefined,
+                "editedInput": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1692,7 +1692,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
-                "modifiedInput": undefined,
+                "editedInput": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1782,7 +1782,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
-                "modifiedInput": undefined,
+                "editedInput": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1878,7 +1878,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "modifiedInput": undefined,
+                "editedInput": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1983,7 +1983,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "modifiedInput": undefined,
+                "editedInput": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -2012,7 +2012,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert approved tool approval with modifiedInput (static tool)', () => {
+    it('should convert approved tool approval with editedInput (static tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -2032,7 +2032,7 @@ describe('convertToModelMessages', () => {
               approval: {
                 approved: true,
                 id: 'approval-1',
-                modifiedInput: { city: 'Paris' },
+                editedInput: { city: 'Paris' },
               },
               input: {
                 city: 'Tokyo',
@@ -2081,7 +2081,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "modifiedInput": {
+                "editedInput": {
                   "city": "Paris",
                 },
                 "reason": undefined,
@@ -2094,7 +2094,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert approved tool approval with modifiedInput (dynamic tool)', () => {
+    it('should convert approved tool approval with editedInput (dynamic tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -2114,7 +2114,7 @@ describe('convertToModelMessages', () => {
               approval: {
                 approved: true,
                 id: 'approval-1',
-                modifiedInput: { city: 'London' },
+                editedInput: { city: 'London' },
               },
               input: {
                 city: 'Tokyo',
@@ -2164,7 +2164,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "modifiedInput": {
+                "editedInput": {
                   "city": "London",
                 },
                 "reason": undefined,

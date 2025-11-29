@@ -267,7 +267,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         approvalId: toolPart.approval.id,
                         approved: toolPart.approval.approved,
                         reason: toolPart.approval.reason,
-                        modifiedInput: toolPart.approval.modifiedInput,
+                        editedInput: toolPart.approval.editedInput,
                       });
                     }
 
