@@ -11,7 +11,7 @@ async function main() {
     n: 3,
   });
 
-  await presentImages([result.image]);
+  await presentImages(result.images);
 
   console.log(
     'Provider metadata:',

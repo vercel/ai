@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 export const openaiImageResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      created: z.number().optional(),
+      created: z.number().nullish(),
       data: z.array(
         z.object({
           b64_json: z.string(),

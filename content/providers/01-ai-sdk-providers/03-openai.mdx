@@ -1479,7 +1479,20 @@ const { image, providerMetadata } = await generateImage({
 
 For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
 
-OpenAI's image models may return a revised prompt for each image. It can be access at `providerMetadata.openai.images[0]?.revisedPrompt`.
+OpenAI's image models return additional metadata in the response that can be
+accessed via `providerMetadata.openai`. The following OpenAI-specific metadata
+is available:
+
+- **images** _Array&lt;object&gt;_
+
+  Array of image-specific metadata. Each image object may contain:
+
+  - `revisedPrompt` _string_ - The revised prompt that was actually used to generate the image (OpenAI may modify your prompt for safety or clarity)
+  - `created` _number_ - The Unix timestamp (in seconds) of when the image was created
+  - `size` _string_ - The size of the generated image. One of `1024x1024`, `1024x1536`, or `1536x1024`
+  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, or `high`
+  - `background` _string_ - The background parameter used for the image generation. Either `transparent` or `opaque`
+  - `outputFormat` _string_ - The output format of the generated image. One of `png`, `webp`, or `jpeg`
 
 For more information on the available OpenAI image model options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 
