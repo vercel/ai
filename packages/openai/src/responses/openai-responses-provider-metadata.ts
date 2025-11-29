@@ -1,15 +1,41 @@
-import { z } from 'zod/v4';
-import {
-  responsesOutputTextProviderMetadataSchema,
-  responsesSourceDocumentProviderMetadataSchema,
-} from './openai-responses-api';
+import { openaiResponsesChunkSchema } from './openai-responses-api';
+import { InferSchema } from '@ai-sdk/provider-utils';
 
-// zod parse for text providerMetadata come from annotation(ex.code interpreter)
-export const openaiResponsesOutputTextProviderMetadataSchema = z.object({
-  openai: responsesOutputTextProviderMetadataSchema,
-});
+type OpenaiResponsesChunk = InferSchema<typeof openaiResponsesChunkSchema>;
 
-// zod parse for source-document providerMetadata come from annotation(ex.code interpreter)
-export const openaiResponsesSourceDocumentProviderMetadataSchema = z.object({
-  openai: responsesSourceDocumentProviderMetadataSchema,
-});
+export type ResponsesOutputTextAnnotationProviderMetadata = Extract<
+  OpenaiResponsesChunk,
+  { type: 'response.output_text.annotation.added' }
+>['annotation'];
+
+export type ResponsesTextProviderMetadata = {
+  itemId: string;
+  annotations?: Array<ResponsesOutputTextAnnotationProviderMetadata>;
+};
+
+export type OpenaiResponsesTextProviderMetadata = {
+  openai: ResponsesTextProviderMetadata;
+};
+
+export type ResponsesSourceDocumentProviderMetadata =
+  | {
+      type: 'file_citation';
+      fileId: string;
+      filename: string;
+      index: number;
+    }
+  | {
+      type: 'container_file_citation';
+      fileId: string;
+      containerId: string;
+      filename: string;
+    }
+  | {
+      type: 'file_path';
+      fileId: string;
+      index: number;
+    };
+
+export type OpenaiResponsesSourceDocumentProviderMetadata = {
+  openai: ResponsesSourceDocumentProviderMetadata;
+};

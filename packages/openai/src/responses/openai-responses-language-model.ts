@@ -43,10 +43,6 @@ import {
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
   OpenAIResponsesWebSearchAction,
-  ResponsesOutputTextProviderMetadataSchema,
-  ResponsesSourceDocumentContainerFileCitationSchema,
-  ResponsesSourceDocumentFileCitationSchema,
-  ResponsesSourceDocumentFilePathSchema,
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
@@ -55,6 +51,10 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { isReasoningModel as modelSupportsReasoning } from '../openai-is-reasoning-model';
+import {
+  ResponsesSourceDocumentProviderMetadata,
+  ResponsesTextProviderMetadata,
+} from './openai-responses-provider-metadata';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -489,7 +489,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               ...(contentPart.annotations.length > 0 && {
                 annotations: contentPart.annotations,
               }),
-            } satisfies ResponsesOutputTextProviderMetadataSchema;
+            } satisfies ResponsesTextProviderMetadata;
 
             content.push({
               type: 'text',
@@ -522,7 +522,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       fileId: annotation.file_id,
                       filename: annotation.filename,
                       index: annotation.index,
-                    } satisfies ResponsesSourceDocumentFileCitationSchema,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'file_citation' }
+                    >,
                   },
                 });
               } else if (annotation.type === 'container_file_citation') {
@@ -539,7 +542,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       fileId: annotation.file_id,
                       containerId: annotation.container_id,
                       filename: annotation.filename,
-                    } satisfies ResponsesSourceDocumentContainerFileCitationSchema,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'container_file_citation' }
+                    >,
                   },
                 });
               } else if (annotation.type === 'file_path') {
@@ -555,7 +561,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: annotation.type,
                       fileId: annotation.file_id,
                       index: annotation.index,
-                    } satisfies ResponsesSourceDocumentFilePathSchema,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'file_path' }
+                    >,
                   },
                 });
               }
@@ -1095,7 +1104,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
                       }),
-                    },
+                    } satisfies ResponsesTextProviderMetadata,
                   },
                 });
               } else if (value.item.type === 'function_call') {
@@ -1521,7 +1530,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       fileId: value.annotation.file_id,
                       filename: value.annotation.filename,
                       index: value.annotation.index,
-                    } satisfies ResponsesSourceDocumentFileCitationSchema,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'file_citation' }
+                    >,
                   },
                 });
               } else if (value.annotation.type === 'container_file_citation') {
@@ -1538,7 +1550,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       fileId: value.annotation.file_id,
                       containerId: value.annotation.container_id,
                       filename: value.annotation.filename,
-                    } satisfies ResponsesSourceDocumentContainerFileCitationSchema,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'container_file_citation' }
+                    >,
                   },
                 });
               } else if (value.annotation.type === 'file_path') {
@@ -1554,7 +1569,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       index: value.annotation.index,
-                    } satisfies ResponsesSourceDocumentFilePathSchema,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'file_path' }
+                    >,
                   },
                 });
               }
