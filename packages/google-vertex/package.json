@@ -55,7 +55,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "google-auth-library": "^9.15.1"
+    "google-auth-library": "^10.5.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
