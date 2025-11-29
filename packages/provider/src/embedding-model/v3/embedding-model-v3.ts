@@ -1,4 +1,8 @@
-import { SharedV3Headers, SharedV3ProviderMetadata } from '../../shared';
+import {
+  SharedV3Headers,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
+} from '../../shared';
 import { EmbeddingModelCallOptions } from './embedding-model-v3-call-options';
 import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
 
@@ -81,5 +85,10 @@ Response headers.
       */
       body?: unknown;
     };
+
+    /**
+Warnings for the call, e.g. unsupported settings.
+     */
+    warnings: Array<SharedV3Warning>;
   }>;
 };
