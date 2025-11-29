@@ -108,6 +108,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    inputEditable: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -213,6 +214,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    inputEditable: z.boolean().optional(),
                   }),
                 }),
                 z.object({

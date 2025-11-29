@@ -20,7 +20,7 @@ export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
   toolCall: TypedToolCall<TOOLS>;
 
   /**
-   * Whether the tool allows input modification during approval.
+   * Whether the tool input is editable during approval.
    */
-  allowInputModification?: boolean;
+  inputEditable?: boolean;
 };

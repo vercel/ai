@@ -2080,6 +2080,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                inputEditable: part.inputEditable,
               });
               break;
             }

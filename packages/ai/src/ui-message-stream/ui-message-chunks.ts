@@ -252,6 +252,7 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+      inputEditable?: boolean;
     }
   | {
       type: 'tool-output-available';

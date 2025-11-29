@@ -803,4 +803,69 @@ describe('toResponseMessages', () => {
       ]
     `);
   });
+
+  it('should include tool approval requests with inputEditable', () => {
+    const result = toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'I need approval to call this tool.',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          input: { location: 'London' },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-123',
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: '123',
+            toolName: 'testTool',
+            input: { location: 'London' },
+          },
+          inputEditable: true,
+        },
+      ],
+      tools: {
+        testTool: tool({
+          description: 'A test tool',
+          inputSchema: z.object({ location: z.string() }),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "I need approval to call this tool.",
+              "type": "text",
+            },
+            {
+              "input": {
+                "location": "London",
+              },
+              "providerExecuted": undefined,
+              "providerOptions": undefined,
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+            {
+              "inputEditable": true,
+              "approvalId": "approval-123",
+              "toolCallId": "123",
+              "type": "tool-approval-request",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
 });

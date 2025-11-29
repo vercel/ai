@@ -139,7 +139,7 @@ Whether the tool needs approval before it can be executed.
   /**
 Whether the tool allows input modification during approval.
    */
-  allowInputModification?: boolean;
+  inputEditable?: boolean;
 
   /**
    * Optional function that is called when the argument streaming starts.
@@ -259,7 +259,7 @@ export function dynamicTool(tool: {
   /**
    * Whether the tool allows input modification during approval.
    */
-  allowInputModification?: boolean;
+  inputEditable?: boolean;
 }): Tool<unknown, unknown> & {
   type: 'dynamic';
 } {

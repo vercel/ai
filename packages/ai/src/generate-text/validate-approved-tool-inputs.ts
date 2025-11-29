@@ -20,14 +20,14 @@ export function validateApprovedToolInputs<TOOLS extends ToolSet>({
   for (const approval of approvals) {
     if (
       approval.approvalResponse.modifiedInput !== undefined &&
-      !approval.approvalRequest.allowInputModification
+      !approval.approvalRequest.inputEditable
     ) {
       invalidToolErrors.push({
         type: 'tool-error' as const,
         toolCallId: approval.toolCall.toolCallId,
         toolName: approval.toolCall.toolName,
         input: approval.approvalResponse.modifiedInput,
-        error: `Tool '${approval.toolCall.toolName}' does not allow input modification. Set allowInputModification: true to enable this feature.`,
+        error: `Tool '${approval.toolCall.toolName}' does not allow input modification. Set inputEditable: true to enable this feature.`,
         dynamic: true,
       });
       continue;
