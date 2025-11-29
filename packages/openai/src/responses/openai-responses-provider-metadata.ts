@@ -3,7 +3,7 @@ import { InferSchema } from '@ai-sdk/provider-utils';
 
 type OpenaiResponsesChunk = InferSchema<typeof openaiResponsesChunkSchema>;
 
-export type ResponsesOutputTextAnnotationProviderMetadata = Extract<
+type ResponsesOutputTextAnnotationProviderMetadata = Extract<
   OpenaiResponsesChunk,
   { type: 'response.output_text.annotation.added' }
 >['annotation'];
