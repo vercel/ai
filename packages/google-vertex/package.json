@@ -54,11 +54,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-<<<<<<< HEAD
-    "google-auth-library": "^9.15.0"
-=======
     "google-auth-library": "^10.5.0"
->>>>>>> cdb463afe (fix(google-vertex): bump `google-auth-library` to `^10.5.0` (#10630))
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
