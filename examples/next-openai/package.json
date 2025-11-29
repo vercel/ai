@@ -16,7 +16,7 @@
     "@ai-sdk/deepseek": "2.0.0-beta.42",
     "@ai-sdk/fireworks": "2.0.0-beta.41",
     "@ai-sdk/google": "3.0.0-beta.62",
-    "@ai-sdk/google-vertex": "4.0.0-beta.90",
+    "@ai-sdk/google-vertex": "4.0.0-beta.91",
     "@ai-sdk/groq": "3.0.0-beta.42",
     "@ai-sdk/mcp": "1.0.0-beta.24",
     "@ai-sdk/mistral": "3.0.0-beta.42",
