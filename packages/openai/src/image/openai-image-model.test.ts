@@ -266,15 +266,13 @@ describe('doGenerate', () => {
     expect(result.warnings).toStrictEqual([]);
     expect(result.providerMetadata).toStrictEqual({
       openai: {
-        images: [null],
-        responses: [
+        images: [
           {
             created: 1733837122,
             size: undefined,
             quality: undefined,
             background: undefined,
             outputFormat: undefined,
-            imageCount: 1,
           },
         ],
       },
@@ -316,17 +314,18 @@ describe('doGenerate', () => {
           {
             revisedPrompt:
               'A charming visual illustration of a baby sea otter swimming joyously.',
+            created: 1733837122,
+            size: undefined,
+            quality: undefined,
+            background: undefined,
+            outputFormat: undefined,
           },
-          null,
-        ],
-        responses: [
           {
             created: 1733837122,
             size: undefined,
             quality: undefined,
             background: undefined,
             outputFormat: undefined,
-            imageCount: 2,
           },
         ],
       },
