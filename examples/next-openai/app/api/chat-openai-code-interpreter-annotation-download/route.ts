@@ -1,7 +1,7 @@
-import {
-  openai,
+import { openai } from '@ai-sdk/openai';
+import type {
   OpenAIResponsesProviderOptions,
-  openaiResponsesSourceDocumentProviderMetadataSchema,
+  OpenaiResponsesSourceDocumentProviderMetadata,
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
@@ -12,6 +12,10 @@ import {
   UIMessage,
   validateUIMessages,
 } from 'ai';
+import { z } from 'zod/v4';
+
+const openaiResponsesSourceDocumentProviderMetadataSchema =
+  z.custom<OpenaiResponsesSourceDocumentProviderMetadata>();
 
 const tools = {
   code_interpreter: openai.tools.codeInterpreter(),

@@ -1,9 +1,8 @@
-import { OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import {
-  azure,
-  azureResponsesSourceDocumentProviderMetadataSchema,
+import { azure } from '@ai-sdk/azure';
+import type {
+  AzureResponsesSourceDocumentProviderMetadata,
+  OpenAIResponsesProviderOptions,
 } from '@ai-sdk/azure';
-
 import {
   convertToModelMessages,
   InferUITools,
@@ -13,6 +12,10 @@ import {
   UIMessage,
   validateUIMessages,
 } from 'ai';
+import { z } from 'zod/v4';
+
+const azureResponsesSourceDocumentProviderMetadataSchema =
+  z.custom<AzureResponsesSourceDocumentProviderMetadata>();
 
 const tools = {
   code_interpreter: azure.tools.codeInterpreter(),

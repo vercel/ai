@@ -1,35 +1,34 @@
 'use client';
 
 import { Response } from '@/components/ai-elements/response';
-import { openaiResponsesOutputTextProviderMetadataSchema } from '@ai-sdk/openai';
-import { azureResponsesOutputTextProviderMetadataSchema } from '@ai-sdk/azure';
+import type { OpenaiResponsesTextProviderMetadata } from '@ai-sdk/openai';
+import type { AzureResponsesTextProviderMetadata } from '@ai-sdk/azure';
 import { TextUIPart } from 'ai';
 import { z } from 'zod/v4';
 
-const responsesOutputTextProviderMetadataSchema = z.union([
-  openaiResponsesOutputTextProviderMetadataSchema,
-  azureResponsesOutputTextProviderMetadataSchema,
-]);
+const responsesOutputTextProviderMetadataSchema = z.custom<
+  OpenaiResponsesTextProviderMetadata | AzureResponsesTextProviderMetadata
+>();
 
 function extractProviderAndAnnotations(
-  data: z.infer<typeof responsesOutputTextProviderMetadataSchema>,
+  providerMetadata: z.infer<typeof responsesOutputTextProviderMetadataSchema>,
 ) {
-  if ('openai' in data) {
+  if ('openai' in providerMetadata) {
     return {
       provider: 'openai',
-      itemId: data.openai.itemId,
-      annotations: data.openai.annotations,
+      itemId: providerMetadata.openai.itemId,
+      annotations: providerMetadata.openai.annotations,
     } as const;
   }
-  if ('azure' in data) {
+  if ('azure' in providerMetadata) {
     return {
       provider: 'azure',
-      itemId: data.azure.itemId,
-      annotations: data.azure.annotations,
+      itemId: providerMetadata.azure.itemId,
+      annotations: providerMetadata.azure.annotations,
     } as const;
   }
   // never
-  const _exhaustive: never = data;
+  const _exhaustive: never = providerMetadata;
   return _exhaustive;
 }
 
@@ -62,15 +61,38 @@ export function ResponsesText({ part }: { part: TextUIPart }) {
   const text = sortedAnnotations.reduce<string>((acc, cur) => {
     const text = (() => {
       switch (cur.type) {
-        case 'container_file_citation':
+        case 'url_citation': {
+          if (cur.start_index === 0 && cur.end_index === 0) return acc;
+          const targetText = acc.slice(cur.start_index, cur.end_index);
+
+          // Markdown URL Link format
+          const markdownLink = `[${targetText}](${cur.url}${cur.title ? ` "${cur.title}"` : ''})`;
+
+          return (
+            acc.slice(0, cur.start_index) +
+            markdownLink +
+            acc.slice(cur.end_index)
+          );
+        }
+        case 'file_citation': {
+          return acc;
+        }
+        case 'container_file_citation': {
           if (cur.start_index === 0 && cur.end_index === 0) return acc;
           return (
             acc.slice(0, cur.start_index) +
             `${baseUrl}/api/download-container-file/${provider}?container_id=${encodeURIComponent(cur.container_id)}&file_id=${encodeURIComponent(cur.file_id)}&filename=${encodeURIComponent(cur.filename)}` +
             acc.slice(cur.end_index)
           );
-        default:
+        }
+        case 'file_path': {
+          // unknown usecase
           return acc;
+        }
+        default: {
+          const _exhaustive: never = cur;
+          return _exhaustive;
+        }
       }
     })();
     return text;
