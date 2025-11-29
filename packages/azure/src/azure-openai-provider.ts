@@ -47,10 +47,7 @@ Creates an Azure OpenAI completion model for text generation.
    */
   completion(deploymentId: string): LanguageModelV3;
 
-  /**
-@deprecated Use `textEmbedding` instead.
-   */
-  embedding(deploymentId: string): EmbeddingModelV3<string>;
+  embedding(deploymentId: string): EmbeddingModelV3;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
@@ -62,12 +59,10 @@ Creates an Azure OpenAI completion model for text generation.
    */
   imageModel(deploymentId: string): ImageModelV3;
 
-  textEmbedding(deploymentId: string): EmbeddingModelV3<string>;
-
   /**
 Creates an Azure OpenAI model for text embeddings.
    */
-  textEmbeddingModel(deploymentId: string): EmbeddingModelV3<string>;
+  embeddingModel(deploymentId: string): EmbeddingModelV3;
 
   /**
    * Creates an Azure OpenAI model for audio transcription.
@@ -247,10 +242,9 @@ export function createAzure(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
   provider.speech = createSpeechModel;

@@ -147,12 +147,15 @@ describe('doGenerate', () => {
         providerOptions: {},
       });
 
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
-        details:
-          'This model does not support the `aspectRatio` option. Use `size` instead.',
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "This model does not support the \`aspectRatio\` option. Use \`size\` instead.",
+            "feature": "aspectRatio",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
   });
 

@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -122,7 +122,7 @@ type McpArgs = {
   serverUrl?: string;
 };
 
-export const mcpToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
+export const mcpToolFactory = createProviderToolFactoryWithOutputSchema<
   {},
   | {
       type: 'call';
@@ -153,7 +153,6 @@ export const mcpToolFactory = createProviderDefinedToolFactoryWithOutputSchema<
   McpArgs
 >({
   id: 'openai.mcp',
-  name: 'mcp',
   inputSchema: mcpInputSchema,
   outputSchema: mcpOutputSchema,
 });

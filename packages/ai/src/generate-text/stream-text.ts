@@ -1,10 +1,11 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  DelayedPromise,
   IdGenerator,
   isAbortError,
   ProviderOptions,
@@ -58,7 +59,6 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -1291,7 +1291,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const stepRequest = request ?? {};
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-          let warnings: LanguageModelV3CallWarning[] | undefined;
+          let warnings: SharedV3Warning[] | undefined;
 
           const activeToolCallToolNames: Record<string, string> = {};
 

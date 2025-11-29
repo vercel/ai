@@ -21,7 +21,7 @@ describe('languageModel', () => {
           expect(id).toEqual('model');
           return model;
         },
-        textEmbeddingModel: (id: string) => {
+        embeddingModel: (id: string) => {
           return null as any;
         },
         imageModel: (id: string) => {
@@ -46,7 +46,7 @@ describe('languageModel', () => {
           expect(id).toEqual('model:part2');
           return model;
         },
-        textEmbeddingModel: () => {
+        embeddingModel: () => {
           return null as any;
         },
         imageModel: () => {
@@ -77,7 +77,7 @@ describe('languageModel', () => {
         languageModel: () => {
           return null as any;
         },
-        textEmbeddingModel: () => {
+        embeddingModel: () => {
           return null as any;
         },
         imageModel: () => {
@@ -120,7 +120,7 @@ describe('languageModel', () => {
             expect(id).toEqual('model');
             return model;
           },
-          textEmbeddingModel: () => {
+          embeddingModel: () => {
             return null as any;
           },
           imageModel: () => {
@@ -154,7 +154,7 @@ describe('languageModel', () => {
             expect(id).toEqual('model');
             return model;
           },
-          textEmbeddingModel: () => {
+          embeddingModel: () => {
             return null as any;
           },
           imageModel: () => {
@@ -178,14 +178,14 @@ describe('languageModel', () => {
   });
 });
 
-describe('textEmbeddingModel', () => {
-  it('should return embedding model from provider using textEmbeddingModel', () => {
-    const model = new MockEmbeddingModelV3<string>();
+describe('embeddingModel', () => {
+  it('should return embedding model from provider using embeddingModel', () => {
+    const model = new MockEmbeddingModelV3();
 
     const modelRegistry = createProviderRegistry({
       provider: {
         specificationVersion: 'v3',
-        textEmbeddingModel: id => {
+        embeddingModel: id => {
           expect(id).toEqual('model');
           return model;
         },
@@ -207,14 +207,14 @@ describe('textEmbeddingModel', () => {
       },
     });
 
-    expect(modelRegistry.textEmbeddingModel('provider:model')).toEqual(model);
+    expect(modelRegistry.embeddingModel('provider:model')).toEqual(model);
   });
 
   it('should throw NoSuchProviderError if provider does not exist', () => {
     const registry = createProviderRegistry({});
 
     // @ts-expect-error - should not accept arbitrary strings
-    expect(() => registry.textEmbeddingModel('provider:model')).toThrowError(
+    expect(() => registry.embeddingModel('provider:model')).toThrowError(
       NoSuchProviderError,
     );
   });
@@ -223,7 +223,7 @@ describe('textEmbeddingModel', () => {
     const registry = createProviderRegistry({
       provider: {
         specificationVersion: 'v3',
-        textEmbeddingModel: () => {
+        embeddingModel: () => {
           return null as any;
         },
         languageModel: () => {
@@ -247,19 +247,19 @@ describe('textEmbeddingModel', () => {
     const registry = createProviderRegistry({});
 
     // @ts-expect-error - should not accept arbitrary strings
-    expect(() => registry.textEmbeddingModel('model')).toThrowError(
+    expect(() => registry.embeddingModel('model')).toThrowError(
       NoSuchModelError,
     );
   });
 
   it('should support custom separator', () => {
-    const model = new MockEmbeddingModelV3<string>();
+    const model = new MockEmbeddingModelV3();
 
     const modelRegistry = createProviderRegistry(
       {
         provider: {
           specificationVersion: 'v3',
-          textEmbeddingModel: id => {
+          embeddingModel: id => {
             expect(id).toEqual('model');
             return model;
           },
@@ -283,7 +283,7 @@ describe('textEmbeddingModel', () => {
       { separator: '|' },
     );
 
-    expect(modelRegistry.textEmbeddingModel('provider|model')).toEqual(model);
+    expect(modelRegistry.embeddingModel('provider|model')).toEqual(model);
   });
 });
 
@@ -299,7 +299,7 @@ describe('imageModel', () => {
           return model;
         },
         languageModel: () => null as any,
-        textEmbeddingModel: () => null as any,
+        embeddingModel: () => null as any,
         transcriptionModel: () => null as any,
         speechModel: () => null as any,
         rerankingModel: () => null as any,
@@ -324,7 +324,7 @@ describe('imageModel', () => {
         specificationVersion: 'v3',
         imageModel: () => null as any,
         languageModel: () => null as any,
-        textEmbeddingModel: () => null as any,
+        embeddingModel: () => null as any,
         transcriptionModel: () => null as any,
         rerankingModel: () => null as any,
       },
@@ -354,7 +354,7 @@ describe('imageModel', () => {
             return model;
           },
           languageModel: () => null as any,
-          textEmbeddingModel: () => null as any,
+          embeddingModel: () => null as any,
           rerankingModel: () => null as any,
         },
       },
@@ -377,7 +377,7 @@ describe('transcriptionModel', () => {
           return model;
         },
         languageModel: () => null as any,
-        textEmbeddingModel: () => null as any,
+        embeddingModel: () => null as any,
         imageModel: () => null as any,
         rerankingModel: () => null as any,
       },
@@ -401,7 +401,7 @@ describe('transcriptionModel', () => {
         specificationVersion: 'v3',
         transcriptionModel: () => null as any,
         languageModel: () => null as any,
-        textEmbeddingModel: () => null as any,
+        embeddingModel: () => null as any,
         imageModel: () => null as any,
         rerankingModel: () => null as any,
       },
@@ -434,7 +434,7 @@ describe('speechModel', () => {
           return model;
         },
         languageModel: () => null as any,
-        textEmbeddingModel: () => null as any,
+        embeddingModel: () => null as any,
         imageModel: () => null as any,
         rerankingModel: () => null as any,
       },
@@ -458,7 +458,7 @@ describe('speechModel', () => {
         specificationVersion: 'v3',
         speechModel: () => null as any,
         languageModel: () => null as any,
-        textEmbeddingModel: () => null as any,
+        embeddingModel: () => null as any,
         imageModel: () => null as any,
         rerankingModel: () => null as any,
       },
@@ -488,7 +488,7 @@ describe('rerankingModel', () => {
           expect(id).toEqual('model');
           return model;
         },
-        textEmbeddingModel: () => {
+        embeddingModel: () => {
           return null as any;
         },
         languageModel: () => {
@@ -522,7 +522,7 @@ describe('rerankingModel', () => {
     const registry = createProviderRegistry({
       provider: {
         specificationVersion: 'v3',
-        textEmbeddingModel: () => {
+        embeddingModel: () => {
           return null as any;
         },
         languageModel: () => {
@@ -562,7 +562,7 @@ describe('rerankingModel', () => {
             expect(id).toEqual('model');
             return model;
           },
-          textEmbeddingModel: () => {
+          embeddingModel: () => {
             return null as any;
           },
           languageModel: () => {

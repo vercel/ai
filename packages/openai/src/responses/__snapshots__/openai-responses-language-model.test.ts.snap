@@ -1,5 +1,21 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > apply_patch tool > create_file operation > should include apply_patch tool call and result in content 1`] = `
+[
+  {
+    "input": "{"callId":"call_CdXiGtcRl49Q6Ek20tG9lYOr","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"+## Shopping Checklist\\n+\\n+- [ ] Milk\\n+- [ ] Bread\\n+- [ ] Eggs\\n+- [ ] Apples\\n+- [ ] Coffee\\n+\\n"}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "apc_0b04c5f8dfc43af500692749bd60908197b0e453c38f30191a",
+      },
+    },
+    "toolCallId": "call_CdXiGtcRl49Q6Ek20tG9lYOr",
+    "toolName": "apply_patch",
+    "type": "tool-call",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > should include code interpreter tool call, result, and annotations in content 1`] = `
 [
   {
@@ -16,7 +32,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "input": "{"code":"import random\\r\\n\\r\\ntrials = 10000\\r\\nsums = []\\r\\nfor _ in range(trials):\\r\\n    die1 = random.randint(1,6)\\r\\n    die2 = random.randint(1,6)\\r\\n    sums.append(die1 + die2)\\r\\ntotal_sum = sum(sums)\\r\\nlen(sums), total_sum\\n","containerId":"cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec"}",
     "providerExecuted": true,
     "toolCallId": "ci_024ee52fc1900767006903bf34e2b08193a689f71dcc3724f7",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -29,7 +45,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
       ],
     },
     "toolCallId": "ci_024ee52fc1900767006903bf34e2b08193a689f71dcc3724f7",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -46,7 +62,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "input": "{"code":"filename = \\"/mnt/data/two_dice_sums_10000.txt\\"\\r\\nwith open(filename, \\"w\\") as f:\\r\\n    for s in sums:\\r\\n        f.write(str(s) + \\"\\\\n\\")\\r\\n    f.write(\\"TOTAL: \\" + str(total_sum) + \\"\\\\n\\")\\r\\nfilename, os.path.getsize(filename)\\n","containerId":"cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec"}",
     "providerExecuted": true,
     "toolCallId": "ci_024ee52fc1900767006903bf38f1f08193a0b46ddc935fa028",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -54,7 +70,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
       "outputs": [],
     },
     "toolCallId": "ci_024ee52fc1900767006903bf38f1f08193a0b46ddc935fa028",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -71,7 +87,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "input": "{"code":"import os\\r\\nfilename = \\"/mnt/data/two_dice_sums_10000.txt\\"\\r\\nwith open(filename, \\"w\\") as f:\\r\\n    for s in sums:\\r\\n        f.write(str(s) + \\"\\\\n\\")\\r\\n    f.write(\\"TOTAL: \\" + str(total_sum) + \\"\\\\n\\")\\r\\nos.path.getsize(filename), filename\\n","containerId":"cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec"}",
     "providerExecuted": true,
     "toolCallId": "ci_024ee52fc1900767006903bf3e05b48193bbb2367cbc9a299e",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -84,7 +100,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
       ],
     },
     "toolCallId": "ci_024ee52fc1900767006903bf3e05b48193bbb2367cbc9a299e",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -159,7 +175,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > with res
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-call",
   },
   {
@@ -219,7 +235,7 @@ providers and models, and which ones are available in the AI SDK.",
       ],
     },
     "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-result",
   },
   {
@@ -284,7 +300,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-call",
   },
   {
@@ -298,7 +314,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
       "results": null,
     },
     "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-result",
   },
   {
@@ -363,7 +379,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-call",
   },
   {
@@ -371,7 +387,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
       "result": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
     },
     "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-result",
   },
   {
@@ -416,7 +432,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should i
       },
     },
     "toolCallId": "call_XWgeTylovOiS8xLNz2TONOgO",
-    "toolName": "local_shell",
+    "toolName": "shell",
     "type": "tool-call",
   },
 ]
@@ -428,7 +444,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcpl_0a4801d792de11eb00690ccb8559c48197aec5714d3995da77",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -492,7 +508,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
       "type": "listTools",
     },
     "toolCallId": "mcpl_0a4801d792de11eb00690ccb8559c48197aec5714d3995da77",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -509,7 +525,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -521,7 +537,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
       "type": "call",
     },
     "toolCallId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -560,13 +576,55 @@ Would you like me to pull official certified results from the NYC Board of Elect
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > web search sources schema resilience > should accept api-type sources without throwing 1`] = `
+[
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_api_sources",
+    "toolName": "webSearch",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": {
+        "query": "current price of BTC",
+        "type": "search",
+      },
+      "sources": [
+        {
+          "type": "url",
+          "url": "https://example.com?a=1&utm_source=openai",
+        },
+        {
+          "name": "oai-finance",
+          "type": "api",
+        },
+      ],
+    },
+    "toolCallId": "ws_api_sources",
+    "toolName": "webSearch",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_done",
+      },
+    },
+    "text": "BTC is trading at ...",
+    "type": "text",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should include web search tool call and result in content 1`] = `
 [
   {
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -587,14 +645,14 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
       ],
     },
     "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -611,7 +669,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
       ],
     },
     "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
@@ -759,7 +817,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   {
     "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
     "providerExecuted": true,
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-input-start",
   },
   {
@@ -1150,7 +1208,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "input": "{"code":"import random, math\\nN=10000\\nsums=[]\\ns=0\\nfor _ in range(N):\\n    a=random.randint(1,6)\\n    b=random.randint(1,6)\\n    sm=a+b\\n    sums.append(sm)\\n    s+=sm\\nmin(sums), max(sums), sum(sums), sum(sums)/N\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
     "providerExecuted": true,
     "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -1163,7 +1221,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       ],
     },
     "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -1189,7 +1247,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   {
     "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
     "providerExecuted": true,
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-input-start",
   },
   {
@@ -1560,7 +1618,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "input": "{"code":"import csv, pathlib\\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\\nwith open(path, 'w', newline='') as f:\\n    writer = csv.writer(f)\\n    writer.writerow(['sum'])\\n    for val in sums:\\n        writer.writerow([val])\\npath, path.exists(), len(sums)\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
     "providerExecuted": true,
     "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -1573,7 +1631,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       ],
     },
     "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -1599,7 +1657,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   {
     "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
     "providerExecuted": true,
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-input-start",
   },
   {
@@ -1645,7 +1703,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "input": "{"code":"sums[:20]\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
     "providerExecuted": true,
     "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -1658,7 +1716,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       ],
     },
     "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -2838,7 +2896,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-call",
   },
   {
@@ -2897,7 +2955,7 @@ providers and models, and which ones are available in the AI SDK.",
       ],
     },
     "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-result",
   },
   {
@@ -3393,7 +3451,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-call",
   },
   {
@@ -3406,7 +3464,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
       "results": null,
     },
     "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-result",
   },
   {
@@ -3924,7 +3982,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-call",
   },
   {
@@ -3933,7 +3991,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
       "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
     },
     "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-result",
   },
   {
@@ -3941,7 +3999,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
       "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
     },
     "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-result",
   },
   {
@@ -4022,7 +4080,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
       },
     },
     "toolCallId": "call_h3nm8hUG0KO9tVNuRACkL1ri",
-    "toolName": "local_shell",
+    "toolName": "shell",
     "type": "tool-call",
   },
   {
@@ -4061,7 +4119,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -4125,7 +4183,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "listTools",
     },
     "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -4152,7 +4210,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -4164,7 +4222,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "call",
     },
     "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -4191,7 +4249,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -4203,7 +4261,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "call",
     },
     "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -6010,7 +6068,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   {
     "id": "ws_test",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
@@ -6021,7 +6079,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_test",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -6032,7 +6090,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
       },
     },
     "toolCallId": "ws_test",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
@@ -6112,7 +6170,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
@@ -6123,7 +6181,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -6184,7 +6242,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       ],
     },
     "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
@@ -6210,7 +6268,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
@@ -6221,7 +6279,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -6238,7 +6296,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       ],
     },
     "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
@@ -6264,7 +6322,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
@@ -6275,7 +6333,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -6292,7 +6350,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       ],
     },
     "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
@@ -6318,7 +6376,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
@@ -6329,7 +6387,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -6346,7 +6404,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       ],
     },
     "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
@@ -6563,48 +6621,6 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
       "reasoningTokens": 3648,
       "totalTokens": 64173,
     },
-  },
-]
-`;
-
-exports[`OpenAIResponsesLanguageModel > web search sources schema resilience > should accept api-type sources without throwing 1`] = `
-[
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_api_sources",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "result": {
-      "action": {
-        "query": "current price of BTC",
-        "type": "search",
-      },
-      "sources": [
-        {
-          "type": "url",
-          "url": "https://example.com?a=1&utm_source=openai",
-        },
-        {
-          "name": "oai-finance",
-          "type": "api",
-        },
-      ],
-    },
-    "toolCallId": "ws_api_sources",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_done",
-      },
-    },
-    "text": "BTC is trading at ...",
-    "type": "text",
   },
 ]
 `;

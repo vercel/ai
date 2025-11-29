@@ -1,4 +1,5 @@
 import {
+  APICallError,
   JSONObject,
   LanguageModelV3,
   LanguageModelV3Prompt,
@@ -146,23 +147,25 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
 
-        expect(result.warnings).toStrictEqual([
-          {
-            type: 'unsupported-setting',
-            setting: 'temperature',
-            details: 'temperature is not supported when thinking is enabled',
-          },
-          {
-            type: 'unsupported-setting',
-            details: 'topK is not supported when thinking is enabled',
-            setting: 'topK',
-          },
-          {
-            type: 'unsupported-setting',
-            details: 'topP is not supported when thinking is enabled',
-            setting: 'topP',
-          },
-        ]);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "temperature is not supported when thinking is enabled",
+              "feature": "temperature",
+              "type": "unsupported",
+            },
+            {
+              "details": "topK is not supported when thinking is enabled",
+              "feature": "topK",
+              "type": "unsupported",
+            },
+            {
+              "details": "topP is not supported when thinking is enabled",
+              "feature": "topP",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
 
       it('should extract reasoning response', async () => {
@@ -878,8 +881,8 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(warnings).toMatchInlineSnapshot(`
         [
           {
-            "setting": "frequencyPenalty",
-            "type": "unsupported-setting",
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
           },
         ]
       `);
@@ -915,8 +918,8 @@ describe('AnthropicMessagesLanguageModel', () => {
         [
           {
             "details": "999999 (maxOutputTokens + thinkingBudget) is greater than claude-haiku-4-5 64000 max output tokens. The max output tokens have been limited to 64000.",
-            "setting": "maxOutputTokens",
-            "type": "unsupported-setting",
+            "feature": "maxOutputTokens",
+            "type": "unsupported",
           },
         ]
       `);
@@ -1533,7 +1536,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_search_20250305',
                 name: 'web_search',
                 args: {
@@ -1618,7 +1621,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1655,7 +1658,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1690,7 +1693,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1737,7 +1740,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1780,7 +1783,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1854,7 +1857,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1933,7 +1936,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1982,7 +1985,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               inputSchema: { type: 'object', properties: {} },
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -2020,7 +2023,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2071,7 +2074,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2095,7 +2098,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2196,7 +2199,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2345,7 +2348,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2385,7 +2388,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2418,7 +2421,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.memory_20250818',
               name: 'memory',
               args: {},
@@ -2467,7 +2470,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.memory_20250818',
               name: 'memory',
               args: {},
@@ -2487,7 +2490,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2536,7 +2539,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2554,7 +2557,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2572,7 +2575,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2622,7 +2625,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2702,7 +2705,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2765,7 +2768,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2814,7 +2817,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               inputSchema: { type: 'object', properties: {} },
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2865,7 +2868,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
@@ -2873,10 +2876,19 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       await expect(
-        model.doGenerate({
-          prompt: TEST_PROMPT,
+        model.doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrowError(
+        new APICallError({
+          message: 'Overloaded',
+          url: 'https://api.anthropic.com/v1/messages',
+          requestBodyValues: {},
+          statusCode: 529,
+          responseHeaders: {},
+          responseBody:
+            '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
+          isRetryable: true,
         }),
-      ).rejects.toThrow('Overloaded');
+      );
     });
 
     describe('temperature clamping', () => {
@@ -2895,8 +2907,8 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "details": "1.5 exceeds anthropic maximum of 1.0. clamped to 1.0",
-              "setting": "temperature",
-              "type": "unsupported-setting",
+              "feature": "temperature",
+              "type": "unsupported",
             },
           ]
         `);
@@ -2917,8 +2929,8 @@ describe('AnthropicMessagesLanguageModel', () => {
           [
             {
               "details": "-0.5 is below anthropic minimum of 0. clamped to 0",
-              "setting": "temperature",
-              "type": "unsupported-setting",
+              "feature": "temperature",
+              "type": "unsupported",
             },
           ]
         `);
@@ -4123,6 +4135,36 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should merge custom anthropic-beta header with fine-grained-tool-streaming beta', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({
+        apiKey: 'test-api-key',
+        headers: { 'anthropic-beta': 'CONFIG-beta1,config-beta2' },
+      });
+
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        headers: { 'anthropic-beta': 'REQUEST-beta1,request-beta2' },
+      });
+
+      expect(
+        server.calls[0].requestHeaders['anthropic-beta'],
+      ).toMatchInlineSnapshot(
+        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,request-beta1,request-beta2"`,
+      );
+    });
+
     it('should support cache control', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -4690,7 +4732,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4719,7 +4761,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4738,7 +4780,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4763,7 +4805,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               prompt: TEST_PROMPT,
               tools: [
                 {
-                  type: 'provider-defined',
+                  type: 'provider',
                   id: 'anthropic.web_fetch_20250910',
                   name: 'web_fetch',
                   args: { maxUses: 1 },
@@ -4790,7 +4832,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_search_20250305',
                 name: 'web_search',
                 args: {
@@ -4813,16 +4855,130 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
         body: '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
       };
 
-      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
-        'Overloaded',
-      );
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect({
+          message: apiCallError.message,
+          url: apiCallError.url,
+          requestBodyValues: apiCallError.requestBodyValues,
+          statusCode: apiCallError.statusCode,
+          responseHeaders: apiCallError.responseHeaders,
+          responseBody: apiCallError.responseBody,
+          isRetryable: apiCallError.isRetryable,
+        }).toMatchInlineSnapshot(`
+          {
+            "isRetryable": true,
+            "message": "Overloaded",
+            "requestBodyValues": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "stream": true,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+            "responseBody": "{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}",
+            "responseHeaders": {
+              "content-length": "90",
+              "content-type": "text/plain",
+            },
+            "statusCode": 529,
+            "url": "https://api.anthropic.com/v1/messages",
+          }
+        `);
+      }
+    });
+
+    it('should throw an api error when the first stream chunk is an overloaded error', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `event: error\n`,
+          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n`,
+          `\n`,
+        ],
+      };
+
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect({
+          message: apiCallError.message,
+          url: apiCallError.url,
+          requestBodyValues: apiCallError.requestBodyValues,
+          statusCode: apiCallError.statusCode,
+          responseHeaders: apiCallError.responseHeaders,
+          responseBody: apiCallError.responseBody,
+          isRetryable: apiCallError.isRetryable,
+        }).toMatchInlineSnapshot(`
+          {
+            "isRetryable": true,
+            "message": "Overloaded",
+            "requestBodyValues": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "stream": true,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+            "responseBody": "{"type":"overloaded_error","message":"Overloaded"}",
+            "responseHeaders": {
+              "cache-control": "no-cache",
+              "connection": "keep-alive",
+              "content-type": "text/event-stream",
+            },
+            "statusCode": 529,
+            "url": "https://api.anthropic.com/v1/messages",
+          }
+        `);
+      }
     });
 
     it('should forward overloaded error during streaming', async () => {
@@ -4832,6 +4988,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
           `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
           `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `event: error\n`,
           `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
         ],
       };

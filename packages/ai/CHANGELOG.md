@@ -1,5 +1,89 @@
 # ai
 
+## 6.0.0-beta.124
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+  - @ai-sdk/gateway@2.0.0-beta.68
+
+## 6.0.0-beta.123
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/gateway@2.0.0-beta.67
+
+## 6.0.0-beta.122
+
+### Patch Changes
+
+- 03849b0: move DelayedPromise into provider utils
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/gateway@2.0.0-beta.66
+
+## 6.0.0-beta.121
+
+### Patch Changes
+
+- Updated dependencies [cdd0bc2]
+  - @ai-sdk/gateway@2.0.0-beta.65
+
+## 6.0.0-beta.120
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/gateway@2.0.0-beta.64
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 6.0.0-beta.119
+
+### Patch Changes
+
+- b59d924: feat(ai): support SystemModelMessage in system and instructions properties
+
+## 6.0.0-beta.118
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/gateway@2.0.0-beta.63
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 6.0.0-beta.117
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/gateway@2.0.0-beta.62
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
 ## 6.0.0-beta.116
 
 ### Patch Changes

@@ -46,4 +46,16 @@ export class DelayedPromise<T> {
       this._reject?.(error);
     }
   }
+
+  isResolved(): boolean {
+    return this.status.type === 'resolved';
+  }
+
+  isRejected(): boolean {
+    return this.status.type === 'rejected';
+  }
+
+  isPending(): boolean {
+    return this.status.type === 'pending';
+  }
 }

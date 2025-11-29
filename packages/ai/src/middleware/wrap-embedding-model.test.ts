@@ -169,7 +169,7 @@ describe('wrapEmbeddingModel', () => {
       },
     });
 
-    const params: EmbeddingModelCallOptions<string> = {
+    const params: EmbeddingModelCallOptions = {
       values: [
         'sunny day at the beach',
         'rainy afternoon in the city',
@@ -205,7 +205,7 @@ describe('wrapEmbeddingModel', () => {
       },
     });
 
-    const params: EmbeddingModelCallOptions<string> = {
+    const params: EmbeddingModelCallOptions = {
       values: [
         'sunny day at the beach',
         'rainy afternoon in the city',
@@ -252,7 +252,7 @@ describe('wrapEmbeddingModel', () => {
         ],
       });
 
-      const params: EmbeddingModelCallOptions<string> = {
+      const params: EmbeddingModelCallOptions = {
         values: [
           'sunny day at the beach',
           'rainy afternoon in the city',
@@ -313,7 +313,7 @@ describe('wrapEmbeddingModel', () => {
         ],
       });
 
-      const params: EmbeddingModelCallOptions<string> = {
+      const params: EmbeddingModelCallOptions = {
         values: [
           'sunny day at the beach',
           'rainy afternoon in the city',
