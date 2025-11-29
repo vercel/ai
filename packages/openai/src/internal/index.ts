@@ -10,7 +10,6 @@ export * from '../transcription/openai-transcription-model';
 export * from '../transcription/openai-transcription-options';
 export * from '../speech/openai-speech-model';
 export * from '../speech/openai-speech-options';
-export * from '../responses/openai-responses-api';
 export * from '../responses/openai-responses-language-model';
 export * from '../responses/openai-responses-provider-metadata';
 export * from '../tool/apply-patch';
