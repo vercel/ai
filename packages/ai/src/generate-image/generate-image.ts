@@ -197,29 +197,26 @@ Only applicable for HTTP-based providers.
       for (const [providerName, metadata] of Object.entries<{
         images: unknown;
       }>(result.providerMetadata)) {
-        if (providerName === 'gateway') {
-          const currentEntry = providerMetadata[providerName];
-          if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
-          } else {
-            providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
-          }
-          const imagesValue = (
-            providerMetadata[providerName] as { images?: unknown }
-          ).images;
-          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
-            delete (providerMetadata[providerName] as { images?: unknown })
-              .images;
+        const existingMetadata = providerMetadata[providerName];
+        if (existingMetadata != null && typeof existingMetadata === 'object') {
+          providerMetadata[providerName] = {
+            ...(existingMetadata as object),
+            ...metadata,
+          } as ImageModelV3ProviderMetadata[string];
+
+          if (
+            'images' in existingMetadata &&
+            Array.isArray(existingMetadata.images) &&
+            Array.isArray(metadata.images)
+          ) {
+            (providerMetadata[providerName] as { images: unknown[] }).images = [
+              ...existingMetadata.images,
+              ...metadata.images,
+            ];
           }
         } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+          providerMetadata[providerName] =
+            metadata as ImageModelV3ProviderMetadata[string];
         }
       }
     }
