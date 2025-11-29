@@ -288,11 +288,6 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
-
-export type ResponsesOutputTextProviderMetadataSchema = z.infer<
-  typeof responsesOutputTextProviderMetadataSchema
->;
-
 export const openaiResponsesChunkSchema = lazySchema(() =>
   zodSchema(
     z.union([
@@ -995,7 +990,6 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
   ),
 );
 
-
 export const openaiResponsesOutputTextAnnotationSchema = z.discriminatedUnion(
   'type',
   [
@@ -1027,8 +1021,6 @@ export const openaiResponsesOutputTextAnnotationSchema = z.discriminatedUnion(
     }),
   ],
 );
-
-
 
 export const responsesOutputTextProviderMetadataSchema = z.object({
   itemId: z.string(),
@@ -1065,6 +1057,10 @@ export const responsesOutputTextProviderMetadataSchema = z.object({
     )
     .optional(),
 });
+
+export type ResponsesOutputTextProviderMetadataSchema = z.infer<
+  typeof responsesOutputTextProviderMetadataSchema
+>;
 
 export const responsesSourceDocumentProviderMetadataSchema =
   z.discriminatedUnion('type', [

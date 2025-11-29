@@ -5,7 +5,6 @@ import {
   openaiResponsesResponseSchema,
 } from './openai-responses-api';
 
-
 /**
  * expectTypeOf is utilized to ensure that the required sections of openaiResponsesChunkSchema
  * and openaiResponsesResponseSchema are of the same type.
