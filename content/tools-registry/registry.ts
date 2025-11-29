@@ -90,7 +90,7 @@ console.log(text);`,
     slug: 'parallel',
     name: 'Parallel',
     description:
-      'Parallel provides two powerful web tools: searchTool for finding relevant web pages and compressed token dense excerpts based on the semantic objective, and extractTool for extracting full page contents or excerpts (use objective) from any URL',
+      'Parallel gives AI agents best-in-class tools to search and extract context from the web. Web results returned by Parallel are compressed for optimal token efficiency at inference time.',
     packageName: '@parallel-web/ai-sdk-tools',
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'PARALLEL_API_KEY',
