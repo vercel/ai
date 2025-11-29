@@ -74,6 +74,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-approval-request'),
         approvalId: z.string(),
         toolCallId: z.string(),
+        inputEditable: z.boolean().optional(),
       }),
       z.strictObject({
         type: z.literal('tool-output-available'),
