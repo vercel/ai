@@ -272,6 +272,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 type: 'tool-approval-request',
                 approvalId: generateId(),
                 toolCall,
+                allowInputModification: tool.allowInputModification,
               });
               break;
             }

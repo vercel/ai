@@ -62,8 +62,8 @@ import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
-import { applyToolInputModifications } from './apply-tool-input-modifications';
 import { collectToolApprovals } from './collect-tool-approvals';
+import { validateApprovedToolInputs } from './validate-approved-tool-inputs';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
@@ -89,6 +89,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
+import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
@@ -1107,15 +1108,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               } as StaticToolOutputDenied<TOOLS>);
             }
 
+            const { validToolCalls, invalidToolErrors } =
+              validateApprovedToolInputs({
+                approvals: approvedToolApprovals,
+              });
+
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
-            const toolCallsToExecute = applyToolInputModifications({
-              approvals: approvedToolApprovals,
-              tools,
-            });
-
             await Promise.all(
-              toolCallsToExecute.map(async toolCall => {
+              validToolCalls.map(async toolCall => {
                 const result = await executeToolCall({
                   toolCall,
                   tools,
@@ -1136,11 +1137,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
+            const allToolOutputs = [...toolOutputs, ...invalidToolErrors];
+
             initialResponseMessages.push({
               role: 'tool',
               content: [
                 // add regular tool results for approved tool calls:
-                ...toolOutputs.map(output => ({
+              ...allToolOutputs.map(output => ({
                   type: 'tool-result' as const,
                   toolCallId: output.toolCallId,
                   toolName: output.toolName,

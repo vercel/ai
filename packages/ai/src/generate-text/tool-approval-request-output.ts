@@ -18,4 +18,9 @@ export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
    * Tool call that the approval request is for.
    */
   toolCall: TypedToolCall<TOOLS>;
+
+  /**
+   * Whether the tool allows input modification during approval.
+   */
+  allowInputModification?: boolean;
 };

@@ -13,4 +13,9 @@ export type ToolApprovalRequest = {
    * ID of the tool call that the approval request is for.
    */
   toolCallId: string;
+
+  /**
+   * Whether the tool allows input modification during approval.
+   */
+  allowInputModification?: boolean;
 };
