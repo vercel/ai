@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.82
+
+### Patch Changes
+
+- 922ecce: update google-auth-library to ^10.5.0
+
 ## 3.0.81
 
 ### Patch Changes
