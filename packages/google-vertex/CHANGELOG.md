@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.91
+
+### Patch Changes
+
+- cdb463a: update google-auth-library to ^10.5.0
+
 ## 4.0.0-beta.90
 
 ### Patch Changes
