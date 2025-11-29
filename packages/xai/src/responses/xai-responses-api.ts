@@ -348,6 +348,18 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
+    type: z.literal('response.custom_tool_call_input.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    input: z.string(),
+  }),
+  z.object({
     type: z.literal('response.done'),
     response: xaiResponsesResponseSchema,
   }),
