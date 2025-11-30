@@ -8,3 +8,4 @@ Fix Responses `code_interpreter` annotations and add typed providerMetadata
 - Align Responses API `code_interpreter` annotation types with the official spec.
 - Add tests to ensure the overlapping parts of the Zod schemas used by `doGenerate` and `doStream` stay in sync.
 - Introduce and export types for `providerMetadata` so clients can use them in a type-safe way.
+- export types `OpenaiResponsesTextProviderMetadata`, `OpenaiResponsesSourceDocumentProviderMetadata`, `AzureResponsesTextProviderMetadata`,`AzureResponsesSourceDocumentProviderMetadata`.
