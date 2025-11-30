@@ -31,6 +31,80 @@ export interface ToolCallOptions {
    * Experimental (can break in patch releases).
    */
   experimental_context?: unknown;
+
+  /**
+   * Optional callback to write a source reference to the stream.
+   * Sources appear alongside tool output in the UI and can be used to show citations or references.
+   *
+   * The source ID will be auto-generated if not provided.
+   *
+   * @example
+   * ```typescript
+   * execute: async (input, { writeSource }) => {
+   *   const results = await search(input.query);
+   *
+   *   results.forEach(result => {
+   *     writeSource?.({
+   *       sourceType: 'url',
+   *       url: result.url,
+   *       title: result.title,
+   *     });
+   *   });
+   *
+   *   return results.map(r => r.content).join('\n');
+   * }
+   * ```
+   */
+  writeSource?: (
+    source:
+      | {
+          /**
+           * The type of source - URL sources reference web content.
+           */
+          sourceType: 'url';
+
+          /**
+           * The URL of the source.
+           */
+          url: string;
+
+          /**
+           * The title of the source.
+           */
+          title?: string;
+
+          /**
+           * Optional ID for the source. Will be auto-generated if not provided.
+           */
+          id?: string;
+        }
+      | {
+          /**
+           * The type of source - document sources reference files/documents.
+           */
+          sourceType: 'document';
+
+          /**
+           * IANA media type of the document (e.g., 'application/pdf').
+           */
+          mediaType: string;
+
+          /**
+           * The title of the document.
+           */
+          title: string;
+
+          /**
+           * Optional filename of the document.
+           */
+          filename?: string;
+
+          /**
+           * Optional ID for the source. Will be auto-generated if not provided.
+           */
+          id?: string;
+        },
+  ) => void;
 }
 
 /**
