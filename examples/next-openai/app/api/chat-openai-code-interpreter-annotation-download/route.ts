@@ -59,10 +59,11 @@ export async function POST(req: Request) {
             openaiResponsesSourceDocumentProviderMetadataSchema.safeParse(
               source.providerMetadata,
             );
+          const filename = source.filename || source.title;
           if (providerMetadataParsed.success) {
             const { openai } = providerMetadataParsed.data;
             if (openai.type === 'container_file_citation') {
-              const { containerId, fileId, filename } = openai;
+              const { containerId, fileId } = openai;
               // Avoid duplicates
               const exists = containerFileSources.some(
                 s => s.containerId === containerId && s.fileId === fileId,
