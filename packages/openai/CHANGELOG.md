@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.75
+
+### Patch Changes
+
+- 1c7ff4a: distinguish between OpenAI and Azure in Responses API providerMetadata
+
 ## 2.0.74
 
 ### Patch Changes
