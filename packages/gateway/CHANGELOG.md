@@ -1,5 +1,18 @@
 # @ai-sdk/gateway
 
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+
+## 2.0.16
+
+### Patch Changes
+
+- e609736: feat (provider/gateway): add intellect-3 model id
+
 ## 2.0.15
 
 ### Patch Changes

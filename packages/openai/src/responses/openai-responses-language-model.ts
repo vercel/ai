@@ -919,11 +919,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 });
               }
-            } else if (
-              isResponseOutputItemDoneChunk(value) &&
-              value.item.type !== 'message'
-            ) {
-              if (value.item.type === 'function_call') {
+            } else if (isResponseOutputItemDoneChunk(value)) {
+              if (value.item.type === 'message') {
+                controller.enqueue({
+                  type: 'text-end',
+                  id: value.item.id,
+                  providerMetadata: {
+                    [providerKey]: {
+                      itemId: value.item.id,
+                      ...(ongoingAnnotations.length > 0 && {
+                        annotations: ongoingAnnotations,
+                      }),
+                    },
+                  },
+                });
+              } else if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
@@ -1272,22 +1282,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     : {}),
                 });
               }
-            } else if (
-              isResponseOutputItemDoneChunk(value) &&
-              value.item.type === 'message'
-            ) {
-              controller.enqueue({
-                type: 'text-end',
-                id: value.item.id,
-                providerMetadata: {
-                  [providerKey]: {
-                    itemId: value.item.id,
-                    ...(ongoingAnnotations.length > 0 && {
-                      annotations: ongoingAnnotations,
-                    }),
-                  },
-                },
-              });
             } else if (isErrorChunk(value)) {
               controller.enqueue({ type: 'error', error: value });
             }

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "3.0.17",
+  "version": "3.0.18",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
