@@ -4,7 +4,10 @@ import { CacheControlValidator } from './get-cache-control';
 
 describe('prepareTools', () => {
   it('should return undefined tools and tool_choice when tools are null', async () => {
-    const result = await prepareTools({ tools: undefined });
+    const result = await prepareTools({
+      tools: undefined,
+      toolChoice: undefined,
+    });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -14,7 +17,7 @@ describe('prepareTools', () => {
   });
 
   it('should return undefined tools and tool_choice when tools are empty', async () => {
-    const result = await prepareTools({ tools: [] });
+    const result = await prepareTools({ tools: [], toolChoice: undefined });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -33,6 +36,7 @@ describe('prepareTools', () => {
           inputSchema: { type: 'object', properties: {} },
         },
       ],
+      toolChoice: undefined,
     });
     expect(result.tools).toEqual([
       {
@@ -61,6 +65,7 @@ describe('prepareTools', () => {
               },
             },
           ],
+          toolChoice: undefined,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -96,6 +101,7 @@ describe('prepareTools', () => {
               args: {},
             },
           ],
+          toolChoice: undefined,
         });
         expect(result).toMatchInlineSnapshot(`
           {
@@ -126,6 +132,7 @@ describe('prepareTools', () => {
             args: {},
           },
         ],
+        toolChoice: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -156,6 +163,7 @@ describe('prepareTools', () => {
             args: { maxCharacters: 10000 },
           },
         ],
+        toolChoice: undefined,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -184,6 +192,7 @@ describe('prepareTools', () => {
             args: {},
           },
         ],
+        toolChoice: undefined,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -216,6 +225,7 @@ describe('prepareTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -257,6 +267,7 @@ describe('prepareTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -297,6 +308,7 @@ describe('prepareTools', () => {
           args: {},
         },
       ],
+      toolChoice: undefined,
     });
     expect(result.tools).toEqual([]);
     expect(result.toolChoice).toBeUndefined();
@@ -386,6 +398,7 @@ describe('prepareTools', () => {
           },
         },
       ],
+      toolChoice: undefined,
     });
 
     expect(result.tools).toMatchInlineSnapshot(`
@@ -452,6 +465,7 @@ describe('prepareTools', () => {
           },
         },
       ],
+      toolChoice: undefined,
       cacheControlValidator,
     });
 

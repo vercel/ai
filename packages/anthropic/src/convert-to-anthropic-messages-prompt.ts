@@ -11,6 +11,7 @@ import {
   parseProviderOptions,
   validateTypes,
   isNonNullable,
+  ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
@@ -52,11 +53,13 @@ export async function convertToAnthropicMessagesPrompt({
   sendReasoning,
   warnings,
   cacheControlValidator,
+  toolNameMapping,
 }: {
   prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
   warnings: SharedV3Warning[];
   cacheControlValidator?: CacheControlValidator;
+  toolNameMapping: ToolNameMapping;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -518,7 +521,8 @@ export async function convertToAnthropicMessagesPrompt({
                     });
                   } else if (
                     // code execution 20250825:
-                    part.toolName === 'code_execution' &&
+                    toolNameMapping.toProviderToolName(part.toolName) ===
+                      'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
                     'type' in part.input &&
@@ -533,23 +537,29 @@ export async function convertToAnthropicMessagesPrompt({
                       input: part.input,
                       cache_control: cacheControl,
                     });
-                  } else if (
-                    part.toolName === 'code_execution' || // code execution 20250522
-                    part.toolName === 'web_fetch' ||
-                    part.toolName === 'web_search'
-                  ) {
-                    anthropicContent.push({
-                      type: 'server_tool_use',
-                      id: part.toolCallId,
-                      name: part.toolName,
-                      input: part.input,
-                      cache_control: cacheControl,
-                    });
                   } else {
-                    warnings.push({
-                      type: 'other',
-                      message: `provider executed tool call for tool ${part.toolName} is not supported`,
-                    });
+                    const providerToolName = toolNameMapping.toProviderToolName(
+                      part.toolName,
+                    );
+
+                    if (
+                      providerToolName === 'code_execution' || // code execution 20250522
+                      providerToolName === 'web_fetch' ||
+                      providerToolName === 'web_search'
+                    ) {
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: providerToolName,
+                        input: part.input,
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      warnings.push({
+                        type: 'other',
+                        message: `provider executed tool call for tool ${part.toolName} is not supported`,
+                      });
+                    }
                   }
 
                   break;
@@ -587,7 +597,10 @@ export async function convertToAnthropicMessagesPrompt({
                       | Array<{ type: 'text'; text: string }>,
                     cache_control: cacheControl,
                   });
-                } else if (part.toolName === 'code_execution') {
+                } else if (
+                  toolNameMapping.toProviderToolName(part.toolName) ===
+                  'code_execution'
+                ) {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -661,7 +674,10 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
-                if (part.toolName === 'web_fetch') {
+                if (
+                  toolNameMapping.toProviderToolName(part.toolName) ===
+                  'web_fetch'
+                ) {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -702,7 +718,10 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
-                if (part.toolName === 'web_search') {
+                if (
+                  toolNameMapping.toProviderToolName(part.toolName) ===
+                  'web_search'
+                ) {
                   const output = part.output;
 
                   if (output.type !== 'json') {
