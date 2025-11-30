@@ -21,6 +21,8 @@ export function mapAnthropicStopReason({
       return isJsonResponseFromTool ? 'stop' : 'tool-calls';
     case 'max_tokens':
       return 'length';
+    case 'model_context_window_exceeded':
+      return 'length';
     default:
       return 'unknown';
   }

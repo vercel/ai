@@ -31,11 +31,13 @@ import {
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
+  AnthropicContextManagementConfig,
   AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
   Citation,
+  AnthropicResponseContextManagement,
 } from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
@@ -221,6 +223,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
+    const contextManagement = anthropicOptions?.contextManagement;
+
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
 
@@ -298,6 +302,40 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       // prompt:
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
+
+      ...(contextManagement && {
+        context_management: {
+          edits: contextManagement.edits.map(edit => {
+            const strategy = edit.type;
+            switch (strategy) {
+              case 'clear_tool_uses_20250919':
+                return {
+                  type: edit.type,
+                  ...(edit.trigger !== undefined && { trigger: edit.trigger }),
+                  ...(edit.keep !== undefined && { keep: edit.keep }),
+                  ...(edit.clearAtLeast !== undefined && {
+                    clear_at_least: edit.clearAtLeast,
+                  }),
+                  ...(edit.clearToolInputs !== undefined && {
+                    clear_tool_inputs: edit.clearToolInputs,
+                  }),
+                  ...(edit.excludeTools !== undefined && {
+                    exclude_tools: edit.excludeTools,
+                  }),
+                };
+
+              case 'clear_thinking_20251015':
+                return {
+                  type: edit.type,
+                  ...(edit.keep !== undefined && { keep: edit.keep }),
+                };
+
+              default:
+                throw new Error(`Unknown strategy: ${strategy}`);
+            }
+          }),
+        },
+      }),
     };
 
     if (isThinking) {
@@ -358,6 +396,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       anthropicOptions.mcpServers.length > 0
     ) {
       betas.add('mcp-client-2025-04-04');
+    }
+
+    if (contextManagement) {
+      betas.add('context-management-2025-06-27');
     }
 
     if (
@@ -843,6 +885,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   })) ?? null,
               }
             : null,
+          contextManagement: response.context_management
+            ? {
+                appliedEdits: response.context_management.applied_edits.map(
+                  edit => {
+                    const strategy = edit.type;
+                    switch (strategy) {
+                      case 'clear_tool_uses_20250919':
+                        return {
+                          type: edit.type,
+                          clearedToolUses: edit.cleared_tool_uses,
+                          clearedInputTokens: edit.cleared_input_tokens,
+                        };
+
+                      case 'clear_thinking_20251015':
+                        return {
+                          type: edit.type,
+                          clearedThinkingTurns: edit.cleared_thinking_turns,
+                          clearedInputTokens: edit.cleared_input_tokens,
+                        };
+
+                      default:
+                        throw new Error(`Unknown strategy: ${strategy}`);
+                    }
+                  },
+                ),
+              }
+            : null,
         } satisfies AnthropicMessageMetadata,
       },
     };
@@ -864,6 +933,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
+
+    let contextManagement: AnthropicResponseContextManagement | null = null;
 
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1509,6 +1580,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     }
                   : null;
 
+              if (value.delta.context_management) {
+                contextManagement = value.delta.context_management;
+              }
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -1528,6 +1603,38 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     cacheCreationInputTokens,
                     stopSequence,
                     container,
+                    contextManagement: contextManagement
+                      ? {
+                          appliedEdits: contextManagement.applied_edits.map(
+                            edit => {
+                              const strategy = edit.type;
+                              switch (strategy) {
+                                case 'clear_tool_uses_20250919':
+                                  return {
+                                    type: edit.type,
+                                    clearedToolUses: edit.cleared_tool_uses,
+                                    clearedInputTokens:
+                                      edit.cleared_input_tokens,
+                                  };
+
+                                case 'clear_thinking_20251015':
+                                  return {
+                                    type: edit.type,
+                                    clearedThinkingTurns:
+                                      edit.cleared_thinking_turns,
+                                    clearedInputTokens:
+                                      edit.cleared_input_tokens,
+                                  };
+
+                                default:
+                                  throw new Error(
+                                    `Unknown strategy: ${strategy}`,
+                                  );
+                              }
+                            },
+                          ),
+                        }
+                      : null,
                   } satisfies AnthropicMessageMetadata,
                 },
               });
