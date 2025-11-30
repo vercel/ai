@@ -193,6 +193,10 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-approval-request' as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
+                      inputEditable:
+                        part.state === 'approval-requested'
+                          ? part.approval.inputEditable
+                          : undefined,
                     });
                   }
 
@@ -263,6 +267,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         approvalId: toolPart.approval.id,
                         approved: toolPart.approval.approved,
                         reason: toolPart.approval.reason,
+                        modifiedInput: toolPart.approval.modifiedInput,
                       });
                     }
 

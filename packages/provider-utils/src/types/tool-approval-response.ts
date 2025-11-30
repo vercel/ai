@@ -18,4 +18,9 @@ export type ToolApprovalResponse = {
    * Optional reason for the approval or denial.
    */
   reason?: string;
+
+  /**
+   * Optional modified input provided by the reviewer.
+   */
+  modifiedInput?: unknown;
 };

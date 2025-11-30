@@ -14591,6 +14591,7 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
+                "inputEditable": undefined,
                 "approvalId": "id-1",
                 "toolCall": {
                   "input": {
@@ -14687,6 +14688,7 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "inputEditable": undefined,
               "approvalId": "id-1",
               "toolCall": {
                 "input": {
@@ -14807,6 +14809,7 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
+                "inputEditable": undefined,
                 "approvalId": "id-1",
                 "toolCall": {
                   "input": {
@@ -14945,6 +14948,7 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "inputEditable": undefined,
               "approvalId": "id-1",
               "toolCall": {
                 "input": {

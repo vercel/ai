@@ -63,6 +63,7 @@ import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
+import { validateApprovedToolInputs } from './validate-approved-tool-inputs';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
@@ -88,6 +89,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
+import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
@@ -1106,12 +1108,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               } as StaticToolOutputDenied<TOOLS>);
             }
 
+            const { validToolCalls, invalidToolErrors } =
+              validateApprovedToolInputs({
+                approvals: approvedToolApprovals,
+              });
+
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
             await Promise.all(
-              approvedToolApprovals.map(async toolApproval => {
+              validToolCalls.map(async toolCall => {
                 const result = await executeToolCall({
-                  toolCall: toolApproval.toolCall,
+                  toolCall,
                   tools,
                   tracer,
                   telemetry,
@@ -1130,11 +1137,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
+            const allToolOutputs = [...toolOutputs, ...invalidToolErrors];
+
             initialResponseMessages.push({
               role: 'tool',
               content: [
                 // add regular tool results for approved tool calls:
-                ...toolOutputs.map(output => ({
+                ...allToolOutputs.map(output => ({
                   type: 'tool-result' as const,
                   toolCallId: output.toolCallId,
                   toolName: output.toolName,
@@ -2071,6 +2080,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                inputEditable: part.inputEditable,
               });
               break;
             }

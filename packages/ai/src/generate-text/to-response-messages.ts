@@ -88,6 +88,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             type: 'tool-approval-request',
             approvalId: part.approvalId,
             toolCallId: part.toolCall.toolCallId,
+            inputEditable: part.inputEditable,
           };
       }
     });

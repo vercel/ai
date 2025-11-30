@@ -3926,6 +3926,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
+              "inputEditable": undefined,
               "approvalId": "id-1",
               "toolCall": {
                 "input": {
@@ -4064,6 +4065,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
             {
+              "inputEditable": undefined,
               "approvalId": "id-1",
               "toolCall": {
                 "input": {
