@@ -96,7 +96,13 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
             key as keyof Omit<GroqTranscriptionAPITypes, 'model'>
           ];
         if (value !== undefined) {
-          formData.append(key, String(value));
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              formData.append(`${key}[]`, String(item));
+            }
+          } else {
+            formData.append(key, String(value));
+          }
         }
       }
     }

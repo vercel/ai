@@ -162,4 +162,24 @@ describe('doGenerate', () => {
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('whisper-large-v3-turbo');
   });
+
+  it('should correctly pass provider options when they are an array', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        groq: {
+          timestampGranularities: ['word', 'segment'],
+          responseFormat: 'verbose_json',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      'timestamp_granularities[]': ['word', 'segment'],
+      response_format: 'verbose_json',
+    });
+  });
 });
