@@ -58,10 +58,11 @@ export async function POST(req: Request) {
             azureResponsesSourceDocumentProviderMetadataSchema.safeParse(
               source.providerMetadata,
             );
+          const filename = source.filename || source.title;
           if (providerMetadataParsed.success) {
             const { azure } = providerMetadataParsed.data;
             if (azure.type === 'container_file_citation') {
-              const { containerId, fileId, filename } = azure;
+              const { containerId, fileId } = azure;
               // Avoid duplicates
               const exists = containerFileSources.some(
                 s => s.containerId === containerId && s.fileId === fileId,
