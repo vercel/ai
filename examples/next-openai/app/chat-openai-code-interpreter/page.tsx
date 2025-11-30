@@ -3,7 +3,7 @@
 import { OpenAICodeInterpreterMessage } from '@/agent/openai-code-interpreter-agent';
 import ChatInput from '@/components/chat-input';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
-import { OpenaiResponsesText } from '@/components/tool/openai-responses-text';
+import { ResponsesText } from '@/components/tool/responses-text';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
@@ -25,7 +25,7 @@ export default function TestOpenAIWebSearch() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <OpenaiResponsesText key={index} part={part} />;
+                return <ResponsesText key={index} part={part} />;
               case 'tool-executeCode':
                 return <CodeInterpreterView key={index} invocation={part} />;
             }
