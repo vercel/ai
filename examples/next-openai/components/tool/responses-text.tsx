@@ -62,22 +62,14 @@ export function ResponsesText({ part }: { part: TextUIPart }) {
     const text = (() => {
       switch (cur.type) {
         case 'url_citation': {
-          if (cur.start_index === 0 && cur.end_index === 0) return acc;
-          const targetText = acc.slice(cur.start_index, cur.end_index);
-
-          // Markdown URL Link format
-          const markdownLink = `[${targetText}](${cur.url}${cur.title ? ` "${cur.title}"` : ''})`;
-
-          return (
-            acc.slice(0, cur.start_index) +
-            markdownLink +
-            acc.slice(cur.end_index)
-          );
+          // For Markdown conversion, there is generally no need to replace the strings.
+          return acc;
         }
         case 'file_citation': {
           return acc;
         }
         case 'container_file_citation': {
+          // Replace with a file-downloadable URL.
           if (cur.start_index === 0 && cur.end_index === 0) return acc;
           return (
             acc.slice(0, cur.start_index) +
@@ -86,7 +78,6 @@ export function ResponsesText({ part }: { part: TextUIPart }) {
           );
         }
         case 'file_path': {
-          // unknown usecase
           return acc;
         }
         default: {
