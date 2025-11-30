@@ -51,7 +51,7 @@ describe('prepareTools', () => {
         const result = await prepareTools({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.computer_20241022',
               name: 'computer',
               args: {
@@ -90,7 +90,7 @@ describe('prepareTools', () => {
         const result = await prepareTools({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.text_editor_20241022',
               name: 'text_editor',
               args: {},
@@ -120,7 +120,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.bash_20241022',
             name: 'bash',
             args: {},
@@ -150,7 +150,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.text_editor_20250728',
             name: 'str_replace_based_edit_tool',
             args: { maxCharacters: 10000 },
@@ -178,7 +178,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.text_editor_20250728',
             name: 'str_replace_based_edit_tool',
             args: {},
@@ -206,7 +206,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.web_search_20250305',
             name: 'web_search',
             args: {
@@ -246,7 +246,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.web_fetch_20250910',
             name: 'web_fetch',
             args: {
@@ -291,7 +291,7 @@ describe('prepareTools', () => {
     const result = await prepareTools({
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'unsupported.tool',
           name: 'unsupported_tool',
           args: {},

@@ -931,7 +931,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
               name: 'file_search',
               args: {
@@ -1013,7 +1013,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
               name: 'code_interpreter',
               args: {},
@@ -1068,7 +1068,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1139,7 +1139,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1221,7 +1221,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search_preview',
               name: 'web_search_preview',
               args: {},
@@ -1245,7 +1245,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.image_generation',
             name: 'image_generation',
             args: {
@@ -1612,7 +1612,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.code_interpreter',
             name: 'code_interpreter',
             args: {},
@@ -1633,7 +1633,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1655,7 +1655,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1682,7 +1682,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.web_search_preview',
             name: 'web_search_preview',
             args: {},

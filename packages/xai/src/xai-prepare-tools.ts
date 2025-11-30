@@ -45,7 +45,7 @@ export function prepareTools({
   }> = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
+    if (tool.type === 'provider') {
       toolWarnings.push({
         type: 'unsupported',
         feature: `provider-defined tool ${tool.name}`,

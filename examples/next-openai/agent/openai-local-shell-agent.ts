@@ -19,7 +19,7 @@ export const openaiLocalShellAgent = new ToolLoopAgent({
     'You are an agent with access to a shell environment.' +
     'When a command execution is denied, ask the user if they want to execute something else.',
   tools: {
-    local_shell: openai.tools.localShell({
+    shell: openai.tools.localShell({
       needsApproval({ action }) {
         // allow only `ls` to be executed without approval
         return action.command.join(' ') !== 'ls';

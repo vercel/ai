@@ -1,11 +1,18 @@
+import { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { describe, it, expect } from 'vitest';
+
+const testToolNameMapping: ToolNameMapping = {
+  toProviderToolName: (customToolName: string) => customToolName,
+  toCustomToolName: (providerToolName: string) => providerToolName,
+};
 
 describe('convertToOpenAIResponsesInput', () => {
   describe('system messages', () => {
     it('should convert system messages to system role', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -16,6 +23,7 @@ describe('convertToOpenAIResponsesInput', () => {
     it('should convert system messages to developer role', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'developer',
         store: true,
       });
@@ -26,6 +34,7 @@ describe('convertToOpenAIResponsesInput', () => {
     it('should remove system messages', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [{ role: 'system', content: 'Hello' }],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'remove',
         store: true,
       });
@@ -43,6 +52,7 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [{ type: 'text', text: 'Hello' }],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -67,6 +77,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -99,6 +110,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -130,6 +142,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -161,6 +174,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         fileIdPrefixes: ['file-'],
         store: true,
@@ -193,6 +207,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -229,6 +244,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -264,6 +280,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -296,6 +313,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         fileIdPrefixes: ['file-'],
         store: true,
@@ -330,6 +348,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -365,6 +384,7 @@ describe('convertToOpenAIResponsesInput', () => {
               ],
             },
           ],
+          toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           store: true,
         }),
@@ -385,6 +405,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -405,6 +426,7 @@ describe('convertToOpenAIResponsesInput', () => {
     describe('Azure OpenAI file ID support', () => {
       it('should convert image parts with assistant- prefix', async () => {
         const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
           prompt: [
             {
               role: 'user',
@@ -449,6 +471,7 @@ describe('convertToOpenAIResponsesInput', () => {
               ],
             },
           ],
+          toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-'],
           store: true,
@@ -486,6 +509,7 @@ describe('convertToOpenAIResponsesInput', () => {
               ],
             },
           ],
+          toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           fileIdPrefixes: ['assistant-', 'file-'],
           store: true,
@@ -530,6 +554,7 @@ describe('convertToOpenAIResponsesInput', () => {
               ],
             },
           ],
+          toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           // fileIdPrefixes intentionally omitted
           store: true,
@@ -567,6 +592,7 @@ describe('convertToOpenAIResponsesInput', () => {
               ],
             },
           ],
+          toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           fileIdPrefixes: [], // Empty array should disable file ID detection
           store: true,
@@ -593,6 +619,7 @@ describe('convertToOpenAIResponsesInput', () => {
         prompt: [
           { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });
@@ -607,6 +634,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     it('should convert messages with tool call parts', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'assistant',
@@ -646,6 +674,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     it('should convert messages with tool call parts that have ids', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'assistant',
@@ -693,6 +722,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     it('should convert multiple tool call parts in a single message', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'assistant',
@@ -736,6 +766,7 @@ describe('convertToOpenAIResponsesInput', () => {
       describe('single summary part', () => {
         it('should convert single reasoning part with text', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -775,6 +806,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should convert single reasoning part with encrypted content', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -815,6 +847,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should convert single reasoning part with null encrypted content', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -857,6 +890,7 @@ describe('convertToOpenAIResponsesInput', () => {
       describe('single summary part with empty text', () => {
         it('should create empty summary for initial empty text', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -891,6 +925,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should create empty summary for initial empty text with encrypted content', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -926,6 +961,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should warn when appending empty text to existing sequence', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -983,6 +1019,7 @@ describe('convertToOpenAIResponsesInput', () => {
       describe('merging and sequencing', () => {
         it('should merge consecutive parts with same reasoning ID', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -1039,6 +1076,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should create separate messages for different reasoning IDs', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -1098,6 +1136,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should handle reasoning across multiple assistant messages', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'user',
@@ -1207,6 +1246,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should handle reasoning across multiple assistant messages', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'user',
@@ -1310,6 +1350,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should handle complex reasoning sequences with tool interactions', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -1514,6 +1555,7 @@ describe('convertToOpenAIResponsesInput', () => {
       describe('error handling', () => {
         it('should warn when reasoning part has no provider options', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -1543,6 +1585,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should warn when reasoning part lacks OpenAI-specific reasoning ID provider options', async () => {
           const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
@@ -1583,6 +1626,7 @@ describe('convertToOpenAIResponsesInput', () => {
   describe('tool messages', () => {
     it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'tool',
@@ -1616,6 +1660,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     it('should convert single tool result part with text value', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'tool',
@@ -1649,6 +1694,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     it('should convert single tool result part with multipart that contains text', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'tool',
@@ -1692,6 +1738,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     it('should convert single tool result part with multipart that contains image', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'tool',
@@ -1737,6 +1784,7 @@ describe('convertToOpenAIResponsesInput', () => {
     it('should convert single tool result part with multipart that contains file (PDF)', async () => {
       const base64Data = 'AQIDBAU=';
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'tool',
@@ -1784,6 +1832,7 @@ describe('convertToOpenAIResponsesInput', () => {
     it('should convert single tool result part with multipart with mixed content (text, image, file)', async () => {
       const base64Data = 'AQIDBAU=';
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'tool',
@@ -1846,6 +1895,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     it('should convert multiple tool result parts in a single message', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'tool',
@@ -1890,6 +1940,7 @@ describe('convertToOpenAIResponsesInput', () => {
   describe('provider-defined tools', () => {
     it('should convert single provider-executed tool call and result into item reference with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'assistant',
@@ -1933,6 +1984,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
     it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
       const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
         prompt: [
           {
             role: 'assistant',
@@ -2018,6 +2070,7 @@ describe('convertToOpenAIResponsesInput', () => {
     describe('local shell', () => {
       it('should convert local shell tool call and result into item reference with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
           prompt: [
             {
               role: 'assistant',
@@ -2070,6 +2123,7 @@ describe('convertToOpenAIResponsesInput', () => {
 
       it('should convert local shell tool call and result into item reference with store: false', async () => {
         const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
           prompt: [
             {
               role: 'assistant',
@@ -2150,6 +2204,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
+        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         store: true,
       });

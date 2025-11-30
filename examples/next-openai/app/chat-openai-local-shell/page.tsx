@@ -35,7 +35,7 @@ export default function TestOpenAIWebSearch() {
               switch (part.type) {
                 case 'text':
                   return <div key={index}>{part.text}</div>;
-                case 'tool-local_shell':
+                case 'tool-shell':
                   return (
                     <LocalShellView
                       key={index}

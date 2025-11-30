@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -54,7 +54,7 @@ type CodeInterpreterArgs = {
 };
 
 export const codeInterpreterToolFactory =
-  createProviderDefinedToolFactoryWithOutputSchema<
+  createProviderToolFactoryWithOutputSchema<
     {
       /**
        * The code to run, or null if not available.
@@ -93,7 +93,6 @@ export const codeInterpreterToolFactory =
     CodeInterpreterArgs
   >({
     id: 'openai.code_interpreter',
-    name: 'code_interpreter',
     inputSchema: codeInterpreterInputSchema,
     outputSchema: codeInterpreterOutputSchema,
   });

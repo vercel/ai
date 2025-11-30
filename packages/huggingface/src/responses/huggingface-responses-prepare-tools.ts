@@ -44,7 +44,7 @@ export function prepareResponsesTools({
           parameters: tool.inputSchema,
         });
         break;
-      case 'provider-defined':
+      case 'provider':
         toolWarnings.push({
           type: 'unsupported',
           feature: `provider-defined tool ${tool.id}`,

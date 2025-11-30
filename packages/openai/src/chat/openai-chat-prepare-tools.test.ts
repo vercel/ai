@@ -62,7 +62,7 @@ it('should add warnings for unsupported tools', () => {
   const result = prepareChatTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'openai.unsupported_tool',
         name: 'unsupported_tool',
         args: {},
@@ -77,7 +77,7 @@ it('should add warnings for unsupported tools', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "feature": "tool type: provider-defined",
+        "feature": "tool type: provider",
         "type": "unsupported",
       },
     ]

@@ -61,24 +61,20 @@ export function prepareTools({
 
   // Check for mixed tool types and add warnings
   const hasFunctionTools = tools.some(tool => tool.type === 'function');
-  const hasProviderDefinedTools = tools.some(
-    tool => tool.type === 'provider-defined',
-  );
+  const hasProviderTools = tools.some(tool => tool.type === 'provider');
 
-  if (hasFunctionTools && hasProviderDefinedTools) {
+  if (hasFunctionTools && hasProviderTools) {
     toolWarnings.push({
       type: 'unsupported',
       feature: `combination of function and provider-defined tools`,
     });
   }
 
-  if (hasProviderDefinedTools) {
+  if (hasProviderTools) {
     const googleTools: any[] = [];
 
-    const providerDefinedTools = tools.filter(
-      tool => tool.type === 'provider-defined',
-    );
-    providerDefinedTools.forEach(tool => {
+    const ProviderTools = tools.filter(tool => tool.type === 'provider');
+    ProviderTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
           if (isGemini2orNewer) {

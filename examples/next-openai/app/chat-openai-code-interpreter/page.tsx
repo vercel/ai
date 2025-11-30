@@ -1,11 +1,11 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { OpenAICodeInterpreterMessage } from '@/agent/openai-code-interpreter-agent';
 import ChatInput from '@/components/chat-input';
-import { OpenAICodeInterpreterMessage } from '@/app/api/chat-openai-code-interpreter/route';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
 import { OpenaiResponsesText } from '@/components/tool/openai-responses-text';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } =
@@ -26,7 +26,7 @@ export default function TestOpenAIWebSearch() {
             switch (part.type) {
               case 'text':
                 return <OpenaiResponsesText key={index} part={part} />;
-              case 'tool-code_interpreter':
+              case 'tool-executeCode':
                 return <CodeInterpreterView key={index} invocation={part} />;
             }
           })}

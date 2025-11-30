@@ -3,14 +3,14 @@ import {
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { validateTypes } from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
-import { webSearchArgsSchema } from '../tool/web-search';
-import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
 import { mcpArgsSchema } from '../tool/mcp';
+import { webSearchArgsSchema } from '../tool/web-search';
+import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { OpenAIResponsesTool } from './openai-responses-api';
-import { validateTypes } from '@ai-sdk/provider-utils';
 
 export async function prepareResponsesTools({
   tools,
@@ -18,7 +18,7 @@ export async function prepareResponsesTools({
   strictJsonSchema,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
   strictJsonSchema: boolean;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
@@ -32,7 +32,8 @@ export async function prepareResponsesTools({
     | { type: 'function'; name: string }
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
-    | { type: 'image_generation' };
+    | { type: 'image_generation' }
+    | { type: 'apply_patch' };
   toolWarnings: SharedV3Warning[];
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -57,7 +58,7 @@ export async function prepareResponsesTools({
           strict: strictJsonSchema,
         });
         break;
-      case 'provider-defined': {
+      case 'provider': {
         switch (tool.id) {
           case 'openai.file_search': {
             const args = await validateTypes({
@@ -83,6 +84,12 @@ export async function prepareResponsesTools({
           case 'openai.local_shell': {
             openaiTools.push({
               type: 'local_shell',
+            });
+            break;
+          }
+          case 'openai.apply_patch': {
+            openaiTools.push({
+              type: 'apply_patch',
             });
             break;
           }
@@ -178,15 +185,6 @@ export async function prepareResponsesTools({
               authorization: args.authorization,
               connector_id: args.connectorId,
               headers: args.headers,
-              // require_approval:
-              //   typeof args.requireApproval === 'string'
-              //     ? args.requireApproval
-              //     : args.requireApproval
-              //       ? {
-              //           read_only: args.requireApproval.readOnly,
-              //           tool_names: args.requireApproval.toolNames,
-              //         }
-              //       : undefined,
               require_approval: 'never',
               server_description: args.serverDescription,
               server_url: args.serverUrl,
@@ -226,7 +224,8 @@ export async function prepareResponsesTools({
           toolChoice.toolName === 'image_generation' ||
           toolChoice.toolName === 'web_search_preview' ||
           toolChoice.toolName === 'web_search' ||
-          toolChoice.toolName === 'mcp'
+          toolChoice.toolName === 'mcp' ||
+          toolChoice.toolName === 'apply_patch'
             ? { type: toolChoice.toolName }
             : { type: 'function', name: toolChoice.toolName },
         toolWarnings,

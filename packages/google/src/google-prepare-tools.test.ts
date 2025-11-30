@@ -1,4 +1,4 @@
-import { LanguageModelV3ProviderDefinedTool } from '@ai-sdk/provider';
+import { LanguageModelV3ProviderTool } from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
@@ -54,19 +54,19 @@ it('should correctly prepare provider-defined tools as array', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.google_search',
         name: 'google_search',
         args: {},
       },
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.url_context',
         name: 'url_context',
         args: {},
       },
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.file_search',
         name: 'file_search',
         args: { fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'] },
@@ -91,7 +91,7 @@ it('should correctly prepare single provider-defined tool', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.google_search',
         name: 'google_search',
         args: {},
@@ -108,7 +108,7 @@ it('should add warnings for unsupported tools', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'unsupported.tool',
         name: 'unsupported_tool',
         args: {},
@@ -129,8 +129,8 @@ it('should add warnings for unsupported tools', () => {
 });
 
 it('should add warnings for file search on unsupported models', () => {
-  const tool: LanguageModelV3ProviderDefinedTool = {
-    type: 'provider-defined' as const,
+  const tool: LanguageModelV3ProviderTool = {
+    type: 'provider' as const,
     id: 'google.file_search',
     name: 'file_search',
     args: { fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'] },
@@ -157,7 +157,7 @@ it('should correctly prepare file search tool', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.file_search',
         name: 'file_search',
         args: {
@@ -278,7 +278,7 @@ it('should warn when mixing function and provider-defined tools', () => {
         inputSchema: { type: 'object', properties: {} },
       },
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.google_search',
         name: 'google_search',
         args: {},
@@ -311,7 +311,7 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
         inputSchema: { type: 'object', properties: {} },
       },
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.google_search',
         name: 'google_search',
         args: {},
@@ -339,7 +339,7 @@ it('should handle latest modelId for provider-defined tools correctly', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.google_search',
         name: 'google_search',
         args: {},
@@ -356,7 +356,7 @@ it('should handle gemini-3 modelId for provider-defined tools correctly', () => 
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.google_search',
         name: 'google_search',
         args: {},
@@ -373,7 +373,7 @@ it('should handle code execution tool', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.code_execution',
         name: 'code_execution',
         args: {},
@@ -390,7 +390,7 @@ it('should handle url context tool alone', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'google.url_context',
         name: 'url_context',
         args: {},

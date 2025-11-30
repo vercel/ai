@@ -45,7 +45,7 @@ it('should add warnings for provider-defined tools', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined' as const,
+        type: 'provider' as const,
         id: 'provider.tool',
         name: 'tool',
         args: {},

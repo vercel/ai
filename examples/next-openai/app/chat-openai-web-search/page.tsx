@@ -32,7 +32,7 @@ export default function TestOpenAIWebSearch() {
               case 'reasoning': {
                 return <ReasoningView part={part} key={index} />;
               }
-              case 'tool-web_search': {
+              case 'tool-webSearch': {
                 return <OpenAIWebSearchView invocation={part} key={index} />;
               }
             }

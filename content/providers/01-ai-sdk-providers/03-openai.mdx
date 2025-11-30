@@ -403,12 +403,6 @@ const result = await generateText({
 });
 ```
 
-<Note>
-  The tool must be named `file_search` when using OpenAI's file search
-  functionality. This name is required by OpenAI's API specification and cannot
-  be customized.
-</Note>
-
 #### Image Generation Tool
 
 OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
@@ -497,12 +491,6 @@ const result = await generateText({
 The code interpreter tool can be configured with:
 
 - **container**: Either a container ID string or an object with `fileIds` to specify uploaded files that should be available to the code interpreter
-
-<Note>
-  The tool must be named `code_interpreter` when using OpenAI's code interpreter
-  functionality. This name is required by OpenAI's API specification and cannot
-  be customized.
-</Note>
 
 #### MCP Tool
 
@@ -601,11 +589,6 @@ const result = await generateText({
   stopWhen: stepCountIs(2),
 });
 ```
-
-<Note>
-  The tool must be named `local_shell`. This name is required by OpenAI's API
-  specification and cannot be customized. The model can only be
-</Note>
 
 #### Image Inputs
 

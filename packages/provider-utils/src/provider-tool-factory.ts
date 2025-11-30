@@ -1,7 +1,7 @@
 import { tool, Tool, ToolExecuteFunction } from './types/tool';
 import { FlexibleSchema } from './schema';
 
-export type ProviderDefinedToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
+export type ProviderToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
   options: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT>;
     needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
@@ -12,15 +12,13 @@ export type ProviderDefinedToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
   },
 ) => Tool<INPUT, OUTPUT>;
 
-export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
+export function createProviderToolFactory<INPUT, ARGS extends object>({
   id,
-  name,
   inputSchema,
 }: {
   id: `${string}.${string}`;
-  name: string;
   inputSchema: FlexibleSchema<INPUT>;
-}): ProviderDefinedToolFactory<INPUT, ARGS> {
+}): ProviderToolFactory<INPUT, ARGS> {
   return <OUTPUT>({
     execute,
     outputSchema,
@@ -40,9 +38,8 @@ export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
     onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
   }): Tool<INPUT, OUTPUT> =>
     tool({
-      type: 'provider-defined',
+      type: 'provider',
       id,
-      name,
       args,
       inputSchema,
       outputSchema,
@@ -55,7 +52,7 @@ export function createProviderDefinedToolFactory<INPUT, ARGS extends object>({
     });
 }
 
-export type ProviderDefinedToolFactoryWithOutputSchema<
+export type ProviderToolFactoryWithOutputSchema<
   INPUT,
   OUTPUT,
   ARGS extends object,
@@ -70,21 +67,19 @@ export type ProviderDefinedToolFactoryWithOutputSchema<
   },
 ) => Tool<INPUT, OUTPUT>;
 
-export function createProviderDefinedToolFactoryWithOutputSchema<
+export function createProviderToolFactoryWithOutputSchema<
   INPUT,
   OUTPUT,
   ARGS extends object,
 >({
   id,
-  name,
   inputSchema,
   outputSchema,
 }: {
   id: `${string}.${string}`;
-  name: string;
   inputSchema: FlexibleSchema<INPUT>;
   outputSchema: FlexibleSchema<OUTPUT>;
-}): ProviderDefinedToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS> {
+}): ProviderToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS> {
   return ({
     execute,
     needsApproval,
@@ -102,9 +97,8 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
     onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
   }): Tool<INPUT, OUTPUT> =>
     tool({
-      type: 'provider-defined',
+      type: 'provider',
       id,
-      name,
       args,
       inputSchema,
       outputSchema,

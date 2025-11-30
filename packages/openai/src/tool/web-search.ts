@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -58,123 +58,121 @@ export const webSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const webSearchToolFactory =
-  createProviderDefinedToolFactoryWithOutputSchema<
-    {
-      // Web search doesn't take input parameters - it's controlled by the prompt
-    },
-    {
+export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
+  {
+    // Web search doesn't take input parameters - it's controlled by the prompt
+  },
+  {
+    /**
+     * An object describing the specific action taken in this web search call.
+     * Includes details on how the model used the web (search, open_page, find).
+     */
+    action:
+      | {
+          /**
+           * Action type "search" - Performs a web search query.
+           */
+          type: 'search';
+
+          /**
+           * The search query.
+           */
+          query?: string;
+        }
+      | {
+          /**
+           * Action type "openPage" - Opens a specific URL from search results.
+           */
+          type: 'openPage';
+
+          /**
+           * The URL opened by the model.
+           */
+          url: string;
+        }
+      | {
+          /**
+           * Action type "find": Searches for a pattern within a loaded page.
+           */
+          type: 'find';
+
+          /**
+           * The URL of the page searched for the pattern.
+           */
+          url: string;
+
+          /**
+           * The pattern or text to search for within the page.
+           */
+          pattern: string;
+        };
+
+    /**
+     * Optional sources cited by the model for the web search call.
+     */
+    sources?: Array<
+      { type: 'url'; url: string } | { type: 'api'; name: string }
+    >;
+  },
+  {
+    /**
+     * Whether to use external web access for fetching live content.
+     * - true: Fetch live web content (default)
+     * - false: Use cached/indexed results
+     */
+    externalWebAccess?: boolean;
+
+    /**
+     * Filters for the search.
+     */
+    filters?: {
       /**
-       * An object describing the specific action taken in this web search call.
-       * Includes details on how the model used the web (search, open_page, find).
+       * Allowed domains for the search.
+       * If not provided, all domains are allowed.
+       * Subdomains of the provided domains are allowed as well.
        */
-      action:
-        | {
-            /**
-             * Action type "search" - Performs a web search query.
-             */
-            type: 'search';
+      allowedDomains?: string[];
+    };
 
-            /**
-             * The search query.
-             */
-            query?: string;
-          }
-        | {
-            /**
-             * Action type "openPage" - Opens a specific URL from search results.
-             */
-            type: 'openPage';
+    /**
+     * Search context size to use for the web search.
+     * - high: Most comprehensive context, highest cost, slower response
+     * - medium: Balanced context, cost, and latency (default)
+     * - low: Least context, lowest cost, fastest response
+     */
+    searchContextSize?: 'low' | 'medium' | 'high';
 
-            /**
-             * The URL opened by the model.
-             */
-            url: string;
-          }
-        | {
-            /**
-             * Action type "find": Searches for a pattern within a loaded page.
-             */
-            type: 'find';
-
-            /**
-             * The URL of the page searched for the pattern.
-             */
-            url: string;
-
-            /**
-             * The pattern or text to search for within the page.
-             */
-            pattern: string;
-          };
-
+    /**
+     * User location information to provide geographically relevant search results.
+     */
+    userLocation?: {
       /**
-       * Optional sources cited by the model for the web search call.
+       * Type of location (always 'approximate')
        */
-      sources?: Array<
-        { type: 'url'; url: string } | { type: 'api'; name: string }
-      >;
-    },
-    {
+      type: 'approximate';
       /**
-       * Whether to use external web access for fetching live content.
-       * - true: Fetch live web content (default)
-       * - false: Use cached/indexed results
+       * Two-letter ISO country code (e.g., 'US', 'GB')
        */
-      externalWebAccess?: boolean;
-
+      country?: string;
       /**
-       * Filters for the search.
+       * City name (free text, e.g., 'Minneapolis')
        */
-      filters?: {
-        /**
-         * Allowed domains for the search.
-         * If not provided, all domains are allowed.
-         * Subdomains of the provided domains are allowed as well.
-         */
-        allowedDomains?: string[];
-      };
-
+      city?: string;
       /**
-       * Search context size to use for the web search.
-       * - high: Most comprehensive context, highest cost, slower response
-       * - medium: Balanced context, cost, and latency (default)
-       * - low: Least context, lowest cost, fastest response
+       * Region name (free text, e.g., 'Minnesota')
        */
-      searchContextSize?: 'low' | 'medium' | 'high';
-
+      region?: string;
       /**
-       * User location information to provide geographically relevant search results.
+       * IANA timezone (e.g., 'America/Chicago')
        */
-      userLocation?: {
-        /**
-         * Type of location (always 'approximate')
-         */
-        type: 'approximate';
-        /**
-         * Two-letter ISO country code (e.g., 'US', 'GB')
-         */
-        country?: string;
-        /**
-         * City name (free text, e.g., 'Minneapolis')
-         */
-        city?: string;
-        /**
-         * Region name (free text, e.g., 'Minnesota')
-         */
-        region?: string;
-        /**
-         * IANA timezone (e.g., 'America/Chicago')
-         */
-        timezone?: string;
-      };
-    }
-  >({
-    id: 'openai.web_search',
-    name: 'web_search',
-    inputSchema: webSearchInputSchema,
-    outputSchema: webSearchOutputSchema,
-  });
+      timezone?: string;
+    };
+  }
+>({
+  id: 'openai.web_search',
+  inputSchema: webSearchInputSchema,
+  outputSchema: webSearchOutputSchema,
+});
 
 export const webSearch = (
   args: Parameters<typeof webSearchToolFactory>[0] = {}, // default

@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactory,
+  createProviderToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -26,7 +26,7 @@ const computer_20241022InputSchema = lazySchema(() =>
   ),
 );
 
-export const computer_20241022 = createProviderDefinedToolFactory<
+export const computer_20241022 = createProviderToolFactory<
   {
     /**
      * The action to perform. The available actions are:
@@ -83,6 +83,5 @@ export const computer_20241022 = createProviderDefinedToolFactory<
   }
 >({
   id: 'anthropic.computer_20241022',
-  name: 'computer',
   inputSchema: computer_20241022InputSchema,
 });

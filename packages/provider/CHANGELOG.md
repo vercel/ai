@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+
 ## 3.0.0-beta.20
 
 ### Patch Changes

@@ -59,7 +59,7 @@ describe('prepareTools', () => {
     const result = prepareTools({
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'some.unsupported_tool',
           name: 'unsupported_tool',
           args: {},
@@ -152,7 +152,7 @@ describe('prepareTools', () => {
       const result = prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'groq.browser_search',
             name: 'browser_search',
             args: {},
@@ -173,7 +173,7 @@ describe('prepareTools', () => {
       const result = prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'groq.browser_search',
             name: 'browser_search',
             args: {},
@@ -204,7 +204,7 @@ describe('prepareTools', () => {
             inputSchema: { type: 'object', properties: {} },
           },
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'groq.browser_search',
             name: 'browser_search',
             args: {},
@@ -236,7 +236,7 @@ describe('prepareTools', () => {
         const result = prepareTools({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'groq.browser_search',
               name: 'browser_search',
               args: {},
@@ -254,7 +254,7 @@ describe('prepareTools', () => {
       const result = prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'groq.browser_search',
             name: 'browser_search',
             args: {},

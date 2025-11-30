@@ -308,6 +308,8 @@ You can generate structured data with `generateText` and `streamText` by using t
 <Note>
   Some models, e.g. those by OpenAI, support structured outputs and tool calling
   at the same time. This is only possible with `generateText` and `streamText`.
+  You need to specify a `stopCondition` with that allows more than a single
+  stepCount if you want to use tools and structured outputs together.
 </Note>
 
 ### `generateText`
