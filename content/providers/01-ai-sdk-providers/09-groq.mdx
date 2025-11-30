@@ -442,6 +442,12 @@ The following provider options are available:
   Defaults to `['segment']`.
   Possible values are `['word']`, `['segment']`, and `['word', 'segment']`.
   Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
+  **Important:** Requires `responseFormat` to be set to `'verbose_json'`.
+
+- **responseFormat** _string_
+  The format of the response. Set to `'verbose_json'` to receive timestamps for audio segments and enable `timestampGranularities`.
+  Set to `'text'` to return only the transcribed text.
+  Optional.
 
 - **language** _string_
   The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
