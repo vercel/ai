@@ -38,10 +38,10 @@ async function main() {
   console.dir(basicResult.toolResults, { depth: Infinity });
   console.log('\n=== Code Interpreter Annotations ===');
 
-  const containerfileList:{
-    containerId:string;
-    fileId:string;
-  }[]=[];
+  const containerfileList: {
+    containerId: string;
+    fileId: string;
+  }[] = [];
   for (const part of basicResult.content) {
     if (part.type === 'text') {
       const { azure } = azureResponsesTextProviderMetadataSchema.parse(
@@ -57,14 +57,20 @@ async function main() {
           );
         console.log('-- source-document-part-- ');
         console.dir({ azure }, { depth: Infinity });
-        if(azure.type==="container_file_citation"){
-          containerfileList.push({containerId:azure.containerId,fileId:azure.fileId});
+        if (azure.type === 'container_file_citation') {
+          containerfileList.push({
+            containerId: azure.containerId,
+            fileId: azure.fileId,
+          });
         }
       }
     }
   }
-  for await (const containerFile of containerfileList){
-    await downloadAzureContainerFile(containerFile.containerId,containerFile.fileId)
+  for await (const containerFile of containerfileList) {
+    await downloadAzureContainerFile(
+      containerFile.containerId,
+      containerFile.fileId,
+    );
   }
 }
 

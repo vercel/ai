@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import * as fs from 'fs';
 
-export async function downloadOpenaiContainerFile(container: string, file: string) {
+export async function downloadOpenaiContainerFile(
+  container: string,
+  file: string,
+) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
 

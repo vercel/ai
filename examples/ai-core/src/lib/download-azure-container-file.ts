@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import * as fs from 'fs';
 
-export async function downloadAzureContainerFile(container: string, file: string) {
+export async function downloadAzureContainerFile(
+  container: string,
+  file: string,
+) {
   try {
     const resourceName = process.env.AZURE_RESOURCE_NAME;
     const apiKey = process.env.AZURE_API_KEY;

@@ -33,10 +33,10 @@ async function main() {
   console.log(await result.toolResults);
   console.log('\n=== Code Interpreter Annotations ===');
 
-  const containerfileList:{
-    containerId:string;
-    fileId:string;
-  }[]=[];
+  const containerfileList: {
+    containerId: string;
+    fileId: string;
+  }[] = [];
   for await (const part of result.fullStream) {
     if (part.type === 'text-end') {
       const { openai } = openaiResponsesTextProviderMetadataSchema.parse(
@@ -52,14 +52,20 @@ async function main() {
           );
         console.log('-- source-document-part-- ');
         console.dir({ openai }, { depth: Infinity });
-        if(openai.type==="container_file_citation"){
-          containerfileList.push({containerId:openai.containerId,fileId:openai.fileId});
+        if (openai.type === 'container_file_citation') {
+          containerfileList.push({
+            containerId: openai.containerId,
+            fileId: openai.fileId,
+          });
         }
       }
     }
   }
-  for await (const containerFile of containerfileList){
-    await downloadOpenaiContainerFile(containerFile.containerId,containerFile.fileId)
+  for await (const containerFile of containerfileList) {
+    await downloadOpenaiContainerFile(
+      containerFile.containerId,
+      containerFile.fileId,
+    );
   }
 }
 
