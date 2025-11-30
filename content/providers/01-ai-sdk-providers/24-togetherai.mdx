@@ -112,7 +112,7 @@ const { text } = await generateText({
 Together.ai language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-The Together.ai provider also supports [completion models](https://docs.together.ai/docs/serverless-models#language-models) via (following the above example code) `togetherai.completion()` and [embedding models](https://docs.together.ai/docs/serverless-models#embedding-models) via `togetherai.textEmbedding()`.
+The Together.ai provider also supports [completion models](https://docs.together.ai/docs/serverless-models#language-models) via (following the above example code) `togetherai.completion()` and [embedding models](https://docs.together.ai/docs/serverless-models#embedding-models) via `togetherai.embedding()`.
 
 ## Model Capabilities
 
@@ -195,7 +195,7 @@ Together.ai image models support various image dimensions that vary by model. Co
 
 ## Embedding Models
 
-You can create Together.ai embedding models using the `.textEmbedding()` factory method.
+You can create Together.ai embedding models using the `.embedding()` factory method.
 For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
 
 ```ts
@@ -203,7 +203,7 @@ import { togetherai } from '@ai-sdk/togetherai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: togetherai.textEmbedding('togethercomputer/m2-bert-80M-2k-retrieval'),
+  model: togetherai.embedding('togethercomputer/m2-bert-80M-2k-retrieval'),
   value: 'sunny day at the beach',
 });
 ```

@@ -1,6 +1,6 @@
 import {
   JSONValue,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  DelayedPromise,
   FlexibleSchema,
   ProviderOptions,
   type InferSchema,
@@ -45,7 +46,6 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -581,7 +581,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         self._request.resolve(request ?? {});
 
         // store information for onFinish callback:
-        let warnings: LanguageModelV3CallWarning[] | undefined;
+        let warnings: SharedV3Warning[] | undefined;
         let usage: LanguageModelUsage = {
           inputTokens: undefined,
           outputTokens: undefined,
@@ -979,7 +979,7 @@ export type ObjectStreamInputPart =
   | string
   | {
       type: 'stream-start';
-      warnings: LanguageModelV3CallWarning[];
+      warnings: SharedV3Warning[];
     }
   | {
       type: 'error';

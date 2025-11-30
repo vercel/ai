@@ -403,12 +403,6 @@ const result = await generateText({
 });
 ```
 
-<Note>
-  The tool must be named `file_search` when using OpenAI's file search
-  functionality. This name is required by OpenAI's API specification and cannot
-  be customized.
-</Note>
-
 #### Image Generation Tool
 
 OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
@@ -497,12 +491,6 @@ const result = await generateText({
 The code interpreter tool can be configured with:
 
 - **container**: Either a container ID string or an object with `fileIds` to specify uploaded files that should be available to the code interpreter
-
-<Note>
-  The tool must be named `code_interpreter` when using OpenAI's code interpreter
-  functionality. This name is required by OpenAI's API specification and cannot
-  be customized.
-</Note>
 
 #### MCP Tool
 
@@ -601,11 +589,6 @@ const result = await generateText({
   stopWhen: stepCountIs(2),
 });
 ```
-
-<Note>
-  The tool must be named `local_shell`. This name is required by OpenAI's API
-  specification and cannot be customized. The model can only be
-</Note>
 
 #### Image Inputs
 
@@ -1409,10 +1392,10 @@ The following optional provider options are available for OpenAI completion mode
 ## Embedding Models
 
 You can create models that call the [OpenAI embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
-using the `.textEmbedding()` factory method.
+using the `.embedding()` factory method.
 
 ```ts
-const model = openai.textEmbedding('text-embedding-3-large');
+const model = openai.embedding('text-embedding-3-large');
 ```
 
 OpenAI embedding models support several additional provider options.
@@ -1423,7 +1406,7 @@ import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: openai.textEmbedding('text-embedding-3-large'),
+  model: openai.embedding('text-embedding-3-large'),
   value: 'sunny day at the beach',
   providerOptions: {
     openai: {

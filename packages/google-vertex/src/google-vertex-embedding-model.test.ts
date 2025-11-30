@@ -182,7 +182,7 @@ describe('GoogleVertexEmbeddingModel', () => {
       headers: { 'X-Custom-Header': 'custom-value' },
     });
 
-    await provider.textEmbeddingModel(mockModelId).doEmbed({
+    await provider.embeddingModel(mockModelId).doEmbed({
       values: testValues,
       headers: { 'X-Request-Header': 'request-value' },
       providerOptions: { google: mockProviderOptions },

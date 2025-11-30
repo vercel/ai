@@ -205,12 +205,15 @@ describe('FireworksImageModel', () => {
           providerOptions: {},
         });
 
-        expect(result1.warnings).toContainEqual({
-          type: 'unsupported-setting',
-          setting: 'size',
-          details:
-            'This model does not support the `size` option. Use `aspectRatio` instead.',
-        });
+        expect(result1.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "This model does not support the \`size\` option. Use \`aspectRatio\` instead.",
+              "feature": "size",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
 
       it('should return aspectRatio warning on size-supporting model', async () => {
@@ -225,11 +228,15 @@ describe('FireworksImageModel', () => {
           providerOptions: {},
         });
 
-        expect(result2.warnings).toContainEqual({
-          type: 'unsupported-setting',
-          setting: 'aspectRatio',
-          details: 'This model does not support the `aspectRatio` option.',
-        });
+        expect(result2.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "This model does not support the \`aspectRatio\` option.",
+              "feature": "aspectRatio",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
     });
 
