@@ -171,14 +171,14 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
       providerOptions: {
         groq: {
-          timestampGranularities: ['word', 'segment'],
+          timestampGranularities: ['segment'],
           responseFormat: 'verbose_json',
         },
       },
     });
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
-      'timestamp_granularities[]': ['word', 'segment'],
+      'timestamp_granularities[]': 'segment',
       response_format: 'verbose_json',
     });
   });
