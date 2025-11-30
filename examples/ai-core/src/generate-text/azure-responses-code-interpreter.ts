@@ -1,11 +1,12 @@
+import 'dotenv/config';
 import { azure } from '@ai-sdk/azure';
 import type {
   AzureResponsesTextProviderMetadata,
   AzureResponsesSourceDocumentProviderMetadata,
 } from '@ai-sdk/azure';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod/v4';
+import { downloadAzureContainerFile } from '../lib/download-azure-container-file';
 
 /**
  * prepare
@@ -36,30 +37,34 @@ async function main() {
   console.dir(basicResult.toolCalls, { depth: Infinity });
   console.dir(basicResult.toolResults, { depth: Infinity });
   console.log('\n=== Code Interpreter Annotations ===');
+
+  const containerfileList:{
+    containerId:string;
+    fileId:string;
+  }[]=[];
   for (const part of basicResult.content) {
     if (part.type === 'text') {
-      const providerMetadataParsed =
-        azureResponsesTextProviderMetadataSchema.safeParse(
-          part.providerMetadata,
-        );
-      if (providerMetadataParsed.success) {
-        const { azure } = providerMetadataParsed.data;
-        console.log('-- text-part-- ');
-        console.dir({ azure }, { depth: Infinity });
-      }
+      const { azure } = azureResponsesTextProviderMetadataSchema.parse(
+        part.providerMetadata,
+      );
+      console.log('-- text-part-- ');
+      console.dir({ azure }, { depth: Infinity });
     } else if (part.type === 'source') {
       if (part.sourceType === 'document') {
-        const providerMetadataParsed =
-          azureResponsesSourceDocumentProviderMetadataSchema.safeParse(
+        const { azure } =
+          azureResponsesSourceDocumentProviderMetadataSchema.parse(
             part.providerMetadata,
           );
-        if (providerMetadataParsed.success) {
-          const { azure } = providerMetadataParsed.data;
-          console.log('-- source-document-part-- ');
-          console.dir({ azure }, { depth: Infinity });
+        console.log('-- source-document-part-- ');
+        console.dir({ azure }, { depth: Infinity });
+        if(azure.type==="container_file_citation"){
+          containerfileList.push({containerId:azure.containerId,fileId:azure.fileId});
         }
       }
     }
+  }
+  for await (const containerFile of containerfileList){
+    await downloadAzureContainerFile(containerFile.containerId,containerFile.fileId)
   }
 }
 
