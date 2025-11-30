@@ -156,6 +156,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             (googleOptions?.structuredOutputs ?? true)
               ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
               : undefined,
+          // Ensure proper JSON formatting for Gemini
+          ...(responseFormat?.type === 'json' && {
+            responseMimeType: 'application/json',
+          }),
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
           }),
@@ -273,6 +277,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             ? { google: { thoughtSignature: part.thoughtSignature } }
             : undefined,
         });
+      }
+    }
+
+    if (options.responseFormat?.type === 'json' && content.length === 0) {
+      const rawText = getTextFromParts(parts);
+      if (rawText && rawText.trim()) {
+        content.push({ type: 'text', text: rawText });
       }
     }
 
