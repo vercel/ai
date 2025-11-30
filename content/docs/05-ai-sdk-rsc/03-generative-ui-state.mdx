@@ -174,7 +174,7 @@ export async function sendMessage(message: string) {
   const history = getAIState();
 
   const response = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: 'anthropic/claude-sonnet-4.5',
     messages: [...history, { role: 'user', content: message }],
   });
 
@@ -203,7 +203,7 @@ export async function sendMessage(message: string) {
   history.update([...history.get(), { role: 'user', content: message }]);
 
   const response = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: 'anthropic/claude-sonnet-4.5',
     messages: history.get(),
   });
 

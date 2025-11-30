@@ -697,10 +697,10 @@ These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-202
 ## Embedding Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
-using the `.textEmbedding()` factory method.
+using the `.embedding()` factory method.
 
 ```ts
-const model = bedrock.textEmbedding('amazon.titan-embed-text-v1');
+const model = bedrock.embedding('amazon.titan-embed-text-v1');
 ```
 
 Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several additional settings.
@@ -710,7 +710,7 @@ You can pass them as an options argument:
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
-const model = bedrock.textEmbedding('amazon.titan-embed-text-v2:0');
+const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
 
 const { embedding } = await embed({
   model,

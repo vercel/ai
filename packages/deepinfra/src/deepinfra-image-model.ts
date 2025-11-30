@@ -1,4 +1,4 @@
-import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   FetchFunction,
   combineHeaders,
@@ -44,7 +44,7 @@ export class DeepInfraImageModel implements ImageModelV3 {
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    const warnings: Array<SharedV3Warning> = [];
 
     // Some deepinfra models support size while others support aspect ratio.
     // Allow passing either and leave it up to the server to validate.

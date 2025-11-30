@@ -1,5 +1,128 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.91
+
+### Patch Changes
+
+- cdb463a: update google-auth-library to ^10.5.0
+
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/anthropic@3.0.0-beta.66
+  - @ai-sdk/provider@3.0.0-beta.22
+  - @ai-sdk/google@3.0.0-beta.62
+
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/anthropic@3.0.0-beta.65
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/google@3.0.0-beta.61
+
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/anthropic@3.0.0-beta.64
+  - @ai-sdk/google@3.0.0-beta.60
+
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/anthropic@3.0.0-beta.63
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/google@3.0.0-beta.59
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 4.0.0-beta.86
+
+### Patch Changes
+
+- 0e29b86: Add claude-opus-4-5@20251101 to Google Vertex Anthropic models
+
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/anthropic@3.0.0-beta.62
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/google@3.0.0-beta.58
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/anthropic@3.0.0-beta.61
+  - @ai-sdk/google@3.0.0-beta.57
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [6fc35cb]
+  - @ai-sdk/anthropic@3.0.0-beta.60
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [2109385]
+  - @ai-sdk/anthropic@3.0.0-beta.59
+
+## 4.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [83aaad8]
+  - @ai-sdk/anthropic@3.0.0-beta.58
+
+## 4.0.0-beta.80
+
+### Patch Changes
+
+- Updated dependencies [e300a3b]
+  - @ai-sdk/google@3.0.0-beta.56
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [b8ea36e]
+  - @ai-sdk/anthropic@3.0.0-beta.57
+
 ## 4.0.0-beta.78
 
 ### Patch Changes

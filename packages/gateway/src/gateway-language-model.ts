@@ -1,7 +1,7 @@
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3FilePart,
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';

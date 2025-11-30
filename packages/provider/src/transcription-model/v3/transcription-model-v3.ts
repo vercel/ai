@@ -1,7 +1,7 @@
 import { JSONObject } from '../../json-value';
 import { SharedV3Headers } from '../../shared';
+import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 import { TranscriptionModelV3CallOptions } from './transcription-model-v3-call-options';
-import { TranscriptionModelV3CallWarning } from './transcription-model-v3-call-warning';
 
 /**
 Transcription model specification version 3.
@@ -69,7 +69,7 @@ Generates a transcript.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings: Array<TranscriptionModelV3CallWarning>;
+    warnings: Array<SharedV3Warning>;
 
     /**
 Optional request information for telemetry and debugging purposes.

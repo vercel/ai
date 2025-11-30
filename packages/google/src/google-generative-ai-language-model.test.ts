@@ -1,6 +1,6 @@
 import {
   LanguageModelV3Prompt,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -139,6 +139,40 @@ describe('groundingMetadataSchema', () => {
           retrievedContext: {
             // Missing `title`
             uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with fileSearchStore (new format)', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Sample content for testing...',
+            fileSearchStore: 'fileSearchStores/test-store-xyz',
+            title: 'Test Document',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with fileSearchStore and missing uri', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Content without uri field',
+            fileSearchStore: 'fileSearchStores/store-abc',
+            // Missing `uri` - should still be valid
           },
         },
       ],
@@ -865,6 +899,182 @@ describe('doGenerate', () => {
         `);
   });
 
+  it('should extract sources from File Search retrievedContext (new format)', async () => {
+    prepareJsonResponse({
+      content: 'test response with File Search',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            retrievedContext: {
+              text: 'Sample content for testing...',
+              fileSearchStore: 'fileSearchStores/test-store-xyz',
+              title: 'Test Document',
+            },
+          },
+          {
+            retrievedContext: {
+              text: 'Another document content...',
+              fileSearchStore: 'fileSearchStores/another-store-abc',
+              // Missing title - should default to 'Unknown Document'
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with File Search",
+              "type": "text",
+            },
+            {
+              "filename": "test-store-xyz",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Test Document",
+              "type": "source",
+            },
+            {
+              "filename": "another-store-abc",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+          ]
+        `);
+  });
+
+  it('should handle URL sources with undefined title correctly', async () => {
+    prepareJsonResponse({
+      content: 'test response with URLs',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: {
+              uri: 'https://example.com/page1',
+              // No title provided
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://example.com/page2',
+              // No title provided
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with URLs",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://example.com/page1",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://example.com/page2",
+            },
+          ]
+        `);
+  });
+
+  it('should handle mixed source types with correct title defaults', async () => {
+    prepareJsonResponse({
+      content: 'test response with mixed sources',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: { uri: 'https://web.example.com' },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://external.example.com',
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'gs://bucket/document.pdf',
+            },
+          },
+          {
+            retrievedContext: {
+              fileSearchStore: 'fileSearchStores/store-123',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with mixed sources",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://web.example.com",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://external.example.com",
+            },
+            {
+              "filename": "document.pdf",
+              "id": "test-id",
+              "mediaType": "application/pdf",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+            {
+              "filename": "store-123",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+          ]
+        `);
+  });
+
   describe('async headers handling', () => {
     it('merges async config headers with sync request headers', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
@@ -1156,7 +1366,12 @@ describe('doGenerate', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { content } = await model.doGenerate({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
       ],
       prompt: TEST_PROMPT,
     });
@@ -1202,7 +1417,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1225,7 +1440,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1248,7 +1463,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1272,7 +1487,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {
@@ -1306,7 +1521,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.url_context',
             name: 'url_context',
             args: {},
@@ -1328,7 +1543,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.vertex_rag_store',
             name: 'vertex_rag_store',
             args: {
@@ -2254,7 +2469,12 @@ describe('doStream', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { stream } = await model.doStream({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
       ],
       prompt: TEST_PROMPT,
     });
@@ -2306,7 +2526,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2332,7 +2552,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2357,7 +2577,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2383,7 +2603,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {

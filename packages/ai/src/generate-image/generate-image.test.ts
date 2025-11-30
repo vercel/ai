@@ -1,8 +1,4 @@
-import {
-  ImageModelV3,
-  ImageModelV3CallWarning,
-  ImageModelV3ProviderMetadata,
-} from '@ai-sdk/provider';
+import { ImageModelV3, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -19,6 +15,7 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
+import { Warning } from '../types/warning';
 import { generateImage } from './generate-image';
 
 const prompt = 'sunny day at the beach';
@@ -38,7 +35,7 @@ vi.mock('../version', () => {
 
 const createMockResponse = (options: {
   images: string[] | Uint8Array[];
-  warnings?: ImageModelV3CallWarning[];
+  warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
   providerMetaData?: ImageModelV3ProviderMetadata;
@@ -142,14 +139,14 @@ describe('generateImage', () => {
   });
 
   it('should call logWarnings with the correct warnings', async () => {
-    const expectedWarnings: ImageModelV3CallWarning[] = [
+    const expectedWarnings: Warning[] = [
       {
         type: 'other',
         message: 'Setting is not supported',
       },
       {
-        type: 'unsupported-setting',
-        setting: 'size',
+        type: 'unsupported',
+        feature: 'size',
         details: 'Size parameter not supported',
       },
     ];
@@ -174,11 +171,11 @@ describe('generateImage', () => {
   });
 
   it('should call logWarnings with aggregated warnings from multiple calls', async () => {
-    const warning1: ImageModelV3CallWarning = {
+    const warning1: Warning = {
       type: 'other',
       message: 'Warning from call 1',
     };
-    const warning2: ImageModelV3CallWarning = {
+    const warning2: Warning = {
       type: 'other',
       message: 'Warning from call 2',
     };

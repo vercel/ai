@@ -17,7 +17,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: 'anthropic/claude-sonnet-4.5',
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -41,7 +41,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: 'anthropic/claude-sonnet-4.5',
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -63,7 +63,7 @@ and provide the list of possible values in the `enum` parameter.
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: 'openai/gpt-4.1',
+  model: 'anthropic/claude-sonnet-4.5',
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -80,7 +80,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: 'anthropic/claude-sonnet-4.5',
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -151,7 +151,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'system',
-      type: 'string',
+      type: 'string | SystemModelMessage',
       description:
         'The system prompt to use that specifies the behavior of the model.',
     },
@@ -695,7 +695,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'warnings',
-      type: 'CallWarning[] | undefined',
+      type: 'Warning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },

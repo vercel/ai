@@ -48,13 +48,13 @@ export async function POST(req: Request) {
       for (const source of sources) {
         if (
           source.sourceType === 'document' &&
-          source.providerMetadata?.openai?.containerId &&
-          source.providerMetadata?.openai?.fileId
+          source.providerMetadata?.azure?.containerId &&
+          source.providerMetadata?.azure?.fileId
         ) {
           const containerId = String(
-            source.providerMetadata.openai.containerId || '',
+            source.providerMetadata.azure.containerId || '',
           );
-          const fileId = String(source.providerMetadata.openai.fileId || '');
+          const fileId = String(source.providerMetadata.azure.fileId || '');
           const filename = source.filename || source.title || 'file';
 
           // Avoid duplicates

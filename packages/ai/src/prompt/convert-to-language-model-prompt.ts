@@ -46,7 +46,15 @@ export async function convertToLanguageModelPrompt({
 
   const messages = [
     ...(prompt.system != null
-      ? [{ role: 'system' as const, content: prompt.system }]
+      ? typeof prompt.system === 'string'
+        ? [{ role: 'system' as const, content: prompt.system }]
+        : [
+            {
+              role: 'system' as const,
+              content: prompt.system.content,
+              providerOptions: prompt.system.providerOptions,
+            },
+          ]
       : []),
     ...prompt.messages.map(message =>
       convertToLanguageModelMessage({ message, downloadedAssets }),
