@@ -130,7 +130,44 @@ Unlike the native web search examples where searching is built into the model, u
 
 ### Use ready-made tools
 
-If you prefer a ready-to-use web search tool without building one from scratch, [Exa](https://exa.ai/)(a web search API designed for AI applications) provides a tool that integrates directly with the AI SDK.
+If you prefer a ready-to-use web search tool without building one from scratch, several providers offer tools that integrate directly with the AI SDK.
+
+#### Linkup
+
+Linkup's Search API allows you to search the web in real time to retrieve current information, facts, and news from trusted sources.
+
+<Note>
+  Get your API key from the [Linkup App](https://app.linkup.so). Account
+  creation is totally free.
+</Note>
+
+Start by installing the Linkup `webSearch` tool:
+
+```bash
+pnpm install linkup-ai-sdk
+```
+
+And then use it in your code:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { webSearch } from 'linkup-ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt:
+    'What was Microsoft’s revenue last quarter and was it well perceived by the market?',
+  tools: {
+    webSearch: webSearch({ depth: 'standard' }),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+Find all the configuration options and more in the [Linkup AI SDK documentation](https://docs.linkup.so/pages/integrations/vercel-ai-sdk).
 
 #### Exa
 
