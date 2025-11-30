@@ -1548,27 +1548,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }),
     );
 
-    // The first chunk needs to be pulled to check if it is an error.
-    const [streamForFirstChunk, streamForConsumer] = transformedStream.tee();
-    stream = streamForConsumer;
-    const reader = streamForFirstChunk.getReader();
-    (async () => {
-      try {
-        const { done } = await reader.read();
-        if (!done) {
-          // First chunk processed, now cancel this branch so it doesn't affect closure
-          await reader.cancel();
-        }
-      } catch (error) {
-        try {
-          await reader.cancel();
-        } catch {
-          // Ignore cancel errors
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    })();
+    // Fix for Cloudflare Workers: The previous tee() + async IIFE pattern caused
+    // a deadlock in CF Workers' pull-based stream model. The returnPromise is now
+    // resolved immediately. Error handling for 200 responses with error payloads
+    // is still handled in transform() (lines 964-984) and will emit error events
+    // that consumers can handle when reading from the stream.
+    stream = transformedStream;
+    returnPromise.resolve({
+      stream,
+      request: { body },
+      response: { headers: responseHeaders },
+    });
 
     return returnPromise.promise;
   }
