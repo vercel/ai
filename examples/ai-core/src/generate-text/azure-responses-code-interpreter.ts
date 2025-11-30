@@ -25,6 +25,15 @@ async function main() {
   console.log('\n=== Other Outputs ===');
   console.dir(basicResult.toolCalls, { depth: Infinity });
   console.dir(basicResult.toolResults, { depth: Infinity });
+  console.log('\n=== Code Interpreter Annotations ===');
+  for (const part of basicResult.content) {
+    if (part.type === 'text') {
+      const annotations = part.providerMetadata?.azure?.annotations;
+      if (annotations) {
+        console.dir(annotations);
+      }
+    }
+  }
 }
 
 main().catch(console.error);
