@@ -356,9 +356,3 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
   return modelMessages;
 }
-
-/**
-@deprecated Use `convertToModelMessages` instead.
- */
-// TODO remove in AI SDK 6
-export const convertToCoreMessages = convertToModelMessages;

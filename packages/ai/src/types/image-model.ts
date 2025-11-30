@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider';
 
 /**
-Image model that is used by the AI SDK Core functions.
+Image model that is used by the AI SDK.
   */
 export type ImageModel = string | ImageModelV3 | ImageModelV2;
 

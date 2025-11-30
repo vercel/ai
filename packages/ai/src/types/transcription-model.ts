@@ -1,7 +1,7 @@
 import { TranscriptionModelV2, TranscriptionModelV3 } from '@ai-sdk/provider';
 
 /**
-Transcription model that is used by the AI SDK Core functions.
+Transcription model that is used by the AI SDK.
   */
 export type TranscriptionModel =
   | string
