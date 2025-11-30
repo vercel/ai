@@ -21,14 +21,12 @@ export type ResponsesSourceDocumentProviderMetadata =
   | {
       type: 'file_citation';
       fileId: string;
-      filename: string;
       index: number;
     }
   | {
       type: 'container_file_citation';
       fileId: string;
       containerId: string;
-      filename: string;
     }
   | {
       type: 'file_path';

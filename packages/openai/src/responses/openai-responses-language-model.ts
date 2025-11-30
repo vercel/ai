@@ -520,7 +520,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     [providerKey]: {
                       type: annotation.type,
                       fileId: annotation.file_id,
-                      filename: annotation.filename,
                       index: annotation.index,
                     } satisfies Extract<
                       ResponsesSourceDocumentProviderMetadata,
@@ -541,7 +540,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: annotation.type,
                       fileId: annotation.file_id,
                       containerId: annotation.container_id,
-                      filename: annotation.filename,
                     } satisfies Extract<
                       ResponsesSourceDocumentProviderMetadata,
                       { type: 'container_file_citation' }
@@ -1528,7 +1526,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     [providerKey]: {
                       type: value.annotation.type,
                       fileId: value.annotation.file_id,
-                      filename: value.annotation.filename,
                       index: value.annotation.index,
                     } satisfies Extract<
                       ResponsesSourceDocumentProviderMetadata,
@@ -1549,7 +1546,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       containerId: value.annotation.container_id,
-                      filename: value.annotation.filename,
                     } satisfies Extract<
                       ResponsesSourceDocumentProviderMetadata,
                       { type: 'container_file_citation' }

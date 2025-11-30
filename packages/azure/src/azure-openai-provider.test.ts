@@ -1543,7 +1543,6 @@ describe('responses', () => {
             "providerMetadata": {
               "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
-                "filename": "resource1.json",
                 "index": 145,
                 "type": "file_citation",
               },
@@ -1559,7 +1558,6 @@ describe('responses', () => {
             "providerMetadata": {
               "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
-                "filename": "resource1.json",
                 "index": 192,
                 "type": "file_citation",
               },

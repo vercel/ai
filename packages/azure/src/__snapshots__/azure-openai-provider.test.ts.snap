@@ -172,7 +172,6 @@ providers and models, and which ones are available in the AI SDK.",
     "providerMetadata": {
       "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 350,
         "type": "file_citation",
       },
@@ -251,7 +250,6 @@ exports[`responses > doGenerate > file search tool > without results include > s
     "providerMetadata": {
       "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 438,
         "type": "file_citation",
       },
@@ -2601,7 +2599,6 @@ providers and models, and which ones are available in the AI SDK.",
     "providerMetadata": {
       "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 379,
         "type": "file_citation",
       },
@@ -2905,7 +2902,6 @@ exports[`responses > file search tool > should stream file search results withou
     "providerMetadata": {
       "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 154,
         "type": "file_citation",
       },
@@ -3126,7 +3122,6 @@ exports[`responses > file search tool > should stream file search results withou
     "providerMetadata": {
       "azure": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 382,
         "type": "file_citation",
       },

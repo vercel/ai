@@ -148,7 +148,6 @@ If you’d like the file in a different format (CSV, JSON) or with only the tota
       "openai": {
         "containerId": "cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec",
         "fileId": "cfile_6903bf45e3288191af3d56e6d23c3a4d",
-        "filename": "two_dice_sums_10000.txt",
         "type": "container_file_citation",
       },
     },
@@ -272,7 +271,6 @@ providers and models, and which ones are available in the AI SDK.",
     "providerMetadata": {
       "openai": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 350,
         "type": "file_citation",
       },
@@ -351,7 +349,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
     "providerMetadata": {
       "openai": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 438,
         "type": "file_citation",
       },
@@ -2813,7 +2810,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       "openai": {
         "containerId": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
         "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
-        "filename": "roll2dice_sums_10000.csv",
         "type": "container_file_citation",
       },
     },
@@ -3364,7 +3360,6 @@ providers and models, and which ones are available in the AI SDK.",
     "providerMetadata": {
       "openai": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 379,
         "type": "file_citation",
       },
@@ -3668,7 +3663,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "providerMetadata": {
       "openai": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 154,
         "type": "file_citation",
       },
@@ -3889,7 +3883,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "providerMetadata": {
       "openai": {
         "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "filename": "ai.pdf",
         "index": 382,
         "type": "file_citation",
       },

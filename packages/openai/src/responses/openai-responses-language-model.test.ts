@@ -2941,7 +2941,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-abc123",
-                "filename": "resource1.json",
                 "index": 123,
                 "type": "file_citation",
               },
@@ -3039,7 +3038,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-xyz789",
-                "filename": "resource1.json",
                 "index": 123,
                 "type": "file_citation",
               },
@@ -3149,7 +3147,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-YRcoCqn3Fo2K4JgraG",
-                "filename": "resource1.json",
                 "index": 145,
                 "type": "file_citation",
               },
@@ -3165,7 +3162,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-YRcoCqn3Fo2K4JgraG",
-                "filename": "resource1.json",
                 "index": 192,
                 "type": "file_citation",
               },
@@ -3269,7 +3265,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "containerId": "cntr_test",
                 "fileId": "file-container",
-                "filename": "data.csv",
                 "type": "container_file_citation",
               },
             },
@@ -5266,7 +5261,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-abc123",
-                "filename": "resource1.json",
                 "index": 123,
                 "type": "file_citation",
               },
@@ -5350,7 +5344,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-YRcoCqn3Fo2K4JgraG",
-                "filename": "resource1.json",
                 "index": 145,
                 "type": "file_citation",
               },
@@ -5366,7 +5359,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-YRcoCqn3Fo2K4JgraG",
-                "filename": "resource1.json",
                 "index": 192,
                 "type": "file_citation",
               },
@@ -5570,7 +5562,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "containerId": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
                 "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
-                "filename": "roll2dice_sums_10000.csv",
                 "type": "container_file_citation",
               },
             },
