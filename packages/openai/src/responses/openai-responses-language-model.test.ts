@@ -373,7 +373,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -1103,7 +1103,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -1113,7 +1113,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send responseFormat json_schema format with strictSchemas false', async () => {
+      it('should send responseFormat json_schema format with strictJsonSchema false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: {
             type: 'json',
@@ -1130,8 +1130,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
-              strictSchemas: false,
-            },
+              strictJsonSchema: false,
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
