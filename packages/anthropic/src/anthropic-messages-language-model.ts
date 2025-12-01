@@ -1504,27 +1504,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const firstChunkReader = streamForFirstChunk.getReader();
     try {
-      const ignored = await firstChunkReader.read(); // streamStart comes first, ignored
-      const { done, value } = await firstChunkReader.read();
+      await firstChunkReader.read(); // streamStart comes first, ignored
 
-      if (!done) {
-        // The Anthropic API returns 200 responses when there are overloaded errors.
-        // We handle the case where the first chunk is an error here and transform
-        // it into an APICallError.
+      let result = await firstChunkReader.read();
 
-        if (value.type === 'error') {
-          const error = value.error as { message: string; type: string };
+      // when raw chunks are enabled, the first chunk is a raw chunk, so we need to read the next chunk
+      if (result.value?.type === 'raw') {
+        result = await firstChunkReader.read();
+      }
 
-          throw new APICallError({
-            message: error.message,
-            url,
-            requestBodyValues: body,
-            statusCode: error.type === 'overloaded_error' ? 529 : 500,
-            responseHeaders,
-            responseBody: JSON.stringify(error),
-            isRetryable: error.type === 'overloaded_error',
-          });
-        }
+      // The Anthropic API returns 200 responses when there are overloaded errors.
+      // We handle the case where the first chunk is an error here and transform
+      // it into an APICallError.
+      if (result.value?.type === 'error') {
+        const error = result.value.error as { message: string; type: string };
+
+        throw new APICallError({
+          message: error.message,
+          url,
+          requestBodyValues: body,
+          statusCode: error.type === 'overloaded_error' ? 529 : 500,
+          responseHeaders,
+          responseBody: JSON.stringify(error),
+          isRetryable: error.type === 'overloaded_error',
+        });
       }
     } finally {
       firstChunkReader.cancel().catch(() => {});
