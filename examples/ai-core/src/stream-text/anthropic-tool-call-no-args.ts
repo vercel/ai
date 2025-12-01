@@ -1,11 +1,11 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
-import { print } from '../lib/print';
+import { printFullStream } from '../lib/print-full-stream';
 
 run(async () => {
-  const result = await generateText({
+  const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
     tools: {
       updateIssueList: tool({
@@ -15,5 +15,5 @@ run(async () => {
     prompt: 'Update the issue list',
   });
 
-  print('Content:', result.content);
+  await printFullStream({ result });
 });
