@@ -202,7 +202,7 @@ The following provider options are available:
   Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
 
 - **strictJsonSchema** _boolean_
-  Whether to use strict JSON schema validation. Defaults to `false`.
+  Whether to use strict JSON schema validation. Defaults to `true`.
 
 - **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
@@ -802,13 +802,6 @@ The following optional provider options are available for OpenAI chat models:
   `providerOptions` to set the `reasoningEffort` option, this
   model setting will be ignored.
 
-- **structuredOutputs** _boolean_
-
-  Whether to use structured outputs.
-  Defaults to `true`.
-
-  When enabled, tool calls and object generation will be strict and follow the provided schema.
-
 - **maxCompletionTokens** _number_
 
   Maximum number of completion tokens to generate. Useful for reasoning models.
@@ -836,7 +829,7 @@ The following optional provider options are available for OpenAI chat models:
 - **strictJsonSchema** _boolean_
 
   Whether to use strict JSON schema validation.
-  Defaults to `false`.
+  Defaults to `true`.
 
 - **textVerbosity** _'low' | 'medium' | 'high'_
 

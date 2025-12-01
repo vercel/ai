@@ -152,7 +152,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     warnings.push(...inputWarnings);
 
-    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
+    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
