@@ -384,7 +384,7 @@ The following gateway provider options are available:
 
 - **zeroDataRetention** _boolean_
 
-  Restricts routing to providers with zero data retention guarantees.
+  Restricts routing to providers with zero data retention policies.
 
   Example: `zeroDataRetention: true`
 
@@ -451,7 +451,7 @@ const { text } = await generateText({
 
 #### Zero Data Retention Example
 
-Use the `zeroDataRetention` option for sensitive data that requires privacy guarantees:
+Use the `zeroDataRetention` option for sensitive data that requires privacy assurances:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
