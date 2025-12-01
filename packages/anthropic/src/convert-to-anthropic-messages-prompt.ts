@@ -493,6 +493,9 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
+                  const providerToolName = toolNameMapping.toProviderToolName(
+                    part.toolName,
+                  );
                   const isMcpToolUse =
                     part.providerOptions?.anthropic?.type === 'mcp-tool-use';
 
@@ -521,8 +524,7 @@ export async function convertToAnthropicMessagesPrompt({
                     });
                   } else if (
                     // code execution 20250825:
-                    toolNameMapping.toProviderToolName(part.toolName) ===
-                      'code_execution' &&
+                    providerToolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
                     'type' in part.input &&
@@ -538,10 +540,6 @@ export async function convertToAnthropicMessagesPrompt({
                       cache_control: cacheControl,
                     });
                   } else {
-                    const providerToolName = toolNameMapping.toProviderToolName(
-                      part.toolName,
-                    );
-
                     if (
                       providerToolName === 'code_execution' || // code execution 20250522
                       providerToolName === 'web_fetch' ||
@@ -576,6 +574,10 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-result': {
+                const providerToolName = toolNameMapping.toProviderToolName(
+                  part.toolName,
+                );
+
                 if (mcpToolUseIds.has(part.toolCallId)) {
                   const output = part.output;
 
@@ -597,10 +599,7 @@ export async function convertToAnthropicMessagesPrompt({
                       | Array<{ type: 'text'; text: string }>,
                     cache_control: cacheControl,
                   });
-                } else if (
-                  toolNameMapping.toProviderToolName(part.toolName) ===
-                  'code_execution'
-                ) {
+                } else if (providerToolName === 'code_execution') {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -674,10 +673,7 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
-                if (
-                  toolNameMapping.toProviderToolName(part.toolName) ===
-                  'web_fetch'
-                ) {
+                if (providerToolName === 'web_fetch') {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -718,10 +714,7 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
-                if (
-                  toolNameMapping.toProviderToolName(part.toolName) ===
-                  'web_search'
-                ) {
+                if (providerToolName === 'web_search') {
                   const output = part.output;
 
                   if (output.type !== 'json') {
