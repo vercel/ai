@@ -204,6 +204,17 @@ The following provider options are available:
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `true`.
 
+  <Note type="warning">
+OpenAI structured outputs have several
+[limitations](https://openai.com/index/introducing-structured-outputs-in-the-api),
+in particular around the [supported schemas](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas),
+and are therefore opt-in.
+
+For example, optional schema properties are not supported.
+You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
+
+</Note>
+
 - **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
@@ -900,13 +911,13 @@ console.log('Usage:', {
   reasoning models.
 </Note>
 
-#### Structured Outputs
+#### Strict Structured Outputs
 
-Structured outputs are enabled by default.
-You can disable them by setting the `structuredOutputs` option to `false`.
+Strict structured outputs are enabled by default.
+You can disable them by setting the `strictJsonSchema` option to `false`.
 
 ```ts highlight="7"
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -914,8 +925,8 @@ const result = await generateObject({
   model: openai.chat('gpt-4o-2024-08-06'),
   providerOptions: {
     openai: {
-      structuredOutputs: false,
-    },
+      strictJsonSchema: false,
+    } satisfies OpenAIChatLanguageModelOptions,
   },
   schemaName: 'recipe',
   schemaDescription: 'A recipe for lasagna.',
