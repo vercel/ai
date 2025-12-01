@@ -816,13 +816,14 @@ describe('generateImage', () => {
       });
 
       expect(result.providerMetadata.gateway).toStrictEqual({
+        images: [],
         routing: { provider: 'test2' },
         generationId: 'gen-123',
         cost: '0.01',
       });
     });
 
-    it('should drop empty images array for gateway provider', async () => {
+    it('should preserve empty images array for gateway provider', async () => {
       const result = await generateImage({
         model: new MockImageModelV3({
           doGenerate: async () =>
@@ -841,13 +842,13 @@ describe('generateImage', () => {
       });
 
       expect(result.providerMetadata.gateway).toStrictEqual({
+        images: [],
         routing: { provider: 'vertex' },
         cost: '0.04',
       });
-      expect(result.providerMetadata.gateway).not.toHaveProperty('images');
     });
 
-    it('should not drop empty images array for non-gateway providers', async () => {
+    it('should preserve empty images array for all providers', async () => {
       const result = await generateImage({
         model: new MockImageModelV3({
           doGenerate: async () =>
@@ -866,6 +867,7 @@ describe('generateImage', () => {
 
       expect(result.providerMetadata.openai).toStrictEqual({
         images: [],
+        usage: { tokens: 100 },
       });
     });
 
@@ -960,6 +962,7 @@ describe('generateImage', () => {
           ],
         },
         gateway: {
+          images: [],
           routing: { provider: 'vertex' },
           cost: '0.08',
         },
@@ -1017,6 +1020,7 @@ describe('generateImage', () => {
           ],
         },
         gateway: {
+          images: [],
           routing: { provider: 'vertex' },
           cost: '0.08',
         },
@@ -1078,6 +1082,7 @@ describe('generateImage', () => {
       });
 
       expect(result.providerMetadata.gateway).toStrictEqual({
+        images: [],
         routing: {
           provider: 'vertex',
           attempts: [
@@ -1091,7 +1096,7 @@ describe('generateImage', () => {
       });
     });
 
-    it('should handle empty gateway images across multiple calls', async () => {
+    it('should preserve empty gateway images across multiple calls', async () => {
       let callCount = 0;
 
       const result = await generateImage({
@@ -1129,10 +1134,10 @@ describe('generateImage', () => {
       });
 
       expect(result.providerMetadata.gateway).toStrictEqual({
+        images: [],
         routing: { provider: 'vertex' },
         cost: '0.04',
       });
-      expect(result.providerMetadata.gateway).not.toHaveProperty('images');
     });
 
     it('should keep images array for gateway if non-empty', async () => {
@@ -1157,6 +1162,459 @@ describe('generateImage', () => {
         images: [{ metadata: 'value' }],
         routing: { provider: 'vertex' },
         cost: '0.04',
+      });
+    });
+
+    describe('OpenAI provider metadata with additional fields', () => {
+      it('should preserve all OpenAI metadata fields for single image', async () => {
+        const result = await generateImage({
+          model: new MockImageModelV3({
+            doGenerate: async () =>
+              createMockResponse({
+                images: [pngBase64],
+                providerMetaData: {
+                  openai: {
+                    images: [
+                      {
+                        created: 1764370484,
+                        size: '1024x1536',
+                        quality: 'high',
+                        background: 'opaque',
+                        outputFormat: 'png',
+                      },
+                    ],
+                  },
+                },
+              }),
+          }),
+          prompt,
+        });
+
+        expect(result.providerMetadata.openai).toStrictEqual({
+          images: [
+            {
+              created: 1764370484,
+              size: '1024x1536',
+              quality: 'high',
+              background: 'opaque',
+              outputFormat: 'png',
+            },
+          ],
+        });
+      });
+
+      it('should preserve all OpenAI metadata fields for two images', async () => {
+        const result = await generateImage({
+          model: new MockImageModelV3({
+            maxImagesPerCall: 2,
+            doGenerate: async () =>
+              createMockResponse({
+                images: [pngBase64, jpegBase64],
+                providerMetaData: {
+                  openai: {
+                    images: [
+                      {
+                        created: 1764370685,
+                        size: '1024x1536',
+                        quality: 'high',
+                        background: 'opaque',
+                        outputFormat: 'png',
+                      },
+                      {
+                        created: 1764370685,
+                        size: '1024x1536',
+                        quality: 'high',
+                        background: 'opaque',
+                        outputFormat: 'png',
+                      },
+                    ],
+                  },
+                },
+              }),
+          }),
+          prompt,
+          n: 2,
+        });
+
+        expect(result.providerMetadata.openai).toStrictEqual({
+          images: [
+            {
+              created: 1764370685,
+              size: '1024x1536',
+              quality: 'high',
+              background: 'opaque',
+              outputFormat: 'png',
+            },
+            {
+              created: 1764370685,
+              size: '1024x1536',
+              quality: 'high',
+              background: 'opaque',
+              outputFormat: 'png',
+            },
+          ],
+        });
+      });
+
+      it('should merge OpenAI metadata across multiple calls while preserving all fields', async () => {
+        let callCount = 0;
+
+        const result = await generateImage({
+          model: new MockImageModelV3({
+            maxImagesPerCall: 1,
+            doGenerate: async () => {
+              switch (callCount++) {
+                case 0:
+                  return createMockResponse({
+                    images: [pngBase64],
+                    providerMetaData: {
+                      openai: {
+                        images: [
+                          {
+                            created: 1764370484,
+                            size: '1024x1536',
+                            quality: 'high',
+                            background: 'opaque',
+                            outputFormat: 'png',
+                          },
+                        ],
+                      },
+                    },
+                  });
+                case 1:
+                  return createMockResponse({
+                    images: [jpegBase64],
+                    providerMetaData: {
+                      openai: {
+                        images: [
+                          {
+                            revisedPrompt: 'a beautiful sunset',
+                            created: 1764370685,
+                            size: '1024x1536',
+                            quality: 'high',
+                            background: 'opaque',
+                            outputFormat: 'png',
+                          },
+                        ],
+                      },
+                    },
+                  });
+                default:
+                  throw new Error('Unexpected call');
+              }
+            },
+          }),
+          prompt,
+          n: 2,
+        });
+
+        // Images array concatenates (each image has complete metadata including response fields)
+        expect(result.providerMetadata.openai).toStrictEqual({
+          images: [
+            {
+              created: 1764370484,
+              size: '1024x1536',
+              quality: 'high',
+              background: 'opaque',
+              outputFormat: 'png',
+            },
+            {
+              revisedPrompt: 'a beautiful sunset',
+              created: 1764370685,
+              size: '1024x1536',
+              quality: 'high',
+              background: 'opaque',
+              outputFormat: 'png',
+            },
+          ],
+        });
+      });
+    });
+
+    describe('Gateway-specific metadata handling', () => {
+      it('should preserve gateway metadata with empty images array', async () => {
+        const result = await generateImage({
+          model: new MockImageModelV3({
+            doGenerate: async () =>
+              createMockResponse({
+                images: [pngBase64],
+                providerMetaData: {
+                  gateway: {
+                    images: [],
+                    routing: { provider: 'openai', model: 'gpt-image-1' },
+                    cost: '0.04',
+                    generationId: 'gen-123',
+                  },
+                },
+              }),
+          }),
+          prompt,
+        });
+
+        expect(result.providerMetadata.gateway).toStrictEqual({
+          images: [],
+          routing: { provider: 'openai', model: 'gpt-image-1' },
+          cost: '0.04',
+          generationId: 'gen-123',
+        });
+      });
+
+      it('should preserve gateway metadata across calls with empty images', async () => {
+        let callCount = 0;
+
+        const result = await generateImage({
+          model: new MockImageModelV3({
+            maxImagesPerCall: 1,
+            doGenerate: async () => {
+              switch (callCount++) {
+                case 0:
+                  return createMockResponse({
+                    images: [pngBase64],
+                    providerMetaData: {
+                      gateway: {
+                        images: [],
+                        routing: { provider: 'openai' },
+                        cost: '0.04',
+                      },
+                    },
+                  });
+                case 1:
+                  return createMockResponse({
+                    images: [jpegBase64],
+                    providerMetaData: {
+                      gateway: {
+                        images: [],
+                        generationId: 'gen-456',
+                        marketCost: '0.06',
+                      },
+                    },
+                  });
+                default:
+                  throw new Error('Unexpected call');
+              }
+            },
+          }),
+          prompt,
+          n: 2,
+        });
+
+        expect(result.providerMetadata.gateway).toStrictEqual({
+          images: [],
+          routing: { provider: 'openai' },
+          cost: '0.04',
+          generationId: 'gen-456',
+          marketCost: '0.06',
+        });
+      });
+    });
+
+    describe('Combined gateway and OpenAI metadata', () => {
+      it('should handle both gateway and OpenAI metadata in single call', async () => {
+        const result = await generateImage({
+          model: new MockImageModelV3({
+            doGenerate: async () =>
+              createMockResponse({
+                images: [pngBase64],
+                providerMetaData: {
+                  gateway: {
+                    images: [],
+                    routing: { provider: 'openai', model: 'gpt-image-1' },
+                    cost: '0.04',
+                    generationId: 'gen-789',
+                  },
+                  openai: {
+                    images: [
+                      {
+                        created: 1764370484,
+                        size: '1024x1536',
+                        quality: 'high',
+                        background: 'opaque',
+                        outputFormat: 'png',
+                      },
+                    ],
+                  },
+                },
+              }),
+          }),
+          prompt,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          gateway: {
+            images: [],
+            routing: { provider: 'openai', model: 'gpt-image-1' },
+            cost: '0.04',
+            generationId: 'gen-789',
+          },
+          openai: {
+            images: [
+              {
+                created: 1764370484,
+                size: '1024x1536',
+                quality: 'high',
+                background: 'opaque',
+                outputFormat: 'png',
+              },
+            ],
+          },
+        });
+      });
+
+      it('should merge both gateway and OpenAI metadata across multiple calls', async () => {
+        let callCount = 0;
+
+        const result = await generateImage({
+          model: new MockImageModelV3({
+            maxImagesPerCall: 1,
+            doGenerate: async () => {
+              switch (callCount++) {
+                case 0:
+                  return createMockResponse({
+                    images: [pngBase64],
+                    providerMetaData: {
+                      gateway: {
+                        images: [],
+                        routing: { provider: 'openai' },
+                        cost: '0.04',
+                      },
+                      openai: {
+                        images: [
+                          {
+                            created: 1764370484,
+                            size: '1024x1536',
+                            quality: 'high',
+                            background: undefined,
+                            outputFormat: undefined,
+                          },
+                        ],
+                      },
+                    },
+                  });
+                case 1:
+                  return createMockResponse({
+                    images: [jpegBase64],
+                    providerMetaData: {
+                      gateway: {
+                        images: [],
+                        generationId: 'gen-combined',
+                      },
+                      openai: {
+                        images: [
+                          {
+                            revisedPrompt: 'enhanced prompt',
+                            created: 1764370685,
+                            size: undefined,
+                            quality: undefined,
+                            background: 'opaque',
+                            outputFormat: 'png',
+                          },
+                        ],
+                      },
+                    },
+                  });
+                default:
+                  throw new Error('Unexpected call');
+              }
+            },
+          }),
+          prompt,
+          n: 2,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          gateway: {
+            images: [],
+            routing: { provider: 'openai' },
+            cost: '0.04',
+            generationId: 'gen-combined',
+          },
+          openai: {
+            images: [
+              {
+                created: 1764370484,
+                size: '1024x1536',
+                quality: 'high',
+                background: undefined,
+                outputFormat: undefined,
+              },
+              {
+                revisedPrompt: 'enhanced prompt',
+                created: 1764370685,
+                size: undefined,
+                quality: undefined,
+                background: 'opaque',
+                outputFormat: 'png',
+              },
+            ],
+          },
+        });
+      });
+
+      it('should handle two images with both gateway and OpenAI metadata', async () => {
+        const result = await generateImage({
+          model: new MockImageModelV3({
+            maxImagesPerCall: 2,
+            doGenerate: async () =>
+              createMockResponse({
+                images: [pngBase64, jpegBase64],
+                providerMetaData: {
+                  gateway: {
+                    images: [],
+                    routing: { provider: 'openai', model: 'gpt-image-1' },
+                    cost: '0.08',
+                    generationId: 'gen-double',
+                  },
+                  openai: {
+                    images: [
+                      {
+                        created: 1764370685,
+                        size: '1024x1536',
+                        quality: 'high',
+                        background: 'opaque',
+                        outputFormat: 'png',
+                      },
+                      {
+                        created: 1764370685,
+                        size: '1024x1536',
+                        quality: 'high',
+                        background: 'opaque',
+                        outputFormat: 'png',
+                      },
+                    ],
+                  },
+                },
+              }),
+          }),
+          prompt,
+          n: 2,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          gateway: {
+            images: [],
+            routing: { provider: 'openai', model: 'gpt-image-1' },
+            cost: '0.08',
+            generationId: 'gen-double',
+          },
+          openai: {
+            images: [
+              {
+                created: 1764370685,
+                size: '1024x1536',
+                quality: 'high',
+                background: 'opaque',
+                outputFormat: 'png',
+              },
+              {
+                created: 1764370685,
+                size: '1024x1536',
+                quality: 'high',
+                background: 'opaque',
+                outputFormat: 'png',
+              },
+            ],
+          },
+        });
       });
     });
   });

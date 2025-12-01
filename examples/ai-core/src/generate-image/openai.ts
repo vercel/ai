@@ -19,7 +19,13 @@ async function main() {
     usage: result.usage,
   });
 
-  await presentImages([result.image]);
+  await presentImages(result.images);
+
+  console.log('Generated', result.images.length, 'image(s)');
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(result.providerMetadata, null, 2),
+  );
 }
 
 main().catch(console.error);
