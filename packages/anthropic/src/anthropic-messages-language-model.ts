@@ -1,6 +1,7 @@
 import {
   APICallError,
   JSONObject,
+<<<<<<< HEAD
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -11,13 +12,25 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
+=======
+  LanguageModelV3,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
+  LanguageModelV3Source,
+  LanguageModelV3StreamPart,
+  LanguageModelV3ToolCall,
+  LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
+>>>>>>> 589a4ee8f (fix(anthropic): simplify pulling first chunk (#10756))
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  DelayedPromise,
   FetchFunction,
   generateId,
   InferValidator,
@@ -868,6 +881,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | undefined = undefined;
 
     const generateId = this.generateId;
+<<<<<<< HEAD
 
     let isFirstChunk = true;
     let stream: ReadableStream<LanguageModelV2StreamPart> | undefined =
@@ -876,6 +890,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const returnPromise = new DelayedPromise<
       Awaited<ReturnType<LanguageModelV2['doStream']>>
     >();
+=======
+>>>>>>> 589a4ee8f (fix(anthropic): simplify pulling first chunk (#10756))
 
     const transformedStream = response.pipeThrough(
       new TransformStream<
@@ -886,16 +902,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           controller.enqueue({ type: 'stream-start', warnings });
         },
 
-        async flush() {
-          if (returnPromise.isPending()) {
-            returnPromise.resolve({
-              stream: stream!,
-              request: { body },
-              response: { headers: responseHeaders },
-            });
-          }
-        },
-
         transform(chunk, controller) {
           if (options.includeRawChunks) {
             controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
@@ -904,38 +910,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           if (!chunk.success) {
             controller.enqueue({ type: 'error', error: chunk.error });
             return;
-          }
-
-          // The Anthropic API returns 200 responses when there are overloaded errors.
-          // We handle the case where the first chunk is an error here and transform
-          // it into an APICallError.
-          if (isFirstChunk) {
-            if (chunk.value.type === 'error') {
-              returnPromise.reject(
-                new APICallError({
-                  message: chunk.value.error.message,
-                  url,
-                  requestBodyValues: body,
-                  statusCode:
-                    chunk.value.error.type === 'overloaded_error' ? 529 : 500,
-                  responseHeaders,
-                  responseBody: JSON.stringify(chunk.value.error),
-                  isRetryable: chunk.value.error.type === 'overloaded_error',
-                }),
-              );
-
-              // close the stream:
-              controller.terminate();
-              return;
-            }
-
-            isFirstChunk = false;
-
-            returnPromise.resolve({
-              stream: stream!,
-              request: { body },
-              response: { headers: responseHeaders },
-            });
           }
 
           const value = chunk.value;
@@ -1463,26 +1437,44 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     // The first chunk needs to be pulled immediately to check if it is an error
     const [streamForFirstChunk, streamForConsumer] = transformedStream.tee();
-    stream = streamForConsumer;
 
     const firstChunkReader = streamForFirstChunk.getReader();
     try {
-      const { done } = await firstChunkReader.read();
-      if (!done) {
-        // First chunk processed, now cancel this branch so it doesn't affect closure
-        firstChunkReader.cancel(); // no await so we return immediately
+      await firstChunkReader.read(); // streamStart comes first, ignored
+
+      let result = await firstChunkReader.read();
+
+      // when raw chunks are enabled, the first chunk is a raw chunk, so we need to read the next chunk
+      if (result.value?.type === 'raw') {
+        result = await firstChunkReader.read();
       }
-    } catch (error) {
-      try {
-        firstChunkReader.cancel(); // no await so we return immediately
-      } catch {
-        // Ignore cancel errors
+
+      // The Anthropic API returns 200 responses when there are overloaded errors.
+      // We handle the case where the first chunk is an error here and transform
+      // it into an APICallError.
+      if (result.value?.type === 'error') {
+        const error = result.value.error as { message: string; type: string };
+
+        throw new APICallError({
+          message: error.message,
+          url,
+          requestBodyValues: body,
+          statusCode: error.type === 'overloaded_error' ? 529 : 500,
+          responseHeaders,
+          responseBody: JSON.stringify(error),
+          isRetryable: error.type === 'overloaded_error',
+        });
       }
     } finally {
+      firstChunkReader.cancel().catch(() => {});
       firstChunkReader.releaseLock();
     }
 
-    return returnPromise.promise;
+    return {
+      stream: streamForConsumer,
+      request: { body },
+      response: { headers: responseHeaders },
+    };
   }
 }
 
