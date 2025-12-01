@@ -917,6 +917,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           input: string;
           providerExecuted?: boolean;
           firstDelta: boolean;
+          providerToolName?: string;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -1076,6 +1077,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       input: '',
                       providerExecuted: true,
                       firstDelta: true,
+                      providerToolName: part.name,
                     };
 
                     controller.enqueue({
@@ -1393,10 +1395,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     // the type to the delta and change the tool name.
                     if (
                       contentBlock.firstDelta &&
-                      (contentBlock.toolName === 'bash_code_execution' ||
-                        contentBlock.toolName === 'text_editor_code_execution')
+                      (contentBlock.providerToolName === 'bash_code_execution' ||
+                        contentBlock.providerToolName === 'text_editor_code_execution')
                     ) {
-                      delta = `{"type": "${contentBlock.toolName}",${delta.substring(1)}`;
+                      delta = `{"type": "${contentBlock.providerToolName}",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({
