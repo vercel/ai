@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.127
+
+### Patch Changes
+
+- 614599a: chore(ai): deprecate generateObject and streamObject
+
 ## 6.0.0-beta.126
 
 ### Patch Changes
