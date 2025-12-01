@@ -4858,7 +4858,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "tool-input-end",
             },
             {
-              "input": "",
+              "input": "{}",
               "providerExecuted": undefined,
               "toolCallId": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
               "toolName": "updateIssueList",

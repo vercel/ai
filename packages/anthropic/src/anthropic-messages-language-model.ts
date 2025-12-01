@@ -1328,7 +1328,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         type: 'tool-call',
                         toolCallId: contentBlock.toolCallId,
                         toolName,
-                        input: contentBlock.input,
+                        input:
+                          contentBlock.input === '' ? '{}' : contentBlock.input,
                         providerExecuted: contentBlock.providerExecuted,
                       });
                     }
