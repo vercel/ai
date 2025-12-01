@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.105
+
+### Patch Changes
+
+- 1063aca: fix(ai): Preverse providerMetadata in tool-call and tool-result parts
+
 ## 5.0.104
 
 ### Patch Changes
