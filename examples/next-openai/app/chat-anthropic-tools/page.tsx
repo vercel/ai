@@ -23,6 +23,9 @@ const initialMessages = [
     role: 'assistant',
     parts: [
       {
+        type: 'step-start',
+      },
+      {
         type: 'tool-weather',
         state: 'output-available',
         toolCallId: 'toolu_0194MoeeJGJDTGfNPZB7Ciay',
@@ -39,6 +42,9 @@ const initialMessages = [
         type: 'text',
         text: 'The weather in Paris is currently **cloudy** with a temperature of **72°F** (about 22°C).',
         state: 'done',
+      },
+      {
+        type: 'step-start',
       },
       {
         type: 'tool-weather',
