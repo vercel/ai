@@ -8,17 +8,17 @@ export function asEmbeddingModelV3(
     return model;
   }
 
-  // logWarnings({
-  //   warnings: [
-  //     {
-  //       type: 'compatibility',
-  //       feature: 'specificationVersion',
-  //       details: `This model is using specification version ${model.specificationVersion}. Please upgrade the package to the latest version.`,
-  //     },
-  //   ],
-  //   provider: model.provider,
-  //   model: model.modelId,
-  // });
+  logWarnings({
+    warnings: [
+      {
+        type: 'compatibility',
+        feature: 'specificationVersion',
+        details: `This model is using specification version ${model.specificationVersion}. Please upgrade the package to the latest version.`,
+      },
+    ],
+    provider: model.provider,
+    model: model.modelId,
+  });
 
   // TODO this could break, we need to properly map v2 to v3
   // and support all relevant v3 properties:
