@@ -134,6 +134,7 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
           ]),
         )
         .nullish(),
+
       instructions: z.string().nullish(),
 
       /**

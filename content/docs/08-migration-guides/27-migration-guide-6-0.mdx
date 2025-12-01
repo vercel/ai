@@ -48,6 +48,21 @@ The deprecated `CoreMessage` type and related types, schemas, and functions have
 They will be removed in a future version.
 You can use `generateText` and `streamText` with an `output` setting instead.
 
+## `@ai-sdk/openai` package
+
+### `strictJsonSchema` defaults to true
+
+The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default.
+
+This can lead to schemas getting rejected by the OpenAI API.
+In those cases, you can adjust the schema (e.g. producing `null` instead of `undefined`),
+or turn of `strictJsonSchema`.
+
+### `structuredOutputs` option removed from chat model
+
+The `structuredOutputs` provider option has been removed from chat models.
+You can use `strictJsonSchema` instead.
+
 ## Codemods
 
 The AI SDK **will** provide Codemod transformations to help upgrade your codebase when a

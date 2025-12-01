@@ -88,23 +88,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
         schema: openaiChatLanguageModelOptions,
       })) ?? {};
 
-    const structuredOutputs = openaiOptions.structuredOutputs ?? true;
-
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
-    }
-
-    if (
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
-      !structuredOutputs
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'responseFormat',
-        details:
-          'JSON response format schema is only supported with structuredOutputs',
-      });
     }
 
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
@@ -116,7 +101,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
     warnings.push(...messageWarnings);
 
-    const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
+    const strictJsonSchema = openaiOptions.strictJsonSchema ?? true;
 
     const baseArgs = {
       // model id:
@@ -148,7 +133,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? structuredOutputs && responseFormat.schema != null
+          ? responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -294,7 +279,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     } = prepareChatTools({
       tools,
       toolChoice,
-      structuredOutputs,
       strictJsonSchema,
     });
 
