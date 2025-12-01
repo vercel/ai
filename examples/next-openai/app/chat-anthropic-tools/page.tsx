@@ -7,12 +7,68 @@ import WeatherView from '@/components/tool/weather-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
+const initialMessages = [
+  {
+    id: crypto.randomUUID(),
+    role: 'user',
+    parts: [
+      {
+        type: 'text',
+        text: "hey what's the weather in paris?",
+      },
+    ],
+  },
+  {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    parts: [
+      {
+        type: 'tool-weather',
+        state: 'output-available',
+        toolCallId: 'toolu_0194MoeeJGJDTGfNPZB7Ciay',
+        input: {
+          city: 'paris',
+        },
+        output: {
+          state: 'ready',
+          temperature: 72,
+          weather: 'cloudy',
+        },
+      },
+      {
+        type: 'text',
+        text: 'The weather in Paris is currently **cloudy** with a temperature of **72°F** (about 22°C).',
+        state: 'done',
+      },
+      {
+        type: 'tool-weather',
+        state: 'output-available',
+        toolCallId: 'toolu_0194MoeeJGJDTGfNPZB7Ciay',
+        input: {
+          city: 'london',
+        },
+        output: {
+          state: 'ready',
+          temperature: 72,
+          weather: 'cloudy',
+        },
+      },
+      {
+        type: 'text',
+        text: 'The weather in London is currently **cloudy** with a temperature of **72°F** (about 22°C).',
+        state: 'done',
+      },
+    ],
+  },
+] satisfies AnthropicToolsAgentMessage[];
+
 export default function TestAnthropicCodeExecution() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicToolsAgentMessage>({
       transport: new DefaultChatTransport({
         api: '/api/chat-anthropic-tools',
       }),
+      messages: initialMessages,
     });
 
   return (
