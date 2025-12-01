@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 9e35785: fix(anthropic): send {} as tool input when streaming tool calls without arguments
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- eb56fc6: fix(anthropic): pull first chunk without async IIFE
+
 ## 3.0.0-beta.66
 
 ### Patch Changes
