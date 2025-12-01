@@ -382,11 +382,11 @@ The following gateway provider options are available:
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
-- **zdr** _boolean_
+- **zeroDataRetention** _boolean_
 
   Restricts routing to providers with zero data retention guarantees.
 
-  Example: `zdr: true`
+  Example: `zeroDataRetention: true`
 
 - **models** _string[]_
 
@@ -451,7 +451,7 @@ const { text } = await generateText({
 
 #### Zero Data Retention Example
 
-Use the `zdr` option for sensitive data that requires privacy guarantees:
+Use the `zeroDataRetention` option for sensitive data that requires privacy guarantees:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -462,7 +462,7 @@ const { text } = await generateText({
   prompt: 'Analyze this sensitive document...',
   providerOptions: {
     gateway: {
-      zdr: true,
+      zeroDataRetention: true,
     } satisfies GatewayProviderOptions,
   },
 });

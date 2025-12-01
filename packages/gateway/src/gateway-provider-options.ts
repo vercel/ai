@@ -42,7 +42,7 @@ const gatewayProviderOptions = lazySchema(() =>
        *
        * When enabled, only providers that guarantee zero data retention will be used.
        */
-      zdr: z.boolean().optional(),
+      zeroDataRetention: z.boolean().optional(),
     }),
   ),
 );

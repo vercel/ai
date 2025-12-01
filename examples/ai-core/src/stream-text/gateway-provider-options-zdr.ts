@@ -8,7 +8,7 @@ async function main() {
     prompt: 'Analyze this sensitive business data and provide insights.',
     providerOptions: {
       gateway: {
-        zdr: true, // Only use providers with zero data retention
+        zeroDataRetention: true, // Only use providers with zero data retention
       } satisfies GatewayProviderOptions,
     },
   });
