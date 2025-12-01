@@ -16,5 +16,5 @@ run(async () => {
     prompt: 'Update the issue list',
   });
 
-  print('Content:', result.content);
+  console.log(JSON.stringify(result.response.body, null, 2));
 });

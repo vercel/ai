@@ -669,56 +669,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    it('should extract tool calls', async () => {
-      prepareJsonResponse({
-        content: [
-          { type: 'text', text: 'Some text\n\n' },
-          {
-            type: 'tool_use',
-            id: 'toolu_1',
-            name: 'test-tool',
-            input: { value: 'example value' },
-          },
-        ],
-        stopReason: 'tool_use',
-      });
-
-      const { content, finishReason } = await model.doGenerate({
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            inputSchema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-        prompt: TEST_PROMPT,
-      });
-
-      expect(content).toMatchInlineSnapshot(`
-        [
-          {
-            "text": "Some text
-
-        ",
-            "type": "text",
-          },
-          {
-            "input": "{"value":"example value"}",
-            "toolCallId": "toolu_1",
-            "toolName": "test-tool",
-            "type": "tool-call",
-          },
-        ]
-      `);
-      expect(finishReason).toStrictEqual('tool-calls');
-    });
-
     it('should extract usage', async () => {
       prepareJsonResponse({
         usage: { input_tokens: 20, output_tokens: 5 },
@@ -1523,6 +1473,98 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    describe('function tool', () => {
+      it('should extract tool calls', async () => {
+        prepareJsonResponse({
+          content: [
+            { type: 'text', text: 'Some text\n\n' },
+            {
+              type: 'tool_use',
+              id: 'toolu_1',
+              name: 'test-tool',
+              input: { value: 'example value' },
+            },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        const { content, finishReason } = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              inputSchema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Some text
+
+        ",
+            "type": "text",
+          },
+          {
+            "input": "{"value":"example value"}",
+            "toolCallId": "toolu_1",
+            "toolName": "test-tool",
+            "type": "tool-call",
+          },
+        ]
+      `);
+        expect(finishReason).toStrictEqual('tool-calls');
+      });
+
+      it('should support tools with empty parameters', async () => {
+        prepareJsonFixtureResponse('anthropic-tool-no-args');
+
+        const result = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                required: [],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "<thinking>
+          The updateIssueList tool was provided in the list of available functions. The tool has no required parameters, so it can be called without any additional information needed from the user.
+          </thinking>
+
+          Okay, I will update the current issue list:",
+              "type": "text",
+            },
+            {
+              "input": "{}",
+              "toolCallId": "toolu_01LRmxn9vGM1d2DZSDBowdZ1",
+              "toolName": "updateIssueList",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
     });
 
     describe('web search tool', () => {
