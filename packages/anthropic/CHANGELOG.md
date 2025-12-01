@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.51
+
+### Patch Changes
+
+- a54839c: fix(anthropic): pull first chunk without async IIFE
+
 ## 2.0.50
 
 ### Patch Changes
