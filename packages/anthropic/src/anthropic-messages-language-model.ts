@@ -1460,27 +1460,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }),
     );
 
-    // The first chunk needs to be pulled to check if it is an error.
+    // The first chunk needs to be pulled immediately to check if it is an error
     const [streamForFirstChunk, streamForConsumer] = transformedStream.tee();
     stream = streamForConsumer;
-    const reader = streamForFirstChunk.getReader();
-    (async () => {
-      try {
-        const { done } = await reader.read();
-        if (!done) {
-          // First chunk processed, now cancel this branch so it doesn't affect closure
-          await reader.cancel();
-        }
-      } catch (error) {
-        try {
-          await reader.cancel();
-        } catch {
-          // Ignore cancel errors
-        }
-      } finally {
-        reader.releaseLock();
+
+    const firstChunkReader = streamForFirstChunk.getReader();
+    try {
+      const { done } = await firstChunkReader.read();
+      if (!done) {
+        // First chunk processed, now cancel this branch so it doesn't affect closure
+        firstChunkReader.cancel(); // no await so we return immediately
       }
-    })();
+    } catch (error) {
+      try {
+        firstChunkReader.cancel(); // no await so we return immediately
+      } catch {
+        // Ignore cancel errors
+      }
+    } finally {
+      firstChunkReader.releaseLock();
+    }
 
     return returnPromise.promise;
   }
