@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider';
 
 /**
-Embedding model that is used by the AI SDK Core functions.
+Embedding model that is used by the AI SDK.
 */
 export type EmbeddingModel =
   | string

@@ -217,6 +217,9 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
+                      ...(part.callProviderMetadata != null
+                        ? { providerOptions: part.callProviderMetadata }
+                        : {}),
                     });
                   }
                 }
@@ -359,9 +362,3 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
   return modelMessages;
 }
-
-/**
-@deprecated Use `convertToModelMessages` instead.
- */
-// TODO remove in AI SDK 6
-export const convertToCoreMessages = convertToModelMessages;
