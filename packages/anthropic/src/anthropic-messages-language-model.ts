@@ -18,7 +18,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  createToolNameMapping
+  createToolNameMapping,
   FetchFunction,
   generateId,
   InferSchema,
