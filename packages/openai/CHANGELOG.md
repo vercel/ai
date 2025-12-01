@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 73d9883: chore(openai): enable strict json by default
+
 ## 3.0.0-beta.74
 
 ### Patch Changes

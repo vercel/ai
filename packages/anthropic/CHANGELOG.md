@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- 589a4ee: fix(anthropic): simplify pulling first chunk
+
 ## 3.0.0-beta.68
 
 ### Patch Changes

@@ -165,6 +165,8 @@ functionality that can be fully encapsulated in the provider.
 
 @returns
 A result object for accessing the partial object stream and additional information.
+
+@deprecated Use `streamText` with an `output` setting instead.
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
