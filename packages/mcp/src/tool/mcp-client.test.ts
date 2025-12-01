@@ -309,7 +309,10 @@ describe('MCPClient', () => {
     });
     const toolCall = tools['mock-tool'].execute;
 
-    const result = await toolCall({ bar: 'bar' }, { messages: [], toolCallId: '1' });
+    const result = await toolCall(
+      { bar: 'bar' },
+      { messages: [], toolCallId: '1' },
+    );
     expect(result).toMatchObject({
       content: expect.arrayContaining([
         expect.objectContaining({
@@ -340,7 +343,10 @@ describe('MCPClient', () => {
     });
     const toolCall = tools['mock-tool'].execute;
 
-    const result = await toolCall({ bar: 'bar' }, { messages: [], toolCallId: '1' });
+    const result = await toolCall(
+      { bar: 'bar' },
+      { messages: [], toolCallId: '1' },
+    );
 
     expect(result).toMatchObject({
       content: expect.any(Array),
