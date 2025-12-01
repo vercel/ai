@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -24,7 +24,7 @@ const codeExecution_20250522InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderDefinedToolFactoryWithOutputSchema<
+const factory = createProviderToolFactoryWithOutputSchema<
   {
     /**
      * The Python code to execute.
@@ -40,7 +40,6 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
   {}
 >({
   id: 'anthropic.code_execution_20250522',
-  name: 'code_execution',
   inputSchema: codeExecution_20250522InputSchema,
   outputSchema: codeExecution_20250522OutputSchema,
 });

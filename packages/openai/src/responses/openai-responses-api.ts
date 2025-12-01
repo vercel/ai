@@ -13,6 +13,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesComputerCall
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
+  | OpenAIResponsesApplyPatchCall
+  | OpenAIResponsesApplyPatchCallOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference;
 
@@ -99,6 +101,35 @@ export type OpenAIResponsesLocalShellCallOutput = {
   output: string;
 };
 
+export type OpenAIResponsesApplyPatchCall = {
+  type: 'apply_patch_call';
+  id?: string;
+  call_id: string;
+  status: 'in_progress' | 'completed';
+  operation:
+    | {
+        type: 'create_file';
+        path: string;
+        diff: string;
+      }
+    | {
+        type: 'delete_file';
+        path: string;
+      }
+    | {
+        type: 'update_file';
+        path: string;
+        diff: string;
+      };
+};
+
+export type OpenAIResponsesApplyPatchCallOutput = {
+  type: 'apply_patch_call_output';
+  call_id: string;
+  status: 'completed' | 'failed';
+  output?: string;
+};
+
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
@@ -151,7 +182,11 @@ export type OpenAIResponsesTool =
       strict: boolean | undefined;
     }
   | {
+      type: 'apply_patch';
+    }
+  | {
       type: 'web_search';
+      external_web_access: boolean | undefined;
       filters: { allowed_domains: string[] | undefined } | undefined;
       search_context_size: 'low' | 'medium' | 'high' | undefined;
       user_location:
@@ -367,6 +402,28 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('mcp_approval_request'),
             id: z.string(),
           }),
+          z.object({
+            type: z.literal('apply_patch_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed']),
+            operation: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('create_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+              z.object({
+                type: z.literal('delete_file'),
+                path: z.string(),
+              }),
+              z.object({
+                type: z.literal('update_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+            ]),
+          }),
         ]),
       }),
       z.object({
@@ -528,6 +585,28 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             arguments: z.string(),
             approval_request_id: z.string(),
           }),
+          z.object({
+            type: z.literal('apply_patch_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed']),
+            operation: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('create_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+              z.object({
+                type: z.literal('delete_file'),
+                path: z.string(),
+              }),
+              z.object({
+                type: z.literal('update_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+            ]),
+          }),
         ]),
       }),
       z.object({
@@ -559,6 +638,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         annotation: z.discriminatedUnion('type', [
           z.object({
             type: z.literal('url_citation'),
+            start_index: z.number(),
+            end_index: z.number(),
             url: z.string(),
             title: z.string(),
           }),
@@ -605,10 +686,13 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('error'),
-        code: z.string(),
-        message: z.string(),
-        param: z.string().nullish(),
         sequence_number: z.number(),
+        error: z.object({
+          type: z.string(),
+          code: z.string(),
+          message: z.string(),
+          param: z.string().nullish(),
+        }),
       }),
       z
         .object({ type: z.string() })
@@ -642,246 +726,274 @@ export type OpenAIResponsesWebSearchAction = NonNullable<
 export const openaiResponsesResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      id: z.string(),
-      created_at: z.number(),
+      id: z.string().optional(),
+      created_at: z.number().optional(),
       error: z
         .object({
-          code: z.string(),
           message: z.string(),
+          type: z.string(),
+          param: z.string().nullish(),
+          code: z.string(),
         })
         .nullish(),
-      model: z.string(),
-      output: z.array(
-        z.discriminatedUnion('type', [
-          z.object({
-            type: z.literal('message'),
-            role: z.literal('assistant'),
-            id: z.string(),
-            content: z.array(
-              z.object({
-                type: z.literal('output_text'),
-                text: z.string(),
-                logprobs: z
-                  .array(
-                    z.object({
-                      token: z.string(),
-                      logprob: z.number(),
-                      top_logprobs: z.array(
-                        z.object({
-                          token: z.string(),
-                          logprob: z.number(),
-                        }),
-                      ),
-                    }),
-                  )
-                  .nullish(),
-                annotations: z.array(
-                  z.discriminatedUnion('type', [
-                    z.object({
-                      type: z.literal('url_citation'),
-                      start_index: z.number(),
-                      end_index: z.number(),
-                      url: z.string(),
-                      title: z.string(),
-                    }),
-                    z.object({
-                      type: z.literal('file_citation'),
-                      file_id: z.string(),
-                      filename: z.string().nullish(),
-                      index: z.number().nullish(),
-                      start_index: z.number().nullish(),
-                      end_index: z.number().nullish(),
-                      quote: z.string().nullish(),
-                    }),
-                    z.object({
-                      type: z.literal('container_file_citation'),
-                      container_id: z.string(),
-                      file_id: z.string(),
-                      filename: z.string().nullish(),
-                      start_index: z.number().nullish(),
-                      end_index: z.number().nullish(),
-                      index: z.number().nullish(),
-                    }),
-                    z.object({
-                      type: z.literal('file_path'),
-                      file_id: z.string(),
-                      index: z.number().nullish(),
-                    }),
-                  ]),
-                ),
-              }),
-            ),
-          }),
-          z.object({
-            type: z.literal('web_search_call'),
-            id: z.string(),
-            status: z.string(),
-            action: z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('search'),
-                query: z.string().nullish(),
-                sources: z
-                  .array(
-                    z.discriminatedUnion('type', [
-                      z.object({ type: z.literal('url'), url: z.string() }),
-                      z.object({ type: z.literal('api'), name: z.string() }),
-                    ]),
-                  )
-                  .nullish(),
-              }),
-              z.object({
-                type: z.literal('open_page'),
-                url: z.string(),
-              }),
-              z.object({
-                type: z.literal('find'),
-                url: z.string(),
-                pattern: z.string(),
-              }),
-            ]),
-          }),
-          z.object({
-            type: z.literal('file_search_call'),
-            id: z.string(),
-            queries: z.array(z.string()),
-            results: z
-              .array(
+      model: z.string().optional(),
+      output: z
+        .array(
+          z.discriminatedUnion('type', [
+            z.object({
+              type: z.literal('message'),
+              role: z.literal('assistant'),
+              id: z.string(),
+              content: z.array(
                 z.object({
-                  attributes: z.record(
-                    z.string(),
-                    z.union([z.string(), z.number(), z.boolean()]),
+                  type: z.literal('output_text'),
+                  text: z.string(),
+                  logprobs: z
+                    .array(
+                      z.object({
+                        token: z.string(),
+                        logprob: z.number(),
+                        top_logprobs: z.array(
+                          z.object({
+                            token: z.string(),
+                            logprob: z.number(),
+                          }),
+                        ),
+                      }),
+                    )
+                    .nullish(),
+                  annotations: z.array(
+                    z.discriminatedUnion('type', [
+                      z.object({
+                        type: z.literal('url_citation'),
+                        start_index: z.number(),
+                        end_index: z.number(),
+                        url: z.string(),
+                        title: z.string(),
+                      }),
+                      z.object({
+                        type: z.literal('file_citation'),
+                        file_id: z.string(),
+                        filename: z.string().nullish(),
+                        index: z.number().nullish(),
+                        start_index: z.number().nullish(),
+                        end_index: z.number().nullish(),
+                        quote: z.string().nullish(),
+                      }),
+                      z.object({
+                        type: z.literal('container_file_citation'),
+                        container_id: z.string(),
+                        file_id: z.string(),
+                        filename: z.string().nullish(),
+                        start_index: z.number().nullish(),
+                        end_index: z.number().nullish(),
+                        index: z.number().nullish(),
+                      }),
+                      z.object({
+                        type: z.literal('file_path'),
+                        file_id: z.string(),
+                        index: z.number().nullish(),
+                      }),
+                    ]),
                   ),
-                  file_id: z.string(),
-                  filename: z.string(),
-                  score: z.number(),
+                }),
+              ),
+            }),
+            z.object({
+              type: z.literal('web_search_call'),
+              id: z.string(),
+              status: z.string(),
+              action: z.discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('search'),
+                  query: z.string().nullish(),
+                  sources: z
+                    .array(
+                      z.discriminatedUnion('type', [
+                        z.object({ type: z.literal('url'), url: z.string() }),
+                        z.object({ type: z.literal('api'), name: z.string() }),
+                      ]),
+                    )
+                    .nullish(),
+                }),
+                z.object({
+                  type: z.literal('open_page'),
+                  url: z.string(),
+                }),
+                z.object({
+                  type: z.literal('find'),
+                  url: z.string(),
+                  pattern: z.string(),
+                }),
+              ]),
+            }),
+            z.object({
+              type: z.literal('file_search_call'),
+              id: z.string(),
+              queries: z.array(z.string()),
+              results: z
+                .array(
+                  z.object({
+                    attributes: z.record(
+                      z.string(),
+                      z.union([z.string(), z.number(), z.boolean()]),
+                    ),
+                    file_id: z.string(),
+                    filename: z.string(),
+                    score: z.number(),
+                    text: z.string(),
+                  }),
+                )
+                .nullish(),
+            }),
+            z.object({
+              type: z.literal('code_interpreter_call'),
+              id: z.string(),
+              code: z.string().nullable(),
+              container_id: z.string(),
+              outputs: z
+                .array(
+                  z.discriminatedUnion('type', [
+                    z.object({ type: z.literal('logs'), logs: z.string() }),
+                    z.object({ type: z.literal('image'), url: z.string() }),
+                  ]),
+                )
+                .nullable(),
+            }),
+            z.object({
+              type: z.literal('image_generation_call'),
+              id: z.string(),
+              result: z.string(),
+            }),
+            z.object({
+              type: z.literal('local_shell_call'),
+              id: z.string(),
+              call_id: z.string(),
+              action: z.object({
+                type: z.literal('exec'),
+                command: z.array(z.string()),
+                timeout_ms: z.number().optional(),
+                user: z.string().optional(),
+                working_directory: z.string().optional(),
+                env: z.record(z.string(), z.string()).optional(),
+              }),
+            }),
+            z.object({
+              type: z.literal('function_call'),
+              call_id: z.string(),
+              name: z.string(),
+              arguments: z.string(),
+              id: z.string(),
+            }),
+            z.object({
+              type: z.literal('computer_call'),
+              id: z.string(),
+              status: z.string().optional(),
+            }),
+            z.object({
+              type: z.literal('reasoning'),
+              id: z.string(),
+              encrypted_content: z.string().nullish(),
+              summary: z.array(
+                z.object({
+                  type: z.literal('summary_text'),
                   text: z.string(),
                 }),
-              )
-              .nullish(),
-          }),
-          z.object({
-            type: z.literal('code_interpreter_call'),
-            id: z.string(),
-            code: z.string().nullable(),
-            container_id: z.string(),
-            outputs: z
-              .array(
-                z.discriminatedUnion('type', [
-                  z.object({ type: z.literal('logs'), logs: z.string() }),
-                  z.object({ type: z.literal('image'), url: z.string() }),
-                ]),
-              )
-              .nullable(),
-          }),
-          z.object({
-            type: z.literal('image_generation_call'),
-            id: z.string(),
-            result: z.string(),
-          }),
-          z.object({
-            type: z.literal('local_shell_call'),
-            id: z.string(),
-            call_id: z.string(),
-            action: z.object({
-              type: z.literal('exec'),
-              command: z.array(z.string()),
-              timeout_ms: z.number().optional(),
-              user: z.string().optional(),
-              working_directory: z.string().optional(),
-              env: z.record(z.string(), z.string()).optional(),
+              ),
             }),
-          }),
-          z.object({
-            type: z.literal('function_call'),
-            call_id: z.string(),
-            name: z.string(),
-            arguments: z.string(),
-            id: z.string(),
-          }),
-          z.object({
-            type: z.literal('computer_call'),
-            id: z.string(),
-            status: z.string().optional(),
-          }),
-          z.object({
-            type: z.literal('reasoning'),
-            id: z.string(),
-            encrypted_content: z.string().nullish(),
-            summary: z.array(
-              z.object({
-                type: z.literal('summary_text'),
-                text: z.string(),
-              }),
-            ),
-          }),
-          z.object({
-            type: z.literal('mcp_call'),
-            id: z.string(),
-            status: z.string(),
-            arguments: z.string(),
-            name: z.string(),
-            server_label: z.string(),
-            output: z.string().nullish(),
-            error: z
-              .union([
-                z.string(),
-                z
-                  .object({
-                    type: z.string().optional(),
-                    code: z.union([z.number(), z.string()]).optional(),
-                    message: z.string().optional(),
-                  })
-                  .loose(),
-              ])
-              .nullish(),
-          }),
-          z.object({
-            type: z.literal('mcp_list_tools'),
-            id: z.string(),
-            server_label: z.string(),
-            tools: z.array(
-              z.object({
-                name: z.string(),
-                description: z.string().optional(),
-                input_schema: z.any(),
-                annotations: z.record(z.string(), z.unknown()).optional(),
-              }),
-            ),
-            error: z
-              .union([
-                z.string(),
-                z
-                  .object({
-                    type: z.string().optional(),
-                    code: z.union([z.number(), z.string()]).optional(),
-                    message: z.string().optional(),
-                  })
-                  .loose(),
-              ])
-              .optional(),
-          }),
-          z.object({
-            type: z.literal('mcp_approval_request'),
-            id: z.string(),
-            server_label: z.string(),
-            name: z.string(),
-            arguments: z.string(),
-            approval_request_id: z.string(),
-          }),
-        ]),
-      ),
+            z.object({
+              type: z.literal('mcp_call'),
+              id: z.string(),
+              status: z.string(),
+              arguments: z.string(),
+              name: z.string(),
+              server_label: z.string(),
+              output: z.string().nullish(),
+              error: z
+                .union([
+                  z.string(),
+                  z
+                    .object({
+                      type: z.string().optional(),
+                      code: z.union([z.number(), z.string()]).optional(),
+                      message: z.string().optional(),
+                    })
+                    .loose(),
+                ])
+                .nullish(),
+            }),
+            z.object({
+              type: z.literal('mcp_list_tools'),
+              id: z.string(),
+              server_label: z.string(),
+              tools: z.array(
+                z.object({
+                  name: z.string(),
+                  description: z.string().optional(),
+                  input_schema: z.any(),
+                  annotations: z.record(z.string(), z.unknown()).optional(),
+                }),
+              ),
+              error: z
+                .union([
+                  z.string(),
+                  z
+                    .object({
+                      type: z.string().optional(),
+                      code: z.union([z.number(), z.string()]).optional(),
+                      message: z.string().optional(),
+                    })
+                    .loose(),
+                ])
+                .optional(),
+            }),
+            z.object({
+              type: z.literal('mcp_approval_request'),
+              id: z.string(),
+              server_label: z.string(),
+              name: z.string(),
+              arguments: z.string(),
+              approval_request_id: z.string(),
+            }),
+            z.object({
+              type: z.literal('apply_patch_call'),
+              id: z.string(),
+              call_id: z.string(),
+              status: z.enum(['in_progress', 'completed']),
+              operation: z.discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('create_file'),
+                  path: z.string(),
+                  diff: z.string(),
+                }),
+                z.object({
+                  type: z.literal('delete_file'),
+                  path: z.string(),
+                }),
+                z.object({
+                  type: z.literal('update_file'),
+                  path: z.string(),
+                  diff: z.string(),
+                }),
+              ]),
+            }),
+          ]),
+        )
+        .optional(),
       service_tier: z.string().nullish(),
       incomplete_details: z.object({ reason: z.string() }).nullish(),
-      usage: z.object({
-        input_tokens: z.number(),
-        input_tokens_details: z
-          .object({ cached_tokens: z.number().nullish() })
-          .nullish(),
-        output_tokens: z.number(),
-        output_tokens_details: z
-          .object({ reasoning_tokens: z.number().nullish() })
-          .nullish(),
-      }),
+      usage: z
+        .object({
+          input_tokens: z.number(),
+          input_tokens_details: z
+            .object({ cached_tokens: z.number().nullish() })
+            .nullish(),
+          output_tokens: z.number(),
+          output_tokens_details: z
+            .object({ reasoning_tokens: z.number().nullish() })
+            .nullish(),
+        })
+        .optional(),
     }),
   ),
 );

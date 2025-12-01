@@ -931,7 +931,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
               name: 'file_search',
               args: {
@@ -1013,7 +1013,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
               name: 'code_interpreter',
               args: {},
@@ -1068,7 +1068,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1139,7 +1139,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1210,6 +1210,29 @@ describe('responses', () => {
         });
       });
     });
+
+    describe('web search preview tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {},
+            },
+          ],
+        });
+      });
+      it('should stream web search preview results include', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
   });
 
   describe('image generation tool', () => {
@@ -1222,7 +1245,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.image_generation',
             name: 'image_generation',
             args: {
@@ -1309,7 +1332,7 @@ describe('responses', () => {
           {
             "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
               },
             },
@@ -1327,12 +1350,17 @@ describe('responses', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "azure": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
             "finishReason": "stop",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
               },
             },
@@ -1408,7 +1436,7 @@ describe('responses', () => {
           {
             "input": "{}",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "fc_67cb13a838088190be08eb3927c87501",
               },
             },
@@ -1453,7 +1481,7 @@ describe('responses', () => {
           {
             "input": "{"location":"Rome"}",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "fc_67cb13a858f081908a600343fa040f47",
               },
             },
@@ -1464,7 +1492,7 @@ describe('responses', () => {
           {
             "finishReason": "tool-calls",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
               },
             },
@@ -1513,7 +1541,7 @@ describe('responses', () => {
             "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
               },
             },
@@ -1526,7 +1554,7 @@ describe('responses', () => {
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
               },
             },
@@ -1536,12 +1564,31 @@ describe('responses', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
             "finishReason": "stop",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": null,
               },
             },
@@ -1565,7 +1612,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.code_interpreter',
             name: 'code_interpreter',
             args: {},
@@ -1586,7 +1633,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1608,7 +1655,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1623,6 +1670,25 @@ describe('responses', () => {
         },
       });
 
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('web search preview tool', () => {
+    it('should stream web search preview results include', async () => {
+      prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search_preview',
+            name: 'web_search_preview',
+            args: {},
+          },
+        ],
+      });
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();

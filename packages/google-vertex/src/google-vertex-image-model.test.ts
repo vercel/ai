@@ -216,14 +216,15 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'size',
-          details:
-            'This model does not support the `size` option. Use `aspectRatio` instead.',
-        },
-      ]);
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "This model does not support the \`size\` option. Use \`aspectRatio\` instead.",
+            "feature": "size",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should include response data with timestamp, modelId and headers', async () => {

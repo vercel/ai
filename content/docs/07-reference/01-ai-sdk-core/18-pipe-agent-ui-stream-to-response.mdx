@@ -23,10 +23,14 @@ import { MyCustomAgent } from './agent';
 export async function handler(req, res) {
   const { messages } = JSON.parse(req.body);
 
+  // Optional: Use abortSignal for request cancellation support
+  const abortController = new AbortController();
+
   await pipeAgentUIStreamToResponse({
     response: res, // Node.js ServerResponse
     agent: MyCustomAgent,
     messages,
+    abortSignal: abortController.signal, // optional, see notes
     // ...other optional streaming options
   });
 }
@@ -58,6 +62,13 @@ export async function handler(req, res) {
         'Array of input UI messages sent to the agent (typically user and assistant message objects).',
     },
     {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isRequired: false,
+      description:
+        'Optional abort signal to cancel streaming (e.g., when the client disconnects). Useful for enabling cancellation of long-running or streaming agent responses. Provide an instance of [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) (for example, from an `AbortController`).',
+    },
+    {
       name: '...options',
       type: 'UIMessageStreamResponseInit & UIMessageStreamOptions',
       isRequired: false,
@@ -77,14 +88,18 @@ A `Promise<void>`. This function returns a promise that resolves when piping the
 import { pipeAgentUIStreamToResponse } from 'ai';
 import { openaiWebSearchAgent } from './openai-web-search-agent';
 
-// Hono/Express handler signature
 app.post('/chat', async (req, res) => {
   const { messages } = await getJsonBody(req);
+
+  // Optionally use abortSignal for cancellation on disconnect, etc.
+  const abortController = new AbortController();
+  // e.g., tie abortController to request lifecycle/disconnect detection as needed
 
   await pipeAgentUIStreamToResponse({
     response: res,
     agent: openaiWebSearchAgent,
     messages,
+    abortSignal: abortController.signal, // optional
     // status: 200,
     // headers: { 'X-Custom': 'foo' },
     // ...additional streaming options
@@ -95,10 +110,12 @@ app.post('/chat', async (req, res) => {
 ## How It Works
 
 1. **Streams Output:** The function creates a UI message stream from the agent and efficiently pipes it to the provided Node.js `ServerResponse`, setting appropriate HTTP headers (including content type and streaming-friendly headers) and status.
-2. **No Response Object:** Unlike serverless `Response`-returning APIs, this function does _not_ return a Response object. It writes streaming bytes directly to the Node.js response. This is more memory- and latency-efficient for Node.js server frameworks.
+2. **Abort Support:** If you provide an `abortSignal`, you can cancel the streaming response (for example, when a client disconnects or a timeout occurs), improving resource usage and responsiveness.
+3. **No Response Object:** Unlike serverless `Response`-returning APIs, this function does _not_ return a Response object. It writes streaming bytes directly to the Node.js response. This is more memory- and latency-efficient for Node.js server frameworks.
 
 ## Notes
 
+- **abortSignal for Cancellation:** Use `abortSignal` to stop agent and stream processing early, improving robustness for long-running connections. In frameworks like Express or Hono, tie this to your server's disconnect or timeout events when possible.
 - **Only for Node.js:** This function is intended for use in Node.js environments with access to `ServerResponse` objects, not for Edge/serverless/server-side frameworks using web `Response` objects.
 - **Streaming Support:** Ensure your client and reverse proxy/server infrastructure support streaming HTTP responses.
 - Supports both Hono (`@hono/node-server`), Express, and similar Node.js frameworks.

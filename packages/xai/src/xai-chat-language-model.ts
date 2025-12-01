@@ -1,6 +1,6 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -66,7 +66,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // parse xai-specific provider options
     const options =
@@ -78,31 +78,19 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
     // check for unsupported parameters
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
     if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     // convert ai sdk messages to xai format
@@ -282,6 +270,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
         reasoningTokens:
           response.usage.completion_tokens_details?.reasoning_tokens ??
           undefined,
+        cachedInputTokens:
+          response.usage.prompt_tokens_details?.cached_tokens ?? undefined,
       },
       request: { body },
       response: {
@@ -321,6 +311,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
@@ -380,6 +372,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
               usage.reasoningTokens =
                 value.usage.completion_tokens_details?.reasoning_tokens ??
                 undefined;
+              usage.cachedInputTokens =
+                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
             }
 
             const choice = value.choices[0];
@@ -511,9 +505,20 @@ const xaiUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  prompt_tokens_details: z
+    .object({
+      text_tokens: z.number().nullish(),
+      audio_tokens: z.number().nullish(),
+      image_tokens: z.number().nullish(),
+      cached_tokens: z.number().nullish(),
+    })
+    .nullish(),
   completion_tokens_details: z
     .object({
       reasoning_tokens: z.number().nullish(),
+      audio_tokens: z.number().nullish(),
+      accepted_prediction_tokens: z.number().nullish(),
+      rejected_prediction_tokens: z.number().nullish(),
     })
     .nullish(),
 });

@@ -2,7 +2,7 @@ import { InvalidPromptError } from '@ai-sdk/provider';
 import { standardizePrompt } from './standardize-prompt';
 import { describe, it, expect } from 'vitest';
 
-describe('message prompt', () => {
+describe('standardizePrompt', () => {
   it('should throw InvalidPromptError when system message has parts', async () => {
     await expect(async () => {
       await standardizePrompt({
@@ -22,5 +22,30 @@ describe('message prompt', () => {
         messages: [],
       });
     }).rejects.toThrow(InvalidPromptError);
+  });
+
+  it('should support SystemModelMessage system message', async () => {
+    const result = await standardizePrompt({
+      system: {
+        role: 'system',
+        content: 'INSTRUCTIONS',
+      },
+      prompt: 'Hello, world!',
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello, world!",
+            "role": "user",
+          },
+        ],
+        "system": {
+          "content": "INSTRUCTIONS",
+          "role": "system",
+        },
+      }
+    `);
   });
 });

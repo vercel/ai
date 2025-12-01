@@ -35,7 +35,7 @@ import { ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 
 const supportAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   callOptionsSchema: z.object({
     userId: z.string(),
     accountType: z.enum(['free', 'pro', 'enterprise']),
@@ -112,7 +112,7 @@ import { ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 
 const newsAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   callOptionsSchema: z.object({
     userCity: z.string().optional(),
     userRegion: z.string().optional(),
@@ -186,7 +186,7 @@ import { ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 
 const ragAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: 'anthropic/claude-sonnet-4.5',
   callOptionsSchema: z.object({
     query: z.string(),
   }),
@@ -232,7 +232,10 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
     // Upgrade model for urgent requests
-    model: options.urgency === 'high' ? 'openai/gpt-5' : settings.model,
+    model:
+      options.urgency === 'high'
+        ? 'anthropic/claude-sonnet-4.5'
+        : settings.model,
     // Limit tools based on user role
     activeTools:
       options.userRole === 'admin'

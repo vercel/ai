@@ -1,5 +1,5 @@
 import {
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3DataContent,
   LanguageModelV3Message,
   LanguageModelV3Prompt,
@@ -55,7 +55,7 @@ export async function convertToAnthropicMessagesPrompt({
 }: {
   prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
-  warnings: LanguageModelV3CallWarning[];
+  warnings: SharedV3Warning[];
   cacheControlValidator?: CacheControlValidator;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;

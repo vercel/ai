@@ -4,6 +4,7 @@ import {
   ModelMessage,
   safeParseJSON,
   safeValidateTypes,
+  SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
@@ -22,7 +23,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall: LanguageModelV3ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-  system: string | undefined;
+  system: string | SystemModelMessage | undefined;
   messages: ModelMessage[];
 }): Promise<TypedToolCall<TOOLS>> {
   try {

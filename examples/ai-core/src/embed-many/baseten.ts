@@ -13,7 +13,7 @@ async function main() {
   });
 
   const { embeddings, usage } = await embedMany({
-    model: baseten.textEmbeddingModel(),
+    model: baseten.embeddingModel(),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

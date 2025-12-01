@@ -1,4 +1,5 @@
 import {
+  APICallError,
   JSONObject,
   LanguageModelV3,
   LanguageModelV3Prompt,
@@ -146,23 +147,25 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
 
-        expect(result.warnings).toStrictEqual([
-          {
-            type: 'unsupported-setting',
-            setting: 'temperature',
-            details: 'temperature is not supported when thinking is enabled',
-          },
-          {
-            type: 'unsupported-setting',
-            details: 'topK is not supported when thinking is enabled',
-            setting: 'topK',
-          },
-          {
-            type: 'unsupported-setting',
-            details: 'topP is not supported when thinking is enabled',
-            setting: 'topP',
-          },
-        ]);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "temperature is not supported when thinking is enabled",
+              "feature": "temperature",
+              "type": "unsupported",
+            },
+            {
+              "details": "topK is not supported when thinking is enabled",
+              "feature": "topK",
+              "type": "unsupported",
+            },
+            {
+              "details": "topP is not supported when thinking is enabled",
+              "feature": "topP",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
 
       it('should extract reasoning response', async () => {
@@ -201,7 +204,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format with json tool response', () => {
+    describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
@@ -283,7 +286,94 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format with other tool response', () => {
+    describe('json schema response format with json tool response (supported model, tool mode)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'jsonTool',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"elements":[{"location":"San Francisco","temperature":-5,"condition":"snowy"},{"location":"London","temperature":0,"condition":"snowy"},{"location":"Paris","temperature":23,"condition":"cloudy"},{"location":"Berlin","temperature":-9,"condition":"snowy"}]}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with other tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
       beforeEach(async () => {
@@ -402,6 +492,161 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       it('should send tool-calls finish reason', async () => {
         expect(result.finishReason).toBe('tool-calls');
+      });
+    });
+
+    describe('json schema response format with output format (supported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"recipe":{"name":"Classic Lasagna","ingredients":[{"name":"lasagna noodles","amount":"12 sheets"},{"name":"ground beef","amount":"1 pound"},{"name":"Italian sausage","amount":"1/2 pound"},{"name":"onion","amount":"1 medium, diced"},{"name":"garlic","amount":"3 cloves, minced"},{"name":"crushed tomatoes","amount":"28 oz can"},{"name":"tomato paste","amount":"6 oz can"},{"name":"water","amount":"1/2 cup"},{"name":"sugar","amount":"2 tablespoons"},{"name":"dried basil","amount":"1 1/2 teaspoons"},{"name":"Italian seasoning","amount":"1 teaspoon"},{"name":"salt","amount":"1 teaspoon"},{"name":"black pepper","amount":"1/2 teaspoon"},{"name":"ricotta cheese","amount":"15 oz"},{"name":"egg","amount":"1 large"},{"name":"fresh parsley","amount":"2 tablespoons, chopped"},{"name":"mozzarella cheese","amount":"3 cups, shredded"},{"name":"parmesan cheese","amount":"3/4 cup, grated"}],"steps":["Cook lasagna noodles according to package directions, drain and set aside","In a large skillet, cook ground beef, sausage, onion, and garlic over medium heat until meat is browned, drain excess fat","Add crushed tomatoes, tomato paste, water, sugar, basil, Italian seasoning, salt, and pepper to the meat mixture, simmer for 30 minutes, stirring occasionally","In a bowl, combine ricotta cheese, egg, and parsley, mix well","Preheat oven to 375°F (190°C)","Spread 1 cup of meat sauce in the bottom of a 9x13 inch baking dish","Layer 4 lasagna noodles over the sauce","Spread half of the ricotta mixture over the noodles","Sprinkle with 1 cup mozzarella and 1/4 cup parmesan cheese","Top with 1 1/2 cups meat sauce","Repeat layers once more: 4 noodles, remaining ricotta mixture, 1 cup mozzarella, 1/4 cup parmesan, 1 1/2 cups meat sauce","Add final layer of 4 noodles, remaining meat sauce, remaining mozzarella and parmesan cheese","Cover with aluminum foil and bake for 25 minutes","Remove foil and bake an additional 25 minutes until cheese is golden and bubbly","Let stand for 15 minutes before serving"]}}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
+      });
+    });
+
+    describe('json schema response format with output format (unknown model, forced)', () => {
+      let result: Awaited<ReturnType<typeof model.doGenerate>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-unknown').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'outputFormat',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-unknown",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "name",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+          }
+        `);
+      });
+
+      it('should return the json response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "{"recipe":{"name":"Classic Lasagna","ingredients":[{"name":"lasagna noodles","amount":"12 sheets"},{"name":"ground beef","amount":"1 pound"},{"name":"Italian sausage","amount":"1/2 pound"},{"name":"onion","amount":"1 medium, diced"},{"name":"garlic","amount":"3 cloves, minced"},{"name":"crushed tomatoes","amount":"28 oz can"},{"name":"tomato paste","amount":"6 oz can"},{"name":"water","amount":"1/2 cup"},{"name":"sugar","amount":"2 tablespoons"},{"name":"dried basil","amount":"1 1/2 teaspoons"},{"name":"Italian seasoning","amount":"1 teaspoon"},{"name":"salt","amount":"1 teaspoon"},{"name":"black pepper","amount":"1/2 teaspoon"},{"name":"ricotta cheese","amount":"15 oz"},{"name":"egg","amount":"1 large"},{"name":"fresh parsley","amount":"2 tablespoons, chopped"},{"name":"mozzarella cheese","amount":"3 cups, shredded"},{"name":"parmesan cheese","amount":"3/4 cup, grated"}],"steps":["Cook lasagna noodles according to package directions, drain and set aside","In a large skillet, cook ground beef, sausage, onion, and garlic over medium heat until meat is browned, drain excess fat","Add crushed tomatoes, tomato paste, water, sugar, basil, Italian seasoning, salt, and pepper to the meat mixture, simmer for 30 minutes, stirring occasionally","In a bowl, combine ricotta cheese, egg, and parsley, mix well","Preheat oven to 375°F (190°C)","Spread 1 cup of meat sauce in the bottom of a 9x13 inch baking dish","Layer 4 lasagna noodles over the sauce","Spread half of the ricotta mixture over the noodles","Sprinkle with 1 cup mozzarella and 1/4 cup parmesan cheese","Top with 1 1/2 cups meat sauce","Repeat layers once more: 4 noodles, remaining ricotta mixture, 1 cup mozzarella, 1/4 cup parmesan, 1 1/2 cups meat sauce","Add final layer of 4 noodles, remaining meat sauce, remaining mozzarella and parmesan cheese","Cover with aluminum foil and bake for 25 minutes","Remove foil and bake an additional 25 minutes until cheese is golden and bubbly","Let stand for 15 minutes before serving"]}}",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should send stop finish reason', async () => {
+        expect(result.finishReason).toBe('stop');
       });
     });
 
@@ -636,8 +881,8 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(warnings).toMatchInlineSnapshot(`
         [
           {
-            "setting": "frequencyPenalty",
-            "type": "unsupported-setting",
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
           },
         ]
       `);
@@ -673,8 +918,8 @@ describe('AnthropicMessagesLanguageModel', () => {
         [
           {
             "details": "999999 (maxOutputTokens + thinkingBudget) is greater than claude-haiku-4-5 64000 max output tokens. The max output tokens have been limited to 64000.",
-            "setting": "maxOutputTokens",
-            "type": "unsupported-setting",
+            "feature": "maxOutputTokens",
+            "type": "unsupported",
           },
         ]
       `);
@@ -1291,7 +1536,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_search_20250305',
                 name: 'web_search',
                 args: {
@@ -1376,7 +1621,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1413,7 +1658,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1448,7 +1693,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1495,7 +1740,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1538,7 +1783,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1612,7 +1857,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1691,7 +1936,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1740,7 +1985,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               inputSchema: { type: 'object', properties: {} },
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1778,7 +2023,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -1829,7 +2074,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -1853,7 +2098,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -1954,7 +2199,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2103,7 +2348,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2143,7 +2388,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2176,7 +2421,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.memory_20250818',
               name: 'memory',
               args: {},
@@ -2225,7 +2470,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.memory_20250818',
               name: 'memory',
               args: {},
@@ -2245,7 +2490,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2294,7 +2539,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2312,7 +2557,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2330,7 +2575,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2380,7 +2625,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2460,7 +2705,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2523,7 +2768,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2572,7 +2817,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               inputSchema: { type: 'object', properties: {} },
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2623,7 +2868,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
@@ -2631,15 +2876,128 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       await expect(
-        model.doGenerate({
-          prompt: TEST_PROMPT,
+        model.doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrowError(
+        new APICallError({
+          message: 'Overloaded',
+          url: 'https://api.anthropic.com/v1/messages',
+          requestBodyValues: {},
+          statusCode: 529,
+          responseHeaders: {},
+          responseBody:
+            '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
+          isRetryable: true,
         }),
-      ).rejects.toThrow('Overloaded');
+      );
+    });
+
+    describe('temperature clamping', () => {
+      it('should clamp temperature above 1 to 1 and add warning', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 1.5,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(1);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "1.5 exceeds anthropic maximum of 1.0. clamped to 1.0",
+              "feature": "temperature",
+              "type": "unsupported",
+            },
+          ]
+        `);
+      });
+
+      it('should clamp temperature below 0 to 0 and add warning', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: -0.5,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(0);
+        expect(result.warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "details": "-0.5 is below anthropic minimum of 0. clamped to 0",
+              "feature": "temperature",
+              "type": "unsupported",
+            },
+          ]
+        `);
+      });
+
+      it('should not clamp valid temperature between 0 and 1', async () => {
+        prepareJsonResponse({});
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+
+        expect(requestBody.temperature).toBe(0.7);
+        expect(result.warnings).toMatchInlineSnapshot(`[]`);
+      });
+    });
+
+    it('should set effort', async () => {
+      prepareJsonResponse({});
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            effort: 'medium',
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+          "output_config": {
+            "effort": "medium",
+          },
+        }
+      `);
+      expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "anthropic-beta": "effort-2025-11-24",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "x-api-key": "test-api-key",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
     });
   });
 
   describe('doStream', () => {
-    describe('json schema response format', () => {
+    describe('json schema response format (unsupported model)', () => {
       let result: Array<LanguageModelV3StreamPart>;
 
       beforeEach(async () => {
@@ -2903,7 +3261,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    describe('json schema response format with other tool response', () => {
+    describe('json schema response format with other tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doStream>>;
 
       beforeEach(async () => {
@@ -3077,6 +3435,105 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('json schema response format with output format (supported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doStream>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-output-format.1');
+
+        result = await provider('claude-sonnet-4-5').doStream({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                characters: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      class: { type: 'string' },
+                      description: { type: 'string' },
+                    },
+                    required: ['name', 'class', 'description'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['characters'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as output format', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 64000,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-sonnet-4-5",
+            "output_format": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "characters": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "class": {
+                          "type": "string",
+                        },
+                        "description": {
+                          "type": "string",
+                        },
+                        "name": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "name",
+                        "class",
+                        "description",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "characters",
+                ],
+                "type": "object",
+              },
+              "type": "json_schema",
+            },
+            "stream": true,
+          }
+        `);
+      });
+
+      it('should stream the text output', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
     });
 
@@ -3678,6 +4135,36 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should merge custom anthropic-beta header with fine-grained-tool-streaming beta', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({
+        apiKey: 'test-api-key',
+        headers: { 'anthropic-beta': 'CONFIG-beta1,config-beta2' },
+      });
+
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        headers: { 'anthropic-beta': 'REQUEST-beta1,request-beta2' },
+      });
+
+      expect(
+        server.calls[0].requestHeaders['anthropic-beta'],
+      ).toMatchInlineSnapshot(
+        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,request-beta1,request-beta2"`,
+      );
+    });
+
     it('should support cache control', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -4245,7 +4732,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4274,7 +4761,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4293,7 +4780,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.code_execution_20250825',
                 name: 'code_execution',
                 args: {},
@@ -4318,7 +4805,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               prompt: TEST_PROMPT,
               tools: [
                 {
-                  type: 'provider-defined',
+                  type: 'provider',
                   id: 'anthropic.web_fetch_20250910',
                   name: 'web_fetch',
                   args: { maxUses: 1 },
@@ -4345,7 +4832,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_search_20250305',
                 name: 'web_search',
                 args: {
@@ -4368,16 +4855,130 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
         body: '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
       };
 
-      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
-        'Overloaded',
-      );
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect({
+          message: apiCallError.message,
+          url: apiCallError.url,
+          requestBodyValues: apiCallError.requestBodyValues,
+          statusCode: apiCallError.statusCode,
+          responseHeaders: apiCallError.responseHeaders,
+          responseBody: apiCallError.responseBody,
+          isRetryable: apiCallError.isRetryable,
+        }).toMatchInlineSnapshot(`
+          {
+            "isRetryable": true,
+            "message": "Overloaded",
+            "requestBodyValues": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "stream": true,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+            "responseBody": "{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}",
+            "responseHeaders": {
+              "content-length": "90",
+              "content-type": "text/plain",
+            },
+            "statusCode": 529,
+            "url": "https://api.anthropic.com/v1/messages",
+          }
+        `);
+      }
+    });
+
+    it('should throw an api error when the first stream chunk is an overloaded error', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `event: error\n`,
+          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n`,
+          `\n`,
+        ],
+      };
+
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect({
+          message: apiCallError.message,
+          url: apiCallError.url,
+          requestBodyValues: apiCallError.requestBodyValues,
+          statusCode: apiCallError.statusCode,
+          responseHeaders: apiCallError.responseHeaders,
+          responseBody: apiCallError.responseBody,
+          isRetryable: apiCallError.isRetryable,
+        }).toMatchInlineSnapshot(`
+          {
+            "isRetryable": true,
+            "message": "Overloaded",
+            "requestBodyValues": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "stream": true,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+            "responseBody": "{"type":"overloaded_error","message":"Overloaded"}",
+            "responseHeaders": {
+              "cache-control": "no-cache",
+              "connection": "keep-alive",
+              "content-type": "text/event-stream",
+            },
+            "statusCode": 529,
+            "url": "https://api.anthropic.com/v1/messages",
+          }
+        `);
+      }
     });
 
     it('should forward overloaded error during streaming', async () => {
@@ -4387,6 +4988,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
           `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
           `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `event: error\n`,
           `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
         ],
       };
