@@ -1,7 +1,7 @@
 import {
+  APICallError,
   JSONObject,
   LanguageModelV3,
-  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
@@ -11,14 +11,13 @@ import {
   LanguageModelV3ToolCall,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
-  APICallError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  DelayedPromise,
   FetchFunction,
   generateId,
   InferSchema,
