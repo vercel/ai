@@ -43,7 +43,7 @@ const initialMessages = [
       {
         type: 'tool-weather',
         state: 'output-available',
-        toolCallId: 'toolu_0194MoeeJGJDTGfNPZB7Ciay',
+        toolCallId: 'toolu_0194MoeeJGJDTGfNPZB7Ciae',
         input: {
           city: 'london',
         },
