@@ -125,7 +125,7 @@ F(10) = 55
     "type": "tool-result",
   },
   {
-    "text": "Perfect! The script has been created and executed successfully.
+    "text": "Perfect! The script has been created and executed successfully. 
 
 **Result: The 10th Fibonacci number is 55**
 
@@ -272,7 +272,7 @@ DataFrame preview:
 1. **fibonacci_results.xlsx** - Excel file containing:
    - Column 1: Position (1-10)
    - Column 2: Fibonacci Number (0-34)
-
+   
 2. **fibonacci_calculator.py** - The complete Python source code
 
 ## Features of the Script:
@@ -369,10 +369,10 @@ import os
 def fibonacci(n):
     """
     Calculate the nth Fibonacci number using iterative approach.
-
+    
     Args:
         n (int): The position in the Fibonacci sequence (1-indexed)
-
+    
     Returns:
         int: The nth Fibonacci number
     """
@@ -391,10 +391,10 @@ def fibonacci(n):
 def generate_fibonacci_sequence(n):
     """
     Generate Fibonacci sequence up to the nth number.
-
+    
     Args:
         n (int): Number of Fibonacci numbers to generate
-
+    
     Returns:
         list: List of tuples containing (position, fibonacci_number)
     """
@@ -407,19 +407,19 @@ def generate_fibonacci_sequence(n):
 def save_to_excel(data, filename):
     """
     Save Fibonacci sequence data to an Excel file.
-
+    
     Args:
         data (list): List of tuples containing (position, fibonacci_number)
         filename (str): Output filename
     """
     # Create a DataFrame
     df = pd.DataFrame(data, columns=['Position', 'Fibonacci Number'])
-
+    
     # Save to Excel
     output_dir = os.environ.get('OUTPUT_DIR', '/tmp')
     filepath = os.path.join(output_dir, filename)
     df.to_excel(filepath, index=False, sheet_name='Fibonacci Sequence')
-
+    
     print(f"Excel file saved to: {filepath}")
     return df
 
@@ -428,10 +428,10 @@ def main():
     n = 10
     print(f"Calculating Fibonacci sequence up to position {n}...")
     print()
-
+    
     # Generate the sequence
     fibonacci_sequence = generate_fibonacci_sequence(n)
-
+    
     # Display results
     print("Fibonacci Sequence:")
     print("-" * 40)
@@ -439,18 +439,18 @@ def main():
         print(f"Position {pos:2d}: {fib_num}")
     print("-" * 40)
     print()
-
+    
     # Highlight the 10th Fibonacci number
     tenth_fib = fibonacci(n)
     print(f"The 10th Fibonacci number is: {tenth_fib}")
     print()
-
+    
     # Save to Excel file
     df = save_to_excel(fibonacci_sequence, 'fibonacci_results.xlsx')
     print()
     print("DataFrame preview:")
     print(df)
-
+    
     return tenth_fib
 
 if __name__ == "__main__":
@@ -575,7 +575,7 @@ DataFrame preview:
 1. **fibonacci_results.xlsx** - Excel file containing:
    - Column 1: Position (1-10)
    - Column 2: Fibonacci Number (0-34)
-
+   
 2. **fibonacci_calculator.py** - The complete Python source code
 
 ## Features of the Script:
@@ -1101,7 +1101,7 @@ For the most current breaking tech news today, I'd recommend checking major tech
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > agent skills > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > agent skills > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -4652,7 +4652,7 @@ I",
     "type": "text-delta",
   },
   {
-    "delta": " Slide**:
+    "delta": " Slide**: 
    - Bold title "Renewable Energy Sources"",
     "id": "42",
     "type": "text-delta",
@@ -4825,7 +4825,7 @@ The presentation has",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
 [
   {
     "type": "stream-start",
@@ -9454,23 +9454,23 @@ Generating Fibonacci sequence (positions 0 to 14)...
 
 Fibonacci Sequence:
 ----------------------------------------
-Position     Fibonacci Number
+Position     Fibonacci Number    
 ----------------------------------------
-0            0
-1            1
-2            1
-3            2
-4            3
-5            5
-6            8
-7            13
-8            21
-9            34
+0            0                   
+1            1                   
+2            1                   
+3            2                   
+4            3                   
+5            5                   
+6            8                   
+7            13                  
+8            21                  
+9            34                  
 10           55                   <-- TARGET
-11           89
-12           144
-13           233
-14           377
+11           89                  
+12           144                 
+13           233                 
+14           377                 
 ----------------------------------------
 
 Exporting data to Excel file...
@@ -9876,7 +9876,7 @@ Error message: Unexpected end of JSON input],
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11033,7 +11033,7 @@ F(10) = 34
     "type": "text-delta",
   },
   {
-    "delta": "d executed successfully.
+    "delta": "d executed successfully. 
 
 **Result",
     "id": "6",
@@ -11170,731 +11170,7 @@ The Fibonacci sequence starts with 0, ",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
-[
-  {
-    "type": "stream-start",
-    "warnings": [],
-  },
-  {
-    "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
-    "modelId": "claude-sonnet-4-5-20250929",
-    "type": "response-metadata",
-  },
-  {
-    "id": "0",
-    "type": "text-start",
-  },
-  {
-    "delta": "{"",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "characters"",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":[{"name":"Th",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "eron",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Iron",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "heart","class":"warrior","description",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "":"A battle",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-scar",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "red veteran",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " with",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " steel",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "gray hair and a",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " prominent",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " scar across his left eye.",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Wiel",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ding a massive two",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-handed sword passe",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d down through his family for",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " generations,",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Theron fights",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " with discipl",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ined precision h",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "oned through decades",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of combat. Despite",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " his gruff exterior, he harb",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ors a deep sense of honor and prot",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ects the weak",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " without",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " hesitation.",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ""},{"name":"Lyra",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Star",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "weaver","class":"mage","",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "description":"A young",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " pro",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "digy in",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " arcane arts with",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " flowing",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " silver ro",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "bes ador",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ned with celest",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ial patterns",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ". Her",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " eyes",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " g",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "low f",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "aintly blue",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " when",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " chann",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "eling powerful",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sp",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ells.",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Lyra special",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "izes in ele",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "mental magic an",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d ast",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ral div",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ination, having",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " studie",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d at",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the Gran",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d Academy since",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " childhoo",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d. She is",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " curious",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and ide",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "alistic, often getting",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " into",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " trouble",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " while",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " pursuing",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " forbidden",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " knowledge."},{"name":"R",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ook",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Shadow",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "st",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ep",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "","class":"thief","description":"",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "A nim",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ble and cun",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ning r",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ogue who",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " moves through",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " shadows",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " like",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a whis",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "per in",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the night. With",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " jet",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-black hair,",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " leather",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " armor,",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and an array of lock",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "picks an",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d daggers hidden on",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " his person, Rook makes his",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " living liber",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ating treas",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ures from those",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " he",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " deems unworthy of",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " them",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ". Behin",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d his coc",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ky smile",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " lies a trouble",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d past and a strict",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " personal",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " code about",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " who",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " deserves to be",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " rob",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "bed."}]}",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "id": "0",
-    "type": "text-end",
-  },
-  {
-    "finishReason": "stop",
-    "providerMetadata": {
-      "anthropic": {
-        "cacheCreationInputTokens": 0,
-        "container": null,
-        "stopSequence": null,
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 313,
-          "output_tokens": 305,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "finish",
-    "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 313,
-      "outputTokens": 305,
-      "totalTokens": 618,
-    },
-  },
-]
-`;
-
-exports[`AnthropicMessagesLanguageModel > doStream > mcp servers > should stream code execution tool results 1`] = `
-[
-  {
-    "type": "stream-start",
-    "warnings": [],
-  },
-  {
-    "id": "msg_01RNdvgjHoLmx2THF9AVj3KK",
-    "modelId": "claude-sonnet-4-5-20250929",
-    "type": "response-metadata",
-  },
-  {
-    "dynamic": true,
-    "input": "{}",
-    "providerExecuted": true,
-    "providerMetadata": {
-      "anthropic": {
-        "serverName": "echo",
-        "type": "mcp-tool-use",
-      },
-    },
-    "toolCallId": "mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT",
-    "toolName": "echo",
-    "type": "tool-call",
-  },
-  {
-    "dynamic": true,
-    "isError": false,
-    "providerMetadata": {
-      "anthropic": {
-        "serverName": "echo",
-        "type": "mcp-tool-use",
-      },
-    },
-    "result": [
-      {
-        "text": "Tool echo: hello world",
-        "type": "text",
-      },
-    ],
-    "toolCallId": "mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT",
-    "toolName": "echo",
-    "type": "tool-result",
-  },
-  {
-    "id": "2",
-    "type": "text-start",
-  },
-  {
-    "delta": "The echo tool responde",
-    "id": "2",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d back with: **hello world**
-
-It simply echoed back",
-    "id": "2",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the exact message that was sent to it.",
-    "id": "2",
-    "type": "text-delta",
-  },
-  {
-    "id": "2",
-    "type": "text-end",
-  },
-  {
-    "finishReason": "stop",
-    "providerMetadata": {
-      "anthropic": {
-        "cacheCreationInputTokens": 0,
-        "container": null,
-        "stopSequence": null,
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 1250,
-          "output_tokens": 83,
-          "server_tool_use": {
-            "web_fetch_requests": 0,
-            "web_search_requests": 0,
-          },
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "finish",
-    "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 589,
-      "outputTokens": 83,
-      "totalTokens": 672,
-    },
-  },
-]
-`;
-
-exports[`AnthropicMessagesLanguageModel > doStream > web fetch tool > txt response > should stream web search tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool > txt response > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -12294,7 +11570,7 @@ The page also discusses",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should stream web search tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search tool > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
