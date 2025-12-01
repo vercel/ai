@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.52
+
+### Patch Changes
+
+- 518e786: fix(anthropic): send {} as tool input when streaming tool calls without arguments
+
 ## 2.0.51
 
 ### Patch Changes
