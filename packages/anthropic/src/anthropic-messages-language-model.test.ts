@@ -4817,9 +4817,8 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchInlineSnapshot(`
+        expect(await convertReadableStreamToArray(result.stream))
+          .toMatchInlineSnapshot(`
           [
             {
               "type": "stream-start",
