@@ -1395,8 +1395,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     // the type to the delta and change the tool name.
                     if (
                       contentBlock.firstDelta &&
-                      (contentBlock.providerToolName === 'bash_code_execution' ||
-                        contentBlock.providerToolName === 'text_editor_code_execution')
+                      (contentBlock.providerToolName ===
+                        'bash_code_execution' ||
+                        contentBlock.providerToolName ===
+                          'text_editor_code_execution')
                     ) {
                       delta = `{"type": "${contentBlock.providerToolName}",${delta.substring(1)}`;
                     }
