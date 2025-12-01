@@ -373,7 +373,7 @@ class DefaultMCPClient implements MCPClient {
     options?: ToolCallOptions;
   }): Promise<CallToolResult> {
     try {
-      return this.request({
+      return await this.request({
         request: { method: 'tools/call', params: { name, arguments: args } },
         resultSchema: CallToolResultSchema,
         options: {
@@ -381,6 +381,19 @@ class DefaultMCPClient implements MCPClient {
         },
       });
     } catch (error) {
+      if (MCPClientError.isInstance(error)) {
+        return {
+          content: [{
+            type: 'text',
+            text: error.message,
+          }],
+          isError: true,
+          _meta: {
+            errorCode: error.code,
+            errorData: error.data
+          },
+        };
+      }
       throw error;
     }
   }
@@ -520,21 +533,21 @@ class DefaultMCPClient implements MCPClient {
         const toolWithExecute =
           schemas === 'automatic'
             ? dynamicTool({
-                description,
-                title,
-                inputSchema: jsonSchema({
-                  ...inputSchema,
-                  properties: inputSchema.properties ?? {},
-                  additionalProperties: false,
-                } as JSONSchema7),
-                execute,
-              })
+              description,
+              title,
+              inputSchema: jsonSchema({
+                ...inputSchema,
+                properties: inputSchema.properties ?? {},
+                additionalProperties: false,
+              } as JSONSchema7),
+              execute,
+            })
             : tool({
-                description,
-                title,
-                inputSchema: schemas[name].inputSchema,
-                execute,
-              });
+              description,
+              title,
+              inputSchema: schemas[name].inputSchema,
+              execute,
+            });
 
         tools[name] = toolWithExecute;
       }
@@ -722,11 +735,11 @@ class DefaultMCPClient implements MCPClient {
       'result' in response
         ? response
         : new MCPClientError({
-            message: response.error.message,
-            code: response.error.code,
-            data: response.error.data,
-            cause: response.error,
-          }),
+          message: response.error.message,
+          code: response.error.code,
+          data: response.error.data,
+          cause: response.error,
+        }),
     );
   }
 }

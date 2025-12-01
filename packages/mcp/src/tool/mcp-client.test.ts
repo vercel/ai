@@ -308,12 +308,20 @@ describe('MCPClient', () => {
       },
     });
     const toolCall = tools['mock-tool'].execute;
-    await expect(
-      toolCall({ bar: 'bar' }, { messages: [], toolCallId: '1' }),
-    ).rejects.toThrow(MCPClientError);
+
+    const result = await toolCall({ bar: 'bar' }, { messages: [], toolCallId: '1' });
+    expect(result).toMatchObject({
+      content: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text',
+          text: expect.stringContaining('Invalid tool inputSchema'),
+        }),
+      ]),
+      isError: true,
+    });
   });
 
-  it('should include JSON-RPC error data in MCPClientError', async () => {
+  it('should include JSON-RPC error metadata in CallToolResult._meta', async () => {
     createMockTransport.mockImplementation(
       () =>
         new MockMCPTransport({
@@ -332,30 +340,28 @@ describe('MCPClient', () => {
     });
     const toolCall = tools['mock-tool'].execute;
 
-    try {
-      await toolCall({ bar: 'bar' }, { messages: [], toolCallId: '1' });
-      throw new Error('Expected error to be thrown');
-    } catch (error) {
-      expect(MCPClientError.isInstance(error)).toBe(true);
-      if (MCPClientError.isInstance(error)) {
-        expect(error.code).toBe(-32602);
-        expect(error.data).toMatchInlineSnapshot(`
-          {
-            "expectedSchema": {
-              "properties": {
-                "foo": {
-                  "type": "string",
-                },
+    const result = await toolCall({ bar: 'bar' }, { messages: [], toolCallId: '1' });
+
+    expect(result).toMatchObject({
+      content: expect.any(Array),
+      isError: true,
+      _meta: {
+        errorCode: -32602,
+        errorData: {
+          expectedSchema: {
+            properties: {
+              foo: {
+                type: 'string',
               },
-              "type": "object",
             },
-            "receivedArguments": {
-              "bar": "bar",
-            },
-          }
-        `);
-      }
-    }
+            type: 'object',
+          },
+          receivedArguments: {
+            bar: 'bar',
+          },
+        },
+      },
+    });
   });
 
   it('should throw if the server does not support any tools', async () => {
