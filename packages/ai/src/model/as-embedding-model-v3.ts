@@ -1,4 +1,5 @@
 import { EmbeddingModelV2, EmbeddingModelV3 } from '@ai-sdk/provider';
+import { logWarnings } from '../logger/log-warnings';
 
 export function asEmbeddingModelV3(
   model: EmbeddingModelV2<string> | EmbeddingModelV3,
@@ -6,6 +7,18 @@ export function asEmbeddingModelV3(
   if (model.specificationVersion === 'v3') {
     return model;
   }
+
+  logWarnings({
+    warnings: [
+      {
+        type: 'compatibility',
+        feature: 'specificationVersion',
+        details: `This model is using specification version ${model.specificationVersion}. Please upgrade the package to the latest version.`,
+      },
+    ],
+    provider: model.provider,
+    model: model.modelId,
+  });
 
   // TODO this could break, we need to properly map v2 to v3
   // and support all relevant v3 properties:
