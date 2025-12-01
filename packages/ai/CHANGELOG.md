@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.126
+
+### Patch Changes
+
+- b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
+
 ## 6.0.0-beta.125
 
 ### Patch Changes
