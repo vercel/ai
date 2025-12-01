@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- f13958c: chore(antropic): allow custom names for provider-defined tools
+
 ## 3.0.0-beta.69
 
 ### Patch Changes
