@@ -1,7 +1,6 @@
 import {
   APICallError,
   JSONObject,
-<<<<<<< HEAD
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -12,19 +11,6 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
-=======
-  LanguageModelV3,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3Prompt,
-  LanguageModelV3Source,
-  LanguageModelV3StreamPart,
-  LanguageModelV3ToolCall,
-  LanguageModelV3Usage,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
->>>>>>> 589a4ee8f (fix(anthropic): simplify pulling first chunk (#10756))
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -41,6 +27,7 @@ import {
   resolve,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
   AnthropicContainer,
   anthropicMessagesChunkSchema,
@@ -56,7 +43,6 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 
 function createCitationSource(
   citation: Citation,
@@ -881,17 +867,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | undefined = undefined;
 
     const generateId = this.generateId;
-<<<<<<< HEAD
-
-    let isFirstChunk = true;
-    let stream: ReadableStream<LanguageModelV2StreamPart> | undefined =
-      undefined;
-
-    const returnPromise = new DelayedPromise<
-      Awaited<ReturnType<LanguageModelV2['doStream']>>
-    >();
-=======
->>>>>>> 589a4ee8f (fix(anthropic): simplify pulling first chunk (#10756))
 
     const transformedStream = response.pipeThrough(
       new TransformStream<
