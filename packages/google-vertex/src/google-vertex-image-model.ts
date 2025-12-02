@@ -145,6 +145,7 @@ const vertexImageProviderOptionsSchema = z.object({
     .nullish(),
   addWatermark: z.boolean().nullish(),
   storageUri: z.string().nullish(),
+  sampleImageSize: z.enum(['1K', '2K']).nullish(),
 });
 export type GoogleVertexImageProviderOptions = z.infer<
   typeof vertexImageProviderOptionsSchema
