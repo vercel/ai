@@ -59,10 +59,14 @@ export type DeepSeekChatTokenUsage = z.infer<typeof tokenUsageSchema>;
 
 export const deepSeekErrorSchema = z.object({
   error: z.object({
-    type: z.string().nullish(),
     message: z.string(),
+    type: z.string().nullish(),
+    param: z.any().nullish(),
+    code: z.union([z.string(), z.number()]).nullish(),
   }),
 });
+
+export type DeepSeekErrorData = z.infer<typeof deepSeekErrorSchema>;
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
