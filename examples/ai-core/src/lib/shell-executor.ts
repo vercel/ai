@@ -16,7 +16,7 @@ export async function executeShellCommand(
   try {
     const { stdout, stderr } = await execAsync(command, {
       timeout,
-      maxBuffer: 10 * 1024 * 1024, // 10MB max buffer
+      maxBuffer: 10 * 1024 * 1024,
     });
 
     return {
@@ -25,7 +25,6 @@ export async function executeShellCommand(
       outcome: { type: 'exit', exitCode: 0 },
     };
   } catch (error: any) {
-    // Handle timeout or other errors
     const timedOut = error?.killed || error?.signal === 'SIGTERM';
     const exitCode = timedOut ? null : (error?.code ?? 1);
 
