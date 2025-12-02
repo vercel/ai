@@ -57,6 +57,7 @@ const tokenUsageSchema = z
 
 export const deepSeekErrorSchema = z.object({
   error: z.object({
+    type: z.string().nullish(),
     message: z.string(),
   }),
 });

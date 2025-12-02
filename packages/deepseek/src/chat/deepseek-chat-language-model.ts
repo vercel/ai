@@ -6,7 +6,6 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   SharedV3ProviderMetadata,
-  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -86,14 +85,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     toolChoice,
     tools,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
-
     const deepseekOptions =
       (await parseProviderOptions({
         provider: 'deepseek',
         providerOptions,
         schema: deepseekChatOptions,
       })) ?? {};
+
+    const { messages, warnings } = convertToDeepSeekChatMessages(prompt);
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -144,7 +143,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         seed,
 
         // messages:
-        messages: convertToDeepSeekChatMessages(prompt),
+        messages,
 
         // tools:
         tools: deepseekTools,
