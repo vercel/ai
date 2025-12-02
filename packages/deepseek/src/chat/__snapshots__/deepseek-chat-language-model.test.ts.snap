@@ -208,7 +208,7 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
 }
 `;
 
-exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response format without schema > should extract text content 1`] = `
+exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response format > should extract text content 1`] = `
 {
   "content": [
     {
