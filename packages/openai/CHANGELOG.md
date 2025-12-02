@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.76
+
+### Patch Changes
+
+- 61545c4: feat (provider/openai): include more image generation response metadata
+
 ## 2.0.75
 
 ### Patch Changes
