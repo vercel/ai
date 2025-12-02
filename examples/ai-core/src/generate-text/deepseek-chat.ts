@@ -7,8 +7,9 @@ run(async () => {
   const result = await generateText({
     model: deepseek('deepseek-chat'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    maxOutputTokens: 300,
   });
 
-  console.log(JSON.stringify(result.response.body, null, 2));
+  print('Content:', result.content);
+  print('Usage:', result.usage);
+  print('Finish reason:', result.finishReason);
 });
