@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 1.0.31
+
+### Patch Changes
+
+- b1b0b17: feat(deepseek): rewrite DeepSeek provider
+
 ## 1.0.30
 
 ### Patch Changes
