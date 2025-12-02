@@ -208,6 +208,1161 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
 }
 `;
 
+exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reasoning 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "cac7192e-e619-40c6-96b0-ed4276bc03ac",
+    "modelId": "deepseek-reasoner",
+    "timestamp": 2025-12-02T07:50:32.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "reasoning-0",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "We",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " need",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " count",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " number",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " of",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " letter",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": """,
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " in",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " word",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "st",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "raw",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "berry",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " The",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " word",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " spelled",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-t",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-a",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-w",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-b",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-e",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-y",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " list",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " letters",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " count",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ""s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":
+
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "Position",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "1",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "2",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " t",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " (",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "first",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ")
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "4",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " a",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "5",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " w",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "6",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " b",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "7",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " e",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "8",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " (",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "second",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ")
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "9",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " (",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "third",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ")
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "10",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " y",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "So",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " there",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " are",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " three",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ""s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " But",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " wait",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " let",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " double",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-check",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "st",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "raw",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "berry",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": """,
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " indeed",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " has",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " three",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ""s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " one",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " after",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "t",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "",",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " then",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " two",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " consecutive",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ""s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " before",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "y",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " So",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " answer",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "The",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " question",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " straightforward",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " However",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " sometimes",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " people",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " might",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " misc",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "ount",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ensure",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " The",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " word",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " has",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "10",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " letters",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " The",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "r",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ""s",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " are",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " at",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " positions",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "8",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "9",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " So",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " yes",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "Thus",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " answer",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " ",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "3",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " word",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "raw",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "berry",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": """,
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " contains",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " three",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "r",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ""s",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "id": "reasoning-0",
+    "type": "reasoning-end",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "deepseek": {
+        "promptCacheHitTokens": 0,
+        "promptCacheMissTokens": 18,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 18,
+      "outputTokens": 219,
+      "reasoningTokens": 205,
+      "totalTokens": 237,
+    },
+  },
+]
+`;
+
 exports[`DeepSeekChatLanguageModel > doStream > should stream text 1`] = `
 [
   {

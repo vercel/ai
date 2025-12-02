@@ -149,5 +149,21 @@ describe('DeepSeekChatLanguageModel', () => {
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
     });
+
+    describe('reasoning', () => {
+      beforeEach(() => {
+        prepareChunksFixtureResponse('deepseek-reasoning');
+      });
+
+      it('should stream reasoning', async () => {
+        const result = await provider.chat('deepseek-reasoning').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
   });
 });
