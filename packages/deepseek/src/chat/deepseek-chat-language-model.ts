@@ -173,13 +173,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     const choice = responseBody.choices[0];
     const content: Array<LanguageModelV3Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
-
-    // reasoning content:
+    // reasoning content (before text):
     const reasoning = choice.message.reasoning_content;
     if (reasoning != null && reasoning.length > 0) {
       content.push({
@@ -198,6 +192,12 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
           input: toolCall.function.arguments!,
         });
       }
+    }
+
+    // text content:
+    const text = choice.message.content;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
     }
 
     // provider metadata:

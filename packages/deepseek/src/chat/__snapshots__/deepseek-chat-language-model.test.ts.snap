@@ -113,14 +113,14 @@ exports[`DeepSeekChatLanguageModel > doGenerate > reasoning > should extract tex
 {
   "content": [
     {
-      "text": "The word "strawberry" contains three instances of the letter "r": one after the "t" and two before the "y".",
-      "type": "text",
-    },
-    {
       "text": "We are asked: "How many 'r's are in the word 'strawberry'?" We need to count the occurrences of the letter 'r' in the word "strawberry". Let's write the word: s-t-r-a-w-b-e-r-r-y. Let's count: positions: 1: s, 2: t, 3: r, 4: a, 5: w, 6: b, 7: e, 8: r, 9: r, 10: y. So there are three 'r's? Wait: at position 3: r, position 8: r, position 9: r. That's three. But sometimes people might think it's two because of pronunciation? But strictly counting letters, it's three. However, let's double-check spelling: "strawberry" is spelled S-T-R-A-W-B-E-R-R-Y. Yes, it has two 'r's at the end? Actually, after 'b' comes 'e', then 'r', then 'r', then 'y'. So indeed three 'r's total. But wait, the initial 'r' is the first one? The word starts with 's', then 't', then 'r'. So that's one, then later two consecutive 'r's. So total three. So answer is 3.
 
 But the question is phrased: "How many 'r's are in the word 'strawberry'?" So answer is 3.",
       "type": "reasoning",
+    },
+    {
+      "text": "The word "strawberry" contains three instances of the letter "r": one after the "t" and two before the "y".",
+      "type": "text",
     },
   ],
   "finishReason": "stop",
