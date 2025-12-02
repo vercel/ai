@@ -87,7 +87,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
     const deepseekOptions =
       (await parseProviderOptions({
-        provider: 'deepseek',
+        provider: this.providerOptionsName,
         providerOptions,
         schema: deepseekChatOptions,
       })) ?? {};
