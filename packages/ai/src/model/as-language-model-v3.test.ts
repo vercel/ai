@@ -81,7 +81,9 @@ describe('asLanguageModelV3', () => {
           {
             type: 'compatibility',
             feature: 'specificationVersion',
-            details: expect.stringContaining('Using v2 specification compatibility'),
+            details: expect.stringContaining(
+              'Using v2 specification compatibility',
+            ),
           },
         ],
         provider: 'test-provider',
