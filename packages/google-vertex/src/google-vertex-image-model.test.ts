@@ -1,7 +1,7 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { createVertex } from './google-vertex-provider';
-import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -307,6 +307,7 @@ describe('GoogleVertexImageModel', () => {
             addWatermark: false,
             negativePrompt: 'negative prompt',
             personGeneration: 'allow_all',
+            sampleImageSize: '2K',
             foo: 'bar',
           },
         },
@@ -320,6 +321,7 @@ describe('GoogleVertexImageModel', () => {
           negativePrompt: 'negative prompt',
           personGeneration: 'allow_all',
           aspectRatio: '16:9',
+          sampleImageSize: '2K',
         },
       });
     });
