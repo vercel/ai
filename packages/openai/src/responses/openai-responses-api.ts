@@ -103,9 +103,9 @@ export type OpenAIResponsesLocalShellCallOutput = {
   output: string;
 };
 
-/** 
+/**
  * Official OpenAI API Specifications: https://platform.openai.com/docs/api-reference/responses/object#responses-object-output-shell_tool_call
-*/
+ */
 export type OpenAIResponsesShellCall = {
   type: 'shell_call';
   id: string;
