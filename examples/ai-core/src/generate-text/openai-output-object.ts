@@ -29,14 +29,8 @@ async function main() {
     prompt: 'What is the weather in San Francisco?',
   });
 
-<<<<<<< HEAD
   // { location: 'San Francisco', temperature: 81 }
   console.log(experimental_output);
 }
 
 main().catch(console.error);
-=======
-  print('Output:', result.output);
-  print('Request:', result.request.body);
-});
->>>>>>> 4d04f4311 (feat(deepseek): rewrite DeepSeek provider (#10785))
