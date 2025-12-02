@@ -113,16 +113,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
 
     return {
       args: {
-        // model id:
         model: this.modelId,
-
-        // model specific settings:
-        thinking:
-          deepseekOptions.thinkingType != null
-            ? { type: deepseekOptions.thinkingType }
-            : undefined,
-
-        // standardized settings:
         max_tokens: maxOutputTokens,
         temperature,
         top_p: topP,
@@ -143,13 +134,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               : { type: 'json_object' }
             : undefined,
         stop: stopSequences,
-
-        // messages:
         messages,
-
-        // tools:
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
+        thinking:
+          deepseekOptions.thinkingType != null
+            ? { type: deepseekOptions.thinkingType }
+            : undefined,
       },
       warnings: [...warnings, ...toolWarnings],
     };
