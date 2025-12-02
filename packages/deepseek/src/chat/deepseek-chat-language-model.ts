@@ -138,8 +138,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
         thinking:
-          deepseekOptions.thinkingType != null
-            ? { type: deepseekOptions.thinkingType }
+          deepseekOptions.thinking?.type != null
+            ? { type: deepseekOptions.thinking.type }
             : undefined,
       },
       warnings: [...warnings, ...toolWarnings],

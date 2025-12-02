@@ -10,7 +10,11 @@ export const deepseekChatOptions = z.object({
   /**
    * Type of thinking to use. Defaults to `enabled`.
    */
-  thinkingType: z.enum(['enabled', 'disabled']).optional(),
+  thinking: z
+    .object({
+      type: z.enum(['enabled', 'disabled']).optional(),
+    })
+    .optional(),
 });
 
 export type DeepSeekChatOptions = z.infer<typeof deepseekChatOptions>;

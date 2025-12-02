@@ -4,3 +4,4 @@ export type {
   DeepSeekProviderSettings,
 } from './deepseek-provider';
 export { VERSION } from './version';
+export type { DeepSeekChatOptions } from './chat/deepseek-chat-options';
