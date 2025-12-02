@@ -202,5 +202,39 @@ describe('DeepSeekChatLanguageModel', () => {
         ).toMatchSnapshot();
       });
     });
+
+    describe('tool call', () => {
+      beforeEach(() => {
+        prepareChunksFixtureResponse('deepseek-tool-call');
+      });
+
+      it('should stream tool call', async () => {
+        const result = await provider.chat('deepseek-tool-call').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+                required: ['location'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'enabled' },
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
   });
 });

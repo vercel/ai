@@ -369,6 +369,15 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta.tool_calls != null) {
+              // end reasoning when tool calls start:
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;
 

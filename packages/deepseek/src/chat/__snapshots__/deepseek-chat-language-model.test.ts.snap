@@ -3420,3 +3420,303 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
   },
 ]
 `;
+
+exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool call 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "cca85624-4056-401f-b220-d77601d1f70d",
+    "modelId": "deepseek-reasoner",
+    "timestamp": 2025-12-02T08:36:08.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "reasoning-0",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "The",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " user",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " asking",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " for",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " in",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " San",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Francisco",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " need",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " use",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " get",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " this",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " information",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " me",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " invoke",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " with",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " location",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " parameter",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " set",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " "",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "San",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Francisco",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "".",
+    "id": "reasoning-0",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "reasoning-0",
+    "type": "reasoning-end",
+  },
+  {
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "toolName": "weather",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{",
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "location",
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ": ",
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "San",
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Francisco",
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}",
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco"}",
+    "toolCallId": "call_00_ioIn7yN9p1ZOMNpDLwd4MgAF",
+    "toolName": "weather",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "tool-calls",
+    "providerMetadata": {
+      "deepseek": {
+        "promptCacheHitTokens": 320,
+        "promptCacheMissTokens": 19,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 320,
+      "inputTokens": 339,
+      "outputTokens": 83,
+      "reasoningTokens": 39,
+      "totalTokens": 422,
+    },
+  },
+]
+`;
