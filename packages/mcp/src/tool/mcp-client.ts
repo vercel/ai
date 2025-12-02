@@ -51,6 +51,7 @@ import {
   ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
   ToolSchemas,
+  ToolMeta,
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
@@ -492,7 +493,7 @@ class DefaultMCPClient implements MCPClient {
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
-    const tools: Record<string, Tool> = {};
+    const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
 
     try {
       const listToolsResult = await this.listTools();
@@ -501,6 +502,7 @@ class DefaultMCPClient implements MCPClient {
         description,
         inputSchema,
         annotations,
+        _meta,
       } of listToolsResult.tools) {
         const title = annotations?.title;
         if (schemas !== 'automatic' && !(name in schemas)) {
@@ -536,7 +538,7 @@ class DefaultMCPClient implements MCPClient {
                 execute,
               });
 
-        tools[name] = toolWithExecute;
+        tools[name] = { ...toolWithExecute, _meta };
       }
 
       return tools as McpToolSet<TOOL_SCHEMAS>;
