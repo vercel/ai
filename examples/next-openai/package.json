@@ -46,6 +46,7 @@
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "valibot": "1.1.0",
+    "vercel": "^48.12.1",
     "zod": "3.25.76"
   },
   "devDependencies": {
