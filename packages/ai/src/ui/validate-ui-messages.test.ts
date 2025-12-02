@@ -35,7 +35,7 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: [].
-        Error message: [
+        Error message: Messages structure validation failed: [
           {
             "origin": "array",
             "code": "too_small",
@@ -61,7 +61,7 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"user","parts":[]}].
-        Error message: [
+        Error message: Messages structure validation failed: [
           {
             "origin": "array",
             "code": "too_small",
@@ -173,7 +173,7 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [
+        Error message: Metadata validation failed for message with ID "1": [
           {
             "expected": "string",
             "code": "invalid_type",
@@ -513,7 +513,7 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [
+        Error message: Data part "data-foo" validation failed for message with ID "1": [
           {
             "expected": "string",
             "code": "invalid_type",
@@ -1098,7 +1098,7 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
-        Error message: [
+        Error message: Tool "foo" input validation failed for message with ID "1": [
           {
             "expected": "string",
             "code": "invalid_type",
@@ -1136,7 +1136,7 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
         [AI_TypeValidationError: Type validation failed: Value: {"result":123}.
-        Error message: [
+        Error message: Tool "foo" output validation failed for message with ID "1": [
           {
             "expected": "string",
             "code": "invalid_type",
@@ -1201,6 +1201,144 @@ export function expectToBe<T extends boolean>(
 ): asserts value is T {
   expect(value).toBe(expected);
 }
+
+describe('improved error messages', () => {
+  it('should provide context for metadata validation errors', async () => {
+    const metadataSchema = z.object({
+      timestamp: z.string(),
+    });
+
+    await expect(
+      validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            metadata: { timestamp: 123 }, // number instead of string
+            parts: [{ type: 'text', text: 'Hello' }],
+          },
+        ],
+        metadataSchema,
+      }),
+    ).rejects.toThrowError(
+      /Metadata validation failed for message with ID "1"/,
+    );
+  });
+
+  it('should provide context for data part validation errors', async () => {
+    const dataSchemas = {
+      chart: z.object({
+        data: z.array(z.number()),
+      }),
+    };
+
+    await expect(
+      validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            parts: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'data-chart',
+                data: { data: ['not-a-number'] }, // string instead of number
+              },
+            ],
+          },
+        ],
+        dataSchemas,
+      }),
+    ).rejects.toThrowError(
+      /Data part "data-chart" validation failed for message with ID "1"/,
+    );
+  });
+
+  it('should provide context for tool input validation errors', async () => {
+    const testTool = {
+      inputSchema: z.object({
+        foo: z.string(),
+      }),
+      outputSchema: z.object({
+        result: z.boolean(),
+      }),
+    };
+
+    await expect(
+      validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'input-available',
+                input: { foo: 123 }, // number instead of string
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      }),
+    ).rejects.toThrowError(
+      /Tool "foo" input validation failed for message with ID "1"/,
+    );
+  });
+
+  it('should provide context for tool output validation errors', async () => {
+    const testTool = {
+      inputSchema: z.object({
+        foo: z.string(),
+      }),
+      outputSchema: z.object({
+        result: z.boolean(),
+      }),
+    };
+
+    await expect(
+      validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-available',
+                input: { foo: 'valid' },
+                output: { result: 'not-a-boolean' }, // string instead of boolean
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      }),
+    ).rejects.toThrowError(
+      /Tool "foo" output validation failed for message with ID "1"/,
+    );
+  });
+
+  it('should provide context for messages structure validation errors', async () => {
+    await expect(
+      validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'invalid-role', // invalid role
+            parts: [{ type: 'text', text: 'Hello' }],
+          },
+        ],
+      }),
+    ).rejects.toThrowError(/Messages structure validation failed/);
+  });
+});
 
 describe('safeValidateUIMessages', () => {
   it('should return success result for valid messages', async () => {
