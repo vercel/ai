@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/deepseek",
-  "version": "2.0.0-beta.42",
+  "version": "2.0.0-beta.43",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -33,11 +33,11 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",

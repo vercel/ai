@@ -1,4 +1,3 @@
-import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   LanguageModelV3,
   NoSuchModelError,
@@ -10,27 +9,30 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { DeepSeekChatModelId } from './deepseek-chat-options';
-import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
+import { DeepSeekChatModelId } from './chat/deepseek-chat-options';
+import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
 import { VERSION } from './version';
 
 export interface DeepSeekProviderSettings {
   /**
-DeepSeek API key.
-*/
+   * DeepSeek API key.
+   */
   apiKey?: string;
+
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
+
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
+
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
@@ -55,8 +57,9 @@ export function createDeepSeek(
   options: DeepSeekProviderSettings = {},
 ): DeepSeekProvider {
   const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.deepseek.com/v1',
+    options.baseURL ?? 'https://api.deepseek.com',
   );
+
   const getHeaders = () =>
     withUserAgentSuffix(
       {
@@ -70,38 +73,12 @@ export function createDeepSeek(
       `ai-sdk/deepseek/${VERSION}`,
     );
 
-  class DeepSeekChatLanguageModel extends OpenAICompatibleChatLanguageModel {
-    private addJsonInstruction<
-      T extends Parameters<LanguageModelV3['doGenerate']>[0],
-    >(opts: T): T {
-      if (opts.responseFormat?.type !== 'json') return opts;
-
-      const promptArray = Array.isArray(opts.prompt) ? opts.prompt : [];
-
-      const instruction = 'Return ONLY a valid JSON object.';
-      const adjustedPrompt = [
-        ...promptArray,
-        { role: 'user', content: [{ type: 'text', text: instruction }] },
-      ];
-      return { ...opts, prompt: adjustedPrompt } as T;
-    }
-
-    async doGenerate(options: Parameters<LanguageModelV3['doGenerate']>[0]) {
-      return super.doGenerate(this.addJsonInstruction(options));
-    }
-
-    async doStream(options: Parameters<LanguageModelV3['doStream']>[0]) {
-      return super.doStream(this.addJsonInstruction(options));
-    }
-  }
-
   const createLanguageModel = (modelId: DeepSeekChatModelId) => {
     return new DeepSeekChatLanguageModel(modelId, {
       provider: `deepseek.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      metadataExtractor: deepSeekMetadataExtractor,
     });
   };
 
