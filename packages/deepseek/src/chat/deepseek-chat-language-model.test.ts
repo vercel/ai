@@ -33,6 +33,35 @@ describe('DeepSeekChatLanguageModel', () => {
         prepareJsonFixtureResponse('deepseek-text');
       });
 
+      it('should send model id, settings, and input', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+          temperature: 0.5,
+          topP: 0.3,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "You are a helpful assistant.",
+                "role": "system",
+              },
+              {
+                "content": "Hello",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-chat",
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
+      });
+
       it('should extract text content', async () => {
         const result = await provider.chat('deepseek-chat').doGenerate({
           prompt: TEST_PROMPT,
