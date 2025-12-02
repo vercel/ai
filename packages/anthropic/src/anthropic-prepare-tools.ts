@@ -251,7 +251,7 @@ export async function prepareTools({
   }
 
   const advancedToolFeaturesWarnings =
-    handleAnthropicAdvancedToolUseFeaturesWarnings(anthropicTools, betas);
+    handleAnthropicAdvancedToolUseFeaturesWarnings(anthropicTools);
 
   if (advancedToolFeaturesWarnings.length > 0) {
     toolWarnings.push(...advancedToolFeaturesWarnings);

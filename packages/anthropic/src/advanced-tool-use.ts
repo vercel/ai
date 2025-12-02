@@ -66,7 +66,6 @@ export async function getAnthropicAdvancedToolUseFeaturesSupport(
 
 export const handleAnthropicAdvancedToolUseFeaturesWarnings = (
   anthropicTools: AnthropicTool[],
-  betas: Set<string>,
 ) => {
   const toolWarnings: SharedV3Warning[] = [];
 
@@ -85,24 +84,6 @@ export const handleAnthropicAdvancedToolUseFeaturesWarnings = (
       type: 'unsupported',
       feature: `tool`,
       details: `At least one tool has defer_loading set to true, but no tool search tool (tool_search_tool_bm25 or tool_search_tool_regex) is provided. A tool search tool is required when using deferred loading.`,
-    });
-  }
-
-  const anyToolUsesAdvancedToolUseFeature = anthropicTools.some(
-    t =>
-      ('defer_loading' in t && t.defer_loading === true) ||
-      ('allowed_callers' in t && (t.allowed_callers ?? [])?.length > 0) ||
-      ('input_examples' in t && (t.input_examples ?? [])?.length > 0),
-  );
-
-  if (
-    anyToolUsesAdvancedToolUseFeature &&
-    !betas.has('advanced-tool-use-2025-11-20')
-  ) {
-    toolWarnings.push({
-      type: 'unsupported',
-      feature: `tool`,
-      details: `At least one tool uses advanced tool use features (defer_loading, allowed_callers, or input_examples), but the required beta header 'advanced-tool-use-2025-11-20' is not enabled.`,
     });
   }
 

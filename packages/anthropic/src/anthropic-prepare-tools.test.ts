@@ -524,11 +524,6 @@ describe('prepareTools', () => {
               "feature": "tool",
               "type": "unsupported",
             },
-            {
-              "details": "At least one tool uses advanced tool use features (defer_loading, allowed_callers, or input_examples), but the required beta header 'advanced-tool-use-2025-11-20' is not enabled.",
-              "feature": "tool",
-              "type": "unsupported",
-            },
           ],
           "tools": [
             {
