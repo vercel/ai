@@ -65,7 +65,7 @@ export function prepareTools({
   > = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
+    if (tool.type === 'provider') {
       if (tool.id === 'groq.browser_search') {
         if (!isBrowserSearchSupportedModel(modelId)) {
           toolWarnings.push({

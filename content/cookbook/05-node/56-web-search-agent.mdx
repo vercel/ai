@@ -193,6 +193,39 @@ const { text } = await generateText({
 console.log(text);
 ```
 
+#### Tavily
+
+<Note>
+  Get your API key from the [Tavily Dashboard](https://app.tavily.com).
+</Note>
+
+First, install the `tavilySearch` tool:
+
+```bash
+pnpm install @tavily/ai-sdk
+```
+
+Then, you can import and pass it into `generateText`, `streamText`, or your agent:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { tavilySearch, tavilyExtract } from '@tavily/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'When was the latest update to the AI SDK?',
+  tools: {
+    webSearch: tavilySearch(),
+    webExtract: tavilyExtract(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+For more customization options over your agent's web-access functionality, visit the [Tavily AI SDK Documentation](https://docs.tavily.com/documentation/integrations/vercel).
+
 ### Build and use custom tools
 
 For more control over your web search functionality, you can build custom tools using web scraping and crawling APIs. This approach allows you to customize search parameters, handle specific data formats, and integrate with specialized search services.

@@ -13,7 +13,7 @@ const agent = new ToolLoopAgent({
     reasoningEffort: z.enum(['low', 'medium', 'high']),
   }),
   tools: {
-    web_search: openai.tools.webSearch(),
+    webSearch: openai.tools.webSearch(),
   },
   prepareCall: ({ options, ...rest }) => ({
     ...rest,
@@ -25,7 +25,7 @@ const agent = new ToolLoopAgent({
       } satisfies OpenAIResponsesProviderOptions,
     },
     tools: {
-      web_search: openai.tools.webSearch({
+      webSearch: openai.tools.webSearch({
         searchContextSize: 'low',
         userLocation: {
           type: 'approximate',

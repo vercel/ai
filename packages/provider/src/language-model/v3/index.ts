@@ -6,7 +6,7 @@ export * from './language-model-v3-file';
 export * from './language-model-v3-finish-reason';
 export * from './language-model-v3-function-tool';
 export * from './language-model-v3-prompt';
-export * from './language-model-v3-provider-defined-tool';
+export * from './language-model-v3-provider-tool';
 export * from './language-model-v3-reasoning';
 export * from './language-model-v3-response-metadata';
 export * from './language-model-v3-source';

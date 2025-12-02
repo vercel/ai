@@ -4,7 +4,10 @@ import { CacheControlValidator } from './get-cache-control';
 
 describe('prepareTools', () => {
   it('should return undefined tools and tool_choice when tools are null', async () => {
-    const result = await prepareTools({ tools: undefined });
+    const result = await prepareTools({
+      tools: undefined,
+      toolChoice: undefined,
+    });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -14,7 +17,7 @@ describe('prepareTools', () => {
   });
 
   it('should return undefined tools and tool_choice when tools are empty', async () => {
-    const result = await prepareTools({ tools: [] });
+    const result = await prepareTools({ tools: [], toolChoice: undefined });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -33,6 +36,7 @@ describe('prepareTools', () => {
           inputSchema: { type: 'object', properties: {} },
         },
       ],
+      toolChoice: undefined,
     });
     expect(result.tools).toEqual([
       {
@@ -51,7 +55,7 @@ describe('prepareTools', () => {
         const result = await prepareTools({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.computer_20241022',
               name: 'computer',
               args: {
@@ -61,6 +65,7 @@ describe('prepareTools', () => {
               },
             },
           ],
+          toolChoice: undefined,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -90,12 +95,13 @@ describe('prepareTools', () => {
         const result = await prepareTools({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.text_editor_20241022',
               name: 'text_editor',
               args: {},
             },
           ],
+          toolChoice: undefined,
         });
         expect(result).toMatchInlineSnapshot(`
           {
@@ -120,12 +126,13 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.bash_20241022',
             name: 'bash',
             args: {},
           },
         ],
+        toolChoice: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -150,12 +157,13 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.text_editor_20250728',
             name: 'str_replace_based_edit_tool',
             args: { maxCharacters: 10000 },
           },
         ],
+        toolChoice: undefined,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -178,12 +186,13 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.text_editor_20250728',
             name: 'str_replace_based_edit_tool',
             args: {},
           },
         ],
+        toolChoice: undefined,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -206,7 +215,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.web_search_20250305',
             name: 'web_search',
             args: {
@@ -216,6 +225,7 @@ describe('prepareTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -246,7 +256,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.web_fetch_20250910',
             name: 'web_fetch',
             args: {
@@ -257,6 +267,7 @@ describe('prepareTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -291,12 +302,13 @@ describe('prepareTools', () => {
     const result = await prepareTools({
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'unsupported.tool',
           name: 'unsupported_tool',
           args: {},
         },
       ],
+      toolChoice: undefined,
     });
     expect(result.tools).toEqual([]);
     expect(result.toolChoice).toBeUndefined();
@@ -386,6 +398,7 @@ describe('prepareTools', () => {
           },
         },
       ],
+      toolChoice: undefined,
     });
 
     expect(result.tools).toMatchInlineSnapshot(`
@@ -452,6 +465,7 @@ describe('prepareTools', () => {
           },
         },
       ],
+      toolChoice: undefined,
       cacheControlValidator,
     });
 
