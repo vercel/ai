@@ -19,4 +19,3 @@ export function logV2CompatibilityWarning({
     model: modelId,
   });
 }
-
