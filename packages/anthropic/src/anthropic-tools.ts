@@ -9,6 +9,8 @@ import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { textEditor_20250728 } from './tool/text-editor_20250728';
+import { toolSearchToolBm25_20251119 } from './tool/tool_search_tool_bm25_20251119';
+import { toolSearchToolRegex_20251119 } from './tool/tool_search_tool_regex_20251119';
 import { webFetch_20250910 } from './tool/web-fetch-20250910';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 
@@ -173,4 +175,16 @@ export const anthropicTools = {
    * @param userLocation - Optional user location information to provide geographically relevant search results.
    */
   webSearch_20250305,
+  /**
+   * Claude constructs regex patterns to search for tools
+   *
+   * Tool name must be `tool_search_tool_regex`.
+   */
+  toolSearchToolRegex_20251119,
+  /**
+   * Claude uses natural language queries to search for tools
+   *
+   * Tool name must be `tool_search_tool_bm25`.
+   */
+  toolSearchToolBm25_20251119,
 };

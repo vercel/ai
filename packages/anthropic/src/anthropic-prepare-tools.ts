@@ -9,6 +9,10 @@ import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import {
+  getAnthropicAdvancedToolUseFeaturesSupport,
+  handleAnthropicAdvancedToolUseFeaturesWarnings,
+} from './advanced-tool-use';
 
 export async function prepareTools({
   tools,
@@ -47,11 +51,17 @@ export async function prepareTools({
           canCache: true,
         });
 
+        const advancedToolFeatures =
+          await getAnthropicAdvancedToolUseFeaturesSupport(
+            tool.providerOptions,
+          );
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          ...advancedToolFeatures,
         });
         break;
       }
@@ -203,6 +213,22 @@ export async function prepareTools({
             break;
           }
 
+          case 'anthropic.tool_search_tool_regex_20251119': {
+            anthropicTools.push({
+              type: 'tool_search_tool_regex_20251119',
+              name: 'tool_search_tool_regex',
+            });
+            break;
+          }
+
+          case 'anthropic.tool_search_tool_bm25_20251119': {
+            anthropicTools.push({
+              type: 'tool_search_tool_bm25_20251119',
+              name: 'tool_search_tool_bm25',
+            });
+            break;
+          }
+
           default: {
             toolWarnings.push({
               type: 'unsupported',
@@ -222,6 +248,13 @@ export async function prepareTools({
         break;
       }
     }
+  }
+
+  const advancedToolFeaturesWarnings =
+    handleAnthropicAdvancedToolUseFeaturesWarnings(anthropicTools, betas);
+
+  if (advancedToolFeaturesWarnings.length > 0) {
+    toolWarnings.push(...advancedToolFeaturesWarnings);
   }
 
   if (toolChoice == null) {
