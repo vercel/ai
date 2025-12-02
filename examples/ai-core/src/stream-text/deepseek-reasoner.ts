@@ -1,7 +1,7 @@
 import { deepseek, DeepSeekChatOptions } from '@ai-sdk/deepseek';
 import { streamText } from 'ai';
+import { printFullStream } from '../lib/print-full-stream';
 import { run } from '../lib/run';
-import { saveRawChunks } from '../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
@@ -12,8 +12,7 @@ run(async () => {
         thinking: { type: 'enabled' },
       } satisfies DeepSeekChatOptions,
     },
-    includeRawChunks: true,
   });
 
-  await saveRawChunks({ result, filename: 'deepseek-reasoner' });
+  printFullStream({ result });
 });
