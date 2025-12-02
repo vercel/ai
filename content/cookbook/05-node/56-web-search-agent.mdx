@@ -130,7 +130,7 @@ Unlike the native web search examples where searching is built into the model, u
 
 ### Use ready-made tools
 
-If you prefer a ready-to-use web search tool without building one from scratch, [Exa](https://exa.ai/)(a web search API designed for AI applications) provides a tool that integrates directly with the AI SDK.
+If you prefer a ready-to-use web search tool without building one from scratch, there are several options that integrate directly with the AI SDK.
 
 #### Exa
 
@@ -192,6 +192,40 @@ const { text } = await generateText({
 
 console.log(text);
 ```
+
+#### Perplexity Search
+
+<Note>
+  Get your API key from the [Perplexity API Keys
+  page](https://www.perplexity.ai/account/api/keys).
+</Note>
+
+First, install the Perplexity Search tool:
+
+```bash
+pnpm install @perplexity-ai/ai-sdk
+```
+
+Then, you can import and pass it into `generateText`, `streamText`, or your agent. Perplexity Search provides real-time web search with advanced filtering options including domain, language, date range, and recency filters:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { perplexitySearch } from '@perplexity-ai/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5',
+  prompt:
+    'What are the latest AI developments? Use search to find current information.',
+  tools: {
+    search: perplexitySearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+For more configuration options and customization, see the [Perplexity Search API documentation](https://docs.perplexity.ai/guides/search-quickstart).
 
 #### Tavily
 
