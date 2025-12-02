@@ -249,11 +249,11 @@ console.log(text);`,
       bun: 'bun add @shellifyai/shell-tool',
     },
     codeExample: `import { generateText, stepCountIs } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { gateway } from '@ai-sdk/gateway';
 import { shellifyTool } from '@shellifyai/shell-tool';
 
 const { text } = await generateText({
-  model: openai('gpt-5.1'),
+  model: gateway('anthropic/claude-sonnet-4-5'),
   prompt: 'Create a Python script that analyzes CSV data and generates a chart',
   tools: {
     shell: shellifyTool(),
