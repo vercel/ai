@@ -13,19 +13,10 @@ async function main() {
 
   await presentImages(result.images);
 
-<<<<<<< HEAD
-  console.log({
-    prompt,
-    revisedPrompt,
-  });
-
-  await presentImages([result.image]);
-=======
   console.log(
     'Provider metadata:',
     JSON.stringify(result.providerMetadata, null, 2),
   );
->>>>>>> 88edc2808 (feat (provider/openai): include more image generation response metadata (#10698))
 }
 
 main().catch(console.error);

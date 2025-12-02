@@ -13,8 +13,6 @@ export const openaiImageResponseSchema = lazyValidator(() =>
           revised_prompt: z.string().nullish(),
         }),
       ),
-<<<<<<< HEAD
-=======
       background: z.string().nullish(),
       output_format: z.string().nullish(),
       size: z.string().nullish(),
@@ -32,7 +30,6 @@ export const openaiImageResponseSchema = lazyValidator(() =>
             .nullish(),
         })
         .nullish(),
->>>>>>> 88edc2808 (feat (provider/openai): include more image generation response metadata (#10698))
     }),
   ),
 );

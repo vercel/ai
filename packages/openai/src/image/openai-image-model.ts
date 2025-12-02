@@ -101,11 +101,15 @@ export class OpenAIImageModel implements ImageModelV2 {
             ...(item.revised_prompt
               ? { revisedPrompt: item.revised_prompt }
               : {}),
-            created: response.created ?? undefined,
-            size: response.size ?? undefined,
-            quality: response.quality ?? undefined,
-            background: response.background ?? undefined,
-            outputFormat: response.output_format ?? undefined,
+            ...(response.created != null ? { created: response.created } : {}),
+            ...(response.size != null ? { size: response.size } : {}),
+            ...(response.quality != null ? { quality: response.quality } : {}),
+            ...(response.background != null
+              ? { background: response.background }
+              : {}),
+            ...(response.output_format != null
+              ? { outputFormat: response.output_format }
+              : {}),
           })),
         },
       },
