@@ -10,9 +10,10 @@ export function mapDeepSeekFinishReason(
       return 'length';
     case 'content_filter':
       return 'content-filter';
-    case 'function_call':
     case 'tool_calls':
       return 'tool-calls';
+    case 'insufficient_system_resource':
+      return 'error';
     default:
       return 'unknown';
   }
