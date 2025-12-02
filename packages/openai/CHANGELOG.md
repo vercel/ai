@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 2c0a758: chore(openai): add JSDoc to responses options
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- d270a5d: chore(openai): update tests for apply-patch tool to use snapshots
+
 ## 3.0.0-beta.76
 
 ### Patch Changes

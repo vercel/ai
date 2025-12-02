@@ -27,7 +27,7 @@
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
-    "@ai-sdk/openai": "3.0.0-beta.76",
+    "@ai-sdk/openai": "3.0.0-beta.78",
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
