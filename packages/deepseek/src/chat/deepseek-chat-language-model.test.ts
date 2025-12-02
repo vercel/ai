@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { DeepSeekChatOptions } from './deepseek-chat-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -59,6 +60,56 @@ describe('DeepSeekChatLanguageModel', () => {
             "model": "deepseek-chat",
             "temperature": 0.5,
             "top_p": 0.3,
+          }
+        `);
+      });
+
+      it('should extract text content', async () => {
+        const result = await provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result).toMatchSnapshot();
+      });
+    });
+
+    describe('reasoning', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-reasoning');
+      });
+
+      it('should send model id, settings, and input', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'How many "r"s are in the word "strawberry"?',
+                },
+              ],
+            },
+          ],
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'enabled' },
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "How many "r"s are in the word "strawberry"?",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-reasoner",
+            "thinking": {
+              "type": "enabled",
+            },
           }
         `);
       });
