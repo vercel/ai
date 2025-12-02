@@ -240,7 +240,7 @@ console.log(text);`,
     description:
       'Secure shell execution and AI agent orchestration for complex tasks. Execute commands in isolated sandboxes, or delegate to AI agents (OpenAI Codex, Claude Code) that autonomously write code, install packages, and iterate until tasks are complete. Perfect for multi-step workflows, data analysis, and code generation.',
     packageName: '@shellifyai/shell-tool',
-    tags: ['code-execution', 'sandbox', 'shell', 'agents'],
+    tags: ['code-execution', 'sandbox', 'shell'],
     apiKeyEnvName: 'SHELLIFYAI_API_KEY',
     installCommand: {
       pnpm: 'pnpm install @shellifyai/shell-tool',
