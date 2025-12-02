@@ -87,6 +87,12 @@ export async function prepareResponsesTools({
             });
             break;
           }
+          case 'openai.shell': {
+            openaiTools.push({
+              type: 'shell',
+            });
+            break;
+          }
           case 'openai.apply_patch': {
             openaiTools.push({
               type: 'apply_patch',
