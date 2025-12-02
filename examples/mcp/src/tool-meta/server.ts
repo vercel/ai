@@ -6,7 +6,7 @@ import { z } from 'zod';
 const app = express();
 app.use(express.json());
 
-const WEATHER_WIDGET_URI = "ui://widgets/weather.html";
+const WEATHER_WIDGET_URI = 'ui://widgets/weather.html';
 
 const mcpServer = new McpServer(
   {
@@ -19,7 +19,6 @@ const mcpServer = new McpServer(
     },
   },
 );
-
 
 mcpServer.registerTool(
   'get-weather',
@@ -44,19 +43,23 @@ mcpServer.registerTool(
   },
 );
 
-mcpServer.registerResource('weather-widget', WEATHER_WIDGET_URI, {
-}, async () => {
-  return {
-    contents: [
-      {
-        uri: "ui://widgets/weather.html",
-        mimeType: 'text/html+skybridge',
-        text: `<div>Weather widget</div>`
-      },
-    ],
-    _meta: {},
-  };
-});
+mcpServer.registerResource(
+  'weather-widget',
+  WEATHER_WIDGET_URI,
+  {},
+  async () => {
+    return {
+      contents: [
+        {
+          uri: 'ui://widgets/weather.html',
+          mimeType: 'text/html+skybridge',
+          text: `<div>Weather widget</div>`,
+        },
+      ],
+      _meta: {},
+    };
+  },
+);
 
 mcpServer.registerTool(
   'get-time',
@@ -77,7 +80,6 @@ mcpServer.registerTool(
 );
 
 app.post('/mcp', async (req, res) => {
-
   try {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
