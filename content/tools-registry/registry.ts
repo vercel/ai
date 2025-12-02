@@ -266,4 +266,37 @@ console.log(text);`,
     websiteUrl: 'https://superagent.sh',
     npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
   },
+  {
+    slug: 'shellifyai',
+    name: 'ShellifyAI',
+    description:
+      'Secure shell execution and AI agent orchestration for complex tasks. Execute commands in isolated sandboxes, or delegate to AI agents (OpenAI Codex, Claude Code) that autonomously write code, install packages, and iterate until tasks are complete. Perfect for multi-step workflows, data analysis, and code generation.',
+    packageName: '@shellifyai/shell-tool',
+    tags: ['code-execution', 'sandbox', 'shell'],
+    apiKeyEnvName: 'SHELLIFYAI_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @shellifyai/shell-tool',
+      npm: 'npm install @shellifyai/shell-tool',
+      yarn: 'yarn add @shellifyai/shell-tool',
+      bun: 'bun add @shellifyai/shell-tool',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
+import { shellifyTool } from '@shellifyai/shell-tool';
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4-5'),
+  prompt: 'Create a Python script that analyzes CSV data and generates a chart',
+  tools: {
+    shell: shellifyTool(),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://shellifyai.com/docs',
+    apiKeyUrl: 'https://shellifyai.com/dashboard/projects',
+    websiteUrl: 'https://shellifyai.com',
+    npmUrl: 'https://www.npmjs.com/package/@shellifyai/shell-tool',
+  },
 ];
