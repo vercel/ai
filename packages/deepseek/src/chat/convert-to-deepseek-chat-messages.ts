@@ -37,7 +37,7 @@ export function convertToDeepSeekChatMessages(prompt: LanguageModelV3Prompt): {
       }
       case 'assistant': {
         let text = '';
-        let reasoning = '';
+        let reasoning: string | undefined;
 
         const toolCalls: Array<{
           id: string;
@@ -52,7 +52,11 @@ export function convertToDeepSeekChatMessages(prompt: LanguageModelV3Prompt): {
               break;
             }
             case 'reasoning': {
-              reasoning += part.text;
+              if (reasoning == null) {
+                reasoning = part.text;
+              } else {
+                reasoning += part.text;
+              }
               break;
             }
             case 'tool-call': {
