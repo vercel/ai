@@ -98,6 +98,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
+    if (seed != null) {
+      warnings.push({ type: 'unsupported', feature: 'seed' });
+    }
+
     const {
       tools: deepseekTools,
       toolChoice: deepseekToolChoices,
@@ -139,7 +143,6 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               : { type: 'json_object' }
             : undefined,
 
-        stop: stopSequences,
         seed,
 
         // messages:
