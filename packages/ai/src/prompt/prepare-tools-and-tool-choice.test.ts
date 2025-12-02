@@ -14,17 +14,16 @@ const mockTools = {
   }),
 };
 
-const mockProviderDefinedTool: Tool = {
-  type: 'provider-defined',
+const mockProviderTool: Tool = {
+  type: 'provider',
   id: 'provider.tool-id',
-  name: 'tool-id',
   args: { key: 'value' },
   inputSchema: z.object({}),
 };
 
 const mockToolsWithProviderDefined = {
   ...mockTools,
-  providerTool: mockProviderDefinedTool,
+  providerTool: mockProviderTool,
 };
 
 describe('prepareToolsAndToolChoice', () => {
@@ -320,7 +319,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "id": "provider.tool-id",
             "name": "providerTool",
-            "type": "provider-defined",
+            "type": "provider",
           },
         ],
       }

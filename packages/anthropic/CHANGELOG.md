@@ -1,5 +1,47 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- f13958c: chore(antropic): allow custom names for provider-defined tools
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- 589a4ee: fix(anthropic): simplify pulling first chunk
+
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 9e35785: fix(anthropic): send {} as tool input when streaming tool calls without arguments
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- eb56fc6: fix(anthropic): pull first chunk without async IIFE
+
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+
 ## 3.0.0-beta.64
 
 ### Patch Changes

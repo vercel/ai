@@ -1,8 +1,8 @@
-import { JSONValue, LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
+import { JSONValue } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
+import { ToolResultOutput } from './content-part';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
-import { ToolResultOutput } from './content-part';
 
 /**
  * Additional options that are sent into each tool call.
@@ -189,17 +189,12 @@ The types of input and output are not known at development time.
         /**
 Tool with provider-defined input and output schemas.
      */
-        type: 'provider-defined';
+        type: 'provider';
 
         /**
-The ID of the tool. Should follow the format `<provider-name>.<unique-tool-name>`.
+The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
    */
         id: `${string}.${string}`;
-
-        /**
-The name of the tool that the user must use in the tool set.
- */
-        name: string;
 
         /**
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.

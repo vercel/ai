@@ -1,5 +1,52 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [f13958c]
+  - @ai-sdk/anthropic@3.0.0-beta.70
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [589a4ee]
+  - @ai-sdk/anthropic@3.0.0-beta.69
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [9e35785]
+  - @ai-sdk/anthropic@3.0.0-beta.68
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [eb56fc6]
+  - @ai-sdk/anthropic@3.0.0-beta.67
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/anthropic@3.0.0-beta.66
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 4.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/anthropic@3.0.0-beta.65
+  - @ai-sdk/provider@3.0.0-beta.21
+
 ## 4.0.0-beta.72
 
 ### Patch Changes

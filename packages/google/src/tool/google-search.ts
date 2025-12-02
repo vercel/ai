@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactory,
+  createProviderToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -9,7 +9,7 @@ import { z } from 'zod/v4';
 // https://ai.google.dev/api/generate-content#GroundingSupport
 // https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-search
 
-export const googleSearch = createProviderDefinedToolFactory<
+export const googleSearch = createProviderToolFactory<
   {},
   {
     /**
@@ -27,7 +27,6 @@ export const googleSearch = createProviderDefinedToolFactory<
   }
 >({
   id: 'google.google_search',
-  name: 'google_search',
   inputSchema: lazySchema(() =>
     zodSchema(
       z.object({

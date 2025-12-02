@@ -17,7 +17,7 @@ export async function prepareTools({
   cacheControlValidator,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
   disableParallelToolUse?: boolean;
   cacheControlValidator?: CacheControlValidator;
 }): Promise<{
@@ -56,7 +56,7 @@ export async function prepareTools({
         break;
       }
 
-      case 'provider-defined': {
+      case 'provider': {
         // Note: Provider-defined tools don't currently support providerOptions in the SDK,
         // so cache_control cannot be set on them. The Anthropic API supports caching all tools,
         // but the SDK would need to be updated to expose providerOptions on provider-defined tools.

@@ -1,5 +1,45 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [88edc28]
+  - @ai-sdk/openai@3.0.0-beta.76
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [73d9883]
+  - @ai-sdk/openai@3.0.0-beta.75
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [88fc415]
+  - @ai-sdk/openai@3.0.0-beta.74
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+  - @ai-sdk/openai@3.0.0-beta.73
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/openai@3.0.0-beta.72
+
 ## 3.0.0-beta.73
 
 ### Patch Changes
