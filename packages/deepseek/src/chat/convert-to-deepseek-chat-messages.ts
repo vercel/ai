@@ -1,16 +1,30 @@
-import { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  LanguageModelV3CallOptions,
+  LanguageModelV3Prompt,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 
 export function convertToDeepSeekChatMessages({
   prompt,
+  responseFormat,
 }: {
   prompt: LanguageModelV3Prompt;
+  responseFormat: LanguageModelV3CallOptions['responseFormat'];
 }): {
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV3Warning>;
 } {
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV3Warning> = [];
+
+  // Inject system message if response format is JSON
+  if (responseFormat?.type === 'json') {
+    messages.push({
+      role: 'system',
+      content: 'Return ONLY a valid JSON object.',
+    });
+  }
 
   // TODO use findLastIndex once we use ES2023
   let lastUserMessageIndex = -1;

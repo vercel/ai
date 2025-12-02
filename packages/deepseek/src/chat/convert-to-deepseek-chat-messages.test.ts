@@ -11,6 +11,7 @@ describe('convertToDeepSeekChatMessages', () => {
             content: [{ type: 'text', text: 'Hello' }],
           },
         ],
+        responseFormat: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -41,6 +42,7 @@ describe('convertToDeepSeekChatMessages', () => {
             ],
           },
         ],
+        responseFormat: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -89,6 +91,7 @@ describe('convertToDeepSeekChatMessages', () => {
             ],
           },
         ],
+        responseFormat: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -146,6 +149,7 @@ describe('convertToDeepSeekChatMessages', () => {
             ],
           },
         ],
+        responseFormat: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -211,6 +215,7 @@ describe('convertToDeepSeekChatMessages', () => {
             ],
           },
         ],
+        responseFormat: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -284,6 +289,7 @@ describe('convertToDeepSeekChatMessages', () => {
             content: [{ type: 'text', text: 'Goodbye' }],
           },
         ],
+        responseFormat: undefined,
       });
 
       expect(result).toMatchInlineSnapshot(`
