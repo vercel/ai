@@ -50,11 +50,6 @@ export const deepSeekMetadataExtractor: MetadataExtractor = {
   },
 };
 
-const deepSeekUsageSchema = z.object({
-  prompt_cache_hit_tokens: z.number().nullish(),
-  prompt_cache_miss_tokens: z.number().nullish(),
-});
-
 const deepSeekResponseSchema = z.object({
   usage: deepSeekUsageSchema.nullish(),
 });
