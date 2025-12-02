@@ -72,10 +72,10 @@ describe('AnthropicMessagesLanguageModel', () => {
     }: {
       content?: Array<
         | {
-          type: 'text';
-          text: string;
-          citations?: Array<Citation>;
-        }
+            type: 'text';
+            text: string;
+            citations?: Array<Citation>;
+          }
         | { type: 'thinking'; thinking: string; signature: string }
         | { type: 'tool_use'; id: string; name: string; input: unknown }
       >;
@@ -4304,9 +4304,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],` +
-          `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
-          // send cache output tokens:
-          `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}      }\n\n`,
+            `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
+            // send cache output tokens:
+            `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}      }\n\n`,
           `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
           `data: {"type": "ping"}\n\n`,
           `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${'Hello'}"}              }\n\n`,
@@ -4379,9 +4379,9 @@ describe('AnthropicMessagesLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],` +
-          `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
-          // send cache output tokens:
-          `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":10}}}}\n\n`,
+            `"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":` +
+            // send cache output tokens:
+            `{"input_tokens":17,"output_tokens":1,"cache_creation_input_tokens":10,"cache_read_input_tokens":5,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":10}}}}\n\n`,
           `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
           `data: {"type": "ping"}\n\n`,
           `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${'Hello'}"}              }\n\n`,
