@@ -119,6 +119,38 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
   },
   {
+    slug: 'tavily',
+    name: 'Tavily',
+    description:
+      'Tavily is a web intelligence platform offering real-time web search optimized for AI applications. Tavily provides comprehensive web research capabilities including search, content extraction, website crawling, and site mapping to power AI agents with current information.',
+    packageName: '@tavily/ai-sdk',
+    tags: ['search', 'extract', 'crawl'],
+    apiKeyEnvName: 'TAVILY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @tavily/ai-sdk',
+      npm: 'npm install @tavily/ai-sdk',
+      yarn: 'yarn add @tavily/ai-sdk',
+      bun: 'bun add @tavily/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { tavilySearch } from '@tavily/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('google/gemini-3-pro-preview'),
+  prompt: 'What are the latest developments in agentic search?',
+  tools: {
+    webSearch: tavilySearch,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.tavily.com/documentation/integrations/vercel',
+    apiKeyUrl: 'https://app.tavily.com/home',
+    websiteUrl: 'https://tavily.com',
+    npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
+  },
+  {
     slug: 'firecrawl',
     name: 'Firecrawl',
     description:
