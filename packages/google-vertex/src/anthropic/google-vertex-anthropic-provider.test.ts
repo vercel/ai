@@ -13,8 +13,8 @@ vi.mock('@ai-sdk/provider-utils', () => ({
     .mockImplementation(({ settingValue }) => settingValue),
   withoutTrailingSlash: vi.fn().mockImplementation(url => url),
   createJsonErrorResponseHandler: vi.fn(),
-  createProviderDefinedToolFactory: vi.fn(),
-  createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+  createProviderToolFactory: vi.fn(),
+  createProviderToolFactoryWithOutputSchema: vi.fn(),
   lazySchema: vi.fn(),
   zodSchema: vi.fn(),
 }));
@@ -82,7 +82,7 @@ describe('google-vertex-anthropic-provider', () => {
   it('should throw NoSuchModelError for textEmbeddingModel', () => {
     const provider = createVertexAnthropic({ project: 'test-project' });
 
-    expect(() => provider.textEmbeddingModel('invalid-model-id')).toThrow(
+    expect(() => provider.embeddingModel('invalid-model-id')).toThrow(
       NoSuchModelError,
     );
   });

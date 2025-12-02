@@ -4,7 +4,6 @@ import { it, expect } from 'vitest';
 it('should return undefined tools and toolChoice when tools are null', () => {
   const result = prepareChatTools({
     tools: undefined,
-    structuredOutputs: false,
     strictJsonSchema: false,
   });
 
@@ -18,7 +17,6 @@ it('should return undefined tools and toolChoice when tools are null', () => {
 it('should return undefined tools and toolChoice when tools are empty', () => {
   const result = prepareChatTools({
     tools: [],
-    structuredOutputs: false,
     strictJsonSchema: false,
   });
 
@@ -39,7 +37,6 @@ it('should correctly prepare function tools', () => {
         inputSchema: { type: 'object', properties: {} },
       },
     ],
-    structuredOutputs: false,
     strictJsonSchema: false,
   });
 
@@ -50,7 +47,7 @@ it('should correctly prepare function tools', () => {
         name: 'testFunction',
         description: 'A test function',
         parameters: { type: 'object', properties: {} },
-        strict: undefined,
+        strict: false,
       },
     },
   ]);
@@ -62,13 +59,12 @@ it('should add warnings for unsupported tools', () => {
   const result = prepareChatTools({
     tools: [
       {
-        type: 'provider-defined',
+        type: 'provider',
         id: 'openai.unsupported_tool',
         name: 'unsupported_tool',
         args: {},
       },
     ],
-    structuredOutputs: false,
     strictJsonSchema: false,
   });
 
@@ -77,13 +73,8 @@ it('should add warnings for unsupported tools', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "tool": {
-          "args": {},
-          "id": "openai.unsupported_tool",
-          "name": "unsupported_tool",
-          "type": "provider-defined",
-        },
-        "type": "unsupported-tool",
+        "feature": "tool type: provider",
+        "type": "unsupported",
       },
     ]
   `);
@@ -100,7 +91,6 @@ it('should handle tool choice "auto"', () => {
       },
     ],
     toolChoice: { type: 'auto' },
-    structuredOutputs: false,
     strictJsonSchema: false,
   });
   expect(result.toolChoice).toEqual('auto');
@@ -117,7 +107,6 @@ it('should handle tool choice "required"', () => {
       },
     ],
     toolChoice: { type: 'required' },
-    structuredOutputs: false,
     strictJsonSchema: false,
   });
   expect(result.toolChoice).toEqual('required');
@@ -134,7 +123,6 @@ it('should handle tool choice "none"', () => {
       },
     ],
     toolChoice: { type: 'none' },
-    structuredOutputs: false,
     strictJsonSchema: false,
   });
   expect(result.toolChoice).toEqual('none');
@@ -151,7 +139,6 @@ it('should handle tool choice "tool"', () => {
       },
     ],
     toolChoice: { type: 'tool', toolName: 'testFunction' },
-    structuredOutputs: false,
     strictJsonSchema: false,
   });
   expect(result.toolChoice).toEqual({

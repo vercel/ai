@@ -1,7 +1,7 @@
 import {
   JSONObject,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3Reasoning,
@@ -69,7 +69,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     providerOptions,
   }: Parameters<LanguageModelV3['doGenerate']>[0]): Promise<{
     command: BedrockConverseInput;
-    warnings: LanguageModelV3CallWarning[];
+    warnings: SharedV3Warning[];
     usesJsonResponseTool: boolean;
     betas: Set<string>;
   }> {
@@ -81,40 +81,40 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         schema: bedrockProviderOptions,
       })) ?? {};
 
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
       });
     }
 
     if (presencePenalty != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
+        type: 'unsupported',
+        feature: 'presencePenalty',
       });
     }
 
     if (seed != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
+        type: 'unsupported',
+        feature: 'seed',
       });
     }
 
     if (temperature != null && temperature > 1) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'temperature',
+        type: 'unsupported',
+        feature: 'temperature',
         details: `${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
       });
       temperature = 1;
     } else if (temperature != null && temperature < 0) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'temperature',
+        type: 'unsupported',
+        feature: 'temperature',
         details: `${temperature} is below bedrock minimum of 0. clamped to 0`,
       });
       temperature = 0;
@@ -126,8 +126,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       responseFormat.type !== 'json'
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details: 'Only text and json response formats are supported.',
       });
     }
@@ -205,8 +205,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     if (isThinking && inferenceConfig.temperature != null) {
       delete inferenceConfig.temperature;
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'temperature',
+        type: 'unsupported',
+        feature: 'temperature',
         details: 'temperature is not supported when thinking is enabled',
       });
     }
@@ -215,8 +215,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     if (isThinking && inferenceConfig.topP != null) {
       delete inferenceConfig.topP;
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topP',
+        type: 'unsupported',
+        feature: 'topP',
         details: 'topP is not supported when thinking is enabled',
       });
     }
@@ -224,8 +224,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     if (isThinking && inferenceConfig.topK != null) {
       delete inferenceConfig.topK;
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
+        type: 'unsupported',
+        feature: 'topK',
         details: 'topK is not supported when thinking is enabled',
       });
     }
@@ -262,8 +262,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           ) as typeof prompt;
 
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'toolContent',
+          type: 'unsupported',
+          feature: 'toolContent',
           details:
             'Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.',
         });

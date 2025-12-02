@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { generateText, stepCountIs } from 'ai';
-import { experimental_createMCPClient } from '@ai-sdk/mcp';
+import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -19,7 +19,7 @@ async function main() {
       },
     });
 
-    mcpClient = await experimental_createMCPClient({
+    mcpClient = await createMCPClient({
       transport: stdioTransport,
     });
 

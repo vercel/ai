@@ -10,11 +10,10 @@ Streams text generations from a language model.
 You can use the streamText function for interactive use cases such as chat bots and other real-time applications. You can also generate UI components with tools.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 const { textStream } = streamText({
-  model: openai('gpt-4o'),
+  model: 'anthropic/claude-sonnet-4.5',
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -42,7 +41,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'system',
-      type: 'string',
+      type: 'string | SystemModelMessage',
       description:
         'The system prompt to use that specifies the behavior of the model.',
     },
@@ -633,7 +632,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string',
+              type: 'string | SystemModelMessage',
               isOptional: true,
               description: 'Change the system prompt for this step.',
             },
@@ -673,7 +672,7 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'system',
-              type: 'string | undefined',
+              type: 'string | SystemModelMessage | undefined',
               description: 'The system prompt.',
             },
             {
@@ -1804,7 +1803,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'warnings',
-      type: 'Promise<CallWarning[] | undefined>',
+      type: 'Promise<Warning[] | undefined>',
       description:
         'Warnings from the model provider (e.g. unsupported settings) for the first step.',
     },
@@ -2310,7 +2309,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'warnings',
-              type: 'CallWarning[]',
+              type: 'Warning[]',
               description:
                 'Warnings from the model provider (e.g. unsupported settings).',
             },

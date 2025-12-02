@@ -87,7 +87,7 @@ import { aimlapi } from '@ai-ml.api/aimlapi-vercel-ai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: aimlapi.textEmbeddingModel('text-embedding-3-large'),
+  model: aimlapi.embeddingModel('text-embedding-3-large'),
   value: 'sunny day at the beach',
 });
 ```

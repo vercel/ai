@@ -597,7 +597,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "function",
           },
@@ -752,56 +752,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-      const model = provider.chat('gpt-4o-2024-08-06');
-
-      const { warnings } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          openai: {
-            structuredOutputs: false,
-          },
-        },
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "messages": [
-            {
-              "content": "Hello",
-              "role": "user",
-            },
-          ],
-          "model": "gpt-4o-2024-08-06",
-          "response_format": {
-            "type": "json_object",
-          },
-        }
-      `);
-
-      expect(warnings).toEqual([
-        {
-          details:
-            'JSON response format schema is only supported with structuredOutputs',
-          setting: 'responseFormat',
-          type: 'unsupported-setting',
-        },
-      ]);
-    });
-
-    it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
+    it('should forward json response format as "json_object" and include schema', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -845,7 +796,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -855,7 +806,7 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
-    it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
+    it('should use json_schema & strict with responseFormat json', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -899,7 +850,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -907,7 +858,7 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
+    it('should set name & description with responseFormat json', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -954,7 +905,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -985,7 +936,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should set strict with tool calls when structuredOutputs are enabled', async () => {
+    it('should set strict with tool call', async () => {
       prepareJsonResponse({
         tool_calls: [
           {
@@ -1048,7 +999,7 @@ describe('doGenerate', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
               },
               "type": "function",
             },
@@ -1069,7 +1020,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should set strict for tool usage when structuredOutputs are enabled', async () => {
+  it('should set strict for tool usage', async () => {
     prepareJsonResponse({
       tool_calls: [
         {
@@ -1138,7 +1089,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "function",
           },
@@ -1233,28 +1184,30 @@ describe('doGenerate', () => {
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'frequencyPenalty',
-          details: 'frequencyPenalty is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'presencePenalty',
-          details: 'presencePenalty is not supported for reasoning models',
-        },
-      ]);
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "temperature is not supported for reasoning models",
+            "feature": "temperature",
+            "type": "unsupported",
+          },
+          {
+            "details": "topP is not supported for reasoning models",
+            "feature": "topP",
+            "type": "unsupported",
+          },
+          {
+            "details": "frequencyPenalty is not supported for reasoning models",
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
+          },
+          {
+            "details": "presencePenalty is not supported for reasoning models",
+            "feature": "presencePenalty",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should convert maxOutputTokens to max_completion_tokens', async () => {
@@ -1486,12 +1439,15 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview and add warning', async () => {
@@ -1508,12 +1464,15 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview-2025-03-11 and add warning', async () => {
@@ -1530,12 +1489,15 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview-2025-03-11');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should send serviceTier flex processing setting', async () => {
@@ -1583,12 +1545,15 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'serviceTier',
-      details:
-        'flex processing is only available for o3, o4-mini, and gpt-5 models',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "flex processing is only available for o3, o4-mini, and gpt-5 models",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should allow flex processing with o4-mini model without warnings', async () => {
@@ -1655,12 +1620,15 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'serviceTier',
-      details:
-        'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should allow priority processing with gpt-4o model without warnings', async () => {

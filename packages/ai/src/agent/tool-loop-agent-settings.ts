@@ -2,6 +2,7 @@ import {
   FlexibleSchema,
   MaybePromiseLike,
   ProviderOptions,
+  SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
@@ -12,6 +13,7 @@ import { CallSettings } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
 import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
@@ -31,8 +33,10 @@ export type ToolLoopAgentSettings<
 
   /**
    * The instructions for the agent.
+   *
+   * It can be a string, or, if you need to pass additional provider options (e.g. for caching), a `SystemModelMessage`.
    */
-  instructions?: string;
+  instructions?: string | SystemModelMessage;
 
   /**
 The language model to use.
@@ -112,6 +116,13 @@ functionality that can be fully encapsulated in the provider.
   experimental_context?: unknown;
 
   /**
+Custom download function to use for URLs.
+
+By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+  experimental_download?: DownloadFunction | undefined;
+
+  /**
    * The schema for the call options.
    */
   callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
@@ -142,6 +153,7 @@ functionality that can be fully encapsulated in the provider.
         | 'activeTools'
         | 'providerOptions'
         | 'experimental_context'
+        | 'experimental_download'
       >,
   ) => MaybePromiseLike<
     Pick<
@@ -163,6 +175,7 @@ functionality that can be fully encapsulated in the provider.
       | 'activeTools'
       | 'providerOptions'
       | 'experimental_context'
+      | 'experimental_download'
     > &
       Omit<Prompt, 'system'>
   >;

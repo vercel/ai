@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamObject({
-    model: anthropic('claude-haiku-4-5'),
+    model: anthropic('claude-sonnet-4-5'),
     schema: z.object({
       characters: z.array(
         z.object({
@@ -25,4 +25,6 @@ run(async () => {
     console.clear();
     console.log(partialObject);
   }
+
+  console.dir((await result.request).body, { depth: Infinity });
 });
