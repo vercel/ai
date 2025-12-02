@@ -90,7 +90,7 @@ console.log(text);`,
     slug: 'parallel',
     name: 'Parallel',
     description:
-      'Parallel provides two powerful web tools: searchTool for finding relevant web pages and compressed token dense excerpts based on the semantic objective, and extractTool for extracting full page contents or excerpts (use objective) from any URL',
+      'Parallel gives AI agents best-in-class tools to search and extract context from the web. Web results returned by Parallel are compressed for optimal token efficiency at inference time.',
     packageName: '@parallel-web/ai-sdk-tools',
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'PARALLEL_API_KEY',
@@ -117,6 +117,38 @@ console.log(text);`,
     apiKeyUrl: 'https://platform.parallel.ai',
     websiteUrl: 'https://parallel.ai',
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
+  },
+  {
+    slug: 'tavily',
+    name: 'Tavily',
+    description:
+      'Tavily is a web intelligence platform offering real-time web search optimized for AI applications. Tavily provides comprehensive web research capabilities including search, content extraction, website crawling, and site mapping to power AI agents with current information.',
+    packageName: '@tavily/ai-sdk',
+    tags: ['search', 'extract', 'crawl'],
+    apiKeyEnvName: 'TAVILY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @tavily/ai-sdk',
+      npm: 'npm install @tavily/ai-sdk',
+      yarn: 'yarn add @tavily/ai-sdk',
+      bun: 'bun add @tavily/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { tavilySearch } from '@tavily/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('google/gemini-3-pro-preview'),
+  prompt: 'What are the latest developments in agentic search?',
+  tools: {
+    webSearch: tavilySearch,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.tavily.com/documentation/integrations/vercel',
+    apiKeyUrl: 'https://app.tavily.com/home',
+    websiteUrl: 'https://tavily.com',
+    npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
   },
   {
     slug: 'firecrawl',

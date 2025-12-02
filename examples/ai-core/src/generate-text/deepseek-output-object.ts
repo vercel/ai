@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { deepseek } from '@ai-sdk/deepseek';
 import { generateText, Output, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { print } from '../lib/print';
@@ -7,12 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4o-mini'),
-    providerOptions: {
-      openai: {
-        strictJsonSchema: true,
-      } satisfies OpenAIResponsesProviderOptions,
-    },
+    model: deepseek('deepseek-reasoner'),
     tools: {
       weather: weatherTool,
     },

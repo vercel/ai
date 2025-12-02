@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 2.0.0-beta.43
+
+### Patch Changes
+
+- 4d04f43: feat(deepseek): rewrite DeepSeek provider
+
 ## 2.0.0-beta.42
 
 ### Patch Changes
