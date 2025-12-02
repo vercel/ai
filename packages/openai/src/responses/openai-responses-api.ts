@@ -459,8 +459,6 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             status: z.enum(['in_progress', 'completed', 'incomplete']),
             action: z.object({
               commands: z.array(z.string()),
-              timeout_ms: z.number().optional(),
-              max_output_length: z.number().optional(),
             }),
           }),
         ]),
@@ -653,8 +651,6 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             status: z.enum(['in_progress', 'completed', 'incomplete']),
             action: z.object({
               commands: z.array(z.string()),
-              timeout_ms: z.number().optional(),
-              max_output_length: z.number().optional(),
             }),
           }),
         ]),
@@ -1034,8 +1030,6 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               status: z.enum(['in_progress', 'completed', 'incomplete']),
               action: z.object({
                 commands: z.array(z.string()),
-                timeout_ms: z.number().optional(),
-                max_output_length: z.number().optional(),
               }),
             }),
           ]),

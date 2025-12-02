@@ -482,8 +482,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             input: JSON.stringify({
               action: {
                 commands: part.action.commands,
-                timeoutMs: part.action.timeout_ms,
-                maxOutputLength: part.action.max_output_length,
               },
             } satisfies InferSchema<typeof shellInputSchema>),
             providerMetadata: {
@@ -1335,8 +1333,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   input: JSON.stringify({
                     action: {
                       commands: value.item.action.commands,
-                      timeoutMs: value.item.action.timeout_ms,
-                      maxOutputLength: value.item.action.max_output_length,
                     },
                   } satisfies InferSchema<typeof shellInputSchema>),
                   providerMetadata: {
