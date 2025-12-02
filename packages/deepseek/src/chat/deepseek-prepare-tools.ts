@@ -38,7 +38,7 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const openaiCompatTools: Array<{
+  const deepseekTools: Array<{
     type: 'function';
     function: {
       name: string;
@@ -54,7 +54,7 @@ export function prepareTools({
         feature: `provider-defined tool ${tool.id}`,
       });
     } else {
-      openaiCompatTools.push({
+      deepseekTools.push({
         type: 'function',
         function: {
           name: tool.name,
@@ -66,7 +66,7 @@ export function prepareTools({
   }
 
   if (toolChoice == null) {
-    return { tools: openaiCompatTools, toolChoice: undefined, toolWarnings };
+    return { tools: deepseekTools, toolChoice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
@@ -75,10 +75,10 @@ export function prepareTools({
     case 'auto':
     case 'none':
     case 'required':
-      return { tools: openaiCompatTools, toolChoice: type, toolWarnings };
+      return { tools: deepseekTools, toolChoice: type, toolWarnings };
     case 'tool':
       return {
-        tools: openaiCompatTools,
+        tools: deepseekTools,
         toolChoice: {
           type: 'function',
           function: { name: toolChoice.toolName },
