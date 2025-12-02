@@ -3,6 +3,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -69,6 +70,33 @@ describe('DeepSeekChatLanguageModel', () => {
 
         expect(result).toMatchSnapshot();
       });
+    });
+  });
+
+  describe('doStream', () => {
+    function prepareChunksFixtureResponse(filename: string) {
+      const chunks = fs
+        .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
+        .split('\n')
+        .map(line => `data: ${line}\n\n`);
+      chunks.push('data: [DONE]\n\n');
+
+      server.urls['https://api.deepseek.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks,
+      };
+    }
+
+    it('should stream text', async () => {
+      prepareChunksFixtureResponse('deepseek-text');
+
+      const result = await provider.chat('deepseek-chat').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
   });
 });

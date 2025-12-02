@@ -90,3 +90,2058 @@ exports[`DeepSeekChatLanguageModel > doGenerate > basic text generation > should
   "warnings": [],
 }
 `;
+
+exports[`DeepSeekChatLanguageModel > doStream > should stream text 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "f6117a0b-129d-46fa-b239-78f01c2c5df9",
+    "modelId": "deepseek-chat",
+    "timestamp": 2025-12-02T06:46:33.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-start",
+  },
+  {
+    "delta": "##",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "H",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "olid",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ay",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Name",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":**",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " St",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "arl",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ight",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Rem",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "embrance",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Date",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":**",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Saturday",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " nearest",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " new",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " moon",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " October",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " when",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " night",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sky",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " its",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " darkest",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stars",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " most",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vivid",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Origin",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " &",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Meaning",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "St",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "arl",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ight",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Rem",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "embrance",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " emerged",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " modern",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " collective",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " yearning",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " honor",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " personal",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " loss",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " while",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " celebrating",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " enduring",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " connections",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " transcend",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " It",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tied",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " any",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " one",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " religion",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " culture",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " but",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " universal",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " human",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " experience",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " core",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " philosophy",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " people",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " we",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " love",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ideas",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " inspired",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " us",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " even",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " versions",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ourselves",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gone",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vanished",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " but",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " have",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " become",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " part",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " universe",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fabric",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "—",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "like",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " st",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ard",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ust",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " holiday",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " asks",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " participants",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " look",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " up",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vast",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shared",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sky",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " find",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " comfort",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " both",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " darkness",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " loss",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " enduring",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " points",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " light",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " memory",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").
+
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "---
+
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "###",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "T",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "rad",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "itions",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " &",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Rit",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "uals",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":**
+
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Dim",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ming",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lights",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "As",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " night",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " falls",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " households",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " communities",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " turn",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " off",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " non",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "essential",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " electric",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lights",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Streets",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lit",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " only",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " subtle",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " blue",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-ton",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ed",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lantern",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "s",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "symbol",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "izing",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " night",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sky",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " This",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " collective",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " act",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reduces",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " light",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pollution",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " literally",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " metaphor",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ically",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " making",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " space",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stars",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "—",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reflection",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Craft",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ing",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Constellation",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " J",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ars",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "In",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " days",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " leading",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " up",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " holiday",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " people",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " create",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Const",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ellation",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " J",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ars",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "."",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " They",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " take",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " clear",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " jar",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " using",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " small",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " drill",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " adhesive",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " create",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pattern",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " holes",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " its",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lid",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " representing",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stars",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " specific",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " constellation",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " On",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " night",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " holiday",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " small",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " battery",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-operated",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tea",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " light",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " placed",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " inside",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Each",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " jar",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dedicated",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " someone",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " something",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " remembered",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " constellation",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " might",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " their",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " birth",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sign",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shape",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reminds",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " maker",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " them",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " simply",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pattern",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sky",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " night",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " passed",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "3",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Silent",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Vig",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "il",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " &",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Story",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Stars",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**
+",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "At",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " designated",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " time",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "9",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " PM",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " local",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " time",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " people",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " step",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " outside",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " alone",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " quiet",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " groups",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " observe",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "15",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " minutes",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silent",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " looking",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "length",
+    "providerMetadata": {
+      "deepseek": {},
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": undefined,
+      "inputTokens": 13,
+      "outputTokens": 400,
+      "reasoningTokens": undefined,
+      "totalTokens": 413,
+    },
+  },
+]
+`;
