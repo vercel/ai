@@ -352,6 +352,15 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
                 isActiveText = true;
               }
 
+              // end reasoning when text starts:
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               controller.enqueue({
                 type: 'text-delta',
                 id: 'txt-0',

@@ -1271,6 +1271,10 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "text-start",
   },
   {
+    "id": "reasoning-0",
+    "type": "reasoning-end",
+  },
+  {
     "delta": "The",
     "id": "txt-0",
     "type": "text-delta",
@@ -1334,10 +1338,6 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "delta": ".",
     "id": "txt-0",
     "type": "text-delta",
-  },
-  {
-    "id": "reasoning-0",
-    "type": "reasoning-end",
   },
   {
     "id": "txt-0",
