@@ -92,6 +92,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         schema: deepseekChatOptions,
       })) ?? {};
 
+    const isThinkingEnabled = deepseekOptions.thinking?.type === 'enabled';
+
     const { messages, warnings } = convertToDeepSeekChatMessages({
       prompt,
     });
@@ -139,10 +141,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         messages,
         tools: deepseekTools,
         tool_choice: deepseekToolChoices,
-        thinking:
-          deepseekOptions.thinking?.type != null
-            ? { type: deepseekOptions.thinking.type }
-            : undefined,
+        thinking: isThinkingEnabled ? { type: 'enabled' } : undefined,
       },
       warnings: [...warnings, ...toolWarnings],
     };
