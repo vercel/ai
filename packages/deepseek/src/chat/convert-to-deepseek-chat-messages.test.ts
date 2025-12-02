@@ -90,6 +90,7 @@ describe('convertToDeepSeekChatMessages', () => {
           "messages": [
             {
               "content": "",
+              "reasoning_content": "",
               "role": "assistant",
               "tool_calls": [
                 {
@@ -144,6 +145,7 @@ describe('convertToDeepSeekChatMessages', () => {
           "messages": [
             {
               "content": "",
+              "reasoning_content": "",
               "role": "assistant",
               "tool_calls": [
                 {
@@ -160,6 +162,65 @@ describe('convertToDeepSeekChatMessages', () => {
               "content": "It is sunny today",
               "role": "tool",
               "tool_call_id": "call-1",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should support reasoning content in tool calls', () => {
+      const result = convertToDeepSeekChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I think the tool will return the correct value.',
+            },
+            {
+              type: 'tool-call',
+              input: { foo: 'bar123' },
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              output: { type: 'json', value: { oof: '321rab' } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "",
+              "reasoning_content": "I think the tool will return the correct value.",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{"foo":"bar123"}",
+                    "name": "thwomp",
+                  },
+                  "id": "quux",
+                  "type": "function",
+                },
+              ],
+            },
+            {
+              "content": "{"oof":"321rab"}",
+              "role": "tool",
+              "tool_call_id": "quux",
             },
           ],
           "warnings": [],

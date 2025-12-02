@@ -37,6 +37,8 @@ export function convertToDeepSeekChatMessages(prompt: LanguageModelV3Prompt): {
       }
       case 'assistant': {
         let text = '';
+        let reasoning = '';
+
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -47,6 +49,10 @@ export function convertToDeepSeekChatMessages(prompt: LanguageModelV3Prompt): {
           switch (part.type) {
             case 'text': {
               text += part.text;
+              break;
+            }
+            case 'reasoning': {
+              reasoning += part.text;
               break;
             }
             case 'tool-call': {
@@ -66,6 +72,7 @@ export function convertToDeepSeekChatMessages(prompt: LanguageModelV3Prompt): {
         messages.push({
           role: 'assistant',
           content: text,
+          reasoning_content: reasoning,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
