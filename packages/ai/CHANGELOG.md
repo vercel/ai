@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.129
+
+### Patch Changes
+
+- 67a407c: chore(ai): add warning when using v2 models with AISDK v6
+
 ## 6.0.0-beta.128
 
 ### Patch Changes
