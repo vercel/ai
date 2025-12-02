@@ -92,7 +92,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         schema: deepseekChatOptions,
       })) ?? {};
 
-    const { messages, warnings } = convertToDeepSeekChatMessages(prompt);
+    const { messages, warnings } = convertToDeepSeekChatMessages({
+      prompt,
+    });
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });

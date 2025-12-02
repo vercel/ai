@@ -1,7 +1,11 @@
 import { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
 import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 
-export function convertToDeepSeekChatMessages(prompt: LanguageModelV3Prompt): {
+export function convertToDeepSeekChatMessages({
+  prompt,
+}: {
+  prompt: LanguageModelV3Prompt;
+}): {
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV3Warning>;
 } {

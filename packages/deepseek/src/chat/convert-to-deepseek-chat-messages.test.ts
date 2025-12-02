@@ -4,12 +4,14 @@ import { describe, it, expect } from 'vitest';
 describe('convertToDeepSeekChatMessages', () => {
   describe('user messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
-      const result = convertToDeepSeekChatMessages([
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'Hello' }],
-        },
-      ]);
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        ],
+      });
 
       expect(result).toMatchInlineSnapshot(`
         {
@@ -25,19 +27,21 @@ describe('convertToDeepSeekChatMessages', () => {
     });
 
     it('should warn about unsupported file parts', async () => {
-      const result = convertToDeepSeekChatMessages([
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Hello' },
-            {
-              type: 'file',
-              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
-              mediaType: 'image/png',
-            },
-          ],
-        },
-      ]);
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'file',
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+      });
 
       expect(result).toMatchInlineSnapshot(`
         {
@@ -60,30 +64,32 @@ describe('convertToDeepSeekChatMessages', () => {
 
   describe('tool calls', () => {
     it('should stringify arguments to tool calls', () => {
-      const result = convertToDeepSeekChatMessages([
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool-call',
-              input: { foo: 'bar123' },
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-              output: { type: 'json', value: { oof: '321rab' } },
-            },
-          ],
-        },
-      ]);
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                input: { foo: 'bar123' },
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+                output: { type: 'json', value: { oof: '321rab' } },
+              },
+            ],
+          },
+        ],
+      });
 
       expect(result).toMatchInlineSnapshot(`
         {
@@ -115,30 +121,32 @@ describe('convertToDeepSeekChatMessages', () => {
     });
 
     it('should handle text output type in tool results', () => {
-      const result = convertToDeepSeekChatMessages([
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool-call',
-              input: { query: 'weather' },
-              toolCallId: 'call-1',
-              toolName: 'getWeather',
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'call-1',
-              toolName: 'getWeather',
-              output: { type: 'text', value: 'It is sunny today' },
-            },
-          ],
-        },
-      ]);
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                input: { query: 'weather' },
+                toolCallId: 'call-1',
+                toolName: 'getWeather',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'getWeather',
+                output: { type: 'text', value: 'It is sunny today' },
+              },
+            ],
+          },
+        ],
+      });
 
       expect(result).toMatchInlineSnapshot(`
         {
@@ -170,38 +178,40 @@ describe('convertToDeepSeekChatMessages', () => {
     });
 
     it('should support reasoning content in tool calls', () => {
-      const result = convertToDeepSeekChatMessages([
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'Hello' }],
-        },
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'reasoning',
-              text: 'I think the tool will return the correct value.',
-            },
-            {
-              type: 'tool-call',
-              input: { foo: 'bar123' },
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-              output: { type: 'json', value: { oof: '321rab' } },
-            },
-          ],
-        },
-      ]);
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I think the tool will return the correct value.',
+              },
+              {
+                type: 'tool-call',
+                input: { foo: 'bar123' },
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+                output: { type: 'json', value: { oof: '321rab' } },
+              },
+            ],
+          },
+        ],
+      });
 
       expect(result).toMatchInlineSnapshot(`
         {
@@ -237,42 +247,44 @@ describe('convertToDeepSeekChatMessages', () => {
     });
 
     it('should filter out reasoning content from turns before the last user message', () => {
-      const result = convertToDeepSeekChatMessages([
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'Hello' }],
-        },
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'reasoning',
-              text: 'I think the tool will return the correct value.',
-            },
-            {
-              type: 'tool-call',
-              input: { foo: 'bar123' },
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'quux',
-              toolName: 'thwomp',
-              output: { type: 'json', value: { oof: '321rab' } },
-            },
-          ],
-        },
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'Goodbye' }],
-        },
-      ]);
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I think the tool will return the correct value.',
+              },
+              {
+                type: 'tool-call',
+                input: { foo: 'bar123' },
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+                output: { type: 'json', value: { oof: '321rab' } },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Goodbye' }],
+          },
+        ],
+      });
 
       expect(result).toMatchInlineSnapshot(`
         {
