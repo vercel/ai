@@ -119,6 +119,38 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
   },
   {
+    slug: 'perplexity-search',
+    name: 'Perplexity Search',
+    description:
+      "Search the web with real-time results and advanced filtering powered by Perplexity's Search API. Provides ranked search results with domain, language, date range, and recency filters. Supports multi-query searches and regional search results.",
+    packageName: '@perplexity-ai/ai-sdk',
+    tags: ['search', 'web'],
+    apiKeyEnvName: 'PERPLEXITY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @perplexity-ai/ai-sdk',
+      npm: 'npm install @perplexity-ai/ai-sdk',
+      yarn: 'yarn add @perplexity-ai/ai-sdk',
+      bun: 'bun add @perplexity-ai/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { perplexitySearch } from '@perplexity-ai/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-4o-mini'),
+  prompt: 'What are the latest AI developments? Use search to find current information.',
+  tools: {
+    search: perplexitySearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.perplexity.ai/guides/search-quickstart',
+    apiKeyUrl: 'https://www.perplexity.ai/account/api/keys',
+    websiteUrl: 'https://www.perplexity.ai',
+    npmUrl: 'https://www.npmjs.com/package/@perplexity-ai/ai-sdk',
+  },
+  {
     slug: 'tavily',
     name: 'Tavily',
     description:
