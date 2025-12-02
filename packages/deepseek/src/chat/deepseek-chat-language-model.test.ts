@@ -30,7 +30,7 @@ describe('DeepSeekChatLanguageModel', () => {
       return;
     }
 
-    describe('basic text generation', () => {
+    describe('text', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('deepseek-text');
       });
@@ -138,16 +138,53 @@ describe('DeepSeekChatLanguageModel', () => {
       };
     }
 
-    it('should stream text', async () => {
-      prepareChunksFixtureResponse('deepseek-text');
-
-      const result = await provider.chat('deepseek-chat').doStream({
-        prompt: TEST_PROMPT,
+    describe('text', () => {
+      beforeEach(() => {
+        prepareChunksFixtureResponse('deepseek-text');
       });
 
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
+      it('should send model id, settings, and input', async () => {
+        await provider.chat('deepseek-chat').doStream({
+          prompt: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+          temperature: 0.5,
+          topP: 0.3,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "You are a helpful assistant.",
+                "role": "system",
+              },
+              {
+                "content": "Hello",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-chat",
+            "stream": true,
+            "stream_options": {
+              "include_usage": true,
+            },
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
+      });
+
+      it('should stream text', async () => {
+        const result = await provider.chat('deepseek-chat').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
     });
 
     describe('reasoning', () => {
