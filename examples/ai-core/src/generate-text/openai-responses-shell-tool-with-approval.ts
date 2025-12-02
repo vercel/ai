@@ -18,7 +18,7 @@ run(async () => {
   const messages: ModelMessage[] = [
     {
       role: 'user',
-      content: 'List the files in my currnetdirectory',
+      content: 'List the files in my current directory',
     },
   ];
   let approvals: ToolApprovalResponse[] = [];
