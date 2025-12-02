@@ -141,7 +141,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: workspace:*
@@ -235,7 +235,7 @@ importers:
         specifier: 2.0.0-beta.128
         version: link:../../packages/angular
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.2
@@ -308,7 +308,7 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.128
@@ -336,7 +336,7 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.128
@@ -361,7 +361,7 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
@@ -389,7 +389,7 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
@@ -426,7 +426,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -575,7 +575,7 @@ importers:
   examples/next-agent:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.128
@@ -795,13 +795,13 @@ importers:
         specifier: 3.0.0-beta.70
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 3.0.0-beta.78
+        specifier: 3.0.0-beta.79
         version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 3.0.0-beta.41
         version: link:../../packages/cohere
       '@ai-sdk/deepseek':
-        specifier: 2.0.0-beta.42
+        specifier: 2.0.0-beta.43
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
         specifier: 2.0.0-beta.41
@@ -822,7 +822,7 @@ importers:
         specifier: 3.0.0-beta.42
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
         specifier: 3.0.0-beta.42
@@ -934,7 +934,7 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.128
@@ -989,7 +989,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.128
@@ -1041,7 +1041,7 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.128
@@ -1105,7 +1105,7 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.128
@@ -1175,7 +1175,7 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.0-beta.128
@@ -1233,7 +1233,7 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       ai:
         specifier: 6.0.0-beta.128
@@ -1258,7 +1258,7 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: 3.0.0-beta.128
@@ -1313,7 +1313,7 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.76
+        specifier: 3.0.0-beta.77
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
         specifier: 4.0.0-beta.40
@@ -1841,9 +1841,6 @@ importers:
 
   packages/deepseek:
     dependencies:
-      '@ai-sdk/openai-compatible':
-        specifier: workspace:*
-        version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
@@ -1851,6 +1848,9 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24

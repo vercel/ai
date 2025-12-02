@@ -774,6 +774,49 @@ An analysis by Climate Central revealed that San Francisco, along with most U.S.
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > should handle apply_patch tool calls in streaming mode 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0372d86dfc1762fe00692741f339a08190bce9b78ee2079295",
+    "modelId": "gpt-5.1-2025-11-13",
+    "timestamp": 2025-11-26T18:07:47.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{"callId":"call_kA46f91ZwocQyMCKyyZqRyC5","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"+## Shopping Checklist\\n+\\n+- [ ] Milk\\n+- [ ] Bread\\n+- [ ] Eggs\\n+- [ ] Fresh fruit\\n+- [ ] Coffee\\n"}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "apc_0372d86dfc1762fe00692741f3f3dc8190879cba489ff2fc8b",
+      },
+    },
+    "toolCallId": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "toolName": "apply_patch",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0372d86dfc1762fe00692741f339a08190bce9b78ee2079295",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 642,
+      "outputTokens": 67,
+      "reasoningTokens": 0,
+      "totalTokens": 709,
+    },
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > should stream code interpreter results with annotations 1`] = `
 [
   {
