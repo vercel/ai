@@ -84,7 +84,7 @@ describe('asEmbeddingModelV3', () => {
           {
             type: 'compatibility',
             feature: 'specificationVersion',
-            details: expect.stringContaining('specification version'),
+            details: expect.stringContaining('Using v2 specification compatibility'),
           },
         ],
         provider: 'test-provider',
