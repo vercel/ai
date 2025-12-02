@@ -55,8 +55,8 @@ describe('convertToDeepSeekChatMessages', () => {
           ],
           "warnings": [
             {
-              "feature": "user message part type: file",
-              "type": "unsupported",
+              "message": "Unsupported user message part type: file",
+              "type": "other",
             },
           ],
         }

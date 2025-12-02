@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3CallOptions,
-  LanguageModelV3Prompt,
-  SharedV3Warning,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
 import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 
@@ -9,14 +9,14 @@ export function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
 }: {
-  prompt: LanguageModelV3Prompt;
-  responseFormat: LanguageModelV3CallOptions['responseFormat'];
+  prompt: LanguageModelV2Prompt;
+  responseFormat: LanguageModelV2CallOptions['responseFormat'];
 }): {
   messages: DeepSeekChatPrompt;
-  warnings: Array<SharedV3Warning>;
+  warnings: Array<LanguageModelV2CallWarning>;
 } {
   const messages: DeepSeekChatPrompt = [];
-  const warnings: Array<SharedV3Warning> = [];
+  const warnings: Array<LanguageModelV2CallWarning> = [];
 
   // Inject system message if response format is JSON
   if (responseFormat?.type === 'json') {
@@ -31,11 +31,6 @@ export function convertToDeepSeekChatMessages({
         content:
           'Return JSON that conforms to the following schema: ' +
           JSON.stringify(responseFormat.schema),
-      });
-      warnings.push({
-        type: 'compatibility',
-        feature: 'responseFormat JSON schema',
-        details: 'JSON response schema is injected into the system message.',
       });
     }
   }
@@ -66,8 +61,8 @@ export function convertToDeepSeekChatMessages({
             userContent += part.text;
           } else {
             warnings.push({
-              type: 'unsupported',
-              feature: `user message part type: ${part.type}`,
+              type: 'other',
+              message: `Unsupported user message part type: ${part.type}`,
             });
           }
         }
@@ -141,9 +136,6 @@ export function convertToDeepSeekChatMessages({
             case 'error-text':
               contentValue = output.value;
               break;
-            case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
-              break;
             case 'content':
             case 'json':
             case 'error-json':
@@ -162,8 +154,8 @@ export function convertToDeepSeekChatMessages({
 
       default: {
         warnings.push({
-          type: 'unsupported',
-          feature: `message role: ${role}`,
+          type: 'other',
+          message: `Unsupported message role: ${role}`,
         });
         break;
       }

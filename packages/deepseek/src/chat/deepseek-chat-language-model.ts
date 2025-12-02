@@ -1,10 +1,10 @@
 import {
   APICallError,
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
+  LanguageModelV2,
+  LanguageModelV2Content,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -42,8 +42,8 @@ export type DeepSeekChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class DeepSeekChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class DeepSeekChatLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'v2';
 
   readonly modelId: DeepSeekChatModelId;
   readonly supportedUrls = {};
@@ -81,10 +81,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     providerOptions,
     stopSequences,
     responseFormat,
-    seed,
-    toolChoice,
     tools,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    toolChoice,
+    seed,
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const deepseekOptions =
       (await parseProviderOptions({
         provider: this.providerOptionsName,
@@ -98,11 +98,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     });
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
+      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported', feature: 'seed' });
+      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
 
     const {
@@ -138,8 +138,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const {
@@ -162,7 +162,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = responseBody.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV2Content> = [];
 
     // reasoning content (before text):
     const reasoning = choice.message.reasoning_content;
@@ -206,8 +206,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       },
       providerMetadata: {
         [this.providerOptionsName]: {
-          promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
-          promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+          promptCacheHitTokens:
+            responseBody.usage?.prompt_cache_hit_tokens ?? null,
+          promptCacheMissTokens:
+            responseBody.usage?.prompt_cache_miss_tokens ?? null,
         },
       },
       request: { body: args },
@@ -221,8 +223,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const body = {
@@ -256,7 +258,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: DeepSeekChatTokenUsage | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
@@ -267,7 +269,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<InferSchema<typeof deepseekChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV2StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -521,10 +523,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               },
               providerMetadata: {
                 [providerOptionsName]: {
-                  promptCacheHitTokens:
-                    usage?.prompt_cache_hit_tokens ?? undefined,
+                  promptCacheHitTokens: usage?.prompt_cache_hit_tokens ?? null,
                   promptCacheMissTokens:
-                    usage?.prompt_cache_miss_tokens ?? undefined,
+                    usage?.prompt_cache_miss_tokens ?? null,
                 },
               },
             });
