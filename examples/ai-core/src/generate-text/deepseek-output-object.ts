@@ -1,4 +1,4 @@
-import { deepseek, DeepSeekChatOptions } from '@ai-sdk/deepseek';
+import { deepseek } from '@ai-sdk/deepseek';
 import { generateText, Output, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { print } from '../lib/print';
@@ -8,11 +8,6 @@ import { weatherTool } from '../tools/weather-tool';
 run(async () => {
   const result = await generateText({
     model: deepseek('deepseek-reasoner'),
-    providerOptions: {
-      deepseek: {
-        thinking: { type: 'enabled' },
-      } satisfies DeepSeekChatOptions,
-    },
     tools: {
       weather: weatherTool,
     },

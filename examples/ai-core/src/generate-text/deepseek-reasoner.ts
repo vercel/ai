@@ -7,11 +7,6 @@ run(async () => {
   const result = await generateText({
     model: deepseek('deepseek-reasoner'),
     prompt: 'How many "r"s are in the word "strawberry"?',
-    providerOptions: {
-      deepseek: {
-        thinking: { type: 'enabled' },
-      } satisfies DeepSeekChatOptions,
-    },
   });
 
   print('Content:', result.content);
