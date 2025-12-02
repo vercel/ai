@@ -97,13 +97,16 @@ export class OpenAIImageModel implements ImageModelV2 {
       },
       providerMetadata: {
         openai: {
-          images: response.data.map(item =>
-            item.revised_prompt
-              ? {
-                  revisedPrompt: item.revised_prompt,
-                }
-              : null,
-          ),
+          images: response.data.map(item => ({
+            ...(item.revised_prompt
+              ? { revisedPrompt: item.revised_prompt }
+              : {}),
+            created: response.created ?? undefined,
+            size: response.size ?? undefined,
+            quality: response.quality ?? undefined,
+            background: response.background ?? undefined,
+            outputFormat: response.output_format ?? undefined,
+          })),
         },
       },
     };
