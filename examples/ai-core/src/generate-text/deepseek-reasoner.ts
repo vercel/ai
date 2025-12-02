@@ -14,5 +14,7 @@ run(async () => {
     },
   });
 
-  console.log(JSON.stringify(result.response.body, null, 2));
+  print('Content:', result.content);
+  print('Usage:', result.usage);
+  print('Finish reason:', result.finishReason);
 });

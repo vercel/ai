@@ -57,7 +57,7 @@ export function createDeepSeek(
   options: DeepSeekProviderSettings = {},
 ): DeepSeekProvider {
   const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.deepseek.com/v1',
+    options.baseURL ?? 'https://api.deepseek.com',
   );
 
   const getHeaders = () =>

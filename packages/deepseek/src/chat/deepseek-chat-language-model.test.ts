@@ -15,13 +15,13 @@ const provider = createDeepSeek({
 });
 
 const server = createTestServer({
-  'https://api.deepseek.com/v1/chat/completions': {},
+  'https://api.deepseek.com/chat/completions': {},
 });
 
 describe('DeepSeekChatLanguageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonFixtureResponse(filename: string) {
-      server.urls['https://api.deepseek.com/v1/chat/completions'].response = {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
         type: 'json-value',
         body: JSON.parse(
           fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
@@ -132,7 +132,7 @@ describe('DeepSeekChatLanguageModel', () => {
         .map(line => `data: ${line}\n\n`);
       chunks.push('data: [DONE]\n\n');
 
-      server.urls['https://api.deepseek.com/v1/chat/completions'].response = {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
         type: 'stream-chunks',
         chunks,
       };
