@@ -24,7 +24,10 @@ exports[`DeepSeekChatLanguageModel > doGenerate > basic text generation > should
   ],
   "finishReason": "length",
   "providerMetadata": {
-    "deepseek": {},
+    "deepseek": {
+      "promptCacheHitTokens": 0,
+      "promptCacheMissTokens": 13,
+    },
   },
   "request": {
     "body": {
@@ -125,7 +128,10 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
   ],
   "finishReason": "stop",
   "providerMetadata": {
-    "deepseek": {},
+    "deepseek": {
+      "promptCacheHitTokens": 0,
+      "promptCacheMissTokens": 18,
+    },
   },
   "request": {
     "body": {
@@ -2243,11 +2249,14 @@ exports[`DeepSeekChatLanguageModel > doStream > should stream text 1`] = `
   {
     "finishReason": "length",
     "providerMetadata": {
-      "deepseek": {},
+      "deepseek": {
+        "promptCacheHitTokens": 0,
+        "promptCacheMissTokens": 13,
+      },
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": undefined,
+      "cachedInputTokens": 0,
       "inputTokens": 13,
       "outputTokens": 400,
       "reasoningTokens": undefined,

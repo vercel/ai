@@ -5,7 +5,6 @@ import {
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -25,6 +24,7 @@ import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messag
 import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
+  DeepSeekChatTokenUsage,
   deepSeekErrorSchema,
 } from './deepseek-chat-api-types';
 import {
@@ -200,11 +200,6 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       content.push({ type: 'text', text });
     }
 
-    // provider metadata:
-    const providerMetadata: SharedV3ProviderMetadata = {
-      [this.providerOptionsName]: {},
-    };
-
     return {
       content,
       finishReason: mapDeepSeekFinishReason(choice.finish_reason),
@@ -218,7 +213,12 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         cachedInputTokens:
           responseBody.usage?.prompt_cache_hit_tokens ?? undefined,
       },
-      providerMetadata,
+      providerMetadata: {
+        [this.providerOptionsName]: {
+          promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
+          promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
+        },
+      },
       request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
@@ -266,31 +266,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     }> = [];
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: {
-      completionTokens: number | undefined;
-      completionTokensDetails: {
-        reasoningTokens: number | undefined;
-        acceptedPredictionTokens: number | undefined;
-        rejectedPredictionTokens: number | undefined;
-      };
-      promptTokens: number | undefined;
-      promptTokensDetails: {
-        cachedTokens: number | undefined;
-      };
-      totalTokens: number | undefined;
-    } = {
-      completionTokens: undefined,
-      completionTokensDetails: {
-        reasoningTokens: undefined,
-        acceptedPredictionTokens: undefined,
-        rejectedPredictionTokens: undefined,
-      },
-      promptTokens: undefined,
-      promptTokensDetails: {
-        cachedTokens: undefined,
-      },
-      totalTokens: undefined,
-    };
+    let usage: DeepSeekChatTokenUsage | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
@@ -337,22 +313,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              const {
-                prompt_tokens,
-                completion_tokens,
-                total_tokens,
-                prompt_cache_hit_tokens,
-                prompt_cache_miss_tokens,
-                completion_tokens_details,
-              } = value.usage;
-
-              usage.promptTokens = prompt_tokens ?? undefined;
-              usage.completionTokens = completion_tokens ?? undefined;
-              usage.totalTokens = total_tokens ?? undefined;
-              if (completion_tokens_details?.reasoning_tokens != null) {
-                usage.completionTokensDetails.reasoningTokens =
-                  completion_tokens_details?.reasoning_tokens;
-              }
+              usage = value.usage;
             }
 
             const choice = value.choices[0];
@@ -537,36 +498,26 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            const providerMetadata: SharedV3ProviderMetadata = {
-              [providerOptionsName]: {},
-            };
-
-            if (
-              usage.completionTokensDetails.acceptedPredictionTokens != null
-            ) {
-              providerMetadata[providerOptionsName].acceptedPredictionTokens =
-                usage.completionTokensDetails.acceptedPredictionTokens;
-            }
-            if (
-              usage.completionTokensDetails.rejectedPredictionTokens != null
-            ) {
-              providerMetadata[providerOptionsName].rejectedPredictionTokens =
-                usage.completionTokensDetails.rejectedPredictionTokens;
-            }
-
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage: {
-                inputTokens: usage.promptTokens ?? undefined,
-                outputTokens: usage.completionTokens ?? undefined,
-                totalTokens: usage.totalTokens ?? undefined,
+                inputTokens: usage?.prompt_tokens ?? undefined,
+                outputTokens: usage?.completion_tokens ?? undefined,
+                totalTokens: usage?.total_tokens ?? undefined,
                 reasoningTokens:
-                  usage.completionTokensDetails.reasoningTokens ?? undefined,
-                cachedInputTokens:
-                  usage.promptTokensDetails.cachedTokens ?? undefined,
+                  usage?.completion_tokens_details?.reasoning_tokens ??
+                  undefined,
+                cachedInputTokens: usage?.prompt_cache_hit_tokens ?? undefined,
               },
-              providerMetadata,
+              providerMetadata: {
+                [providerOptionsName]: {
+                  promptCacheHitTokens:
+                    usage?.prompt_cache_hit_tokens ?? undefined,
+                  promptCacheMissTokens:
+                    usage?.prompt_cache_miss_tokens ?? undefined,
+                },
+              },
             });
           },
         }),

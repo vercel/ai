@@ -55,6 +55,8 @@ const tokenUsageSchema = z
   })
   .nullish();
 
+export type DeepSeekChatTokenUsage = z.infer<typeof tokenUsageSchema>;
+
 export const deepSeekErrorSchema = z.object({
   error: z.object({
     type: z.string().nullish(),
