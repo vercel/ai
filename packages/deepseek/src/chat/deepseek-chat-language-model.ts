@@ -151,8 +151,6 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = JSON.stringify(args);
-
     const {
       responseHeaders,
       value: responseBody,
@@ -221,7 +219,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
           responseBody.usage?.prompt_cache_hit_tokens ?? undefined,
       },
       providerMetadata,
-      request: { body },
+      request: { body: args },
       response: {
         ...getResponseMetadata(responseBody),
         headers: responseHeaders,
