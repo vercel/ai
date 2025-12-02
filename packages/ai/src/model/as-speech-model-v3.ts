@@ -13,7 +13,7 @@ export function asSpeechModelV3(
       {
         type: 'compatibility',
         feature: 'specificationVersion',
-        details: `This model is using specification version ${model.specificationVersion}. Please upgrade the package to the latest version.`,
+        details: `Using v2 specification compatibility mode. Some features may not be available.`,
       },
     ],
     provider: model.provider,
