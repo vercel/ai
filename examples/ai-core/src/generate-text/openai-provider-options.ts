@@ -13,7 +13,6 @@ async function main() {
         user: '<user_id>',
         maxCompletionTokens: 100,
         store: false,
-        structuredOutputs: false,
         serviceTier: 'auto',
         strictJsonSchema: false,
         textVerbosity: 'medium',

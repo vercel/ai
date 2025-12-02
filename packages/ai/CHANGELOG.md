@@ -1,5 +1,30 @@
 # ai
 
+## 6.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [b1624f0]
+  - @ai-sdk/gateway@2.0.0-beta.69
+
+## 6.0.0-beta.127
+
+### Patch Changes
+
+- 614599a: chore(ai): deprecate generateObject and streamObject
+
+## 6.0.0-beta.126
+
+### Patch Changes
+
+- b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
+
+## 6.0.0-beta.125
+
+### Patch Changes
+
+- 0d6c0d8: chore(ai): remove deprecated CodeMessage type and related types and functions
+
 ## 6.0.0-beta.124
 
 ### Patch Changes

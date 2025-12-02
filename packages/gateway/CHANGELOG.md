@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.69
+
+### Patch Changes
+
+- b1624f0: feat (provider/gateway): add trinity-mini model id
+
 ## 2.0.0-beta.68
 
 ### Patch Changes

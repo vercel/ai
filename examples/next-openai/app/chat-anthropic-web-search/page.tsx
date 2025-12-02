@@ -32,7 +32,7 @@ export default function TestAnthropicWebSearch() {
               case 'reasoning': {
                 return <ReasoningView part={part} key={index} />;
               }
-              case 'tool-web_search': {
+              case 'tool-webSearch': {
                 return <AnthropicWebSearchView invocation={part} key={index} />;
               }
             }

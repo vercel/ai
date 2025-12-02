@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/google-vertex": "4.0.0-beta.91",
-    "ai": "6.0.0-beta.124",
+    "@ai-sdk/google-vertex": "4.0.0-beta.95",
+    "ai": "6.0.0-beta.128",
     "geist": "^1.3.1",
     "next": "^15.5.4",
     "react": "^18",
