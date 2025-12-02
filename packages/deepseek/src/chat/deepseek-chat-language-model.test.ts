@@ -122,6 +122,98 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(result).toMatchSnapshot();
       });
     });
+
+    describe('tool call', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-tool-call');
+      });
+
+      it('should send model id, settings, and input', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+                required: ['location'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'enabled' },
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "messages": [
+              {
+                "content": "Hello",
+                "role": "user",
+              },
+            ],
+            "model": "deepseek-reasoner",
+            "thinking": {
+              "type": "enabled",
+            },
+            "tools": [
+              {
+                "function": {
+                  "name": "weather",
+                  "parameters": {
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "additionalProperties": false,
+                    "properties": {
+                      "location": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "location",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "type": "function",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should extract tool call content', async () => {
+        const result = await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+                required: ['location'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'enabled' },
+            } satisfies DeepSeekChatOptions,
+          },
+        });
+
+        expect(result).toMatchSnapshot();
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -209,7 +301,7 @@ describe('DeepSeekChatLanguageModel', () => {
       });
 
       it('should stream tool call', async () => {
-        const result = await provider.chat('deepseek-tool-call').doStream({
+        const result = await provider.chat('deepseek-reasoner').doStream({
           prompt: TEST_PROMPT,
           tools: [
             {
