@@ -122,7 +122,7 @@ console.log(text);`,
     slug: 'perplexity-search',
     name: 'Perplexity Search',
     description:
-      'Search the web with real-time results and advanced filtering powered by Perplexity\'s Search API. Provides ranked search results with domain, language, date range, and recency filters. Supports multi-query searches and regional search results.',
+      "Search the web with real-time results and advanced filtering powered by Perplexity's Search API. Provides ranked search results with domain, language, date range, and recency filters. Supports multi-query searches and regional search results.",
     packageName: '@perplexity-ai/ai-sdk',
     tags: ['search', 'web'],
     apiKeyEnvName: 'PERPLEXITY_API_KEY',
