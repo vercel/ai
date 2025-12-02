@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- 00dfa76: feat(provider/google-vertex): Add support for the imageSize provider option
+
 ## 4.0.0-beta.95
 
 ### Patch Changes
