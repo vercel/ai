@@ -142,7 +142,6 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
                 }
               : { type: 'json_object' }
             : undefined,
-
         stop: stopSequences,
 
         // messages:
