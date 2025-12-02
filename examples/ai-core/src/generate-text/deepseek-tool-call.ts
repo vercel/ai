@@ -1,5 +1,5 @@
 import { deepseek, DeepSeekChatOptions } from '@ai-sdk/deepseek';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import { print } from '../lib/print';
 import { run } from '../lib/run';
 import { weatherTool } from '../tools/weather-tool';
@@ -13,6 +13,7 @@ run(async () => {
         thinking: { type: 'enabled' },
       } satisfies DeepSeekChatOptions,
     },
+    stopWhen: stepCountIs(2),
     prompt: 'What is the weather in San Francisco?',
   });
 
