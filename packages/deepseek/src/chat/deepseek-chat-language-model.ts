@@ -123,19 +123,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         frequency_penalty: frequencyPenalty,
         presence_penalty: presencePenalty,
         response_format:
-          responseFormat?.type === 'json'
-            ? responseFormat.schema != null
-              ? // TODO inject into prompt
-                {
-                  type: 'json_schema',
-                  json_schema: {
-                    schema: responseFormat.schema,
-                    name: responseFormat.name ?? 'response',
-                    description: responseFormat.description,
-                  },
-                }
-              : { type: 'json_object' }
-            : undefined,
+          responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
         stop: stopSequences,
         messages,
         tools: deepseekTools,

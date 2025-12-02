@@ -20,10 +20,24 @@ export function convertToDeepSeekChatMessages({
 
   // Inject system message if response format is JSON
   if (responseFormat?.type === 'json') {
-    messages.push({
-      role: 'system',
-      content: 'Return JSON.',
-    });
+    if (responseFormat.schema == null) {
+      messages.push({
+        role: 'system',
+        content: 'Return JSON.',
+      });
+    } else {
+      messages.push({
+        role: 'system',
+        content:
+          'Return JSON that conforms to the following schema: ' +
+          JSON.stringify(responseFormat.schema),
+      });
+      warnings.push({
+        type: 'compatibility',
+        feature: 'responseFormat JSON schema',
+        details: 'JSON response schema is injected into the system message.',
+      });
+    }
   }
 
   // TODO use findLastIndex once we use ES2023
