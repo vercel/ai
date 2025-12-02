@@ -90,7 +90,7 @@ console.log(text);`,
     slug: 'parallel',
     name: 'Parallel',
     description:
-      'Parallel provides two powerful web tools: searchTool for finding relevant web pages and compressed token dense excerpts based on the semantic objective, and extractTool for extracting full page contents or excerpts (use objective) from any URL',
+      'Parallel gives AI agents best-in-class tools to search and extract context from the web. Web results returned by Parallel are compressed for optimal token efficiency at inference time.',
     packageName: '@parallel-web/ai-sdk-tools',
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'PARALLEL_API_KEY',
@@ -117,6 +117,70 @@ console.log(text);`,
     apiKeyUrl: 'https://platform.parallel.ai',
     websiteUrl: 'https://parallel.ai',
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
+  },
+  {
+    slug: 'perplexity-search',
+    name: 'Perplexity Search',
+    description:
+      "Search the web with real-time results and advanced filtering powered by Perplexity's Search API. Provides ranked search results with domain, language, date range, and recency filters. Supports multi-query searches and regional search results.",
+    packageName: '@perplexity-ai/ai-sdk',
+    tags: ['search', 'web'],
+    apiKeyEnvName: 'PERPLEXITY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @perplexity-ai/ai-sdk',
+      npm: 'npm install @perplexity-ai/ai-sdk',
+      yarn: 'yarn add @perplexity-ai/ai-sdk',
+      bun: 'bun add @perplexity-ai/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { perplexitySearch } from '@perplexity-ai/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-4o-mini'),
+  prompt: 'What are the latest AI developments? Use search to find current information.',
+  tools: {
+    search: perplexitySearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.perplexity.ai/guides/search-quickstart',
+    apiKeyUrl: 'https://www.perplexity.ai/account/api/keys',
+    websiteUrl: 'https://www.perplexity.ai',
+    npmUrl: 'https://www.npmjs.com/package/@perplexity-ai/ai-sdk',
+  },
+  {
+    slug: 'tavily',
+    name: 'Tavily',
+    description:
+      'Tavily is a web intelligence platform offering real-time web search optimized for AI applications. Tavily provides comprehensive web research capabilities including search, content extraction, website crawling, and site mapping to power AI agents with current information.',
+    packageName: '@tavily/ai-sdk',
+    tags: ['search', 'extract', 'crawl'],
+    apiKeyEnvName: 'TAVILY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @tavily/ai-sdk',
+      npm: 'npm install @tavily/ai-sdk',
+      yarn: 'yarn add @tavily/ai-sdk',
+      bun: 'bun add @tavily/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { tavilySearch } from '@tavily/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('google/gemini-3-pro-preview'),
+  prompt: 'What are the latest developments in agentic search?',
+  tools: {
+    webSearch: tavilySearch,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.tavily.com/documentation/integrations/vercel',
+    apiKeyUrl: 'https://app.tavily.com/home',
+    websiteUrl: 'https://tavily.com',
+    npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
   },
   {
     slug: 'firecrawl',
@@ -233,5 +297,39 @@ console.log(text);`,
     apiKeyUrl: 'https://dashboard.superagent.sh',
     websiteUrl: 'https://superagent.sh',
     npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
+  },
+  {
+    slug: 'valyu',
+    name: 'Valyu',
+    description:
+      'Valyu provides powerful search tools for AI agents. Web search for real-time information, plus specialized domain-specific searchtools: financeSearch (stock prices, earnings, income statements, cash flows, etc), paperSearch (full-text PubMed, arXiv, bioRxiv, medRxiv), bioSearch (clinical trials, FDA drug labels, PubMed, medRxiv, bioRxiv), patentSearch (USPTO patents), secSearch (10-k/10-Q/8-k), economicsSearch (BLS, FRED, World Bank data), and companyResearch (comprehensive company research reports).',
+    packageName: '@valyu/ai-sdk',
+    tags: ['search', 'web', 'domain-search'],
+    apiKeyEnvName: 'VALYU_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @valyu/ai-sdk',
+      npm: 'npm install @valyu/ai-sdk',
+      yarn: 'yarn add @valyu/ai-sdk',
+      bun: 'bun add @valyu/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { webSearch } from '@valyu/ai-sdk';
+// Available specialised search tools: financeSearch, paperSearch,
+// bioSearch, patentSearch, secSearch, economicsSearch, companyResearch
+
+const { text } = await generateText({
+  model: gateway('google/gemini-3-pro-preview'),
+  prompt: 'Latest data center projects for AI inference?',
+  tools: {
+    webSearch: webSearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.valyu.ai/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://platform.valyu.ai',
+    websiteUrl: 'https://valyu.ai',
+    npmUrl: 'https://www.npmjs.com/package/@valyu/ai-sdk',
   },
 ];
