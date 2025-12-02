@@ -8,7 +8,19 @@ export function convertToDeepSeekChatMessages(prompt: LanguageModelV3Prompt): {
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV3Warning> = [];
 
+  // TODO use findLastIndex once we use ES2023
+  let lastUserMessageIndex = -1;
+  for (let i = prompt.length - 1; i >= 0; i--) {
+    if (prompt[i].role === 'user') {
+      lastUserMessageIndex = i;
+      break;
+    }
+  }
+
+  let index = -1;
   for (const { role, content } of prompt) {
+    index++;
+
     switch (role) {
       case 'system': {
         messages.push({ role: 'system', content });
@@ -52,6 +64,10 @@ export function convertToDeepSeekChatMessages(prompt: LanguageModelV3Prompt): {
               break;
             }
             case 'reasoning': {
+              if (index <= lastUserMessageIndex) {
+                break;
+              }
+
               if (reasoning == null) {
                 reasoning = part.text;
               } else {

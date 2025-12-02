@@ -90,7 +90,7 @@ describe('convertToDeepSeekChatMessages', () => {
           "messages": [
             {
               "content": "",
-              "reasoning_content": "",
+              "reasoning_content": undefined,
               "role": "assistant",
               "tool_calls": [
                 {
@@ -145,7 +145,7 @@ describe('convertToDeepSeekChatMessages', () => {
           "messages": [
             {
               "content": "",
-              "reasoning_content": "",
+              "reasoning_content": undefined,
               "role": "assistant",
               "tool_calls": [
                 {
@@ -171,6 +171,10 @@ describe('convertToDeepSeekChatMessages', () => {
 
     it('should support reasoning content in tool calls', () => {
       const result = convertToDeepSeekChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
         {
           role: 'assistant',
           content: [
@@ -203,6 +207,10 @@ describe('convertToDeepSeekChatMessages', () => {
         {
           "messages": [
             {
+              "content": "Hello",
+              "role": "user",
+            },
+            {
               "content": "",
               "reasoning_content": "I think the tool will return the correct value.",
               "role": "assistant",
@@ -221,6 +229,81 @@ describe('convertToDeepSeekChatMessages', () => {
               "content": "{"oof":"321rab"}",
               "role": "tool",
               "tool_call_id": "quux",
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should filter out reasoning content from turns before the last user message', () => {
+      const result = convertToDeepSeekChatMessages([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I think the tool will return the correct value.',
+            },
+            {
+              type: 'tool-call',
+              input: { foo: 'bar123' },
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              output: { type: 'json', value: { oof: '321rab' } },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Goodbye' }],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+            {
+              "content": "",
+              "reasoning_content": undefined,
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{"foo":"bar123"}",
+                    "name": "thwomp",
+                  },
+                  "id": "quux",
+                  "type": "function",
+                },
+              ],
+            },
+            {
+              "content": "{"oof":"321rab"}",
+              "role": "tool",
+              "tool_call_id": "quux",
+            },
+            {
+              "content": "Goodbye",
+              "role": "user",
             },
           ],
           "warnings": [],
