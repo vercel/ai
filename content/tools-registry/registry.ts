@@ -119,8 +119,6 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
   },
   {
-<<<<<<< HEAD
-=======
     slug: 'perplexity-search',
     name: 'Perplexity Search',
     description:
@@ -185,7 +183,6 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
   },
   {
->>>>>>> 891e33ff7 (Add Perplexity Search tool to registry and documentation (#10477))
     slug: 'firecrawl',
     name: 'Firecrawl',
     description:
