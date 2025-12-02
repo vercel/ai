@@ -18,19 +18,22 @@ export type ToolSchemas =
   | 'automatic'
   | undefined;
 
+/** Base MCP tool type with execute and _meta */
+type McpToolBase<INPUT = unknown> = Tool<INPUT, CallToolResult> &
+  Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>> & {
+    _meta?: ToolMeta;
+  };
+
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
   TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<any> }>
     ? {
         [K in keyof TOOL_SCHEMAS]: TOOL_SCHEMAS[K] extends {
           inputSchema: FlexibleSchema<infer INPUT>;
         }
-          ? Tool<INPUT, CallToolResult> &
-              Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>> & {
-                _meta?: ToolMeta;
-              }
+          ? McpToolBase<INPUT>
           : never;
       }
-    : McpToolSet<Record<string, { inputSchema: FlexibleSchema<unknown> }>>;
+    : Record<string, McpToolBase<unknown>>;
 
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
