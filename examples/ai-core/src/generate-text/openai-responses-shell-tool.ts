@@ -19,7 +19,8 @@ run(async () => {
         },
       }),
     },
-    prompt: 'Create a file in my ~/Desktop directory called dec1.txt with the text: THIS WORKS!',
+    prompt:
+      'Create a file in my ~/Desktop directory called dec1.txt with the text: THIS WORKS!',
     stopWhen: stepCountIs(5),
   });
 

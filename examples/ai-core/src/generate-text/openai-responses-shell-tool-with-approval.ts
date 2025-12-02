@@ -65,21 +65,24 @@ run(async () => {
           typeof part.toolCall.input === 'string'
             ? JSON.parse(part.toolCall.input)
             : part.toolCall.input;
-        const commands = (
-          input as { action?: { commands?: string[] } }
-        ).action?.commands || [];
+        const commands =
+          (input as { action?: { commands?: string[] } }).action?.commands ||
+          [];
 
         console.log('\nShell command approval required:');
         commands.forEach((cmd, index) => {
           console.log(`  ${index + 1}. ${cmd}`);
         });
 
-        const answer = await terminal.question('\nProceed with execution? [y/N] ');
+        const answer = await terminal.question(
+          '\nProceed with execution? [y/N] ',
+        );
 
         approvals.push({
           type: 'tool-approval-response',
           approvalId: part.approvalId,
-          approved: answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
+          approved:
+            answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
         });
       }
     }
