@@ -298,4 +298,38 @@ console.log(text);`,
     websiteUrl: 'https://superagent.sh',
     npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
   },
+  {
+    slug: 'valyu',
+    name: 'Valyu',
+    description:
+      'Valyu provides powerful search tools for AI agents. Web search for real-time information, plus specialized domain-specific searchtools: financeSearch (stock prices, earnings, income statements, cash flows, etc), paperSearch (full-text PubMed, arXiv, bioRxiv, medRxiv), bioSearch (clinical trials, FDA drug labels, PubMed, medRxiv, bioRxiv), patentSearch (USPTO patents), secSearch (10-k/10-Q/8-k), economicsSearch (BLS, FRED, World Bank data), and companyResearch (comprehensive company research reports).',
+    packageName: '@valyu/ai-sdk',
+    tags: ['search', 'web', 'domain-search'],
+    apiKeyEnvName: 'VALYU_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @valyu/ai-sdk',
+      npm: 'npm install @valyu/ai-sdk',
+      yarn: 'yarn add @valyu/ai-sdk',
+      bun: 'bun add @valyu/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { webSearch } from '@valyu/ai-sdk';
+// Available specialised search tools: financeSearch, paperSearch,
+// bioSearch, patentSearch, secSearch, economicsSearch, companyResearch
+
+const { text } = await generateText({
+  model: gateway('google/gemini-3-pro-preview'),
+  prompt: 'Latest data center projects for AI inference?',
+  tools: {
+    webSearch: webSearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.valyu.ai/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://platform.valyu.ai',
+    websiteUrl: 'https://valyu.ai',
+    npmUrl: 'https://www.npmjs.com/package/@valyu/ai-sdk',
+  },
 ];
