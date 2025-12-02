@@ -22,7 +22,7 @@ export function convertToDeepSeekChatMessages({
   if (responseFormat?.type === 'json') {
     messages.push({
       role: 'system',
-      content: 'Return ONLY a valid JSON object.',
+      content: 'Return JSON.',
     });
   }
 

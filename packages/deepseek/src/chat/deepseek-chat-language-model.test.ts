@@ -35,7 +35,7 @@ describe('DeepSeekChatLanguageModel', () => {
         prepareJsonFixtureResponse('deepseek-text');
       });
 
-      it('should send model id, settings, and input', async () => {
+      it('should send correct request body', async () => {
         await provider.chat('deepseek-chat').doGenerate({
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
@@ -78,7 +78,7 @@ describe('DeepSeekChatLanguageModel', () => {
         prepareJsonFixtureResponse('deepseek-reasoning');
       });
 
-      it('should send model id, settings, and input', async () => {
+      it('should send correct request body', async () => {
         await provider.chat('deepseek-reasoner').doGenerate({
           prompt: [
             {
@@ -128,7 +128,7 @@ describe('DeepSeekChatLanguageModel', () => {
         prepareJsonFixtureResponse('deepseek-tool-call');
       });
 
-      it('should send model id, settings, and input', async () => {
+      it('should send correct request body', async () => {
         await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
           tools: [
@@ -186,6 +186,107 @@ describe('DeepSeekChatLanguageModel', () => {
             ],
           }
         `);
+      });
+
+      describe('json response format without schema', () => {
+        beforeEach(() => {
+          prepareJsonFixtureResponse('deepseek-json-without-schema');
+        });
+
+        it('should send correct request body', async () => {
+          await provider.chat('deepseek-reasoner').doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: { type: 'json' },
+            tools: [
+              {
+                type: 'function',
+                name: 'weather',
+                inputSchema: {
+                  type: 'object',
+                  properties: { location: { type: 'string' } },
+                  required: ['location'],
+                  additionalProperties: false,
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                },
+              },
+            ],
+            providerOptions: {
+              deepseek: {
+                thinking: { type: 'enabled' },
+              } satisfies DeepSeekChatOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "messages": [
+                {
+                  "content": "Return JSON.",
+                  "role": "system",
+                },
+                {
+                  "content": "Hello",
+                  "role": "user",
+                },
+              ],
+              "model": "deepseek-reasoner",
+              "response_format": {
+                "type": "json_object",
+              },
+              "thinking": {
+                "type": "enabled",
+              },
+              "tools": [
+                {
+                  "function": {
+                    "name": "weather",
+                    "parameters": {
+                      "$schema": "http://json-schema.org/draft-07/schema#",
+                      "additionalProperties": false,
+                      "properties": {
+                        "location": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "location",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "type": "function",
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should extract text content', async () => {
+          const result = await provider.chat('deepseek-reasoner').doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: { type: 'json' },
+            tools: [
+              {
+                type: 'function',
+                name: 'weather',
+                inputSchema: {
+                  type: 'object',
+                  properties: { location: { type: 'string' } },
+                  required: ['location'],
+                  additionalProperties: false,
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                },
+              },
+            ],
+            providerOptions: {
+              deepseek: {
+                thinking: { type: 'enabled' },
+              } satisfies DeepSeekChatOptions,
+            },
+          });
+
+          expect(result).toMatchSnapshot();
+        });
       });
 
       it('should extract tool call content', async () => {
