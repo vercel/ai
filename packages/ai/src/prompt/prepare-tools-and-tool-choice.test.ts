@@ -370,7 +370,7 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should pass through   strict mode setting', async () => {
+  it('should pass through strict mode setting', async () => {
     const result = await prepareToolsAndToolChoice({
       tools: {
         tool1: tool({
