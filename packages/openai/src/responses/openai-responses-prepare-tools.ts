@@ -15,11 +15,9 @@ import { OpenAIResponsesTool } from './openai-responses-api';
 export async function prepareResponsesTools({
   tools,
   toolChoice,
-  strictJsonSchema,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
-  strictJsonSchema: boolean;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -55,7 +53,7 @@ export async function prepareResponsesTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
-          strict: strictJsonSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         });
         break;
       case 'provider': {
@@ -84,6 +82,12 @@ export async function prepareResponsesTools({
           case 'openai.local_shell': {
             openaiTools.push({
               type: 'local_shell',
+            });
+            break;
+          }
+          case 'openai.shell': {
+            openaiTools.push({
+              type: 'shell',
             });
             break;
           }

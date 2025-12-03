@@ -1,8 +1,8 @@
+import { LanguageModelV3CallOptions, SharedV3Warning } from '@ai-sdk/provider';
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
+  DeepSeekFunctionTool,
+  DeepSeekToolChoice,
+} from './deepseek-chat-api-types';
 
 export function prepareTools({
   tools,
@@ -11,22 +11,8 @@ export function prepareTools({
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
 }): {
-  tools:
-    | undefined
-    | Array<{
-        type: 'function';
-        function: {
-          name: string;
-          description: string | undefined;
-          parameters: unknown;
-        };
-      }>;
-  toolChoice:
-    | { type: 'function'; function: { name: string } }
-    | 'auto'
-    | 'none'
-    | 'required'
-    | undefined;
+  tools: undefined | Array<DeepSeekFunctionTool>;
+  toolChoice: DeepSeekToolChoice;
   toolWarnings: SharedV3Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -38,14 +24,7 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const deepseekTools: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: unknown;
-    };
-  }> = [];
+  const deepseekTools: Array<DeepSeekFunctionTool> = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider') {
@@ -60,6 +39,7 @@ export function prepareTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
     }
@@ -69,7 +49,7 @@ export function prepareTools({
     return { tools: deepseekTools, toolChoice: undefined, toolWarnings };
   }
 
-  const type = toolChoice.type;
+  const type = toolChoice?.type;
 
   switch (type) {
     case 'auto':
@@ -86,10 +66,17 @@ export function prepareTools({
         toolWarnings,
       };
     default: {
-      const _exhaustiveCheck: never = type;
-      throw new UnsupportedFunctionalityError({
-        functionality: `tool choice type: ${_exhaustiveCheck}`,
-      });
+      return {
+        tools: deepseekTools,
+        toolChoice: undefined,
+        toolWarnings: [
+          ...toolWarnings,
+          {
+            type: 'unsupported',
+            feature: `tool choice type: ${type}`,
+          },
+        ],
+      };
     }
   }
 }

@@ -429,12 +429,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             toolChoice: { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,
+            supportsStructuredOutput,
           }
         : {
             tools: tools ?? [],
             toolChoice,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
+            supportsStructuredOutput,
           },
     );
 

@@ -40,11 +40,23 @@ pnpm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta
 
 ### `CoreMessage` removed
 
-The deprecated `CoreMessage` type and related types, schemas, and functions have been removed.
+The deprecated `CoreMessage` type and related functions have been removed ([PR #10710](https://github.com/vercel/ai/pull/10710)). Replace `convertToCoreMessages` with `convertToModelMessages`.
+
+```tsx filename="Before (V4)"
+import { convertToCoreMessages, type CoreMessage } from 'ai';
+
+const coreMessages = convertToCoreMessages(messages); // CoreMessage[]
+```
+
+```tsx filename="After (V6)"
+import { convertToModelMessages, type ModelMessage } from 'ai';
+
+const modelMessages = convertToModelMessages(messages); // ModelMessage[]
+```
 
 ### `generateObject` and `streamObject` deprecated
 
-`generateObject` and `streamObject` have been deprecated.
+`generateObject` and `streamObject` have been deprecated ([PR #10754](https://github.com/vercel/ai/pull/10754)).
 They will be removed in a future version.
 You can use `generateText` and `streamText` with an `output` setting instead.
 
@@ -52,16 +64,134 @@ You can use `generateText` and `streamText` with an `output` setting instead.
 
 ### `strictJsonSchema` defaults to true
 
-The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default.
+The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default ([PR #10752](https://github.com/vercel/ai/pull/10752)). This improves stability and ensures valid JSON output that matches your schema.
 
-This can lead to schemas getting rejected by the OpenAI API.
-In those cases, you can adjust the schema (e.g. producing `null` instead of `undefined`),
-or turn of `strictJsonSchema`.
+However, strict mode is stricter about schema requirements. If you receive schema rejection errors, adjust your schema (for example, use `null` instead of `undefined`) or disable strict mode.
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+// strictJsonSchema was false by default
+const result = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+});
+```
+
+```tsx filename="AI SDK 6.0"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+// strictJsonSchema is true by default
+const result = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+});
+
+// Disable strict mode if needed
+const resultNoStrict = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+  providerOptions: {
+    openai: {
+      strictJsonSchema: false,
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+```
+
+### `strictJsonSchema` no longer used for tool strict mode
+
+Strict mode for tools is now controlled by setting `strict` on each tool ([PR #10817](https://github.com/vercel/ai/pull/10817)). This enables fine-grained control over strict tool calls, which is important since strict mode depends on the specific tool input schema.
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+// Tool strict mode was controlled by strictJsonSchema
+const result = streamText({
+  model: openai('gpt-4o'),
+  tools: {
+    calculator: tool({
+      description: 'A simple calculator',
+      inputSchema: z.object({
+        expression: z.string(),
+      }),
+      execute: async ({ expression }) => {
+        const result = eval(expression);
+        return { result };
+      },
+    }),
+  },
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // Applied to all tools
+    },
+  },
+});
+```
+
+```tsx filename="AI SDK 6.0"
+import { openai } from '@ai-sdk/openai';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  tools: {
+    calculator: tool({
+      description: 'A simple calculator',
+      inputSchema: z.object({
+        expression: z.string(),
+      }),
+      execute: async ({ expression }) => {
+        const result = eval(expression);
+        return { result };
+      },
+      strict: true, // Control strict mode per tool
+    }),
+  },
+});
+```
 
 ### `structuredOutputs` option removed from chat model
 
-The `structuredOutputs` provider option has been removed from chat models.
-You can use `strictJsonSchema` instead.
+The `structuredOutputs` provider option has been removed from chat models ([PR #10752](https://github.com/vercel/ai/pull/10752)). Use `strictJsonSchema` instead.
+
+## Warning System
+
+### Warning Logger Enabled
+
+AI SDK 6 introduces a warning logger that outputs deprecation warnings and best practice recommendations ([PR #8343](https://github.com/vercel/ai/pull/8343)).
+
+To disable warning logging, set the `AI_SDK_LOG_WARNINGS` environment variable to `false`:
+
+```bash
+export AI_SDK_LOG_WARNINGS=false
+```
+
+### V2 Model Compatibility Warning
+
+A warning is displayed when using v2 provider models with AISDK v6 ([PR #10770](https://github.com/vercel/ai/pull/10770)). Update your provider implementations to use v3 models.
+
+## Tool Changes
+
+### Flexible Tool Content Support
+
+AI SDK 6 introduces more flexible tool output and result content support ([PR #9605](https://github.com/vercel/ai/pull/9605)), enabling richer tool interactions and better support for complex tool execution patterns.
 
 ## Codemods
 
@@ -83,3 +213,201 @@ every file.
 | Codemod Name | Description |
 | ------------ | ----------- |
 | TBD          | TBD         |
+
+## Embedding Changes
+
+### Embedding Model Method Renamed
+
+The `textEmbeddingModel` and `textEmbedding` methods on providers have been renamed to `embeddingModel` and `embedding` respectively. Additionally, generics have been removed from `EmbeddingModel`, `embed`, and `embedMany` ([PR #10592](https://github.com/vercel/ai/pull/10592)).
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+// Using the full method name
+const model = openai.textEmbeddingModel('text-embedding-3-small');
+
+// Using the shorthand
+const model = openai.textEmbedding('text-embedding-3-small');
+
+const { embedding } = await embed({
+  model: openai.textEmbedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+```
+
+```tsx filename="AI SDK 6.0"
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+// Using the full method name
+const model = openai.embeddingModel('text-embedding-3-small');
+
+// Using the shorthand
+const model = openai.embedding('text-embedding-3-small');
+
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+```
+
+## Provider Changes
+
+### OpenAI
+
+#### Unrecognized Models Treated as Reasoning Models
+
+The `@ai-sdk/openai` provider now treats unrecognized model IDs as reasoning models by default ([PR #9976](https://github.com/vercel/ai/pull/9976)). Previously, unrecognized models were treated as non-reasoning models.
+
+This change impacts users who configure `@ai-sdk/openai` with a custom `baseUrl` to use non-OpenAI models. Reasoning models exclude certain parameters like `temperature`, which may cause unexpected behavior if the model does not support reasoning. Consider using `@ai-sdk/openai-compatible` instead.
+
+### Azure
+
+#### Default Provider Uses Responses API
+
+The `@ai-sdk/azure` provider now uses the Responses API by default when calling `azure()` ([PR #9868](https://github.com/vercel/ai/pull/9868)). To use the previous Chat Completions API behavior, use `azure.chat()` instead.
+
+```tsx filename="AI SDK 5.0"
+import { azure } from '@ai-sdk/azure';
+
+// Used Chat Completions API
+const model = azure('gpt-4o');
+```
+
+```tsx filename="AI SDK 6.0"
+import { azure } from '@ai-sdk/azure';
+
+// Now uses Responses API by default
+const model = azure('gpt-4o');
+
+// Use azure.chat() for Chat Completions API
+const chatModel = azure.chat('gpt-4o');
+
+// Use azure.responses() explicitly for Responses API
+const responsesModel = azure.responses('gpt-4o');
+```
+
+<Note>
+  The Responses and Chat Completions APIs have different behavior and defaults.
+  If you depend on the Chat Completions API, switch your model instance to
+  `azure.chat()` and audit your configuration.
+</Note>
+
+### Anthropic
+
+#### Structured Outputs Mode
+
+Anthropic has [ introduced native structured outputs for Claude Sonnet 4.5 and later models ](https://www.claude.com/blog/structured-outputs-on-the-claude-developer-platform). The `@ai-sdk/anthropic` provider now includes a `structuredOutputMode` option to control how structured outputs are generated ([PR #10502](https://github.com/vercel/ai/pull/10502)).
+
+The available modes are:
+
+- `'outputFormat'`: Use Anthropic's native `output_format` parameter
+- `'jsonTool'`: Use a special JSON tool to specify the structured output format
+- `'auto'` (default): Use `'outputFormat'` when supported by the model, otherwise fall back to `'jsonTool'`
+
+```tsx filename="AI SDK 6.0"
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const result = await generateObject({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  schema: z.object({
+    name: z.string(),
+    age: z.number(),
+  }),
+  prompt: 'Generate a person',
+  providerOptions: {
+    anthropic: {
+      // Explicitly set the structured output mode (optional)
+      structuredOutputMode: 'outputFormat',
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+## `ai/test` Changes
+
+### Mock Classes Updated
+
+V2 mock classes have been removed from the `ai/test` module. Use the new V3 mock classes instead for testing.
+
+```tsx filename="AI SDK 5.0"
+import {
+  MockEmbeddingModelV2,
+  MockImageModelV2,
+  MockLanguageModelV2,
+  MockProviderV2,
+  MockSpeechModelV2,
+  MockTranscriptionModelV2,
+} from 'ai/test';
+```
+
+```tsx filename="AI SDK 6.0"
+import {
+  MockEmbeddingModelV3,
+  MockImageModelV3,
+  MockLanguageModelV3,
+  MockProviderV3,
+  MockSpeechModelV3,
+  MockTranscriptionModelV3,
+} from 'ai/test';
+```
+
+## Type Changes
+
+### Warning Types Unified
+
+Separate warning types for each generation function have been consolidated into a single `Warning` type exported from the `ai` package ([PR #10631](https://github.com/vercel/ai/pull/10631)).
+
+```tsx filename="AI SDK 5.0"
+// Separate warning types for each generation function
+import type {
+  CallWarning,
+  ImageModelCallWarning,
+  SpeechWarning,
+  TranscriptionWarning,
+} from 'ai';
+```
+
+```tsx filename="AI SDK 6.0"
+// Single Warning type for all generation functions
+import type { Warning } from 'ai';
+```
+
+### Tool Call Repair Function Signature
+
+The `system` parameter in the `ToolCallRepairFunction` type now accepts `SystemModelMessage` in addition to `string` ([PR #10635](https://github.com/vercel/ai/pull/10635)). This allows for more flexible system message configuration, including provider-specific options like caching.
+
+```tsx filename="AI SDK 5.0"
+import type { ToolCallRepairFunction } from 'ai';
+
+const repairToolCall: ToolCallRepairFunction<MyTools> = async ({
+  system, // type: string | undefined
+  messages,
+  toolCall,
+  tools,
+  inputSchema,
+  error,
+}) => {
+  // ...
+};
+```
+
+```tsx filename="AI SDK 6.0"
+import type { ToolCallRepairFunction, SystemModelMessage } from 'ai';
+
+const repairToolCall: ToolCallRepairFunction<MyTools> = async ({
+  system, // type: string | SystemModelMessage | undefined
+  messages,
+  toolCall,
+  tools,
+  inputSchema,
+  error,
+}) => {
+  // Handle both string and SystemModelMessage
+  const systemText = typeof system === 'string' ? system : system?.content;
+  // ...
+};
+```
