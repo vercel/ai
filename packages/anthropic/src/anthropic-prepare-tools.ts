@@ -53,15 +53,28 @@ export async function prepareTools({
           canCache: true,
         });
 
-        anthropicTools.push({
+        const anthropicFunctionTool: AnthropicTool = {
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
-          ...(supportsStructuredOutput === true && tool.strict != null
+          ...(supportsStructuredOutput && tool.strict != null
             ? { strict: tool.strict }
             : {}),
-        });
+        };
+
+        const anth = tool.providerOptions?.anthropic;
+        if (anth) {
+          if (anth.deferLoading != null)
+            (anthropicFunctionTool as any).defer_loading = anth.deferLoading;
+          if (anth.inputExamples != null)
+            (anthropicFunctionTool as any).input_examples = anth.inputExamples;
+          if (anth.allowedCallers != null)
+            (anthropicFunctionTool as any).allowed_callers =
+              anth.allowedCallers;
+        }
+
+        anthropicTools.push(anthropicFunctionTool);
         break;
       }
 

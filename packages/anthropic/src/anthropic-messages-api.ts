@@ -14,6 +14,10 @@ export type AnthropicCacheControl = {
   ttl?: '5m' | '1h';
 };
 
+export type AnthropicSearchToolType =
+  | 'tool_search_tool_regex_20251119'
+  | 'tool_search_tool_bm25_20251119';
+
 export interface AnthropicUserMessage {
   role: 'user';
   content: Array<
@@ -344,6 +348,15 @@ export type AnthropicTool =
         timezone?: string;
       };
       cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      type: AnthropicSearchToolType;
+      name: string;
+      cache_control?: AnthropicCacheControl;
+
+      defer_loading?: boolean;
+      input_examples?: unknown[];
+      allowed_callers?: string[];
     };
 
 export type AnthropicToolChoice =

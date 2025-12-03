@@ -68,6 +68,17 @@ or to provide a custom fetch implementation for e.g. testing.
    * Defaults to 'anthropic.messages'.
    */
   name?: string;
+
+  /**
+   * Enables Anthropic's Advanced Tool Use features:
+   * - Tool Search Tool
+   * - Programmatic Tool Calling
+   * - Tool Use Examples
+   *
+   * When enabled, adds:
+   *   "anthropic-beta": "advanced-tool-use-2025-11-20"
+   */
+  advancedToolUse?: boolean;
 }
 
 /**
@@ -95,6 +106,9 @@ export function createAnthropic(
           environmentVariableName: 'ANTHROPIC_API_KEY',
           description: 'Anthropic',
         }),
+        ...(options.advancedToolUse
+          ? { 'anthropic-beta': 'advanced-tool-use-2025-11-20' }
+          : {}),
         ...options.headers,
       },
       `ai-sdk/anthropic/${VERSION}`,

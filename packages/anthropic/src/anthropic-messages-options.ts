@@ -158,6 +158,12 @@ export const anthropicProviderOptions = z.object({
    * @default 'high'
    */
   effort: z.enum(['low', 'medium', 'high']).optional(),
+
+  advancedToolUse: z.boolean().optional(),
 });
 
-export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
+export type AnthropicProviderOptions = z.infer<
+  typeof anthropicProviderOptions
+> & {
+  advancedToolUse?: boolean;
+};
