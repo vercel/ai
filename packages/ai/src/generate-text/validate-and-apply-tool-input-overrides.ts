@@ -27,7 +27,7 @@ export function validateAndApplyToolInputOverrides<TOOLS extends ToolSet>({
         toolCallId: approval.toolCall.toolCallId,
         toolName: approval.toolCall.toolName,
         input: approval.approvalResponse.override.input,
-        error: `Tool '${approval.toolCall.toolName}' does not allow input modification. Set allowInputEditing: true to enable this feature.`,
+        error: `Tool '${approval.toolCall.toolName}' does not allow input modification. Set allowsInputEditing: true to enable this feature.`,
         dynamic: true,
       });
       continue;

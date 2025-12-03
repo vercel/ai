@@ -1400,6 +1400,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1481,6 +1482,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1567,6 +1569,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1663,6 +1666,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1752,6 +1756,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1842,6 +1847,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1938,6 +1944,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -2043,6 +2050,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -2141,6 +2149,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -2226,6 +2235,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",

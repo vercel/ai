@@ -3963,6 +3963,7 @@ describe('generateText', () => {
                   "type": "tool-call",
                 },
                 {
+                  "allowsInputEditing": undefined,
                   "approvalId": "id-1",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
@@ -4112,6 +4113,7 @@ describe('generateText', () => {
                   "type": "tool-call",
                 },
                 {
+                  "allowsInputEditing": undefined,
                   "approvalId": "id-1",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
