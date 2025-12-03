@@ -11,7 +11,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.0-beta.130",
+    "@ai-sdk/react": "3.0.0-beta.131",
     "ai": "6.0.0-beta.130",
     "geist": "^1.3.1",
     "next": "^15.5.4",
