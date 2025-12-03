@@ -262,10 +262,13 @@ export async function convertToOpenAIResponsesInput({
                     }
 
                     // Check if the following part will emit an item_reference
+                    // either by having an itemId or being a tool-result
                     const followingPartHasItemId =
                       followingPart?.providerOptions?.openai?.itemId != null;
+                    const followingPartIsToolResult =
+                      followingPart?.type === 'tool-result';
 
-                    if (followingPartHasItemId) {
+                    if (followingPartHasItemId || followingPartIsToolResult) {
                       input.push({ type: 'item_reference', id: reasoningId });
                     }
 
