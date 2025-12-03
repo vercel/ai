@@ -1,10 +1,10 @@
-import { openai } from '@ai-sdk/openai';
+import { azure } from '@ai-sdk/azure';
 import { UIToolInvocation } from 'ai';
 
-export default function OpenAIWebSearchView({
+export default function AzureWebSearchPreviewView({
   invocation,
 }: {
-  invocation: UIToolInvocation<ReturnType<typeof openai.tools.webSearch>>;
+  invocation: UIToolInvocation<ReturnType<typeof azure.tools.webSearchPreview>>;
 }) {
   switch (invocation.state) {
     case 'input-available': {
@@ -38,31 +38,6 @@ export default function OpenAIWebSearchView({
                   {output.action.query}
                 </span>
               </div>
-              {output.sources && output.sources.length > 0 && (
-                <div className="pl-5 text-sm text-blue-800">
-                  <span className="font-semibold">Sources:</span>
-                  <ul className="mt-1 list-disc pl-5 break-all">
-                    {output.sources.map((s, i) => (
-                      <li key={i}>
-                        {s.type === 'url' ? (
-                          <a
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline hover:text-blue-700"
-                          >
-                            {s.url}
-                          </a>
-                        ) : (
-                          <span className="inline-block bg-blue-100 text-blue-900 rounded px-2 py-0.5 text-xs font-mono">
-                            API: {s.name}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           );
         case 'openPage':
