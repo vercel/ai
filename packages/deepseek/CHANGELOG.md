@@ -1,5 +1,38 @@
 # @ai-sdk/deepseek
 
+## 2.0.0-beta.44
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 2.0.0-beta.43
+
+### Patch Changes
+
+- 4d04f43: feat(deepseek): rewrite DeepSeek provider
+
+## 2.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [544d4e8]
+  - @ai-sdk/openai-compatible@2.0.0-beta.41
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 2.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/openai-compatible@2.0.0-beta.40
+
 ## 2.0.0-beta.40
 
 ### Patch Changes

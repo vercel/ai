@@ -15,11 +15,17 @@ export async function prepareTools({
   toolChoice,
   disableParallelToolUse,
   cacheControlValidator,
+  supportsStructuredOutput,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
   disableParallelToolUse?: boolean;
   cacheControlValidator?: CacheControlValidator;
+
+  /**
+   * Whether the model supports structured output.
+   */
+  supportsStructuredOutput: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -52,11 +58,14 @@ export async function prepareTools({
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          ...(supportsStructuredOutput === true && tool.strict != null
+            ? { strict: tool.strict }
+            : {}),
         });
         break;
       }
 
-      case 'provider-defined': {
+      case 'provider': {
         // Note: Provider-defined tools don't currently support providerOptions in the SDK,
         // so cache_control cannot be set on them. The Anthropic API supports caching all tools,
         // but the SDK would need to be updated to expose providerOptions on provider-defined tools.

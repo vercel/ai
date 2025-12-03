@@ -19,6 +19,7 @@ export function prepareTools({
           name: string;
           description: string | undefined;
           parameters: unknown;
+          strict?: boolean;
         };
       }>;
   toolChoice:
@@ -44,11 +45,12 @@ export function prepareTools({
       name: string;
       description: string | undefined;
       parameters: unknown;
+      strict?: boolean;
     };
   }> = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
+    if (tool.type === 'provider') {
       toolWarnings.push({
         type: 'unsupported',
         feature: `provider-defined tool ${tool.id}`,
@@ -60,6 +62,7 @@ export function prepareTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
     }

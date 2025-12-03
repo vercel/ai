@@ -36,6 +36,39 @@ An example upgrade command would be:
 pnpm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta
 ```
 
+## `ai` package
+
+### `CoreMessage` removed
+
+The deprecated `CoreMessage` type and related types, schemas, and functions have been removed.
+
+### `generateObject` and `streamObject` deprecated
+
+`generateObject` and `streamObject` have been deprecated.
+They will be removed in a future version.
+You can use `generateText` and `streamText` with an `output` setting instead.
+
+## `@ai-sdk/openai` package
+
+### `strictJsonSchema` defaults to true
+
+The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default.
+
+This can lead to schemas getting rejected by the OpenAI API.
+In those cases, you can adjust the schema (e.g. producing `null` instead of `undefined`),
+or turn of `strictJsonSchema`.
+
+### `strictJsonSchema` no longer used for tool strict mode
+
+The tool strict mode is now controlled by setting `strict` on each tool.
+
+This enables fine-grained control over strict tool calls, which is important since it depends on the tool input schema.
+
+### `structuredOutputs` option removed from chat model
+
+The `structuredOutputs` provider option has been removed from chat models.
+You can use `strictJsonSchema` instead.
+
 ## Codemods
 
 The AI SDK **will** provide Codemod transformations to help upgrade your codebase when a
