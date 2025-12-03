@@ -47,12 +47,17 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
     "msw": "2.6.4",
+<<<<<<< HEAD
     "react-dom": "^18",
+=======
+    "react-dom": "^18 || ^19",
+>>>>>>> af65ab6a9 (fix(rsc): require minimal versions for RSC to address CVE-2025-55182 (#10833))
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {
+<<<<<<< HEAD
     "react": "^18 || ^19 || ^19.0.0-rc",
     "zod": "^3.25.76 || ^4.1.8"
   },
@@ -60,6 +65,9 @@
     "zod": {
       "optional": true
     }
+=======
+    "react": "^18 || ^19"
+>>>>>>> af65ab6a9 (fix(rsc): require minimal versions for RSC to address CVE-2025-55182 (#10833))
   },
   "engines": {
     "node": ">=18"
