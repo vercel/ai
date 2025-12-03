@@ -7,6 +7,7 @@ describe('prepareTools', () => {
     const result = await prepareTools({
       tools: undefined,
       toolChoice: undefined,
+      supportsStructuredOutput: true,
     });
     expect(result).toEqual({
       tools: undefined,
@@ -17,7 +18,11 @@ describe('prepareTools', () => {
   });
 
   it('should return undefined tools and tool_choice when tools are empty', async () => {
-    const result = await prepareTools({ tools: [], toolChoice: undefined });
+    const result = await prepareTools({
+      tools: [],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+    });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -37,6 +42,7 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: undefined,
+      supportsStructuredOutput: true,
     });
     expect(result.tools).toEqual([
       {
@@ -64,42 +70,6 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
-      });
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "betas": Set {},
-          "toolChoice": undefined,
-          "toolWarnings": [],
-          "tools": [
-            {
-              "cache_control": undefined,
-              "description": "A test function",
-              "input_schema": {
-                "properties": {},
-                "type": "object",
-              },
-              "name": "testFunction",
-              "strict": true,
-            },
-          ],
-        }
-      `);
-    });
-
-    it('should include strict when supportsStructuredOutput is false (flag present but model marked as unsupported)', async () => {
-      const result = await prepareTools({
-        tools: [
-          {
-            type: 'function',
-            name: 'testFunction',
-            description: 'A test function',
-            inputSchema: { type: 'object', properties: {} },
-            strict: true,
-          },
-        ],
-        toolChoice: undefined,
-        supportsStructuredOutput: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -157,7 +127,7 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should not include strict when supportsStructuredOutput is not provided', async () => {
+    it('should not include strict when supportsStructuredOutput is false', async () => {
       const result = await prepareTools({
         tools: [
           {
@@ -169,6 +139,7 @@ describe('prepareTools', () => {
           },
         ],
         toolChoice: undefined,
+        supportsStructuredOutput: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -209,6 +180,7 @@ describe('prepareTools', () => {
             },
           ],
           toolChoice: undefined,
+          supportsStructuredOutput: true,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -245,6 +217,7 @@ describe('prepareTools', () => {
             },
           ],
           toolChoice: undefined,
+          supportsStructuredOutput: true,
         });
         expect(result).toMatchInlineSnapshot(`
           {
@@ -276,6 +249,7 @@ describe('prepareTools', () => {
           },
         ],
         toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -307,6 +281,7 @@ describe('prepareTools', () => {
           },
         ],
         toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -336,6 +311,7 @@ describe('prepareTools', () => {
           },
         ],
         toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -369,6 +345,7 @@ describe('prepareTools', () => {
           },
         ],
         toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -411,6 +388,7 @@ describe('prepareTools', () => {
           },
         ],
         toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -452,7 +430,9 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: undefined,
+      supportsStructuredOutput: true,
     });
+
     expect(result.tools).toEqual([]);
     expect(result.toolChoice).toBeUndefined();
     expect(result.toolWarnings).toMatchInlineSnapshot(`
@@ -476,7 +456,9 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: { type: 'auto' },
+      supportsStructuredOutput: true,
     });
+
     expect(result.toolChoice).toEqual({ type: 'auto' });
   });
 
@@ -491,7 +473,9 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: { type: 'required' },
+      supportsStructuredOutput: true,
     });
+
     expect(result.toolChoice).toEqual({ type: 'any' });
   });
 
@@ -506,6 +490,7 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: { type: 'none' },
+      supportsStructuredOutput: true,
     });
     expect(result.tools).toBeUndefined();
     expect(result.toolChoice).toBeUndefined();
@@ -522,6 +507,7 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: { type: 'tool', toolName: 'testFunction' },
+      supportsStructuredOutput: true,
     });
     expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
   });
@@ -542,6 +528,7 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: undefined,
+      supportsStructuredOutput: true,
     });
 
     expect(result.tools).toMatchInlineSnapshot(`
@@ -609,6 +596,7 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: undefined,
+      supportsStructuredOutput: true,
       cacheControlValidator,
     });
 
