@@ -40,11 +40,11 @@ pnpm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta
 
 ### `CoreMessage` removed
 
-The deprecated `CoreMessage` type and related types, schemas, and functions have been removed.
+The deprecated `CoreMessage` type, schemas, and functions have been removed ([PR #10710](https://github.com/vercel/ai/pull/10710)).
 
 ### `generateObject` and `streamObject` deprecated
 
-`generateObject` and `streamObject` have been deprecated.
+`generateObject` and `streamObject` have been deprecated ([PR #10754](https://github.com/vercel/ai/pull/10754)).
 They will be removed in a future version.
 You can use `generateText` and `streamText` with an `output` setting instead.
 
@@ -52,7 +52,7 @@ You can use `generateText` and `streamText` with an `output` setting instead.
 
 ### `strictJsonSchema` defaults to true
 
-The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default.
+The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default ([PR #10752](https://github.com/vercel/ai/pull/10752)).
 
 This can lead to schemas getting rejected by the OpenAI API.
 In those cases, you can adjust the schema (e.g. producing `null` instead of `undefined`),
@@ -60,7 +60,7 @@ or turn of `strictJsonSchema`.
 
 ### `strictJsonSchema` no longer used for tool strict mode
 
-The tool strict mode is now controlled by setting `strict` on each tool.
+The tool strict mode is now controlled by setting `strict` on each tool ([PR #10817](https://github.com/vercel/ai/pull/10817)).
 
 This enables fine-grained control over strict tool calls, which is important since it depends on the tool input schema.
 
@@ -94,7 +94,7 @@ every file.
 
 ### Embedding Model Method Renamed
 
-The `textEmbeddingModel` and `textEmbedding` methods on providers have been renamed to `embeddingModel` and `embedding` respectively. Additionally, generics have been removed from `EmbeddingModel`, `embed`, and `embedMany`. See [PR #10592](https://github.com/vercel/ai/pull/10592) for more details.
+The `textEmbeddingModel` and `textEmbedding` methods on providers have been renamed to `embeddingModel` and `embedding` respectively. Additionally, generics have been removed from `EmbeddingModel`, `embed`, and `embedMany` ([PR #10592](https://github.com/vercel/ai/pull/10592)).
 
 ```tsx filename="AI SDK 5.0"
 import { openai } from '@ai-sdk/openai';
@@ -201,6 +201,34 @@ const result = await generateObject({
     } satisfies AnthropicProviderOptions,
   },
 });
+```
+
+## `ai/test` Changes
+
+### Mock Classes Updated
+
+V2 mock classes have been removed from the `ai/test` module. Use the new V3 mock classes instead for testing.
+
+```tsx filename="AI SDK 5.0"
+import {
+  MockEmbeddingModelV2,
+  MockImageModelV2,
+  MockLanguageModelV2,
+  MockProviderV2,
+  MockSpeechModelV2,
+  MockTranscriptionModelV2,
+} from 'ai/test';
+```
+
+```tsx filename="AI SDK 6.0"
+import {
+  MockEmbeddingModelV3,
+  MockImageModelV3,
+  MockLanguageModelV3,
+  MockProviderV3,
+  MockSpeechModelV3,
+  MockTranscriptionModelV3,
+} from 'ai/test';
 ```
 
 ## Type Changes
