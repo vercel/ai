@@ -1,21 +1,24 @@
-import { DeferredToolDefinition } from './types';
+import { JSONSchema7 } from "@ai-sdk/provider";
 
-const _registry: DeferredToolDefinition[] = [];
+export interface RegisteredRuntimeTool {
+  name: string;
+  description?: string;
+  inputSchema?: JSONSchema7;
+  keywords?: string[];
+  allowedCallers?: string[];
+  examples?: unknown[];
+}
 
-/**
- * Register a tool so that it becomes discoverable
- * by the tool-search runtime.
- */
-export function registerDeferredTool(tool: DeferredToolDefinition) {
-  const exists = _registry.some(t => t.name === tool.name);
-  if (!exists) {
-    _registry.push(tool);
+class ToolSearchRegistry {
+  private tools: RegisteredRuntimeTool[] = [];
+
+  register(tool: RegisteredRuntimeTool) {
+    this.tools.push(tool);
+  }
+
+  list() {
+    return this.tools;
   }
 }
 
-/**
- * Returns all registered deferred tools.
- */
-export function listDeferredTools(): DeferredToolDefinition[] {
-  return [..._registry];
-}
+export const toolSearchRegistry = new ToolSearchRegistry();

@@ -3,12 +3,19 @@ import {
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { runtimeToolSearch } from './runtime/tool-search/search';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
 import { CacheControlValidator } from './get-cache-control';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
+
+import { AnthropicSearchToolDefinition } from './anthropic-messages-options';
+
+type ExtendedTool =
+  | NonNullable<LanguageModelV3CallOptions['tools']>[number]
+  | AnthropicSearchToolDefinition;
 
 export async function prepareTools({
   tools,
@@ -45,8 +52,32 @@ export async function prepareTools({
 
   const anthropicTools: AnthropicTool[] = [];
 
-  for (const tool of tools) {
+  for (const tool of tools as unknown as ExtendedTool[]) {
     switch (tool.type) {
+      case 'search-tool': {
+        betas.add('advanced-tool-use-2025-11-20');
+
+        const rankedTools = runtimeToolSearch(tool.query, tool.maxResults ?? 5);
+
+        for (const t of rankedTools) {
+          const cacheControl = validator.getCacheControl(tool.providerOptions, {
+            type: 'search-result',
+            canCache: true,
+          });
+
+          anthropicTools.push({
+            type: tool.searchType,
+            name: t.name,
+            cache_control: cacheControl,
+            defer_loading: tool.deferLoading ?? true,
+            input_examples: tool.inputExamples,
+            allowed_callers: tool.allowedCallers,
+          });
+        }
+
+        continue;
+      }
+
       case 'function': {
         const cacheControl = validator.getCacheControl(tool.providerOptions, {
           type: 'tool definition',

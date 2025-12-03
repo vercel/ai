@@ -15,6 +15,7 @@ import { VERSION } from './version';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
+import { toolSearchRegistry } from './runtime/tool-search/registry';
 
 export interface AnthropicProvider extends ProviderV3 {
   /**
@@ -35,6 +36,11 @@ Creates a model for text generation.
 Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
+
+  advancedTools: {
+    register: typeof toolSearchRegistry.register;
+    list: typeof toolSearchRegistry.list;
+  };
 }
 
 export interface AnthropicProviderSettings {
@@ -149,6 +155,11 @@ export function createAnthropic(
   };
 
   provider.tools = anthropicTools;
+
+  provider.advancedTools = {
+    register: toolSearchRegistry.register,
+    list: toolSearchRegistry.list,
+  };
 
   return provider;
 }

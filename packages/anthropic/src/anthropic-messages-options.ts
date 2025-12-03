@@ -1,3 +1,4 @@
+import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
@@ -167,3 +168,29 @@ export type AnthropicProviderOptions = z.infer<
 > & {
   advancedToolUse?: boolean;
 };
+
+export type AnthropicSearchToolType =
+  | 'tool_search_bm25_20251119'
+  | 'tool_search_regex_20251119';
+
+export interface AnthropicSearchToolDefinition {
+  type: 'search-tool';
+  name: string;
+
+  // query text passed to BM25 / regex runtime
+  query: string;
+
+  // how many tools Anthropic should load after ranking
+  maxResults?: number;
+
+  // Version: 'bm25' or 'regex'
+  searchType: AnthropicSearchToolType;
+
+  // Additional ATU fields
+  deferLoading?: boolean;
+  inputExamples?: unknown[];
+  allowedCallers?: string[];
+
+  // Cache control
+  providerOptions?: SharedV3ProviderMetadata;
+}

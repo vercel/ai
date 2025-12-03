@@ -1,29 +1,12 @@
+import { JSONSchema7 } from "@ai-sdk/provider";
+
 export interface DeferredToolDefinition {
-  /**
-   * Unique name of the tool — user-visible.
-   */
   name: string;
-
-  /**
-   * Natural-language description of what the tool does.
-   * Used by BM25 + regex ranking.
-   */
-  description: string;
-
-  /**
-   * The JSON schema used for the tool's input.
-   */
-  inputSchema: any;
-
-  /**
-   * Optional hints to improve ranking.
-   */
+  description?: string;
+  inputSchema?: JSONSchema7;
   keywords?: string[];
-
-  /**
-   * Internal metadata (extensible).
-   */
-  metadata?: Record<string, any>;
+  allowedCallers?: string[];
+  examples?: unknown[];
 }
 
 export interface RankedToolResult {

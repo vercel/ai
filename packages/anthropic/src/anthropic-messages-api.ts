@@ -15,8 +15,8 @@ export type AnthropicCacheControl = {
 };
 
 export type AnthropicSearchToolType =
-  | 'tool_search_tool_regex_20251119'
-  | 'tool_search_tool_bm25_20251119';
+  | 'tool_search_regex_20251119'
+  | 'tool_search_bm25_20251119';
 
 export interface AnthropicUserMessage {
   role: 'user';
