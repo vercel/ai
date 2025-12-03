@@ -207,7 +207,7 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
-      strict: boolean | undefined;
+      strict?: boolean;
     }
   | {
       type: 'apply_patch';

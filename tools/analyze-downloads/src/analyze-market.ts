@@ -4,30 +4,54 @@
  * Main execution function.
  */
 async function main() {
-  const packages = [
-    'ai',
-    'openai',
-    '@anthropic-ai/sdk',
-    'langchain',
-    '@aws-sdk/client-bedrock-runtime',
-    '@google/generative-ai',
-    '@google/genai',
-    '@google-cloud/vertexai',
-    '@xenova/transformers',
-    '@mistralai/mistralai',
-    'llamaindex',
-    '@instructor-ai/instructor',
-    'together-ai',
-  ];
-  const results: Array<{
-    package: string;
+  // Map of group name to list of npm packages
+  const packageGroups: Record<string, string[]> = {
+    'AI SDK': ['ai'],
+    OpenAI: ['openai'],
+    Anthropic: ['@anthropic-ai/sdk'],
+    LangChain: ['langchain'],
+    'AWS Bedrock': ['@aws-sdk/client-bedrock-runtime'],
+    Google: [
+      '@google/generative-ai',
+      '@google/genai',
+      '@google-cloud/vertexai',
+    ],
+    Transformers: ['@xenova/transformers'],
+    Mistral: ['@mistralai/mistralai'],
+    LlamaIndex: ['llamaindex'],
+    Instructor: ['@instructor-ai/instructor'],
+    TogetherAI: ['together-ai'],
+    xsai: [
+      '@xsai/generate-text',
+      '@xsai/generate-object',
+      '@xsai/generate-image',
+      '@xsai/generate-speech',
+      '@xsai/generate-transcription',
+      '@xsai/stream-text',
+      '@xsai/stream-object',
+      '@xsai/stream-transcription',
+      '@xsai/embed',
+    ],
+    'pi-ai': ['@mariozechner/pi-ai'],
+  };
+
+  // Helper for flattened package to group map
+  const packageToGroup: Record<string, string> = {};
+  for (const [group, pkgs] of Object.entries(packageGroups)) {
+    for (const pkg of pkgs) packageToGroup[pkg] = group;
+  }
+
+  type Row = {
+    group: string;
     'past week': number;
     previous: number;
     diff: number;
     '%': string;
     'previous %': string;
     'diff %': string;
-  }> = [];
+  };
+
+  const rows: Row[] = [];
 
   // timestamps
   const d = new Date();
@@ -45,61 +69,115 @@ async function main() {
   );
 
   try {
-    for (const pkg of packages) {
-      const responseLastWeek = await fetch(
-        `https://api.npmjs.org/downloads/point/${sevenDaysAgoTimestamp}:${yesterdayTimestamp}/${pkg}`,
-      );
-      const dataLastWeek = await responseLastWeek.json();
-      const responsePrevWeek = await fetch(
-        `https://api.npmjs.org/downloads/point/${fourteenDaysAgoTimestamp}:${eightDaysAgoTimestamp}/${pkg}`,
-      );
-      const dataPrevWeek = await responsePrevWeek.json();
+    // Map from group to download sums etc.
+    const groupStats: Record<
+      string,
+      {
+        'past week': number;
+        previous: number;
+        packages: string[];
+      }
+    > = {};
 
-      results.push({
-        package: pkg,
-        'past week': dataLastWeek.downloads || 0,
-        '%': '0%', // Initial placeholder
-        previous: dataPrevWeek.downloads || 0,
-        'previous %': '0%', // Initial placeholder
-        diff: (dataLastWeek.downloads || 0) - (dataPrevWeek.downloads || 0),
-        'diff %': '0%', // Initial placeholder
+    for (const [group, pkgs] of Object.entries(packageGroups)) {
+      let pastWeekSum = 0;
+      let prevWeekSum = 0;
+      for (const pkg of pkgs) {
+        const responseLastWeek = await fetchWithRetry(
+          `https://api.npmjs.org/downloads/point/${sevenDaysAgoTimestamp}:${yesterdayTimestamp}/${pkg}`,
+        );
+        const dataLastWeek = await responseLastWeek.json();
+        const responsePrevWeek = await fetchWithRetry(
+          `https://api.npmjs.org/downloads/point/${fourteenDaysAgoTimestamp}:${eightDaysAgoTimestamp}/${pkg}`,
+        );
+        const dataPrevWeek = await responsePrevWeek.json();
+        pastWeekSum += dataLastWeek.downloads || 0;
+        prevWeekSum += dataPrevWeek.downloads || 0;
+      }
+      groupStats[group] = {
+        'past week': pastWeekSum,
+        previous: prevWeekSum,
+        packages: pkgs,
+      };
+    }
+
+    // Calculate totals
+    const totalPast = Object.values(groupStats).reduce(
+      (sum, v) => sum + v['past week'],
+      0,
+    );
+    const totalPrev = Object.values(groupStats).reduce(
+      (sum, v) => sum + v.previous,
+      0,
+    );
+
+    // Compose row objects
+    for (const [group, stat] of Object.entries(groupStats)) {
+      const diff = stat['past week'] - stat.previous;
+      const pastWeekPct =
+        totalPast > 0 ? (stat['past week'] / totalPast) * 100 : 0;
+      const prevPct = totalPrev > 0 ? (stat.previous / totalPrev) * 100 : 0;
+      const diffPct = pastWeekPct - prevPct;
+      rows.push({
+        group,
+        'past week': stat['past week'],
+        previous: stat.previous,
+        diff,
+        '%': `${pastWeekPct.toFixed(1)}%`,
+        'previous %': `${prevPct.toFixed(1)}%`,
+        'diff %': `${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(1)}%`,
       });
     }
 
-    // Calculate total downloads
-    const pastWeektotalDownloads = results.reduce(
-      (sum, item) => sum + item['past week'],
-      0,
-    );
-    const previousTotalDownloads = results.reduce(
-      (sum, item) => sum + item['previous'],
-      0,
-    );
+    // Sort by latest week downloads descending
+    rows.sort((a, b) => b['past week'] - a['past week']);
 
-    // Update percentages
-    results.forEach(item => {
-      const pastWeekPercentage =
-        pastWeektotalDownloads > 0
-          ? (item['past week'] / pastWeektotalDownloads) * 100
-          : 0;
-      item['%'] = `${pastWeekPercentage.toFixed(1)}%`;
-      const previousPercentage =
-        previousTotalDownloads > 0
-          ? (item['previous'] / previousTotalDownloads) * 100
-          : 0;
-      item['previous %'] = `${previousPercentage.toFixed(1)}%`;
-      const diffPercentage = pastWeekPercentage - previousPercentage;
-      item['diff %'] =
-        `${diffPercentage >= 0 ? '+' : ''}${diffPercentage.toFixed(1)}%`;
-    });
-
-    // Sort results by past week in descending order
-    results.sort((a, b) => b['past week'] - a['past week']);
-
-    console.table(results);
+    console.table(rows);
   } catch (err) {
     console.error('Error:', err);
   }
 }
 
 main();
+
+function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  retries = 3,
+  backoff = 10000,
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const attemptFetch = (n: number) => {
+      fetch(url, options)
+        .then(response => {
+          if (!response.ok) {
+            if (n > 0) {
+              console.warn(
+                `Fetch failed for ${url}. Retrying in ${backoff}ms... (${n} retries left)`,
+              );
+              setTimeout(() => attemptFetch(n - 1), backoff);
+            } else {
+              reject(
+                new Error(`Failed to fetch ${url} after multiple attempts.`),
+              );
+            }
+          } else {
+            resolve(response);
+          }
+        })
+        .catch(err => {
+          if (n > 0) {
+            console.warn(
+              `Fetch error for ${url}: ${err}. Retrying in ${backoff}ms... (${n} retries left)`,
+            );
+            setTimeout(() => attemptFetch(n - 1), backoff);
+          } else {
+            reject(
+              new Error(`Failed to fetch ${url} after multiple attempts.`),
+            );
+          }
+        });
+    };
+    attemptFetch(retries);
+  });
+}

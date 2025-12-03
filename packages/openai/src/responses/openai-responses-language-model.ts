@@ -345,7 +345,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     } = await prepareResponsesTools({
       tools,
       toolChoice,
-      strictJsonSchema,
     });
 
     return {
