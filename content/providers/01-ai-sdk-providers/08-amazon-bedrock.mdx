@@ -426,8 +426,8 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 // Anthropic example
-const { text, reasoning, reasoningDetails } = await generateText({
-  model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+const { text, reasoning } = await generateText({
+  model: bedrock('us.anthropclaude-3-7-sonnet-20250219-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     bedrock: {
@@ -437,11 +437,10 @@ const { text, reasoning, reasoningDetails } = await generateText({
 });
 
 console.log(reasoning); // reasoning text
-console.log(reasoningDetails); // reasoning details including redacted reasoning
 console.log(text); // text response
 
 // Nova 2 example
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoning } = await generateText({
   model: bedrock('us.amazon.nova-2-lite-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -452,7 +451,6 @@ const { text, reasoning, reasoningDetails } = await generateText({
 });
 
 console.log(reasoning); // reasoning text
-console.log(reasoningDetails); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
 
