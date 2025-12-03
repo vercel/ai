@@ -39,6 +39,7 @@ export function prepareChatTools({
             name: tool.name,
             description: tool.description,
             parameters: tool.inputSchema,
+            ...(tool.strict != null ? { strict: tool.strict } : {}),
           },
         });
         break;
