@@ -63,7 +63,7 @@ import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
-import { validateApprovedToolInputs } from './validate-approved-tool-inputs';
+import { validateAndApplyToolInputOverrides } from './validate-and-apply-tool-input-overrides';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
@@ -1109,7 +1109,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             }
 
             const { validToolCalls, invalidToolErrors } =
-              validateApprovedToolInputs({
+              validateAndApplyToolInputOverrides({
                 approvals: approvedToolApprovals,
               });
 

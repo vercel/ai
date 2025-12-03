@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { validateApprovedToolInputs } from './validate-approved-tool-inputs';
+import { validateAndApplyToolInputOverrides } from './validate-and-apply-tool-input-overrides';
 import { CollectedToolApprovals } from './collect-tool-approvals';
 
-describe('validateApprovedToolInputs', () => {
+describe('validateAndApplyToolInputOverrides', () => {
   it('should return valid tool calls when no override is provided', () => {
     const approvals: CollectedToolApprovals<any>[] = [
       {
@@ -26,7 +26,7 @@ describe('validateApprovedToolInputs', () => {
       },
     ];
 
-    const result = validateApprovedToolInputs({ approvals });
+    const result = validateAndApplyToolInputOverrides({ approvals });
 
     expect(result.validToolCalls).toEqual([
       {
@@ -63,7 +63,7 @@ describe('validateApprovedToolInputs', () => {
       },
     ];
 
-    const result = validateApprovedToolInputs({ approvals });
+    const result = validateAndApplyToolInputOverrides({ approvals });
 
     expect(result.validToolCalls).toEqual([
       {
@@ -100,7 +100,7 @@ describe('validateApprovedToolInputs', () => {
       },
     ];
 
-    const result = validateApprovedToolInputs({ approvals });
+    const result = validateAndApplyToolInputOverrides({ approvals });
 
     expect(result.validToolCalls).toEqual([]);
     expect(result.invalidToolErrors).toMatchInlineSnapshot(`
@@ -132,7 +132,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          // allowsInputEditing undefined
+          allowsInputEditing: undefined
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -143,7 +143,7 @@ describe('validateApprovedToolInputs', () => {
       },
     ];
 
-    const result = validateApprovedToolInputs({ approvals });
+    const result = validateAndApplyToolInputOverrides({ approvals });
 
     expect(result.validToolCalls).toEqual([]);
     expect(result.invalidToolErrors).toMatchInlineSnapshot(`
@@ -226,7 +226,7 @@ describe('validateApprovedToolInputs', () => {
       },
     ];
 
-    const result = validateApprovedToolInputs({ approvals });
+    const result = validateAndApplyToolInputOverrides({ approvals });
 
     expect(result.validToolCalls).toEqual([
       {
@@ -248,7 +248,7 @@ describe('validateApprovedToolInputs', () => {
   });
 
   it('should handle empty approvals array', () => {
-    const result = validateApprovedToolInputs({ approvals: [] });
+    const result = validateAndApplyToolInputOverrides({ approvals: [] });
 
     expect(result.validToolCalls).toEqual([]);
     expect(result.invalidToolErrors).toEqual([]);
@@ -281,7 +281,7 @@ describe('validateApprovedToolInputs', () => {
       },
     ];
 
-    const result = validateApprovedToolInputs({ approvals });
+    const result = validateAndApplyToolInputOverrides({ approvals });
 
     expect(result.validToolCalls[0]).toMatchObject({
       type: 'tool-call',
@@ -318,7 +318,7 @@ describe('validateApprovedToolInputs', () => {
       },
     ];
 
-    const result = validateApprovedToolInputs({ approvals });
+    const result = validateAndApplyToolInputOverrides({ approvals });
 
     expect(result.validToolCalls[0].input).toEqual({ city: 'London' });
   });

@@ -36,7 +36,7 @@ import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
-import { validateApprovedToolInputs } from './validate-approved-tool-inputs';
+import { validateAndApplyToolInputOverrides } from './validate-and-apply-tool-input-overrides';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { extractTextContent } from './extract-text-content';
@@ -349,7 +349,7 @@ A function that attempts to repair a tool call that failed to parse.
           approvedToolApprovals.length > 0
         ) {
           const { validToolCalls, invalidToolErrors } =
-            validateApprovedToolInputs({
+            validateAndApplyToolInputOverrides({
               approvals: approvedToolApprovals,
             });
 

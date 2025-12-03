@@ -4,9 +4,9 @@ import { ToolSet } from './tool-set';
 import { CollectedToolApprovals } from './collect-tool-approvals';
 
 /**
- * Validates that tool input modifications are allowed and applies them.
+ * Validates that tool input overrides are allowed and applies them.
  */
-export function validateApprovedToolInputs<TOOLS extends ToolSet>({
+export function validateAndApplyToolInputOverrides<TOOLS extends ToolSet>({
   approvals,
 }: {
   approvals: Array<CollectedToolApprovals<TOOLS>>;
