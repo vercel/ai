@@ -266,7 +266,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: boolean;
         reason?: string;
-        editedInput?: asUITool<TOOL>['input'];
+        override?: { input: asUITool<TOOL>['input'] };
       };
     }
   | {
@@ -280,7 +280,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
-        editedInput?: asUITool<TOOL>['input'];
+        override?: { input: asUITool<TOOL>['input'] };
       };
     }
   | {
@@ -294,7 +294,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
-        editedInput?: asUITool<TOOL>['input'];
+        override?: { input: asUITool<TOOL>['input'] };
       };
     }
   | {
@@ -307,7 +307,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
-        editedInput?: asUITool<TOOL>['input'];
+        override?: { input: asUITool<TOOL>['input'] };
       };
     }
 );
@@ -375,7 +375,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: boolean;
         reason?: string;
-        editedInput?: unknown;
+        override?: { input: unknown };
       };
     }
   | {
@@ -389,7 +389,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
-        editedInput?: unknown;
+        override?: { input: unknown };
       };
     }
   | {
@@ -402,7 +402,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
-        editedInput?: unknown;
+        override?: { input: unknown };
       };
     }
   | {
@@ -415,7 +415,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
-        editedInput?: unknown;
+        override?: { input: unknown };
       };
     }
 );

@@ -20,7 +20,12 @@ export type ToolApprovalResponse = {
   reason?: string;
 
   /**
-   * Optional modified input provided by the reviewer.
+   * Optional override for the tool input.
    */
-  editedInput?: unknown;
+  override?: {
+    /**
+     * The modified input to use instead of the original.
+     */
+    input: unknown;
+  };
 };

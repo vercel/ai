@@ -19,15 +19,15 @@ export function validateApprovedToolInputs<TOOLS extends ToolSet>({
 
   for (const approval of approvals) {
     if (
-      approval.approvalResponse.editedInput !== undefined &&
+      approval.approvalResponse.override !== undefined &&
       !approval.approvalRequest.allowsInputEditing
     ) {
       invalidToolErrors.push({
         type: 'tool-error' as const,
         toolCallId: approval.toolCall.toolCallId,
         toolName: approval.toolCall.toolName,
-        input: approval.approvalResponse.editedInput,
-        error: `Tool '${approval.toolCall.toolName}' does not allow input modification. Set allowsInputEditing: true to enable this feature.`,
+        input: approval.approvalResponse.override.input,
+        error: `Tool '${approval.toolCall.toolName}' does not allow input modification. Set allowInputEditing: true to enable this feature.`,
         dynamic: true,
       });
       continue;
@@ -37,7 +37,8 @@ export function validateApprovedToolInputs<TOOLS extends ToolSet>({
 
     validToolCalls.push({
       ...approval.toolCall,
-      input: approval.approvalResponse.editedInput ?? approval.toolCall.input,
+      input:
+        approval.approvalResponse.override?.input ?? approval.toolCall.input,
     });
   }
 

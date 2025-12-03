@@ -1340,7 +1340,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "editedInput": undefined,
+                "override": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1421,7 +1421,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "editedInput": undefined,
+                "override": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1507,7 +1507,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
-                "editedInput": undefined,
+                "override": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1603,7 +1603,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
-                "editedInput": undefined,
+                "override": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1692,7 +1692,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
-                "editedInput": undefined,
+                "override": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1782,7 +1782,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
-                "editedInput": undefined,
+                "override": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1878,7 +1878,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "editedInput": undefined,
+                "override": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1983,7 +1983,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "editedInput": undefined,
+                "override": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -2012,7 +2012,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert approved tool approval with editedInput (static tool)', () => {
+    it('should convert approved tool approval with override (static tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -2032,7 +2032,7 @@ describe('convertToModelMessages', () => {
               approval: {
                 approved: true,
                 id: 'approval-1',
-                editedInput: { city: 'Paris' },
+                override: { input: { city: 'Paris' } },
               },
               input: {
                 city: 'Tokyo',
@@ -2081,8 +2081,10 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "editedInput": {
-                  "city": "Paris",
+                "override": {
+                  "input": {
+                    "city": "Paris",
+                  },
                 },
                 "reason": undefined,
                 "type": "tool-approval-response",
@@ -2094,7 +2096,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert approved tool approval with editedInput (dynamic tool)', () => {
+    it('should convert approved tool approval with override (dynamic tool)', () => {
       const result = convertToModelMessages([
         {
           parts: [
@@ -2114,7 +2116,7 @@ describe('convertToModelMessages', () => {
               approval: {
                 approved: true,
                 id: 'approval-1',
-                editedInput: { city: 'London' },
+                override: { input: { city: 'London' } },
               },
               input: {
                 city: 'Tokyo',
@@ -2164,8 +2166,10 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
-                "editedInput": {
-                  "city": "London",
+                "override": {
+                  "input": {
+                    "city": "London",
+                  },
                 },
                 "reason": undefined,
                 "type": "tool-approval-response",

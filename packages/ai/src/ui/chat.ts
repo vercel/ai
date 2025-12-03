@@ -69,7 +69,7 @@ export type ChatAddToolApproveResponseFunction = ({
   id,
   approved,
   reason,
-  editedInput,
+  override,
 }: {
   id: string;
 
@@ -84,10 +84,14 @@ export type ChatAddToolApproveResponseFunction = ({
   reason?: string;
 
   /**
-   * Optional modified input provided by the user.
-   * When present, this input will be used instead of the original tool call input.
+   * Optional override for the tool input.
    */
-  editedInput?: unknown;
+  override?: {
+    /**
+     * The modified input to use instead of the original.
+     */
+    input: unknown;
+  };
 }) => void | PromiseLike<void>;
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
@@ -440,7 +444,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     id,
     approved,
     reason,
-    editedInput,
+    override,
   }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
@@ -455,7 +459,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           ? {
               ...part,
               state: 'approval-responded',
-              approval: { id, approved, reason, editedInput },
+              approval: { id, approved, reason, override },
             }
           : part;
 

@@ -2385,7 +2385,7 @@ describe('Chat', () => {
                   "approval": {
                     "approved": true,
                     "id": "approval-1",
-                    "editedInput": undefined,
+                    "override": undefined,
                     "reason": undefined,
                   },
                   "input": {
@@ -2497,7 +2497,7 @@ describe('Chat', () => {
                   "approval": {
                     "approved": true,
                     "id": "approval-1",
-                    "editedInput": undefined,
+                    "override": undefined,
                     "reason": undefined,
                   },
                   "errorText": undefined,
@@ -2532,7 +2532,7 @@ describe('Chat', () => {
       });
     });
 
-    describe('approved with editedInput', () => {
+    describe('approved with override', () => {
       let chat: TestChat;
 
       beforeEach(async () => {
@@ -2568,7 +2568,7 @@ describe('Chat', () => {
         await chat.addToolApprovalResponse({
           id: 'approval-1',
           approved: true,
-          editedInput: { city: 'Paris' },
+          override: { input: { city: 'Paris' } },
         });
       });
 
@@ -2595,8 +2595,10 @@ describe('Chat', () => {
                   "approval": {
                     "approved": true,
                     "id": "approval-1",
-                    "editedInput": {
-                      "city": "Paris",
+                    "override": {
+                      "input": {
+                        "city": "Paris",
+                      },
                     },
                     "reason": undefined,
                   },
