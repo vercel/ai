@@ -40,7 +40,19 @@ pnpm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta
 
 ### `CoreMessage` removed
 
-The deprecated `CoreMessage` type, schemas, and functions have been removed ([PR #10710](https://github.com/vercel/ai/pull/10710)).
+The deprecated `CoreMessage` type and related functions have been removed ([PR #10710](https://github.com/vercel/ai/pull/10710)). Replace `convertToCoreMessages` with `convertToModelMessages`.
+
+```tsx filename="Before (V4)"
+import { convertToCoreMessages, type CoreMessage } from 'ai';
+
+const coreMessages = convertToCoreMessages(messages); // CoreMessage[]
+```
+
+```tsx filename="After (V6)"
+import { convertToModelMessages, type ModelMessage } from 'ai';
+
+const modelMessages = convertToModelMessages(messages); // ModelMessage[]
+```
 
 ### `generateObject` and `streamObject` deprecated
 
