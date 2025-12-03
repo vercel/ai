@@ -82,6 +82,11 @@ const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
 )}/converse`;
 
+const novaModelId = 'us.amazon.nova-2-lite-v1:0';
+const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  novaModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -92,6 +97,7 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [novaGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(filename: string) {
@@ -132,6 +138,13 @@ beforeEach(() => {
 });
 
 const model = new BedrockChatLanguageModel(modelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const novaModel = new BedrockChatLanguageModel(novaModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -2162,6 +2175,40 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should warn when Anthropic model receives maxReasoningEffort in stream', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    await convertReadableStreamToArray(result.stream);
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
+  });
 });
 
 describe('doGenerate', () => {
@@ -2914,6 +2961,71 @@ describe('doGenerate', () => {
       foo: 'bar',
       custom: 42,
       thinking: { type: 'enabled', budget_tokens: 1234 },
+    });
+  });
+
+  it('maps maxReasoningEffort for Nova without thinking (generate)', async () => {
+    server.urls[novaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await novaModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+            budgetTokens: 2048,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoningConfig: {
+          type: 'enabled',
+          maxReasoningEffort: 'medium',
+        },
+      },
+    });
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it('should warn when Anthropic model receives maxReasoningEffort (generate)', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'providerOptions',
+      details:
+        'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
     });
   });
 
