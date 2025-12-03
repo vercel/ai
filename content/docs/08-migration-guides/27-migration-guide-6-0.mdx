@@ -64,21 +64,112 @@ You can use `generateText` and `streamText` with an `output` setting instead.
 
 ### `strictJsonSchema` defaults to true
 
-The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default ([PR #10752](https://github.com/vercel/ai/pull/10752)).
+The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default ([PR #10752](https://github.com/vercel/ai/pull/10752)). This improves stability and ensures valid JSON output that matches your schema.
 
-This can lead to schemas getting rejected by the OpenAI API.
-In those cases, you can adjust the schema (e.g. producing `null` instead of `undefined`),
-or turn of `strictJsonSchema`.
+However, strict mode is stricter about schema requirements. If you receive schema rejection errors, adjust your schema (for example, use `null` instead of `undefined`) or disable strict mode.
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+// strictJsonSchema was false by default
+const result = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+});
+```
+
+```tsx filename="AI SDK 6.0"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+// strictJsonSchema is true by default
+const result = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+});
+
+// Disable strict mode if needed
+const resultNoStrict = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+  providerOptions: {
+    openai: {
+      strictJsonSchema: false,
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+```
 
 ### `strictJsonSchema` no longer used for tool strict mode
 
-The tool strict mode is now controlled by setting `strict` on each tool ([PR #10817](https://github.com/vercel/ai/pull/10817)).
+Strict mode for tools is now controlled by setting `strict` on each tool ([PR #10817](https://github.com/vercel/ai/pull/10817)). This enables fine-grained control over strict tool calls, which is important since strict mode depends on the specific tool input schema.
 
-This enables fine-grained control over strict tool calls, which is important since it depends on the tool input schema.
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+// Tool strict mode was controlled by strictJsonSchema
+const result = streamText({
+  model: openai('gpt-4o'),
+  tools: {
+    calculator: tool({
+      description: 'A simple calculator',
+      inputSchema: z.object({
+        expression: z.string(),
+      }),
+      execute: async ({ expression }) => {
+        const result = eval(expression);
+        return { result };
+      },
+    }),
+  },
+  providerOptions: {
+    openai: {
+      strictJsonSchema: true, // Applied to all tools
+    },
+  },
+});
+```
+
+```tsx filename="AI SDK 6.0"
+import { openai } from '@ai-sdk/openai';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  tools: {
+    calculator: tool({
+      description: 'A simple calculator',
+      inputSchema: z.object({
+        expression: z.string(),
+      }),
+      execute: async ({ expression }) => {
+        const result = eval(expression);
+        return { result };
+      },
+      strict: true, // Control strict mode per tool
+    }),
+  },
+});
+```
 
 ### `structuredOutputs` option removed from chat model
 
-The `structuredOutputs` provider option has been removed from chat models ([PR #10752](https://github.com/vercel/ai/pull/10752)). You can use `strictJsonSchema` instead.
+The `structuredOutputs` provider option has been removed from chat models ([PR #10752](https://github.com/vercel/ai/pull/10752)). Use `strictJsonSchema` instead.
 
 ## Warning System
 
