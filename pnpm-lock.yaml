@@ -2440,11 +2440,11 @@ importers:
         specifier: workspace:*
         version: link:../ai
       react:
-        specifier: ^18 || ^19 || ^19.0.0-rc
-        version: 19.0.0-rc.1
+        specifier: ^18 || ^19
+        version: 18.3.1
       swr:
         specifier: ^2.2.5
-        version: 2.2.5(react@19.0.0-rc.1)
+        version: 2.2.5(react@18.3.1)
       throttleit:
         specifier: 2.1.0
         version: 2.1.0
@@ -2454,7 +2454,7 @@ importers:
         version: 6.6.3
       '@testing-library/react':
         specifier: ^16.0.1
-        version: 16.0.1(@testing-library/dom@10.4.0)(@types/react-dom@18.2.4)(@types/react@18.3.3)(react-dom@18.3.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)
+        version: 16.0.1(@testing-library/dom@10.4.0)(@types/react-dom@18.2.4)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@testing-library/user-event':
         specifier: ^14.5.2
         version: 14.5.2(@testing-library/dom@10.4.0)
@@ -2484,7 +2484,7 @@ importers:
         version: 2.6.4(@types/node@20.17.24)(typescript@5.8.3)
       react-dom:
         specifier: ^18
-        version: 18.3.1(react@19.0.0-rc.1)
+        version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(postcss@8.5.6)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3))(typescript@5.8.3)
@@ -26931,12 +26931,12 @@ snapshots:
       lodash: 4.17.21
       redent: 3.0.0
 
-  '@testing-library/react@16.0.1(@testing-library/dom@10.4.0)(@types/react-dom@18.2.4)(@types/react@18.3.3)(react-dom@18.3.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)':
+  '@testing-library/react@16.0.1(@testing-library/dom@10.4.0)(@types/react-dom@18.2.4)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@babel/runtime': 7.25.7
       '@testing-library/dom': 10.4.0
-      react: 19.0.0-rc.1
-      react-dom: 18.3.1(react@19.0.0-rc.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
     optionalDependencies:
       '@types/react': 18.3.3
       '@types/react-dom': 18.2.4
@@ -36513,12 +36513,6 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
-  react-dom@18.3.1(react@19.0.0-rc.1):
-    dependencies:
-      loose-envify: 1.4.0
-      react: 19.0.0-rc.1
-      scheduler: 0.23.2
-
   react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
     dependencies:
       react: 19.0.0-rc-cc1ec60d0d-20240607
@@ -37860,11 +37854,11 @@ snapshots:
       csso: 5.0.5
       picocolors: 1.1.1
 
-  swr@2.2.5(react@19.0.0-rc.1):
+  swr@2.2.5(react@18.3.1):
     dependencies:
       client-only: 0.0.1
-      react: 19.0.0-rc.1
-      use-sync-external-store: 1.2.0(react@19.0.0-rc.1)
+      react: 18.3.1
+      use-sync-external-store: 1.2.0(react@18.3.1)
 
   swrv@1.0.4(vue@3.3.8(typescript@5.8.3)):
     dependencies:
@@ -38940,9 +38934,9 @@ snapshots:
 
   urlpattern-polyfill@8.0.2: {}
 
-  use-sync-external-store@1.2.0(react@19.0.0-rc.1):
+  use-sync-external-store@1.2.0(react@18.3.1):
     dependencies:
-      react: 19.0.0-rc.1
+      react: 18.3.1
 
   utif@2.0.1:
     dependencies:
