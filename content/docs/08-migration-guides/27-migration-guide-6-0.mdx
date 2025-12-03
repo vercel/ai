@@ -207,15 +207,20 @@ const result = await generateObject({
 
 ### Warning Types Unified
 
-Model-specific warning types have been consolidated into a single generic `Warning` type exported from the `ai` package ([PR #10631](https://github.com/vercel/ai/pull/10631)). This simplifies warning handling across different model types.
+Separate warning types for each generation function have been consolidated into a single `Warning` type exported from the `ai` package ([PR #10631](https://github.com/vercel/ai/pull/10631)).
 
 ```tsx filename="AI SDK 5.0"
-// Different warning types for different models
-import type { OpenAIWarning, AnthropicWarning } from 'ai';
+// Separate warning types for each generation function
+import type {
+  CallWarning,
+  ImageModelCallWarning,
+  SpeechWarning,
+  TranscriptionWarning,
+} from 'ai';
 ```
 
 ```tsx filename="AI SDK 6.0"
-// Single unified Warning type
+// Single Warning type for all generation functions
 import type { Warning } from 'ai';
 ```
 
