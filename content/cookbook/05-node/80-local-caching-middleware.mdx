@@ -6,8 +6,6 @@ tags: ['streaming', 'caching', 'middleware']
 
 # Local Caching Middleware
 
-<Note type="warning">This example is not yet updated to v5.</Note>
-
 When developing AI applications, you'll often find yourself repeatedly making the same API calls during development. This can lead to increased costs and slower development cycles. A caching middleware allows you to store responses locally and reuse them when the same inputs are provided.
 
 This approach is particularly useful in two scenarios:
@@ -39,20 +37,19 @@ The middleware handles all transformations needed to make cached responses indis
 
 ```ts
 import {
-  type LanguageModelV1,
   type LanguageModelV2Middleware,
-  LanguageModelV1Prompt,
-  type LanguageModelV1StreamPart,
-  simulateReadableStream,
-  wrapLanguageModel,
-} from 'ai';
+  type LanguageModelV2StreamPart,
+  type LanguageModelV2CallOptions,
+  type LanguageModelV2,
+} from '@ai-sdk/provider';
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
+import { wrapLanguageModel, simulateReadableStream } from 'ai';
 
 const CACHE_FILE = path.join(process.cwd(), '.cache/ai-cache.json');
 
-export const cached = (model: LanguageModelV1) =>
+export const cached = (model: LanguageModelV2) =>
   wrapLanguageModel({
     middleware: cacheMiddleware,
     model,
@@ -91,24 +88,30 @@ const updateCache = (key: string, value: any) => {
     const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
     const updatedCache = { ...cache, [key]: value };
     fs.writeFileSync(CACHE_FILE, JSON.stringify(updatedCache, null, 2));
-    console.log('Cache updated for key:', key);
   } catch (error) {
     console.error('Failed to update cache:', error);
   }
 };
-const cleanPrompt = (prompt: LanguageModelV1Prompt) => {
+
+const cleanPrompt = (prompt: LanguageModelV2CallOptions['prompt']) => {
   return prompt.map(m => {
     if (m.role === 'assistant') {
-      return m.content.map(part =>
-        part.type === 'tool-call' ? { ...part, toolCallId: 'cached' } : part,
-      );
+      return {
+        ...m,
+        content: m.content.map(part =>
+          part.type === 'tool-call' ? { ...part, toolCallId: 'cached' } : part,
+        ),
+      };
     }
     if (m.role === 'tool') {
-      return m.content.map(tc => ({
-        ...tc,
-        toolCallId: 'cached',
-        result: {},
-      }));
+      return {
+        ...m,
+        content: m.content.map(tc => ({
+          ...tc,
+          toolCallId: 'cached',
+          result: {},
+        })),
+      };
     }
 
     return m;
@@ -116,19 +119,17 @@ const cleanPrompt = (prompt: LanguageModelV1Prompt) => {
 };
 
 export const cacheMiddleware: LanguageModelV2Middleware = {
-  wrapGenerate: async ({ doGenerate, params }) => {
+  middlewareVersion: 'v2',
+  wrapGenerate: async ({ doGenerate, params, model }) => {
     const cacheKey = JSON.stringify({
-      ...cleanPrompt(params.prompt),
+      prompt: cleanPrompt(params.prompt),
       _function: 'generate',
+      model: model.modelId,
     });
-    console.log('Cache Key:', cacheKey);
 
-    const cached = getCachedResult(cacheKey) as Awaited<
-      ReturnType<LanguageModelV1['doGenerate']>
-    > | null;
+    const cached = getCachedResult(cacheKey);
 
     if (cached && cached !== null) {
-      console.log('Cache Hit');
       return {
         ...cached,
         response: {
@@ -140,58 +141,56 @@ export const cacheMiddleware: LanguageModelV2Middleware = {
       };
     }
 
-    console.log('Cache Miss');
     const result = await doGenerate();
 
     updateCache(cacheKey, result);
 
     return result;
   },
-  wrapStream: async ({ doStream, params }) => {
-    const cacheKey = JSON.stringify({
-      ...cleanPrompt(params.prompt),
-      _function: 'stream',
-    });
-    console.log('Cache Key:', cacheKey);
 
-    // Check if the result is in the cache
+  wrapStream: async ({ doStream, params, model }) => {
+    const cacheKey = JSON.stringify({
+      prompt: cleanPrompt(params.prompt),
+      _function: 'stream',
+      model: model.modelId,
+    });
+
     const cached = getCachedResult(cacheKey);
 
-    // If cached, return a simulated ReadableStream that yields the cached result
     if (cached && cached !== null) {
-      console.log('Cache Hit');
-      // Format the timestamps in the cached response
-      const formattedChunks = (cached as LanguageModelV1StreamPart[]).map(p => {
+      const { chunks, ...rest } = cached;
+      const formattedChunks = (chunks as LanguageModelV2StreamPart[]).map(p => {
         if (p.type === 'response-metadata' && p.timestamp) {
           return { ...p, timestamp: new Date(p.timestamp) };
-        } else return p;
+        }
+        return p;
       });
+
       return {
         stream: simulateReadableStream({
           initialDelayInMs: 0,
           chunkDelayInMs: 10,
           chunks: formattedChunks,
         }),
+        ...rest,
       };
     }
 
-    console.log('Cache Miss');
-    // If not cached, proceed with streaming
     const { stream, ...rest } = await doStream();
 
-    const fullResponse: LanguageModelV1StreamPart[] = [];
+    const fullResponse: LanguageModelV2StreamPart[] = [];
 
     const transformStream = new TransformStream<
-      LanguageModelV1StreamPart,
-      LanguageModelV1StreamPart
+      LanguageModelV2StreamPart,
+      LanguageModelV2StreamPart
     >({
       transform(chunk, controller) {
         fullResponse.push(chunk);
         controller.enqueue(chunk);
       },
+
       flush() {
-        // Store the full response in the cache after streaming is complete
-        updateCache(cacheKey, fullResponse);
+        updateCache(cacheKey, { chunks: fullResponse, ...rest });
       },
     });
 
@@ -240,4 +239,4 @@ When using this caching middleware, keep these points in mind:
 
 1. **Development Only** - This approach is intended for local development, not production environments
 2. **Cache Invalidation** - You'll need to clear the cache (delete the cache file) when you want fresh responses
-3. **Multi-Step Flows** - When using `maxSteps`, be aware that caching occurs at the individual language model response level, not across the entire execution flow. This means that while the model's generation is cached, the tool call is not and will run on each generation.
+3. **Multi-Step Flows** - When using `stopWhen`, be aware that caching occurs at the individual language model response level, not across the entire execution flow. This means that while the model's generation is cached, the tool call is not and will run on each generation.
