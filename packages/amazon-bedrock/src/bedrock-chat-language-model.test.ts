@@ -2175,6 +2175,38 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should warn when Anthropic model receives maxReasoningEffort in stream', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    await convertReadableStreamToArray(result.stream);
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields?.reasoningConfig).toBeUndefined();
+  });
 });
 
 describe('doGenerate', () => {
@@ -2965,6 +2997,32 @@ describe('doGenerate', () => {
       },
     });
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it('should warn when Anthropic model receives maxReasoningEffort (generate)', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields?.reasoningConfig).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'maxReasoningEffort',
+      details:
+        'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
+    });
   });
 
   it('should extract reasoning text with signature', async () => {

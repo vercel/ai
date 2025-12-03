@@ -204,7 +204,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     } else if (!isAnthropicModel && thinkingBudget != null) {
       warnings.push({
         type: 'unsupported',
-        setting: 'budgetTokens',
+        feature: 'budgetTokens',
         details:
           'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
       });
@@ -212,7 +212,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
-    if (maxReasoningEffort != null) {
+    if (maxReasoningEffort != null && !isAnthropicModel) {
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,
         reasoningConfig: {
@@ -222,6 +222,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           maxReasoningEffort,
         },
       };
+    } else if (maxReasoningEffort != null && isAnthropicModel) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'maxReasoningEffort',
+        details:
+          'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
+      });
     }
 
     if (isAnthropicThinkingEnabled && inferenceConfig.temperature != null) {
