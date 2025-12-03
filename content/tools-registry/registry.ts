@@ -302,7 +302,7 @@ console.log(text);`,
     slug: 'valyu',
     name: 'Valyu',
     description:
-      'Valyu provides powerful search tools for AI agents. Web search for real-time information, plus specialized domain-specific searchtools: financeSearch (stock prices, earnings, income statements, cash flows, etc), paperSearch (full-text PubMed, arXiv, bioRxiv, medRxiv), bioSearch (clinical trials, FDA drug labels, PubMed, medRxiv, bioRxiv), patentSearch (USPTO patents), secSearch (10-k/10-Q/8-k), economicsSearch (BLS, FRED, World Bank data), and companyResearch (comprehensive company research reports).',
+      'Valyu provides powerful search tools for AI agents. Web search for real-time information, plus specialized domain-specific search tools: financeSearch (stock prices, earnings, income statements, cash flows, etc), paperSearch (full-text PubMed, arXiv, bioRxiv, medRxiv), bioSearch (clinical trials, FDA drug labels, PubMed, medRxiv, bioRxiv), patentSearch (USPTO patents), secSearch (10-k/10-Q/8-k), economicsSearch (BLS, FRED, World Bank data), and companyResearch (comprehensive company research reports). Try the tools without writing any code in our open-source AI SDK Playground at https://ai-sdk.valyu.ai.',
     packageName: '@valyu/ai-sdk',
     tags: ['search', 'web', 'domain-search'],
     apiKeyEnvName: 'VALYU_API_KEY',

@@ -260,6 +260,38 @@ console.log(text);
 
 For more customization options over your agent's web-access functionality, visit the [Tavily AI SDK Documentation](https://docs.tavily.com/documentation/integrations/vercel).
 
+#### Valyu
+
+<Note>
+  Get your API key from the [Valyu Platform](https://platform.valyu.ai).
+</Note>
+
+First, install the Valyu AI SDK tools:
+
+```bash
+pnpm install @valyu/ai-sdk
+```
+
+Then, you can import and pass it into `generateText`, `streamText`, or your agent. Valyu provides `webSearch` for general web search, plus specialized domain-specific tools including `financeSearch`, `paperSearch`, `bioSearch`, `patentSearch`, `secSearch`, `economicsSearch`, and `companyResearch`:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { webSearch } from '@valyu/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'Latest data center projects for AI inference?',
+  tools: {
+    webSearch: webSearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+For more customization options, visit the [Valyu AI SDK Documentation](https://docs.valyu.ai/integrations/vercel-ai-sdk). You can also try the tools without writing any code with our open-source [AI SDK Playground](https://ai-sdk.valyu.ai).
+
 ### Build and use custom tools
 
 For more control over your web search functionality, you can build custom tools using web scraping and crawling APIs. This approach allows you to customize search parameters, handle specific data formats, and integrate with specialized search services.
@@ -361,4 +393,50 @@ const main = async () => {
 };
 
 main();
+```
+
+#### Valyu
+
+[Valyu](https://valyu.ai) provides an API for searching across web and proprietary data sources. Let's look at how you can build a custom search tool using Valyu:
+
+```bash
+pnpm install valyu-js
+```
+
+```ts
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+import { Valyu } from 'valyu-js';
+
+const valyu = new Valyu(process.env.VALYU_API_KEY);
+
+export const webSearch = tool({
+  description: 'Search the web for up-to-date information',
+  inputSchema: z.object({
+    query: z.string().min(1).max(200).describe('The search query'),
+  }),
+  execute: async ({ query }) => {
+    const response = await valyu.search(query, {
+      searchType: 'all',
+      maxNumResults: 5,
+    });
+    return response.results.map(result => ({
+      title: result.title,
+      url: result.url,
+      content: result.content,
+      publishedDate: result.publication_date,
+    }));
+  },
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5', // can be any model that supports tools
+  prompt: 'Latest data center projects for AI inference?',
+  tools: {
+    webSearch,
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);
 ```
