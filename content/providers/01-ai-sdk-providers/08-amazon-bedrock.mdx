@@ -426,7 +426,7 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 // Anthropic example
-const { text, reasoning } = await generateText({
+const anthropicResult = await generateText({
   model: bedrock('us.anthropclaude-3-7-sonnet-20250219-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -436,11 +436,11 @@ const { text, reasoning } = await generateText({
   },
 });
 
-console.log(reasoning); // reasoning text
-console.log(text); // text response
+console.log(anthropicResult.reasoning); // reasoning text
+console.log(anthropicResult.text); // text response
 
 // Nova 2 example
-const { text, reasoning } = await generateText({
+const amazonResult = await generateText({
   model: bedrock('us.amazon.nova-2-lite-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -450,8 +450,8 @@ const { text, reasoning } = await generateText({
   },
 });
 
-console.log(reasoning); // reasoning text
-console.log(text); // text response
+console.log(amazonResult.reasoning); // reasoning text
+console.log(amazonResult.text); // text response
 ```
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
