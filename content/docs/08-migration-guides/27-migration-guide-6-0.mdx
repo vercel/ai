@@ -174,7 +174,7 @@ const responsesModel = azure.responses('gpt-4o');
 
 #### Structured Outputs Mode
 
-Anthropic has introduced native structured outputs for Claude Sonnet 4.5 and later models. The `@ai-sdk/anthropic` provider now includes a `structuredOutputMode` option to control how structured outputs are generated ([PR #10502](https://github.com/vercel/ai/pull/10502)).
+Anthropic has [ introduced native structured outputs for Claude Sonnet 4.5 and later models ](https://www.claude.com/blog/structured-outputs-on-the-claude-developer-platform). The `@ai-sdk/anthropic` provider now includes a `structuredOutputMode` option to control how structured outputs are generated ([PR #10502](https://github.com/vercel/ai/pull/10502)).
 
 The available modes are:
 
@@ -198,7 +198,7 @@ const result = await generateObject({
     anthropic: {
       // Explicitly set the structured output mode (optional)
       structuredOutputMode: 'outputFormat',
-    },
+    } satisfies AnthropicProviderOptions,
   },
 });
 ```
