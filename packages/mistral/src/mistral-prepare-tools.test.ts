@@ -176,4 +176,3 @@ describe('prepareTools', () => {
     `);
   });
 });
-
