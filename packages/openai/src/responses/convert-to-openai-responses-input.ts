@@ -144,7 +144,8 @@ export async function convertToOpenAIResponsesInput({
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
 
-        for (const part of content) {
+        for (const partIndex in content) {
+          const part = content[partIndex];
           switch (part.type) {
             case 'text': {
               const id = part.providerOptions?.openai?.itemId as
@@ -247,9 +248,28 @@ export async function convertToOpenAIResponsesInput({
                   // use item references to refer to reasoning (single reference)
                   // when the first part is encountered
                   if (reasoningMessage === undefined) {
-                    input.push({ type: 'item_reference', id: reasoningId });
+                    // Only include reasoning item_reference if eventually followed by
+                    // text or tool-call that will also emit an item_reference.
+                    // Reasoning parts can be followed by more reasoning (same ID),
+                    // but the sequence must end with a paired item. If the following
+                    // part won't emit an item_reference (e.g., tool-call without itemId,
+                    // tool-result, or nothing), skip the reasoning to prevent API errors.
+                    let lookAheadIndex = Number(partIndex) + 1;
+                    let followingPart = content[lookAheadIndex];
+                    while (followingPart?.type === 'reasoning') {
+                      lookAheadIndex++;
+                      followingPart = content[lookAheadIndex];
+                    }
 
-                    // store unused reasoning message to mark id as used
+                    // Check if the following part will emit an item_reference
+                    const followingPartHasItemId =
+                      followingPart?.providerOptions?.openai?.itemId != null;
+
+                    if (followingPartHasItemId) {
+                      input.push({ type: 'item_reference', id: reasoningId });
+                    }
+
+                    // store reasoning message to mark id as used
                     reasoningMessages[reasoningId] = {
                       type: 'reasoning',
                       id: reasoningId,
