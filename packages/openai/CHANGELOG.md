@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- cad6445: feat(openai); adding OpenAI's new shell tool
+
 ## 3.0.0-beta.80
 
 ### Patch Changes
