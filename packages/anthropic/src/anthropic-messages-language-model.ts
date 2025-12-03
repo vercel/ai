@@ -252,6 +252,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolNameMapping,
       });
 
+    const advancedToolUse = anthropicOptions?.advancedToolUse ?? false;
+    if (advancedToolUse) {
+      betas.add('advanced-tool-use-2025-11-20');
+    }
+
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
