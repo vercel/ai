@@ -58,6 +58,12 @@ This can lead to schemas getting rejected by the OpenAI API.
 In those cases, you can adjust the schema (e.g. producing `null` instead of `undefined`),
 or turn of `strictJsonSchema`.
 
+### `strictJsonSchema` no longer used for tool strict mode
+
+The tool strict mode is now controlled by setting `strict` on each tool.
+
+This enables fine-grained control over strict tool calls, which is important since it depends on the tool input schema.
+
 ### `structuredOutputs` option removed from chat model
 
 The `structuredOutputs` provider option has been removed from chat models.
