@@ -525,12 +525,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               }),
               z.object({
                 type: z.literal('open_page'),
-                url: z.string(),
+                url: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('find'),
-                url: z.string(),
-                pattern: z.string(),
+                url: z.string().nullish(),
+                pattern: z.string().nullish(),
               }),
             ]),
           }),
@@ -867,12 +867,12 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                 }),
                 z.object({
                   type: z.literal('open_page'),
-                  url: z.string(),
+                  url: z.string().nullish(),
                 }),
                 z.object({
                   type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
+                  url: z.string().nullish(),
+                  pattern: z.string().nullish(),
                 }),
               ]),
             }),
