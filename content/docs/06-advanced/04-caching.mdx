@@ -18,11 +18,14 @@ Let's see how you can use language model middleware to cache responses.
 ```ts filename="ai/middleware.ts"
 import { Redis } from '@upstash/redis';
 import {
+  simulateReadableStream,
+} from 'ai';
+
+import {
   type LanguageModelV3,
   type LanguageModelV3Middleware,
   type LanguageModelV3StreamPart,
-  simulateReadableStream,
-} from 'ai';
+} from '@ai-sdk/provider';
 
 const redis = new Redis({
   url: process.env.KV_URL,
