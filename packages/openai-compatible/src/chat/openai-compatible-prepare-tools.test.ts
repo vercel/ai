@@ -334,5 +334,3 @@ describe('prepareTools', () => {
     });
   });
 });
-
-
