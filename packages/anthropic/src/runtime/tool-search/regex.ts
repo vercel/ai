@@ -1,22 +1,22 @@
-import { DeferredToolDefinition, RankedToolResult } from './types';
+import { DeferredToolDefinition } from './types';
 
-export function regexSearch(
-  query: string,
-  docs: DeferredToolDefinition[],
-): RankedToolResult[] {
-  const needle = query.toLowerCase();
-  const results: RankedToolResult[] = [];
+export function regexSearch(query: string, tools: DeferredToolDefinition[]) {
+  try {
+    const regex = new RegExp(query, 'i');
 
-  for (const doc of docs) {
-    const haystack = (
-      doc.description +
-      ' ' +
-      (doc.keywords ?? []).join(' ')
-    ).toLowerCase();
+    return tools
+      .map(t => {
+        const haystack = [t.name, t.description, ...(t.keywords ?? [])].join(
+          ' ',
+        );
 
-    const score = haystack.includes(needle) ? 1 : 0;
-    if (score > 0) results.push({ tool: doc, score });
+        return {
+          tool: t,
+          score: regex.test(haystack) ? 1 : 0,
+        };
+      })
+      .filter(r => r.score > 0);
+  } catch {
+    return [];
   }
-
-  return results;
 }

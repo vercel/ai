@@ -1,11 +1,10 @@
-import { toolSearchRegistry } from './registry';
-import { bm25Search } from './bm25';
-import { regexSearch } from './regex';
-import { DeferredToolDefinition } from './types';
+import { toolSearchRegistry } from "./registry";
+import { bm25Search } from "./bm25";
+import { regexSearch } from "./regex";
+import { DeferredToolDefinition } from "./types";
 
 /**
- * Combined BM25 + Regex tool search.
- * This is the unified runtime entry point used by anthropic-prepare-tools.ts.
+ * The unified search engine invoked by anthropic-prepare-tools.ts
  */
 export function runtimeToolSearch(
   query: string,

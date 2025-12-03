@@ -1,22 +1,16 @@
-import { JSONSchema7 } from "@ai-sdk/provider";
+import { DeferredToolDefinition } from './types';
 
-export interface RegisteredRuntimeTool {
-  name: string;
-  description?: string;
-  inputSchema?: JSONSchema7;
-  keywords?: string[];
-  allowedCallers?: string[];
-  examples?: unknown[];
-}
-
+/**
+ * Internal registry storing all runtime-searchable tools.
+ */
 class ToolSearchRegistry {
-  private tools: RegisteredRuntimeTool[] = [];
+  private tools: DeferredToolDefinition[] = [];
 
-  register(tool: RegisteredRuntimeTool) {
+  register(tool: DeferredToolDefinition) {
     this.tools.push(tool);
   }
 
-  list() {
+  list(): DeferredToolDefinition[] {
     return this.tools;
   }
 }

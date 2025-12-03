@@ -6,3 +6,7 @@ export type {
   AnthropicProviderSettings,
 } from './anthropic-provider';
 export { VERSION } from './version';
+export {
+  registerRuntimeTool,
+  listRuntimeTools,
+} from './runtime/tool-search/registry-api';
