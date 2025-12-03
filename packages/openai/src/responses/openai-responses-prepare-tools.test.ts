@@ -911,7 +911,6 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": undefined,
               "type": "function",
             },
             {
