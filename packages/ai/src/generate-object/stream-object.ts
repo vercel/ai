@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  DelayedPromise,
   FlexibleSchema,
   ProviderOptions,
   type InferSchema,
@@ -45,7 +46,6 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -165,6 +165,8 @@ functionality that can be fully encapsulated in the provider.
 
 @returns
 A result object for accessing the partial object stream and additional information.
+
+@deprecated Use `streamText` with an `output` setting instead.
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,

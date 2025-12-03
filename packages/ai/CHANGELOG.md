@@ -1,5 +1,72 @@
 # ai
 
+## 6.0.0-beta.129
+
+### Patch Changes
+
+- 67a407c: chore(ai): add warning when using v2 models with AISDK v6
+
+## 6.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [b1624f0]
+  - @ai-sdk/gateway@2.0.0-beta.69
+
+## 6.0.0-beta.127
+
+### Patch Changes
+
+- 614599a: chore(ai): deprecate generateObject and streamObject
+
+## 6.0.0-beta.126
+
+### Patch Changes
+
+- b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
+
+## 6.0.0-beta.125
+
+### Patch Changes
+
+- 0d6c0d8: chore(ai): remove deprecated CodeMessage type and related types and functions
+
+## 6.0.0-beta.124
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+  - @ai-sdk/gateway@2.0.0-beta.68
+
+## 6.0.0-beta.123
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/gateway@2.0.0-beta.67
+
+## 6.0.0-beta.122
+
+### Patch Changes
+
+- 03849b0: move DelayedPromise into provider utils
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/gateway@2.0.0-beta.66
+
+## 6.0.0-beta.121
+
+### Patch Changes
+
+- Updated dependencies [cdd0bc2]
+  - @ai-sdk/gateway@2.0.0-beta.65
+
 ## 6.0.0-beta.120
 
 ### Patch Changes

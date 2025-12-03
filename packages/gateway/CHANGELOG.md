@@ -1,5 +1,40 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.69
+
+### Patch Changes
+
+- b1624f0: feat (provider/gateway): add trinity-mini model id
+
+## 2.0.0-beta.68
+
+### Patch Changes
+
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 2.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+
+## 2.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
+## 2.0.0-beta.65
+
+### Patch Changes
+
+- cdd0bc2: feat (provider/gateway): add intellect-3 model id
+
 ## 2.0.0-beta.64
 
 ### Patch Changes

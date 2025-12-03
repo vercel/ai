@@ -4,7 +4,7 @@ import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 export const anthropicWebSearchAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
-    web_search: anthropic.tools.webSearch_20250305({
+    webSearch: anthropic.tools.webSearch_20250305({
       maxUses: 3,
       userLocation: {
         type: 'approximate',

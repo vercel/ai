@@ -103,13 +103,6 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       prediction: z.record(z.string(), z.any()).optional(),
 
       /**
-       * Whether to use structured outputs.
-       *
-       * @default true
-       */
-      structuredOutputs: z.boolean().optional(),
-
-      /**
        * Service tier for the request.
        * - 'auto': Default service tier. The request will be processed with the service tier configured in the
        *           Project settings. Unless otherwise configured, the Project will use 'default'.
@@ -124,7 +117,7 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       /**
        * Whether to use strict JSON schema validation.
        *
-       * @default false
+       * @default true
        */
       strictJsonSchema: z.boolean().optional(),
 

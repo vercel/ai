@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -59,7 +59,7 @@ export const fileSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
+export const fileSearch = createProviderToolFactoryWithOutputSchema<
   {},
   {
     /**
@@ -140,7 +140,6 @@ export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'openai.file_search',
-  name: 'file_search',
   inputSchema: z.object({}),
   outputSchema: fileSearchOutputSchema,
 });
