@@ -539,7 +539,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = {
                 id: chunk.approvalId,
-                inputEditable: chunk.inputEditable,
+                allowsInputEditing: chunk.allowsInputEditing,
               };
               write();
               break;

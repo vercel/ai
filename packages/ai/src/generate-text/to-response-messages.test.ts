@@ -804,7 +804,7 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should include tool approval requests with inputEditable', () => {
+  it('should include tool approval requests with allowsInputEditing', () => {
     const result = toResponseMessages({
       content: [
         {
@@ -826,7 +826,7 @@ describe('toResponseMessages', () => {
             toolName: 'testTool',
             input: { location: 'London' },
           },
-          inputEditable: true,
+          allowsInputEditing: true,
         },
       ],
       tools: {
@@ -857,7 +857,7 @@ describe('toResponseMessages', () => {
               "type": "tool-call",
             },
             {
-              "inputEditable": true,
+              "allowsInputEditing": true,
               "approvalId": "approval-123",
               "toolCallId": "123",
               "type": "tool-approval-request",

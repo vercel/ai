@@ -25,7 +25,7 @@ const weatherTool = tool({
     temperature: 72 + Math.floor(Math.random() * 21) - 10,
   }),
   needsApproval: true,
-  inputEditable: true,
+  allowsInputEditing: true,
 });
 
 run(async () => {

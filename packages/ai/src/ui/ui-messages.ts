@@ -253,7 +253,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved?: never;
         reason?: never;
-        inputEditable?: boolean;
+        allowsInputEditing?: boolean;
       };
     }
   | {
@@ -362,7 +362,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved?: never;
         reason?: never;
-        inputEditable?: boolean;
+        allowsInputEditing?: boolean;
       };
     }
   | {

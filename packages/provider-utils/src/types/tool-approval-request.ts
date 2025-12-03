@@ -17,5 +17,5 @@ export type ToolApprovalRequest = {
   /**
    * Whether the tool allows input modification during approval.
    */
-  inputEditable?: boolean;
+  allowsInputEditing?: boolean;
 };

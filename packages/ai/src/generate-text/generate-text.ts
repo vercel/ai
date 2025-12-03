@@ -601,7 +601,7 @@ A function that attempts to repair a tool call that failed to parse.
                 type: 'tool-approval-request',
                 approvalId: generateId(),
                 toolCall,
-                inputEditable: tool.inputEditable,
+                allowsInputEditing: tool.allowsInputEditing,
               };
             }
           }

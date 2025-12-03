@@ -590,7 +590,7 @@ describe('runToolsTransformation', () => {
             "type": "tool-call",
           },
           {
-            "inputEditable": undefined,
+            "allowsInputEditing": undefined,
             "approvalId": "id-0",
             "toolCall": {
               "input": {

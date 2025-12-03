@@ -16,7 +16,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          inputEditable: true,
+          allowsInputEditing: true,
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -52,7 +52,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          inputEditable: true,
+          allowsInputEditing: true,
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -89,7 +89,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          inputEditable: false,
+          allowsInputEditing: false,
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -107,7 +107,7 @@ describe('validateApprovedToolInputs', () => {
       [
         {
           "dynamic": true,
-          "error": "Tool 'calculator' does not allow input modification. Set inputEditable: true to enable this feature.",
+          "error": "Tool 'calculator' does not allow input modification. Set allowsInputEditing: true to enable this feature.",
           "input": {
             "expression": "2+2",
           },
@@ -119,7 +119,7 @@ describe('validateApprovedToolInputs', () => {
     `);
   });
 
-  it('should return invalid tool error when editedInput is provided but inputEditable is undefined', () => {
+  it('should return invalid tool error when editedInput is provided but allowsInputEditing is undefined', () => {
     const approvals: CollectedToolApprovals<any>[] = [
       {
         toolCall: {
@@ -132,7 +132,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          // inputEditable undefined
+          // allowsInputEditing undefined
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -150,7 +150,7 @@ describe('validateApprovedToolInputs', () => {
       [
         {
           "dynamic": true,
-          "error": "Tool 'timer' does not allow input modification. Set inputEditable: true to enable this feature.",
+          "error": "Tool 'timer' does not allow input modification. Set allowsInputEditing: true to enable this feature.",
           "input": {
             "duration": 120,
           },
@@ -175,7 +175,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          inputEditable: true,
+          allowsInputEditing: true,
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -195,7 +195,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-2',
           toolCallId: 'call-2',
-          inputEditable: false,
+          allowsInputEditing: false,
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -215,7 +215,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-3',
           toolCallId: 'call-3',
-          inputEditable: true,
+          allowsInputEditing: true,
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -270,7 +270,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          inputEditable: true,
+          allowsInputEditing: true,
         },
         approvalResponse: {
           type: 'tool-approval-response',
@@ -307,7 +307,7 @@ describe('validateApprovedToolInputs', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          inputEditable: true,
+          allowsInputEditing: true,
         },
         approvalResponse: {
           type: 'tool-approval-response',
