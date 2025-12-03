@@ -2205,7 +2205,9 @@ describe('doStream', () => {
     await convertReadableStreamToArray(result.stream);
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.additionalModelRequestFields?.reasoningConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
   });
 });
 
@@ -3015,7 +3017,9 @@ describe('doGenerate', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.additionalModelRequestFields?.reasoningConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
 
     expect(result.warnings).toContainEqual({
       type: 'unsupported',
