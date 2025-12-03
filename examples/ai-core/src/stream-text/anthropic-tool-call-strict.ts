@@ -3,7 +3,6 @@ import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../lib/print-full-stream';
 import { run } from '../lib/run';
-import { print } from '../lib/print';
 
 const conditions = [
   { name: 'sunny', minTemperature: -5, maxTemperature: 35 },
