@@ -45,7 +45,7 @@ import {
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
-import { wrapLanguageModel } from 'ai';
+import { wrapLanguageModel, simulateReadableStream } from 'ai';
 
 const CACHE_FILE = path.join(process.cwd(), '.cache/ai-cache.json');
 
@@ -166,19 +166,14 @@ export const cacheMiddleware: LanguageModelV3Middleware = {
         return p;
       });
 
-      // Create a ReadableStream from cached chunks
-      const stream = new ReadableStream<LanguageModelV3StreamPart>({
-        async start(controller) {
-          for (const chunk of formattedChunks) {
-            controller.enqueue(chunk);
-            // Small delay to simulate streaming
-            await new Promise(resolve => setTimeout(resolve, 10));
-          }
-          controller.close();
-        },
-      });
-
-      return { stream, ...rest };
+      return {
+        stream: simulateReadableStream({
+          initialDelayInMs: 0,
+          chunkDelayInMs: 10,
+          chunks: formattedChunks,
+        }),
+        ...rest,
+      };
     }
 
     const { stream, ...rest } = await doStream();
