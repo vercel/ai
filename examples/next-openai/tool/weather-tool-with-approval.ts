@@ -10,6 +10,7 @@ export const weatherToolWithApproval = tool({
   description: 'Get the weather in a location',
   inputSchema: z.object({ city: z.string() }),
   needsApproval: true,
+  allowsInputEditing: true,
   async *execute() {
     yield { state: 'loading' as const };
 
