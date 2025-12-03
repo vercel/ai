@@ -2964,9 +2964,7 @@ describe('doGenerate', () => {
         },
       },
     });
-    expect(
-      requestBody.additionalModelRequestFields?.thinking,
-    ).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
   it('should extract reasoning text with signature', async () => {

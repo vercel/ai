@@ -176,8 +176,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const isThinkingRequested =
       bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
-    const isAnthropicThinkingEnabled =
-      isAnthropicModel && isThinkingRequested;
+    const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
 
     const inferenceConfig = {
       ...(maxOutputTokens != null && { maxTokens: maxOutputTokens }),
