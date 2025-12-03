@@ -36,12 +36,12 @@ const webSearchPreviewOutputSchema = lazySchema(() =>
         }),
         z.object({
           type: z.literal('openPage'),
-          url: z.string(),
+          url: z.string().nullish(),
         }),
         z.object({
           type: z.literal('find'),
-          url: z.string(),
-          pattern: z.string(),
+          url: z.string().nullish(),
+          pattern: z.string().nullish(),
         }),
       ]),
     }),
@@ -78,7 +78,7 @@ export const webSearchPreview = createProviderToolFactoryWithOutputSchema<
           /**
            * The URL opened by the model.
            */
-          url: string;
+          url?: string | null;
         }
       | {
           /**
@@ -89,12 +89,12 @@ export const webSearchPreview = createProviderToolFactoryWithOutputSchema<
           /**
            * The URL of the page searched for the pattern.
            */
-          url: string;
+          url?: string | null;
 
           /**
            * The pattern or text to search for within the page.
            */
-          pattern: string;
+          pattern?: string | null;
         };
   },
   {
