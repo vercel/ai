@@ -813,7 +813,7 @@ importers:
         specifier: 4.0.0-beta.96
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 3.0.0-beta.42
+        specifier: 3.0.0-beta.43
         version: link:../../packages/groq
       '@ai-sdk/mcp':
         specifier: 1.0.0-beta.24
