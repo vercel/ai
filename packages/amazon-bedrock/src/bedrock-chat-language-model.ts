@@ -203,8 +203,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       };
     } else if (!isAnthropicModel && thinkingBudget != null) {
       warnings.push({
-        type: 'unsupported',
-        feature: 'budgetTokens',
+        type: 'unsupported-setting',
+        setting: 'providerOptions',
         details:
           'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
       });
@@ -224,8 +224,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       };
     } else if (maxReasoningEffort != null && isAnthropicModel) {
       warnings.push({
-        type: 'unsupported',
-        feature: 'maxReasoningEffort',
+        type: 'unsupported-setting',
+        setting: 'providerOptions',
         details:
           'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
       });
