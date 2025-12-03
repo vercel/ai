@@ -1124,7 +1124,15 @@ describe('convertToOpenAIResponsesInput', () => {
                       },
                     },
                   },
-                  { type: 'text', text: 'First response' },
+                  {
+                    type: 'text',
+                    text: 'First response',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'msg_001',
+                      },
+                    },
+                  },
                 ],
               },
               {
@@ -1143,7 +1151,15 @@ describe('convertToOpenAIResponsesInput', () => {
                       },
                     },
                   },
-                  { type: 'text', text: 'Second response' },
+                  {
+                    type: 'text',
+                    text: 'Second response',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'msg_002',
+                      },
+                    },
+                  },
                 ],
               },
             ],
@@ -1167,14 +1183,8 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "item_reference",
               },
               {
-                "content": [
-                  {
-                    "text": "First response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
-                "role": "assistant",
+                "id": "msg_001",
+                "type": "item_reference",
               },
               {
                 "content": [
@@ -1190,14 +1200,8 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "item_reference",
               },
               {
-                "content": [
-                  {
-                    "text": "Second response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
-                "role": "assistant",
+                "id": "msg_002",
+                "type": "item_reference",
               },
             ]
           `);
@@ -1576,6 +1580,172 @@ describe('convertToOpenAIResponsesInput', () => {
             ]
           `);
         });
+      });
+    });
+
+    describe('reasoning item_reference pairing (store: true)', () => {
+      it('should include reasoning item_reference when followed by text', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Analyzing the problem',
+                  providerOptions: {
+                    openai: {
+                      itemId: 'rs_001',
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'Here is my response',
+                  providerOptions: {
+                    openai: {
+                      itemId: 'msg_001',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "rs_001",
+              "type": "item_reference",
+            },
+            {
+              "id": "msg_001",
+              "type": "item_reference",
+            },
+          ]
+        `);
+        expect(result.warnings).toHaveLength(0);
+      });
+
+      it('should include reasoning item_reference when followed by tool-call', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'I need to call a tool',
+                  providerOptions: {
+                    openai: {
+                      itemId: 'rs_001',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_001',
+                  toolName: 'search',
+                  input: { query: 'test' },
+                  providerOptions: {
+                    openai: {
+                      itemId: 'fc_001',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "rs_001",
+              "type": "item_reference",
+            },
+            {
+              "id": "fc_001",
+              "type": "item_reference",
+            },
+          ]
+        `);
+        expect(result.warnings).toHaveLength(0);
+      });
+
+      it('should skip reasoning item_reference when followed by tool-call without itemId', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'I need to call a tool',
+                  providerOptions: {
+                    openai: {
+                      itemId: 'rs_001',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_001',
+                  toolName: 'search',
+                  input: { query: 'test' },
+                  // No itemId - this tool-call will emit function_call, not item_reference
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: true,
+        });
+
+        // reasoning is skipped because the tool-call won't emit an item_reference
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "arguments": "{"query":"test"}",
+              "call_id": "call_001",
+              "id": undefined,
+              "name": "search",
+              "type": "function_call",
+            },
+          ]
+        `);
+        expect(result.warnings).toHaveLength(0);
+      });
+
+      it('should skip reasoning item_reference when not followed by any part', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Reasoning with no following message',
+                  providerOptions: {
+                    openai: {
+                      itemId: 'rs_001',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: true,
+        });
+
+        expect(result.input).toHaveLength(0);
+        expect(result.warnings).toHaveLength(0);
       });
     });
   });
