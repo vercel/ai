@@ -3022,8 +3022,8 @@ describe('doGenerate', () => {
     ).toBeUndefined();
 
     expect(result.warnings).toContainEqual({
-      type: 'unsupported',
-      feature: 'maxReasoningEffort',
+      type: 'unsupported-setting',
+      setting: 'providerOptions',
       details:
         'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
     });
