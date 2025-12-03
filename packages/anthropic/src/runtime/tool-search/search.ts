@@ -1,11 +1,7 @@
-import { toolSearchRegistry } from "./registry";
-import { bm25Search } from "./bm25";
-import { regexSearch } from "./regex";
-import { DeferredToolDefinition } from "./types";
+import { DeferredToolDefinition, toolSearchRegistry } from './registry';
+import { bm25Search } from './bm25';
+import { regexSearch } from './regex';
 
-/**
- * The unified search engine invoked by anthropic-prepare-tools.ts
- */
 export function runtimeToolSearch(
   query: string,
   maxResults = 3,
@@ -23,7 +19,6 @@ export function runtimeToolSearch(
 
   for (const r of [...bm25, ...regex]) {
     const key = r.tool.name;
-
     if (!combined.has(key)) {
       combined.set(key, { tool: r.tool, score: r.score });
     } else {
@@ -34,5 +29,5 @@ export function runtimeToolSearch(
   return [...combined.values()]
     .sort((a, b) => b.score - a.score)
     .slice(0, maxResults)
-    .map(entry => entry.tool);
+    .map(x => x.tool);
 }

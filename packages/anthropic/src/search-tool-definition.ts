@@ -1,8 +1,8 @@
-import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
-import { AnthropicSearchToolType } from './anthropic-messages-options';
+import { SharedV3ProviderMetadata } from "@ai-sdk/provider";
+import { AnthropicSearchToolType } from "./anthropic-messages-options";
 
 export interface AnthropicSearchToolDefinition {
-  type: 'search-tool';
+  type: "search-tool";
   name: string;
   query: string;
   maxResults?: number;
@@ -14,7 +14,7 @@ export interface AnthropicSearchToolDefinition {
 }
 
 export function createSearchToolDefinition(
-  def: Omit<AnthropicSearchToolDefinition, 'type'>,
+  def: Omit<AnthropicSearchToolDefinition, "type">
 ): AnthropicSearchToolDefinition {
-  return { type: 'search-tool', ...def };
+  return { type: "search-tool", ...def };
 }

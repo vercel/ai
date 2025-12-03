@@ -159,20 +159,24 @@ export function createAnthropic(
 
   provider.tools = anthropicTools;
 
-  provider.searchTool = (def: Omit<AnthropicSearchToolDefinition, 'type'>) => {
+  provider.searchTool = (def: any) => {
     const built = createSearchToolDefinition(def);
 
-    // Register into the runtime tool search engine
     toolSearchRegistry.register({
       name: built.name,
       description: built.query,
-      inputSchema: {}, // runtime search tools have no schema
+      inputSchema: {},
       keywords: built.inputExamples?.map(String) ?? [],
       allowedCallers: built.allowedCallers ?? [],
-      examples: built.inputExamples,
+      examples: built.inputExamples ?? [],
     });
 
     return built;
+  };
+
+  provider.advancedTools = {
+    register: toolSearchRegistry.register,
+    list: toolSearchRegistry.list,
   };
 
   return provider;

@@ -1,16 +1,38 @@
-import { DeferredToolDefinition } from './types';
+import { JSONSchema7 } from '@ai-sdk/provider';
 
-/**
- * Internal registry storing all runtime-searchable tools.
- */
+export interface DeferredToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: JSONSchema7;
+  keywords: string[];
+  allowedCallers: string[];
+  examples: unknown[];
+}
+
+export interface RegisteredRuntimeTool {
+  name: string;
+  description?: string;
+  inputSchema?: JSONSchema7;
+  keywords?: string[];
+  allowedCallers?: string[];
+  examples?: unknown[];
+}
+
 class ToolSearchRegistry {
   private tools: DeferredToolDefinition[] = [];
 
-  register(tool: DeferredToolDefinition) {
-    this.tools.push(tool);
+  register(tool: RegisteredRuntimeTool) {
+    this.tools.push({
+      name: tool.name,
+      description: tool.description ?? '',
+      inputSchema: tool.inputSchema ?? {},
+      keywords: tool.keywords ?? [],
+      allowedCallers: tool.allowedCallers ?? [],
+      examples: tool.examples ?? [],
+    });
   }
 
-  list(): DeferredToolDefinition[] {
+  list() {
     return this.tools;
   }
 }

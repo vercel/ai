@@ -57,18 +57,16 @@ export async function prepareTools({
       case 'search-tool': {
         betas.add('advanced-tool-use-2025-11-20');
 
-        const rankedTools = runtimeToolSearch(tool.query, tool.maxResults ?? 5);
+        const ranked = runtimeToolSearch(tool.query, tool.maxResults ?? 5);
 
-        for (const t of rankedTools) {
-          const cacheControl = validator.getCacheControl(tool.providerOptions, {
-            type: 'search-result',
-            canCache: true,
-          });
-
+        for (const t of ranked) {
           anthropicTools.push({
             type: tool.searchType,
             name: t.name,
-            cache_control: cacheControl,
+            cache_control: validator.getCacheControl(tool.providerOptions, {
+              type: 'search-result',
+              canCache: true,
+            }),
             defer_loading: tool.deferLoading ?? true,
             input_examples: tool.inputExamples,
             allowed_callers: tool.allowedCallers,
