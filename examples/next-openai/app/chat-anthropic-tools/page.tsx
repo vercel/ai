@@ -39,12 +39,12 @@ const initialMessages = [
         },
       },
       {
+        type: 'step-start',
+      },
+      {
         type: 'text',
         text: 'The weather in Paris is currently **cloudy** with a temperature of **72°F** (about 22°C).',
         state: 'done',
-      },
-      {
-        type: 'step-start',
       },
       {
         type: 'tool-weather',
@@ -58,6 +58,9 @@ const initialMessages = [
           temperature: 72,
           weather: 'cloudy',
         },
+      },
+      {
+        type: 'step-start',
       },
       {
         type: 'text',
