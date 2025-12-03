@@ -391,12 +391,12 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
               }),
               z.object({
                 type: z.literal('open_page'),
-                url: z.string(),
+                url: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('find'),
-                url: z.string(),
-                pattern: z.string(),
+                url: z.string().nullish(),
+                pattern: z.string().nullish(),
               }),
             ]),
           }),
@@ -631,12 +631,12 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
                 }),
                 z.object({
                   type: z.literal('open_page'),
-                  url: z.string(),
+                  url: z.string().nullish(),
                 }),
                 z.object({
                   type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
+                  url: z.string().nullish(),
+                  pattern: z.string().nullish(),
                 }),
               ]),
             }),
