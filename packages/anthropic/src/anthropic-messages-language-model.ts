@@ -551,12 +551,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool, toolNameMapping } =
+    const { args: body, warnings, betas, usesJsonResponseTool, toolNameMapping } =
       await this.getArgs({
         ...options,
         stream: false,
         userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
       });
+
+    // Enable fine-grained tool streaming beta when streaming + enabled
+    const providerToolStreaming =
+      options.providerOptions?.anthropic?.toolStreaming ?? true;
+
+    if (body.stream && providerToolStreaming) {
+      betas.add('fine-grained-tool-streaming-2025-05-14');
+    }
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
@@ -568,7 +576,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(args),
+      body: this.transformRequestBody(body),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicMessagesResponseSchema,
@@ -846,7 +854,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         totalTokens: response.usage.input_tokens + response.usage.output_tokens,
         cachedInputTokens: response.usage.cache_read_input_tokens ?? undefined,
       },
-      request: { body: args },
+      request: { body },
       response: {
         id: response.id ?? undefined,
         modelId: response.model ?? undefined,
