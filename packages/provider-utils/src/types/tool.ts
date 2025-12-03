@@ -135,6 +135,16 @@ Whether the tool needs approval before it can be executed.
   needsApproval?:
     | boolean
     | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
+
+  /**
+   * Strict mode setting for the tool.
+   *
+   * Providers that support strict mode will use this setting to determine
+   * how the input should be generated. Strict mode will always produce
+   * valid inputs, but it might limit what input schemas are supported.
+   */
+  strict?: boolean;
+
   /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.

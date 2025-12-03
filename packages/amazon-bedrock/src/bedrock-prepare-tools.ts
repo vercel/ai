@@ -91,6 +91,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: ProviderTools,
       toolChoice,
+      supportsStructuredOutput: false,
     });
 
     toolWarnings.push(...anthropicToolWarnings);
