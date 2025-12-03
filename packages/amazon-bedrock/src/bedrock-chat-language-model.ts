@@ -172,8 +172,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       };
     }
 
-    const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
+    const isAnthropicModel = this.modelId.includes('anthropic');
+    const isThinkingRequested =
+      bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
+    const isAnthropicThinkingEnabled =
+      isAnthropicModel && isThinkingRequested;
 
     const inferenceConfig = {
       ...(maxOutputTokens != null && { maxTokens: maxOutputTokens }),
@@ -183,8 +187,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       ...(stopSequences != null && { stopSequences }),
     };
 
-    // Adjust maxTokens if thinking is enabled
-    if (isThinking && thinkingBudget != null) {
+    if (isAnthropicThinkingEnabled && thinkingBudget != null) {
       if (inferenceConfig.maxTokens != null) {
         inferenceConfig.maxTokens += thinkingBudget;
       } else {
@@ -199,10 +202,30 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           budget_tokens: thinkingBudget,
         },
       };
+    } else if (!isAnthropicModel && thinkingBudget != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'budgetTokens',
+        details:
+          'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
+      });
     }
 
-    // Remove temperature if thinking is enabled
-    if (isThinking && inferenceConfig.temperature != null) {
+    const maxReasoningEffort =
+      bedrockOptions.reasoningConfig?.maxReasoningEffort;
+    if (maxReasoningEffort != null) {
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        reasoningConfig: {
+          ...(bedrockOptions.reasoningConfig?.type != null && {
+            type: bedrockOptions.reasoningConfig.type,
+          }),
+          maxReasoningEffort,
+        },
+      };
+    }
+
+    if (isAnthropicThinkingEnabled && inferenceConfig.temperature != null) {
       delete inferenceConfig.temperature;
       warnings.push({
         type: 'unsupported',
@@ -211,8 +234,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
-    // Remove topP if thinking is enabled
-    if (isThinking && inferenceConfig.topP != null) {
+    if (isAnthropicThinkingEnabled && inferenceConfig.topP != null) {
       delete inferenceConfig.topP;
       warnings.push({
         type: 'unsupported',
@@ -221,7 +243,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
-    if (isThinking && inferenceConfig.topK != null) {
+    if (isAnthropicThinkingEnabled && inferenceConfig.topK != null) {
       delete inferenceConfig.topK;
       warnings.push({
         type: 'unsupported',
