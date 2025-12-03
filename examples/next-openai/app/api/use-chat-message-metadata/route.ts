@@ -1,16 +1,15 @@
-import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
-import { ExampleMetadata } from './example-metadata-schema';
+import { createAgentUIStreamResponse, UIMessage } from 'ai';
+import {
+  ExampleMetadata,
+  openaiMetadataAgent,
+} from '@/agent/openai-metadata-agent';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  const result = streamText({
-    model: openai('gpt-4o'),
-    prompt: convertToModelMessages(messages),
-  });
-
-  return result.toUIMessageStreamResponse({
+  return createAgentUIStreamResponse({
+    agent: openaiMetadataAgent,
+    messages,
     messageMetadata: ({ part }): ExampleMetadata | undefined => {
       // send custom information to the client on start:
       if (part.type === 'start') {

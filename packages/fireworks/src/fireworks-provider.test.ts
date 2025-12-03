@@ -54,7 +54,7 @@ vi.mock('./fireworks-image-model', () => ({
 
 describe('FireworksProvider', () => {
   let mockLanguageModel: LanguageModelV3;
-  let mockEmbeddingModel: EmbeddingModelV3<string>;
+  let mockEmbeddingModel: EmbeddingModelV3;
 
   beforeEach(() => {
     // Mock implementations of models
@@ -63,7 +63,7 @@ describe('FireworksProvider', () => {
     } as LanguageModelV3;
     mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV3
-    } as EmbeddingModelV3<string>;
+    } as EmbeddingModelV3;
 
     // Reset mocks
     vi.clearAllMocks();
@@ -139,12 +139,12 @@ describe('FireworksProvider', () => {
     });
   });
 
-  describe('textEmbeddingModel', () => {
+  describe('embeddingModel', () => {
     it('should construct a text embedding model with correct configuration', () => {
       const provider = createFireworks();
       const modelId = 'fireworks-embedding-model';
 
-      const model = provider.textEmbeddingModel(modelId);
+      const model = provider.embeddingModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
     });

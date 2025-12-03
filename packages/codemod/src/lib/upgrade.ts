@@ -58,6 +58,7 @@ const bundle = [
   'v5/rename-todatastreamresponse-to-touimessagestreamresponse',
   'v5/rename-tool-parameters-to-inputschema',
   'v5/replace-bedrock-snake-case',
+  'v5/replace-fal-snake-case',
   'v5/replace-content-with-parts',
   'v5/replace-experimental-provider-metadata',
   'v5/replace-image-type-with-file-type',
@@ -78,6 +79,7 @@ const bundle = [
   'v5/rsc-package',
   'v5/move-tool-invocations-to-parts',
   'v5/not-implemented/pattern',
+  'v5/rename-addtoolresult-to-addtooloutput',
 ];
 
 const log = debug('codemod:upgrade');

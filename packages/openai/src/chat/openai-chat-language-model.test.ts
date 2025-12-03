@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -119,6 +121,19 @@ const model = provider.chat('gpt-3.5-turbo');
 const server = createTestServer({
   'https://api.openai.com/v1/chat/completions': {},
 });
+
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['https://api.openai.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
@@ -278,6 +293,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
@@ -471,7 +487,7 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o1-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -481,7 +497,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-mini',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'low',
     });
@@ -490,7 +506,7 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from settings', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o1-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -500,7 +516,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-mini',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
     });
@@ -581,7 +597,6 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
             },
             "type": "function",
           },
@@ -736,56 +751,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-      const model = provider.chat('gpt-4o-2024-08-06');
-
-      const { warnings } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          openai: {
-            structuredOutputs: false,
-          },
-        },
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "messages": [
-            {
-              "content": "Hello",
-              "role": "user",
-            },
-          ],
-          "model": "gpt-4o-2024-08-06",
-          "response_format": {
-            "type": "json_object",
-          },
-        }
-      `);
-
-      expect(warnings).toEqual([
-        {
-          details:
-            'JSON response format schema is only supported with structuredOutputs',
-          setting: 'responseFormat',
-          type: 'unsupported-setting',
-        },
-      ]);
-    });
-
-    it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
+    it('should forward json response format as "json_object" and include schema', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -829,7 +795,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -839,7 +805,7 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
-    it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
+    it('should use json_schema & strict with responseFormat json', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -883,7 +849,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -891,7 +857,7 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
+    it('should set name & description with responseFormat json', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -938,7 +904,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -969,7 +935,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should set strict with tool calls when structuredOutputs are enabled', async () => {
+    it('should set strict with tool call', async () => {
       prepareJsonResponse({
         tool_calls: [
           {
@@ -1032,7 +998,6 @@ describe('doGenerate', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
               },
               "type": "function",
             },
@@ -1053,7 +1018,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should set strict for tool usage when structuredOutputs are enabled', async () => {
+  it('should set strict for tool usage', async () => {
     prepareJsonResponse({
       tool_calls: [
         {
@@ -1122,7 +1087,6 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
             },
             "type": "function",
           },
@@ -1202,7 +1166,7 @@ describe('doGenerate', () => {
     it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
       prepareJsonResponse();
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o4-mini');
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1213,38 +1177,40 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'o1-preview',
+        model: 'o4-mini',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'frequencyPenalty',
-          details: 'frequencyPenalty is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'presencePenalty',
-          details: 'presencePenalty is not supported for reasoning models',
-        },
-      ]);
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "temperature is not supported for reasoning models",
+            "feature": "temperature",
+            "type": "unsupported",
+          },
+          {
+            "details": "topP is not supported for reasoning models",
+            "feature": "topP",
+            "type": "unsupported",
+          },
+          {
+            "details": "frequencyPenalty is not supported for reasoning models",
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
+          },
+          {
+            "details": "presencePenalty is not supported for reasoning models",
+            "feature": "presencePenalty",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should convert maxOutputTokens to max_completion_tokens', async () => {
       prepareJsonResponse();
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o4-mini');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1252,36 +1218,11 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'o1-preview',
+        model: 'o4-mini',
         messages: [{ role: 'user', content: 'Hello' }],
         max_completion_tokens: 1000,
       });
     });
-  });
-
-  it('should remove system messages for o1-preview and add a warning', async () => {
-    prepareJsonResponse();
-
-    const model = provider.chat('o1-preview');
-
-    const result = await model.doGenerate({
-      prompt: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
-      ],
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-preview',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
-
-    expect(result.warnings).toStrictEqual([
-      {
-        type: 'other',
-        message: 'system messages are removed for this model',
-      },
-    ]);
   });
 
   it('should use developer messages for o1', async () => {
@@ -1319,7 +1260,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const model = provider.chat('o1-preview');
+    const model = provider.chat('o4-mini');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1337,9 +1278,9 @@ describe('doGenerate', () => {
   });
 
   it('should send max_completion_tokens extension setting', async () => {
-    prepareJsonResponse({ model: 'o1-preview' });
+    prepareJsonResponse({ model: 'o4-mini' });
 
-    const model = provider.chat('o1-preview');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1351,7 +1292,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'o1-preview',
+      model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       max_completion_tokens: 255,
     });
@@ -1443,6 +1384,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send promptCacheRetention extension value', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_retention: '24h',
+    });
+  });
+
   it('should send safetyIdentifier extension value', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -1476,12 +1436,15 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview and add warning', async () => {
@@ -1498,12 +1461,15 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview-2025-03-11 and add warning', async () => {
@@ -1520,18 +1486,21 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview-2025-03-11');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should send serviceTier flex processing setting', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1550,7 +1519,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "o3-mini",
+        "model": "o4-mini",
         "service_tier": "flex",
       }
     `);
@@ -1573,12 +1542,15 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'serviceTier',
-      details:
-        'flex processing is only available for o3, o4-mini, and gpt-5 models',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "flex processing is only available for o3, o4-mini, and gpt-5 models",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should allow flex processing with o4-mini model without warnings', async () => {
@@ -1645,12 +1617,15 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'serviceTier',
-      details:
-        'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should allow priority processing with gpt-4o model without warnings', async () => {
@@ -1675,7 +1650,7 @@ describe('doGenerate', () => {
   it('should allow priority processing with o3 model without warnings', async () => {
     prepareJsonResponse();
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2594,6 +2569,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
@@ -2827,7 +2803,7 @@ describe('doStream', () => {
   it('should send serviceTier flex processing setting in streaming', async () => {
     prepareStreamResponse({ content: [] });
 
-    const model = provider.chat('o3-mini');
+    const model = provider.chat('o4-mini');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -2847,7 +2823,7 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "o3-mini",
+        "model": "o4-mini",
         "service_tier": "flex",
         "stream": true,
         "stream_options": {
@@ -2890,14 +2866,24 @@ describe('doStream', () => {
     `);
   });
 
+  it('should set .modelId for model-router request', async () => {
+    prepareChunksFixtureResponse('azure-model-router.1');
+
+    const result = await provider.chat('test-azure-model-router').doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(result.stream)).toMatchSnapshot();
+  });
+
   describe('reasoning models', () => {
     it('should stream text delta', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
-        model: 'o1-preview',
+        model: 'o4-mini',
       });
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o4-mini');
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -2912,7 +2898,7 @@ describe('doStream', () => {
           },
           {
             "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
-            "modelId": "o1-preview",
+            "modelId": "o4-mini",
             "timestamp": 2023-12-15T16:17:00.000Z,
             "type": "response-metadata",
           },
@@ -2955,7 +2941,7 @@ describe('doStream', () => {
     it('should send reasoning tokens', async () => {
       prepareStreamResponse({
         content: ['Hello, World!'],
-        model: 'o1-preview',
+        model: 'o4-mini',
         usage: {
           prompt_tokens: 15,
           completion_tokens: 20,
@@ -2966,7 +2952,7 @@ describe('doStream', () => {
         },
       });
 
-      const model = provider.chat('o1-preview');
+      const model = provider.chat('o4-mini');
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -2981,7 +2967,7 @@ describe('doStream', () => {
           },
           {
             "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
-            "modelId": "o1-preview",
+            "modelId": "o4-mini",
             "timestamp": 2023-12-15T16:17:00.000Z,
             "type": "response-metadata",
           },

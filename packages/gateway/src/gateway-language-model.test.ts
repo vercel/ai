@@ -213,7 +213,8 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toContain('Invalid API key provided');
+        expect(authError.message).toContain('Invalid API key');
+        expect(authError.message).toContain('vercel.com/d?to=');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }
@@ -755,7 +756,8 @@ describe('GatewayLanguageModel', () => {
       } catch (error) {
         expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
         const authError = error as GatewayAuthenticationError;
-        expect(authError.message).toContain('Invalid API key provided');
+        expect(authError.message).toContain('Invalid API key');
+        expect(authError.message).toContain('vercel.com/d?to=');
         expect(authError.statusCode).toBe(401);
         expect(authError.type).toBe('authentication_error');
       }

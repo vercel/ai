@@ -17,7 +17,7 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 
-export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
+export class GatewayEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -39,8 +39,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {

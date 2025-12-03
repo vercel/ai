@@ -20,7 +20,6 @@ You can use the `pipeUIMessageStreamToResponse` method to pipe the stream data t
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';
-import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { Response } from 'express';
 
@@ -29,7 +28,7 @@ export class AppController {
   @Post('/')
   async root(@Res() res: Response) {
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: 'openai/gpt-4o',
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
@@ -44,7 +43,6 @@ export class AppController {
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStream,
   streamText,
@@ -69,7 +67,7 @@ export class AppController {
         });
 
         const result = streamText({
-          model: openai('gpt-4o'),
+          model: 'openai/gpt-4o',
           prompt: 'Invent a new holiday and describe its traditions.',
         });
         writer.merge(
@@ -95,7 +93,6 @@ You can use the `pipeTextStreamToResponse` method to get a text stream from the 
 
 ```ts filename='app.controller.ts'
 import { Controller, Post, Res } from '@nestjs/common';
-import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { Response } from 'express';
 
@@ -104,7 +101,7 @@ export class AppController {
   @Post()
   async example(@Res() res: Response) {
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: 'openai/gpt-4o',
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 

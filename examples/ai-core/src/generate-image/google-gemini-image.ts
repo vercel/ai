@@ -21,6 +21,10 @@ async function main() {
       console.log(`Generated and saved image: output/${fileName}`);
     }
   }
+
+  console.log();
+  console.log('token usage:', result.usage);
+  console.log('finish reason:', result.finishReason);
 }
 
 main().catch(console.error);

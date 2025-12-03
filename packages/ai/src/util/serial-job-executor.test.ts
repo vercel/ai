@@ -1,6 +1,6 @@
-import { expect, describe, it } from 'vitest';
+import { DelayedPromise } from '@ai-sdk/provider-utils';
+import { describe, expect, it } from 'vitest';
 import { SerialJobExecutor } from './serial-job-executor';
-import { DelayedPromise } from './delayed-promise';
 
 describe('SerialJobExecutor', () => {
   it('should execute a single job successfully', async () => {

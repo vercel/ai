@@ -1,80 +1,110 @@
-import { generateText } from '../generate-text/generate-text';
+import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { stepCountIs } from '../generate-text/stop-condition';
-import { streamText } from '../generate-text/stream-text';
+import { Output } from '../generate-text/output';
+import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
-import { Prompt } from '../prompt/prompt';
-import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
-import { AgentSettings } from './agent-settings';
 
 /**
- * The Agent class provides a structured way to encapsulate LLM configuration, tools,
- * and behavior into reusable components.
- *
- * It handles the agent loop for you, allowing the LLM to call tools multiple times in
- * sequence to accomplish complex tasks.
- *
- * Define agents once and use them across your application.
+ * Parameters for calling an agent.
  */
-export class Agent<
-  TOOLS extends ToolSet,
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
-> {
-  private readonly settings: AgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>;
+export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
+  ? { options?: never }
+  : { options: CALL_OPTIONS }) &
+  (
+    | {
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt: string | Array<ModelMessage>;
 
-  constructor(settings: AgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>) {
-    this.settings = settings;
-  }
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages?: never;
+      }
+    | {
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages: Array<ModelMessage>;
+
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt?: never;
+      }
+  ) & {
+    /**
+     * Abort signal.
+     */
+    abortSignal?: AbortSignal;
+  };
+
+/**
+ * Parameters for streaming an output from an agent.
+ */
+export type AgentStreamParameters<
+  CALL_OPTIONS,
+  TOOLS extends ToolSet,
+> = AgentCallParameters<CALL_OPTIONS> & {
+  /**
+   * Optional stream transformations.
+   * They are applied in the order they are provided.
+   * The stream transformations must maintain the stream structure for streamText to work correctly.
+   */
+  experimental_transform?:
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
+};
+
+/**
+ * An Agent receives a prompt (text or messages) and generates or streams an output
+ * that consists of steps, tool calls, data parts, etc.
+ *
+ * You can implement your own Agent by implementing the `Agent` interface,
+ * or use the `ToolLoopAgent` class.
+ */
+export interface Agent<
+  CALL_OPTIONS = never,
+  TOOLS extends ToolSet = {},
+  OUTPUT extends Output = never,
+> {
+  /**
+   * The specification version of the agent interface. This will enable
+   * us to evolve the agent interface and retain backwards compatibility.
+   */
+  readonly version: 'agent-v1';
 
   /**
-   * The name of the agent.
+   * The id of the agent.
    */
-  get name(): string | undefined {
-    return this.settings.name;
-  }
+  readonly id: string | undefined;
 
   /**
    * The tools that the agent can use.
    */
-  get tools(): TOOLS {
-    return this.settings.tools as TOOLS;
-  }
+  readonly tools: TOOLS;
 
   /**
    * Generates an output from the agent (non-streaming).
    */
-  async generate(options: Prompt): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-    return generateText({
-      ...this.settings,
-      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
-      ...options,
-    });
-  }
+  generate(
+    options: AgentCallParameters<CALL_OPTIONS>,
+  ): PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>;
 
   /**
    * Streams an output from the agent (streaming).
    */
-  stream(options: Prompt): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
-    return streamText({
-      ...this.settings,
-      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
-      ...options,
-    });
-  }
-
-  /**
-   * Creates a response object that streams UI messages to the client.
-   */
-  respond(options: {
-    messages: UIMessage<never, never, InferUITools<TOOLS>>[];
-  }): Response {
-    return this.stream({
-      prompt: convertToModelMessages(options.messages),
-    }).toUIMessageStreamResponse<
-      UIMessage<never, never, InferUITools<TOOLS>>
-    >();
-  }
+  stream(
+    options: AgentStreamParameters<CALL_OPTIONS, TOOLS>,
+  ): PromiseLike<StreamTextResult<TOOLS, OUTPUT>>;
 }

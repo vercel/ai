@@ -26,9 +26,7 @@ type GoogleGenerativeAIEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class GoogleGenerativeAIEmbeddingModel
-  implements EmbeddingModelV3<string>
-{
+export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
@@ -52,8 +50,8 @@ export class GoogleGenerativeAIEmbeddingModel
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
     // Parse provider options
     const googleOptions = await parseProviderOptions({

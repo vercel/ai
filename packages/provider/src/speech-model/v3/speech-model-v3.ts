@@ -1,7 +1,7 @@
-import { JSONValue } from '../../json-value';
+import { JSONObject } from '../../json-value';
 import { SharedV2Headers } from '../../shared';
+import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 import { SpeechModelV3CallOptions } from './speech-model-v3-call-options';
-import { SpeechModelV3CallWarning } from './speech-model-v3-call-warning';
 
 /**
  * Speech model specification version 3.
@@ -42,7 +42,7 @@ export type SpeechModelV3 = {
     /**
      * Warnings for the call, e.g. unsupported settings.
      */
-    warnings: Array<SpeechModelV3CallWarning>;
+    warnings: Array<SharedV3Warning>;
 
     /**
      * Optional request information for telemetry and debugging purposes.
@@ -84,6 +84,6 @@ export type SpeechModelV3 = {
      * from the provider to the AI SDK and enable provider-specific
      * results that can be fully encapsulated in the provider.
      */
-    providerMetadata?: Record<string, Record<string, JSONValue>>;
+    providerMetadata?: Record<string, JSONObject>;
   }>;
 };

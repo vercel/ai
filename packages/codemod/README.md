@@ -98,6 +98,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/remove-openai-compatibility`                                      | Transforms v5/remove openai compatibility                                      |
 | `v5/remove-sendExtraMessageFields`                                    | Transforms v5/remove sendExtraMessageFields                                    |
 | `v5/rename-IDGenerator-to-IdGenerator`                                | Transforms v5/rename IDGenerator to IdGenerator                                |
+| `v5/rename-addtoolresult-to-addtooloutput`                            | Transforms v5/rename addtoolresult to addtooloutput                            |
 | `v5/rename-converttocoremessages-to-converttomodelmessages`           | Transforms v5/rename converttocoremessages to converttomodelmessages           |
 | `v5/rename-core-message-to-model-message`                             | Transforms v5/rename core message to model message                             |
 | `v5/rename-datastream-methods-to-uimessage`                           | Transforms v5/rename datastream methods to uimessage                           |
@@ -116,6 +117,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/replace-content-with-parts`                                       | Transforms v5/replace content with parts                                       |
 | `v5/replace-datastream-to-uimessagestream`                            | Transforms v5/replace datastream to uimessagestream                            |
 | `v5/replace-experimental-provider-metadata`                           | Transforms v5/replace experimental provider metadata                           |
+| `v5/replace-fal-snake-case`                                           | Transforms v5/replace fal snake case                                           |
 | `v5/replace-image-type-with-file-type`                                | Transforms v5/replace image type with file type                                |
 | `v5/replace-llamaindex-adapter`                                       | Transforms v5/replace llamaindex adapter                                       |
 | `v5/replace-oncompletion-with-onfinal`                                | Transforms v5/replace oncompletion with onfinal                                |

@@ -1,10 +1,9 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -226,6 +225,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -429,6 +429,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -709,6 +710,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -785,6 +787,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -815,6 +818,7 @@ describe('generateText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -896,6 +900,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -1025,6 +1030,7 @@ describe('generateText', () => {
           }),
           tools: {
             tool1: tool({
+              title: 'Tool One',
               inputSchema: z.object({ value: z.string() }),
               execute: async (args, options) => {
                 expect(args).toStrictEqual({ value: 'value' });
@@ -1240,6 +1246,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1422,6 +1429,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1818,6 +1826,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1896,6 +1905,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -2067,7 +2077,7 @@ describe('generateText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderTool)[]
         | undefined;
 
       await generateText({
@@ -2556,6 +2566,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -2608,9 +2619,8 @@ describe('generateText', () => {
           }),
           tools: {
             web_search: {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'test.web_search',
-              name: 'web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
               args: {},
@@ -2630,6 +2640,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2651,6 +2662,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2679,6 +2691,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2689,6 +2702,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2763,7 +2777,7 @@ describe('generateText', () => {
   });
 
   describe('options.output', () => {
-    describe('no output', () => {
+    describe('text output (default)', () => {
       it('should throw error when accessing output', async () => {
         const result = await generateText({
           model: new MockLanguageModelV3({
@@ -2775,9 +2789,7 @@ describe('generateText', () => {
           prompt: 'prompt',
         });
 
-        expect(() => {
-          result.experimental_output;
-        }).toThrow('No output specified');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
     });
 
@@ -2791,10 +2803,10 @@ describe('generateText', () => {
             }),
           }),
           prompt: 'prompt',
-          experimental_output: Output.text(),
+          output: Output.text(),
         });
 
-        expect(result.experimental_output).toStrictEqual('Hello, world!');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
 
       it('should set responseFormat to text and not change the prompt', async () => {
@@ -2811,7 +2823,7 @@ describe('generateText', () => {
             },
           }),
           prompt: 'prompt',
-          experimental_output: Output.text(),
+          output: Output.text(),
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
@@ -2861,12 +2873,12 @@ describe('generateText', () => {
             }),
           }),
           prompt: 'prompt',
-          experimental_output: Output.object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
         });
 
-        expect(result.experimental_output).toEqual({ value: 'test-value' });
+        expect(result.output).toEqual({ value: 'test-value' });
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
@@ -2883,7 +2895,7 @@ describe('generateText', () => {
             },
           }),
           prompt: 'prompt',
-          experimental_output: Output.object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
         });
@@ -2938,6 +2950,159 @@ describe('generateText', () => {
       });
     });
 
+    describe('array output', () => {
+      it('should generate an array with 3 elements', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  elements: [
+                    { content: 'element 1' },
+                    { content: 'element 2' },
+                    { content: 'element 3' },
+                  ],
+                }),
+              },
+            ],
+          },
+        });
+
+        const result = await generateText({
+          model,
+          output: Output.array({
+            element: z.object({ content: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(result.output).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "element 1",
+          },
+          {
+            "content": "element 2",
+          },
+          {
+            "content": "element 3",
+          },
+        ]
+      `);
+
+        expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+
+        expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "elements": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "content",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "elements",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+      });
+    });
+
+    describe('choice output', () => {
+      it('should generate a choice value', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ result: 'sunny' }),
+              },
+            ],
+          },
+        });
+
+        const result = await generateText({
+          model,
+          output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(result.output).toEqual('sunny');
+        expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+        expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "sunny",
+                  "rainy",
+                  "snowy",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+      });
+    });
+
     it('should not parse output when finish reason is tool-calls', async () => {
       const result = await generateText({
         model: new MockLanguageModelV3({
@@ -2956,7 +3121,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_output: Output.object({
+        output: Output.object({
           schema: z.object({ summary: z.string() }),
         }),
         tools: {
@@ -2967,10 +3132,10 @@ describe('generateText', () => {
         },
       });
 
-      // experimental_output should be undefined when finish reason is tool-calls
+      // output should be undefined when finish reason is tool-calls
       expect(() => {
-        result.experimental_output;
-      }).toThrow('No output specified');
+        result.output;
+      }).toThrow('No output generated');
 
       // But tool calls should work normally
       expect(result.toolCalls).toHaveLength(1);
@@ -3018,6 +3183,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -3125,6 +3291,7 @@ describe('generateText', () => {
             },
             "providerExecuted": true,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "providerTool",
             "type": "tool-call",
@@ -3211,6 +3378,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "dynamicTool",
             "type": "tool-call",
@@ -3330,6 +3498,9 @@ describe('generateText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -3466,6 +3637,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -3499,6 +3671,7 @@ describe('generateText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "cityAttractions",
                   "type": "tool-call",
@@ -3584,8 +3757,8 @@ describe('generateText', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting' as const,
-          setting: 'temperature',
+          type: 'unsupported' as const,
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];
@@ -3602,7 +3775,11 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings once for each step with warnings from that step', async () => {
@@ -3658,8 +3835,16 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledTimes(2);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+        warnings: [warning1],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
+        warnings: [warning2],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -3675,7 +3860,11 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
   });
 
@@ -3733,6 +3922,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3745,6 +3935,7 @@ describe('generateText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -3848,6 +4039,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3858,6 +4050,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3880,6 +4073,7 @@ describe('generateText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",

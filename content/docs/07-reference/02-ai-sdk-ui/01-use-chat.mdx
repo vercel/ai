@@ -230,7 +230,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: '({toolCall: ToolCall}) => void | Promise<void>',
       isOptional: true,
       description:
-        'Optional callback function that is invoked when a tool call is received. You must call addToolResult to provide the tool result.',
+        'Optional callback function that is invoked when a tool call is received. You must call addToolOutput to provide the tool result.',
     },
     {
       name: 'sendAutomaticallyWhen',
@@ -274,6 +274,13 @@ Allows you to easily create a conversational user interface for your chatbot app
               name: 'isError',
               type: 'boolean',
               description: `True if errors during streaming caused the response to stop early.`,
+            },
+            {
+              name: 'finishReason',
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              isOptional: true,
+              description:
+                'The reason why the model finished generating the response. Undefined if the finish reason was not provided by the model.',
             },
           ],
         },
@@ -386,7 +393,7 @@ Allows you to easily create a conversational user interface for your chatbot app
                 'Additional body JSON properties that should be sent to the API endpoint.',
             },
             {
-              name: 'data',
+              name: 'metadata',
               type: 'JSONValue',
               description: 'Additional data to be sent to the API endpoint.',
             },
@@ -418,7 +425,7 @@ Allows you to easily create a conversational user interface for your chatbot app
         'Function to resume an interrupted streaming response. Useful when a network error occurs during streaming.',
     },
     {
-      name: 'addToolResult',
+      name: 'addToolOutput',
       type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
       description:
         'Function to add a tool result to the chat. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',

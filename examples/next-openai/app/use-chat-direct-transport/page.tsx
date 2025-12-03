@@ -1,7 +1,7 @@
 'use client';
 
 import { UIMessage, useChat } from '@ai-sdk/react';
-import ChatInput from '@/component/chat-input';
+import ChatInput from '@/components/chat-input';
 import { ChatTransport, convertToModelMessages, streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 

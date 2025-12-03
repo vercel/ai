@@ -442,7 +442,8 @@ describe('authentication_error with authMethod context', () => {
     });
 
     expect(error).toBeInstanceOf(GatewayAuthenticationError);
-    expect(error.message).toContain('Invalid API key provided');
+    expect(error.message).toContain('Invalid API key');
+    expect(error.message).toContain('vercel.com/d?to=');
     expect(error.statusCode).toBe(401);
   });
 
@@ -459,7 +460,8 @@ describe('authentication_error with authMethod context', () => {
     });
 
     expect(error).toBeInstanceOf(GatewayAuthenticationError);
-    expect(error.message).toContain('Invalid OIDC token provided');
+    expect(error.message).toContain('Invalid OIDC token');
+    expect(error.message).toContain('npx vercel link');
     expect(error.statusCode).toBe(401);
   });
 

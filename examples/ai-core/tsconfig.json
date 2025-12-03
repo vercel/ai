@@ -32,6 +32,9 @@
       "path": "../../packages/azure"
     },
     {
+      "path": "../../packages/black-forest-labs"
+    },
+    {
       "path": "../../packages/cerebras"
     },
     {

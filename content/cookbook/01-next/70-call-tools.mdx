@@ -95,7 +95,6 @@ You will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) para
 You will also use zod to specify the schema for the `celsiusToFahrenheit` function's parameters.
 
 ```tsx filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
 import {
   type InferUITools,
   type ToolSet,
@@ -136,7 +135,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: ChatMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: 'You are a helpful assistant.',
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),

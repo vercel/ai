@@ -67,18 +67,19 @@ export function createReplicate(
     });
 
   return {
+    specificationVersion: 'v3' as const,
     image: createImageModel,
     imageModel: createImageModel,
-    languageModel: () => {
+    languageModel: (modelId: string) => {
       throw new NoSuchModelError({
-        modelId: 'languageModel',
+        modelId,
         modelType: 'languageModel',
       });
     },
-    textEmbeddingModel: () => {
+    embeddingModel: (modelId: string) => {
       throw new NoSuchModelError({
-        modelId: 'textEmbeddingModel',
-        modelType: 'textEmbeddingModel',
+        modelId,
+        modelType: 'embeddingModel',
       });
     },
   };

@@ -1,6 +1,6 @@
 import {
   JSONParseError,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3StreamPart,
   TypeValidationError,
 } from '@ai-sdk/provider';
@@ -69,7 +69,7 @@ function createTestModel({
   stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV3CallWarning[];
+  warnings?: SharedV3Warning[];
 } = {}) {
   return new MockLanguageModelV3({
     doStream: async () => ({ stream, request, response, warnings }),
@@ -1831,10 +1831,10 @@ describe('streamObject', () => {
     });
 
     it('should resolve warnings promise with warnings when warnings are present', async () => {
-      const expectedWarnings: LanguageModelV3CallWarning[] = [
+      const expectedWarnings: SharedV3Warning[] = [
         {
-          type: 'unsupported-setting',
-          setting: 'frequency_penalty',
+          type: 'unsupported',
+          feature: 'frequency_penalty',
           details: 'This model does not support the frequency_penalty setting.',
         },
         {
@@ -1863,14 +1863,14 @@ describe('streamObject', () => {
     });
 
     it('should call logWarnings with the correct warnings', async () => {
-      const expectedWarnings: LanguageModelV3CallWarning[] = [
+      const expectedWarnings: SharedV3Warning[] = [
         {
           type: 'other',
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];
@@ -1889,7 +1889,11 @@ describe('streamObject', () => {
       await convertAsyncIterableToArray(result.partialObjectStream);
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -1907,7 +1911,11 @@ describe('streamObject', () => {
       await convertAsyncIterableToArray(result.partialObjectStream);
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
   });
 });

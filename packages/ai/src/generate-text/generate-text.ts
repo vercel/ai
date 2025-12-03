@@ -11,7 +11,6 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -43,7 +42,8 @@ import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
-import { Output } from './output';
+import { Output, text } from './output';
+import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
@@ -61,6 +61,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { NoOutputGeneratedError } from '../error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -144,8 +145,7 @@ A result object that contains the generated text, the results of the tool calls,
  */
 export async function generateText<
   TOOLS extends ToolSet,
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
+  OUTPUT extends Output = Output<string, string>,
 >({
   model: modelArg,
   tools,
@@ -157,7 +157,8 @@ export async function generateText<
   abortSignal,
   headers,
   stopWhen = stepCountIs(1),
-  experimental_output: output,
+  experimental_output,
+  output = experimental_output,
   experimental_telemetry: telemetry,
   providerOptions,
   experimental_activeTools,
@@ -227,7 +228,14 @@ changing the tool call and result types in the result.
     /**
 Optional specification for parsing structured outputs from the LLM response.
      */
-    experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
+    output?: OUTPUT;
+
+    /**
+Optional specification for parsing structured outputs from the LLM response.
+
+@deprecated Use `output` instead.
+     */
+    experimental_output?: OUTPUT;
 
     /**
 Custom download function to use for URLs.
@@ -557,7 +565,13 @@ A function that attempts to repair a tool call that failed to parse.
               continue; // ignore invalid tool calls
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              continue;
+            }
 
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -658,7 +672,11 @@ A function that attempts to repair a tool call that failed to parse.
             },
           });
 
-          logWarnings(currentModelResponse.warnings ?? []);
+          logWarnings({
+            warnings: currentModelResponse.warnings ?? [],
+            provider: stepModel.provider,
+            model: stepModel.modelId,
+          });
 
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);
@@ -741,7 +759,8 @@ A function that attempts to repair a tool call that failed to parse.
         // parse output only if the last step was finished with "stop":
         let resolvedOutput;
         if (lastStep.finishReason === 'stop') {
-          resolvedOutput = await output?.parseOutput(
+          const outputSpecification = output ?? text();
+          resolvedOutput = await outputSpecification.parseCompleteOutput(
             { text: lastStep.text },
             {
               response: lastStep.response,
@@ -754,7 +773,7 @@ A function that attempts to repair a tool call that failed to parse.
         return new DefaultGenerateTextResult({
           steps,
           totalUsage,
-          resolvedOutput,
+          output: resolvedOutput,
         });
       },
     });
@@ -799,21 +818,20 @@ async function executeTools<TOOLS extends ToolSet>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
+class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
   readonly totalUsage: LanguageModelUsage;
-
-  private readonly resolvedOutput: OUTPUT;
+  private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-    resolvedOutput: OUTPUT;
+    output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
   }) {
     this.steps = options.steps;
-    this.resolvedOutput = options.resolvedOutput;
+    this._output = options.output;
     this.totalUsage = options.totalUsage;
   }
 
@@ -894,11 +912,15 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get experimental_output() {
-    if (this.resolvedOutput == null) {
-      throw new NoOutputSpecifiedError();
+    return this.output;
+  }
+
+  get output() {
+    if (this._output == null) {
+      throw new NoOutputGeneratedError();
     }
 
-    return this.resolvedOutput;
+    return this._output;
   }
 }
 
@@ -942,6 +964,9 @@ function asContent<TOOLS extends ToolSet>({
           return {
             type: 'file' as const,
             file: new DefaultGeneratedFile(part),
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           };
         }
 

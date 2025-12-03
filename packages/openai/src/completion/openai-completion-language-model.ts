@@ -1,6 +1,6 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
@@ -78,7 +78,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     seed,
     providerOptions,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const openaiOptions = {
@@ -95,21 +95,21 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     };
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (tools?.length) {
-      warnings.push({ type: 'unsupported-setting', setting: 'tools' });
+      warnings.push({ type: 'unsupported', feature: 'tools' });
     }
 
     if (toolChoice != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'toolChoice' });
+      warnings.push({ type: 'unsupported', feature: 'toolChoice' });
     }
 
     if (responseFormat != null && responseFormat.type !== 'text') {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details: 'JSON response format is not supported.',
       });
     }

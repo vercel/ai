@@ -148,7 +148,7 @@ describe('OpenAICompatibleProvider', () => {
     it('should create embedding model with correct configuration', () => {
       const provider = createOpenAICompatible(defaultOptions);
 
-      provider.textEmbeddingModel('embedding-model');
+      provider.embeddingModel('embedding-model');
 
       const constructorCall = OpenAICompatibleEmbeddingModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -309,7 +309,7 @@ describe('OpenAICompatibleProvider', () => {
         completionModelConfigArg.supportsStructuredOutputs,
       ).toBe(undefined);
 
-      provider.textEmbeddingModel('embedding-model');
+      provider.embeddingModel('embedding-model');
       const embeddingModelConfigArg =
         OpenAICompatibleEmbeddingModelMock.mock.calls[0][1];
       expect(

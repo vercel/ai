@@ -1,4 +1,4 @@
-import { ModelMessage } from '@ai-sdk/provider-utils';
+import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 
 /**
 Prompt part of the AI function options.
@@ -8,7 +8,7 @@ export type Prompt = {
   /**
 System message to include in the prompt. Can be used with `prompt` or `messages`.
    */
-  system?: string;
+  system?: string | SystemModelMessage;
 } & (
   | {
       /**

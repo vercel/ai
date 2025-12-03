@@ -15,12 +15,11 @@ You can use the `onFinish` callback to record token usage.
 It is called when the stream is finished.
 
 ```ts file='index.ts' highlight={"15-17"}
-import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
 const result = streamObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -40,12 +39,11 @@ const result = streamObject({
 The [`streamObject`](/docs/reference/ai-sdk-core/stream-object) result contains a `usage` promise that resolves to the total token usage.
 
 ```ts file='index.ts' highlight={"29,32"}
-import { openai } from '@ai-sdk/openai';
 import { streamObject, TokenUsage } from 'ai';
 import { z } from 'zod';
 
 const result = streamObject({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   schema: z.object({
     recipe: z.object({
       name: z.string(),

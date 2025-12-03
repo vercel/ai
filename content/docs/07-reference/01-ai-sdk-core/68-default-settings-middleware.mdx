@@ -45,21 +45,16 @@ Returns a middleware object that:
 ### Usage Example
 
 ```ts
-import { streamText } from 'ai';
-import { wrapLanguageModel } from 'ai';
-import { defaultSettingsMiddleware } from 'ai';
-import { openai } from 'ai';
+import { streamText, wrapLanguageModel, defaultSettingsMiddleware } from 'ai';
 
 // Create a model with default settings
 const modelWithDefaults = wrapLanguageModel({
-  model: openai.ChatTextGenerator({ model: 'gpt-4' }),
+  model: gateway('anthropic/claude-sonnet-4.5'),
   middleware: defaultSettingsMiddleware({
     settings: {
-      temperature: 0.5,
-      maxOutputTokens: 800,
-      providerMetadata: {
+      providerOptions: {
         openai: {
-          tags: ['production'],
+          reasoningEffort: 'high',
         },
       },
     },

@@ -45,7 +45,7 @@ it('should add warnings for provider-defined tools', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider-defined' as const,
+        type: 'provider' as const,
         id: 'provider.tool',
         name: 'tool',
         args: {},
@@ -53,21 +53,18 @@ it('should add warnings for provider-defined tools', () => {
     ],
   });
 
-  expect(result).toStrictEqual({
-    tools: [],
-    toolChoice: undefined,
-    toolWarnings: [
-      {
-        type: 'unsupported-tool',
-        tool: {
-          type: 'provider-defined' as const,
-          id: 'provider.tool',
-          name: 'tool',
-          args: {},
+  expect(result).toMatchInlineSnapshot(`
+    {
+      "toolChoice": undefined,
+      "toolWarnings": [
+        {
+          "feature": "provider-defined tool provider.tool",
+          "type": "unsupported",
         },
-      },
-    ],
-  });
+      ],
+      "tools": [],
+    }
+  `);
 });
 
 describe('tool choice handling', () => {

@@ -80,7 +80,6 @@ You will add the two functions mentioned earlier and use zod to specify the sche
 To call tools in multiple steps, you can use the `stopWhen` option to specify the stopping conditions for when the model generates a tool call. In this example, you will set it to `stepCountIs(5)` to allow for multiple consecutive tool calls (steps).
 
 ```ts filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
 import {
   type InferUITools,
   type ToolSet,
@@ -129,7 +128,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: ChatMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: 'You are a helpful assistant.',
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),

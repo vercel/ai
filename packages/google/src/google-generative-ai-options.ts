@@ -29,6 +29,8 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash-lite-preview-09-2025'
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-2.5-flash-preview-09-2025'
+  | 'gemini-3-pro-preview'
+  | 'gemini-3-pro-image-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -51,6 +53,8 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
         .object({
           thinkingBudget: z.number().optional(),
           includeThoughts: z.boolean().optional(),
+          // https://ai.google.dev/gemini-api/docs/gemini-3?thinking=high#thinking_level
+          thinkingLevel: z.enum(['low', 'medium', 'high']).optional(),
         })
         .optional(),
 
@@ -134,6 +138,31 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
           'MEDIA_RESOLUTION_MEDIUM',
           'MEDIA_RESOLUTION_HIGH',
         ])
+        .optional(),
+
+      /**
+       * Optional. Configures the image generation aspect ratio for Gemini models.
+       *
+       * https://ai.google.dev/gemini-api/docs/image-generation#aspect_ratios
+       */
+      imageConfig: z
+        .object({
+          aspectRatio: z
+            .enum([
+              '1:1',
+              '2:3',
+              '3:2',
+              '3:4',
+              '4:3',
+              '4:5',
+              '5:4',
+              '9:16',
+              '16:9',
+              '21:9',
+            ])
+            .optional(),
+          imageSize: z.enum(['1K', '2K', '4K']).optional(),
+        })
         .optional(),
     }),
   ),

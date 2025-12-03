@@ -6,11 +6,11 @@ import { ProviderMetadata } from '../types';
 The result of an `embed` call.
 It contains the embedding, the value, and additional information.
  */
-export interface EmbedResult<VALUE> {
+export interface EmbedResult {
   /**
   The value that was embedded.
      */
-  readonly value: VALUE;
+  readonly value: string;
 
   /**
   The embedding of the value.

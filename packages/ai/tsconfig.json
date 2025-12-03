@@ -15,7 +15,6 @@
     "node_modules",
     "tsup.config.ts",
     "internal.d.ts",
-    "mcp-stdio.d.ts",
     "test.d.ts"
   ],
   "references": [

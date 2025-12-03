@@ -28,7 +28,7 @@ export interface AzureOpenAIProvider extends ProviderV3 {
   (deploymentId: string): LanguageModelV3;
 
   /**
-Creates an Azure OpenAI chat model for text generation.
+  Creates an Azure OpenAI responses API model for text generation.
    */
   languageModel(deploymentId: string): LanguageModelV3;
 
@@ -47,10 +47,7 @@ Creates an Azure OpenAI completion model for text generation.
    */
   completion(deploymentId: string): LanguageModelV3;
 
-  /**
-@deprecated Use `textEmbedding` instead.
-   */
-  embedding(deploymentId: string): EmbeddingModelV3<string>;
+  embedding(deploymentId: string): EmbeddingModelV3;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
@@ -62,12 +59,10 @@ Creates an Azure OpenAI completion model for text generation.
    */
   imageModel(deploymentId: string): ImageModelV3;
 
-  textEmbedding(deploymentId: string): EmbeddingModelV3<string>;
-
   /**
 Creates an Azure OpenAI model for text embeddings.
    */
-  textEmbeddingModel(deploymentId: string): EmbeddingModelV3<string>;
+  embeddingModel(deploymentId: string): EmbeddingModelV3;
 
   /**
    * Creates an Azure OpenAI model for audio transcription.
@@ -123,8 +118,8 @@ Custom api version to use. Defaults to `preview`.
   apiVersion?: string;
 
   /**
-Use deployment-based URLs for specific model types. Set to true to use legacy deployment format: 
-`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of 
+Use deployment-based URLs for specific model types. Set to true to use legacy deployment format:
+`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of
 `{baseURL}/v1{path}?api-version={apiVersion}`.
    */
   useDeploymentBasedUrls?: boolean;
@@ -239,17 +234,17 @@ export function createAzure(
       );
     }
 
-    return createChatModel(deploymentId);
+    return createResponsesModel(deploymentId);
   };
 
-  provider.languageModel = createChatModel;
+  provider.specificationVersion = 'v3' as const;
+  provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
   provider.speech = createSpeechModel;

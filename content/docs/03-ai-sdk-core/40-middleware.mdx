@@ -356,7 +356,7 @@ export const yourLogMiddleware: LanguageModelV3Middleware = {
 
 const { text } = await generateText({
   model: wrapLanguageModel({
-    model: openai('gpt-4o'),
+    model: 'anthropic/claude-sonnet-4.5',
     middleware: yourLogMiddleware,
   }),
   prompt: 'Invent a new holiday and describe its traditions.',

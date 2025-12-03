@@ -1,5 +1,160 @@
 # @ai-sdk/valibot
 
+## 2.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+
+## 2.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+
+## 2.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
+## 2.0.0-beta.37
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 2.0.0-beta.36
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 2.0.0-beta.34
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 2.0.0-beta.33
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+
+## 2.0.0-beta.27
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 2.0.0-beta.26
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 2.0.0-beta.25
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 2.0.0-beta.24
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+
+## 2.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+
+## 2.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [3794514]
+  - @ai-sdk/provider-utils@4.0.0-beta.19
+
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.18
+
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [703459a]
+  - @ai-sdk/provider-utils@4.0.0-beta.17
+
 ## 2.0.0-beta.16
 
 ### Patch Changes

@@ -4,6 +4,7 @@ import {
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
+  RerankingModelV3,
   SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
@@ -30,14 +31,14 @@ export interface ProviderRegistryProvider<
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): LanguageModelV3;
 
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['textEmbeddingModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['embeddingModel']>>[0]>}`
       : never,
-  ): EmbeddingModelV3<string>;
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  ): EmbeddingModelV3;
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): EmbeddingModelV3<string>;
+  ): EmbeddingModelV3;
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
@@ -65,6 +66,15 @@ export interface ProviderRegistryProvider<
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): SpeechModelV3;
+
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['rerankingModel']>>[0]>}`
+      : never,
+  ): RerankingModelV3;
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): RerankingModelV3;
 }
 
 /**
@@ -152,10 +162,11 @@ class DefaultProviderRegistry<
     id: string,
     modelType:
       | 'languageModel'
-      | 'textEmbeddingModel'
+      | 'embeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel',
+      | 'speechModel'
+      | 'rerankingModel',
   ): ProviderV3 {
     const provider = this.providers[id as keyof PROVIDERS];
 
@@ -175,10 +186,11 @@ class DefaultProviderRegistry<
     id: string,
     modelType:
       | 'languageModel'
-      | 'textEmbeddingModel'
+      | 'embeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel',
+      | 'speechModel'
+      | 'rerankingModel',
   ): [string, string] {
     const index = id.indexOf(this.separator);
 
@@ -217,18 +229,18 @@ class DefaultProviderRegistry<
     return model;
   }
 
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): EmbeddingModelV3<string> {
-    const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
-    const provider = this.getProvider(providerId, 'textEmbeddingModel');
+  ): EmbeddingModelV3 {
+    const [providerId, modelId] = this.splitId(id, 'embeddingModel');
+    const provider = this.getProvider(providerId, 'embeddingModel');
 
-    const model = provider.textEmbeddingModel?.(modelId);
+    const model = provider.embeddingModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({
         modelId: id,
-        modelType: 'textEmbeddingModel',
+        modelType: 'embeddingModel',
       });
     }
 
@@ -278,6 +290,21 @@ class DefaultProviderRegistry<
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'speechModel' });
+    }
+
+    return model;
+  }
+
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): RerankingModelV3 {
+    const [providerId, modelId] = this.splitId(id, 'rerankingModel');
+    const provider = this.getProvider(providerId, 'rerankingModel');
+
+    const model = provider.rerankingModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'rerankingModel' });
     }
 
     return model;

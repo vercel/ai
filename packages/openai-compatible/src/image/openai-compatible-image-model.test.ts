@@ -106,17 +106,19 @@ describe('OpenAICompatibleImageModel', () => {
         }),
       );
 
-      expect(result.warnings).toHaveLength(2);
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
-        details:
-          'This model does not support aspect ratio. Use `size` instead.',
-      });
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "This model does not support aspect ratio. Use \`size\` instead.",
+            "feature": "aspectRatio",
+            "type": "unsupported",
+          },
+          {
+            "feature": "seed",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should pass headers', async () => {

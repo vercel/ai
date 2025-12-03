@@ -1,4 +1,4 @@
-import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -92,13 +92,13 @@ export class FireworksImageModel implements ImageModelV3 {
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    const warnings: Array<SharedV3Warning> = [];
 
     const backendConfig = modelToBackendConfig[this.modelId];
     if (!backendConfig?.supportsSize && size != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
+        type: 'unsupported',
+        feature: 'size',
         details:
           'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
@@ -108,8 +108,8 @@ export class FireworksImageModel implements ImageModelV3 {
     // aspectRatio. This invariant holds for the current set of models.
     if (backendConfig?.supportsSize && aspectRatio != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
+        type: 'unsupported',
+        feature: 'aspectRatio',
         details: 'This model does not support the `aspectRatio` option.',
       });
     }

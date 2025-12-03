@@ -6,7 +6,7 @@ The **[Anthropic provider](https://ai-sdk.dev/providers/ai-sdk-providers/anthrop
 
 The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can install it with
 
-```
+```bash
 npm i @ai-sdk/anthropic
 ```
 

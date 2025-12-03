@@ -8,7 +8,6 @@ import {
   FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
-  getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatConfig,
@@ -36,7 +35,7 @@ export interface OpenAICompatibleProvider<
 
   completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV3;
 
-  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3<string>;
+  embeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
 
   imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV3;
 }
@@ -160,10 +159,11 @@ export function createOpenAICompatible<
 
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.imageModel = createImageModel;
 
   return provider as OpenAICompatibleProvider<

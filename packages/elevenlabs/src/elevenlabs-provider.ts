@@ -93,30 +93,31 @@ export function createElevenLabs(
     };
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
 
-  provider.languageModel = () => {
+  provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'languageModel',
       message: 'ElevenLabs does not provide language models',
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'ElevenLabs does not provide text embedding models',
+      modelId,
+      modelType: 'embeddingModel',
+      message: 'ElevenLabs does not provide embedding models',
     });
   };
 
-  provider.imageModel = () => {
+  provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'imageModel',
       message: 'ElevenLabs does not provide image models',
     });

@@ -1,7 +1,6 @@
-import { SharedV3Headers } from '../../shared';
+import { SharedV3Headers, SharedV3Warning } from '../../shared';
 import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 import { LanguageModelV3CallOptions } from './language-model-v3-call-options';
-import { LanguageModelV3CallWarning } from './language-model-v3-call-warning';
 import { LanguageModelV3Content } from './language-model-v3-content';
 import { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
 import { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
@@ -18,12 +17,12 @@ The language model must specify which language model interface version it implem
   readonly specificationVersion: 'v3';
 
   /**
-Name of the provider for logging purposes.
+Provider ID.
    */
   readonly provider: string;
 
   /**
-Provider-specific model ID for logging purposes.
+Provider-specific model ID.
    */
   readonly modelId: string;
 
@@ -100,7 +99,7 @@ Response HTTP body.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings: Array<LanguageModelV3CallWarning>;
+    warnings: Array<SharedV3Warning>;
   }>;
 
   /**

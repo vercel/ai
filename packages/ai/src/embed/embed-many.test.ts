@@ -483,17 +483,18 @@ describe('result.providerMetadata', () => {
   });
 });
 
-function mockEmbed<VALUE>(
-  expectedValues: Array<VALUE>,
+function mockEmbed(
+  expectedValues: Array<string>,
   embeddings: Array<Embedding>,
   usage?: EmbeddingModelUsage,
-  response: Awaited<
-    ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>
-  >['response'] = { headers: {}, body: {} },
+  response: Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>['response'] = {
+    headers: {},
+    body: {},
+  },
   providerMetadata?: Awaited<
-    ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>
+    ReturnType<EmbeddingModelV3['doEmbed']>
   >['providerMetadata'],
-): EmbeddingModelV3<VALUE>['doEmbed'] {
+): EmbeddingModelV3['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
     return { embeddings, usage, response, providerMetadata };

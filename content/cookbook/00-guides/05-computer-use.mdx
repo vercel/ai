@@ -140,7 +140,7 @@ For one-shot text generation, use `generateText`:
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-20250514'),
+  model: 'anthropic/claude-sonnet-4-20250514',
   prompt: 'Move the cursor to the center of the screen and take a screenshot',
   tools: { computer: computerTool },
 });
@@ -152,7 +152,7 @@ For streaming responses, use `streamText` to receive updates in real-time:
 
 ```ts
 const result = streamText({
-  model: anthropic('claude-sonnet-4-20250514'),
+  model: 'anthropic/claude-sonnet-4-20250514',
   prompt: 'Open the browser and navigate to vercel.com',
   tools: { computer: computerTool },
 });
@@ -170,7 +170,7 @@ To allow the model to perform multiple steps without user intervention, use the 
 import { stepCountIs } from 'ai';
 
 const stream = streamText({
-  model: anthropic('claude-sonnet-4-20250514'),
+  model: 'anthropic/claude-sonnet-4-20250514',
   prompt: 'Open the browser and navigate to vercel.com',
   tools: { computer: computerTool },
   stopWhen: stepCountIs(10), // experiment with this value based on your use case
@@ -217,7 +217,7 @@ const textEditorTool = anthropic.tools.textEditor_20250124({
 
 
 const response = await generateText({
-  model: anthropic("claude-sonnet-4-20250514"),
+  model: 'anthropic/claude-sonnet-4-20250514',
   prompt: "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
   tools: {
     computer: computerTool,

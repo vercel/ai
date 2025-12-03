@@ -63,7 +63,7 @@ describe('google-provider', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
     });
-    provider.textEmbeddingModel('embedding-001');
+    provider.embeddingModel('embedding-001');
 
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledWith(
       'embedding-001',
@@ -187,7 +187,7 @@ describe('google-provider', () => {
 
     provider.generativeAI('gemini-pro');
     provider.embedding('embedding-001');
-    provider.textEmbedding('embedding-001');
+    provider.embeddingModel('embedding-001');
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledTimes(1);
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledTimes(2);
@@ -266,5 +266,42 @@ describe('google-provider', () => {
         ],
       }
     `);
+  });
+});
+
+describe('google provider - custom provider name', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should use custom provider name when specified', () => {
+    const provider = createGoogleGenerativeAI({
+      name: 'my-gemini-proxy',
+      apiKey: 'test-api-key',
+    });
+
+    provider('gemini-pro');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'gemini-pro',
+      expect.objectContaining({
+        provider: 'my-gemini-proxy',
+      }),
+    );
+  });
+
+  it('should default to google.generative-ai when name not specified', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+
+    provider('gemini-pro');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'gemini-pro',
+      expect.objectContaining({
+        provider: 'google.generative-ai',
+      }),
+    );
   });
 });

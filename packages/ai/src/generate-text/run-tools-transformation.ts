@@ -1,11 +1,9 @@
-import {
-  LanguageModelV3CallWarning,
-  LanguageModelV3StreamPart,
-} from '@ai-sdk/provider';
+import { SharedV3Warning, LanguageModelV3StreamPart } from '@ai-sdk/provider';
 import {
   getErrorMessage,
   IdGenerator,
   ModelMessage,
+  SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -65,6 +63,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       id: string;
       toolName: string;
       providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-delta';
@@ -86,7 +86,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | { type: 'stream-start'; warnings: LanguageModelV3CallWarning[] }
+  | { type: 'stream-start'; warnings: SharedV3Warning[] }
   | {
       type: 'response-metadata';
       id?: string;
@@ -118,7 +118,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-  system: string | undefined;
+  system: string | SystemModelMessage | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
@@ -237,11 +237,18 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 input: toolCall.input,
                 error: getErrorMessage(toolCall.error!),
                 dynamic: true,
+                title: toolCall.title,
               });
               break;
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              break;
+            }
 
             if (tool.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -312,8 +319,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolCallId: chunk.toolCallId,
               toolName,
               input: toolInputs.get(chunk.toolCallId),
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
               error: chunk.result,
+              dynamic: chunk.dynamic,
             } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
@@ -322,7 +330,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolName,
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
+              dynamic: chunk.dynamic,
             } as TypedToolResult<TOOLS>);
           }
           break;

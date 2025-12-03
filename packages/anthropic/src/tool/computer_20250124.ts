@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactory,
+  createProviderToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -38,7 +38,7 @@ const computer_20250124InputSchema = lazySchema(() =>
   ),
 );
 
-export const computer_20250124 = createProviderDefinedToolFactory<
+export const computer_20250124 = createProviderToolFactory<
   {
     /**
      * - `key`: Press a key or key-combination on the keyboard.
@@ -126,6 +126,5 @@ export const computer_20250124 = createProviderDefinedToolFactory<
   }
 >({
   id: 'anthropic.computer_20250124',
-  name: 'computer',
   inputSchema: computer_20250124InputSchema,
 });

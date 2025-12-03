@@ -90,14 +90,13 @@ export default function Page() {
 Next, let's create the `/api/chat` endpoint that generates the assistant's response based on the conversation history.
 
 ```typescript filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
 import { generateText, type ModelMessage } from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: ModelMessage[] } = await req.json();
 
   const { response } = await generateText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     system: 'You are a helpful assistant.',
     messages,
   });

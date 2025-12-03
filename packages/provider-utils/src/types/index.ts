@@ -8,6 +8,7 @@ export type {
   ReasoningPart,
   TextPart,
   ToolCallPart,
+  ToolResultOutput,
   ToolResultPart,
 } from './content-part';
 export type { DataContent } from './data-content';
@@ -23,6 +24,7 @@ export {
   type Tool,
   type ToolCallOptions,
   type ToolExecuteFunction,
+  type ToolNeedsApprovalFunction,
 } from './tool';
 export type { ToolApprovalRequest } from './tool-approval-request';
 export type { ToolApprovalResponse } from './tool-approval-response';

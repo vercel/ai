@@ -9,7 +9,7 @@ async function main() {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: groq('moonshotai/kimi-k2-instruct'),
+    model: groq('moonshotai/kimi-k2-instruct-0905'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

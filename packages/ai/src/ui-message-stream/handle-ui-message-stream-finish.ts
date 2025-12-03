@@ -106,6 +106,7 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
         ...(isContinuation ? originalMessages.slice(0, -1) : originalMessages),
         state.message,
       ] as UI_MESSAGE[],
+      finishReason: state.finishReason,
     });
   };
 

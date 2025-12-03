@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import { appendFileSync } from 'fs';
 
 const moduleName = process.argv[2];
 
@@ -58,10 +59,36 @@ async function main() {
   const max = Math.max(...times);
 
   console.log(`\n--- Statistics ---`);
+
+  const sorted = [...times].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median =
+    sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+
+  console.log(`Median: ${median.toFixed(1)} ms`);
   console.log(`Average: ${average.toFixed(1)} ms`);
   console.log(`Min: ${min.toFixed(1)} ms`);
   console.log(`Max: ${max.toFixed(1)} ms`);
   console.log(`Range: ${(max - min).toFixed(1)} ms`);
+
+  // Write to GitHub Actions output if running in CI
+  if (process.env.GITHUB_OUTPUT) {
+    // remove "@ai-sdk/" prefix if present
+    const outputKey = moduleName.replace(/^@ai-sdk\//, '');
+    const outputValue = median.toFixed(1);
+
+    try {
+      appendFileSync(
+        process.env.GITHUB_OUTPUT,
+        `${outputKey}=${outputValue}\n`,
+      );
+      console.log(
+        `\n✅ Written to GitHub Actions output: ${outputKey}=${outputValue}`,
+      );
+    } catch (error) {
+      console.error('Failed to write to GitHub Actions output:', error);
+    }
+  }
 }
 
 main().catch(console.error);

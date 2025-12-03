@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: google.textEmbeddingModel('gemini-embedding-001'),
+    model: google.embeddingModel('gemini-embedding-001'),
     value: 'sunny day at the beach',
   });
 

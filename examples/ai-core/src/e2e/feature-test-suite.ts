@@ -58,9 +58,9 @@ export const createLanguageModelWithCapabilities = (
 });
 
 export const createEmbeddingModelWithCapabilities = (
-  model: EmbeddingModelV3<string>,
+  model: EmbeddingModelV3,
   capabilities: ModelCapabilities = ['embedding'],
-): ModelWithCapabilities<EmbeddingModelV3<string>> => ({
+): ModelWithCapabilities<EmbeddingModelV3> => ({
   model,
   capabilities,
 });
@@ -76,7 +76,7 @@ export const createImageModelWithCapabilities = (
 export interface ModelVariants {
   invalidModel?: LanguageModelV3;
   languageModels?: ModelWithCapabilities<LanguageModelV3>[];
-  embeddingModels?: ModelWithCapabilities<EmbeddingModelV3<string>>[];
+  embeddingModels?: ModelWithCapabilities<EmbeddingModelV3>[];
   invalidImageModel?: ImageModelV3;
   imageModels?: ModelWithCapabilities<ImageModelV3>[];
 }

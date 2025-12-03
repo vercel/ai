@@ -40,13 +40,13 @@ createFeatureTestSuite({
     ],
     embeddingModels: [
       createEmbeddingModelWithCapabilities(
-        provider.textEmbeddingModel('BAAI/bge-base-en-v1.5'),
+        provider.embeddingModel('BAAI/bge-base-en-v1.5'),
       ),
       createEmbeddingModelWithCapabilities(
-        provider.textEmbeddingModel('intfloat/e5-base-v2'),
+        provider.embeddingModel('intfloat/e5-base-v2'),
       ),
       createEmbeddingModelWithCapabilities(
-        provider.textEmbeddingModel('sentence-transformers/all-mpnet-base-v2'),
+        provider.embeddingModel('sentence-transformers/all-mpnet-base-v2'),
       ),
     ],
   },

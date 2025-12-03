@@ -16,7 +16,7 @@ const provider = createOpenAICompatible({
     Authorization: `Bearer test-api-key`,
   },
 });
-const model = provider.textEmbeddingModel('text-embedding-3-large');
+const model = provider.embeddingModel('text-embedding-3-large');
 
 const server = createTestServer({
   'https://my.api.com/v1/embeddings': {},
@@ -98,7 +98,7 @@ describe('doEmbed', () => {
   it('should pass the dimensions setting', async () => {
     prepareJsonResponse();
 
-    await provider.textEmbeddingModel('text-embedding-3-large').doEmbed({
+    await provider.embeddingModel('text-embedding-3-large').doEmbed({
       values: testValues,
       providerOptions: {
         'openai-compatible': {
@@ -127,7 +127,7 @@ describe('doEmbed', () => {
       },
     });
 
-    await provider.textEmbeddingModel('text-embedding-3-large').doEmbed({
+    await provider.embeddingModel('text-embedding-3-large').doEmbed({
       values: testValues,
       headers: {
         'Custom-Request-Header': 'request-header-value',

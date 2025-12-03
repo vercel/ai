@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { Agent, tool } from 'ai';
+import { ToolLoopAgent, tool } from 'ai';
 import { run } from '../lib/run';
 import { z } from 'zod';
 
-const agent = new Agent({
+const agent = new ToolLoopAgent({
   model: openai('gpt-5'),
-  system: 'You are a helpful that answers questions about the weather.',
+  instructions: 'You are a helpful that answers questions about the weather.',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -21,7 +21,7 @@ const agent = new Agent({
 });
 
 run(async () => {
-  const result = agent.stream({
+  const result = await agent.stream({
     prompt: 'What is the weather in Tokyo?',
   });
 

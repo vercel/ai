@@ -77,6 +77,7 @@ export function createRevai(
     };
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
@@ -88,10 +89,10 @@ export function createRevai(
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = () => {
     throw new NoSuchModelError({
       modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
+      modelType: 'embeddingModel',
       message: 'Rev.ai does not provide text embedding models',
     });
   };

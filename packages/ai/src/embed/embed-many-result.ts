@@ -6,11 +6,11 @@ import { ProviderMetadata } from '../types';
 The result of a `embedMany` call.
 It contains the embeddings, the values, and additional information.
  */
-export interface EmbedManyResult<VALUE> {
+export interface EmbedManyResult {
   /**
   The values that were embedded.
      */
-  readonly values: Array<VALUE>;
+  readonly values: Array<string>;
 
   /**
   The embeddings. They are in the same order as the values.

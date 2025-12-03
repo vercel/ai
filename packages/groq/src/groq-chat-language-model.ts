@@ -1,7 +1,7 @@
 import {
   InvalidResponseDataError,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3Prompt,
@@ -73,7 +73,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   }: Parameters<LanguageModelV3['doGenerate']>[0] & {
     stream: boolean;
   }) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
@@ -84,10 +84,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (
@@ -96,8 +93,8 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       !structuredOutputs
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details:
           'JSON response format schema is only supported with structuredOutputs',
       });

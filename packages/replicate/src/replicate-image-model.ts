@@ -1,4 +1,4 @@
-import type { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -48,7 +48,7 @@ export class ReplicateImageModel implements ImageModelV3 {
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    const warnings: Array<SharedV3Warning> = [];
 
     const [modelId, version] = this.modelId.split(':');
 

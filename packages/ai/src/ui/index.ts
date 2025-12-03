@@ -16,10 +16,7 @@ export {
 } from './chat';
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
-export {
-  convertToCoreMessages,
-  convertToModelMessages,
-} from './convert-to-model-messages';
+export { convertToModelMessages } from './convert-to-model-messages';
 export { DefaultChatTransport } from './default-chat-transport';
 export {
   HttpChatTransport,
@@ -33,6 +30,10 @@ export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
   getToolName,
   getToolOrDynamicToolName,
+  isDataUIPart,
+  isFileUIPart,
+  isReasoningUIPart,
+  isTextUIPart,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
   type DataUIPart,

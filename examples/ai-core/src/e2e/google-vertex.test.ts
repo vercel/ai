@@ -100,10 +100,10 @@ const createModelsForRuntime = (
   ],
   embeddingModels: [
     createEmbeddingModelWithCapabilities(
-      vertex.textEmbeddingModel('textembedding-gecko'),
+      vertex.embeddingModel('textembedding-gecko'),
     ),
     createEmbeddingModelWithCapabilities(
-      vertex.textEmbeddingModel('textembedding-gecko-multilingual'),
+      vertex.embeddingModel('textembedding-gecko-multilingual'),
     ),
   ],
   imageModels: [

@@ -108,6 +108,8 @@ functionality that can be fully encapsulated in the provider.
 
 @returns
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
+
+@deprecated Use `generateText` with an `output` setting instead.
  */
 export async function generateObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
@@ -433,7 +435,11 @@ Default and recommended: 'auto' (best mode for the model).
         response = generateResult.responseData;
         reasoning = generateResult.reasoning;
 
-        logWarnings(warnings);
+        logWarnings({
+          warnings,
+          provider: model.provider,
+          model: model.modelId,
+        });
 
         const object = await parseAndValidateObjectResultWithRepair(
           result,

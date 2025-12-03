@@ -1,7 +1,7 @@
 import {
   TranscriptionModelV3,
   TranscriptionModelV3CallOptions,
-  TranscriptionModelV3CallWarning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -113,7 +113,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
     mediaType,
     providerOptions,
   }: OpenAITranscriptionCallOptions) {
-    const warnings: TranscriptionModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const openAIOptions = await parseProviderOptions({

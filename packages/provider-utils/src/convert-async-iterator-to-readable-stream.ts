@@ -8,6 +8,8 @@
 export function convertAsyncIteratorToReadableStream<T>(
   iterator: AsyncIterator<T>,
 ): ReadableStream<T> {
+  let cancelled = false;
+
   return new ReadableStream<T>({
     /**
      * Called when the consumer wants to pull more data from the stream.
@@ -16,6 +18,7 @@ export function convertAsyncIteratorToReadableStream<T>(
      * @returns {Promise<void>}
      */
     async pull(controller) {
+      if (cancelled) return;
       try {
         const { value, done } = await iterator.next();
         if (done) {
@@ -30,6 +33,15 @@ export function convertAsyncIteratorToReadableStream<T>(
     /**
      * Called when the consumer cancels the stream.
      */
-    cancel() {},
+    async cancel(reason?: unknown) {
+      cancelled = true;
+      if (iterator.return) {
+        try {
+          await iterator.return(reason);
+        } catch {
+          // intentionally ignore errors during cancellation
+        }
+      }
+    },
   });
 }

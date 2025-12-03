@@ -61,6 +61,13 @@ export const weatherTool = tool({
                 'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
             },
             {
+              name: 'strict',
+              isOptional: true,
+              type: 'boolean',
+              description:
+                'Strict mode setting for the tool. Providers that support strict mode will use this setting to determine how the input should be generated. Strict mode will always produce valid inputs, but it might limit what input schemas are supported.',
+            },
+            {
               name: 'execute',
               isOptional: true,
               type: 'async (input: INPUT, options: ToolCallOptions) => RESULT | Promise<RESULT> | AsyncIterable<RESULT>',

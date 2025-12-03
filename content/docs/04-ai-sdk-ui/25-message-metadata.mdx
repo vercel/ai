@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: MyUIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'anthropic/claude-sonnet-4.5',
     messages: convertToModelMessages(messages),
   });
 
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       if (part.type === 'start') {
         return {
           createdAt: Date.now(),
-          model: 'gpt-4o',
+          model: 'gpt-5.1',
         };
       }
 

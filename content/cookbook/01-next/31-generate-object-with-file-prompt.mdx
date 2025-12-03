@@ -70,7 +70,6 @@ export default function Page() {
 On the server, create an API route that receives the PDF, sends it to the LLM, and returns the result. This example uses the [ `generateObject` ](/docs/reference/ai-sdk-core/generate-object) function to generate the summary as part of a structured output.
 
 ```typescript file="app/api/analyze/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -89,7 +88,7 @@ export async function POST(request: Request) {
   const fileDataUrl = `data:application/pdf;base64,${base64Data}`;
 
   const result = await generateObject({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: [
       {
         role: 'user',

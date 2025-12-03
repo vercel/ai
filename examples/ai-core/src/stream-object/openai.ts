@@ -23,10 +23,8 @@ async function main() {
 
   for await (const partialObject of result.partialObjectStream) {
     console.clear();
-    console.log(partialObject);
+    console.dir(partialObject, { depth: Infinity });
   }
-
-  console.log(JSON.stringify((await result.request).body, null, 2));
 }
 
 main().catch(console.error);

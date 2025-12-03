@@ -1,4 +1,4 @@
-import { ModelMessage, Tool } from '@ai-sdk/provider-utils';
+import { ModelMessage, SystemModelMessage, Tool } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { StepResult } from './step-result';
 
@@ -29,7 +29,7 @@ export type PrepareStepResult<
       model?: LanguageModel;
       toolChoice?: ToolChoice<NoInfer<TOOLS>>;
       activeTools?: Array<keyof NoInfer<TOOLS>>;
-      system?: string;
+      system?: string | SystemModelMessage;
       messages?: Array<ModelMessage>;
     }
   | undefined;

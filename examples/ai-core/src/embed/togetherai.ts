@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: togetherai.textEmbeddingModel('BAAI/bge-base-en-v1.5'),
+    model: togetherai.embeddingModel('BAAI/bge-base-en-v1.5'),
     value: 'sunny day at the beach',
   });
 

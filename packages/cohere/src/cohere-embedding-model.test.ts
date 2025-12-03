@@ -14,7 +14,7 @@ const dummyEmbeddings = [
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createCohere({ apiKey: 'test-api-key' });
-const model = provider.textEmbeddingModel('embed-english-v3.0');
+const model = provider.embeddingModel('embed-english-v3.0');
 
 const server = createTestServer({
   'https://api.cohere.com/v2/embed': {},
@@ -94,7 +94,7 @@ describe('doEmbed', () => {
   it('should pass the input_type setting', async () => {
     prepareJsonResponse();
 
-    await provider.textEmbeddingModel('embed-english-v3.0').doEmbed({
+    await provider.embeddingModel('embed-english-v3.0').doEmbed({
       values: testValues,
       providerOptions: {
         cohere: {
@@ -121,7 +121,7 @@ describe('doEmbed', () => {
       },
     });
 
-    await provider.textEmbeddingModel('embed-english-v3.0').doEmbed({
+    await provider.embeddingModel('embed-english-v3.0').doEmbed({
       values: testValues,
       headers: {
         'Custom-Request-Header': 'request-header-value',

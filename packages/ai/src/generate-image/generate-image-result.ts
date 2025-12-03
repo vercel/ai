@@ -1,9 +1,8 @@
 import { GeneratedFile } from '../generate-text';
-import {
-  ImageGenerationWarning,
-  ImageModelProviderMetadata,
-} from '../types/image-model';
+import { ImageModelProviderMetadata } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import { ImageModelUsage } from '../types/usage';
+import { Warning } from '../types/warning';
 
 /**
 The result of a `generateImage` call.
@@ -23,7 +22,7 @@ The images that were generated.
   /**
 Warnings for the call, e.g. unsupported settings.
      */
-  readonly warnings: Array<ImageGenerationWarning>;
+  readonly warnings: Array<Warning>;
 
   /**
 Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
@@ -35,4 +34,9 @@ Response metadata from the provider. There may be multiple responses if we made 
    * results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ImageModelProviderMetadata;
+
+  /**
+  Combined token usage across all underlying provider calls for this image generation.
+   */
+  readonly usage: ImageModelUsage;
 }

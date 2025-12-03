@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const { embeddings, usage } = await embedMany({
-    model: vertex.textEmbeddingModel('text-embedding-004'),
+    model: vertex.embeddingModel('text-embedding-004'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

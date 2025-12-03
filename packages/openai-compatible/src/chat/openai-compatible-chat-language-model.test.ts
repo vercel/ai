@@ -640,14 +640,15 @@ describe('doGenerate', () => {
         response_format: { type: 'json_object' },
       });
 
-      expect(warnings).toEqual([
-        {
-          details:
-            'JSON response format schema is only supported with structuredOutputs',
-          setting: 'responseFormat',
-          type: 'unsupported-setting',
-        },
-      ]);
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "JSON response format schema is only supported with structuredOutputs",
+            "feature": "responseFormat",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {

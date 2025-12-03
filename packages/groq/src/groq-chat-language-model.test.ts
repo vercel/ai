@@ -514,14 +514,15 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(warnings).toEqual([
-      {
-        details:
-          'JSON response format schema is only supported with structuredOutputs',
-        setting: 'responseFormat',
-        type: 'unsupported-setting',
-      },
-    ]);
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "JSON response format schema is only supported with structuredOutputs",
+          "feature": "responseFormat",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should use json_schema format when structuredOutputs explicitly enabled', async () => {
@@ -619,7 +620,7 @@ describe('doGenerate', () => {
         '{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}',
     });
 
-    const kimiModel = provider('moonshotai/kimi-k2-instruct');
+    const kimiModel = provider('moonshotai/kimi-k2-instruct-0905');
 
     const result = await kimiModel.doGenerate({
       providerOptions: {
@@ -665,7 +666,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "moonshotai/kimi-k2-instruct",
+        "model": "moonshotai/kimi-k2-instruct-0905",
         "response_format": {
           "json_schema": {
             "description": "A recipe with ingredients and instructions",
@@ -747,8 +748,8 @@ describe('doGenerate', () => {
       [
         {
           "details": "JSON response format schema is only supported with structuredOutputs",
-          "setting": "responseFormat",
-          "type": "unsupported-setting",
+          "feature": "responseFormat",
+          "type": "unsupported",
         },
       ]
     `);

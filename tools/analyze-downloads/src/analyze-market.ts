@@ -1,59 +1,5 @@
 #!/usr/bin/env tsx
 
-import * as https from 'https';
-
-/**
- * Fetches the raw HTML text from the given URL using https.
- */
-function fetchPage(url: string, retries = 10, delay = 4000): Promise<string> {
-  return new Promise((resolve, reject) => {
-    https
-      .get(url, res => {
-        if (res.statusCode === 429 && retries > 0) {
-          // Handle rate limiting with exponential backoff
-          const retryDelay = delay * 2;
-          console.log(`Rate limited, retrying in ${delay}ms...`);
-          setTimeout(() => {
-            fetchPage(url, retries - 1, retryDelay)
-              .then(resolve)
-              .catch(reject);
-          }, delay);
-          return;
-        }
-
-        if (res.statusCode !== 200) {
-          reject(
-            new Error(`Failed to fetch ${url}. Status code: ${res.statusCode}`),
-          );
-          return;
-        }
-
-        let rawData = '';
-        res.on('data', chunk => (rawData += chunk));
-        res.on('end', () => resolve(rawData));
-      })
-      .on('error', err => reject(err));
-  });
-}
-
-/**
- * Extracts weekly downloads from the npm package page
- * using a regex-based search on the HTML.
- */
-function parseWeeklyDownloads(html: string): number {
-  // Look for the weekly downloads number in the new HTML structure
-  const weeklyDownloadsRegex =
-    /Weekly Downloads<\/h3>.*?<p[^>]*>([0-9,]+)<\/p>/s;
-  const match = html.match(weeklyDownloadsRegex);
-
-  if (!match) {
-    return 0;
-  }
-
-  const downloadsStr = match[1].replace(/[^\d]/g, ''); // remove commas
-  return parseInt(downloadsStr, 10) || 0;
-}
-
 /**
  * Main execution function.
  */
@@ -75,37 +21,80 @@ async function main() {
   ];
   const results: Array<{
     package: string;
-    'weekly downloads': number;
-    percentage: string;
+    'past week': number;
+    previous: number;
+    diff: number;
+    '%': string;
+    'previous %': string;
+    'diff %': string;
   }> = [];
+
+  // timestamps
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yesterdayTimestamp = d.toISOString().split('T')[0];
+  d.setDate(d.getDate() - 6);
+  const sevenDaysAgoTimestamp = d.toISOString().split('T')[0];
+  d.setDate(d.getDate() - 1);
+  const eightDaysAgoTimestamp = d.toISOString().split('T')[0];
+  d.setDate(d.getDate() - 6);
+  const fourteenDaysAgoTimestamp = d.toISOString().split('T')[0];
+
+  console.log(
+    `Fetching download stats from ${sevenDaysAgoTimestamp} to ${yesterdayTimestamp} and ${fourteenDaysAgoTimestamp} to ${eightDaysAgoTimestamp}...`,
+  );
 
   try {
     for (const pkg of packages) {
-      const url = `https://www.npmjs.com/package/${pkg}`;
-      const html = await fetchPage(url);
-      const weeklyDownloads = parseWeeklyDownloads(html);
+      const responseLastWeek = await fetch(
+        `https://api.npmjs.org/downloads/point/${sevenDaysAgoTimestamp}:${yesterdayTimestamp}/${pkg}`,
+      );
+      const dataLastWeek = await responseLastWeek.json();
+      const responsePrevWeek = await fetch(
+        `https://api.npmjs.org/downloads/point/${fourteenDaysAgoTimestamp}:${eightDaysAgoTimestamp}/${pkg}`,
+      );
+      const dataPrevWeek = await responsePrevWeek.json();
 
       results.push({
         package: pkg,
-        'weekly downloads': weeklyDownloads,
-        percentage: '0%', // Initial placeholder
+        'past week': dataLastWeek.downloads || 0,
+        '%': '0%', // Initial placeholder
+        previous: dataPrevWeek.downloads || 0,
+        'previous %': '0%', // Initial placeholder
+        diff: (dataLastWeek.downloads || 0) - (dataPrevWeek.downloads || 0),
+        'diff %': '0%', // Initial placeholder
       });
     }
 
     // Calculate total downloads
-    const totalDownloads = results.reduce(
-      (sum, item) => sum + item['weekly downloads'],
+    const pastWeektotalDownloads = results.reduce(
+      (sum, item) => sum + item['past week'],
+      0,
+    );
+    const previousTotalDownloads = results.reduce(
+      (sum, item) => sum + item['previous'],
       0,
     );
 
     // Update percentages
     results.forEach(item => {
-      const percentage = (item['weekly downloads'] / totalDownloads) * 100;
-      item['percentage'] = `${percentage.toFixed(1)}%`;
+      const pastWeekPercentage =
+        pastWeektotalDownloads > 0
+          ? (item['past week'] / pastWeektotalDownloads) * 100
+          : 0;
+      item['%'] = `${pastWeekPercentage.toFixed(1)}%`;
+      const previousPercentage =
+        previousTotalDownloads > 0
+          ? (item['previous'] / previousTotalDownloads) * 100
+          : 0;
+      item['previous %'] = `${previousPercentage.toFixed(1)}%`;
+      const diffPercentage = pastWeekPercentage - previousPercentage;
+      item['diff %'] =
+        `${diffPercentage >= 0 ? '+' : ''}${diffPercentage.toFixed(1)}%`;
     });
 
-    // Sort results by weekly downloads in descending order
-    results.sort((a, b) => b['weekly downloads'] - a['weekly downloads']);
+    // Sort results by past week in descending order
+    results.sort((a, b) => b['past week'] - a['past week']);
 
     console.table(results);
   } catch (err) {

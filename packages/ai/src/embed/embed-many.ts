@@ -29,7 +29,7 @@ has a limit on how many embeddings can be generated in a single call.
 
 @returns A result object that contains the embeddings, the value, and additional information.
  */
-export async function embedMany<VALUE = string>({
+export async function embedMany({
   model: modelArg,
   values,
   maxParallelCalls = Infinity,
@@ -42,12 +42,12 @@ export async function embedMany<VALUE = string>({
   /**
 The embedding model to use.
      */
-  model: EmbeddingModel<VALUE>;
+  model: EmbeddingModel;
 
   /**
 The values that should be embedded.
    */
-  values: Array<VALUE>;
+  values: Array<string>;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -85,8 +85,8 @@ Only applicable for HTTP-based providers.
    * @default Infinity
    */
   maxParallelCalls?: number;
-}): Promise<EmbedManyResult<VALUE>> {
-  const model = resolveEmbeddingModel<VALUE>(modelArg);
+}): Promise<EmbedManyResult> {
+  const model = resolveEmbeddingModel(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
@@ -334,19 +334,19 @@ Only applicable for HTTP-based providers.
   });
 }
 
-class DefaultEmbedManyResult<VALUE> implements EmbedManyResult<VALUE> {
-  readonly values: EmbedManyResult<VALUE>['values'];
-  readonly embeddings: EmbedManyResult<VALUE>['embeddings'];
-  readonly usage: EmbedManyResult<VALUE>['usage'];
-  readonly providerMetadata: EmbedManyResult<VALUE>['providerMetadata'];
-  readonly responses: EmbedManyResult<VALUE>['responses'];
+class DefaultEmbedManyResult implements EmbedManyResult {
+  readonly values: EmbedManyResult['values'];
+  readonly embeddings: EmbedManyResult['embeddings'];
+  readonly usage: EmbedManyResult['usage'];
+  readonly providerMetadata: EmbedManyResult['providerMetadata'];
+  readonly responses: EmbedManyResult['responses'];
 
   constructor(options: {
-    values: EmbedManyResult<VALUE>['values'];
-    embeddings: EmbedManyResult<VALUE>['embeddings'];
-    usage: EmbedManyResult<VALUE>['usage'];
-    providerMetadata?: EmbedManyResult<VALUE>['providerMetadata'];
-    responses?: EmbedManyResult<VALUE>['responses'];
+    values: EmbedManyResult['values'];
+    embeddings: EmbedManyResult['embeddings'];
+    usage: EmbedManyResult['usage'];
+    providerMetadata?: EmbedManyResult['providerMetadata'];
+    responses?: EmbedManyResult['responses'];
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;

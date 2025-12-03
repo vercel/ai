@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: vertex.textEmbeddingModel('text-embedding-004'),
+    model: vertex.embeddingModel('text-embedding-004'),
     value: 'sunny day at the beach',
   });
 

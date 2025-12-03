@@ -1,7 +1,7 @@
 import {
   AISDKError,
   TranscriptionModelV3,
-  TranscriptionModelV3CallWarning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -82,7 +82,7 @@ export class FalTranscriptionModel implements TranscriptionModelV3 {
   private async getArgs({
     providerOptions,
   }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const falOptions = await parseProviderOptions({
