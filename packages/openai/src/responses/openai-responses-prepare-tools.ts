@@ -53,7 +53,7 @@ export async function prepareResponsesTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
-          strict: undefined,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         });
         break;
       case 'provider': {

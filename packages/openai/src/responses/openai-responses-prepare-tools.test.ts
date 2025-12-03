@@ -3,6 +3,174 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('function tools strict mode', () => {
+    it('should pass through strict mode when strict is true', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should pass through strict mode when strict is false', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include strict mode when strict is undefined', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should pass through strict mode for multiple tools with different strict settings', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            description: 'A strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'nonStrictTool',
+            description: 'A non-strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+          {
+            type: 'function',
+            name: 'defaultTool',
+            description: 'A tool without strict setting',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A strict tool",
+              "name": "strictTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+            {
+              "description": "A non-strict tool",
+              "name": "nonStrictTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+            {
+              "description": "A tool without strict setting",
+              "name": "defaultTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
   describe('code interpreter', () => {
     it('should prepare code interpreter tool with no container (auto mode)', async () => {
       const result = await prepareResponsesTools({
@@ -246,7 +414,6 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": undefined,
               "type": "function",
             },
             {
@@ -631,7 +798,6 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": undefined,
               "type": "function",
             },
             {
