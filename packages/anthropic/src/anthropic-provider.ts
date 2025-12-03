@@ -13,9 +13,13 @@ import {
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import { AnthropicMessagesModelId } from './anthropic-messages-options';
+import {
+  AnthropicMessagesModelId,
+  AnthropicSearchToolDefinition,
+} from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 import { toolSearchRegistry } from './runtime/tool-search/registry';
+import { createSearchToolDefinition } from './search-tool-definition';
 
 export interface AnthropicProvider extends ProviderV3 {
   /**
@@ -37,10 +41,9 @@ Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
 
-  advancedTools: {
-    register: typeof toolSearchRegistry.register;
-    list: typeof toolSearchRegistry.list;
-  };
+  searchTool: (
+    def: Omit<AnthropicSearchToolDefinition, 'type'>,
+  ) => AnthropicSearchToolDefinition;
 }
 
 export interface AnthropicProviderSettings {
@@ -156,9 +159,20 @@ export function createAnthropic(
 
   provider.tools = anthropicTools;
 
-  provider.advancedTools = {
-    register: toolSearchRegistry.register,
-    list: toolSearchRegistry.list,
+  provider.searchTool = (def: Omit<AnthropicSearchToolDefinition, 'type'>) => {
+    const built = createSearchToolDefinition(def);
+
+    // Register into the runtime tool search engine
+    toolSearchRegistry.register({
+      name: built.name,
+      description: built.query,
+      inputSchema: {}, // runtime search tools have no schema
+      keywords: built.inputExamples?.map(String) ?? [],
+      allowedCallers: built.allowedCallers ?? [],
+      examples: built.inputExamples,
+    });
+
+    return built;
   };
 
   return provider;
