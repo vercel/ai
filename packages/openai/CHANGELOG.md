@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.77
+
+### Patch Changes
+
+- 31f6c20: fix(openai): allow open_page action type url to be nullish
+
 ## 2.0.76
 
 ### Patch Changes
