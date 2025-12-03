@@ -82,6 +82,11 @@ const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
 )}/converse`;
 
+const novaModelId = 'us.amazon.nova-2-lite-v1:0';
+const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  novaModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -92,6 +97,7 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [novaGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(filename: string) {
@@ -132,6 +138,13 @@ beforeEach(() => {
 });
 
 const model = new BedrockChatLanguageModel(modelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const novaModel = new BedrockChatLanguageModel(novaModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -2915,6 +2928,45 @@ describe('doGenerate', () => {
       custom: 42,
       thinking: { type: 'enabled', budget_tokens: 1234 },
     });
+  });
+
+  it('maps maxReasoningEffort for Nova without thinking (generate)', async () => {
+    server.urls[novaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await novaModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+            budgetTokens: 2048,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoningConfig: {
+          type: 'enabled',
+          maxReasoningEffort: 'medium',
+        },
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.thinking,
+    ).toBeUndefined();
   });
 
   it('should extract reasoning text with signature', async () => {
