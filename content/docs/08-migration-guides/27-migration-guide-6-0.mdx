@@ -66,8 +66,29 @@ This enables fine-grained control over strict tool calls, which is important sin
 
 ### `structuredOutputs` option removed from chat model
 
-The `structuredOutputs` provider option has been removed from chat models.
-You can use `strictJsonSchema` instead.
+The `structuredOutputs` provider option has been removed from chat models ([PR #10752](https://github.com/vercel/ai/pull/10752)). You can use `strictJsonSchema` instead.
+
+## Warning System
+
+### Warning Logger Enabled
+
+AI SDK 6 introduces a warning logger that outputs deprecation warnings and best practice recommendations ([PR #8343](https://github.com/vercel/ai/pull/8343)).
+
+To disable warning logging, set the `AI_SDK_LOG_WARNINGS` environment variable to `false`:
+
+```bash
+export AI_SDK_LOG_WARNINGS=false
+```
+
+### V2 Model Compatibility Warning
+
+A warning is displayed when using v2 provider models with AISDK v6 ([PR #10770](https://github.com/vercel/ai/pull/10770)). Update your provider implementations to use v3 models.
+
+## Tool Changes
+
+### Flexible Tool Content Support
+
+AI SDK 6 introduces more flexible tool output and result content support ([PR #9605](https://github.com/vercel/ai/pull/9605)), enabling richer tool interactions and better support for complex tool execution patterns.
 
 ## Codemods
 
