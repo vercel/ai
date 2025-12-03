@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.66
+
+### Patch Changes
+
+- c36a1ad: feat(provider/bedrock): Support Nova 2 extended reasoning `maxReasoningEffort` field
+
 ## 3.0.65
 
 ### Patch Changes
