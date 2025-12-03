@@ -391,9 +391,6 @@ importers:
       '@ai-sdk/openai':
         specifier: 3.0.0-beta.78
         version: link:../../packages/openai
-      '@cfworker/json-schema':
-        specifier: ^4.1.1
-        version: 4.1.1
       '@modelcontextprotocol/sdk':
         specifier: ^1.24.0
         version: 1.24.0(@cfworker/json-schema@4.1.1)(zod@3.25.76)
@@ -21547,7 +21544,8 @@ snapshots:
       '@types/tough-cookie': 4.0.5
       tough-cookie: 4.1.4
 
-  '@cfworker/json-schema@4.1.1': {}
+  '@cfworker/json-schema@4.1.1':
+    optional: true
 
   '@changesets/apply-release-plan@7.0.6':
     dependencies:
