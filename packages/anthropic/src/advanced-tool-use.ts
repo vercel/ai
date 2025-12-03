@@ -25,7 +25,7 @@ import {
 
 export async function getAnthropicAdvancedToolUseFeaturesSupport(
   providerMetadata: SharedV3ProviderMetadata | undefined,
-): Promise<AnthropicAdvancedToolUse | undefined> {
+): Promise<AnthropicAdvancedToolUse> {
   const anthropic = providerMetadata?.anthropic;
   const deferLoading = anthropic?.defer_loading ?? anthropic?.deferLoading;
   const inputExamples = anthropic?.input_examples ?? anthropic?.inputExamples;
