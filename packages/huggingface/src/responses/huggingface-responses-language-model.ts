@@ -1,7 +1,7 @@
 import {
   APICallError,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -59,32 +59,26 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     toolChoice,
     responseFormat,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
+      warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
     if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
     if (stopSequences != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     const { input, warnings: messageWarnings } =

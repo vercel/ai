@@ -1,10 +1,10 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
@@ -46,6 +46,7 @@ import { stepCountIs } from './stop-condition';
 import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { features } from 'node:process';
 
 const defaultSettings = () =>
   ({
@@ -107,7 +108,7 @@ function createTestModel({
   stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV3CallWarning[];
+  warnings?: SharedV3Warning[];
 } = {}): LanguageModelV3 {
   return new MockLanguageModelV3({
     doStream: async () => ({ stream, request, response, warnings }),
@@ -8736,9 +8737,8 @@ describe('streamText', () => {
           }),
           tools: {
             web_search: {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'test.web_search',
-              name: 'web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
               args: {},
@@ -12281,7 +12281,7 @@ describe('streamText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderTool)[]
         | undefined;
 
       const result = streamText({
@@ -13583,6 +13583,8 @@ describe('streamText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
               "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -13658,6 +13660,8 @@ describe('streamText', () => {
                   "cities": "San Francisco",
                 },
                 "invalid": true,
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
                 "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
@@ -14385,8 +14389,8 @@ describe('streamText', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting' as const,
-          setting: 'temperature',
+          type: 'unsupported' as const,
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];

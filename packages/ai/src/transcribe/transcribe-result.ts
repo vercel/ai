@@ -1,6 +1,6 @@
 import { JSONObject } from '@ai-sdk/provider';
-import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import { Warning } from '../types/warning';
 
 /**
 The result of a `transcribe` call.
@@ -46,7 +46,7 @@ export interface TranscriptionResult {
   /**
   Warnings for the call, e.g. unsupported settings.
      */
-  readonly warnings: Array<TranscriptionWarning>;
+  readonly warnings: Array<Warning>;
 
   /**
   Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.

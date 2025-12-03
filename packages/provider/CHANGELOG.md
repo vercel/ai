@@ -1,5 +1,59 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+## 3.0.0-beta.18
+
+### Patch Changes
+
+- 10d819b: fix(packages/provider): fix CallWarning and allow strings as type
+
+## 3.0.0-beta.17
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+
 ## 3.0.0-beta.16
 
 ### Patch Changes

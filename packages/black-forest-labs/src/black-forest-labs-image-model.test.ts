@@ -9,16 +9,22 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
+  pollIntervalMillis,
+  pollTimeoutMillis,
 }: {
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
+  pollIntervalMillis?: number;
+  pollTimeoutMillis?: number;
 } = {}) {
   return new BlackForestLabsImageModel('test-model', {
     provider: 'black-forest-labs.image',
     baseURL: 'https://api.example.com/v1',
     headers: headers ?? (() => ({ 'x-key': 'test-key' })),
     fetch,
+    pollIntervalMillis,
+    pollTimeoutMillis,
     _internal: {
       currentDate,
     },
@@ -105,6 +111,90 @@ describe('BlackForestLabsImageModel', () => {
       expect(result.providerMetadata?.blackForestLabs.images[0]).toMatchObject({
         seed: 12345,
       });
+    });
+
+    it('includes all cost and megapixel fields when provided by submit API', async () => {
+      server.urls['https://api.example.com/v1/test-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+          cost: 0.08,
+          input_mp: 1.5,
+          output_mp: 2.0,
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.blackForestLabs.images[0]).toMatchObject({
+        cost: 0.08,
+        inputMegapixels: 1.5,
+        outputMegapixels: 2.0,
+      });
+    });
+
+    it('omits cost and megapixel fields from providerMetadata when not provided by submit API', async () => {
+      server.urls['https://api.example.com/v1/test-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      const metadata = result.providerMetadata?.blackForestLabs.images[0];
+      expect(metadata).toBeDefined();
+      expect(metadata).not.toHaveProperty('cost');
+      expect(metadata).not.toHaveProperty('inputMegapixels');
+      expect(metadata).not.toHaveProperty('outputMegapixels');
+    });
+
+    it('handles null cost and megapixel fields from submit API', async () => {
+      server.urls['https://api.example.com/v1/test-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+          cost: null,
+          input_mp: null,
+          output_mp: null,
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      const metadata = result.providerMetadata?.blackForestLabs.images[0];
+      expect(metadata).toBeDefined();
+      expect(metadata).not.toHaveProperty('cost');
+      expect(metadata).not.toHaveProperty('inputMegapixels');
+      expect(metadata).not.toHaveProperty('outputMegapixels');
     });
 
     it('calls the expected URLs in sequence', async () => {
@@ -200,11 +290,15 @@ describe('BlackForestLabsImageModel', () => {
         aspectRatio: undefined,
       });
 
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'size',
-        details: 'Deriving aspect_ratio from size.',
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.",
+            "feature": "size",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('warns and ignores size when both size and aspectRatio are provided', async () => {
@@ -219,11 +313,15 @@ describe('BlackForestLabsImageModel', () => {
         aspectRatio: '16:9',
       });
 
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'size',
-        details: 'Black Forest Labs ignores size when aspectRatio is provided.',
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them",
+            "feature": "size",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('handles API errors with message and detail', async () => {
@@ -278,6 +376,87 @@ describe('BlackForestLabsImageModel', () => {
 
       expect(result.images).toHaveLength(1);
       expect(result.images[0]).toBeInstanceOf(Uint8Array);
+    });
+
+    it('polls multiple times using configured interval until Ready', async () => {
+      let pollHitCount = 0;
+      server.urls['https://api.example.com/poll'].response = () => {
+        pollHitCount += 1;
+        if (pollHitCount < 3) {
+          return {
+            type: 'json-value',
+            body: { status: 'Pending' },
+          };
+        }
+        return {
+          type: 'json-value',
+          body: {
+            status: 'Ready',
+            result: { sample: 'https://api.example.com/image.png' },
+          },
+        };
+      };
+
+      const model = createBasicModel({
+        pollIntervalMillis: 10,
+        pollTimeoutMillis: 1000,
+      });
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      const pollCalls = server.calls.filter(
+        c =>
+          c.requestMethod === 'GET' &&
+          c.requestUrl.startsWith('https://api.example.com/poll'),
+      );
+      expect(pollCalls.length).toBe(3);
+    });
+
+    it('uses configured pollTimeoutMillis and pollIntervalMillis to time out', async () => {
+      server.urls['https://api.example.com/poll'].response = ({
+        callNumber,
+      }) => ({
+        type: 'json-value',
+        body: { status: 'Pending', callNumber },
+      });
+
+      const pollIntervalMillis = 10;
+      const pollTimeoutMillis = 25;
+      const model = createBasicModel({
+        pollIntervalMillis,
+        pollTimeoutMillis,
+      });
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Black Forest Labs generation timed out.');
+
+      const pollCalls = server.calls.filter(
+        c =>
+          c.requestMethod === 'GET' &&
+          c.requestUrl.startsWith('https://api.example.com/poll'),
+      );
+      expect(pollCalls.length).toBe(
+        Math.ceil(pollTimeoutMillis / pollIntervalMillis),
+      );
+      const imageFetchCalls = server.calls.filter(c =>
+        c.requestUrl.startsWith('https://api.example.com/image.png'),
+      );
+      expect(imageFetchCalls.length).toBe(0);
     });
 
     it('throws when poll is Ready but sample is missing', async () => {

@@ -1,8 +1,4 @@
-import {
-  JSONObject,
-  TranscriptionModelV3,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { JSONObject, TranscriptionModelV3 } from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
@@ -15,6 +11,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { transcribe } from './transcribe';
+import { Warning } from '../types/warning';
 
 vi.mock('../version', () => {
   return {
@@ -52,7 +49,7 @@ const createMockResponse = (options: {
   }>;
   language?: string;
   durationInSeconds?: number;
-  warnings?: TranscriptionModelV3CallWarning[];
+  warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
@@ -149,14 +146,14 @@ describe('transcribe', () => {
   });
 
   it('should call logWarnings with the correct warnings', async () => {
-    const expectedWarnings: TranscriptionModelV3CallWarning[] = [
+    const expectedWarnings: Warning[] = [
       {
         type: 'other',
         message: 'Setting is not supported',
       },
       {
-        type: 'unsupported-setting',
-        setting: 'mediaType',
+        type: 'unsupported',
+        feature: 'mediaType',
         details: 'MediaType parameter not supported',
       },
     ];

@@ -1,5 +1,148 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+  - @ai-sdk/openai@3.0.0-beta.79
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- Updated dependencies [2c0a758]
+  - @ai-sdk/openai@3.0.0-beta.78
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [d270a5d]
+  - @ai-sdk/openai@3.0.0-beta.77
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [88edc28]
+  - @ai-sdk/openai@3.0.0-beta.76
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [73d9883]
+  - @ai-sdk/openai@3.0.0-beta.75
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [88fc415]
+  - @ai-sdk/openai@3.0.0-beta.74
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+  - @ai-sdk/openai@3.0.0-beta.73
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/openai@3.0.0-beta.72
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/openai@3.0.0-beta.71
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/openai@3.0.0-beta.70
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- Updated dependencies [1d0de66]
+  - @ai-sdk/openai@3.0.0-beta.69
+
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/openai@3.0.0-beta.68
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/openai@3.0.0-beta.67
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- d86b52f: distinguish between OpenAI and Azure in Responses API providerMetadata
+- Updated dependencies [d86b52f]
+  - @ai-sdk/openai@3.0.0-beta.66
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [38a4035]
+  - @ai-sdk/openai@3.0.0-beta.65
+
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/openai@3.0.0-beta.64
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
 ## 3.0.0-beta.65
 
 ### Patch Changes

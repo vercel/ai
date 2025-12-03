@@ -13,6 +13,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesComputerCall
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
+  | OpenAIResponsesApplyPatchCall
+  | OpenAIResponsesApplyPatchCallOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference;
 
@@ -99,6 +101,35 @@ export type OpenAIResponsesLocalShellCallOutput = {
   output: string;
 };
 
+export type OpenAIResponsesApplyPatchCall = {
+  type: 'apply_patch_call';
+  id?: string;
+  call_id: string;
+  status: 'in_progress' | 'completed';
+  operation:
+    | {
+        type: 'create_file';
+        path: string;
+        diff: string;
+      }
+    | {
+        type: 'delete_file';
+        path: string;
+      }
+    | {
+        type: 'update_file';
+        path: string;
+        diff: string;
+      };
+};
+
+export type OpenAIResponsesApplyPatchCallOutput = {
+  type: 'apply_patch_call_output';
+  call_id: string;
+  status: 'completed' | 'failed';
+  output?: string;
+};
+
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
@@ -148,10 +179,14 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
-      strict: boolean | undefined;
+      strict?: boolean;
+    }
+  | {
+      type: 'apply_patch';
     }
   | {
       type: 'web_search';
+      external_web_access: boolean | undefined;
       filters: { allowed_domains: string[] | undefined } | undefined;
       search_context_size: 'low' | 'medium' | 'high' | undefined;
       user_location:
@@ -367,6 +402,28 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('mcp_approval_request'),
             id: z.string(),
           }),
+          z.object({
+            type: z.literal('apply_patch_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed']),
+            operation: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('create_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+              z.object({
+                type: z.literal('delete_file'),
+                path: z.string(),
+              }),
+              z.object({
+                type: z.literal('update_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+            ]),
+          }),
         ]),
       }),
       z.object({
@@ -527,6 +584,28 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             name: z.string(),
             arguments: z.string(),
             approval_request_id: z.string(),
+          }),
+          z.object({
+            type: z.literal('apply_patch_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed']),
+            operation: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('create_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+              z.object({
+                type: z.literal('delete_file'),
+                path: z.string(),
+              }),
+              z.object({
+                type: z.literal('update_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+            ]),
           }),
         ]),
       }),
@@ -875,6 +954,28 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               name: z.string(),
               arguments: z.string(),
               approval_request_id: z.string(),
+            }),
+            z.object({
+              type: z.literal('apply_patch_call'),
+              id: z.string(),
+              call_id: z.string(),
+              status: z.enum(['in_progress', 'completed']),
+              operation: z.discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('create_file'),
+                  path: z.string(),
+                  diff: z.string(),
+                }),
+                z.object({
+                  type: z.literal('delete_file'),
+                  path: z.string(),
+                }),
+                z.object({
+                  type: z.literal('update_file'),
+                  path: z.string(),
+                  diff: z.string(),
+                }),
+              ]),
             }),
           ]),
         )
