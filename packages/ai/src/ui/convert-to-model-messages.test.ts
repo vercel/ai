@@ -772,6 +772,72 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should propagate provider metadata to provider-executed tool-result', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'multiply', numbers: [3, 4] },
+              output: '12',
+              providerExecuted: true,
+              callProviderMetadata: {
+                testProvider: {
+                  executionTime: 75,
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "numbers": [
+                    3,
+                    4,
+                  ],
+                  "operation": "multiply",
+                },
+                "providerExecuted": true,
+                "providerOptions": {
+                  "testProvider": {
+                    "executionTime": 75,
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "12",
+                },
+                "providerOptions": {
+                  "testProvider": {
+                    "executionTime": 75,
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
     it('should handle assistant message with tool invocations that have multi-part responses', () => {
       const result = convertToModelMessages([
         {
@@ -1248,6 +1314,12 @@ describe('convertToModelMessages', () => {
                 "output": {
                   "type": "text",
                   "value": "result-1",
+                },
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                    "key-b": "test-value-2",
+                  },
                 },
                 "toolCallId": "call-1",
                 "toolName": "screenshot",

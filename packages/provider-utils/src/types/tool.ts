@@ -1,8 +1,8 @@
-import { JSONValue, LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
+import { JSONValue } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
+import { ToolResultOutput } from './content-part';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
-import { ToolResultOutput } from './content-part';
 
 /**
  * Additional options that are sent into each tool call.
@@ -141,6 +141,16 @@ Whether the tool allows input modification during approval.
    */
   allowsInputEditing?: boolean;
 
+
+  /**
+   * Strict mode setting for the tool.
+   *
+   * Providers that support strict mode will use this setting to determine
+   * how the input should be generated. Strict mode will always produce
+   * valid inputs, but it might limit what input schemas are supported.
+   */
+  strict?: boolean;
+
   /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
@@ -195,17 +205,12 @@ The types of input and output are not known at development time.
         /**
 Tool with provider-defined input and output schemas.
      */
-        type: 'provider-defined';
+        type: 'provider';
 
         /**
-The ID of the tool. Should follow the format `<provider-name>.<unique-tool-name>`.
+The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
    */
         id: `${string}.${string}`;
-
-        /**
-The name of the tool that the user must use in the tool set.
- */
-        name: string;
 
         /**
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.

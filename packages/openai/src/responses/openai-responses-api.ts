@@ -13,6 +13,10 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesComputerCall
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
+  | OpenAIResponsesShellCall
+  | OpenAIResponsesShellCallOutput
+  | OpenAIResponsesApplyPatchCall
+  | OpenAIResponsesApplyPatchCallOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference;
 
@@ -99,6 +103,61 @@ export type OpenAIResponsesLocalShellCallOutput = {
   output: string;
 };
 
+/**
+ * Official OpenAI API Specifications: https://platform.openai.com/docs/api-reference/responses/object#responses-object-output-shell_tool_call
+ */
+export type OpenAIResponsesShellCall = {
+  type: 'shell_call';
+  id: string;
+  call_id: string;
+  status: 'in_progress' | 'completed' | 'incomplete';
+  action: {
+    commands: string[];
+    timeout_ms?: number;
+    max_output_length?: number;
+  };
+};
+
+export type OpenAIResponsesShellCallOutput = {
+  type: 'shell_call_output';
+  call_id: string;
+  max_output_length?: number;
+  output: Array<{
+    stdout: string;
+    stderr: string;
+    outcome: { type: 'timeout' } | { type: 'exit'; exit_code: number };
+  }>;
+};
+
+export type OpenAIResponsesApplyPatchCall = {
+  type: 'apply_patch_call';
+  id?: string;
+  call_id: string;
+  status: 'in_progress' | 'completed';
+  operation:
+    | {
+        type: 'create_file';
+        path: string;
+        diff: string;
+      }
+    | {
+        type: 'delete_file';
+        path: string;
+      }
+    | {
+        type: 'update_file';
+        path: string;
+        diff: string;
+      };
+};
+
+export type OpenAIResponsesApplyPatchCallOutput = {
+  type: 'apply_patch_call_output';
+  call_id: string;
+  status: 'completed' | 'failed';
+  output?: string;
+};
+
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
@@ -148,7 +207,10 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
-      strict: boolean | undefined;
+      strict?: boolean;
+    }
+  | {
+      type: 'apply_patch';
     }
   | {
       type: 'web_search';
@@ -242,6 +304,9 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'local_shell';
+    }
+  | {
+      type: 'shell';
     };
 
 export type OpenAIResponsesReasoning = {
@@ -368,6 +433,37 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('mcp_approval_request'),
             id: z.string(),
           }),
+          z.object({
+            type: z.literal('apply_patch_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed']),
+            operation: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('create_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+              z.object({
+                type: z.literal('delete_file'),
+                path: z.string(),
+              }),
+              z.object({
+                type: z.literal('update_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+            ]),
+          }),
+          z.object({
+            type: z.literal('shell_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            action: z.object({
+              commands: z.array(z.string()),
+            }),
+          }),
         ]),
       }),
       z.object({
@@ -429,12 +525,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               }),
               z.object({
                 type: z.literal('open_page'),
-                url: z.string(),
+                url: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('find'),
-                url: z.string(),
-                pattern: z.string(),
+                url: z.string().nullish(),
+                pattern: z.string().nullish(),
               }),
             ]),
           }),
@@ -528,6 +624,37 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             name: z.string(),
             arguments: z.string(),
             approval_request_id: z.string(),
+          }),
+          z.object({
+            type: z.literal('apply_patch_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed']),
+            operation: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('create_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+              z.object({
+                type: z.literal('delete_file'),
+                path: z.string(),
+              }),
+              z.object({
+                type: z.literal('update_file'),
+                path: z.string(),
+                diff: z.string(),
+              }),
+            ]),
+          }),
+          z.object({
+            type: z.literal('shell_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            action: z.object({
+              commands: z.array(z.string()),
+            }),
           }),
         ]),
       }),
@@ -740,12 +867,12 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                 }),
                 z.object({
                   type: z.literal('open_page'),
-                  url: z.string(),
+                  url: z.string().nullish(),
                 }),
                 z.object({
                   type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
+                  url: z.string().nullish(),
+                  pattern: z.string().nullish(),
                 }),
               ]),
             }),
@@ -876,6 +1003,37 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               name: z.string(),
               arguments: z.string(),
               approval_request_id: z.string(),
+            }),
+            z.object({
+              type: z.literal('apply_patch_call'),
+              id: z.string(),
+              call_id: z.string(),
+              status: z.enum(['in_progress', 'completed']),
+              operation: z.discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('create_file'),
+                  path: z.string(),
+                  diff: z.string(),
+                }),
+                z.object({
+                  type: z.literal('delete_file'),
+                  path: z.string(),
+                }),
+                z.object({
+                  type: z.literal('update_file'),
+                  path: z.string(),
+                  diff: z.string(),
+                }),
+              ]),
+            }),
+            z.object({
+              type: z.literal('shell_call'),
+              id: z.string(),
+              call_id: z.string(),
+              status: z.enum(['in_progress', 'completed', 'incomplete']),
+              action: z.object({
+                commands: z.array(z.string()),
+              }),
             }),
           ]),
         )
