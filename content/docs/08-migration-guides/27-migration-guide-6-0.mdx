@@ -132,11 +132,11 @@ const { embedding } = await embed({
 
 ### OpenAI
 
-#### Unknown Models Treated as Reasoning Models
+#### Unrecognized Models Treated as Reasoning Models
 
-The `@ai-sdk/openai` provider now treats unknown or custom model IDs as reasoning models by default ([PR #9976](https://github.com/vercel/ai/pull/9976)). Previously, unknown models were treated as non-reasoning models.
+The `@ai-sdk/openai` provider now treats unrecognized model IDs as reasoning models by default ([PR #9976](https://github.com/vercel/ai/pull/9976)). Previously, unrecognized models were treated as non-reasoning models.
 
-This change reflects the trend that most new models from OpenAI support reasoning capabilities. If you're using custom model IDs that don't support reasoning, you may need to adjust your configuration.
+This change impacts users who configure `@ai-sdk/openai` with a custom `baseUrl` to use non-OpenAI models. Reasoning models exclude certain parameters like `temperature`, which may cause unexpected behavior if the model does not support reasoning. Consider using `@ai-sdk/openai-compatible` instead.
 
 ### Azure
 
