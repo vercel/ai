@@ -46,6 +46,12 @@ import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-message
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
+function normalizeToolName(name: string): string {
+  if (name.startsWith('tool_search_bm25_')) return 'tool_search_bm25';
+  if (name.startsWith('tool_search_regex_')) return 'tool_search_regex';
+  return name;
+}
+
 function createCitationSource(
   citation: Citation,
   citationDocuments: Array<{
@@ -551,12 +557,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args: body, warnings, betas, usesJsonResponseTool, toolNameMapping } =
-      await this.getArgs({
-        ...options,
-        stream: false,
-        userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
-      });
+    const {
+      args: body,
+      warnings,
+      betas,
+      usesJsonResponseTool,
+      toolNameMapping,
+    } = await this.getArgs({
+      ...options,
+      stream: false,
+      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+    });
 
     // Enable fine-grained tool streaming beta when streaming + enabled
     const providerToolStreaming =
@@ -653,7 +664,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
-              toolName: part.name,
+              toolName: normalizeToolName(part.name),
               input: JSON.stringify(part.input),
             });
           }
@@ -693,7 +704,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           mcpToolCalls[part.id] = {
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: part.name,
+            toolName: normalizeToolName(part.name),
             input: JSON.stringify(part.input),
             providerExecuted: true,
             dynamic: true,
@@ -1048,7 +1059,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     contentBlocks[value.index] = {
                       type: 'tool-call',
                       toolCallId: part.id,
-                      toolName: part.name,
+                      toolName: normalizeToolName(part.name),
                       input: '',
                       firstDelta: true,
                     };
@@ -1056,7 +1067,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-input-start',
                       id: part.id,
-                      toolName: part.name,
+                      toolName: normalizeToolName(part.name),
                     });
                   }
                   return;
@@ -1088,7 +1099,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     contentBlocks[value.index] = {
                       type: 'tool-call',
                       toolCallId: part.id,
-                      toolName: customToolName,
+                      toolName: normalizeToolName(customToolName),
                       input: '',
                       providerExecuted: true,
                       firstDelta: true,
@@ -1098,7 +1109,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-input-start',
                       id: part.id,
-                      toolName: customToolName,
+                      toolName: normalizeToolName(customToolName),
                       providerExecuted: true,
                     });
                   }
@@ -1241,7 +1252,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   mcpToolCalls[part.id] = {
                     type: 'tool-call',
                     toolCallId: part.id,
-                    toolName: part.name,
+                    toolName: normalizeToolName(part.name),
                     input: JSON.stringify(part.input),
                     providerExecuted: true,
                     dynamic: true,
@@ -1316,7 +1327,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       controller.enqueue({
                         type: 'tool-call',
                         toolCallId: contentBlock.toolCallId,
-                        toolName: contentBlock.toolName,
+                        toolName: normalizeToolName(contentBlock.toolName),
                         input:
                           contentBlock.input === '' ? '{}' : contentBlock.input,
                         providerExecuted: contentBlock.providerExecuted,
