@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/anthropic@3.0.0-beta.71
+  - @ai-sdk/provider@3.0.0-beta.23
+
 ## 4.0.0-beta.78
 
 ### Patch Changes

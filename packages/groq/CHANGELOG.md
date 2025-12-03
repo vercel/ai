@@ -1,5 +1,19 @@
 # @ai-sdk/groq
 
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.43
+
+### Patch Changes
+
+- 541abc9: Removed deprecated distil-whisper-large-v3-en model from groq transcription
+
 ## 3.0.0-beta.42
 
 ### Patch Changes
