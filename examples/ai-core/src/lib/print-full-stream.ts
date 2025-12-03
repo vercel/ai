@@ -41,7 +41,7 @@ export async function printFullStream({
 
       case 'error':
         console.error(
-          '\n\x1b[31m\x1b[1mERROR\x1b[22m\n${JSON.stringify(chunk.error, null, 2)}\x1b[0m',
+          `\n\x1b[31m\x1b[1mERROR\x1b[22m\n${JSON.stringify(chunk.error, null, 2)}\x1b[0m`,
         );
         break;
     }
