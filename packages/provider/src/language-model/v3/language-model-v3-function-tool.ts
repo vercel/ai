@@ -37,7 +37,7 @@ understand the tool's input requirements and to provide matching suggestions.
    * how the input should be generated. Strict mode will always produce
    * valid inputs, but it might limit what input schemas are supported.
    */
-  strict: boolean | undefined;
+  strict?: boolean;
 
   /**
 The provider-specific options for the tool.
