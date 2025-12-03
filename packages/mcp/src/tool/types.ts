@@ -9,10 +9,20 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-11-05',
 ];
 
+/** MCP tool metadata - keys should follow MCP _meta key format specification */
+const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
+export type ToolMeta = z.infer<typeof ToolMetaSchema>;
+
 export type ToolSchemas =
   | Record<string, { inputSchema: FlexibleSchema<JSONObject | unknown> }>
   | 'automatic'
   | undefined;
+
+/** Base MCP tool type with execute and _meta */
+type McpToolBase<INPUT = unknown> = Tool<INPUT, CallToolResult> &
+  Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>> & {
+    _meta?: ToolMeta;
+  };
 
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
   TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<any> }>
@@ -20,11 +30,10 @@ export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
         [K in keyof TOOL_SCHEMAS]: TOOL_SCHEMAS[K] extends {
           inputSchema: FlexibleSchema<infer INPUT>;
         }
-          ? Tool<INPUT, CallToolResult> &
-              Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>>
+          ? McpToolBase<INPUT>
           : never;
       }
-    : McpToolSet<Record<string, { inputSchema: FlexibleSchema<unknown> }>>;
+    : Record<string, McpToolBase<unknown>>;
 
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
@@ -126,6 +135,7 @@ const ToolSchema = z
         })
         .loose(),
     ),
+    _meta: ToolMetaSchema,
   })
   .loose();
 export type MCPTool = z.infer<typeof ToolSchema>;
