@@ -15,7 +15,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -48,7 +47,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -80,7 +78,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -119,7 +116,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -154,7 +150,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -188,7 +183,6 @@ describe('prepareResponsesTools', () => {
           type: 'tool',
           toolName: 'code_interpreter',
         },
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -234,7 +228,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -253,7 +246,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": true,
+              "strict": undefined,
               "type": "function",
             },
             {
@@ -285,7 +278,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -322,7 +314,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: { type: 'tool', toolName: 'image_generation' },
-        strictJsonSchema: false,
       });
 
       expect(result.tools).toMatchInlineSnapshot(`
@@ -357,7 +348,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -386,7 +376,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -419,7 +408,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -452,7 +440,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -496,7 +483,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -542,7 +528,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -582,7 +567,6 @@ describe('prepareResponsesTools', () => {
           type: 'tool',
           toolName: 'web_search',
         },
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -629,7 +613,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -648,7 +631,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": true,
+              "strict": undefined,
               "type": "function",
             },
             {
@@ -676,7 +659,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -706,7 +688,6 @@ describe('prepareResponsesTools', () => {
           type: 'tool',
           toolName: 'apply_patch',
         },
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -746,7 +727,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -765,7 +745,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": true,
+              "strict": undefined,
               "type": "function",
             },
             {

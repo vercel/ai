@@ -4,7 +4,6 @@ import { it, expect } from 'vitest';
 it('should return undefined tools and toolChoice when tools are null', () => {
   const result = prepareChatTools({
     tools: undefined,
-    strictJsonSchema: false,
   });
 
   expect(result).toEqual({
@@ -17,7 +16,6 @@ it('should return undefined tools and toolChoice when tools are null', () => {
 it('should return undefined tools and toolChoice when tools are empty', () => {
   const result = prepareChatTools({
     tools: [],
-    strictJsonSchema: false,
   });
 
   expect(result).toEqual({
@@ -37,22 +35,27 @@ it('should correctly prepare function tools', () => {
         inputSchema: { type: 'object', properties: {} },
       },
     ],
-    strictJsonSchema: false,
   });
 
-  expect(result.tools).toEqual([
+  expect(result).toMatchInlineSnapshot(`
     {
-      type: 'function',
-      function: {
-        name: 'testFunction',
-        description: 'A test function',
-        parameters: { type: 'object', properties: {} },
-        strict: false,
-      },
-    },
-  ]);
-  expect(result.toolChoice).toBeUndefined();
-  expect(result.toolWarnings).toEqual([]);
+      "toolChoice": undefined,
+      "toolWarnings": [],
+      "tools": [
+        {
+          "function": {
+            "description": "A test function",
+            "name": "testFunction",
+            "parameters": {
+              "properties": {},
+              "type": "object",
+            },
+          },
+          "type": "function",
+        },
+      ],
+    }
+  `);
 });
 
 it('should add warnings for unsupported tools', () => {
@@ -65,7 +68,6 @@ it('should add warnings for unsupported tools', () => {
         args: {},
       },
     ],
-    strictJsonSchema: false,
   });
 
   expect(result.tools).toEqual([]);
@@ -91,7 +93,6 @@ it('should handle tool choice "auto"', () => {
       },
     ],
     toolChoice: { type: 'auto' },
-    strictJsonSchema: false,
   });
   expect(result.toolChoice).toEqual('auto');
 });
@@ -107,7 +108,6 @@ it('should handle tool choice "required"', () => {
       },
     ],
     toolChoice: { type: 'required' },
-    strictJsonSchema: false,
   });
   expect(result.toolChoice).toEqual('required');
 });
@@ -123,7 +123,6 @@ it('should handle tool choice "none"', () => {
       },
     ],
     toolChoice: { type: 'none' },
-    strictJsonSchema: false,
   });
   expect(result.toolChoice).toEqual('none');
 });
@@ -139,7 +138,6 @@ it('should handle tool choice "tool"', () => {
       },
     ],
     toolChoice: { type: 'tool', toolName: 'testFunction' },
-    strictJsonSchema: false,
   });
   expect(result.toolChoice).toEqual({
     type: 'function',
