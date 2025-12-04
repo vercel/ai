@@ -137,10 +137,11 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/restructure-source-stream-parts`                                  | Transforms v5/restructure source stream parts                                  |
 | `v5/rsc-package`                                                      | Transforms v5/rsc package                                                      |
 
-### v6 Codemods (v5 → v6 Migration)
+### General Codemods
 
 | Codemod                                 | Description                                      |
 | --------------------------------------- | ------------------------------------------------ |
+| `v6/rename-mock-v2-to-v3`               | Transforms v6/rename mock v2 to v3               |
 | `v6/rename-text-embedding-to-embedding` | Transforms v6/rename text embedding to embedding |
 
 ## CLI Options

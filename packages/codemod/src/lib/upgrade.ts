@@ -81,6 +81,7 @@ const bundle = [
   'v5/not-implemented/pattern',
   'v5/rename-addtoolresult-to-addtooloutput',
   'v6/rename-text-embedding-to-embedding',
+  'v6/rename-mock-v2-to-v3',
 ];
 
 const log = debug('codemod:upgrade');
