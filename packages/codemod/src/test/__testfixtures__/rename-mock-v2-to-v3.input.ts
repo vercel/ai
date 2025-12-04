@@ -8,22 +8,16 @@ import {
   MockTranscriptionModelV2,
 } from 'ai/test';
 
-// Using mock language model
 const languageModel = new MockLanguageModelV2();
 
-// Using mock embedding model
 const embeddingModel = new MockEmbeddingModelV2();
 
-// Using mock image model
 const imageModel = new MockImageModelV2();
 
-// Using mock provider
 const provider = new MockProviderV2();
 
-// Using mock speech model
 const speechModel = new MockSpeechModelV2();
 
-// Using mock transcription model
 const transcriptionModel = new MockTranscriptionModelV2();
 
 // Type annotations
