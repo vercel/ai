@@ -60,6 +60,11 @@ const modelMessages = convertToModelMessages(messages); // ModelMessage[]
 They will be removed in a future version.
 You can use `generateText` and `streamText` with an `output` setting instead.
 
+### Renamed `ToolCallOptions` to `ToolExecutionOptions`
+
+The `ToolCallOptions` type has been renamed to `ToolExecutionOptions`
+and is now deprecated.
+
 ## `@ai-sdk/openai` package
 
 ### `strictJsonSchema` defaults to true
@@ -182,10 +187,6 @@ To disable warning logging, set the `AI_SDK_LOG_WARNINGS` environment variable t
 ```bash
 export AI_SDK_LOG_WARNINGS=false
 ```
-
-### V2 Model Compatibility Warning
-
-A warning is displayed when using v2 provider models with AISDK v6 ([PR #10770](https://github.com/vercel/ai/pull/10770)). Update your provider implementations to use v3 models.
 
 ## Tool Changes
 
