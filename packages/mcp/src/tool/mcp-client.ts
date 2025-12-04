@@ -527,21 +527,21 @@ class DefaultMCPClient implements MCPClient {
         const toolWithExecute =
           schemas === 'automatic'
             ? dynamicTool({
-              description,
-              title,
-              inputSchema: jsonSchema({
-                ...inputSchema,
-                properties: inputSchema.properties ?? {},
-                additionalProperties: false,
-              } as JSONSchema7),
-              execute,
-            })
+                description,
+                title,
+                inputSchema: jsonSchema({
+                  ...inputSchema,
+                  properties: inputSchema.properties ?? {},
+                  additionalProperties: false,
+                } as JSONSchema7),
+                execute,
+              })
             : tool({
-              description,
-              title,
-              inputSchema: schemas[name].inputSchema,
-              execute,
-            });
+                description,
+                title,
+                inputSchema: schemas[name].inputSchema,
+                execute,
+              });
 
         tools[name] = { ...toolWithExecute, _meta };
       }
@@ -729,11 +729,11 @@ class DefaultMCPClient implements MCPClient {
       'result' in response
         ? response
         : new MCPClientError({
-          message: response.error.message,
-          code: response.error.code,
-          data: response.error.data,
-          cause: response.error,
-        }),
+            message: response.error.message,
+            code: response.error.code,
+            data: response.error.data,
+            cause: response.error,
+          }),
     );
   }
 }
