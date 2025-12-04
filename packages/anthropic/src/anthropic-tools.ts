@@ -158,15 +158,10 @@ export const anthropicTools = {
    * tool definitions into the context window upfront, Claude searches your tool
    * catalog and loads only the tools it needs.
    *
-   * When Claude uses this tool, it constructs regex patterns using Python's
-   * re.search() syntax (NOT natural language queries).
-   *
    * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
    * to mark them for deferred loading.
    *
-   * **Important**: This tool should never have `deferLoading: true` in providerOptions.
-   *
-   * Requires beta header: `advanced-tool-use-2025-11-20`
+   * Beta header: `advanced-tool-use-2025-11-20` is supported by default for this tool.
    *
    * Supported models: Claude Opus 4.5, Claude Sonnet 4.5
    *
@@ -182,15 +177,10 @@ export const anthropicTools = {
    * tool definitions into the context window upfront, Claude searches your tool
    * catalog and loads only the tools it needs.
    *
-   * When Claude uses this tool, it uses natural language queries (NOT regex patterns)
-   * to search for tools using BM25 text search.
-   *
    * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
    * to mark them for deferred loading.
    *
-   * **Important**: This tool should never have `deferLoading: true` in providerOptions.
-   *
-   * Requires beta header: `advanced-tool-use-2025-11-20`
+   * Beta header: `advanced-tool-use-2025-11-20` is supported by default for this tool.
    *
    * Supported models: Claude Opus 4.5, Claude Sonnet 4.5
    *
