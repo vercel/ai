@@ -5208,6 +5208,107 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('tool search tool', () => {
+      describe('regex variant', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('anthropic-tool-search-regex.1');
+
+          result = await provider('claude-sonnet-4-5').doStream({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'Find out weather data in SF' },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_regex_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_temp_data',
+                description: 'For a location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should stream tool search regex results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+
+      describe('bm25 variant', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('anthropic-tool-search-bm25.1');
+
+          result = await provider('claude-sonnet-4-5').doStream({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'What is the weather in San Francisco?',
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_bm25_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get the current weather at a specific location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should stream tool search bm25 results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+    });
+
     it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',

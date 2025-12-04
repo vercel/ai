@@ -11978,6 +11978,585 @@ It simply echoed back",
 ]
 `;
 
+exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 variant > should stream tool search bm25 results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_011bqgzot9grwdetCByUmXRP",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "I'll search for a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "related tool",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to help",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you get the weather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " information for San Francisco.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "providerExecuted": true,
+    "toolName": "tool_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"query": "weather forecast current",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " conditions",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"query": "weather forecast current conditions"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_weather",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "3",
+    "type": "text-start",
+  },
+  {
+    "delta": "Great",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! I found a weather tool.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let me get the current weather for",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " San Francisco.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "id": "3",
+    "type": "text-end",
+  },
+  {
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "toolName": "get_weather",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"location": "San",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Francisco, CA",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco, CA"}",
+    "providerExecuted": undefined,
+    "toolCallId": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "toolName": "get_weather",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "tool-calls",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1630,
+          "output_tokens": 158,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 1040,
+      "outputTokens": 41,
+      "totalTokens": 1081,
+    },
+  },
+  {
+    "id": "msg_0132hQ7tpsGJhdPtEBhmKA2R",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " current",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather in San Francisco,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " CA is:
+- **Temperature:**",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 64°F",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Condition:** Partly clou",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dy
+- **Humidity:** ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "65%",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1040,
+          "output_tokens": 41,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 1040,
+      "outputTokens": 41,
+      "totalTokens": 1081,
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex variant > should stream tool search regex results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01A4vjL51mNRof8JMvA9CFph",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "providerExecuted": true,
+    "toolName": "tool_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"pattern": "weather|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "SF",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "San Francisco|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "forecast",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|temperature",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|climate",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "", "limit": 10",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"pattern": "weather|SF|San Francisco|forecast|temperature|climate", "limit": 10}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_temp_data",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "2",
+    "type": "text-start",
+  },
+  {
+    "delta": "Great",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! I",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " found a",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather tool",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me get the current weather",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data for San Francisco.",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "id": "2",
+    "type": "text-end",
+  },
+  {
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "toolName": "get_temp_data",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"location": "San Francisco, CA",
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco, CA"}",
+    "providerExecuted": undefined,
+    "toolCallId": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "toolName": "get_temp_data",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "tool-calls",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1681,
+          "output_tokens": 163,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 1071,
+      "outputTokens": 67,
+      "totalTokens": 1138,
+    },
+  },
+  {
+    "id": "msg_01L42mFXxzijtGwwfiLdKoUn",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Here",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s the current",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather data for San Francisco:
+
+-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Location:** San Francisco, CA",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Temperature:** 64°F",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Condition:** Partly clou",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dy
+- **Humidity:** ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "65%
+
+The weather in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " SF",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is pleasant",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with partly cloudy skies and moderate",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " humidity!",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1071,
+          "output_tokens": 67,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 1071,
+      "outputTokens": 67,
+      "totalTokens": 1138,
+    },
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doStream > web fetch tool > txt response > should stream web search tool results 1`] = `
 [
   {
