@@ -55,7 +55,7 @@ export const webSearchPreview = createProviderToolFactoryWithOutputSchema<
   {
     /**
      * An object describing the specific action taken in this web search call.
-     * Includes details on how the model used the web (search, open_page, find).
+     * Includes details on how the model used the web (search, open_page, find_in_page).
      */
     action:
       | {
