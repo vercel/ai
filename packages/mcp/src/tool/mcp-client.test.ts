@@ -11,6 +11,7 @@ import {
   GetPromptResult,
   Configuration,
   ElicitationRequestSchema,
+  LATEST_PROTOCOL_VERSION,
 } from './types';
 import { JSONRPCRequest } from './json-rpc-message';
 import {
@@ -419,6 +420,29 @@ describe('MCPClient', () => {
         transport: { type: 'sse', url: 'https://example.com/sse' },
       }),
     ).rejects.toThrowError(MCPClientError);
+  });
+
+  it('should return serverInfo', async () => {
+    const serverInfo = {
+      name: 'mock-mcp-server',
+      version: '1.0.0',
+    };
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: LATEST_PROTOCOL_VERSION,
+            serverInfo,
+            capabilities: {},
+          },
+        }),
+    );
+
+    const client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.serverInfo).toEqual(serverInfo);
   });
 
   it('should throw if server sends invalid protocol version', async () => {

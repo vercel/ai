@@ -52,6 +52,7 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   ToolSchemas,
   ToolMeta,
+  ClientOrServerImplementation,
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
@@ -82,6 +83,8 @@ export async function createMCPClient(
 }
 
 export interface MCPClient {
+  serverInfo: ClientOrServerImplementation;
+
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
@@ -148,6 +151,7 @@ class DefaultMCPClient implements MCPClient {
     (response: JSONRPCResponse | Error) => void
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
+  public serverInfo: ClientOrServerImplementation;
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
@@ -224,6 +228,7 @@ class DefaultMCPClient implements MCPClient {
       }
 
       this.serverCapabilities = result.capabilities;
+      this.serverInfo = result.serverInfo;
 
       // Complete initialization handshake:
       await this.notification({
@@ -522,21 +527,21 @@ class DefaultMCPClient implements MCPClient {
         const toolWithExecute =
           schemas === 'automatic'
             ? dynamicTool({
-                description,
-                title,
-                inputSchema: jsonSchema({
-                  ...inputSchema,
-                  properties: inputSchema.properties ?? {},
-                  additionalProperties: false,
-                } as JSONSchema7),
-                execute,
-              })
+              description,
+              title,
+              inputSchema: jsonSchema({
+                ...inputSchema,
+                properties: inputSchema.properties ?? {},
+                additionalProperties: false,
+              } as JSONSchema7),
+              execute,
+            })
             : tool({
-                description,
-                title,
-                inputSchema: schemas[name].inputSchema,
-                execute,
-              });
+              description,
+              title,
+              inputSchema: schemas[name].inputSchema,
+              execute,
+            });
 
         tools[name] = { ...toolWithExecute, _meta };
       }
@@ -724,11 +729,11 @@ class DefaultMCPClient implements MCPClient {
       'result' in response
         ? response
         : new MCPClientError({
-            message: response.error.message,
-            code: response.error.code,
-            data: response.error.data,
-            cause: response.error,
-          }),
+          message: response.error.message,
+          code: response.error.code,
+          data: response.error.data,
+          cause: response.error,
+        }),
     );
   }
 }
