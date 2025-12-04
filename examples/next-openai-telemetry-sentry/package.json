@@ -17,8 +17,13 @@
     "@sentry/nextjs": "^10.17.0",
     "@sentry/opentelemetry": "8.22.0",
     "@vercel/otel": "1.10.0",
+<<<<<<< HEAD
     "ai": "workspace:*",
     "next": "^15.5.4",
+=======
+    "ai": "6.0.0-beta.131",
+    "next": "^15.5.7",
+>>>>>>> 31842e1b8 (chore(examples) : next.js update for CVE-2025-66478 (#10876))
     "react": "^18",
     "react-dom": "^18",
     "zod": "3.25.76"
