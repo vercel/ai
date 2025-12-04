@@ -350,7 +350,6 @@ Converts the result to a streamed response object with a stream data part stream
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
-// TODO AI SDK 5.1 rename
 export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'text-start';
