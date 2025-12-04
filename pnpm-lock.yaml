@@ -30,8 +30,8 @@ importers:
         specifier: 15.2.10
         version: 15.2.10
       next:
-        specifier: 15.0.0-canary.23
-        version: 15.0.0-canary.23(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0)
+        specifier: 15.0.5
+        version: 15.0.5(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0)
       playwright:
         specifier: ^1.44.1
         version: 1.50.1
@@ -523,8 +523,8 @@ importers:
         specifier: 6.0.0-beta.131
         version: link:../../packages/ai
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -587,8 +587,8 @@ importers:
         specifier: 6.0.0-beta.131
         version: link:../../packages/ai
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -643,10 +643,10 @@ importers:
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
-        version: 1.3.1(next@15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
+        version: 1.3.1(next@15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -695,10 +695,10 @@ importers:
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
-        version: 1.3.1(next@15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
+        version: 1.3.1(next@15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -749,8 +749,8 @@ importers:
         specifier: 0.1.36
         version: 0.1.36(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(encoding@0.1.13)(fast-xml-parser@4.4.1)(ignore@5.3.2)(ioredis@5.4.1)(jsdom@26.0.0)(lodash@4.17.21)(openai@5.6.0(ws@8.18.0)(zod@3.25.76))(playwright@1.50.1)(redis@4.7.0)(ws@8.18.0)
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -870,8 +870,8 @@ importers:
         specifier: ^0.545.0
         version: 0.545.0(react@18.3.1)
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -946,8 +946,8 @@ importers:
         specifier: 6.0.0-beta.131
         version: link:../../packages/ai
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -998,8 +998,8 @@ importers:
         specifier: 6.0.0-beta.131
         version: link:../../packages/ai
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -1062,8 +1062,8 @@ importers:
         specifier: 6.0.0-beta.131
         version: link:../../packages/ai
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -1121,7 +1121,7 @@ importers:
         version: 0.55.0(@opentelemetry/api@1.9.0)
       '@sentry/nextjs':
         specifier: ^10.17.0
-        version: 10.17.0(@opentelemetry/context-async-hooks@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.101.2)
+        version: 10.17.0(@opentelemetry/context-async-hooks@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.101.2)
       '@sentry/opentelemetry':
         specifier: 8.22.0
         version: 8.22.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.37.0)
@@ -1132,8 +1132,8 @@ importers:
         specifier: 6.0.0-beta.131
         version: link:../../packages/ai
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -1190,8 +1190,8 @@ importers:
         specifier: 6.0.0-beta.131
         version: link:../../packages/ai
       next:
-        specifier: ^15.5.4
-        version: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        specifier: ^15.5.7
+        version: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -7006,11 +7006,11 @@ packages:
     resolution: {integrity: sha512-q3L9i3HoNfz0SGpTIS4zTcKBbRkxzCRpd169eyiTuk3IwcPC3/85mzLHranlKo2b+HYT0gu37YxGB45aD8A3Tw==}
     engines: {node: '>=18.0.0'}
 
-  '@next/env@15.0.0-canary.23':
-    resolution: {integrity: sha512-lTWE0vMuSo2Vu4lj2NT5VFdFoRIDrc4cDhAKVT3At1LS10nKWKgjTtjE2uw4X1OXDEbvSNlDSe+asa5d/5O2Dg==}
+  '@next/env@15.0.5':
+    resolution: {integrity: sha512-rDeqk/QF6OxTSvQItPdtyR0O4QN5L2a794F4+i8/syHN92DqFXcLNhZgLtYhW3rrJ23vRR7B5wIamsgGM4I6UQ==}
 
-  '@next/env@15.5.4':
-    resolution: {integrity: sha512-27SQhYp5QryzIT5uO8hq99C69eLQ7qkzkDPsk3N+GuS2XgOgoYEeOav7Pf8Tn4drECOVDsDg8oj+/DVy8qQL2A==}
+  '@next/env@15.5.7':
+    resolution: {integrity: sha512-4h6Y2NyEkIEN7Z8YxkA27pq6zTkS09bUSYC0xjd0NpwFxjnIKeZEeH591o5WECSmjpUhLn3H2QLJcDye3Uzcvg==}
 
   '@next/env@15.6.0-canary.39':
     resolution: {integrity: sha512-WvJxtTel5Yt+z1QmCfgdFTOwk3edEzvhh6G1AuV45g2JJfx/8PljYEGVApJlUe2pjfKpW3K3K56qmeaaa+h7pw==}
@@ -7018,14 +7018,14 @@ packages:
   '@next/eslint-plugin-next@14.2.3':
     resolution: {integrity: sha512-L3oDricIIjgj1AVnRdRor21gI7mShlSwU/1ZGHmqM3LzHhXXhdkrfeNY5zif25Bi5Dd7fiJHsbhoZCHfXYvlAw==}
 
-  '@next/swc-darwin-arm64@15.0.0-canary.23':
-    resolution: {integrity: sha512-d6iombtT+xwwu+I47v8VQB6QJRZl2NetD09nudTjlgHlnUH5Y47c8YYxGkN6ip9ZB1BP5nti3nRSChS870pCGg==}
+  '@next/swc-darwin-arm64@15.0.5':
+    resolution: {integrity: sha512-BrNm/9BZoV6QEFKFZdgZRyYwhdhxV8GhW+U4D5cdkT4Wefj7YflAUZNx2FWyBPp7utBPCgJXnVbVLhlDoIfKFg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-arm64@15.5.4':
-    resolution: {integrity: sha512-nopqz+Ov6uvorej8ndRX6HlxCYWCO3AHLfKK2TYvxoSB2scETOcfm/HSS3piPqc3A+MUgyHoqE6je4wnkjfrOA==}
+  '@next/swc-darwin-arm64@15.5.7':
+    resolution: {integrity: sha512-IZwtxCEpI91HVU/rAUOOobWSZv4P2DeTtNaCdHqLcTJU4wdNXgAySvKa/qJCgR5m6KI8UsKDXtO2B31jcaw1Yw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -7036,14 +7036,14 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@15.0.0-canary.23':
-    resolution: {integrity: sha512-TRYY7ka1QRJlYer//aDz1dsLOLb+M7ODgYHA1DDtLLrovL3dbrD70mjWDiWdiP91EMpukGatNJaVpFCaAi0yuA==}
+  '@next/swc-darwin-x64@15.0.5':
+    resolution: {integrity: sha512-SkpRdqyJLhmU6Ip0dHrZ5mLMQgTU0MlTASRwqCj6NXQJ04eS4QzBgEUUOPX+tsUOQ+KSVMgX/iQaWgQHNMyyCQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@15.5.4':
-    resolution: {integrity: sha512-QOTCFq8b09ghfjRJKfb68kU9k2K+2wsC4A67psOiMn849K9ZXgCSRQr0oVHfmKnoqCbEmQWG1f2h1T2vtJJ9mA==}
+  '@next/swc-darwin-x64@15.5.7':
+    resolution: {integrity: sha512-UP6CaDBcqaCBuiq/gfCEJw7sPEoX1aIjZHnBWN9v9qYHQdMKvCKcAVs4OX1vIjeE+tC5EIuwDTVIoXpUes29lg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
@@ -7054,14 +7054,14 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-linux-arm64-gnu@15.0.0-canary.23':
-    resolution: {integrity: sha512-VceywUaF8xg9zZ2PnElzMOI1CjmKFSV1EJ0O1V/OSnf8RPtD+yisXvaFSvMH1b1aZsb1wBhYFZSjVSDNFsQrzA==}
+  '@next/swc-linux-arm64-gnu@15.0.5':
+    resolution: {integrity: sha512-nk+6BAIkIHTeQg+U1uqGpZ8K1KSAbhq80EkSgpgPC6wBmRkEeBitn4yL9C0fUiEPeZ3zN4yrvI635GG/H2QmSQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-gnu@15.5.4':
-    resolution: {integrity: sha512-eRD5zkts6jS3VfE/J0Kt1VxdFqTnMc3QgO5lFE5GKN3KDI/uUpSyK3CjQHmfEkYR4wCOl0R0XrsjpxfWEA++XA==}
+  '@next/swc-linux-arm64-gnu@15.5.7':
+    resolution: {integrity: sha512-NCslw3GrNIw7OgmRBxHtdWFQYhexoUCq+0oS2ccjyYLtcn1SzGzeM54jpTFonIMUjNbHmpKpziXnpxhSWLcmBA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -7072,14 +7072,14 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-musl@15.0.0-canary.23':
-    resolution: {integrity: sha512-vcy0jSSr7br9UhnRH0tfll40l22NmHBD/A0cjpTBXGH8qxH6FmdkGIy56sJO+OAvZzPX1ZYVy3nAoZlFeMrjyQ==}
+  '@next/swc-linux-arm64-musl@15.0.5':
+    resolution: {integrity: sha512-CozywhydLroNNz1AMKdKKVBuRc0UIBG7TlVgXXn51MdZo4sMbfApOlQFUyuAbKJbe67vd39Yib2lVVVDfLTtfw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-musl@15.5.4':
-    resolution: {integrity: sha512-TOK7iTxmXFc45UrtKqWdZ1shfxuL4tnVAOuuJK4S88rX3oyVV4ZkLjtMT85wQkfBrOOvU55aLty+MV8xmcJR8A==}
+  '@next/swc-linux-arm64-musl@15.5.7':
+    resolution: {integrity: sha512-nfymt+SE5cvtTrG9u1wdoxBr9bVB7mtKTcj0ltRn6gkP/2Nu1zM5ei8rwP9qKQP0Y//umK+TtkKgNtfboBxRrw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -7090,14 +7090,14 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-x64-gnu@15.0.0-canary.23':
-    resolution: {integrity: sha512-3CY4UcqOc3LPJ9iIXRN8/UHNZ96f5VKNaWWLq+EYqDOKRx5RBwedNSoaap/fx3+MHIw+lUpizWxHFx+amlMVZQ==}
+  '@next/swc-linux-x64-gnu@15.0.5':
+    resolution: {integrity: sha512-VWfvl8toyC/5Rn1GgKfiASYgssCsxz4GtwK2cFKmmnyGfoKubFc6DfCI5MzBoe2Q2gzd2CeZDoT1BhuutSiL7A==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-gnu@15.5.4':
-    resolution: {integrity: sha512-7HKolaj+481FSW/5lL0BcTkA4Ueam9SPYWyN/ib/WGAFZf0DGAN8frNpNZYFHtM4ZstrHZS3LY3vrwlIQfsiMA==}
+  '@next/swc-linux-x64-gnu@15.5.7':
+    resolution: {integrity: sha512-hvXcZvCaaEbCZcVzcY7E1uXN9xWZfFvkNHwbe/n4OkRhFWrs1J1QV+4U1BN06tXLdaS4DazEGXwgqnu/VMcmqw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -7108,14 +7108,14 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-musl@15.0.0-canary.23':
-    resolution: {integrity: sha512-DkxO6p9DRs5xTBpQYUuTvaimB68/iwRifpFJQPEA4YTFS8W0G3MR1MZ/Phmz/C0SxMOFiiSraqQ2c12WfvFwQw==}
+  '@next/swc-linux-x64-musl@15.0.5':
+    resolution: {integrity: sha512-xCD/V4Z55eFtG2SNyXgG3ciIikcxNe4FgmgcW4xTaEcLY59ZJVLxx4PLve2vDgp7xqvwDD4vvUsJuFMuQ12oGg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-musl@15.5.4':
-    resolution: {integrity: sha512-nlQQ6nfgN0nCO/KuyEUwwOdwQIGjOs4WNMjEUtpIQJPR2NUfmGpW2wkJln1d4nJ7oUzd1g4GivH5GoEPBgfsdw==}
+  '@next/swc-linux-x64-musl@15.5.7':
+    resolution: {integrity: sha512-4IUO539b8FmF0odY6/SqANJdgwn1xs1GkPO5doZugwZ3ETF6JUdckk7RGmsfSf7ws8Qb2YB5It33mvNL/0acqA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -7126,14 +7126,14 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-win32-arm64-msvc@15.0.0-canary.23':
-    resolution: {integrity: sha512-FM2RSVvVOnOWriLZhsZUbXGdBQQErLE1BDObnPQ7T5AtISpjtFXIHt6Oh/bmJ5HmB4logtUGDJYT8kW94E2Wew==}
+  '@next/swc-win32-arm64-msvc@15.0.5':
+    resolution: {integrity: sha512-OmKXP/mUzY+AiDFk9PR3RoM6YfgzNYhtSbfvTUDk3PxoCLKnwTZ8xsFoWX2ph/RFC25QucTeAFepouGGsdBPAg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-arm64-msvc@15.5.4':
-    resolution: {integrity: sha512-PcR2bN7FlM32XM6eumklmyWLLbu2vs+D7nJX8OAIoWy69Kef8mfiN4e8TUv2KohprwifdpFKPzIP1njuCjD0YA==}
+  '@next/swc-win32-arm64-msvc@15.5.7':
+    resolution: {integrity: sha512-CpJVTkYI3ZajQkC5vajM7/ApKJUOlm6uP4BknM3XKvJ7VXAvCqSjSLmM0LKdYzn6nBJVSjdclx8nYJSa3xlTgQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -7144,20 +7144,14 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-ia32-msvc@15.0.0-canary.23':
-    resolution: {integrity: sha512-Rgok/7bZ2mA9/N3Qs42EgKiE/0kKj9Jv2EoZlttWXCEIhr6IuXatlbJ3sn76JHnvbc8jQieqq6l0M+nZZ0BzlQ==}
-    engines: {node: '>= 10'}
-    cpu: [ia32]
-    os: [win32]
-
-  '@next/swc-win32-x64-msvc@15.0.0-canary.23':
-    resolution: {integrity: sha512-9An46zi13e0bIfZXMCKvc+oB3RxUUbZhDw+w6va/FMDH59JL6EwsdGP9X/qY2LIFmSzuOVhV82ukOMUirpBcNw==}
+  '@next/swc-win32-x64-msvc@15.0.5':
+    resolution: {integrity: sha512-O34P9asvZtdNQ+4sEczSLruYvM7XEQKY/FCwRAeQQnrWW3tol3VEuv2GtnFb1YHsP3lZtagd11UYJqrs0Y0r2A==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@15.5.4':
-    resolution: {integrity: sha512-1ur2tSHZj8Px/KMAthmuI9FMp/YFusMMGoRNJaRZMOlSkgvLjzosSdQI0cJAKogdHl3qXUQKL9MGaYvKwA7DXg==}
+  '@next/swc-win32-x64-msvc@15.5.7':
+    resolution: {integrity: sha512-gMzgBX164I6DN+9/PGA+9dQiwmTkE4TloBNx8Kv9UiGARsr9Nba7IpcBRA1iTV9vwlYnrE3Uy6I7Aj6qLjQuqw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -9229,8 +9223,11 @@ packages:
       svelte: ^5.0.0
       vite: ^6.0.0
 
-  '@swc/helpers@0.5.11':
-    resolution: {integrity: sha512-YNlnKRWF2sVojTpIyzwou9XoTNbzbzONwRhOoniEioF1AtaitTvVZblaQRrAzChWQ1bLYyYSWzM18y4WwgzJ+A==}
+  '@swc/counter@0.1.3':
+    resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
+
+  '@swc/helpers@0.5.13':
+    resolution: {integrity: sha512-UoKGxQ3r5kYI9dALKJapMmuK+1zWM/H17Z1+iwnNmzcJRnfFuevZs375TA5rW31pu4BS4NoSy1fRsexDXfWn5w==}
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
@@ -10779,9 +10776,6 @@ packages:
 
   caniuse-api@3.0.0:
     resolution: {integrity: sha512-bsTwuIg/BZZK/vreVTYYbSWoe2F+71P7K5QGEX+pT250DZbfU1MQ5prOKpPR+LL6uWKK3KMwMCAS74QB3Um1uw==}
-
-  caniuse-lite@1.0.30001649:
-    resolution: {integrity: sha512-fJegqZZ0ZX8HOWr6rcafGr72+xcgJKI9oWfDW5DrD7ExUtgZC7a7R7ZYmZqplh7XDocFdGeIFn7roAxhOeYrPQ==}
 
   caniuse-lite@1.0.30001727:
     resolution: {integrity: sha512-pB68nIHmbN6L/4C6MH1DokyR3bYqFwjaSs/sWDHGj4CTcFtQUQMuJftVwWkXq7mNWOybD3KhUv3oWHoGxgP14Q==}
@@ -14972,16 +14966,16 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  next@15.0.0-canary.23:
-    resolution: {integrity: sha512-6OL8Fy71liOt5lPJIAGPURua8HQSM3v+gPImCapt4eDwDkXdsi076V96V0wskLTWdRFejtraudxkYDF0C7bZdA==}
-    engines: {node: '>=18.17.0'}
+  next@15.0.5:
+    resolution: {integrity: sha512-WTh/Rmxkn4J4vwSYiqEZGzoxjid83iCyN0qg7oJFKzHjYCzy5mwBRqWVlFotM9nAnxGGv5MzbMa4gMu88qeGLA==}
+    engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.1.0
       '@playwright/test': ^1.41.2
       babel-plugin-react-compiler: '*'
-      react: 19.0.0-rc.0
-      react-dom: 19.0.0-rc.0
+      react: ^18.2.0 || 19.0.0-rc-66855b96-20241106 || ^19.0.0
+      react-dom: ^18.2.0 || 19.0.0-rc-66855b96-20241106 || ^19.0.0
       sass: ^1.3.0
     peerDependenciesMeta:
       '@opentelemetry/api':
@@ -14993,8 +14987,8 @@ packages:
       sass:
         optional: true
 
-  next@15.5.4:
-    resolution: {integrity: sha512-xH4Yjhb82sFYQfY3vbkJfgSDgXvBB6a8xPs9i35k6oZJRoQRihZH+4s9Yo2qsWpzBmZ3lPXaJ2KPXLfkvW4LnA==}
+  next@15.5.7:
+    resolution: {integrity: sha512-+t2/0jIJ48kUpGKkdlhgkv+zPTEOoXyr60qXe68eB/pl3CMJaLeIGjzp5D6Oqt25hCBiBTt8wEeeAzfJvUKnPQ==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -15632,9 +15626,6 @@ packages:
   phin@3.7.1:
     resolution: {integrity: sha512-GEazpTWwTZaEQ9RhL7Nyz0WwqilbqgLahDM3D0hxWwmVDI52nXEybHqiN6/elwpkJBhcuj+WbBu+QfT0uhPGfQ==}
     engines: {node: '>= 8'}
-
-  picocolors@1.0.1:
-    resolution: {integrity: sha512-anP1Z8qwhkbmu7MFP5iTt+wQKXgwzf7zTyGlcdzabySa9vd0Xt392U0rVmz9poOaBj0uHJKyyo9/upk0HrEQew==}
 
   picocolors@1.1.0:
     resolution: {integrity: sha512-TQ92mBOW0l3LeMeyLV6mzy/kWr8lkd/hp3mTg7wYK7zJhuBStmGMBG0BdeDZS/dZx1IukaX6Bk11zcln25o1Aw==}
@@ -18895,7 +18886,7 @@ snapshots:
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@angular-devkit/architect': 0.2003.3(chokidar@4.0.3)
-      '@angular-devkit/build-webpack': 0.2003.3(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.101.2))(webpack@5.101.2)
+      '@angular-devkit/build-webpack': 0.2003.3(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.101.2))(webpack@5.101.2(esbuild@0.25.9))
       '@angular-devkit/core': 20.3.3(chokidar@4.0.3)
       '@angular/build': 20.3.3(@angular/compiler-cli@20.3.2(@angular/compiler@20.3.2)(typescript@5.8.3))(@angular/compiler@20.3.2)(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(@angular/platform-browser@20.3.2(@angular/common@20.3.2(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1)))(@types/node@20.17.24)(chokidar@4.0.3)(jiti@2.4.0)(less@4.4.0)(postcss@8.5.6)(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.3)))(terser@5.43.1)(tslib@2.8.1)(tsx@4.19.2)(typescript@5.8.3)(vitest@2.1.4(@edge-runtime/vm@5.0.0)(@types/node@22.7.4)(jsdom@26.0.0)(less@4.4.0)(msw@2.7.0(@types/node@22.7.4)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1))(yaml@2.7.0)
       '@angular/compiler-cli': 20.3.2(@angular/compiler@20.3.2)(typescript@5.8.3)
@@ -18909,13 +18900,13 @@ snapshots:
       '@babel/preset-env': 7.28.3(@babel/core@7.28.3)
       '@babel/runtime': 7.28.3
       '@discoveryjs/json-ext': 0.6.3
-      '@ngtools/webpack': 20.3.3(@angular/compiler-cli@20.3.2(@angular/compiler@20.3.2)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.101.2)
+      '@ngtools/webpack': 20.3.3(@angular/compiler-cli@20.3.2(@angular/compiler@20.3.2)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.101.2(esbuild@0.25.9))
       ansi-colors: 4.1.3
       autoprefixer: 10.4.21(postcss@8.5.6)
-      babel-loader: 10.0.0(@babel/core@7.28.3)(webpack@5.101.2)
+      babel-loader: 10.0.0(@babel/core@7.28.3)(webpack@5.101.2(esbuild@0.25.9))
       browserslist: 4.25.1
-      copy-webpack-plugin: 13.0.1(webpack@5.101.2)
-      css-loader: 7.1.2(webpack@5.101.2)
+      copy-webpack-plugin: 13.0.1(webpack@5.101.2(esbuild@0.25.9))
+      css-loader: 7.1.2(webpack@5.101.2(esbuild@0.25.9))
       esbuild-wasm: 0.25.9
       fast-glob: 3.3.3
       http-proxy-middleware: 3.0.5
@@ -18923,22 +18914,22 @@ snapshots:
       jsonc-parser: 3.3.1
       karma-source-map-support: 1.4.0
       less: 4.4.0
-      less-loader: 12.3.0(less@4.4.0)(webpack@5.101.2)
-      license-webpack-plugin: 4.0.2(webpack@5.101.2)
+      less-loader: 12.3.0(less@4.4.0)(webpack@5.101.2(esbuild@0.25.9))
+      license-webpack-plugin: 4.0.2(webpack@5.101.2(esbuild@0.25.9))
       loader-utils: 3.3.1
-      mini-css-extract-plugin: 2.9.4(webpack@5.101.2)
+      mini-css-extract-plugin: 2.9.4(webpack@5.101.2(esbuild@0.25.9))
       open: 10.2.0
       ora: 8.2.0
       picomatch: 4.0.3
       piscina: 5.1.3
       postcss: 8.5.6
-      postcss-loader: 8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.101.2)
+      postcss-loader: 8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.101.2(esbuild@0.25.9))
       resolve-url-loader: 5.0.0
       rxjs: 7.8.2
       sass: 1.90.0
-      sass-loader: 16.0.5(sass@1.90.0)(webpack@5.101.2)
+      sass-loader: 16.0.5(sass@1.90.0)(webpack@5.101.2(esbuild@0.25.9))
       semver: 7.7.2
-      source-map-loader: 5.0.0(webpack@5.101.2)
+      source-map-loader: 5.0.0(webpack@5.101.2(esbuild@0.25.9))
       source-map-support: 0.5.21
       terser: 5.43.1
       tree-kill: 1.2.2
@@ -18948,7 +18939,7 @@ snapshots:
       webpack-dev-middleware: 7.4.2(webpack@5.101.2)
       webpack-dev-server: 5.2.2(webpack@5.101.2)
       webpack-merge: 6.0.1
-      webpack-subresource-integrity: 5.1.0(webpack@5.101.2)
+      webpack-subresource-integrity: 5.1.0(webpack@5.101.2(esbuild@0.25.9))
     optionalDependencies:
       '@angular/core': 20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1)
       '@angular/platform-browser': 20.3.2(@angular/common@20.3.2(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.2(@angular/compiler@20.3.2)(rxjs@7.8.2)(zone.js@0.15.1))
@@ -18978,7 +18969,7 @@ snapshots:
       - webpack-cli
       - yaml
 
-  '@angular-devkit/build-webpack@0.2003.3(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.101.2))(webpack@5.101.2)':
+  '@angular-devkit/build-webpack@0.2003.3(chokidar@4.0.3)(webpack-dev-server@5.2.2(webpack@5.101.2))(webpack@5.101.2(esbuild@0.25.9))':
     dependencies:
       '@angular-devkit/architect': 0.2003.3(chokidar@4.0.3)
       rxjs: 7.8.2
@@ -23921,9 +23912,9 @@ snapshots:
       '@netlify/node-cookies': 0.1.0
       urlpattern-polyfill: 8.0.2
 
-  '@next/env@15.0.0-canary.23': {}
+  '@next/env@15.0.5': {}
 
-  '@next/env@15.5.4': {}
+  '@next/env@15.5.7': {}
 
   '@next/env@15.6.0-canary.39': {}
 
@@ -23931,82 +23922,79 @@ snapshots:
     dependencies:
       glob: 10.3.10
 
-  '@next/swc-darwin-arm64@15.0.0-canary.23':
+  '@next/swc-darwin-arm64@15.0.5':
     optional: true
 
-  '@next/swc-darwin-arm64@15.5.4':
+  '@next/swc-darwin-arm64@15.5.7':
     optional: true
 
   '@next/swc-darwin-arm64@15.6.0-canary.39':
     optional: true
 
-  '@next/swc-darwin-x64@15.0.0-canary.23':
+  '@next/swc-darwin-x64@15.0.5':
     optional: true
 
-  '@next/swc-darwin-x64@15.5.4':
+  '@next/swc-darwin-x64@15.5.7':
     optional: true
 
   '@next/swc-darwin-x64@15.6.0-canary.39':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@15.0.0-canary.23':
+  '@next/swc-linux-arm64-gnu@15.0.5':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@15.5.4':
+  '@next/swc-linux-arm64-gnu@15.5.7':
     optional: true
 
   '@next/swc-linux-arm64-gnu@15.6.0-canary.39':
     optional: true
 
-  '@next/swc-linux-arm64-musl@15.0.0-canary.23':
+  '@next/swc-linux-arm64-musl@15.0.5':
     optional: true
 
-  '@next/swc-linux-arm64-musl@15.5.4':
+  '@next/swc-linux-arm64-musl@15.5.7':
     optional: true
 
   '@next/swc-linux-arm64-musl@15.6.0-canary.39':
     optional: true
 
-  '@next/swc-linux-x64-gnu@15.0.0-canary.23':
+  '@next/swc-linux-x64-gnu@15.0.5':
     optional: true
 
-  '@next/swc-linux-x64-gnu@15.5.4':
+  '@next/swc-linux-x64-gnu@15.5.7':
     optional: true
 
   '@next/swc-linux-x64-gnu@15.6.0-canary.39':
     optional: true
 
-  '@next/swc-linux-x64-musl@15.0.0-canary.23':
+  '@next/swc-linux-x64-musl@15.0.5':
     optional: true
 
-  '@next/swc-linux-x64-musl@15.5.4':
+  '@next/swc-linux-x64-musl@15.5.7':
     optional: true
 
   '@next/swc-linux-x64-musl@15.6.0-canary.39':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@15.0.0-canary.23':
+  '@next/swc-win32-arm64-msvc@15.0.5':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@15.5.4':
+  '@next/swc-win32-arm64-msvc@15.5.7':
     optional: true
 
   '@next/swc-win32-arm64-msvc@15.6.0-canary.39':
     optional: true
 
-  '@next/swc-win32-ia32-msvc@15.0.0-canary.23':
+  '@next/swc-win32-x64-msvc@15.0.5':
     optional: true
 
-  '@next/swc-win32-x64-msvc@15.0.0-canary.23':
-    optional: true
-
-  '@next/swc-win32-x64-msvc@15.5.4':
+  '@next/swc-win32-x64-msvc@15.5.7':
     optional: true
 
   '@next/swc-win32-x64-msvc@15.6.0-canary.39':
     optional: true
 
-  '@ngtools/webpack@20.3.3(@angular/compiler-cli@20.3.2(@angular/compiler@20.3.2)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.101.2)':
+  '@ngtools/webpack@20.3.3(@angular/compiler-cli@20.3.2(@angular/compiler@20.3.2)(typescript@5.8.3))(typescript@5.8.3)(webpack@5.101.2(esbuild@0.25.9))':
     dependencies:
       '@angular/compiler-cli': 20.3.2(@angular/compiler@20.3.2)(typescript@5.8.3)
       typescript: 5.8.3
@@ -24283,10 +24271,10 @@ snapshots:
       '@rollup/plugin-replace': 6.0.1(rollup@4.34.9)
       '@vitejs/plugin-vue': 5.2.0(vite@5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
       '@vitejs/plugin-vue-jsx': 4.1.0(vite@5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
-      autoprefixer: 10.4.20(postcss@8.5.3)
+      autoprefixer: 10.4.20(postcss@8.5.6)
       clear: 0.1.0
       consola: 3.2.3
-      cssnano: 7.0.6(postcss@8.5.3)
+      cssnano: 7.0.6(postcss@8.5.6)
       defu: 6.1.4
       esbuild: 0.24.2
       escape-string-regexp: 5.0.0
@@ -24302,7 +24290,7 @@ snapshots:
       pathe: 1.1.2
       perfect-debounce: 1.0.0
       pkg-types: 1.2.1
-      postcss: 8.5.3
+      postcss: 8.5.6
       rollup-plugin-visualizer: 5.12.0(rollup@4.34.9)
       std-env: 3.8.0
       strip-literal: 2.1.0
@@ -26101,7 +26089,7 @@ snapshots:
       '@sentry/types': 8.22.0
       '@sentry/utils': 8.22.0
 
-  '@sentry/nextjs@10.17.0(@opentelemetry/context-async-hooks@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.101.2)':
+  '@sentry/nextjs@10.17.0(@opentelemetry/context-async-hooks@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.101.2)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.37.0
@@ -26115,7 +26103,7 @@ snapshots:
       '@sentry/vercel-edge': 10.17.0
       '@sentry/webpack-plugin': 4.3.0(encoding@0.1.13)(webpack@5.101.2)
       chalk: 3.0.0
-      next: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+      next: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       resolve: 1.22.8
       rollup: 4.52.3
       stacktrace-parser: 0.1.10
@@ -26778,7 +26766,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@swc/helpers@0.5.11':
+  '@swc/counter@0.1.3': {}
+
+  '@swc/helpers@0.5.13':
     dependencies:
       tslib: 2.8.1
 
@@ -27928,7 +27918,7 @@ snapshots:
       '@vue/shared': 3.5.13
       estree-walker: 2.0.2
       magic-string: 0.30.17
-      postcss: 8.5.3
+      postcss: 8.5.6
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.5.13':
@@ -27943,7 +27933,7 @@ snapshots:
       '@vue/devtools-kit': 7.6.4
       '@vue/devtools-shared': 7.6.4
       mitt: 3.0.1
-      nanoid: 3.3.8
+      nanoid: 3.3.11
       pathe: 1.1.2
       vite-hot-client: 0.2.3(vite@5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1))
       vue: 3.5.13(typescript@5.9.3)
@@ -28556,11 +28546,21 @@ snapshots:
   autoprefixer@10.4.20(postcss@8.5.3):
     dependencies:
       browserslist: 4.23.3
-      caniuse-lite: 1.0.30001649
+      caniuse-lite: 1.0.30001727
       fraction.js: 4.3.7
       normalize-range: 0.1.2
-      picocolors: 1.0.1
+      picocolors: 1.1.1
       postcss: 8.5.3
+      postcss-value-parser: 4.2.0
+
+  autoprefixer@10.4.20(postcss@8.5.6):
+    dependencies:
+      browserslist: 4.23.3
+      caniuse-lite: 1.0.30001727
+      fraction.js: 4.3.7
+      normalize-range: 0.1.2
+      picocolors: 1.1.1
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
   autoprefixer@10.4.21(postcss@8.5.3):
@@ -28617,7 +28617,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  babel-loader@10.0.0(@babel/core@7.28.3)(webpack@5.101.2):
+  babel-loader@10.0.0(@babel/core@7.28.3)(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       '@babel/core': 7.28.3
       find-up: 5.0.0
@@ -28985,8 +28985,6 @@ snapshots:
       lodash.memoize: 4.1.2
       lodash.uniq: 4.5.0
 
-  caniuse-lite@1.0.30001649: {}
-
   caniuse-lite@1.0.30001727: {}
 
   ccount@2.0.1: {}
@@ -29345,7 +29343,7 @@ snapshots:
     dependencies:
       is-what: 4.1.16
 
-  copy-webpack-plugin@13.0.1(webpack@5.101.2):
+  copy-webpack-plugin@13.0.1(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       glob-parent: 6.0.2
       normalize-path: 3.0.0
@@ -29433,11 +29431,11 @@ snapshots:
 
   crypto-js@4.2.0: {}
 
-  css-declaration-sorter@7.2.0(postcss@8.5.3):
+  css-declaration-sorter@7.2.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
 
-  css-loader@7.1.2(webpack@5.101.2):
+  css-loader@7.1.2(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.6)
       postcss: 8.5.6
@@ -29484,49 +29482,49 @@ snapshots:
 
   cssesc@3.0.0: {}
 
-  cssnano-preset-default@7.0.6(postcss@8.5.3):
+  cssnano-preset-default@7.0.6(postcss@8.5.6):
     dependencies:
       browserslist: 4.25.1
-      css-declaration-sorter: 7.2.0(postcss@8.5.3)
-      cssnano-utils: 5.0.0(postcss@8.5.3)
-      postcss: 8.5.3
-      postcss-calc: 10.0.2(postcss@8.5.3)
-      postcss-colormin: 7.0.2(postcss@8.5.3)
-      postcss-convert-values: 7.0.4(postcss@8.5.3)
-      postcss-discard-comments: 7.0.3(postcss@8.5.3)
-      postcss-discard-duplicates: 7.0.1(postcss@8.5.3)
-      postcss-discard-empty: 7.0.0(postcss@8.5.3)
-      postcss-discard-overridden: 7.0.0(postcss@8.5.3)
-      postcss-merge-longhand: 7.0.4(postcss@8.5.3)
-      postcss-merge-rules: 7.0.4(postcss@8.5.3)
-      postcss-minify-font-values: 7.0.0(postcss@8.5.3)
-      postcss-minify-gradients: 7.0.0(postcss@8.5.3)
-      postcss-minify-params: 7.0.2(postcss@8.5.3)
-      postcss-minify-selectors: 7.0.4(postcss@8.5.3)
-      postcss-normalize-charset: 7.0.0(postcss@8.5.3)
-      postcss-normalize-display-values: 7.0.0(postcss@8.5.3)
-      postcss-normalize-positions: 7.0.0(postcss@8.5.3)
-      postcss-normalize-repeat-style: 7.0.0(postcss@8.5.3)
-      postcss-normalize-string: 7.0.0(postcss@8.5.3)
-      postcss-normalize-timing-functions: 7.0.0(postcss@8.5.3)
-      postcss-normalize-unicode: 7.0.2(postcss@8.5.3)
-      postcss-normalize-url: 7.0.0(postcss@8.5.3)
-      postcss-normalize-whitespace: 7.0.0(postcss@8.5.3)
-      postcss-ordered-values: 7.0.1(postcss@8.5.3)
-      postcss-reduce-initial: 7.0.2(postcss@8.5.3)
-      postcss-reduce-transforms: 7.0.0(postcss@8.5.3)
-      postcss-svgo: 7.0.1(postcss@8.5.3)
-      postcss-unique-selectors: 7.0.3(postcss@8.5.3)
+      css-declaration-sorter: 7.2.0(postcss@8.5.6)
+      cssnano-utils: 5.0.0(postcss@8.5.6)
+      postcss: 8.5.6
+      postcss-calc: 10.0.2(postcss@8.5.6)
+      postcss-colormin: 7.0.2(postcss@8.5.6)
+      postcss-convert-values: 7.0.4(postcss@8.5.6)
+      postcss-discard-comments: 7.0.3(postcss@8.5.6)
+      postcss-discard-duplicates: 7.0.1(postcss@8.5.6)
+      postcss-discard-empty: 7.0.0(postcss@8.5.6)
+      postcss-discard-overridden: 7.0.0(postcss@8.5.6)
+      postcss-merge-longhand: 7.0.4(postcss@8.5.6)
+      postcss-merge-rules: 7.0.4(postcss@8.5.6)
+      postcss-minify-font-values: 7.0.0(postcss@8.5.6)
+      postcss-minify-gradients: 7.0.0(postcss@8.5.6)
+      postcss-minify-params: 7.0.2(postcss@8.5.6)
+      postcss-minify-selectors: 7.0.4(postcss@8.5.6)
+      postcss-normalize-charset: 7.0.0(postcss@8.5.6)
+      postcss-normalize-display-values: 7.0.0(postcss@8.5.6)
+      postcss-normalize-positions: 7.0.0(postcss@8.5.6)
+      postcss-normalize-repeat-style: 7.0.0(postcss@8.5.6)
+      postcss-normalize-string: 7.0.0(postcss@8.5.6)
+      postcss-normalize-timing-functions: 7.0.0(postcss@8.5.6)
+      postcss-normalize-unicode: 7.0.2(postcss@8.5.6)
+      postcss-normalize-url: 7.0.0(postcss@8.5.6)
+      postcss-normalize-whitespace: 7.0.0(postcss@8.5.6)
+      postcss-ordered-values: 7.0.1(postcss@8.5.6)
+      postcss-reduce-initial: 7.0.2(postcss@8.5.6)
+      postcss-reduce-transforms: 7.0.0(postcss@8.5.6)
+      postcss-svgo: 7.0.1(postcss@8.5.6)
+      postcss-unique-selectors: 7.0.3(postcss@8.5.6)
 
-  cssnano-utils@5.0.0(postcss@8.5.3):
+  cssnano-utils@5.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
 
-  cssnano@7.0.6(postcss@8.5.3):
+  cssnano@7.0.6(postcss@8.5.6):
     dependencies:
-      cssnano-preset-default: 7.0.6(postcss@8.5.3)
+      cssnano-preset-default: 7.0.6(postcss@8.5.6)
       lilconfig: 3.1.3
-      postcss: 8.5.3
+      postcss: 8.5.6
 
   csso@5.0.5:
     dependencies:
@@ -30453,7 +30451,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.34.1(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -30541,8 +30539,8 @@ snapshots:
       debug: 4.4.3(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       fast-glob: 3.3.3
       get-tsconfig: 4.8.1
       is-core-module: 2.16.1
@@ -30592,7 +30590,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -30668,7 +30666,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -30678,7 +30676,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -31615,9 +31613,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  geist@1.3.1(next@15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)):
+  geist@1.3.1(next@15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)):
     dependencies:
-      next: 15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+      next: 15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
 
   generic-pool@3.9.0: {}
 
@@ -33466,7 +33464,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  less-loader@12.3.0(less@4.4.0)(webpack@5.101.2):
+  less-loader@12.3.0(less@4.4.0)(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       less: 4.4.0
     optionalDependencies:
@@ -33493,7 +33491,7 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  license-webpack-plugin@4.0.2(webpack@5.101.2):
+  license-webpack-plugin@4.0.2(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       webpack-sources: 3.3.3
     optionalDependencies:
@@ -34291,7 +34289,7 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  mini-css-extract-plugin@2.9.4(webpack@5.101.2):
+  mini-css-extract-plugin@2.9.4(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       schema-utils: 4.3.2
       tapable: 2.2.1
@@ -34591,27 +34589,26 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next@15.0.0-canary.23(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0):
+  next@15.0.5(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0):
     dependencies:
-      '@next/env': 15.0.0-canary.23
-      '@swc/helpers': 0.5.11
+      '@next/env': 15.0.5
+      '@swc/counter': 0.1.3
+      '@swc/helpers': 0.5.13
       busboy: 1.6.0
-      caniuse-lite: 1.0.30001649
-      graceful-fs: 4.2.11
+      caniuse-lite: 1.0.30001727
       postcss: 8.4.31
       react: 19.0.0-rc-cc1ec60d0d-20240607
       react-dom: 19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607)
       styled-jsx: 5.1.6(react@19.0.0-rc-cc1ec60d0d-20240607)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.0.0-canary.23
-      '@next/swc-darwin-x64': 15.0.0-canary.23
-      '@next/swc-linux-arm64-gnu': 15.0.0-canary.23
-      '@next/swc-linux-arm64-musl': 15.0.0-canary.23
-      '@next/swc-linux-x64-gnu': 15.0.0-canary.23
-      '@next/swc-linux-x64-musl': 15.0.0-canary.23
-      '@next/swc-win32-arm64-msvc': 15.0.0-canary.23
-      '@next/swc-win32-ia32-msvc': 15.0.0-canary.23
-      '@next/swc-win32-x64-msvc': 15.0.0-canary.23
+      '@next/swc-darwin-arm64': 15.0.5
+      '@next/swc-darwin-x64': 15.0.5
+      '@next/swc-linux-arm64-gnu': 15.0.5
+      '@next/swc-linux-arm64-musl': 15.0.5
+      '@next/swc-linux-x64-gnu': 15.0.5
+      '@next/swc-linux-x64-musl': 15.0.5
+      '@next/swc-win32-arm64-msvc': 15.0.5
+      '@next/swc-win32-x64-msvc': 15.0.5
       '@opentelemetry/api': 1.9.0
       '@playwright/test': 1.50.1
       sass: 1.90.0
@@ -34620,9 +34617,9 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@15.5.4(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0):
+  next@15.5.7(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0):
     dependencies:
-      '@next/env': 15.5.4
+      '@next/env': 15.5.7
       '@swc/helpers': 0.5.15
       caniuse-lite: 1.0.30001727
       postcss: 8.4.31
@@ -34630,14 +34627,14 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       styled-jsx: 5.1.6(react@18.3.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.5.4
-      '@next/swc-darwin-x64': 15.5.4
-      '@next/swc-linux-arm64-gnu': 15.5.4
-      '@next/swc-linux-arm64-musl': 15.5.4
-      '@next/swc-linux-x64-gnu': 15.5.4
-      '@next/swc-linux-x64-musl': 15.5.4
-      '@next/swc-win32-arm64-msvc': 15.5.4
-      '@next/swc-win32-x64-msvc': 15.5.4
+      '@next/swc-darwin-arm64': 15.5.7
+      '@next/swc-darwin-x64': 15.5.7
+      '@next/swc-linux-arm64-gnu': 15.5.7
+      '@next/swc-linux-arm64-musl': 15.5.7
+      '@next/swc-linux-x64-gnu': 15.5.7
+      '@next/swc-linux-x64-musl': 15.5.7
+      '@next/swc-win32-arm64-msvc': 15.5.7
+      '@next/swc-win32-x64-msvc': 15.5.7
       '@opentelemetry/api': 1.9.0
       '@playwright/test': 1.50.1
       sass: 1.90.0
@@ -35512,8 +35509,6 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  picocolors@1.0.1: {}
-
   picocolors@1.1.0: {}
 
   picocolors@1.1.1: {}
@@ -35626,42 +35621,42 @@ snapshots:
 
   possible-typed-array-names@1.0.0: {}
 
-  postcss-calc@10.0.2(postcss@8.5.3):
+  postcss-calc@10.0.2(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-selector-parser: 6.1.2
       postcss-value-parser: 4.2.0
 
-  postcss-colormin@7.0.2(postcss@8.5.3):
+  postcss-colormin@7.0.2(postcss@8.5.6):
     dependencies:
       browserslist: 4.25.1
       caniuse-api: 3.0.0
       colord: 2.9.3
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-convert-values@7.0.4(postcss@8.5.3):
+  postcss-convert-values@7.0.4(postcss@8.5.6):
     dependencies:
       browserslist: 4.25.1
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-discard-comments@7.0.3(postcss@8.5.3):
+  postcss-discard-comments@7.0.3(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-selector-parser: 6.1.2
 
-  postcss-discard-duplicates@7.0.1(postcss@8.5.3):
+  postcss-discard-duplicates@7.0.1(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
 
-  postcss-discard-empty@7.0.0(postcss@8.5.3):
+  postcss-discard-empty@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
 
-  postcss-discard-overridden@7.0.0(postcss@8.5.3):
+  postcss-discard-overridden@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
 
   postcss-import@15.1.0(postcss@8.5.3):
     dependencies:
@@ -35748,7 +35743,7 @@ snapshots:
       tsx: 4.19.2
       yaml: 2.7.0
 
-  postcss-loader@8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.101.2):
+  postcss-loader@8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       cosmiconfig: 9.0.0(typescript@5.8.3)
       jiti: 1.21.6
@@ -35761,43 +35756,43 @@ snapshots:
 
   postcss-media-query-parser@0.2.3: {}
 
-  postcss-merge-longhand@7.0.4(postcss@8.5.3):
+  postcss-merge-longhand@7.0.4(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
-      stylehacks: 7.0.4(postcss@8.5.3)
+      stylehacks: 7.0.4(postcss@8.5.6)
 
-  postcss-merge-rules@7.0.4(postcss@8.5.3):
+  postcss-merge-rules@7.0.4(postcss@8.5.6):
     dependencies:
       browserslist: 4.25.1
       caniuse-api: 3.0.0
-      cssnano-utils: 5.0.0(postcss@8.5.3)
-      postcss: 8.5.3
+      cssnano-utils: 5.0.0(postcss@8.5.6)
+      postcss: 8.5.6
       postcss-selector-parser: 6.1.2
 
-  postcss-minify-font-values@7.0.0(postcss@8.5.3):
+  postcss-minify-font-values@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-minify-gradients@7.0.0(postcss@8.5.3):
+  postcss-minify-gradients@7.0.0(postcss@8.5.6):
     dependencies:
       colord: 2.9.3
-      cssnano-utils: 5.0.0(postcss@8.5.3)
-      postcss: 8.5.3
+      cssnano-utils: 5.0.0(postcss@8.5.6)
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-minify-params@7.0.2(postcss@8.5.3):
+  postcss-minify-params@7.0.2(postcss@8.5.6):
     dependencies:
       browserslist: 4.25.1
-      cssnano-utils: 5.0.0(postcss@8.5.3)
-      postcss: 8.5.3
+      cssnano-utils: 5.0.0(postcss@8.5.6)
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-minify-selectors@7.0.4(postcss@8.5.3):
+  postcss-minify-selectors@7.0.4(postcss@8.5.6):
     dependencies:
       cssesc: 3.0.0
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-selector-parser: 6.1.2
 
   postcss-modules-extract-imports@3.1.0(postcss@8.5.6):
@@ -35833,75 +35828,75 @@ snapshots:
       postcss: 8.5.3
       postcss-selector-parser: 7.0.0
 
-  postcss-normalize-charset@7.0.0(postcss@8.5.3):
+  postcss-normalize-charset@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
 
-  postcss-normalize-display-values@7.0.0(postcss@8.5.3):
+  postcss-normalize-display-values@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-positions@7.0.0(postcss@8.5.3):
+  postcss-normalize-positions@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-repeat-style@7.0.0(postcss@8.5.3):
+  postcss-normalize-repeat-style@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-string@7.0.0(postcss@8.5.3):
+  postcss-normalize-string@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-timing-functions@7.0.0(postcss@8.5.3):
+  postcss-normalize-timing-functions@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-unicode@7.0.2(postcss@8.5.3):
+  postcss-normalize-unicode@7.0.2(postcss@8.5.6):
     dependencies:
       browserslist: 4.25.1
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-url@7.0.0(postcss@8.5.3):
+  postcss-normalize-url@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-normalize-whitespace@7.0.0(postcss@8.5.3):
+  postcss-normalize-whitespace@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-ordered-values@7.0.1(postcss@8.5.3):
+  postcss-ordered-values@7.0.1(postcss@8.5.6):
     dependencies:
-      cssnano-utils: 5.0.0(postcss@8.5.3)
-      postcss: 8.5.3
+      cssnano-utils: 5.0.0(postcss@8.5.6)
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  postcss-reduce-initial@7.0.2(postcss@8.5.3):
+  postcss-reduce-initial@7.0.2(postcss@8.5.6):
     dependencies:
       browserslist: 4.25.1
       caniuse-api: 3.0.0
-      postcss: 8.5.3
+      postcss: 8.5.6
 
-  postcss-reduce-transforms@7.0.0(postcss@8.5.3):
+  postcss-reduce-transforms@7.0.0(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
   postcss-safe-parser@7.0.1(postcss@8.5.3):
     dependencies:
       postcss: 8.5.3
 
-  postcss-scss@4.0.9(postcss@8.5.3):
+  postcss-scss@4.0.9(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
 
   postcss-selector-parser@6.1.2:
     dependencies:
@@ -35913,15 +35908,15 @@ snapshots:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
 
-  postcss-svgo@7.0.1(postcss@8.5.3):
+  postcss-svgo@7.0.1(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-value-parser: 4.2.0
       svgo: 3.3.2
 
-  postcss-unique-selectors@7.0.3(postcss@8.5.3):
+  postcss-unique-selectors@7.0.3(postcss@8.5.6):
     dependencies:
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-selector-parser: 6.1.2
 
   postcss-value-parser@4.2.0: {}
@@ -36680,7 +36675,7 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sass-loader@16.0.5(sass@1.90.0)(webpack@5.101.2):
+  sass-loader@16.0.5(sass@1.90.0)(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       neo-async: 2.6.2
     optionalDependencies:
@@ -37033,7 +37028,7 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  source-map-loader@5.0.0(webpack@5.101.2):
+  source-map-loader@5.0.0(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       iconv-lite: 0.6.3
       source-map-js: 1.2.1
@@ -37311,10 +37306,10 @@ snapshots:
       client-only: 0.0.1
       react: 19.0.0-rc.1
 
-  stylehacks@7.0.4(postcss@8.5.3):
+  stylehacks@7.0.4(postcss@8.5.6):
     dependencies:
       browserslist: 4.25.1
-      postcss: 8.5.3
+      postcss: 8.5.6
       postcss-selector-parser: 6.1.2
 
   stylis@4.3.6: {}
@@ -37387,8 +37382,8 @@ snapshots:
       eslint-scope: 8.2.0
       eslint-visitor-keys: 4.2.0
       espree: 10.3.0
-      postcss: 8.5.3
-      postcss-scss: 4.0.9(postcss@8.5.3)
+      postcss: 8.5.6
+      postcss-scss: 4.0.9(postcss@8.5.6)
       postcss-selector-parser: 7.0.0
     optionalDependencies:
       svelte: 5.32.1
@@ -38710,7 +38705,7 @@ snapshots:
   vite@5.4.11(@types/node@20.17.24)(less@4.4.0)(sass@1.90.0)(terser@5.43.1):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.5.3
+      postcss: 8.5.6
       rollup: 4.34.9
     optionalDependencies:
       '@types/node': 20.17.24
@@ -38722,7 +38717,7 @@ snapshots:
   vite@5.4.11(@types/node@22.7.4)(less@4.4.0)(sass@1.90.0)(terser@5.43.1):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.5.3
+      postcss: 8.5.6
       rollup: 4.34.9
     optionalDependencies:
       '@types/node': 22.7.4
@@ -38734,7 +38729,7 @@ snapshots:
   vite@6.0.3(@types/node@20.17.24)(jiti@2.4.0)(less@4.4.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.7.0):
     dependencies:
       esbuild: 0.24.2
-      postcss: 8.5.3
+      postcss: 8.5.6
       rollup: 4.34.9
     optionalDependencies:
       '@types/node': 20.17.24
@@ -39203,7 +39198,7 @@ snapshots:
 
   webpack-sources@3.3.3: {}
 
-  webpack-subresource-integrity@5.1.0(webpack@5.101.2):
+  webpack-subresource-integrity@5.1.0(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       typed-assert: 1.0.9
       webpack: 5.101.2(esbuild@0.25.9)
