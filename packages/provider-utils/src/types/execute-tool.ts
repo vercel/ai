@@ -1,5 +1,5 @@
 import { isAsyncIterable } from '../is-async-iterable';
-import { ToolCallOptions, ToolExecuteFunction } from './tool';
+import { ToolExecutionOptions, ToolExecuteFunction } from './tool';
 
 export async function* executeTool<INPUT, OUTPUT>({
   execute,
@@ -8,7 +8,7 @@ export async function* executeTool<INPUT, OUTPUT>({
 }: {
   execute: ToolExecuteFunction<INPUT, OUTPUT>;
   input: INPUT;
-  options: ToolCallOptions;
+  options: ToolExecutionOptions;
 }): AsyncGenerator<
   { type: 'preliminary'; output: OUTPUT } | { type: 'final'; output: OUTPUT }
 > {

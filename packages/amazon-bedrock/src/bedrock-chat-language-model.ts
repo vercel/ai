@@ -423,7 +423,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             type: 'tool-call' as const,
             toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
             toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
-            input: JSON.stringify(part.toolUse?.input ?? ''),
+            input: JSON.stringify(part.toolUse?.input ?? {}),
           });
         }
       }
@@ -680,7 +680,10 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                       type: 'tool-call',
                       toolCallId: contentBlock.toolCallId,
                       toolName: contentBlock.toolName,
-                      input: contentBlock.jsonText,
+                      input:
+                        contentBlock.jsonText === ''
+                          ? '{}'
+                          : contentBlock.jsonText,
                     });
                   }
                 }
