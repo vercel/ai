@@ -1,6 +1,6 @@
 # AI SDK - Replicate Provider
 
-The **[Replicate provider](https://ai-sdk.dev/providers/ai-sdk-providers/replicate)** for the [AI SDK](https://ai-sdk.dev/docs) contains image model support for the Replicate API.
+The **[Replicate provider](https://ai-sdk.dev/providers/ai-sdk-providers/replicate)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model and image model support for the Replicate API.
 
 ## Setup
 
@@ -11,6 +11,38 @@ npm i @ai-sdk/replicate
 ```
 
 ## Usage
+
+### Language Models
+
+```ts
+import { replicate } from '@ai-sdk/replicate';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: replicate.languageModel('meta/meta-llama-3.1-405b-instruct'),
+  prompt: 'Write a haiku about programming',
+});
+
+console.log(text);
+```
+
+You can also use streaming:
+
+```ts
+import { replicate } from '@ai-sdk/replicate';
+import { streamText } from 'ai';
+
+const { textStream } = await streamText({
+  model: replicate.languageModel('meta/meta-llama-3.1-70b-instruct'),
+  prompt: 'Explain quantum computing in simple terms',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Image Models
 
 ```ts
 import { replicate } from '@ai-sdk/replicate';
