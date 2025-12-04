@@ -61,14 +61,21 @@ export const weatherTool = tool({
                 'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
             },
             {
+              name: 'strict',
+              isOptional: true,
+              type: 'boolean',
+              description:
+                'Strict mode setting for the tool. Providers that support strict mode will use this setting to determine how the input should be generated. Strict mode will always produce valid inputs, but it might limit what input schemas are supported.',
+            },
+            {
               name: 'execute',
               isOptional: true,
-              type: 'async (input: INPUT, options: ToolCallOptions) => RESULT | Promise<RESULT> | AsyncIterable<RESULT>',
+              type: 'async (input: INPUT, options: ToolExecutionOptions) => RESULT | Promise<RESULT> | AsyncIterable<RESULT>',
               description:
                 'An async function that is called with the arguments from the tool call and produces a result or a results iterable. If an iterable is provided, all results but the last one are considered preliminary. If not provided, the tool will not be executed automatically.',
               properties: [
                 {
-                  type: 'ToolCallOptions',
+                  type: 'ToolExecutionOptions',
                   parameters: [
                     {
                       name: 'toolCallId',
@@ -117,21 +124,21 @@ export const weatherTool = tool({
             {
               name: 'onInputStart',
               isOptional: true,
-              type: '(options: ToolCallOptions) => void | PromiseLike<void>',
+              type: '(options: ToolExecutionOptions) => void | PromiseLike<void>',
               description:
                 'Optional function that is called when the argument streaming starts. Only called when the tool is used in a streaming context.',
             },
             {
               name: 'onInputDelta',
               isOptional: true,
-              type: '(options: { inputTextDelta: string } & ToolCallOptions) => void | PromiseLike<void>',
+              type: '(options: { inputTextDelta: string } & ToolExecutionOptions) => void | PromiseLike<void>',
               description:
                 'Optional function that is called when an argument streaming delta is available. Only called when the tool is used in a streaming context.',
             },
             {
               name: 'onInputAvailable',
               isOptional: true,
-              type: '(options: { input: INPUT } & ToolCallOptions) => void | PromiseLike<void>',
+              type: '(options: { input: INPUT } & ToolExecutionOptions) => void | PromiseLike<void>',
               description:
                 'Optional function that is called when a tool call can be started, even if the execute function is not provided.',
             },

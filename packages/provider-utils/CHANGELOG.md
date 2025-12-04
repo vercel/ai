@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider@3.0.0-beta.23
+
 ## 4.0.0-beta.40
 
 ### Patch Changes

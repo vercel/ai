@@ -1,5 +1,30 @@
 # ai
 
+## 6.0.0-beta.131
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/gateway@2.0.0-beta.71
+
+## 6.0.0-beta.130
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+  - @ai-sdk/gateway@2.0.0-beta.70
+
+## 6.0.0-beta.129
+
+### Patch Changes
+
+- 67a407c: chore(ai): add warning when using v2 models with AISDK v6
+
 ## 6.0.0-beta.128
 
 ### Patch Changes

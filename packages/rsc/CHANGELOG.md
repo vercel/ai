@@ -1,5 +1,35 @@
 # @ai-sdk/rsc
 
+## 2.0.0-beta.133
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - ai@6.0.0-beta.131
+
+## 2.0.0-beta.132
+
+### Patch Changes
+
+- af65ab6: drop react 19-rc support. Require minimal versions for RSC to address CVE-2025-55182
+
+## 2.0.0-beta.131
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+  - ai@6.0.0-beta.130
+
+## 2.0.0-beta.130
+
+### Patch Changes
+
+- Updated dependencies [67a407c]
+  - ai@6.0.0-beta.129
+
 ## 2.0.0-beta.129
 
 ### Patch Changes

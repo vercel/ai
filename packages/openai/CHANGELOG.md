@@ -1,5 +1,45 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- cad6445: feat(openai); adding OpenAI's new shell tool
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- b60d2e2: fix(openai): allow open_page action type url to be nullish
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 2c0a758: chore(openai): add JSDoc to responses options
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- d270a5d: chore(openai): update tests for apply-patch tool to use snapshots
+
 ## 3.0.0-beta.76
 
 ### Patch Changes
