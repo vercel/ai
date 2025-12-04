@@ -279,6 +279,11 @@ export type AnthropicTool =
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
       strict?: boolean;
+      /**
+       * When true, this tool is deferred and will only be loaded when
+       * discovered via the tool search tool.
+       */
+      defer_loading?: boolean;
     }
   | {
       type: 'code_execution_20250522';
@@ -344,6 +349,14 @@ export type AnthropicTool =
         timezone?: string;
       };
       cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      type: 'tool_search_tool_regex_20251119';
+      name: string;
+    }
+  | {
+      type: 'tool_search_tool_bm25_20251119';
+      name: string;
     };
 
 export type AnthropicToolChoice =

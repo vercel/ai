@@ -9,6 +9,8 @@ import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { textEditor_20250728 } from './tool/text-editor_20250728';
+import { toolSearchBm25_20251119 } from './tool/tool-search-bm25_20251119';
+import { toolSearchRegex_20251119 } from './tool/tool-search-regex_20251119';
 import { webFetch_20250910 } from './tool/web-fetch-20250910';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 
@@ -147,4 +149,52 @@ export const anthropicTools = {
    * @param userLocation - Optional user location information to provide geographically relevant search results.
    */
   webSearch_20250305,
+
+  /**
+   * Creates a tool search tool that uses regex patterns to find tools.
+   *
+   * The tool search tool enables Claude to work with hundreds or thousands of tools
+   * by dynamically discovering and loading them on-demand. Instead of loading all
+   * tool definitions into the context window upfront, Claude searches your tool
+   * catalog and loads only the tools it needs.
+   *
+   * When Claude uses this tool, it constructs regex patterns using Python's
+   * re.search() syntax (NOT natural language queries).
+   *
+   * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
+   * to mark them for deferred loading.
+   *
+   * **Important**: This tool should never have `deferLoading: true` in providerOptions.
+   *
+   * Requires beta header: `advanced-tool-use-2025-11-20`
+   *
+   * Supported models: Claude Opus 4.5, Claude Sonnet 4.5
+   *
+   * @see https://docs.anthropic.com/en/docs/agents-and-tools/tool-search-tool
+   */
+  toolSearchRegex_20251119,
+
+  /**
+   * Creates a tool search tool that uses BM25 (natural language) to find tools.
+   *
+   * The tool search tool enables Claude to work with hundreds or thousands of tools
+   * by dynamically discovering and loading them on-demand. Instead of loading all
+   * tool definitions into the context window upfront, Claude searches your tool
+   * catalog and loads only the tools it needs.
+   *
+   * When Claude uses this tool, it uses natural language queries (NOT regex patterns)
+   * to search for tools using BM25 text search.
+   *
+   * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
+   * to mark them for deferred loading.
+   *
+   * **Important**: This tool should never have `deferLoading: true` in providerOptions.
+   *
+   * Requires beta header: `advanced-tool-use-2025-11-20`
+   *
+   * Supported models: Claude Opus 4.5, Claude Sonnet 4.5
+   *
+   * @see https://docs.anthropic.com/en/docs/agents-and-tools/tool-search-tool
+   */
+  toolSearchBm25_20251119,
 };
