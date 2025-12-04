@@ -12,13 +12,8 @@
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@vercel/functions": "^3.1.0",
-<<<<<<< HEAD
     "ai": "workspace:*",
-    "next": "^15.5.4",
-=======
-    "ai": "6.0.0-beta.131",
     "next": "^15.5.7",
->>>>>>> 31842e1b8 (chore(examples) : next.js update for CVE-2025-66478 (#10876))
     "react": "^18",
     "react-dom": "^18",
     "sonner": "^1.7.1"
