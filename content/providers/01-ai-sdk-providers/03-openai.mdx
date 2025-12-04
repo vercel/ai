@@ -600,6 +600,45 @@ const result = await generateText({
 });
 ```
 
+#### Shell Tool
+
+The OpenAI responses API supports the shell tool for GPT-5.1 models through the `openai.tools.shell` tool.
+The shell tool allows the model to interact with your local computer through a controlled command-line interface.
+The model proposes shell commands; your integration executes them and returns the outputs.
+
+<Note type="warning">
+  Running arbitrary shell commands can be dangerous. Always sandbox execution or
+  add strict allow-/deny-lists before forwarding a command to the system shell.
+</Note>
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+const result = await generateText({
+  model: openai('gpt-5.1'),
+  tools: {
+    shell: openai.tools.shell({
+      execute: async ({ action }) => {
+        // ... your implementation, e.g. sandbox access ...
+        return { output: results };
+      },
+    }),
+  },
+  prompt: 'List the files in the current directory and show disk usage.',
+});
+```
+
+Your execute function must return an output array with results for each command:
+
+- **stdout** _string_ - Standard output from the command
+- **stderr** _string_ - Standard error from the command
+- **outcome** - Either `{ type: 'timeout' }` or `{ type: 'exit', exitCode: number }`
+
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
