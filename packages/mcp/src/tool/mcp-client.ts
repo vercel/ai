@@ -83,7 +83,7 @@ export async function createMCPClient(
 }
 
 export interface MCPClient {
-  serverInfo: ClientOrServerImplementation;
+  serverInfo?: ClientOrServerImplementation;
 
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
@@ -151,7 +151,7 @@ class DefaultMCPClient implements MCPClient {
     (response: JSONRPCResponse | Error) => void
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
-  public serverInfo: ClientOrServerImplementation;
+  public serverInfo?: ClientOrServerImplementation;
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
