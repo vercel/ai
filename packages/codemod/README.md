@@ -137,7 +137,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/restructure-source-stream-parts`                                  | Transforms v5/restructure source stream parts                                  |
 | `v5/rsc-package`                                                      | Transforms v5/rsc package                                                      |
 
-### General Codemods
+### v6 Codemods (v5 → v6 Migration)
 
 | Codemod                                 | Description                                      |
 | --------------------------------------- | ------------------------------------------------ |
