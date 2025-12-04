@@ -6,12 +6,12 @@ import { run } from '../lib/run';
 run(async () => {
   const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
-    prompt: 'What is the weather in San Francisco?',
+    prompt: 'Find out weather data in SF',
     stopWhen: stepCountIs(10),
     tools: {
       toolSearch: anthropic.tools.toolSearchRegex_20251119(),
 
-      get_weather: tool({
+      get_temp_data: tool({
         description: 'Get the current weather at a specific location',
         inputSchema: z.object({
           location: z
