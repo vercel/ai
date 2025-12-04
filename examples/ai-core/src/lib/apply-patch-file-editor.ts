@@ -18,12 +18,6 @@ export type ApplyPatchOperation =
       diff: string;
     };
 
-/**
- * Creates an execute function for the applyPatch tool that operates within a workspace root.
- *
- * @param workspaceRoot - The root directory for file operations
- * @returns An execute function compatible with openai.tools.applyPatch()
- */
 export function createApplyPatchExecutor(workspaceRoot: string) {
   const editor = new WorkspaceEditor(workspaceRoot);
 
