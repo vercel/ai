@@ -552,6 +552,21 @@ export async function convertToAnthropicMessagesPrompt({
                         input: part.input,
                         cache_control: cacheControl,
                       });
+                    } else if (providerToolName === 'tool_search') {
+                      // Determine which variant based on input fields
+                      const toolSearchName =
+                        part.input != null &&
+                        typeof part.input === 'object' &&
+                        'pattern' in part.input
+                          ? 'tool_search_tool_regex'
+                          : 'tool_search_tool_bm25';
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: toolSearchName,
+                        input: part.input,
+                        cache_control: cacheControl,
+                      });
                     } else {
                       warnings.push({
                         type: 'other',
@@ -741,6 +756,44 @@ export async function convertToAnthropicMessagesPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
+                if (providerToolName === 'tool_search') {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  // Convert tool references back to API format
+                  const toolReferences = Array.isArray(output.value)
+                    ? (
+                        output.value as Array<{
+                          type: string;
+                          toolName: string;
+                        }>
+                      ).map(ref => ({
+                        type: 'tool_reference' as const,
+                        tool_name: ref.toolName,
+                      }))
+                    : [];
+
+                  anthropicContent.push({
+                    type: 'tool_search_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: {
+                      type: 'tool_search_tool_search_result',
+                      tool_references: toolReferences,
+                    },
                     cache_control: cacheControl,
                   });
 

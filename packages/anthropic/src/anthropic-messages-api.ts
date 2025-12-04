@@ -35,6 +35,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicCodeExecutionToolResultContent
     | AnthropicWebFetchToolResultContent
     | AnthropicWebSearchToolResultContent
+    | AnthropicToolSearchToolResultContent
     | AnthropicBashCodeExecutionToolResultContent
     | AnthropicTextEditorCodeExecutionToolResultContent
     | AnthropicMcpToolUseContent
@@ -169,6 +170,19 @@ export interface AnthropicWebSearchToolResultContent {
     encrypted_content: string;
     type: string;
   }>;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicToolSearchToolResultContent {
+  type: 'tool_search_tool_result';
+  tool_use_id: string;
+  content: {
+    type: 'tool_search_tool_search_result';
+    tool_references: Array<{
+      type: 'tool_reference';
+      tool_name: string;
+    }>;
+  };
   cache_control: AnthropicCacheControl | undefined;
 }
 
