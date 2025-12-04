@@ -34,7 +34,7 @@ understand the tool's input requirements and to provide matching suggestions.
    * An optional list of input examples that show the language
    * model what the input should look like.
    */
-  inputExamples?: Array<{ example: JSONSchema7 }>;
+  inputExamples?: Array<{ input: JSONSchema7 }>;
 
   /**
    * Strict mode setting for the tool.

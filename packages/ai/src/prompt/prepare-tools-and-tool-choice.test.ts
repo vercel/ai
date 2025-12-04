@@ -415,7 +415,7 @@ describe('prepareToolsAndToolChoice', () => {
           inputSchema: z.object({
             city: z.string(),
           }),
-          inputExamples: [{ example: { city: 'New York' } }],
+          inputExamples: [{ input: { city: 'New York' } }],
         }),
       },
       toolChoice: undefined,
