@@ -89,7 +89,7 @@ export default function OpenAIWebSearchView({
               )}
             </div>
           );
-        case 'find':
+        case 'find_in_page':
           return (
             <div className="flex flex-col gap-2 p-3 bg-yellow-50 rounded border-l-4 border-yellow-500 shadow">
               <div className="flex items-center font-semibold text-yellow-800">
