@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- ef739fa: fix(openai): refactor apply-patch tool
+
 ## 3.0.0-beta.82
 
 ### Patch Changes
