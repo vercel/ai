@@ -273,13 +273,12 @@ export interface AnthropicMcpToolResultContent {
 }
 
 export type AnthropicTool =
-  | {
+  | ({
       name: string;
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
-      strict?: boolean;
-    }
+    } & AnthropicAdvancedToolUse)
   | {
       type: 'code_execution_20250522';
       name: string;
@@ -344,6 +343,14 @@ export type AnthropicTool =
         timezone?: string;
       };
       cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      type: 'tool_search_tool_regex_20251119';
+      name: string;
+    }
+  | {
+      type: 'tool_search_tool_bm25_20251119';
+      name: string;
     };
 
 export type AnthropicToolChoice =
@@ -886,3 +893,21 @@ export type Citation = NonNullable<
     type: 'text';
   })['citations']
 >[number];
+
+export const anthropicToolSearchSchema = lazySchema(() =>
+  zodSchema(z.boolean().optional()),
+);
+
+export const anthropicProgrammaticToolCallingSchema = lazySchema(() =>
+  zodSchema(z.array(z.enum(['code_execution_20250825', 'direct'])).optional()),
+);
+
+export const anthropicInputExamplesSchema = lazySchema(() =>
+  zodSchema(z.array(z.record(z.string(), z.unknown())).optional()),
+);
+
+export type AnthropicAdvancedToolUse = {
+  defer_loading?: boolean;
+  allowed_callers?: Array<'code_execution_20250825' | 'direct'>;
+  input_examples?: Array<Record<string, unknown>>;
+};

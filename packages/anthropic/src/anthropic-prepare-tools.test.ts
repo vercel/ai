@@ -627,4 +627,46 @@ describe('prepareTools', () => {
       ]
     `);
   });
+
+  describe('anthropic advanced tools', () => {
+    it('should provide search tool when deferLoading is true', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {},
+            providerOptions: {
+              anthropic: { deferLoading: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [
+            {
+              "details": "At least one tool has defer_loading set to true, but no tool search tool (tool_search_tool_bm25 or tool_search_tool_regex) is provided. A tool search tool is required when using deferred loading.",
+              "feature": "tool",
+              "type": "unsupported",
+            },
+          ],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "defer_loading": true,
+              "description": "A test function",
+              "input_schema": {},
+              "name": "testFunction",
+            },
+          ],
+        }
+      `);
+    });
+  });
 });
