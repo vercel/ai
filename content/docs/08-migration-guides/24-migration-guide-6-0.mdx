@@ -36,13 +36,35 @@ An example upgrade command would be:
 pnpm install ai@beta @ai-sdk/react@beta @ai-sdk/openai@beta
 ```
 
-## `ai` package
+## Codemods
 
-### `CoreMessage` removed
+The AI SDK **will** provide Codemod transformations to help upgrade your codebase when a
+feature is deprecated, removed, or otherwise changed.
+
+Codemods are transformations that run on your codebase automatically. They
+allow you to easily apply many changes without having to manually go through
+every file.
+
+<Note>
+  Codemods are intended as a tool to help you with the upgrade process. They may
+  not cover all of the changes you need to make. You may need to make additional
+  changes manually.
+</Note>
+
+## Codemod Table
+
+| Codemod Name                         | Description                                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `rename-text-embedding-to-embedding` | Renames `textEmbeddingModel` to `embeddingModel` and `textEmbedding` to `embedding` on providers   |
+| `rename-mock-v2-to-v3`               | Renames V2 mock classes from `ai/test` to V3 (e.g., `MockLanguageModelV2` → `MockLanguageModelV3`) |
+
+## AI SDK Core
+
+### `CoreMessage` Removal
 
 The deprecated `CoreMessage` type and related functions have been removed ([PR #10710](https://github.com/vercel/ai/pull/10710)). Replace `convertToCoreMessages` with `convertToModelMessages`.
 
-```tsx filename="Before (V4)"
+```tsx filename="Before (V5)"
 import { convertToCoreMessages, type CoreMessage } from 'ai';
 
 const coreMessages = convertToCoreMessages(messages); // CoreMessage[]
@@ -54,70 +76,18 @@ import { convertToModelMessages, type ModelMessage } from 'ai';
 const modelMessages = convertToModelMessages(messages); // ModelMessage[]
 ```
 
-### `generateObject` and `streamObject` deprecated
+### `generateObject` and `streamObject` Deprecation
 
 `generateObject` and `streamObject` have been deprecated ([PR #10754](https://github.com/vercel/ai/pull/10754)).
 They will be removed in a future version.
 You can use `generateText` and `streamText` with an `output` setting instead.
 
-### Renamed `ToolCallOptions` to `ToolExecutionOptions`
+### `ToolCallOptions` to `ToolExecutionOptions` Rename
 
 The `ToolCallOptions` type has been renamed to `ToolExecutionOptions`
 and is now deprecated.
 
-## `@ai-sdk/openai` package
-
-### `strictJsonSchema` defaults to true
-
-The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default ([PR #10752](https://github.com/vercel/ai/pull/10752)). This improves stability and ensures valid JSON output that matches your schema.
-
-However, strict mode is stricter about schema requirements. If you receive schema rejection errors, adjust your schema (for example, use `null` instead of `undefined`) or disable strict mode.
-
-```tsx filename="AI SDK 5.0"
-import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
-import { z } from 'zod';
-
-// strictJsonSchema was false by default
-const result = await generateObject({
-  model: openai('gpt-4o'),
-  schema: z.object({
-    name: z.string(),
-  }),
-  prompt: 'Generate a person',
-});
-```
-
-```tsx filename="AI SDK 6.0"
-import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
-import { z } from 'zod';
-
-// strictJsonSchema is true by default
-const result = await generateObject({
-  model: openai('gpt-4o'),
-  schema: z.object({
-    name: z.string(),
-  }),
-  prompt: 'Generate a person',
-});
-
-// Disable strict mode if needed
-const resultNoStrict = await generateObject({
-  model: openai('gpt-4o'),
-  schema: z.object({
-    name: z.string(),
-  }),
-  prompt: 'Generate a person',
-  providerOptions: {
-    openai: {
-      strictJsonSchema: false,
-    } satisfies OpenAIResponsesProviderOptions,
-  },
-});
-```
-
-### `strictJsonSchema` no longer used for tool strict mode
+### Per-Tool Strict Mode
 
 Strict mode for tools is now controlled by setting `strict` on each tool ([PR #10817](https://github.com/vercel/ai/pull/10817)). This enables fine-grained control over strict tool calls, which is important since strict mode depends on the specific tool input schema.
 
@@ -172,52 +142,47 @@ const result = streamText({
 });
 ```
 
-### `structuredOutputs` option removed from chat model
-
-The `structuredOutputs` provider option has been removed from chat models ([PR #10752](https://github.com/vercel/ai/pull/10752)). Use `strictJsonSchema` instead.
-
-## Warning System
-
-### Warning Logger Enabled
-
-AI SDK 6 introduces a warning logger that outputs deprecation warnings and best practice recommendations ([PR #8343](https://github.com/vercel/ai/pull/8343)).
-
-To disable warning logging, set the `AI_SDK_LOG_WARNINGS` environment variable to `false`:
-
-```bash
-export AI_SDK_LOG_WARNINGS=false
-```
-
-## Tool Changes
-
-### Flexible Tool Content Support
+### Flexible Tool Content
 
 AI SDK 6 introduces more flexible tool output and result content support ([PR #9605](https://github.com/vercel/ai/pull/9605)), enabling richer tool interactions and better support for complex tool execution patterns.
 
-## Codemods
+### `ToolCallRepairFunction` Signature
 
-The AI SDK **will** provide Codemod transformations to help upgrade your codebase when a
-feature is deprecated, removed, or otherwise changed.
+The `system` parameter in the `ToolCallRepairFunction` type now accepts `SystemModelMessage` in addition to `string` ([PR #10635](https://github.com/vercel/ai/pull/10635)). This allows for more flexible system message configuration, including provider-specific options like caching.
 
-Codemods are transformations that run on your codebase automatically. They
-allow you to easily apply many changes without having to manually go through
-every file.
+```tsx filename="AI SDK 5.0"
+import type { ToolCallRepairFunction } from 'ai';
 
-<Note>
-  Codemods are intended as a tool to help you with the upgrade process. They may
-  not cover all of the changes you need to make. You may need to make additional
-  changes manually.
-</Note>
+const repairToolCall: ToolCallRepairFunction<MyTools> = async ({
+  system, // type: string | undefined
+  messages,
+  toolCall,
+  tools,
+  inputSchema,
+  error,
+}) => {
+  // ...
+};
+```
 
-## Codemod Table
+```tsx filename="AI SDK 6.0"
+import type { ToolCallRepairFunction, SystemModelMessage } from 'ai';
 
-| Codemod Name | Description |
-| ------------ | ----------- |
-| TBD          | TBD         |
+const repairToolCall: ToolCallRepairFunction<MyTools> = async ({
+  system, // type: string | SystemModelMessage | undefined
+  messages,
+  toolCall,
+  tools,
+  inputSchema,
+  error,
+}) => {
+  // Handle both string and SystemModelMessage
+  const systemText = typeof system === 'string' ? system : system?.content;
+  // ...
+};
+```
 
-## Embedding Changes
-
-### Embedding Model Method Renamed
+### Embedding Model Method Rename
 
 The `textEmbeddingModel` and `textEmbedding` methods on providers have been renamed to `embeddingModel` and `embedding` respectively. Additionally, generics have been removed from `EmbeddingModel`, `embed`, and `embedMany` ([PR #10592](https://github.com/vercel/ai/pull/10592)).
 
@@ -253,9 +218,92 @@ const { embedding } = await embed({
 });
 ```
 
-## Provider Changes
+### Warning Logger
+
+AI SDK 6 introduces a warning logger that outputs deprecation warnings and best practice recommendations ([PR #8343](https://github.com/vercel/ai/pull/8343)).
+
+To disable warning logging, set the `AI_SDK_LOG_WARNINGS` environment variable to `false`:
+
+```bash
+export AI_SDK_LOG_WARNINGS=false
+```
+
+### Warning Type Unification
+
+Separate warning types for each generation function have been consolidated into a single `Warning` type exported from the `ai` package ([PR #10631](https://github.com/vercel/ai/pull/10631)).
+
+```tsx filename="AI SDK 5.0"
+// Separate warning types for each generation function
+import type {
+  CallWarning,
+  ImageModelCallWarning,
+  SpeechWarning,
+  TranscriptionWarning,
+} from 'ai';
+```
+
+```tsx filename="AI SDK 6.0"
+// Single Warning type for all generation functions
+import type { Warning } from 'ai';
+```
+
+## Providers
 
 ### OpenAI
+
+#### `strictJsonSchema` Defaults to True
+
+The `strictJsonSchema` setting for JSON outputs and tool calls is enabled by default ([PR #10752](https://github.com/vercel/ai/pull/10752)). This improves stability and ensures valid JSON output that matches your schema.
+
+However, strict mode is stricter about schema requirements. If you receive schema rejection errors, adjust your schema (for example, use `null` instead of `undefined`) or disable strict mode.
+
+```tsx filename="AI SDK 5.0"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+// strictJsonSchema was false by default
+const result = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+});
+```
+
+```tsx filename="AI SDK 6.0"
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+// strictJsonSchema is true by default
+const result = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+});
+
+// Disable strict mode if needed
+const resultNoStrict = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+  }),
+  prompt: 'Generate a person',
+  providerOptions: {
+    openai: {
+      strictJsonSchema: false,
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+```
+
+#### `structuredOutputs` Option Removed from Chat Model
+
+The `structuredOutputs` provider option has been removed from chat models ([PR #10752](https://github.com/vercel/ai/pull/10752)). Use `strictJsonSchema` instead.
 
 #### Unrecognized Models Treated as Reasoning Models
 
@@ -328,9 +376,9 @@ const result = await generateObject({
 });
 ```
 
-## `ai/test` Changes
+## `ai/test`
 
-### Mock Classes Updated
+### Mock Classes
 
 V2 mock classes have been removed from the `ai/test` module. Use the new V3 mock classes instead for testing.
 
@@ -354,61 +402,4 @@ import {
   MockSpeechModelV3,
   MockTranscriptionModelV3,
 } from 'ai/test';
-```
-
-## Type Changes
-
-### Warning Types Unified
-
-Separate warning types for each generation function have been consolidated into a single `Warning` type exported from the `ai` package ([PR #10631](https://github.com/vercel/ai/pull/10631)).
-
-```tsx filename="AI SDK 5.0"
-// Separate warning types for each generation function
-import type {
-  CallWarning,
-  ImageModelCallWarning,
-  SpeechWarning,
-  TranscriptionWarning,
-} from 'ai';
-```
-
-```tsx filename="AI SDK 6.0"
-// Single Warning type for all generation functions
-import type { Warning } from 'ai';
-```
-
-### Tool Call Repair Function Signature
-
-The `system` parameter in the `ToolCallRepairFunction` type now accepts `SystemModelMessage` in addition to `string` ([PR #10635](https://github.com/vercel/ai/pull/10635)). This allows for more flexible system message configuration, including provider-specific options like caching.
-
-```tsx filename="AI SDK 5.0"
-import type { ToolCallRepairFunction } from 'ai';
-
-const repairToolCall: ToolCallRepairFunction<MyTools> = async ({
-  system, // type: string | undefined
-  messages,
-  toolCall,
-  tools,
-  inputSchema,
-  error,
-}) => {
-  // ...
-};
-```
-
-```tsx filename="AI SDK 6.0"
-import type { ToolCallRepairFunction, SystemModelMessage } from 'ai';
-
-const repairToolCall: ToolCallRepairFunction<MyTools> = async ({
-  system, // type: string | SystemModelMessage | undefined
-  messages,
-  toolCall,
-  tools,
-  inputSchema,
-  error,
-}) => {
-  // Handle both string and SystemModelMessage
-  const systemText = typeof system === 'string' ? system : system?.content;
-  // ...
-};
 ```
