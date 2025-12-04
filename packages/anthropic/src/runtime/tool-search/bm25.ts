@@ -1,4 +1,4 @@
-import { DeferredToolDefinition } from "./types";
+import { DeferredToolDefinition } from "./registry";
 
 /**
  * Extremely small BM25-ish scorer for ranking tool definitions.

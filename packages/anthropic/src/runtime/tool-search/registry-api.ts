@@ -1,5 +1,4 @@
-import { DeferredToolDefinition } from "./types";
-import { toolSearchRegistry } from "./registry";
+import { DeferredToolDefinition, toolSearchRegistry } from "./registry";
 
 /**
  * Public entry point for registering an ATU tool.

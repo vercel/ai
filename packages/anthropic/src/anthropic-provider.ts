@@ -18,7 +18,10 @@ import {
   AnthropicSearchToolDefinition,
 } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
-import { toolSearchRegistry } from './runtime/tool-search/registry';
+import {
+  RegisteredRuntimeTool,
+  toolSearchRegistry,
+} from './runtime/tool-search/registry';
 import { createSearchToolDefinition } from './search-tool-definition';
 
 export interface AnthropicProvider extends ProviderV3 {
@@ -44,6 +47,18 @@ Anthropic-specific computer use tool.
   searchTool: (
     def: Omit<AnthropicSearchToolDefinition, 'type'>,
   ) => AnthropicSearchToolDefinition;
+
+  advancedTools: {
+    register: (tool: {
+      name: string;
+      description?: string;
+      inputSchema?: any;
+      keywords?: string[];
+      allowedCallers?: string[];
+      examples?: unknown[];
+    }) => void;
+    list: () => RegisteredRuntimeTool[];
+  };
 }
 
 export interface AnthropicProviderSettings {
@@ -175,8 +190,17 @@ export function createAnthropic(
   };
 
   provider.advancedTools = {
-    register: toolSearchRegistry.register,
-    list: toolSearchRegistry.list,
+    register: (tool: any) => {
+      toolSearchRegistry.register({
+        name: tool.name,
+        description: tool.description ?? '',
+        inputSchema: tool.inputSchema ?? {},
+        keywords: tool.keywords ?? [],
+        allowedCallers: tool.allowedCallers ?? [],
+        examples: tool.examples ?? [],
+      });
+    },
+    list: toolSearchRegistry.list.bind(toolSearchRegistry),
   };
 
   return provider;

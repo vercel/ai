@@ -11,15 +11,15 @@ export interface DeferredToolDefinition {
 
 export interface RegisteredRuntimeTool {
   name: string;
-  description?: string;
-  inputSchema?: JSONSchema7;
-  keywords?: string[];
-  allowedCallers?: string[];
-  examples?: unknown[];
+  description: string;
+  inputSchema: any;
+  keywords: string[];
+  allowedCallers: string[];
+  examples: unknown[];
 }
 
 class ToolSearchRegistry {
-  private tools: DeferredToolDefinition[] = [];
+  tools: RegisteredRuntimeTool[] = [];
 
   register(tool: RegisteredRuntimeTool) {
     this.tools.push({
@@ -32,8 +32,8 @@ class ToolSearchRegistry {
     });
   }
 
-  list() {
-    return this.tools;
+  list(): RegisteredRuntimeTool[] {
+    return [...this.tools];
   }
 }
 

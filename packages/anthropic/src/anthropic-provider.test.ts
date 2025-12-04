@@ -2,6 +2,35 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createAnthropic } from './anthropic-provider';
+import { RegisteredRuntimeTool } from './runtime/tool-search/registry';
+
+declare global {
+  namespace LanguageModelV3CallOptions {
+    interface LanguageModelV3CallOptions {
+      tools?: Array<
+        | { type: 'function'; name: string; inputSchema: any }
+        | { type: 'provider'; id: string }
+        | { type: 'search-tool'; name: string; query: string }
+      >;
+    }
+  }
+}
+
+declare module './anthropic-provider' {
+  interface AnthropicProvider {
+    advancedTools: {
+      register: (tool: {
+        name: string;
+        description?: string;
+        inputSchema?: any;
+        keywords?: string[];
+        allowedCallers?: string[];
+        examples?: unknown[];
+      }) => void;
+      list: () => RegisteredRuntimeTool[];
+    };
+  }
+}
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -126,5 +155,26 @@ describe('anthropic provider - custom provider name', () => {
 
     const model = provider('claude-3-haiku-20240307');
     expect(model.provider).toBe('anthropic.messages');
+  });
+});
+
+describe('advancedTools.register', () => {
+  it('registers a search tool into the registry', () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    provider.advancedTools.register({
+      name: 'test_search_tool',
+      description: 'A test search tool',
+      inputSchema: {},
+      keywords: ['hello', 'search'],
+      examples: [],
+      allowedCallers: [],
+    });
+
+    const list = provider.advancedTools.list();
+
+    expect(list.some(t => t.name === 'test_search_tool')).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import { DeferredToolDefinition } from './types';
+import { DeferredToolDefinition } from "./registry";
 
 export function regexSearch(query: string, tools: DeferredToolDefinition[]) {
   try {
