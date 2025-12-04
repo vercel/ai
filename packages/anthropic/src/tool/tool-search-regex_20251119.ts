@@ -100,4 +100,3 @@ export const toolSearchRegex_20251119 = (
 ) => {
   return factory(args);
 };
-

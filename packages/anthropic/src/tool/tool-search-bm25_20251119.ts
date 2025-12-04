@@ -88,4 +88,3 @@ export const toolSearchBm25_20251119 = (
 ) => {
   return factory(args);
 };
-

@@ -14,11 +14,12 @@ Although this is provided as a server-side tool, you can also implement your own
 <Note>
 The tool search tool is currently in public beta. Include the appropriate [beta header](/docs/en/api/beta-headers) for your provider:
 
-| Provider                 | Beta header                    | Supported models                       |
-| ------------------------ | ------------------------------ | -------------------------------------- |
-| Claude API<br/>Microsoft Foundry  | `advanced-tool-use-2025-11-20` | Claude Opus 4.5<br />Claude Sonnet 4.5 |
-| Google Cloud's Vertex AI | `tool-search-tool-2025-10-19`  | Claude Opus 4.5<br />Claude Sonnet 4.5 |
-| Amazon Bedrock           | `tool-search-tool-2025-10-19`  | Claude Opus 4.5                        |
+| Provider                         | Beta header                    | Supported models                       |
+| -------------------------------- | ------------------------------ | -------------------------------------- |
+| Claude API<br/>Microsoft Foundry | `advanced-tool-use-2025-11-20` | Claude Opus 4.5<br />Claude Sonnet 4.5 |
+| Google Cloud's Vertex AI         | `tool-search-tool-2025-10-19`  | Claude Opus 4.5<br />Claude Sonnet 4.5 |
+| Amazon Bedrock                   | `tool-search-tool-2025-10-19`  | Claude Opus 4.5                        |
+
 </Note>
 
 <Warning>
@@ -168,55 +169,55 @@ print(response)
 ```
 
 ```typescript TypeScript
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic();
 
 async function main() {
   const response = await client.beta.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    betas: ["advanced-tool-use-2025-11-20"],
+    model: 'claude-sonnet-4-5-20250929',
+    betas: ['advanced-tool-use-2025-11-20'],
     max_tokens: 2048,
     messages: [
       {
-        role: "user",
-        content: "What is the weather in San Francisco?",
+        role: 'user',
+        content: 'What is the weather in San Francisco?',
       },
     ],
     tools: [
       {
-        type: "tool_search_tool_regex_20251119",
-        name: "tool_search_tool_regex",
+        type: 'tool_search_tool_regex_20251119',
+        name: 'tool_search_tool_regex',
       },
       {
-        name: "get_weather",
-        description: "Get the weather at a specific location",
+        name: 'get_weather',
+        description: 'Get the weather at a specific location',
         input_schema: {
-          type: "object",
+          type: 'object',
           properties: {
-            location: { type: "string" },
+            location: { type: 'string' },
             unit: {
-              type: "string",
-              enum: ["celsius", "fahrenheit"],
+              type: 'string',
+              enum: ['celsius', 'fahrenheit'],
             },
           },
-          required: ["location"],
+          required: ['location'],
         },
         defer_loading: true,
       },
       {
-        name: "search_files",
-        description: "Search through files in the workspace",
+        name: 'search_files',
+        description: 'Search through files in the workspace',
         input_schema: {
-          type: "object",
+          type: 'object',
           properties: {
-            query: { type: "string" },
+            query: { type: 'string' },
             file_types: {
-              type: "array",
-              items: { type: "string" },
+              type: 'array',
+              items: { type: 'string' },
             },
           },
-          required: ["query"],
+          required: ['query'],
         },
         defer_loading: true,
       },
@@ -441,30 +442,30 @@ print(response)
 ```
 
 ```typescript TypeScript
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic();
 
 async function main() {
   const response = await client.beta.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    betas: ["advanced-tool-use-2025-11-20", "mcp-client-2025-11-20"],
+    model: 'claude-sonnet-4-5-20250929',
+    betas: ['advanced-tool-use-2025-11-20', 'mcp-client-2025-11-20'],
     max_tokens: 2048,
     mcp_servers: [
       {
-        type: "url",
-        name: "database-server",
-        url: "https://mcp-db.example.com",
+        type: 'url',
+        name: 'database-server',
+        url: 'https://mcp-db.example.com',
       },
     ],
     tools: [
       {
-        type: "tool_search_tool_regex_20251119",
-        name: "tool_search_tool_regex",
+        type: 'tool_search_tool_regex_20251119',
+        name: 'tool_search_tool_regex',
       },
       {
-        type: "mcp_toolset",
-        mcp_server_name: "database-server",
+        type: 'mcp_toolset',
+        mcp_server_name: 'database-server',
         default_config: {
           defer_loading: true,
         },
@@ -477,8 +478,8 @@ async function main() {
     ],
     messages: [
       {
-        role: "user",
-        content: "What events are in my database?",
+        role: 'user',
+        content: 'What events are in my database?',
       },
     ],
   });
