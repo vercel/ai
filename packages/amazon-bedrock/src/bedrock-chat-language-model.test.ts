@@ -2209,6 +2209,35 @@ describe('doStream', () => {
       requestBody.additionalModelRequestFields?.reasoningConfig,
     ).toBeUndefined();
   });
+
+  it('should support tool calls with empty input (no arguments)', async () => {
+    setupMockEventStreamHandler();
+    prepareChunksFixtureResponse('bedrock-tool-no-args');
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'updateIssueList',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    const toolCallPart = result.find(part => part.type === 'tool-call');
+    expect(toolCallPart).toBeDefined();
+    expect(toolCallPart?.input).toBe('{}');
+  });
 });
 
 describe('doGenerate', () => {
@@ -3852,5 +3881,41 @@ describe('doGenerate', () => {
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
     expect(result.finishReason).toBe('stop');
+  });
+
+  it('should support tool calls with empty input (no arguments)', async () => {
+    prepareJsonFixtureResponse('bedrock-tool-no-args');
+
+    const result = await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'updateIssueList',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "I'll update the issue list for you.",
+          "type": "text",
+        },
+        {
+          "input": "{}",
+          "toolCallId": "tool-use-id",
+          "toolName": "updateIssueList",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 });
