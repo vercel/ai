@@ -14,7 +14,7 @@ export const toolSearchRegex_20251119OutputSchema = lazySchema(() =>
     z.array(
       z.object({
         type: z.literal('tool_reference'),
-        tool_name: z.string(),
+        toolName: z.string(),
       }),
     ),
   ),
@@ -69,7 +69,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
     /**
      * The name of the discovered tool.
      */
-    tool_name: string;
+    toolName: string;
   }>,
   {}
 >({
