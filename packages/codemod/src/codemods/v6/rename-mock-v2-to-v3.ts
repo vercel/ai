@@ -91,4 +91,3 @@ export default createTransformer((fileInfo, api, options, context) => {
       }
     });
 });
-

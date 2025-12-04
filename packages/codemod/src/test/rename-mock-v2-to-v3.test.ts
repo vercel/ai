@@ -7,4 +7,3 @@ describe('rename-mock-v2-to-v3', () => {
     testTransform(transformer, 'rename-mock-v2-to-v3');
   });
 });
-
