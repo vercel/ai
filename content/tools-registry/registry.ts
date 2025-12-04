@@ -389,7 +389,7 @@ console.log(text);`,
     slug: 'airweave',
     name: 'Airweave',
     description:
-      'Airweave is an open-source platform that makes any app searchable for your agent. Sync and search across 100+ data sources (Notion, Slack, Google Drive, databases, and more) with semantic search. Add unified search across all your connected data to your AI applications in just a few lines of code.',
+      'Airweave is an open-source platform that makes any app searchable for your agent. Sync and search across 35+ data sources (Notion, Slack, Google Drive, databases, and more) with semantic search. Add unified search across all your connected data to your AI applications in just a few lines of code.',
     packageName: '@airweave/vercel-ai-sdk',
     tags: ['search', 'rag', 'data-sources', 'semantic-search'],
     apiKeyEnvName: 'AIRWEAVE_API_KEY',
