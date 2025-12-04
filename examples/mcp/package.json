@@ -18,6 +18,8 @@
     "server:elicitation-multi-step": "tsx src/elicitation-multi-step/server.ts",
     "client:elicitation-multi-step": "tsx src/elicitation-multi-step/client.ts",
     "server:elicitation-ui": "tsx src/elicitation-ui/server.ts",
+    "server:tool-meta": "tsx src/tool-meta/server.ts",
+    "client:tool-meta": "tsx src/tool-meta/client.ts",
     "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
     "client:stdio": "tsx src/stdio/client.ts",
     "custom-transport:build": "tsc src/custom-transport/server.ts --outDir src/custom-transport/dist --target es2023 --module nodenext",
@@ -25,8 +27,8 @@
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.0-beta.79",
-    "@modelcontextprotocol/sdk": "^1.10.2",
+    "@ai-sdk/openai": "3.0.0-beta.81",
+    "@modelcontextprotocol/sdk": "^1.24.0",
     "ai": "6.0.0-beta.130",
     "dotenv": "16.4.5",
     "express": "5.0.1",

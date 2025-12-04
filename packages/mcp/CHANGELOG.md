@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- 17c04d4: feat(mcp): expose `_meta` field from MCP tool definitions
+
 ## 1.0.0-beta.25
 
 ### Patch Changes

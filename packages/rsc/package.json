@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/rsc",
-  "version": "2.0.0-beta.131",
+  "version": "2.0.0-beta.132",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/rsc-client.mjs",
@@ -65,7 +65,7 @@
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "react": "^18 || ^19 || ^19.0.0-rc",
+    "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1",
     "zod": "^3.25.76 || ^4.1.8"
   },
   "peerDependenciesMeta": {

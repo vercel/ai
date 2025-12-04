@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- cad6445: feat(openai); adding OpenAI's new shell tool
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- b60d2e2: fix(openai): allow open_page action type url to be nullish
+
 ## 3.0.0-beta.79
 
 ### Patch Changes
