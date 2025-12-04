@@ -102,6 +102,7 @@ export const bedrockProviderOptions = z.object({
     .object({
       type: z.union([z.literal('enabled'), z.literal('disabled')]).optional(),
       budgetTokens: z.number().optional(),
+      maxReasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
     })
     .optional(),
   /**
