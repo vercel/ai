@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- a5f77a6: fix(anthropic): remove outdated tool name docs
+
 ## 3.0.0-beta.71
 
 ### Patch Changes

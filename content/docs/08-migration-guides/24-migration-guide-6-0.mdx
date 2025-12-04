@@ -1,9 +1,9 @@
 ---
-title: Migrate AI SDK 5.0 to 6.0 Beta
-description: Learn how to upgrade AI SDK 5.0 to 6.0 Beta.
+title: Migrate AI SDK 5.x to 6.0 Beta
+description: Learn how to upgrade AI SDK 5 to 6.0 Beta.
 ---
 
-# Migrate AI SDK 5.0 to 6.0 Beta
+# Migrate AI SDK 5.x to 6.0 Beta
 
 <Note type="warning">
   AI SDK 6 is currently in beta and introduces new capabilities like agents and
@@ -59,6 +59,11 @@ const modelMessages = convertToModelMessages(messages); // ModelMessage[]
 `generateObject` and `streamObject` have been deprecated ([PR #10754](https://github.com/vercel/ai/pull/10754)).
 They will be removed in a future version.
 You can use `generateText` and `streamText` with an `output` setting instead.
+
+### Renamed `ToolCallOptions` to `ToolExecutionOptions`
+
+The `ToolCallOptions` type has been renamed to `ToolExecutionOptions`
+and is now deprecated.
 
 ## `@ai-sdk/openai` package
 
@@ -182,10 +187,6 @@ To disable warning logging, set the `AI_SDK_LOG_WARNINGS` environment variable t
 ```bash
 export AI_SDK_LOG_WARNINGS=false
 ```
-
-### V2 Model Compatibility Warning
-
-A warning is displayed when using v2 provider models with AISDK v6 ([PR #10770](https://github.com/vercel/ai/pull/10770)). Update your provider implementations to use v3 models.
 
 ## Tool Changes
 

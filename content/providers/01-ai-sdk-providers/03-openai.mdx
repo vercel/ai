@@ -204,16 +204,14 @@ The following provider options are available:
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `true`.
 
-      <Note type="warning">
-
+<Note type="warning">
   OpenAI structured outputs have several
   [limitations](https://openai.com/index/introducing-structured-outputs-in-the-api),
-  in particular around the [supported schemas](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas),
-  and are therefore opt-in.
-
-For example, optional schema properties are not supported.
-You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
-
+  in particular around the [supported
+  schemas](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas),
+  and are therefore opt-in. For example, optional schema properties are not
+  supported. You need to change Zod `.nullish()` and `.optional()` to
+  `.nullable()`.
 </Note>
 
 - **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
