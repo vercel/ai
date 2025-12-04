@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- ef9d7d6: fix(bedrock): send {} as tool input when streaming tool calls without arguments
+
 ## 4.0.0-beta.81
 
 ### Patch Changes
