@@ -406,4 +406,56 @@ describe('prepareToolsAndToolChoice', () => {
       }
     `);
   });
+
+  it('should pass through input examples', async () => {
+    const result = await prepareToolsAndToolChoice({
+      tools: {
+        tool1: tool({
+          description: 'Tool 1 description',
+          inputSchema: z.object({
+            city: z.string(),
+          }),
+          inputExamples: [{ example: { city: 'New York' } }],
+        }),
+      },
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "toolChoice": {
+          "type": "auto",
+        },
+        "tools": [
+          {
+            "description": "Tool 1 description",
+            "inputExamples": [
+              {
+                "example": {
+                  "city": "New York",
+                },
+              },
+            ],
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "city": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "city",
+              ],
+              "type": "object",
+            },
+            "name": "tool1",
+            "providerOptions": undefined,
+            "type": "function",
+          },
+        ],
+      }
+    `);
+  });
 });

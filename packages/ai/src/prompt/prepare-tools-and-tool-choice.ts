@@ -52,6 +52,7 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
           name,
           description: tool.description,
           inputSchema: await asSchema(tool.inputSchema).jsonSchema,
+          inputExamples: tool.inputExamples,
           providerOptions: tool.providerOptions,
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         });
