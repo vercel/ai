@@ -18,8 +18,6 @@ export const anthropicTools = {
    * allowing system operations, script execution, and command-line automation.
    *
    * Image results are supported.
-   *
-   * Tool name must be `bash`.
    */
   bash_20241022,
 
@@ -28,8 +26,6 @@ export const anthropicTools = {
    * allowing system operations, script execution, and command-line automation.
    *
    * Image results are supported.
-   *
-   * Tool name must be `bash`.
    */
   bash_20250124,
 
@@ -40,8 +36,6 @@ export const anthropicTools = {
    *
    * The code execution tool allows Claude to run Bash commands and manipulate files,
    * including writing code, in a secure, sandboxed environment.
-   *
-   * Tool name must be `code_execution`.
    */
   codeExecution_20250522,
 
@@ -54,8 +48,6 @@ export const anthropicTools = {
    * including writing code, in a secure, sandboxed environment.
    *
    * This is the latest version with enhanced Bash support and file operations.
-   *
-   * Tool name must be `code_execution`.
    */
   codeExecution_20250825,
 
@@ -64,8 +56,6 @@ export const anthropicTools = {
    * provides screenshot capabilities and mouse/keyboard control for autonomous desktop interaction.
    *
    * Image results are supported.
-   *
-   * Tool name must be `computer`.
    *
    * @param displayWidthPx - The width of the display being controlled by the model in pixels.
    * @param displayHeightPx - The height of the display being controlled by the model in pixels.
@@ -78,8 +68,6 @@ export const anthropicTools = {
    * provides screenshot capabilities and mouse/keyboard control for autonomous desktop interaction.
    *
    * Image results are supported.
-   *
-   * Tool name must be `computer`.
    *
    * @param displayWidthPx - The width of the display being controlled by the model in pixels.
    * @param displayHeightPx - The height of the display being controlled by the model in pixels.
@@ -94,8 +82,6 @@ export const anthropicTools = {
    * The memory tool operates client-side—you control where and how the data is stored through your own infrastructure.
    *
    * Supported models: Claude Sonnet 4.5, Claude Sonnet 4, Claude Opus 4.1, Claude Opus 4.
-   *
-   * Tool name must be `memory`.
    */
   memory_20250818,
 
@@ -105,8 +91,6 @@ export const anthropicTools = {
    * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
    *
    * Supported models: Claude Sonnet 3.5
-   *
-   * Tool name must be `str_replace_editor`.
    */
   textEditor_20241022,
 
@@ -116,8 +100,6 @@ export const anthropicTools = {
    * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
    *
    * Supported models: Claude Sonnet 3.7
-   *
-   * Tool name must be `str_replace_editor`.
    */
   textEditor_20250124,
 
@@ -127,8 +109,6 @@ export const anthropicTools = {
    * to directly interact with your files, providing hands-on assistance rather than just suggesting changes.
    *
    * Note: This version does not support the "undo_edit" command.
-   *
-   * Tool name must be `str_replace_based_edit_tool`.
    *
    * @deprecated Use textEditor_20250728 instead
    */
@@ -143,16 +123,12 @@ export const anthropicTools = {
    *
    * Supported models: Claude Sonnet 4, Opus 4, and Opus 4.1
    *
-   * Tool name must be `str_replace_based_edit_tool`.
-   *
    * @param maxCharacters - Optional maximum number of characters to view in the file
    */
   textEditor_20250728,
 
   /**
    * Creates a web fetch tool that gives Claude direct access to real-time web content.
-   *
-   * Tool name must be `web_fetch`.
    *
    * @param maxUses - The max_uses parameter limits the number of web fetches performed
    * @param allowedDomains - Only fetch from these domains
@@ -164,8 +140,6 @@ export const anthropicTools = {
 
   /**
    * Creates a web search tool that gives Claude direct access to real-time web content.
-   *
-   * Tool name must be `web_search`.
    *
    * @param maxUses - Maximum number of web searches Claude can perform during the conversation.
    * @param allowedDomains - Optional list of domains that Claude is allowed to search.
