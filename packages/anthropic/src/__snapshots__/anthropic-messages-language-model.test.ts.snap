@@ -679,6 +679,76 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should 
 ]
 `;
 
+exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > bm25 variant > should include tool search tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll search for a weather-related tool to help you get the current weather in San Francisco.",
+    "type": "text",
+  },
+  {
+    "input": "{"query":"weather current conditions San Francisco"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_011Jcb838xqvZyWwDt7bWqAz",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_weather",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_011Jcb838xqvZyWwDt7bWqAz",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "Great! I found a weather tool. Let me get the current weather in San Francisco for you.",
+    "type": "text",
+  },
+  {
+    "input": "{"location":"San Francisco, CA"}",
+    "toolCallId": "toolu_01PFQG18bVLaXcEaCxTZtX4G",
+    "toolName": "get_weather",
+    "type": "tool-call",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > regex variant > should include tool search tool call and result in content 1`] = `
+[
+  {
+    "input": "{"pattern":"weather|SF|San Francisco|forecast|temperature|climate","limit":10}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_temp_data",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "I found a tool to get temperature data! Let me use it to get the weather information for San Francisco.",
+    "type": "text",
+  },
+  {
+    "input": "{"location":"San Francisco, CA","unit":"fahrenheit"}",
+    "toolCallId": "toolu_01X4r989CAhzqnFqDJn1gVvp",
+    "toolName": "get_temp_data",
+    "type": "tool-call",
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {

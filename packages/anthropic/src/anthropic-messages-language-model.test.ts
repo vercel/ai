@@ -2155,6 +2155,217 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('tool search tool', () => {
+      describe('regex variant', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-tool-search-regex.1');
+
+          result = await provider('claude-sonnet-4-5').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'Find out weather data in SF' },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_regex_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_temp_data',
+                description: 'For a location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with tool search tool and deferred tools', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "max_tokens": 64000,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "Find out weather data in SF",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-sonnet-4-5",
+              "tools": [
+                {
+                  "name": "tool_search_tool_regex",
+                  "type": "tool_search_tool_regex_20251119",
+                },
+                {
+                  "defer_loading": true,
+                  "description": "For a location",
+                  "input_schema": {
+                    "properties": {
+                      "location": {
+                        "type": "string",
+                      },
+                      "unit": {
+                        "enum": [
+                          "celsius",
+                          "fahrenheit",
+                        ],
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "name": "get_temp_data",
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include advanced-tool-use beta header', async () => {
+          expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+            {
+              "anthropic-beta": "structured-outputs-2025-11-13,advanced-tool-use-2025-11-20",
+              "anthropic-version": "2023-06-01",
+              "content-type": "application/json",
+              "x-api-key": "test-api-key",
+            }
+          `);
+        });
+
+        it('should include tool search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
+      describe('bm25 variant', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-tool-search-bm25.1');
+
+          result = await provider('claude-sonnet-4-5').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'What is the weather in San Francisco?',
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_bm25_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get the current weather at a specific location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with tool search bm25 tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "max_tokens": 64000,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "What is the weather in San Francisco?",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-sonnet-4-5",
+              "tools": [
+                {
+                  "name": "tool_search_tool_bm25",
+                  "type": "tool_search_tool_bm25_20251119",
+                },
+                {
+                  "defer_loading": true,
+                  "description": "Get the current weather at a specific location",
+                  "input_schema": {
+                    "properties": {
+                      "location": {
+                        "type": "string",
+                      },
+                      "unit": {
+                        "enum": [
+                          "celsius",
+                          "fahrenheit",
+                        ],
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "name": "get_weather",
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include advanced-tool-use beta header', async () => {
+          expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+            {
+              "anthropic-beta": "structured-outputs-2025-11-13,advanced-tool-use-2025-11-20",
+              "anthropic-version": "2023-06-01",
+              "content-type": "application/json",
+              "x-api-key": "test-api-key",
+            }
+          `);
+        });
+
+        it('should include tool search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+    });
+
     describe('mcp servers', () => {
       it('should send request body with include and tool', async () => {
         prepareJsonFixtureResponse('anthropic-mcp.1');
