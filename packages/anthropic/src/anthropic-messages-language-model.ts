@@ -240,6 +240,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         'anthropic.memory_20250818': 'memory',
         'anthropic.web_search_20250305': 'web_search',
         'anthropic.web_fetch_20250910': 'web_fetch',
+        'anthropic.tool_search_regex_20251119': 'tool_search',
+        'anthropic.tool_search_bm25_20251119': 'tool_search',
       },
     });
 
@@ -672,6 +674,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
+          } else if (
+            part.name === 'tool_search_tool_regex' ||
+            part.name === 'tool_search_tool_bm25'
+          ) {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              input: JSON.stringify(part.input),
+              providerExecuted: true,
+            });
           }
 
           break;
@@ -826,6 +839,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           });
           break;
         }
+
+        // tool search tool results:
+        case 'tool_search_tool_result': {
+          if (part.content.type === 'tool_search_tool_search_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              result: part.content.tool_references.map(ref => ({
+                type: ref.type,
+                toolName: ref.tool_name,
+              })),
+            });
+          } else {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              isError: true,
+              result: {
+                type: 'tool_search_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+            });
+          }
+          break;
+        }
       }
     }
 
@@ -942,6 +982,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | 'code_execution_tool_result'
       | 'text_editor_code_execution_tool_result'
       | 'bash_code_execution_tool_result'
+      | 'tool_search_tool_result'
       | 'mcp_tool_use'
       | 'mcp_tool_result'
       | undefined = undefined;
@@ -1071,6 +1112,29 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                     const customToolName =
                       toolNameMapping.toCustomToolName(providerToolName);
+
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: '',
+                      providerExecuted: true,
+                      firstDelta: true,
+                      providerToolName: part.name,
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: customToolName,
+                      providerExecuted: true,
+                    });
+                  } else if (
+                    part.name === 'tool_search_tool_regex' ||
+                    part.name === 'tool_search_tool_bm25'
+                  ) {
+                    const customToolName =
+                      toolNameMapping.toCustomToolName('tool_search');
 
                     contentBlocks[value.index] = {
                       type: 'tool-call',
@@ -1221,6 +1285,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       toolNameMapping.toCustomToolName('code_execution'),
                     result: part.content,
                   });
+                  return;
+                }
+
+                // tool search tool results:
+                case 'tool_search_tool_result': {
+                  if (part.content.type === 'tool_search_tool_search_result') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      result: part.content.tool_references.map(ref => ({
+                        type: ref.type,
+                        toolName: ref.tool_name,
+                      })),
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      isError: true,
+                      result: {
+                        type: 'tool_search_tool_result_error',
+                        errorCode: part.content.error_code,
+                      },
+                    });
+                  }
                   return;
                 }
 

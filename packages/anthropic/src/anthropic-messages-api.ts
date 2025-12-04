@@ -114,7 +114,10 @@ export interface AnthropicServerToolUseContent {
     | 'code_execution'
     // code execution 20250825:
     | 'bash_code_execution'
-    | 'text_editor_code_execution';
+    | 'text_editor_code_execution'
+    // tool search:
+    | 'tool_search_tool_regex'
+    | 'tool_search_tool_bm25';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -571,6 +574,26 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // tool search tool results for tool_search_tool_regex_20251119 and tool_search_tool_bm25_20251119:
+          z.object({
+            type: z.literal('tool_search_tool_result'),
+            tool_use_id: z.string(),
+            content: z.union([
+              z.object({
+                type: z.literal('tool_search_tool_search_result'),
+                tool_references: z.array(
+                  z.object({
+                    type: z.literal('tool_reference'),
+                    tool_name: z.string(),
+                  }),
+                ),
+              }),
+              z.object({
+                type: z.literal('tool_search_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -776,6 +799,26 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 new_start: z.number().nullable(),
                 old_lines: z.number().nullable(),
                 old_start: z.number().nullable(),
+              }),
+            ]),
+          }),
+          // tool search tool results for tool_search_tool_regex_20251119 and tool_search_tool_bm25_20251119:
+          z.object({
+            type: z.literal('tool_search_tool_result'),
+            tool_use_id: z.string(),
+            content: z.union([
+              z.object({
+                type: z.literal('tool_search_tool_search_result'),
+                tool_references: z.array(
+                  z.object({
+                    type: z.literal('tool_reference'),
+                    tool_name: z.string(),
+                  }),
+                ),
+              }),
+              z.object({
+                type: z.literal('tool_search_tool_result_error'),
+                error_code: z.string(),
               }),
             ]),
           }),

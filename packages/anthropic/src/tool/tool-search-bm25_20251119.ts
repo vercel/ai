@@ -32,6 +32,10 @@ const toolSearchBm25_20251119InputSchema = lazySchema(() =>
        * Claude will use BM25 text search to find relevant tools.
        */
       query: z.string(),
+      /**
+       * Maximum number of tools to return. Optional.
+       */
+      limit: z.number().optional(),
     }),
   ),
 );
@@ -43,6 +47,10 @@ const factory = createProviderToolFactoryWithOutputSchema<
      * Claude will use BM25 text search to find relevant tools.
      */
     query: string;
+    /**
+     * Maximum number of tools to return. Optional.
+     */
+    limit?: number;
   },
   Array<{
     type: 'tool_reference';

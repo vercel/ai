@@ -37,7 +37,11 @@ const toolSearchRegex_20251119InputSchema = lazySchema(() =>
        * - "database.*query|query.*database" - OR patterns for flexibility
        * - "(?i)slack" - case-insensitive search
        */
-      query: z.string(),
+      pattern: z.string(),
+      /**
+       * Maximum number of tools to return. Optional.
+       */
+      limit: z.number().optional(),
     }),
   ),
 );
@@ -54,7 +58,11 @@ const factory = createProviderToolFactoryWithOutputSchema<
      * - "database.*query|query.*database" - OR patterns for flexibility
      * - "(?i)slack" - case-insensitive search
      */
-    query: string;
+    pattern: string;
+    /**
+     * Maximum number of tools to return. Optional.
+     */
+    limit?: number;
   },
   Array<{
     type: 'tool_reference';
