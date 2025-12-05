@@ -29,7 +29,6 @@ export interface GenerateTextResult<
   /**
 The content that was generated in the last step.
    */
-  // TODO AI SDK 5.1 / AI SDK 6: consider renaming to output
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
