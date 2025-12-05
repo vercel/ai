@@ -3,6 +3,7 @@
 import { readFileSync } from 'fs';
 import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
+import { generateImage } from '../../../../packages/ai/src/generate-image/generate-image';
 
 /* 
     for reference: edit image using curl
@@ -118,6 +119,26 @@ async function replaceCharacter() {
   await sendRequestAndHandleResponse(input);
 }
 
+async function replaceCharacterAi() {
+  const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+  
+  await presentImages([
+      {
+        uint8Array: Buffer.from(b64_json, 'base64'),
+        base64: '',
+        mediaType: '',
+      },
+    ]);
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: {
+      text: 'Turn the cat into a dog but retain the style and dimensions of the original image',
+      images: [new Blob([imageBuffer], { type: 'image/png' })],
+    }
+  });
+}
+
 async function createVariations() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
 
@@ -127,6 +148,39 @@ async function createVariations() {
     image: new Blob([imageBuffer], { type: 'image/png' }),
   };
   await sendRequestAndHandleResponse(input, 'https://api.openai.com/v1/images/variations');
+}
+
+/**
+ * OpenAI provider will infer the intend that the user wants variations
+ * and sends request to https://api.openai.com/v1/images/variations instead of
+ * the default https://api.openai.com/v1/images/edits endpoint.
+ */
+async function createVariationsAi() {
+  const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: {
+      images: [new Blob([imageBuffer], { type: 'image/png' })],
+    },
+    n: 3
+  });
+
+  // or
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: [new Blob([imageBuffer], { type: 'image/png' })],
+    n: 3
+  });
+
+  // or even
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: new Blob([imageBuffer], { type: 'image/png' }),
+    n: 3
+  });
 }
 
 async function removeBackground() {
@@ -142,16 +196,57 @@ async function removeBackground() {
   await sendRequestAndHandleResponse(input);
 }
 
+async function removeBackgroundAi() {
+  const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+
+  const input: Input = {
+    model: 'gpt-image-1',
+    image: new Blob([imageBuffer], { type: 'image/png' }),
+    background: 'transparent',
+    prompt: 'do not change anything',
+    output_format: 'png',
+  };
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: new Blob([imageBuffer], { type: 'image/png' }),
+    n: 3,
+    providerOptions: {
+      openai: {
+        image: {
+          background: 'transparent',
+          output_format: 'png',
+        }
+      }
+    }
+  });
+}
+
 async function upscaleImage() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
 
   const input: Input = {
     model: 'gpt-image-1',
     image: new Blob([imageBuffer], { type: 'image/png' }),
-    prompt: 'do not change anything',
+    prompt: 'upscale',
     size: '1024x1024',
   };
   await sendRequestAndHandleResponse(input);
+}
+
+/**
+ * No prompt needed as this is just an upscale operation.
+ * 
+ * API requires a prompt, so we just set it to "upscale"
+ */
+async function upscaleImageAi() {
+  const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: new Blob([imageBuffer], { type: 'image/png' }),
+    size: '1024x1024',
+  });
 }
 
 async function combineImages() {
@@ -171,6 +266,24 @@ async function combineImages() {
   await sendRequestAndHandleResponse(input);
 }
 
+async function combineImagesAi() {
+  const cat = readFileSync('data/comic-cat.png') as BlobPart;
+  const dog = readFileSync('data/comic-dog.png') as BlobPart;
+  const owl = readFileSync('data/comic-owl.png') as BlobPart;
+  const bear = readFileSync('data/comic-bear.png') as BlobPart;
+  const images = [cat, dog, owl, bear].map(
+    (img) => new Blob([img], { type: 'image/png' }) as Blob,
+  );
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: {
+      text: 'Combine these animals into an image containing all 4 ouf them, like a group photo, retaining the style and dimensions of the original images',
+      images,
+    }
+  });
+}
+
 async function editWithMask() {
   const image = readFileSync('data/sunlit_lounge.png') as BlobPart;
   const mask = readFileSync('data/sunlit_lounge_mask.png') as BlobPart;
@@ -185,6 +298,26 @@ async function editWithMask() {
   await sendRequestAndHandleResponse(input);
 }
 
+
+/**
+ * Mask requirements differ between providers. Some need black/white images. Some need alpha channel. Some need
+ * blacked out areas. Some need a rectangular area in a bright contrastincg color to mark the area to be updated.
+ * Supporting compatibility might be something that we could provide with gateway out of the box?
+ */
+async function editWithMaskAi() {
+  const image = readFileSync('data/sunlit_lounge.png') as BlobPart;
+  const mask = readFileSync('data/sunlit_lounge_mask.png') as BlobPart;
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: {
+      text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+      images: [new Blob([image], { type: 'image/png' })],
+      mask: new Blob([mask], { type: 'image/png' }),
+    }
+  });
+}
+
 async function outpaint() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
 
@@ -197,10 +330,23 @@ async function outpaint() {
   await sendRequestAndHandleResponse(input);
 }
 
+async function outpaintAi() {
+  const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+
+  generateImage({
+    model: 'gpt-image-1',
+    prompt: {
+      text: 'Expand the image to show more background scenery on the left side of the cat, retaining the style and dimensions of the original image',
+      images: [new Blob([imageBuffer], { type: 'image/png' })],
+    },
+    size: '1536x1024',
+  });
+}
+
 // replaceCharacter().catch(console.error);
-createVariations().catch(console.error);
+// createVariations().catch(console.error);
 // removeBackground().catch(console.error);
-// upscaleImage().catch(console.error);
+upscaleImage().catch(console.error);
 // combineImages().catch(console.error);
 // editWithMask().catch(console.error);
 // outpaint().catch(console.error);
