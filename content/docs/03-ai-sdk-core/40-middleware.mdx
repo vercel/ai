@@ -342,8 +342,8 @@ export const yourGuardrailMiddleware: LanguageModelV3Middleware = {
 To send and access custom metadata in Middleware, you can use `providerOptions`. This is useful when building logging middleware where you want to pass additional context like user IDs, timestamps, or other contextual data that can help with tracking and debugging.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateText, wrapLanguageModel } from 'ai';
+__PROVIDER_IMPORT__;
 import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
 
 export const yourLogMiddleware: LanguageModelV3Middleware = {
@@ -356,7 +356,7 @@ export const yourLogMiddleware: LanguageModelV3Middleware = {
 
 const { text } = await generateText({
   model: wrapLanguageModel({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     middleware: yourLogMiddleware,
   }),
   prompt: 'Invent a new holiday and describe its traditions.',
