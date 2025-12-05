@@ -57,6 +57,22 @@ export type AnthropicFilePartProviderOptions = z.infer<
   typeof anthropicFilePartProviderOptions
 >;
 
+/**
+ * Anthropic tool provider options for function tools.
+ * These options allow configuring how tools can be called.
+ *
+ * @see https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling
+ */
+export const anthropicToolProviderOptions = z.object({
+  allowedCallers: z
+    .array(z.enum(['direct', 'code_execution_20250825']))
+    .optional(),
+});
+
+export type AnthropicToolProviderOptions = z.infer<
+  typeof anthropicToolProviderOptions
+>;
+
 export const anthropicProviderOptions = z.object({
   /**
    * Whether to send reasoning to the model.

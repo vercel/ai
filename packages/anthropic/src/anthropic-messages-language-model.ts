@@ -29,7 +29,11 @@ import {
   resolve,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import {
+  AnthropicMessageMetadata,
+  AnthropicToolCallCaller,
+  AnthropicToolCallMetadata,
+} from './anthropic-message-metadata';
 import {
   AnthropicContainer,
   anthropicMessagesChunkSchema,
@@ -637,11 +641,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               text: JSON.stringify(part.input),
             });
           } else {
+            // Map caller info from API response to SDK format
+            const caller: AnthropicToolCallCaller | undefined = part.caller
+              ? part.caller.type === 'direct'
+                ? { type: 'direct' }
+                : {
+                    type: 'code_execution_20250825',
+                    toolId: part.caller.tool_id,
+                  }
+              : undefined;
+
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: part.name,
               input: JSON.stringify(part.input),
+              ...(caller != null
+                ? {
+                    providerMetadata: {
+                      anthropic: {
+                        caller,
+                      } satisfies AnthropicToolCallMetadata,
+                    },
+                  }
+                : {}),
             });
           }
 
@@ -920,6 +943,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           providerExecuted?: boolean;
           firstDelta: boolean;
           providerToolName?: string;
+          caller?: AnthropicToolCallCaller;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -1032,12 +1056,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       id: String(value.index),
                     });
                   } else {
+                    // Map caller info from API response to SDK format
+                    const caller: AnthropicToolCallCaller | undefined =
+                      part.caller
+                        ? part.caller.type === 'direct'
+                          ? { type: 'direct' }
+                          : {
+                              type: 'code_execution_20250825',
+                              toolId: part.caller.tool_id,
+                            }
+                        : undefined;
+
                     contentBlocks[value.index] = {
                       type: 'tool-call',
                       toolCallId: part.id,
                       toolName: part.name,
                       input: '',
                       firstDelta: true,
+                      caller,
                     };
 
                     controller.enqueue({
@@ -1307,6 +1343,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         input:
                           contentBlock.input === '' ? '{}' : contentBlock.input,
                         providerExecuted: contentBlock.providerExecuted,
+                        ...(contentBlock.caller != null
+                          ? {
+                              providerMetadata: {
+                                anthropic: {
+                                  caller: contentBlock.caller,
+                                } satisfies AnthropicToolCallMetadata,
+                              },
+                            }
+                          : {}),
                       });
                     }
                     break;

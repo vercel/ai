@@ -3,12 +3,17 @@ import {
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
+import { parseProviderOptions, validateTypes } from '@ai-sdk/provider-utils';
+import {
+  AnthropicAllowedCaller,
+  AnthropicTool,
+  AnthropicToolChoice,
+} from './anthropic-messages-api';
+import { anthropicToolProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
-import { validateTypes } from '@ai-sdk/provider-utils';
 
 export async function prepareTools({
   tools,
@@ -53,6 +58,18 @@ export async function prepareTools({
           canCache: true,
         });
 
+        // Parse Anthropic-specific tool options
+        const anthropicToolOptions = await parseProviderOptions({
+          provider: 'anthropic',
+          providerOptions: tool.providerOptions,
+          schema: anthropicToolProviderOptions,
+        });
+
+        // Convert allowedCallers to Anthropic API format
+        const allowedCallers = anthropicToolOptions?.allowedCallers as
+          | AnthropicAllowedCaller[]
+          | undefined;
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
@@ -68,9 +85,20 @@ export async function prepareTools({
                 ),
               }
             : {}),
+          ...(allowedCallers != null && allowedCallers.length > 0
+            ? { allowed_callers: allowedCallers }
+            : {}),
         });
 
         if (tool.inputExamples != null) {
+          betas.add('advanced-tool-use-2025-11-20');
+        }
+
+        // Add advanced-tool-use beta when programmatic tool calling is used
+        if (
+          allowedCallers != null &&
+          allowedCallers.includes('code_execution_20250825')
+        ) {
           betas.add('advanced-tool-use-2025-11-20');
         }
 

@@ -272,6 +272,13 @@ export interface AnthropicMcpToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+/**
+ * The `allowed_callers` field specifies which contexts can invoke a tool.
+ *
+ * @see https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling
+ */
+export type AnthropicAllowedCaller = 'direct' | 'code_execution_20250825';
+
 export type AnthropicTool =
   | {
       name: string;
@@ -279,6 +286,7 @@ export type AnthropicTool =
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
       strict?: boolean;
+      allowed_callers?: AnthropicAllowedCaller[];
     }
   | {
       type: 'code_execution_20250522';
@@ -416,6 +424,17 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.unknown(),
+            caller: z
+              .discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('direct'),
+                }),
+                z.object({
+                  type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -620,6 +639,17 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
+            caller: z
+              .discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('direct'),
+                }),
+                z.object({
+                  type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('redacted_thinking'),
