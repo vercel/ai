@@ -491,7 +491,7 @@ The `providerMetadata` input parameter has been renamed to `providerOptions`. No
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   prompt: 'Hello',
   providerMetadata: {
     openai: { store: false },
@@ -501,7 +501,7 @@ const result = await generateText({
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   prompt: 'Hello',
   providerOptions: {
     // Input parameter renamed

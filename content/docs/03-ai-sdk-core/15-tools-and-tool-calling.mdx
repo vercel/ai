@@ -22,6 +22,7 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 ```ts highlight="6-17"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
   model: __MODEL__,
@@ -673,11 +674,11 @@ You can use different strategies to repair the tool call:
 ### Example: Use a model with structured outputs for repair
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model,
+  model: __MODEL__,
   tools,
   prompt,
 
@@ -714,11 +715,11 @@ const result = await generateText({
 ### Example: Use the re-ask strategy for repair
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model,
+  model: __MODEL__,
   tools,
   prompt,
 
@@ -786,7 +787,6 @@ It is an array of tool names that are currently active.
 By default, the value is `undefined` and all tools are active.
 
 ```ts highlight="7"
-import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;
 
