@@ -132,7 +132,7 @@ describe('validateAndApplyToolInputOverrides', () => {
           type: 'tool-approval-request',
           approvalId: 'approval-1',
           toolCallId: 'call-1',
-          allowsInputEditing: undefined
+          allowsInputEditing: undefined,
         },
         approvalResponse: {
           type: 'tool-approval-response',

@@ -8,7 +8,7 @@ export default function WeatherWithApprovalView({
 }: {
   invocation: WeatherUIToolWithApprovalInvocation;
   addToolApprovalResponse: ChatAddToolApproveResponseFunction;
-  }) {
+}) {
   const [city, setCity] = useState(invocation.input?.city ?? '');
 
   switch (invocation.state) {
@@ -17,11 +17,11 @@ export default function WeatherWithApprovalView({
         <div className="text-gray-500">
           <div>Can I retrieve the weather for {invocation.input.city}?</div>
           {invocation.approval.allowsInputEditing && (
-          <input
-            value={city}
-            onChange={e => setCity(e.target.value)}
-            className="mt-2 px-2 py-1 border rounded"
-          />
+            <input
+              value={city}
+              onChange={e => setCity(e.target.value)}
+              className="mt-2 px-2 py-1 border rounded"
+            />
           )}
           <div className="mt-2">
             <button
@@ -31,7 +31,10 @@ export default function WeatherWithApprovalView({
                 addToolApprovalResponse({
                   id: invocation.approval.id,
                   approved: true,
-                  override: trimmed && trimmed !== invocation.input.city ? { input: { city: trimmed } } : undefined,
+                  override:
+                    trimmed && trimmed !== invocation.input.city
+                      ? { input: { city: trimmed } }
+                      : undefined,
                 });
               }}
             >
@@ -54,7 +57,8 @@ export default function WeatherWithApprovalView({
     case 'approval-responded':
       return (
         <div className="text-gray-500">
-          Can I retrieve the weather for {invocation.approval.override?.input.city ?? invocation.input.city}?
+          Can I retrieve the weather for{' '}
+          {invocation.approval.override?.input.city ?? invocation.input.city}?
           <div>{invocation.approval.approved ? 'Approved' : 'Denied'}</div>
         </div>
       );

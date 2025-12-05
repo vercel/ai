@@ -65,7 +65,9 @@ run(async () => {
             `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n/e)?`,
           );
 
-          const approved = ['y', 'yes', 'e', 'edit'].includes(answer.toLowerCase());
+          const approved = ['y', 'yes', 'e', 'edit'].includes(
+            answer.toLowerCase(),
+          );
           const edit = ['e', 'edit'].includes(answer.toLowerCase());
 
           let override = undefined;
