@@ -74,6 +74,7 @@ Create an `index.ts` file in the root of your project and add the following code
 
 ```ts filename="index.ts"
 import { ModelMessage, streamText } from 'ai';
+{{PROVIDER_IMPORT}}
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 
@@ -91,7 +92,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: {{MODEL}},
       messages,
     });
 
@@ -137,7 +138,7 @@ The AI SDK supports dozens of model providers through [first-party](/providers/a
 This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
 
 ```ts
-model: 'anthropic/claude-sonnet-4.5';
+model: {{MODEL}};
 ```
 
 You can also explicitly import and use the gateway provider in two other equivalent ways:
@@ -197,6 +198,7 @@ Modify your `index.ts` file to include the new weather tool:
 
 ```ts filename="index.ts" highlight="2,4,24-37"
 import { ModelMessage, streamText, tool } from 'ai';
+{{PROVIDER_IMPORT}}
 import 'dotenv/config';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
@@ -215,7 +217,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: {{MODEL}},
       messages,
       tools: {
         weather: tool({
@@ -268,6 +270,7 @@ Notice the blank "assistant" response? This is because instead of generating a t
 
 ```typescript highlight="46-47"
 import { ModelMessage, streamText, tool } from 'ai';
+{{PROVIDER_IMPORT}}
 import 'dotenv/config';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
@@ -286,7 +289,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: {{MODEL}},
       messages,
       tools: {
         weather: tool({
@@ -338,6 +341,7 @@ Modify your `index.ts` file to configure stopping conditions with `stopWhen`:
 
 ```ts filename="index.ts" highlight="38-41"
 import { ModelMessage, streamText, tool, stepCountIs } from 'ai';
+{{PROVIDER_IMPORT}}
 import 'dotenv/config';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
@@ -356,7 +360,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: {{MODEL}},
       messages,
       tools: {
         weather: tool({
@@ -413,6 +417,7 @@ Update your `index.ts` file to add a new tool to convert the temperature from Ce
 
 ```ts filename="index.ts" highlight="37-48"
 import { ModelMessage, streamText, tool, stepCountIs } from 'ai';
+{{PROVIDER_IMPORT}}
 import 'dotenv/config';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
@@ -431,7 +436,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: {{MODEL}},
       messages,
       tools: {
         weather: tool({

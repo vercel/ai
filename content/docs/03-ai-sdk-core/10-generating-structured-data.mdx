@@ -31,10 +31,11 @@ The schema is also used to validate the generated data, ensuring type safety and
 
 ```ts
 import { generateObject } from 'ai';
+{{PROVIDER_IMPORT}}
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -125,10 +126,11 @@ With `streamObject`, you can also stream the generated array elements using `ele
 
 ```ts highlight="7,18"
 import { streamObject } from 'ai';
+{{PROVIDER_IMPORT}}
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -155,9 +157,10 @@ and provide a list of possible values in the `enum` parameter.
 
 ```ts highlight="5-6"
 import { generateObject } from 'ai';
+{{PROVIDER_IMPORT}}
 
 const { object } = await generateObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -176,9 +179,10 @@ and omit the schema parameter.
 
 ```ts highlight="6"
 import { generateObject } from 'ai';
+{{PROVIDER_IMPORT}}
 
 const { object } = await generateObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -190,10 +194,11 @@ You can optionally specify a name and description for the schema. These are used
 
 ```ts highlight="6-7"
 import { generateObject } from 'ai';
+{{PROVIDER_IMPORT}}
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   schemaName: 'Recipe',
   schemaDescription: 'A recipe for a dish.',
   schema: z.object({

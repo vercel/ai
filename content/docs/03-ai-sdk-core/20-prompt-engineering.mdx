@@ -35,7 +35,7 @@ and then use a Zod transformer to convert the string to a Date object.
 
 ```ts highlight="7-10"
 const result = await generateObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   schema: z.object({
     events: z.array(
       z.object({
@@ -90,7 +90,7 @@ For tool calls and object generation, it's recommended to use `temperature: 0` t
 
 ```ts highlight="3"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   temperature: 0, // Recommended for tool calls
   tools: {
     myTool: tool({
@@ -120,7 +120,7 @@ To check if your prompt, tools, and settings are handled correctly by the provid
 
 ```ts
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Hello, world!',
 });
 
@@ -136,7 +136,7 @@ Request bodies are available via the `request.body` property of the response:
 
 ```ts highlight="6"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Hello, world!',
 });
 

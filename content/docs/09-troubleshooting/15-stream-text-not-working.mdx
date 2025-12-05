@@ -21,9 +21,10 @@ To log errors, you can provide an `onError` callback that is triggered when an e
 
 ```tsx highlight="6-8"
 import { streamText } from 'ai';
+{{PROVIDER_IMPORT}}
 
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Invent a new holiday and describe its traditions.',
   onError({ error }) {
     console.error(error); // your error logging logic here

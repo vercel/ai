@@ -28,6 +28,7 @@ Create a route handler that calls a model and then streams the responses in a cu
 ```tsx filename="app/api/stream/route.ts"
 import { tools } from '@/ai/tools'; // your tools
 import { stepCountIs, streamText } from 'ai';
+{{PROVIDER_IMPORT}}
 
 export type StreamEvent =
   | { type: 'text'; text: string }
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     prompt,
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     tools,
     stopWhen: stepCountIs(5),
   });

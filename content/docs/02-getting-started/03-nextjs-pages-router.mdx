@@ -97,12 +97,13 @@ Create a Route Handler (`app/api/chat/route.ts`) and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { streamText, UIMessage, convertToModelMessages } from 'ai';
+{{PROVIDER_IMPORT}}
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     messages: convertToModelMessages(messages),
   });
 
@@ -126,7 +127,7 @@ The AI SDK supports dozens of model providers through [first-party](/providers/a
 This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
 
 ```ts
-model: 'anthropic/claude-sonnet-4.5';
+model: {{MODEL}};
 ```
 
 You can also explicitly import and use the gateway provider in two other equivalent ways:
@@ -253,13 +254,14 @@ Let's start by giving your chatbot a weather tool. Update your Route Handler (`a
 
 ```tsx filename="app/api/chat/route.ts"
 import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
+{{PROVIDER_IMPORT}}
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     messages: convertToModelMessages(messages),
     tools: {
       weather: tool({
@@ -375,13 +377,14 @@ import {
   tool,
   stepCountIs,
 } from 'ai';
+{{PROVIDER_IMPORT}}
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     tools: {
@@ -421,13 +424,14 @@ import {
   tool,
   stepCountIs,
 } from 'ai';
+{{PROVIDER_IMPORT}}
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     tools: {

@@ -13,10 +13,11 @@ It can be used to force the language model to return structured data, e.g. for i
 
 ```ts
 import { streamObject } from 'ai';
+{{PROVIDER_IMPORT}}
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -40,10 +41,11 @@ You can use `elementStream` to get the stream of complete array elements.
 
 ```ts highlight="7,18"
 import { streamObject } from 'ai';
+{{PROVIDER_IMPORT}}
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -66,7 +68,7 @@ for await (const hero of elementStream) {
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -86,7 +88,7 @@ and provide the list of possible values in the `enum` parameter.
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:

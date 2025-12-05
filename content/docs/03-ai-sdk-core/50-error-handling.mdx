@@ -11,10 +11,11 @@ Regular errors are thrown and can be handled using the `try/catch` block.
 
 ```ts highlight="3,8-10"
 import { generateText } from 'ai';
+{{PROVIDER_IMPORT}}
 
 try {
   const { text } = await generateText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   });
 } catch (error) {
@@ -32,10 +33,11 @@ You can handle these errors using the `try/catch` block.
 
 ```ts highlight="3,12-14"
 import { streamText } from 'ai';
+{{PROVIDER_IMPORT}}
 
 try {
   const { textStream } = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   });
 
@@ -56,10 +58,11 @@ happen outside of the streaming.
 
 ```ts highlight="13-21"
 import { streamText } from 'ai';
+{{PROVIDER_IMPORT}}
 
 try {
   const { fullStream } = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   });
 
@@ -98,9 +101,10 @@ The `onAbort` callback is called when a stream is aborted via `AbortSignal`, but
 
 ```ts highlight="5-9"
 import { streamText } from 'ai';
+{{PROVIDER_IMPORT}}
 
 const { textStream } = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   onAbort: ({ steps }) => {
     // Update stored messages or perform cleanup
@@ -125,9 +129,10 @@ You can also handle abort events directly in the stream:
 
 ```ts highlight="10-13"
 import { streamText } from 'ai';
+{{PROVIDER_IMPORT}}
 
 const { fullStream } = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 

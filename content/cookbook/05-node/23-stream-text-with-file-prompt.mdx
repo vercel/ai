@@ -10,12 +10,13 @@ Working with files in AI applications often requires analyzing documents, proces
 
 ```ts
 import { streamText } from 'ai';
+{{PROVIDER_IMPORT}}
 import 'dotenv/config';
 import fs from 'node:fs';
 
 async function main() {
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     messages: [
       {
         role: 'user',

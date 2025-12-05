@@ -18,9 +18,10 @@ The `createAgentUIStreamResponse` function executes an [Agent](/docs/reference/a
 
 ```ts
 import { ToolLoopAgent, createAgentUIStreamResponse } from 'ai';
+{{PROVIDER_IMPORT}}
 
 const agent = new ToolLoopAgent({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   instructions: 'You are a helpful assistant.',
   tools: { weather: weatherTool, calculator: calculatorTool },
 });

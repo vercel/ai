@@ -124,7 +124,7 @@ The `maxTokens` parameter has been renamed to `maxOutputTokens` for clarity.
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   maxTokens: 1024,
   prompt: 'Hello, world!',
 });
@@ -132,7 +132,7 @@ const result = await generateText({
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   maxOutputTokens: 1024,
   prompt: 'Hello, world!',
 });
@@ -168,7 +168,7 @@ import { UIMessage, CreateUIMessage } from 'ai';
 import { convertToCoreMessages, streamText } from 'ai';
 
 const result = await streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages: convertToCoreMessages(messages),
 });
 ```
@@ -177,7 +177,7 @@ const result = await streamText({
 import { convertToModelMessages, streamText } from 'ai';
 
 const result = await streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages: convertToModelMessages(messages),
 });
 ```
@@ -371,7 +371,7 @@ const stream = createUIMessageStream({
 
     // Can merge with LLM streams
     const result = streamText({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: {{MODEL}},
       messages,
     });
 
@@ -398,7 +398,7 @@ export async function POST(req: Request) {
       dataStream.writeData('call started');
 
       const result = streamText({
-        model: 'anthropic/claude-sonnet-4.5',
+        model: {{MODEL}},
         messages,
         onChunk() {
           // Write message annotations
@@ -447,7 +447,7 @@ export async function POST(req: Request) {
       });
 
       const result = streamText({
-        model: 'anthropic/claude-sonnet-4.5',
+        model: {{MODEL}},
         messages,
         onChunk() {
           // Write data parts that update during streaming
@@ -654,7 +654,7 @@ The `toolCallStreaming` option has been removed in AI SDK 5.0. Tool call streami
 
 ```tsx filename="AI SDK 4.0"
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   toolCallStreaming: true, // Optional parameter to enable streaming
   tools: {
@@ -666,7 +666,7 @@ const result = streamText({
 
 ```tsx filename="AI SDK 5.0"
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages: convertToModelMessages(messages),
   // toolCallStreaming removed - streaming is always enabled
   tools: {
@@ -750,7 +750,7 @@ When using both static and dynamic tools together, use the `dynamic` flag for ty
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   tools: {
     // Static tool with known types
     weather: weatherTool,
@@ -1152,7 +1152,7 @@ For core functions like `generateText` and `streamText`, the `maxSteps` paramete
 ```tsx filename="AI SDK 4.0"
 // V4: Simple numeric limit
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   maxSteps: 5, // Stop after a maximum of 5 steps
 });
@@ -1168,7 +1168,7 @@ import { stepCountIs, hasToolCall } from 'ai';
 
 // V5: Server-side - flexible stopping conditions with stopWhen
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   // Only triggers when last step has tool results
   stopWhen: stepCountIs(5), // Stop at step 5 if tools were called
@@ -1176,7 +1176,7 @@ const result = await generateText({
 
 // Server-side - stop when specific tool is called
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   stopWhen: hasToolCall('finalizeTask'), // Stop when finalizeTask tool is called
 });
@@ -1275,9 +1275,10 @@ const { messages, sendMessage } = useChat({
 ```tsx filename="AI SDK 5.0"
 // Server-side: Use stopWhen for multi-step control
 import { streamText, convertToModelMessages, stepCountIs } from 'ai';
+{{PROVIDER_IMPORT}}
 
 const result = await streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages: convertToModelMessages(messages),
   stopWhen: stepCountIs(5), // Stop after 5 steps with tool calls
 });
@@ -1788,6 +1789,7 @@ import {
   UIMessage,
   type LanguageModelUsage,
 } from 'ai';
+{{PROVIDER_IMPORT}}
 
 // Create a new metadata type (optional for type-safety)
 type MyMetadata = {
@@ -1801,7 +1803,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: MyUIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     messages: convertToModelMessages(messages),
   });
 
@@ -2348,7 +2350,7 @@ The `onChunk` callback now receives the new streaming chunk types with IDs and t
 
 ```tsx filename="AI SDK 4.0"
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Write a story',
   onChunk({ chunk }) {
     switch (chunk.type) {
@@ -2364,7 +2366,7 @@ const result = streamText({
 
 ```tsx filename="AI SDK 5.0"
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Write a story',
   onChunk({ chunk }) {
     switch (chunk.type) {
@@ -2549,7 +2551,7 @@ The streaming API has been completely restructured from data streams to UI messa
 // Express/Node.js servers
 app.post('/stream', async (req, res) => {
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     prompt: 'Generate content',
   });
 
@@ -2558,7 +2560,7 @@ app.post('/stream', async (req, res) => {
 
 // Next.js API routes
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Generate content',
 });
 
@@ -2569,7 +2571,7 @@ return result.toDataStreamResponse();
 // Express/Node.js servers
 app.post('/stream', async (req, res) => {
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: {{MODEL}},
     prompt: 'Generate content',
   });
 
@@ -2578,7 +2580,7 @@ app.post('/stream', async (req, res) => {
 
 // Next.js API routes
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Generate content',
 });
 
@@ -2835,7 +2837,7 @@ import { wrapLanguageModel } from 'ai';
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   tools: { weatherTool, locationTool },
   experimental_activeTools: ['weatherTool'],
@@ -2844,7 +2846,7 @@ const result = await generateText({
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   tools: { weatherTool, locationTool },
   activeTools: ['weatherTool'], // No longer experimental
@@ -2857,7 +2859,7 @@ The `experimental_prepareStep` option has been promoted and no longer requires t
 
 ```tsx filename="AI SDK 4.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   tools: { weatherTool, locationTool },
   experimental_prepareStep: ({ steps, stepNumber, model }) => {
@@ -2872,7 +2874,7 @@ const result = await generateText({
 
 ```tsx filename="AI SDK 5.0"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   tools: { weatherTool, locationTool },
   prepareStep: ({ steps, stepNumber, model }) => {
@@ -2900,7 +2902,7 @@ Temperature is no longer set to `0` by default.
 
 ```tsx filename="AI SDK 4.0"
 await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Write a creative story',
   // Implicitly temperature: 0
 });
@@ -2908,7 +2910,7 @@ await generateText({
 
 ```tsx filename="AI SDK 5.0"
 await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   prompt: 'Write a creative story',
   temperature: 0, // Must explicitly set
 });
@@ -2938,7 +2940,7 @@ const updatedMessages = appendClientMessage({
 });
 
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages: updatedMessages,
   experimental_generateMessageId: () => generateId(), // ID generation on streamText
   onFinish: async ({ responseMessages, usage }) => {
@@ -2964,7 +2966,7 @@ const messages: UIMessage[] = [
 ];
 
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages: convertToModelMessages(messages),
   // experimental_generateMessageId removed from here
 });
@@ -2996,7 +2998,7 @@ The `experimental_generateMessageId` option has been moved from `streamText` con
 
 ```tsx filename="AI SDK 4.0"
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages,
   experimental_generateMessageId: () => generateId(),
 });
@@ -3004,7 +3006,7 @@ const result = streamText({
 
 ```tsx filename="AI SDK 5.0"
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: {{MODEL}},
   messages: convertToModelMessages(messages),
 });
 
@@ -3041,7 +3043,7 @@ const stream = createUIMessageStream({
 
     // Stream the AI response
     const result = streamText({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: {{MODEL}},
       messages: convertToModelMessages(messages),
     });
 
