@@ -77,13 +77,13 @@ To handle the chat requests and model responses, set up an API route:
 
 ```ts filename="app/api/chat/route.ts"
 import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     system: 'You are a friendly assistant!',
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
@@ -129,14 +129,14 @@ Update the API route to include the tool you've defined:
 
 ```ts filename="app/api/chat/route.ts" highlight="3,8,14"
 import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { tools } from '@/ai/tools';
 
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     system: 'You are a friendly assistant!',
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),

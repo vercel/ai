@@ -22,7 +22,7 @@ import {
   createUIMessageStreamResponse,
   streamText,
 } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const response = createUIMessageStreamResponse({
   status: 200,
@@ -57,7 +57,7 @@ const response = createUIMessageStreamResponse({
 
       // Merge with LLM stream
       const result = streamText({
-        model: {{MODEL}},
+        model: __MODEL__,
         prompt: 'Say hello',
       });
 

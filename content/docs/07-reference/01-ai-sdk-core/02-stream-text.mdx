@@ -11,10 +11,10 @@ You can use the streamText function for interactive use cases such as chat bots 
 
 ```ts
 import { streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const { textStream } = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 

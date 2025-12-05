@@ -13,11 +13,11 @@ The `readUIMessageStream` helper transforms a stream of `UIMessageChunk` objects
 
 ```tsx
 import { readUIMessageStream, streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 async function main() {
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     prompt: 'Write a short story about a robot.',
   });
 
@@ -35,12 +35,12 @@ Handle streaming responses that include tool calls:
 
 ```tsx
 import { readUIMessageStream, streamText, tool } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 async function handleToolCalls() {
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -83,11 +83,11 @@ Resume streaming from a previous message state:
 
 ```tsx
 import { readUIMessageStream, streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 async function resumeConversation(lastMessage: UIMessage) {
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: [
       { role: 'user', content: 'Continue our previous conversation.' },
     ],

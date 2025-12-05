@@ -47,10 +47,10 @@ However, regardless of the speed of your model, the AI SDK is designed to make i
 
 ```ts
 import { streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const { textStream } = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Write a poem about embedding models.',
 });
 

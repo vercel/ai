@@ -319,14 +319,14 @@ Here's how to implement it:
 
 ```typescript filename="lib/generate-response.ts"
 import { generateText, ModelMessage } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 export const generateResponse = async (
   messages: ModelMessage[],
   updateStatus?: (status: string) => void,
 ) => {
   const { text } = await generateText({
-    model: {{MODEL}},
+    model: __MODEL__,
     system: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}`,
@@ -350,7 +350,7 @@ The real power of the AI SDK comes from tools that enable your bot to perform ac
 
 ```typescript filename="lib/generate-response.ts"
 import { generateText, tool, ModelMessage, stepCountIs } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 import { exa } from './utils';
 
@@ -359,7 +359,7 @@ export const generateResponse = async (
   updateStatus?: (status: string) => void,
 ) => {
   const { text } = await generateText({
-    model: {{MODEL}},
+    model: __MODEL__,
     system: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}

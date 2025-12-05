@@ -138,7 +138,7 @@ The AI SDK supports dozens of model providers through [first-party](/providers/a
 This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
 
 ```ts
-model: {{MODEL}};
+model: __MODEL__;
 ```
 
 You can also explicitly import and use the gateway provider in two other equivalent ways:

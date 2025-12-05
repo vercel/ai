@@ -61,10 +61,10 @@ For these languages we recommend using a custom regex, like the following:
 
 ```tsx filename="Japanese example"
 import { smoothStream, streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const result = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Your prompt here',
   experimental_transform: smoothStream({
     chunking: /[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/,
@@ -74,10 +74,10 @@ const result = streamText({
 
 ```tsx filename="Chinese example"
 import { smoothStream, streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const result = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Your prompt here',
   experimental_transform: smoothStream({
     chunking: /[\u4E00-\u9FFF]|\S+\s+/,

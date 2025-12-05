@@ -9,13 +9,13 @@ The `convertToModelMessages` function is used to transform an array of UI messag
 
 ```ts filename="app/api/chat/route.ts"
 import { convertToModelMessages, streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
   });
 
@@ -68,7 +68,7 @@ The `convertToModelMessages` function supports tools that can return multi-modal
 
 ```ts
 import { tool } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const screenshotTool = tool({
@@ -78,7 +78,7 @@ const screenshotTool = tool({
 });
 
 const result = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   messages: convertToModelMessages(messages, {
     tools: {
       screenshot: screenshotTool,
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages<CustomUIMessage>(messages, {
       convertDataPart: part => {
         // Convert URL attachments to text

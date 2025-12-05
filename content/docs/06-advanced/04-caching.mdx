@@ -126,7 +126,7 @@ This example uses [Upstash Redis](https://upstash.com/docs/redis/overall/getstar
 
 ```tsx filename="app/api/chat/route.ts"
 import { formatDataStreamPart, streamText, UIMessage } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { Redis } from '@upstash/redis';
 
 // Allow streaming responses up to 30 seconds
@@ -154,7 +154,7 @@ export async function POST(req: Request) {
 
   // Call the language model:
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     async onFinish({ text }) {
       // Cache the response text:

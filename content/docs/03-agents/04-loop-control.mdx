@@ -26,10 +26,10 @@ The AI SDK provides several built-in stopping conditions:
 
 ```ts
 import { ToolLoopAgent, stepCountIs } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: {{MODEL}},
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -47,10 +47,10 @@ Combine multiple stopping conditions. The loop stops when it meets any condition
 
 ```ts
 import { ToolLoopAgent, stepCountIs, hasToolCall } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: {{MODEL}},
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -71,7 +71,7 @@ Build custom stopping conditions for specific requirements:
 
 ```ts
 import { ToolLoopAgent, StopCondition, ToolSet } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const tools = {
   // your tools
@@ -83,7 +83,7 @@ const hasAnswer: StopCondition<typeof tools> = ({ steps }) => {
 };
 
 const agent = new ToolLoopAgent({
-  model: {{MODEL}},
+  model: __MODEL__,
   tools,
   stopWhen: hasAnswer,
 });
@@ -121,7 +121,7 @@ Switch models based on step requirements:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o-mini', // Default model
@@ -132,7 +132,7 @@ const agent = new ToolLoopAgent({
     // Use a stronger model for complex reasoning after initial steps
     if (stepNumber > 2 && messages.length > 10) {
       return {
-        model: {{MODEL}},
+        model: __MODEL__,
       };
     }
     // Continue with default settings
@@ -151,10 +151,10 @@ Manage growing conversation history in long-running loops:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: {{MODEL}},
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -183,10 +183,10 @@ Control which tools are available at each step:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: {{MODEL}},
+  model: __MODEL__,
   tools: {
     search: searchTool,
     analyze: analyzeTool,
@@ -249,10 +249,10 @@ Transform messages before sending them to the model:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: {{MODEL}},
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -313,7 +313,7 @@ Build your own agent loop when you need full control over execution:
 
 ```ts
 import { generateText, ModelMessage } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const messages: ModelMessage[] = [{ role: 'user', content: '...' }];
 
@@ -322,7 +322,7 @@ const maxSteps = 10;
 
 while (step < maxSteps) {
   const result = await generateText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages,
     tools: {
       // your tools here

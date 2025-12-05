@@ -15,12 +15,12 @@ Here's an example of how you can implement sequential actions:
 
 ```typescript
 import { generateText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 async function sequentialActions() {
   // Generate blog post ideas
   const ideasGeneration = await generateText({
-    model: {{MODEL}},
+    model: __MODEL__,
     prompt: 'Generate 10 ideas for a blog post about making spaghetti.',
   });
 
@@ -28,7 +28,7 @@ async function sequentialActions() {
 
   // Pick the best idea
   const bestIdeaGeneration = await generateText({
-    model: {{MODEL}},
+    model: __MODEL__,
     prompt: `Here are some blog post ideas about making spaghetti:
 ${ideasGeneration}
 
@@ -39,7 +39,7 @@ Pick the best idea from the list above and explain why it's the best.`,
 
   // Generate an outline
   const outlineGeneration = await generateText({
-    model: {{MODEL}},
+    model: __MODEL__,
     prompt: `We've chosen the following blog post idea about making spaghetti:
 ${bestIdeaGeneration}
 

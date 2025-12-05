@@ -13,11 +13,11 @@ It can be used to force the language model to return structured data, e.g. for i
 
 ```ts
 import { generateObject } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: {{MODEL}},
+  model: __MODEL__,
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -37,11 +37,11 @@ For arrays, you specify the schema of the array items.
 
 ```ts highlight="7"
 import { generateObject } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: {{MODEL}},
+  model: __MODEL__,
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -63,7 +63,7 @@ and provide the list of possible values in the `enum` parameter.
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: {{MODEL}},
+  model: __MODEL__,
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -79,7 +79,7 @@ const { object } = await generateObject({
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: {{MODEL}},
+  model: __MODEL__,
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });

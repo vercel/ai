@@ -93,13 +93,13 @@ Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
 import { streamText, UIMessage, convertToModelMessages } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
   });
 
@@ -123,7 +123,7 @@ The AI SDK supports dozens of model providers through [first-party](/providers/a
 This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
 
 ```ts
-model: {{MODEL}};
+model: __MODEL__;
 ```
 
 You can also explicitly import and use the gateway provider in two other equivalent ways:
@@ -259,14 +259,14 @@ Modify your `app/api/chat/route.ts` file to include the new weather tool:
 
 ```tsx filename="app/api/chat/route.ts" highlight="2,13-27"
 import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     tools: {
       weather: tool({
@@ -384,14 +384,14 @@ import {
   tool,
   stepCountIs,
 } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     tools: {
@@ -436,14 +436,14 @@ import {
   tool,
   stepCountIs,
 } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     tools: {

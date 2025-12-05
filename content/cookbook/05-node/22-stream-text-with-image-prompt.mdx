@@ -10,13 +10,13 @@ Vision-language models can analyze images alongside text prompts to generate res
 
 ```ts
 import { streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import 'dotenv/config';
 import fs from 'node:fs';
 
 async function main() {
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: [
       {
         role: 'user',

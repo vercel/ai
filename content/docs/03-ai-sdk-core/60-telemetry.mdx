@@ -24,7 +24,7 @@ You can then use the `experimental_telemetry` option to enable telemetry on spec
 
 ```ts highlight="4"
 const result = await generateText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: { isEnabled: true },
 });
@@ -43,7 +43,7 @@ and `metadata` to include additional information in the telemetry data.
 
 ```ts highlight="6-10"
 const result = await generateText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
     isEnabled: true,
@@ -64,7 +64,7 @@ you want your traces to use a `TracerProvider` other than the one provided by th
 ```ts highlight="7"
 const tracerProvider = new NodeTracerProvider();
 const result = await generateText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
     isEnabled: true,

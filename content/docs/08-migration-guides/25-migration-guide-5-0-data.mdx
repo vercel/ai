@@ -452,7 +452,7 @@ import {
 } from './conversion';
 import { upsertMessage, loadChat } from './db/actions';
 import { streamText, generateId, convertToModelMessages } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { message, chatId }: { message: MyUIMessage; chatId: string } =
@@ -470,7 +470,7 @@ export async function POST(req: Request) {
   const messages = [...previousMessages, message];
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     tools: {
       // Your tools here
@@ -831,7 +831,7 @@ export async function POST(req: Request) {
   const messages = [...previousMessages, message];
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     tools: {
       // Your tools here

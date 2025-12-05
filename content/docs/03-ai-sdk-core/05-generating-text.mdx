@@ -21,10 +21,10 @@ You can generate text using the [`generateText`](/docs/reference/ai-sdk-core/gen
 
 ```tsx
 import { generateText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const { text } = await generateText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -33,10 +33,10 @@ You can use more [advanced prompts](./prompts) to generate text with more comple
 
 ```tsx
 import { generateText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const { text } = await generateText({
-  model: {{MODEL}},
+  model: __MODEL__,
   system:
     'You are a professional writer. ' +
     'You write simple, clear, and concise content.',
@@ -91,10 +91,10 @@ It contains the text, usage information, finish reason, messages, steps, total u
 
 ```tsx highlight="6-8"
 import { generateText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
   onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
@@ -112,10 +112,10 @@ AI SDK Core provides the [`streamText`](/docs/reference/ai-sdk-core/stream-text)
 
 ```ts
 import { streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const result = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -177,10 +177,10 @@ To log errors, you can provide an `onError` callback that is triggered when an e
 
 ```tsx highlight="6-8"
 import { streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const result = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
   onError({ error }) {
     console.error(error); // your error logging logic here
@@ -205,10 +205,10 @@ It receives the following chunk types:
 
 ```tsx highlight="6-11"
 import { streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const result = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
   onChunk({ chunk }) {
     // implement your own logic here, e.g.:
@@ -228,10 +228,10 @@ It contains the text, usage information, finish reason, messages, steps, total u
 
 ```tsx highlight="6-8"
 import { streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const result = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
   onFinish({ text, finishReason, usage, response, steps, totalUsage }) {
     // your own logic, e.g. for saving the chat history or recording usage
@@ -249,11 +249,11 @@ Here is an example of how to use the `fullStream` property:
 
 ```tsx
 import { streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const result = streamText({
-  model: {{MODEL}},
+  model: __MODEL__,
   tools: {
     cityAttractions: {
       inputSchema: z.object({ city: z.string() }),

@@ -42,14 +42,14 @@ Use the `messageMetadata` callback in `toUIMessageStreamResponse` to send metada
 
 ```ts filename="app/api/chat/route.ts" highlight="11-20"
 import { convertToModelMessages, streamText } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import type { MyUIMessage } from '@/types';
 
 export async function POST(req: Request) {
   const { messages }: { messages: MyUIMessage[] } = await req.json();
 
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
   });
 

@@ -364,7 +364,7 @@ try {
   const tools = await client.tools();
 
   const response = await generateText({
-    model: {{MODEL}},
+    model: __MODEL__,
     tools,
     messages: [{ role: 'user', content: 'Query the data' }],
   });

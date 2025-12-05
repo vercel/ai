@@ -70,13 +70,13 @@ Let’s take a look at the example above, but refactored to utilize the AI SDK C
 ```tsx
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = await streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     messages,
   });
 
@@ -142,7 +142,7 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
   'use server';
 
   const result = await streamUI({
-    model: {{MODEL}},
+    model: __MODEL__,
     system: 'You are a helpful assistant',
     messages: [{ role: 'user', content: userInput }],
     text: ({ content }) => <p>{content}</p>,

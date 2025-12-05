@@ -28,12 +28,12 @@ You can e.g. use `streamToResponse` to pipe a data stream to a Node.js HTTP serv
 
 ```ts
 import { StreamData, streamText, streamToResponse } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import { createServer } from 'http';
 
 createServer(async (req, res) => {
   const result = streamText({
-    model: {{MODEL}},
+    model: __MODEL__,
     prompt: 'What is the weather in San Francisco?',
   });
 

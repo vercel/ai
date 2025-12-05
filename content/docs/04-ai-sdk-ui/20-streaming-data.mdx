@@ -54,7 +54,7 @@ import {
   streamText,
   convertToModelMessages,
 } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 import type { MyUIMessage } from '@/ai/types';
 
 export async function POST(req: Request) {
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       });
 
       const result = streamText({
-        model: {{MODEL}},
+        model: __MODEL__,
         messages: convertToModelMessages(messages),
         onFinish() {
           // 4. Update the same data part (reconciliation)

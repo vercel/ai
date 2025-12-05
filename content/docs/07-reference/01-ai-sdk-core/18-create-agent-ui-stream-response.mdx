@@ -18,10 +18,10 @@ The `createAgentUIStreamResponse` function executes an [Agent](/docs/reference/a
 
 ```ts
 import { ToolLoopAgent, createAgentUIStreamResponse } from 'ai';
-{{PROVIDER_IMPORT}}
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: {{MODEL}},
+  model: __MODEL__,
   instructions: 'You are a helpful assistant.',
   tools: { weather: weatherTool, calculator: calculatorTool },
 });
