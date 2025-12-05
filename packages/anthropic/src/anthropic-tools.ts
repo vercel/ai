@@ -161,11 +161,7 @@ export const anthropicTools = {
    * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
    * to mark them for deferred loading.
    *
-   * Beta header: `advanced-tool-use-2025-11-20` is supported by default for this tool.
-   *
    * Supported models: Claude Opus 4.5, Claude Sonnet 4.5
-   *
-   * @see https://docs.anthropic.com/en/docs/agents-and-tools/tool-search-tool
    */
   toolSearchRegex_20251119,
 
@@ -180,11 +176,7 @@ export const anthropicTools = {
    * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
    * to mark them for deferred loading.
    *
-   * Beta header: `advanced-tool-use-2025-11-20` is supported by default for this tool.
-   *
    * Supported models: Claude Opus 4.5, Claude Sonnet 4.5
-   *
-   * @see https://docs.anthropic.com/en/docs/agents-and-tools/tool-search-tool
    */
   toolSearchBm25_20251119,
 };
