@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/openai-compatible@2.0.0-beta.44
+
 ## 3.0.0-beta.50
 
 ### Patch Changes

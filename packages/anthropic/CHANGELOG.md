@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
 ## 3.0.0-beta.73
 
 ### Patch Changes
