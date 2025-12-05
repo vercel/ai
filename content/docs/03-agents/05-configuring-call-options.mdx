@@ -237,10 +237,7 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
     // Upgrade model for urgent requests
-    model:
-      options.urgency === 'high'
-      ? __MODEL__
-        : settings.model,
+    model: options.urgency === 'high' ? __MODEL__ : settings.model,
     // Limit tools based on user role
     activeTools:
       options.userRole === 'admin'
