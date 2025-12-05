@@ -432,7 +432,7 @@ describe('prepareToolsAndToolChoice', () => {
             "description": "Tool 1 description",
             "inputExamples": [
               {
-                "example": {
+                "input": {
                   "city": "New York",
                 },
               },
