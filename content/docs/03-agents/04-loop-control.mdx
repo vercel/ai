@@ -121,7 +121,7 @@ const agent = new Agent({
     // Use a stronger model for complex reasoning after initial steps
     if (stepNumber > 2 && messages.length > 10) {
       return {
-        model: 'anthropic/claude-sonnet-4.5',
+        model: __MODEL__,
       };
     }
     // Continue with default settings
@@ -299,6 +299,7 @@ Build your own agent loop when you need full control over execution:
 
 ```ts
 import { generateText, ModelMessage } from 'ai';
+__PROVIDER_IMPORT__;
 
 const messages: ModelMessage[] = [{ role: 'user', content: '...' }];
 
@@ -307,7 +308,7 @@ const maxSteps = 10;
 
 while (step < maxSteps) {
   const result = await generateText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     messages,
     tools: {
       // your tools here

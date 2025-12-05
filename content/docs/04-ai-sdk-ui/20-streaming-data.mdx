@@ -54,6 +54,7 @@ import {
   streamText,
   convertToModelMessages,
 } from 'ai';
+__PROVIDER_IMPORT__;
 import type { MyUIMessage } from '@/ai/types';
 
 export async function POST(req: Request) {
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
       });
 
       const result = streamText({
-        model: 'anthropic/claude-sonnet-4.5',
+        model: __MODEL__,
         messages: convertToModelMessages(messages),
         onFinish() {
           // 4. Update the same data part (reconciliation)

@@ -364,7 +364,7 @@ try {
   const tools = await client.tools();
 
   const response = await generateText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     tools,
     messages: [{ role: 'user', content: 'Query the data' }],
   });

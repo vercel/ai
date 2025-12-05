@@ -316,9 +316,10 @@ The AI SDK 5 includes a global provider feature that allows you to specify a mod
 
 ```ts
 import { streamText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await streamText({
-  model: 'anthropic/claude-sonnet-4.5', // Uses the global provider (defaults to gateway)
+  model: __MODEL__, // Uses the global provider (defaults to gateway)
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```

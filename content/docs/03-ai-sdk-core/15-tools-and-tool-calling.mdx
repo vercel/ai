@@ -24,7 +24,7 @@ import { z } from 'zod';
 import { generateText, tool } from 'ai';
 
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -79,9 +79,10 @@ In the following example, there are two steps:
 ```ts highlight="18-19"
 import { z } from 'zod';
 import { generateText, tool, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { text, steps } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -111,9 +112,10 @@ It contains all the text, tool calls, tool results, and more from each step.
 
 ```ts highlight="3,9-10"
 import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { steps } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   stopWhen: stepCountIs(10),
   // ...
 });
@@ -256,7 +258,7 @@ When using both static and dynamic tools, use the `dynamic` flag for type narrow
 
 ```ts
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     // Static tool with known types
     weather: weatherTool,
@@ -332,9 +334,10 @@ It supports the following settings:
 ```ts highlight="18"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -435,9 +438,10 @@ You can access them in the second parameter of the `execute` function and e.g. a
 ```ts highlight="6,11,14"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   abortSignal: myAbortSignal, // signal that will be forwarded to tools
   tools: {
     weather: tool({
@@ -490,10 +494,11 @@ The following tool input lifecycle hooks are available:
 
 ```ts highlight="15-23"
 import { streamText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     getWeather: tool({
       description: 'Get the weather in a location',
@@ -536,8 +541,8 @@ and `TypedToolResult<TOOLS extends ToolSet>` can be used to
 extract the tool call and tool result types from the tools.
 
 ```ts highlight="18-19,23-24"
-import { openai } from '@ai-sdk/openai';
 import { TypedToolCall, TypedToolResult, generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const myToolSet = {
@@ -562,7 +567,7 @@ async function generateSomething(prompt: string): Promise<{
   toolResults: Array<MyToolResult>; // typed tool results
 }> {
   return generateText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     tools: myToolSet,
     prompt,
   });
@@ -689,7 +694,7 @@ const result = await generateText({
     const tool = tools[toolCall.toolName as keyof typeof tools];
 
     const { object: repairedArgs } = await generateObject({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: __MODEL__,
       schema: tool.inputSchema,
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +
@@ -783,9 +788,10 @@ By default, the value is `undefined` and all tools are active.
 ```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: myToolSet,
   activeTools: ['firstTool'],
 });
@@ -808,7 +814,7 @@ Here is an example for converting a screenshot into a content part:
 
 ```ts highlight="22-27"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     computer: anthropic.tools.computer_20241022({
       // ...
