@@ -5,7 +5,8 @@ import { run } from '../lib/run';
 run(async () => {
   const result = streamText({
     model: openai('gpt-5-mini'),
-    prompt: 'What happened in tech news today? Open a few pages and search for a key word pattern vercel on those pages.',
+    prompt:
+      'What happened in tech news today? Open a few pages and search for a key word pattern vercel on those pages.',
     tools: {
       web_search: openai.tools.webSearch({
         searchContextSize: 'medium',
