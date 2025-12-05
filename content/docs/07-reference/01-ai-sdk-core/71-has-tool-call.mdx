@@ -11,9 +11,10 @@ This function is used with `stopWhen` in `generateText` and `streamText` to cont
 
 ```ts
 import { generateText, hasToolCall } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     weather: weatherTool,
     finalAnswer: finalAnswerTool,

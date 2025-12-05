@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     abortSignal: req.signal,
   });
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     abortSignal: req.signal,
   });

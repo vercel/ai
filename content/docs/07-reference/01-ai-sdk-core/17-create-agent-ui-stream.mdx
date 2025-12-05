@@ -15,9 +15,10 @@ The `createAgentUIStream` function runs an [Agent](/docs/reference/ai-sdk-core/a
 
 ```ts
 import { ToolLoopAgent, createAgentUIStream } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   instructions: 'You are a helpful assistant.',
   tools: { weather: weatherTool, calculator: calculatorTool },
 });
