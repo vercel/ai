@@ -2,20 +2,13 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { InferAgentUIMessage, tool, ToolLoopAgent, UIToolInvocation } from 'ai';
 import { z } from 'zod';
 
-const getWeatherTool = tool({
-  description: 'Get the current weather at a specific location',
-  inputSchema: z.object({
-    location: z.string().describe('The city and state, e.g. San Francisco, CA'),
-    unit: z
-      .enum(['celsius', 'fahrenheit'])
-      .optional()
-      .describe('Temperature unit'),
-  }),
-  execute: async ({ location, unit = 'fahrenheit' }) => ({
-    location,
-    temperature: unit === 'celsius' ? 18 : 64,
-    condition: 'Partly cloudy',
-    humidity: 65,
+const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({ city: z.string() }),
+  execute: async ({ city }) => ({
+    state: 'ready' as const,
+    temperature: 72,
+    weather: 'sunny',
   }),
   providerOptions: {
     anthropic: { deferLoading: true },
@@ -43,7 +36,7 @@ export const anthropicToolSearchAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
     toolSearch: anthropic.tools.toolSearchBm25_20251119(),
-    get_weather: getWeatherTool,
+    weather: weatherTool,
     send_email: sendEmailTool,
   },
 });
@@ -52,7 +45,4 @@ export type AnthropicToolSearchAgentMessage = InferAgentUIMessage<
   typeof anthropicToolSearchAgent
 >;
 
-export type GetWeatherUIToolInvocation = UIToolInvocation<
-  typeof getWeatherTool
->;
 export type SendEmailUIToolInvocation = UIToolInvocation<typeof sendEmailTool>;

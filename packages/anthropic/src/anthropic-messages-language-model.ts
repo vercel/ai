@@ -681,7 +681,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
-              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              toolName: toolNameMapping.toCustomToolName(part.name),
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
@@ -1134,7 +1134,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     part.name === 'tool_search_tool_bm25'
                   ) {
                     const customToolName =
-                      toolNameMapping.toCustomToolName('tool_search');
+                      toolNameMapping.toCustomToolName(part.name);
 
                     contentBlocks[value.index] = {
                       type: 'tool-call',

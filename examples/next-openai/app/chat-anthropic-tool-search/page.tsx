@@ -4,7 +4,7 @@ import { AnthropicToolSearchAgentMessage } from '@/agent/anthropic-tool-search-a
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import AnthropicToolSearchView from '@/components/tool/anthropic-tool-search-view';
-import GetWeatherView from '@/components/tool/get-weather-view';
+import WeatherView from '@/components/tool/weather-view';
 import SendEmailView from '@/components/tool/send-email-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
@@ -41,8 +41,8 @@ export default function ChatAnthropicToolSearch() {
                     <AnthropicToolSearchView invocation={part} key={index} />
                   );
                 }
-                case 'tool-get_weather': {
-                  return <GetWeatherView invocation={part} key={index} />;
+                case 'tool-weather': {
+                  return <WeatherView invocation={part} key={index} />;
                 }
                 case 'tool-send_email': {
                   return <SendEmailView invocation={part} key={index} />;
