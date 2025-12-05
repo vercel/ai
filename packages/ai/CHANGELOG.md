@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.132
+
+### Patch Changes
+
+- af9dab3: fix(ai): remove unused mode setting from generateObject and streamObject
+
 ## 6.0.0-beta.131
 
 ### Patch Changes
