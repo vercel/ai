@@ -61,7 +61,19 @@ export async function prepareTools({
           ...(supportsStructuredOutput === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
+          ...(tool.inputExamples != null
+            ? {
+                input_examples: tool.inputExamples.map(
+                  example => example.input,
+                ),
+              }
+            : {}),
         });
+
+        if (tool.inputExamples != null) {
+          betas.add('advanced-tool-use-2025-11-20');
+        }
+
         break;
       }
 

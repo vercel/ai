@@ -22,7 +22,7 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool } from 'ai';
+import { generateText, tool, stopWhen } from 'ai';
 
 const result = await generateText({
   model: 'anthropic/claude-sonnet-4.5',
@@ -38,6 +38,7 @@ const result = await generateText({
       }),
     }),
   },
+  stopWhen: stepCountIs(5),
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -71,8 +72,37 @@ tool({
 });
 ```
 
-> **Note**
-> Not all providers or models support strict mode. For those that do not, this option is ignored.
+<Note>
+  Not all providers or models support strict mode. For those that do not, this
+  option is ignored.
+</Note>
+
+## Input Examples
+
+You can specify example inputs for your tools to help guide the model on how input data should be structured.
+When supported by providers, input examples can help when JSON schema itself does not fully specify the intended
+usage or when there are optional values.
+
+```ts
+tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  inputExamples: [
+    { input: { location: 'San Francisco' } },
+    { input: { location: 'London' } },
+  ],
+  execute: async ({ location }) => {
+    // ...
+  },
+});
+```
+
+<Note>
+  Only the Anthropic providers supports tool input examples natively. Other
+  providers ignore the setting.
+</Note>
 
 ## Multi-Step Calls (using stopWhen)
 

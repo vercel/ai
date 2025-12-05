@@ -1,5 +1,27 @@
 # ai
 
+## 6.0.0-beta.134
+
+### Patch Changes
+
+- 686103c: chore(ai): export ContentPart type
+
+## 6.0.0-beta.133
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/gateway@2.0.0-beta.72
+
+## 6.0.0-beta.132
+
+### Patch Changes
+
+- af9dab3: fix(ai): remove unused mode setting from generateObject and streamObject
+
 ## 6.0.0-beta.131
 
 ### Patch Changes
