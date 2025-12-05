@@ -27,13 +27,12 @@ export function validateAndApplyToolInputOverrides<TOOLS extends ToolSet>({
         toolCallId: approval.toolCall.toolCallId,
         toolName: approval.toolCall.toolName,
         input: approval.approvalResponse.override.input,
+        providerExecuted: approval.toolCall.providerExecuted,
         error: `Tool '${approval.toolCall.toolName}' does not allow input modification. Set allowsInputEditing: true to enable this feature.`,
-        dynamic: true,
-      });
+        dynamic: approval.toolCall.dynamic,
+      } as TypedToolError<TOOLS>);
       continue;
     }
-
-    // TODO: Add validateInput method to tools and call it here
 
     validToolCalls.push({
       ...approval.toolCall,

@@ -141,7 +141,6 @@ Whether the tool allows input modification during approval.
    */
   allowsInputEditing?: boolean;
 
-
   /**
    * Strict mode setting for the tool.
    *
