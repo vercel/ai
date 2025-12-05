@@ -1,5 +1,21 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 1.0.0-beta.27
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
 ## 1.0.0-beta.26
 
 ### Patch Changes

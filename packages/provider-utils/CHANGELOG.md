@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+
 ## 4.0.0-beta.41
 
 ### Patch Changes

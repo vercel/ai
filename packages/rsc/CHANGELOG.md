@@ -1,5 +1,36 @@
 # @ai-sdk/rsc
 
+## 2.0.0-beta.136
+
+### Patch Changes
+
+- Updated dependencies [686103c]
+  - ai@6.0.0-beta.134
+
+## 2.0.0-beta.135
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+  - ai@6.0.0-beta.133
+
+## 2.0.0-beta.134
+
+### Patch Changes
+
+- Updated dependencies [af9dab3]
+  - ai@6.0.0-beta.132
+
+## 2.0.0-beta.133
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - ai@6.0.0-beta.131
+
 ## 2.0.0-beta.132
 
 ### Patch Changes
