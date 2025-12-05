@@ -1771,7 +1771,7 @@ function mapWebSearchOutput(
       return { action: { type: 'openPage', url: action.url } };
     case 'find_in_page':
       return {
-        action: { type: 'find_in_page', url: action.url, pattern: action.pattern },
+        action: { type: 'findInPage', url: action.url, pattern: action.pattern },
       };
   }
 }

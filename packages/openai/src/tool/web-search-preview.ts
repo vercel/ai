@@ -39,7 +39,7 @@ const webSearchPreviewOutputSchema = lazySchema(() =>
           url: z.string().nullish(),
         }),
         z.object({
-          type: z.literal('find_in_page'),
+          type: z.literal('findInPage'),
           url: z.string().nullish(),
           pattern: z.string().nullish(),
         }),
@@ -82,9 +82,9 @@ export const webSearchPreview = createProviderToolFactoryWithOutputSchema<
         }
       | {
           /**
-           * Action type "find_in_page": Searches for a pattern within a loaded page.
+           * Action type "findInPage": Searches for a pattern within a loaded page.
            */
-          type: 'find_in_page';
+          type: 'findInPage';
 
           /**
            * The URL of the page searched for the pattern.
