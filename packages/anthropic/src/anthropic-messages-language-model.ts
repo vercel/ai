@@ -240,8 +240,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         'anthropic.memory_20250818': 'memory',
         'anthropic.web_search_20250305': 'web_search',
         'anthropic.web_fetch_20250910': 'web_fetch',
-        'anthropic.tool_search_regex_20251119': 'tool_search',
-        'anthropic.tool_search_bm25_20251119': 'tool_search',
+        'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
+        'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
       },
     });
 

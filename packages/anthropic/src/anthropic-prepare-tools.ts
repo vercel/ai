@@ -10,6 +10,10 @@ import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
+export interface AnthropicToolOptions {
+  deferLoading?: boolean;
+}
+
 export async function prepareTools({
   tools,
   toolChoice,
@@ -55,7 +59,7 @@ export async function prepareTools({
 
         // Read deferLoading from Anthropic-specific provider options
         const anthropicOptions = tool.providerOptions?.anthropic as
-          | { deferLoading?: boolean }
+          | AnthropicToolOptions
           | undefined;
         const deferLoading = anthropicOptions?.deferLoading;
 

@@ -25,6 +25,7 @@ import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
+import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from './tool/tool-search-regex_20251119';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
@@ -552,18 +553,14 @@ export async function convertToAnthropicMessagesPrompt({
                         input: part.input,
                         cache_control: cacheControl,
                       });
-                    } else if (providerToolName === 'tool_search') {
-                      // Determine which variant based on input fields
-                      const toolSearchName =
-                        part.input != null &&
-                        typeof part.input === 'object' &&
-                        'pattern' in part.input
-                          ? 'tool_search_tool_regex'
-                          : 'tool_search_tool_bm25';
+                    } else if (
+                      providerToolName === 'tool_search_tool_regex' ||
+                      providerToolName === 'tool_search_tool_bm25'
+                    ) {
                       anthropicContent.push({
                         type: 'server_tool_use',
                         id: part.toolCallId,
-                        name: toolSearchName,
+                        name: providerToolName,
                         input: part.input,
                         cache_control: cacheControl,
                       });
@@ -762,7 +759,10 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
-                if (providerToolName === 'tool_search') {
+                if (
+                  providerToolName === 'tool_search_tool_regex' ||
+                  providerToolName === 'tool_search_tool_bm25'
+                ) {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -774,18 +774,16 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  const toolSearchOutput = await validateTypes({
+                    value: output.value,
+                    schema: toolSearchOutputSchema,
+                  });
+
                   // Convert tool references back to API format
-                  const toolReferences = Array.isArray(output.value)
-                    ? (
-                        output.value as Array<{
-                          type: string;
-                          toolName: string;
-                        }>
-                      ).map(ref => ({
-                        type: 'tool_reference' as const,
-                        tool_name: ref.toolName,
-                      }))
-                    : [];
+                  const toolReferences = toolSearchOutput.map(ref => ({
+                    type: 'tool_reference' as const,
+                    tool_name: ref.toolName,
+                  }));
 
                   anthropicContent.push({
                     type: 'tool_search_tool_result',
