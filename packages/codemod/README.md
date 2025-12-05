@@ -139,10 +139,11 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 
 ### General Codemods
 
-| Codemod                                 | Description                                      |
-| --------------------------------------- | ------------------------------------------------ |
-| `v6/rename-mock-v2-to-v3`               | Transforms v6/rename mock v2 to v3               |
-| `v6/rename-text-embedding-to-embedding` | Transforms v6/rename text embedding to embedding |
+| Codemod                                                 | Description                                                      |
+| ------------------------------------------------------- | ---------------------------------------------------------------- |
+| `v6/rename-mock-v2-to-v3`                               | Transforms v6/rename mock v2 to v3                               |
+| `v6/rename-text-embedding-to-embedding`                 | Transforms v6/rename text embedding to embedding                 |
+| `v6/rename-tool-call-options-to-tool-execution-options` | Transforms v6/rename tool call options to tool execution options |
 
 ## CLI Options
 
