@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.0-beta.131
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/gateway@2.0.0-beta.71
+
 ## 6.0.0-beta.130
 
 ### Patch Changes

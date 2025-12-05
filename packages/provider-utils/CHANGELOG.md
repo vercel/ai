@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+
 ## 4.0.0-beta.41
 
 ### Patch Changes
