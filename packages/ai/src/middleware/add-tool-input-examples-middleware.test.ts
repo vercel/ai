@@ -1,5 +1,5 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
-import { toolInputExamplesMiddleware } from './tool-input-examples-middleware';
+import { JSONObject, LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import { addToolInputExamplesMiddleware } from './tool-input-examples-middleware';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { describe, it, expect } from 'vitest';
 
@@ -11,11 +11,11 @@ const BASE_PARAMS: LanguageModelV3CallOptions = {
 
 const MOCK_MODEL = new MockLanguageModelV3();
 
-describe('toolInputExamplesMiddleware', () => {
+describe('addToolInputExamplesMiddleware', () => {
   describe('transformParams', () => {
     it('should append examples to tool description', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
       });
 
       const result = await middleware.transformParams!({
@@ -49,18 +49,7 @@ describe('toolInputExamplesMiddleware', () => {
         Input Examples:
         {"location":"San Francisco"}
         {"location":"London"}",
-            "inputExamples": [
-              {
-                "input": {
-                  "location": "San Francisco",
-                },
-              },
-              {
-                "input": {
-                  "location": "London",
-                },
-              },
-            ],
+            "inputExamples": undefined,
             "inputSchema": {
               "properties": {
                 "location": {
@@ -77,8 +66,8 @@ describe('toolInputExamplesMiddleware', () => {
     });
 
     it('should handle tool without existing description', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
       });
 
       const result = await middleware.transformParams!({
@@ -105,13 +94,7 @@ describe('toolInputExamplesMiddleware', () => {
           {
             "description": "Input Examples:
         {"location":"Berlin"}",
-            "inputExamples": [
-              {
-                "input": {
-                  "location": "Berlin",
-                },
-              },
-            ],
+            "inputExamples": undefined,
             "inputSchema": {
               "properties": {
                 "location": {
@@ -126,49 +109,12 @@ describe('toolInputExamplesMiddleware', () => {
         ]
       `);
     });
-
-    it('should keep inputExamples property on the tool', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
-      });
-
-      const result = await middleware.transformParams!({
-        type: 'generate',
-        params: {
-          ...BASE_PARAMS,
-          tools: [
-            {
-              type: 'function',
-              name: 'weather',
-              description: 'Get the weather',
-              inputSchema: {
-                type: 'object',
-                properties: { location: { type: 'string' } },
-              },
-              inputExamples: [{ input: { location: 'NYC' } }],
-            },
-          ],
-        },
-        model: MOCK_MODEL,
-      });
-
-      expect(result.tools![0]).toHaveProperty('inputExamples');
-      expect((result.tools![0] as any).inputExamples).toMatchInlineSnapshot(`
-        [
-          {
-            "input": {
-              "location": "NYC",
-            },
-          },
-        ]
-      `);
-    });
   });
 
-  describe('description', () => {
-    it('should use provided description as header', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Here are some example inputs:',
+  describe('examplesPrefix', () => {
+    it('should use provided examplesPrefix as header', async () => {
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Here are some example inputs:',
       });
 
       const result = await middleware.transformParams!({
@@ -202,8 +148,8 @@ describe('toolInputExamplesMiddleware', () => {
 
   describe('formatExample', () => {
     it('should use default JSON.stringify format', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Examples:',
       });
 
       const result = await middleware.transformParams!({
@@ -238,9 +184,9 @@ describe('toolInputExamplesMiddleware', () => {
     });
 
     it('should use custom formatExample function', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Examples:',
-        formatExample: (example, index) =>
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Examples:',
+        formatExample: (example: { input: JSONObject }, index: number) =>
           `${index + 1}. ${JSON.stringify(example.input)}`,
       });
 
@@ -277,10 +223,77 @@ describe('toolInputExamplesMiddleware', () => {
     });
   });
 
+  describe('removeInputExamples', () => {
+    it('should remove inputExamples by default', async () => {
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: {
+          ...BASE_PARAMS,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'Get the weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+              inputExamples: [{ input: { location: 'NYC' } }],
+            },
+          ],
+        },
+        model: MOCK_MODEL,
+      });
+
+      expect((result.tools![0] as any).inputExamples).toBeUndefined();
+    });
+
+    it('should keep inputExamples when removeInputExamples is false', async () => {
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
+        removeInputExamples: false,
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: {
+          ...BASE_PARAMS,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'Get the weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+              inputExamples: [{ input: { location: 'NYC' } }],
+            },
+          ],
+        },
+        model: MOCK_MODEL,
+      });
+
+      expect((result.tools![0] as any).inputExamples).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "location": "NYC",
+            },
+          },
+        ]
+      `);
+    });
+  });
+
   describe('edge cases', () => {
     it('should pass through tools without inputExamples', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
       });
 
       const result = await middleware.transformParams!({
@@ -322,8 +335,8 @@ describe('toolInputExamplesMiddleware', () => {
     });
 
     it('should pass through tools with empty inputExamples array', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
       });
 
       const result = await middleware.transformParams!({
@@ -350,8 +363,8 @@ describe('toolInputExamplesMiddleware', () => {
     });
 
     it('should pass through provider tools unchanged', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
       });
 
       const result = await middleware.transformParams!({
@@ -385,8 +398,8 @@ describe('toolInputExamplesMiddleware', () => {
     });
 
     it('should handle multiple tools with mixed examples', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
       });
 
       const result = await middleware.transformParams!({
@@ -425,13 +438,7 @@ describe('toolInputExamplesMiddleware', () => {
 
         Input Examples:
         {"location":"NYC"}",
-            "inputExamples": [
-              {
-                "input": {
-                  "location": "NYC",
-                },
-              },
-            ],
+            "inputExamples": undefined,
             "inputSchema": {
               "properties": {
                 "location": {
@@ -461,8 +468,8 @@ describe('toolInputExamplesMiddleware', () => {
     });
 
     it('should handle empty tools array', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
       });
 
       const result = await middleware.transformParams!({
@@ -475,8 +482,8 @@ describe('toolInputExamplesMiddleware', () => {
     });
 
     it('should handle undefined tools', async () => {
-      const middleware = toolInputExamplesMiddleware({
-        description: 'Input Examples:',
+      const middleware = addToolInputExamplesMiddleware({
+        examplesPrefix: 'Input Examples:',
       });
 
       const result = await middleware.transformParams!({

@@ -1,0 +1,106 @@
+---
+title: addToolInputExamplesMiddleware
+description: Middleware that adds tool input examples to tool descriptions
+---
+
+# `addToolInputExamplesMiddleware()`
+
+`addToolInputExamplesMiddleware` is a middleware function that adds tool input examples to tool descriptions. This is useful for providers that don't natively support the `inputExamples` property on tools. The middleware serializes the examples into the tool's description text so models can still benefit from seeing example inputs.
+
+```ts
+import { addToolInputExamplesMiddleware } from 'ai';
+
+const middleware = addToolInputExamplesMiddleware({
+  examplesPrefix: 'Input Examples:',
+});
+```
+
+## Import
+
+<Snippet
+  text={`import { addToolInputExamplesMiddleware } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'examplesPrefix',
+      type: 'string',
+      isOptional: false,
+      description: 'A prefix text to prepend before the examples.',
+    },
+    {
+      name: 'formatExample',
+      type: '(example: { input: JSONObject }, index: number) => string',
+      isOptional: true,
+      description:
+        'A custom formatter function for each example. Receives the example object and its index. Defaults to JSON.stringify(example.input).',
+    },
+    {
+      name: 'removeInputExamples',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether to remove the inputExamples property from the tool after adding them to the description. Defaults to true.',
+    },
+  ]}
+/>
+
+### Returns
+
+Returns a middleware object that:
+
+- Appends formatted `inputExamples` examples to the tool's description
+- Optionally removes the `inputExamples` property from tools (default behavior)
+- Passes through provider tools and tools without examples unchanged
+
+### Usage Example
+
+```ts
+import {
+  generateText,
+  tool,
+  wrapLanguageModel,
+  addToolInputExamplesMiddleware,
+} from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: addToolInputExamplesMiddleware({
+    examplesPrefix: 'Input Examples:',
+    formatExample: (example, index) =>
+      `${index + 1}. ${JSON.stringify(example.input)}`,
+  }),
+});
+
+const result = await generateText({
+  model,
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        location: z.string(),
+      }),
+      inputExamples: [
+        { input: { location: 'San Francisco' } },
+        { input: { location: 'London' } },
+      ],
+    }),
+  },
+  prompt: 'What is the weather in Tokyo?',
+});
+```
+
+## How It Works
+
+1. Takes tools that have `inputExamples` defined
+2. Formats each example as JSON (or using your custom `formatExample` function)
+3. Appends the formatted examples to the tool's description with the `examplesPrefix` prefix
+4. Removes the `inputExamples` property to prevent duplication (unless `removeInputExamples` is set to `false`)
