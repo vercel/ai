@@ -107,7 +107,7 @@ describe('validateAndApplyToolInputOverrides', () => {
       [
         {
           "dynamic": true,
-          "error": "Tool 'calculator' does not allow input modification. Set allowsInputEditing: true to enable this feature.",
+          "error": "Tool 'calculator' does not allow input modification.",
           "input": {
             "expression": "2+2",
           },
@@ -150,7 +150,7 @@ describe('validateAndApplyToolInputOverrides', () => {
       [
         {
           "dynamic": true,
-          "error": "Tool 'timer' does not allow input modification. Set allowsInputEditing: true to enable this feature.",
+          "error": "Tool 'timer' does not allow input modification.",
           "input": {
             "duration": 120,
           },
