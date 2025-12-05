@@ -130,7 +130,6 @@ export async function generateObject<
 The enum values that the model should use.
         */
           enum: Array<RESULT>;
-          mode?: 'json';
           output: 'enum';
         }
       : OUTPUT extends 'no-schema'
