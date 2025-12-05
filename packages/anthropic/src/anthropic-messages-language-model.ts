@@ -1133,8 +1133,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     part.name === 'tool_search_tool_regex' ||
                     part.name === 'tool_search_tool_bm25'
                   ) {
-                    const customToolName =
-                      toolNameMapping.toCustomToolName(part.name);
+                    const customToolName = toolNameMapping.toCustomToolName(
+                      part.name,
+                    );
 
                     contentBlocks[value.index] = {
                       type: 'tool-call',

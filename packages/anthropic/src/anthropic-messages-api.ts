@@ -176,13 +176,18 @@ export interface AnthropicWebSearchToolResultContent {
 export interface AnthropicToolSearchToolResultContent {
   type: 'tool_search_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'tool_search_tool_search_result';
-    tool_references: Array<{
-      type: 'tool_reference';
-      tool_name: string;
-    }>;
-  };
+  content:
+    | {
+        type: 'tool_search_tool_search_result';
+        tool_references: Array<{
+          type: 'tool_reference';
+          tool_name: string;
+        }>;
+      }
+    | {
+        type: 'tool_search_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
