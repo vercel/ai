@@ -74,30 +74,37 @@ describe('prepareTools', () => {
       supportsStructuredOutput: true,
     });
 
-    expect(result.tools).toMatchInlineSnapshot(`
-      [
-        {
-          "cache_control": undefined,
-          "description": "tool with examples",
-          "input_examples": [
-            {
-              "a": 1,
-            },
-            {
-              "a": 2,
-            },
-          ],
-          "input_schema": {
-            "properties": {
-              "a": {
-                "type": "number",
-              },
-            },
-            "type": "object",
-          },
-          "name": "tool_with_examples",
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "advanced-tool-use-2025-11-20",
         },
-      ]
+        "toolChoice": undefined,
+        "toolWarnings": [],
+        "tools": [
+          {
+            "cache_control": undefined,
+            "description": "tool with examples",
+            "input_examples": [
+              {
+                "a": 1,
+              },
+              {
+                "a": 2,
+              },
+            ],
+            "input_schema": {
+              "properties": {
+                "a": {
+                  "type": "number",
+                },
+              },
+              "type": "object",
+            },
+            "name": "tool_with_examples",
+          },
+        ],
+      }
     `);
   });
 

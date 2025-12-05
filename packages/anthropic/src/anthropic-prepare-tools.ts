@@ -69,6 +69,11 @@ export async function prepareTools({
               }
             : {}),
         });
+
+        if (tool.inputExamples != null) {
+          betas.add('advanced-tool-use-2025-11-20');
+        }
+
         break;
       }
 
