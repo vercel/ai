@@ -1,5 +1,77 @@
 # ai
 
+## 6.0.0-beta.134
+
+### Patch Changes
+
+- 686103c: chore(ai): export ContentPart type
+
+## 6.0.0-beta.133
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/gateway@2.0.0-beta.72
+
+## 6.0.0-beta.132
+
+### Patch Changes
+
+- af9dab3: fix(ai): remove unused mode setting from generateObject and streamObject
+
+## 6.0.0-beta.131
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/gateway@2.0.0-beta.71
+
+## 6.0.0-beta.130
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+  - @ai-sdk/gateway@2.0.0-beta.70
+
+## 6.0.0-beta.129
+
+### Patch Changes
+
+- 67a407c: chore(ai): add warning when using v2 models with AISDK v6
+
+## 6.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [b1624f0]
+  - @ai-sdk/gateway@2.0.0-beta.69
+
+## 6.0.0-beta.127
+
+### Patch Changes
+
+- 614599a: chore(ai): deprecate generateObject and streamObject
+
+## 6.0.0-beta.126
+
+### Patch Changes
+
+- b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
+
+## 6.0.0-beta.125
+
+### Patch Changes
+
+- 0d6c0d8: chore(ai): remove deprecated CodeMessage type and related types and functions
+
 ## 6.0.0-beta.124
 
 ### Patch Changes

@@ -1,5 +1,71 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- ef739fa: fix(openai): refactor apply-patch tool
+
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- cad6445: feat(openai); adding OpenAI's new shell tool
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- b60d2e2: fix(openai): allow open_page action type url to be nullish
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 2c0a758: chore(openai): add JSDoc to responses options
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- d270a5d: chore(openai): update tests for apply-patch tool to use snapshots
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- 88edc28: feat (provider/openai): include more image generation response metadata
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 73d9883: chore(openai): enable strict json by default
+
 ## 3.0.0-beta.74
 
 ### Patch Changes

@@ -2,9 +2,20 @@ import { TranscriptionModelV2 } from '@ai-sdk/provider';
 import { asTranscriptionModelV3 } from './as-transcription-model-v3';
 import { MockTranscriptionModelV2 } from '../test/mock-transcription-model-v2';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
 
 describe('asTranscriptionModelV3', () => {
+  let logWarningSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    logWarningSpy = vi.spyOn(logWarningsModule, 'logWarnings');
+  });
+
+  afterEach(() => {
+    logWarningSpy.mockRestore();
+  });
+
   describe('when a transcription model v3 is provided', () => {
     it('should return the same v3 model unchanged', () => {
       const originalModel = new MockTranscriptionModelV3({
@@ -16,6 +27,17 @@ describe('asTranscriptionModelV3', () => {
 
       expect(result).toBe(originalModel);
       expect(result.specificationVersion).toBe('v3');
+    });
+
+    it('should not log any warning', () => {
+      const originalModel = new MockTranscriptionModelV3({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      asTranscriptionModelV3(originalModel);
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
     });
 
     it('should preserve all v3 model properties', () => {
@@ -43,6 +65,29 @@ describe('asTranscriptionModelV3', () => {
 
       expect(result.specificationVersion).toBe('v3');
       expect(result).not.toBe(v2Model);
+    });
+
+    it('should log a compatibility warning', () => {
+      const v2Model = new MockTranscriptionModelV2({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      asTranscriptionModelV3(v2Model);
+
+      expect(logWarningSpy).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'compatibility',
+            feature: 'specificationVersion',
+            details: expect.stringContaining(
+              'Using v2 specification compatibility',
+            ),
+          },
+        ],
+        provider: 'test-provider',
+        model: 'test-model-id',
+      });
     });
 
     it('should preserve provider property', () => {

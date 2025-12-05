@@ -1,5 +1,75 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/anthropic@3.0.0-beta.74
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/google@3.0.0-beta.65
+
+## 4.0.0-beta.99
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/anthropic@3.0.0-beta.73
+  - @ai-sdk/google@3.0.0-beta.64
+
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [a5f77a6]
+  - @ai-sdk/anthropic@3.0.0-beta.72
+
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/anthropic@3.0.0-beta.71
+  - @ai-sdk/provider@3.0.0-beta.23
+  - @ai-sdk/google@3.0.0-beta.63
+
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- 00dfa76: feat(provider/google-vertex): Add support for the imageSize provider option
+
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [f13958c]
+  - @ai-sdk/anthropic@3.0.0-beta.70
+
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- Updated dependencies [589a4ee]
+  - @ai-sdk/anthropic@3.0.0-beta.69
+
+## 4.0.0-beta.93
+
+### Patch Changes
+
+- Updated dependencies [9e35785]
+  - @ai-sdk/anthropic@3.0.0-beta.68
+
+## 4.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [eb56fc6]
+  - @ai-sdk/anthropic@3.0.0-beta.67
+
 ## 4.0.0-beta.91
 
 ### Patch Changes

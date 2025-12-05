@@ -133,11 +133,9 @@ export const applyPatchToolFactory = createProviderToolFactoryWithOutputSchema<
 });
 
 /**
- * Creates an apply_patch tool instance.
- *
  * The apply_patch tool lets GPT-5.1 create, update, and delete files in your
- * codebase using structured diffs.
- *
- * @returns A provider-defined tool for applying patches.
+ * codebase using structured diffs. Instead of just suggesting edits, the model
+ * emits patch operations that your application applies and then reports back on,
+ * enabling iterative, multi-step code editing workflows.
  */
-export const applyPatch = () => applyPatchToolFactory({});
+export const applyPatch = applyPatchToolFactory;

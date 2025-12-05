@@ -2,9 +2,20 @@ import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import { asEmbeddingModelV3 } from './as-embedding-model-v3';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
 
 describe('asEmbeddingModelV3', () => {
+  let logWarningSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    logWarningSpy = vi.spyOn(logWarningsModule, 'logWarnings');
+  });
+
+  afterEach(() => {
+    logWarningSpy.mockRestore();
+  });
+
   describe('when an embedding model v3 is provided', () => {
     it('should return the same v3 model unchanged', () => {
       const originalModel = new MockEmbeddingModelV3({
@@ -16,6 +27,17 @@ describe('asEmbeddingModelV3', () => {
 
       expect(result).toBe(originalModel);
       expect(result.specificationVersion).toBe('v3');
+    });
+
+    it('should not log any warning', () => {
+      const originalModel = new MockEmbeddingModelV3({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      asEmbeddingModelV3(originalModel);
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
     });
 
     it('should preserve all v3 model properties', () => {
@@ -47,6 +69,29 @@ describe('asEmbeddingModelV3', () => {
 
       expect(result.specificationVersion).toBe('v3');
       expect(result).not.toBe(v2Model);
+    });
+
+    it('should log a compatibility warning', () => {
+      const v2Model = new MockEmbeddingModelV2({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      asEmbeddingModelV3(v2Model);
+
+      expect(logWarningSpy).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'compatibility',
+            feature: 'specificationVersion',
+            details: expect.stringContaining(
+              'Using v2 specification compatibility',
+            ),
+          },
+        ],
+        provider: 'test-provider',
+        model: 'test-model-id',
+      });
     });
 
     it('should preserve provider property', () => {
