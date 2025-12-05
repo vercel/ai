@@ -1,5 +1,6 @@
 import { JSONSchema7 } from 'json-schema';
 import { SharedV3ProviderOptions } from '../../shared';
+import { JSONObject } from '../../json-value';
 
 /**
 A tool has a name, a description, and a set of parameters.
@@ -34,7 +35,7 @@ understand the tool's input requirements and to provide matching suggestions.
    * An optional list of input examples that show the language
    * model what the input should look like.
    */
-  inputExamples?: Array<{ input: JSONSchema7 }>;
+  inputExamples?: Array<{ input: JSONObject }>;
 
   /**
    * Strict mode setting for the tool.

@@ -61,6 +61,13 @@ export async function prepareTools({
           ...(supportsStructuredOutput === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
+          ...(tool.inputExamples != null
+            ? {
+                input_examples: tool.inputExamples.map(
+                  example => example.input,
+                ),
+              }
+            : {}),
         });
         break;
       }

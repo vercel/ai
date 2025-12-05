@@ -56,6 +56,51 @@ describe('prepareTools', () => {
     expect(result.toolWarnings).toEqual([]);
   });
 
+  it('should correctly preserve tool input examples', async () => {
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'tool_with_examples',
+          description: 'tool with examples',
+          inputSchema: {
+            type: 'object',
+            properties: { a: { type: 'number' } },
+          },
+          inputExamples: [{ input: { a: 1 } }, { input: { a: 2 } }],
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+    });
+
+    expect(result.tools).toMatchInlineSnapshot(`
+      [
+        {
+          "cache_control": undefined,
+          "description": "tool with examples",
+          "input_examples": [
+            {
+              "a": 1,
+            },
+            {
+              "a": 2,
+            },
+          ],
+          "input_schema": {
+            "properties": {
+              "a": {
+                "type": "number",
+              },
+            },
+            "type": "object",
+          },
+          "name": "tool_with_examples",
+        },
+      ]
+    `);
+  });
+
   describe('strict mode for function tools', () => {
     it('should include strict when supportsStructuredOutput is true and strict is true', async () => {
       const result = await prepareTools({
