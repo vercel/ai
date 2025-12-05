@@ -68,7 +68,19 @@ export async function prepareTools({
             ? { strict: tool.strict }
             : {}),
           ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+          ...(tool.inputExamples != null
+            ? {
+                input_examples: tool.inputExamples.map(
+                  example => example.input,
+                ),
+              }
+            : {}),
         });
+
+        if (tool.inputExamples != null) {
+          betas.add('advanced-tool-use-2025-11-20');
+        }
+
         break;
       }
 
