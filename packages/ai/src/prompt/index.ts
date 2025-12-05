@@ -1,22 +1,10 @@
 export type { CallSettings } from './call-settings';
 export {
   assistantModelMessageSchema,
-  coreAssistantMessageSchema,
-  coreMessageSchema,
-  coreSystemMessageSchema,
-  coreToolMessageSchema,
-  coreUserMessageSchema,
   modelMessageSchema,
   systemModelMessageSchema,
   toolModelMessageSchema,
   userModelMessageSchema,
-} from './message';
-export type {
-  CoreAssistantMessage,
-  CoreMessage,
-  CoreSystemMessage,
-  CoreToolMessage,
-  CoreUserMessage,
 } from './message';
 export type { Prompt } from './prompt';
 

@@ -274,13 +274,13 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([
           {
             details: 'temperature is not supported for reasoning models',
-            setting: 'temperature',
-            type: 'unsupported-setting',
+            feature: 'temperature',
+            type: 'unsupported',
           },
           {
             details: 'topP is not supported for reasoning models',
-            setting: 'topP',
-            type: 'unsupported-setting',
+            feature: 'topP',
+            type: 'unsupported',
           },
         ]);
       });
@@ -313,13 +313,13 @@ describe('OpenAIResponsesLanguageModel', () => {
           expect(warnings).toStrictEqual([
             {
               details: 'temperature is not supported for reasoning models',
-              setting: 'temperature',
-              type: 'unsupported-setting',
+              feature: 'temperature',
+              type: 'unsupported',
             },
             {
               details: 'topP is not supported for reasoning models',
-              setting: 'topP',
-              type: 'unsupported-setting',
+              feature: 'topP',
+              type: 'unsupported',
             },
           ]);
         },
@@ -373,7 +373,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -574,6 +574,57 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send conversation provider option', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              conversation: 'conv_123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          conversation: 'conv_123',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn when both conversation and previousResponseId are provided', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              conversation: 'conv_123',
+              previousResponseId: 'resp_123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          conversation: 'conv_123',
+          previous_response_id: 'resp_123',
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported',
+            feature: 'conversation',
+            details:
+              'conversation and previousResponseId cannot be used together',
+          },
+        ]);
+      });
+
       it('should send previous response id provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -671,8 +722,8 @@ describe('OpenAIResponsesLanguageModel', () => {
 
           expect(warnings).toStrictEqual([
             {
-              type: 'unsupported-setting',
-              setting: 'reasoningEffort',
+              type: 'unsupported',
+              feature: 'reasoningEffort',
               details:
                 'reasoningEffort is not supported for non-reasoning models',
             },
@@ -866,6 +917,27 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send promptCacheRetention provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_retention: '24h',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send safetyIdentifier provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,
@@ -1031,7 +1103,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -1041,7 +1113,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send responseFormat json_schema format with strictSchemas false', async () => {
+      it('should send responseFormat json_schema format with strictJsonSchema false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: {
             type: 'json',
@@ -1058,8 +1130,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
-              strictSchemas: false,
-            },
+              strictJsonSchema: false,
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
@@ -1101,13 +1173,30 @@ describe('OpenAIResponsesLanguageModel', () => {
           seed: 42,
         });
 
-        expect(warnings).toStrictEqual([
-          { type: 'unsupported-setting', setting: 'topK' },
-          { type: 'unsupported-setting', setting: 'seed' },
-          { type: 'unsupported-setting', setting: 'presencePenalty' },
-          { type: 'unsupported-setting', setting: 'frequencyPenalty' },
-          { type: 'unsupported-setting', setting: 'stopSequences' },
-        ]);
+        expect(warnings).toMatchInlineSnapshot(`
+          [
+            {
+              "feature": "topK",
+              "type": "unsupported",
+            },
+            {
+              "feature": "seed",
+              "type": "unsupported",
+            },
+            {
+              "feature": "presencePenalty",
+              "type": "unsupported",
+            },
+            {
+              "feature": "frequencyPenalty",
+              "type": "unsupported",
+            },
+            {
+              "feature": "stopSequences",
+              "type": "unsupported",
+            },
+          ]
+        `);
       });
 
       it('should extract logprobs in providerMetadata', async () => {
@@ -1234,6 +1323,20 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
           ]
         `);
+      });
+    });
+
+    describe('errors', () => {
+      it('should throw an error', async () => {
+        prepareJsonFixtureResponse('openai-error.1');
+
+        expect(
+          createModel('gpt-4o').doGenerate({
+            prompt: TEST_PROMPT,
+          }),
+        ).rejects.toThrow(
+          'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+        );
       });
     });
 
@@ -2056,9 +2159,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
-              name: 'code_interpreter',
+              name: 'codeExecution',
               args: {},
             },
           ],
@@ -2133,9 +2236,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.image_generation',
-              name: 'image_generation',
+              name: 'generateImage',
               args: {
                 outputFormat: 'webp',
                 quality: 'low',
@@ -2190,9 +2293,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.local_shell',
-              name: 'local_shell',
+              name: 'shell',
               args: {},
             },
           ],
@@ -2237,9 +2340,9 @@ describe('OpenAIResponsesLanguageModel', () => {
         result = await createModel('gpt-5-nano').doGenerate({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search',
-              name: 'web_search',
+              name: 'webSearch',
               args: {},
             },
           ],
@@ -2279,6 +2382,135 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-tool.1');
+
+        result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.1",
+            "tools": [
+              {
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include shell tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('web search sources schema resilience', () => {
+      it('should accept api-type sources without throwing', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_api_sources',
+            object: 'response',
+            created_at: 1741631111,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_api_sources',
+                status: 'completed',
+                action: {
+                  type: 'search',
+                  query: 'current price of BTC',
+                  sources: [
+                    {
+                      type: 'url',
+                      url: 'https://example.com?a=1&utm_source=openai',
+                    },
+                    { type: 'api', name: 'oai-finance' },
+                  ],
+                },
+              },
+              {
+                type: 'message',
+                id: 'msg_done',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'BTC is trading at ...',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 5,
+              total_tokens: 15,
+            },
+            previous_response_id: null,
+            parallel_tool_calls: true,
+            reasoning: { effort: null, summary: null },
+            store: true,
+            temperature: 0,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [{ type: 'web_search', search_context_size: 'medium' }],
+            top_p: 1,
+            truncation: 'disabled',
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'webSearch',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
     describe('mcp tool', () => {
       let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 
@@ -2289,9 +2521,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.mcp',
-              name: 'mcp',
+              name: 'MCP',
               args: {
                 serverLabel: 'dmcp',
                 serverUrl: 'https://mcp.exa.ai/mcp',
@@ -2346,9 +2578,9 @@ describe('OpenAIResponsesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
-                name: 'file_search',
+                name: 'fileSearch',
                 args: {
                   vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
                   maxNumResults: 5,
@@ -2417,9 +2649,9 @@ describe('OpenAIResponsesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
-                name: 'file_search',
+                name: 'fileSearch',
                 args: {
                   vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
                   maxNumResults: 5,
@@ -2489,6 +2721,56 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('apply_patch tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      describe('create_file operation', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-apply-patch-tool.1');
+
+          result = await createModel('gpt-5.1-2025-11-13').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.apply_patch',
+                name: 'apply_patch',
+                args: {},
+              },
+            ],
+          });
+        });
+
+        it('should send request body with tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "gpt-5.1-2025-11-13",
+              "tools": [
+                {
+                  "type": "apply_patch",
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include apply_patch tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+    });
+
     it('should handle computer use tool calls', async () => {
       function prepareJsonResponse(body: any) {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -2543,9 +2825,9 @@ describe('OpenAIResponsesLanguageModel', () => {
         ],
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.computer_use',
-            name: 'computer_use',
+            name: 'computerUse',
             args: {},
           },
         ],
@@ -2580,66 +2862,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
-    });
-
-    describe('errors', () => {
-      it('should throw an API call error when the response contains an error part', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67c97c0203188190a025beb4a75242bc',
-            object: 'response',
-            created_at: 1741257730,
-            status: 'completed',
-            error: {
-              code: 'ERR_SOMETHING',
-              message: 'Something went wrong',
-            },
-            incomplete_details: null,
-            input: [],
-            instructions: null,
-            max_output_tokens: null,
-            model: 'gpt-4o-2024-07-18',
-            output: [],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: null,
-              summary: null,
-            },
-            store: true,
-            temperature: 1,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
-            tools: [],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 345,
-              input_tokens_details: {
-                cached_tokens: 234,
-              },
-              output_tokens: 538,
-              output_tokens_details: {
-                reasoning_tokens: 123,
-              },
-              total_tokens: 572,
-            },
-            user: null,
-            metadata: {},
-          },
-        };
-
-        expect(
-          createModel('gpt-4o').doGenerate({
-            prompt: TEST_PROMPT,
-          }),
-        ).rejects.toThrow('Something went wrong');
-      });
     });
 
     it('should handle mixed url_citation and file_citation annotations', async () => {
@@ -3231,6 +3453,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3302,6 +3529,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3529,6 +3761,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3605,6 +3842,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3665,9 +3907,9 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { stream } = await createModel('gpt-5-nano').doStream({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search',
-              name: 'web_search',
+              name: 'webSearch',
               args: {},
             },
           ],
@@ -3701,9 +3943,9 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { stream } = await createModel('gpt-5-nano').doStream({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search',
-              name: 'web_search',
+              name: 'webSearch',
               args: {},
             },
           ],
@@ -3722,9 +3964,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
-              name: 'file_search',
+              name: 'fileSearch',
               args: {
                 vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
               },
@@ -3744,9 +3986,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
-              name: 'file_search',
+              name: 'fileSearch',
               args: {
                 vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
               },
@@ -3773,9 +4015,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
-              name: 'code_interpreter',
+              name: 'codeExecution',
               args: {},
             },
           ],
@@ -3821,9 +4063,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.image_generation',
-              name: 'image_generation',
+              name: 'generateImage',
               args: {},
             },
           ],
@@ -3843,9 +4085,31 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.local_shell',
-              name: 'local_shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool', () => {
+      it('should stream shell tool results', async () => {
+        prepareChunksFixtureResponse('openai-shell-tool.1');
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
               args: {},
             },
           ],
@@ -3864,9 +4128,9 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { stream } = await createModel('gpt-5-mini').doStream({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.mcp',
-              name: 'mcp',
+              name: 'MCP',
               args: {
                 serverLabel: 'dmcp',
                 serverUrl: 'https://mcp.exa.ai/mcp',
@@ -3883,13 +4147,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
     describe('errors', () => {
       it('should stream error parts', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"error","code":"ERR_SOMETHING","message":"Something went wrong","param":null,"sequence_number":1}\n\n`,
-          ],
-        };
+        prepareChunksFixtureResponse('openai-error.1');
 
         const { stream } = await createModel('gpt-4o-mini').doStream({
           prompt: TEST_PROMPT,
@@ -3898,43 +4156,46 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-              "modelId": "gpt-4o-mini-2024-07-18",
-              "timestamp": 2025-03-10T18:46:40.000Z,
-              "type": "response-metadata",
-            },
-            {
-              "error": {
-                "code": "ERR_SOMETHING",
-                "message": "Something went wrong",
-                "param": null,
-                "sequence_number": 1,
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
+                "modelId": "gpt-5-nano-2025-08-07",
+                "timestamp": 2025-11-18T14:03:09.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "error": {
+                  "error": {
+                    "code": "insufficient_quota",
+                    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
+                    "param": null,
+                    "type": "insufficient_quota",
+                  },
+                  "sequence_number": 2,
+                  "type": "error",
+                },
                 "type": "error",
               },
-              "type": "error",
-            },
-            {
-              "finishReason": "unknown",
-              "providerMetadata": {
-                "openai": {
-                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+              {
+                "finishReason": "unknown",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": undefined,
+                  "outputTokens": undefined,
+                  "totalTokens": undefined,
                 },
               },
-              "type": "finish",
-              "usage": {
-                "inputTokens": undefined,
-                "outputTokens": undefined,
-                "totalTokens": undefined,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
 
@@ -4090,6 +4351,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4201,6 +4467,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4383,6 +4654,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4496,6 +4772,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4692,6 +4973,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4755,6 +5041,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4784,6 +5075,26 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           stream: true,
         });
+      });
+    });
+
+    describe('apply_patch tool streaming', () => {
+      it('should handle apply_patch tool calls in streaming mode', async () => {
+        prepareChunksFixtureResponse('openai-apply-patch-tool.1');
+
+        const { stream } = await createModel('gpt-5.1-2025-11-13').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.apply_patch',
+              name: 'apply_patch',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
     });
   });
@@ -4944,7 +5255,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data:{"type":"response.content_part.added","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL"}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL","start_index":123,"end_index":234}}\n\n`,
           `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"file-abc123","quote":"This is a quote from the file"}}\n\n`,
           `data:{"type":"response.content_part.done","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}}\n\n`,
           `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}}\n\n`,
@@ -4988,6 +5299,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_123",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "end_index": 234,
+                    "start_index": 123,
+                    "title": "Example URL",
+                    "type": "url_citation",
+                    "url": "https://example.com",
+                  },
+                  {
+                    "file_id": "file-abc123",
+                    "quote": "This is a quote from the file",
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_123",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5062,6 +5392,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5244,6 +5593,21 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "container_id": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+                    "end_index": 465,
+                    "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                    "filename": "roll2dice_sums_10000.csv",
+                    "start_index": 423,
+                    "type": "container_file_citation",
+                  },
+                ],
+                "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5421,6 +5785,17 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                    "type": "file_path",
+                  },
+                ],
+                "itemId": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -5441,87 +5816,6 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
-    });
-  });
-
-  describe('web search sources schema resilience', () => {
-    it('should accept api-type sources without throwing', async () => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_api_sources',
-          object: 'response',
-          created_at: 1741631111,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          instructions: null,
-          max_output_tokens: null,
-          model: 'gpt-4o',
-          output: [
-            {
-              type: 'web_search_call',
-              id: 'ws_api_sources',
-              status: 'completed',
-              action: {
-                type: 'search',
-                query: 'current price of BTC',
-                sources: [
-                  {
-                    type: 'url',
-                    url: 'https://example.com?a=1&utm_source=openai',
-                  },
-                  { type: 'api', name: 'oai-finance' },
-                ],
-              },
-            },
-            {
-              type: 'message',
-              id: 'msg_done',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'BTC is trading at ...',
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          usage: {
-            input_tokens: 10,
-            output_tokens: 5,
-            total_tokens: 15,
-          },
-          previous_response_id: null,
-          parallel_tool_calls: true,
-          reasoning: { effort: null, summary: null },
-          store: true,
-          temperature: 0,
-          text: { format: { type: 'text' } },
-          tool_choice: 'auto',
-          tools: [{ type: 'web_search', search_context_size: 'medium' }],
-          top_p: 1,
-          truncation: 'disabled',
-          user: null,
-          metadata: {},
-        },
-      };
-
-      const result = await createModel('gpt-4o').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'openai.web_search',
-            name: 'web_search',
-            args: {},
-          },
-        ],
-      });
-
-      expect(result.content).toMatchSnapshot();
     });
   });
 });

@@ -1,5 +1,102 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 1.0.0-beta.27
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- 17c04d4: feat(mcp): expose `_meta` field from MCP tool definitions
+
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- ba2ca2d: feat(mcp): add the possibility to define client version in mcp client definition
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- f702df2: feat(mcp): add client elicitation support
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
 ## 1.0.0-beta.15
 
 ### Patch Changes

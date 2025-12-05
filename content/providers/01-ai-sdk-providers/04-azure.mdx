@@ -192,6 +192,12 @@ const { text } = await generateText({
   `https://RESOURCE_NAME.openai.azure.com/openai/v1/chat/completions?api-version=v1`
 </Note>
 
+You can create models that call the Azure OpenAI chat completions API using the `.chat()` factory method:
+
+```ts
+const model = azure.chat('your-deployment-name');
+```
+
 Azure OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
@@ -200,7 +206,7 @@ import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: azure('your-deployment-name'),
+  model: azure.chat('your-deployment-name'),
   prompt: 'Write a short story about a robot.',
   providerOptions: {
     openai: {
@@ -253,10 +259,10 @@ The following optional provider options are available for OpenAI chat models:
 
 ### Responses Models
 
-You can use the Azure OpenAI responses API with the `azure.responses(deploymentName)` factory method.
+Azure OpenAI uses responses API as default with the `azure(deploymentName)` factory method.
 
 ```ts
-const model = azure.responses('your-deployment-name');
+const model = azure('your-deployment-name');
 ```
 
 Further configuration can be done using OpenAI provider options.
@@ -267,7 +273,7 @@ import { azure, OpenAIResponsesProviderOptions } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: azure.responses('your-deployment-name'),
+  model: azure('your-deployment-name'),
   providerOptions: {
     openai: {
       parallelToolCalls: false,
@@ -308,11 +314,11 @@ The following provider options are available:
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `false`.
 
-The Azure OpenAI responses provider also returns provider-specific metadata:
+The Azure OpenAI provider also returns provider-specific metadata:
 
 ```ts
 const { providerMetadata } = await generateText({
-  model: azure.responses('your-deployment-name'),
+  model: azure('your-deployment-name'),
 });
 
 const openaiMetadata = providerMetadata?.openai;
@@ -329,15 +335,63 @@ The following OpenAI-specific metadata is returned:
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
 
+<Note>
+  The providerMetadata is only returned with the default responses API, and is
+  not supported when using 'azure.chat' or 'azure.completion'
+</Note>
+
+#### Web Search Tool
+
+The Azure OpenAI responses API supports web search(preview) through the `azure.tools.webSearchPreview` tool.
+
+```ts
+const result = await generateText({
+  model: azure('gpt-4.1-mini'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search_preview: azure.tools.webSearchPreview({
+      // optional configuration:
+      searchContextSize: 'low',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+  // Force web search tool (optional):
+  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
+});
+
+console.log(result.text);
+
+// URL sources directly from `results`
+const sources = result.sources;
+for (const source of sources) {
+  console.log('source:', source);
+}
+```
+
+<Note>
+  The tool must be named `web_search_preview` when using Azure OpenAI's web
+  search(preview) functionality. This name is required by Azure OpenAI's API
+  specification and cannot be customized.
+</Note>
+
+<Note>
+  The 'web_search_preview' tool is only supported with the default responses
+  API, and is not supported when using 'azure.chat' or 'azure.completion'
+</Note>
+
 #### File Search Tool
 
-The Azure OpenAI responses API supports file search through the `azure.tools.fileSearch` tool.
+The Azure OpenAI provider supports file search through the `azure.tools.fileSearch` tool.
 
 You can force the use of the file search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'file_search' }`.
 
 ```ts
 const result = await generateText({
-  model: azure.responses('gpt-5'),
+  model: azure('gpt-5'),
   prompt: 'What does the document say about user authentication?',
   tools: {
     file_search: azure.tools.fileSearch({
@@ -358,6 +412,11 @@ const result = await generateText({
   The tool must be named `file_search` when using Azure OpenAI's file search
   functionality. This name is required by Azure OpenAI's API specification and
   cannot be customized.
+</Note>
+
+<Note>
+  The 'file_search' tool is only supported with the default responses API, and
+  is not supported when using 'azure.chat' or 'azure.completion'
 </Note>
 
 #### Image Generation Tool
@@ -385,7 +444,7 @@ const azure = createAzure({
 });
 
 const result = await generateText({
-  model: azure.responses('gpt-5'),
+  model: azure('gpt-5'),
   prompt:
     'Generate an image of an echidna swimming across the Mozambique channel.',
   tools: {
@@ -415,14 +474,14 @@ for (const toolResult of result.staticToolResults) {
 
 #### Code Interpreter Tool
 
-The Azure OpenAI responses API supports the code interpreter tool through the `azure.tools.codeInterpreter` tool. This allows models to write and execute Python code.
+The Azure OpenAI provider supports the code interpreter tool through the `azure.tools.codeInterpreter` tool. This allows models to write and execute Python code.
 
 ```ts
 import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: azure.responses('gpt-5'),
+  model: azure('gpt-5'),
   prompt: 'Write and run Python code to calculate the factorial of 10',
   tools: {
     code_interpreter: azure.tools.codeInterpreter({
@@ -445,14 +504,19 @@ The code interpreter tool can be configured with:
   specification and cannot be customized.
 </Note>
 
+<Note>
+  The 'code_interpreter' tool is only supported with the default responses API,
+  and is not supported when using 'azure.chat' or 'azure.completion'
+</Note>
+
 #### PDF support
 
-The Azure OpenAI Responses API supports reading PDF files.
+The Azure OpenAI provider supports reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
 
 ```ts
 const result = await generateText({
-  model: azure.responses('your-deployment-name'),
+  model: azure('your-deployment-name'),
   messages: [
     {
       role: 'user',
@@ -477,6 +541,11 @@ The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
 and the `mediaType` should be set to `'application/pdf'`.
+
+<Note>
+  Reading PDF files are only supported with the default responses API, and is
+  not supported when using 'azure.chat' or 'azure.completion'
+</Note>
 
 ### Completion Models
 
@@ -557,10 +626,10 @@ The following optional provider options are available for Azure OpenAI completio
 ## Embedding Models
 
 You can create models that call the Azure OpenAI embeddings API
-using the `.textEmbedding()` factory method.
+using the `.embedding()` factory method.
 
 ```ts
-const model = azure.textEmbedding('your-embedding-deployment');
+const model = azure.embedding('your-embedding-deployment');
 ```
 
 Azure OpenAI embedding models support several additional settings.
@@ -571,7 +640,7 @@ import { azure } from '@ai-sdk/azure';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: azure.textEmbedding('your-embedding-deployment'),
+  model: azure.embedding('your-embedding-deployment'),
   value: 'sunny day at the beach',
   providerOptions: {
     openai: {
@@ -668,16 +737,17 @@ const model = azure.transcription('whisper-1');
 <Note>
   If you encounter a "DeploymentNotFound" error with transcription models,
   try enabling deployment-based URLs:
-  
-  ```ts
-  const azure = createAzure({
-    useDeploymentBasedUrls: true,
-    apiVersion: '2025-04-01-preview',
-  });
-  ```
-  
-  This uses the legacy endpoint format which may be required for certain Azure OpenAI deployments.
-  When using useDeploymentBasedUrls, the default api-version is not valid. You must set it to `2025-04-01-preview` or an earlier value.
+
+```ts
+const azure = createAzure({
+  useDeploymentBasedUrls: true,
+  apiVersion: '2025-04-01-preview',
+});
+```
+
+This uses the legacy endpoint format which may be required for certain Azure OpenAI deployments.
+When using useDeploymentBasedUrls, the default api-version is not valid. You must set it to `2025-04-01-preview` or an earlier value.
+
 </Note>
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.

@@ -1,6 +1,6 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3Source,
@@ -89,7 +89,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     toolChoice,
     providerOptions,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     const googleOptions = await parseProviderOptions({
       provider: 'google',
@@ -97,15 +97,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       schema: googleGenerativeAIProviderOptions,
     });
 
-    // Add warning if includeThoughts is used with a non-Vertex Google provider
+    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     if (
-      googleOptions?.thinkingConfig?.includeThoughts === true &&
+      tools?.some(
+        tool =>
+          tool.type === 'provider' && tool.id === 'google.vertex_rag_store',
+      ) &&
       !this.config.provider.startsWith('google.vertex.')
     ) {
       warnings.push({
         type: 'other',
         message:
-          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
           `(${this.config.provider}).`,
       });
@@ -266,6 +269,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           type: 'file' as const,
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
+          providerMetadata: part.thoughtSignature
+            ? { google: { thoughtSignature: part.thoughtSignature } }
+            : undefined,
         });
       }
     }
@@ -417,7 +423,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
             // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
             if (content != null) {
-              // Process text parts individually to handle reasoning parts
+              // Process all parts in a single loop to preserve original order
               const parts = content.parts ?? [];
               for (const part of parts) {
                 if ('executableCode' in part && part.executableCode?.code) {
@@ -531,12 +537,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         : undefined,
                     });
                   }
-                }
-              }
-
-              const inlineDataParts = getInlineDataParts(content.parts);
-              if (inlineDataParts != null) {
-                for (const part of inlineDataParts) {
+                } else if ('inlineData' in part) {
+                  // Process file parts inline to preserve order with text
                   controller.enqueue({
                     type: 'file',
                     mediaType: part.inlineData.mimeType,
@@ -664,16 +666,6 @@ function getToolCallsFromParts({
       }));
 }
 
-function getInlineDataParts(parts: ContentSchema['parts']) {
-  return parts?.filter(
-    (
-      part,
-    ): part is {
-      inlineData: { mimeType: string; data: string };
-    } => 'inlineData' in part,
-  );
-}
-
 function extractSources({
   groundingMetadata,
   generateId,
@@ -681,21 +673,86 @@ function extractSources({
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
 }): undefined | LanguageModelV3Source[] {
-  return groundingMetadata?.groundingChunks
-    ?.filter(
-      (
-        chunk,
-      ): chunk is GroundingChunkSchema & {
-        web: { uri: string; title?: string };
-      } => chunk.web != null,
-    )
-    .map(chunk => ({
-      type: 'source',
-      sourceType: 'url',
-      id: generateId(),
-      url: chunk.web.uri,
-      title: chunk.web.title,
-    }));
+  if (!groundingMetadata?.groundingChunks) {
+    return undefined;
+  }
+
+  const sources: LanguageModelV3Source[] = [];
+
+  for (const chunk of groundingMetadata.groundingChunks) {
+    if (chunk.web != null) {
+      // Handle web chunks as URL sources
+      sources.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        url: chunk.web.uri,
+        title: chunk.web.title ?? undefined,
+      });
+    } else if (chunk.retrievedContext != null) {
+      // Handle retrievedContext chunks from RAG operations
+      const uri = chunk.retrievedContext.uri;
+      const fileSearchStore = chunk.retrievedContext.fileSearchStore;
+
+      if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
+        // Old format: Google Search with HTTP/HTTPS URL
+        sources.push({
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: uri,
+          title: chunk.retrievedContext.title ?? undefined,
+        });
+      } else if (uri) {
+        // Old format: Document with file path (gs://, etc.)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
+        let mediaType = 'application/octet-stream';
+        let filename: string | undefined = undefined;
+
+        if (uri.endsWith('.pdf')) {
+          mediaType = 'application/pdf';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.txt')) {
+          mediaType = 'text/plain';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.docx')) {
+          mediaType =
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.doc')) {
+          mediaType = 'application/msword';
+          filename = uri.split('/').pop();
+        } else if (uri.match(/\.(md|markdown)$/)) {
+          mediaType = 'text/markdown';
+          filename = uri.split('/').pop();
+        } else {
+          filename = uri.split('/').pop();
+        }
+
+        sources.push({
+          type: 'source',
+          sourceType: 'document',
+          id: generateId(),
+          mediaType,
+          title,
+          filename,
+        });
+      } else if (fileSearchStore) {
+        // New format: File Search with fileSearchStore (no uri)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
+        sources.push({
+          type: 'source',
+          sourceType: 'document',
+          id: generateId(),
+          mediaType: 'application/octet-stream',
+          title,
+          filename: fileSearchStore.split('/').pop(),
+        });
+      }
+    }
+  }
+
+  return sources.length > 0 ? sources : undefined;
 }
 
 export const getGroundingMetadataSchema = () =>
@@ -709,15 +766,14 @@ export const getGroundingMetadataSchema = () =>
           web: z
             .object({ uri: z.string(), title: z.string().nullish() })
             .nullish(),
-          retrievedContext: z.union([
-            z
-              .object({ uri: z.string(), title: z.string().nullish() })
-              .nullish(),
-            z.object({
+          retrievedContext: z
+            .object({
+              uri: z.string().nullish(),
               title: z.string().nullish(),
               text: z.string().nullish(),
-            }),
-          ]),
+              fileSearchStore: z.string().nullish(),
+            })
+            .nullish(),
         }),
       )
       .nullish(),
@@ -765,6 +821,7 @@ const getContentSchema = () =>
               mimeType: z.string(),
               data: z.string(),
             }),
+            thoughtSignature: z.string().nullish(),
           }),
           z.object({
             executableCode: z
@@ -805,6 +862,8 @@ const usageSchema = z.object({
   promptTokenCount: z.number().nullish(),
   candidatesTokenCount: z.number().nullish(),
   totalTokenCount: z.number().nullish(),
+  // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+  trafficType: z.string().nullish(),
 });
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata

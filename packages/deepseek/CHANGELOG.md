@@ -1,5 +1,117 @@
 # @ai-sdk/deepseek
 
+## 2.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 2.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 2.0.0-beta.44
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 2.0.0-beta.43
+
+### Patch Changes
+
+- 4d04f43: feat(deepseek): rewrite DeepSeek provider
+
+## 2.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [544d4e8]
+  - @ai-sdk/openai-compatible@2.0.0-beta.41
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 2.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/openai-compatible@2.0.0-beta.40
+
+## 2.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/openai-compatible@2.0.0-beta.39
+
+## 2.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [457318b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.38
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 2.0.0-beta.38
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/openai-compatible@2.0.0-beta.37
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 2.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/openai-compatible@2.0.0-beta.36
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 2.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/openai-compatible@2.0.0-beta.35
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- 3da75f4: Added utility ensureJsonInstructionForProvider that auto-injects a JSON instruction when the provider is deepseek.chat
+
 ## 2.0.0-beta.34
 
 ### Patch Changes

@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -61,7 +61,7 @@ export class FalSpeechModel implements SpeechModelV3 {
     language,
     providerOptions,
   }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     const falOptions = await parseProviderOptions({
       provider: 'fal',
@@ -80,8 +80,8 @@ export class FalSpeechModel implements SpeechModelV3 {
     // Language is not directly supported; warn and ignore
     if (language) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'language',
+        type: 'unsupported',
+        feature: 'language',
         details:
           "fal speech models don't support 'language' directly; consider providerOptions.fal.language_boost",
       });
@@ -90,9 +90,9 @@ export class FalSpeechModel implements SpeechModelV3 {
     // warn on invalid values (and on hex until we support hex response handling)
     if (outputFormat && outputFormat !== 'url' && outputFormat !== 'hex') {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'outputFormat',
-        details: `Unsupported or unhandled outputFormat: ${outputFormat}. Using 'url' instead.`,
+        type: 'unsupported',
+        feature: 'outputFormat',
+        details: `Unsupported outputFormat: ${outputFormat}. Using 'url' instead.`,
       });
     }
 

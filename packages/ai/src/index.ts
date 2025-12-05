@@ -1,5 +1,5 @@
 // re-exports:
-export { createGateway, gateway } from '@ai-sdk/gateway';
+export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
 export {
   asSchema,
   createIdGenerator,
@@ -19,6 +19,7 @@ export {
   type ToolApprovalRequest,
   type ToolApprovalResponse,
   type ToolCallOptions,
+  type ToolExecutionOptions,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
 

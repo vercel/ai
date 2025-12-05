@@ -940,7 +940,6 @@ function asToolCalls(content: Array<LanguageModelV3Content>) {
   }));
 }
 
-// TODO AI SDK 5.1 / AI SDK 6: rename to asOutput
 function asContent<TOOLS extends ToolSet>({
   content,
   toolCalls,
@@ -964,6 +963,9 @@ function asContent<TOOLS extends ToolSet>({
           return {
             type: 'file' as const,
             file: new DefaultGeneratedFile(part),
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           };
         }
 

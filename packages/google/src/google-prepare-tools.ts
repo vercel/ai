@@ -1,6 +1,6 @@
 import {
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -16,14 +16,16 @@ export function prepareTools({
   modelId: GoogleGenerativeAIModelId;
 }): {
   tools:
-    | {
-        functionDeclarations: Array<{
-          name: string;
-          description: string;
-          parameters: unknown;
-        }>;
-      }
-    | Record<string, any>
+    | Array<
+        | {
+            functionDeclarations: Array<{
+              name: string;
+              description: string;
+              parameters: unknown;
+            }>;
+          }
+        | Record<string, any>
+      >
     | undefined;
   toolConfig:
     | undefined
@@ -33,12 +35,12 @@ export function prepareTools({
           allowedFunctionNames?: string[];
         };
       };
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV3Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
 
   const isLatest = (
     [
@@ -47,7 +49,8 @@ export function prepareTools({
       'gemini-pro-latest',
     ] as const satisfies GoogleGenerativeAIModelId[]
   ).some(id => id === modelId);
-  const isGemini2 = modelId.includes('gemini-2') || isLatest;
+  const isGemini2orNewer =
+    modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
   const supportsFileSearch = modelId.includes('gemini-2.5');
@@ -58,29 +61,23 @@ export function prepareTools({
 
   // Check for mixed tool types and add warnings
   const hasFunctionTools = tools.some(tool => tool.type === 'function');
-  const hasProviderDefinedTools = tools.some(
-    tool => tool.type === 'provider-defined',
-  );
+  const hasProviderTools = tools.some(tool => tool.type === 'provider');
 
-  if (hasFunctionTools && hasProviderDefinedTools) {
+  if (hasFunctionTools && hasProviderTools) {
     toolWarnings.push({
-      type: 'unsupported-tool',
-      tool: tools.find(tool => tool.type === 'function')!,
-      details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+      type: 'unsupported',
+      feature: `combination of function and provider-defined tools`,
     });
   }
 
-  if (hasProviderDefinedTools) {
+  if (hasProviderTools) {
     const googleTools: any[] = [];
 
-    const providerDefinedTools = tools.filter(
-      tool => tool.type === 'provider-defined',
-    );
-    providerDefinedTools.forEach(tool => {
+    const ProviderTools = tools.filter(tool => tool.type === 'provider');
+    ProviderTools.forEach(tool => {
       switch (tool.id) {
         case 'google.google_search':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ googleSearch: {} });
           } else if (supportsDynamicRetrieval) {
             // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
@@ -102,24 +99,24 @@ export function prepareTools({
           }
           break;
         case 'google.url_context':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ urlContext: {} });
           } else {
             toolWarnings.push({
-              type: 'unsupported-tool',
-              tool,
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
               details:
                 'The URL context tool is not supported with other Gemini models than Gemini 2.',
             });
           }
           break;
         case 'google.code_execution':
-          if (isGemini2) {
+          if (isGemini2orNewer) {
             googleTools.push({ codeExecution: {} });
           } else {
             toolWarnings.push({
-              type: 'unsupported-tool',
-              tool,
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
               details:
                 'The code execution tools is not supported with other Gemini models than Gemini 2.',
             });
@@ -130,15 +127,39 @@ export function prepareTools({
             googleTools.push({ fileSearch: { ...tool.args } });
           } else {
             toolWarnings.push({
-              type: 'unsupported-tool',
-              tool,
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
               details:
                 'The file search tool is only supported with Gemini 2.5 models.',
             });
           }
           break;
+        case 'google.vertex_rag_store':
+          if (isGemini2orNewer) {
+            googleTools.push({
+              retrieval: {
+                vertex_rag_store: {
+                  rag_resources: {
+                    rag_corpus: tool.args.ragCorpus,
+                  },
+                  similarity_top_k: tool.args.topK as number | undefined,
+                },
+              },
+            });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
+              details:
+                'The RAG store tool is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
         default:
-          toolWarnings.push({ type: 'unsupported-tool', tool });
+          toolWarnings.push({
+            type: 'unsupported',
+            feature: `provider-defined tool ${tool.id}`,
+          });
           break;
       }
     });
@@ -161,14 +182,17 @@ export function prepareTools({
         });
         break;
       default:
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `function tool ${tool.name}`,
+        });
         break;
     }
   }
 
   if (toolChoice == null) {
     return {
-      tools: { functionDeclarations },
+      tools: [{ functionDeclarations }],
       toolConfig: undefined,
       toolWarnings,
     };
@@ -179,25 +203,25 @@ export function prepareTools({
   switch (type) {
     case 'auto':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
         toolWarnings,
       };
     case 'none':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'NONE' } },
         toolWarnings,
       };
     case 'required':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: { functionCallingConfig: { mode: 'ANY' } },
         toolWarnings,
       };
     case 'tool':
       return {
-        tools: { functionDeclarations },
+        tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
             mode: 'ANY',

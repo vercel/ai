@@ -108,6 +108,10 @@ The following optional provider options are available for Anthropic models:
   If you are experiencing issues with the model handling requests involving
   reasoning content, you can set this to `false` to omit them from the request.
 
+- `effort` _"high" | "medium" | "low"_
+
+  Optional. See [Effort section](#effort) for more details.
+
 - `thinking` _object_
 
   Optional. See [Reasoning section](#reasoning) for more details.
@@ -115,6 +119,14 @@ The following optional provider options are available for Anthropic models:
 - `toolStreaming` _boolean_
 
   Whether to enable tool streaming (and structured output streaming). Default to `true`.
+
+- `structuredOutputMode` _"outputFormat" | "jsonTool" | "auto"_
+
+  Determines how structured outputs are generated. Optional.
+
+  - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
+  - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
+  - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
 
 ### Structured Outputs and Tool Input Streaming
 
@@ -143,6 +155,28 @@ const result = streamText({
   },
   prompt: 'Write a short story to story.txt',
 });
+```
+
+### Effort
+
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
+
+```ts highlight="8-10"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, usage } = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      effort: 'low',
+    } satisfies AnthropicProviderOptions,
+  },
+});
+
+console.log(text); // resulting text
+console.log(usage); // token usage
 ```
 
 ### Reasoning
@@ -297,8 +331,10 @@ const result = await generateText({
 
 The minimum cacheable prompt length is:
 
-- 1024 tokens for Claude 3.7 Sonnet, Claude 3.5 Sonnet and Claude 3 Opus
-- 2048 tokens for Claude 3.5 Haiku and Claude 3 Haiku
+- 4096 tokens for Claude Opus 4.5
+- 1024 tokens for Claude Opus 4.1, Claude Opus 4, Claude Sonnet 4.5, Claude Sonnet 4, Claude Sonnet 3.7, and Claude Opus 3
+- 4096 tokens for Claude Haiku 4.5
+- 2048 tokens for Claude Haiku 3.5 and Claude Haiku 3
 
 Shorter prompts cannot be cached, even if marked with `cacheControl`. Any requests to cache fewer than this number of tokens will be processed without caching.
 
@@ -330,10 +366,7 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
-<Note>
-  The bash tool must have the name `bash`. Only certain Claude versions are
-  supported.
-</Note>
+<Note>Only certain Claude versions are supported.</Note>
 
 ### Memory Tool
 
@@ -349,10 +382,7 @@ const memory = anthropic.tools.memory_20250818({
 });
 ```
 
-<Note>
-  The memory tool must have the name `memory`. Only certain Claude versions are
-  supported.
-</Note>
+<Note>Only certain Claude versions are supported.</Note>
 
 ### Text Editor Tool
 
@@ -360,7 +390,6 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 
 ```ts
 const tools = {
-  // tool name must be str_replace_based_edit_tool
   str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
     maxCharacters: 10000, // optional
     async execute({ command, path, old_str, new_str }) {
@@ -372,7 +401,7 @@ const tools = {
 
 <Note>
   Different models support different versions of the tool. For Claude Sonnet 3.5
-  and 3.7 you need to use older tool versions and tool names.
+  and 3.7 you need to use older tool versions.
 </Note>
 
 Parameters:
@@ -841,6 +870,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

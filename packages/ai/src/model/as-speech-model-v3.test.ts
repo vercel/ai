@@ -2,9 +2,20 @@ import { SpeechModelV2 } from '@ai-sdk/provider';
 import { asSpeechModelV3 } from './as-speech-model-v3';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
 
 describe('asSpeechModelV3', () => {
+  let logWarningSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    logWarningSpy = vi.spyOn(logWarningsModule, 'logWarnings');
+  });
+
+  afterEach(() => {
+    logWarningSpy.mockRestore();
+  });
+
   describe('when a speech model v3 is provided', () => {
     it('should return the same v3 model unchanged', () => {
       const originalModel = new MockSpeechModelV3({
@@ -16,6 +27,17 @@ describe('asSpeechModelV3', () => {
 
       expect(result).toBe(originalModel);
       expect(result.specificationVersion).toBe('v3');
+    });
+
+    it('should not log any warning', () => {
+      const originalModel = new MockSpeechModelV3({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      asSpeechModelV3(originalModel);
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
     });
 
     it('should preserve all v3 model properties', () => {
@@ -43,6 +65,29 @@ describe('asSpeechModelV3', () => {
 
       expect(result.specificationVersion).toBe('v3');
       expect(result).not.toBe(v2Model);
+    });
+
+    it('should log a compatibility warning', () => {
+      const v2Model = new MockSpeechModelV2({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      asSpeechModelV3(v2Model);
+
+      expect(logWarningSpy).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'compatibility',
+            feature: 'specificationVersion',
+            details: expect.stringContaining(
+              'Using v2 specification compatibility',
+            ),
+          },
+        ],
+        provider: 'test-provider',
+        model: 'test-model-id',
+      });
     });
 
     it('should preserve provider property', () => {

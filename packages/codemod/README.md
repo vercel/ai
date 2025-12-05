@@ -25,6 +25,8 @@ npx @ai-sdk/codemod v4
 
 npx @ai-sdk/codemod v5
 
+npx @ai-sdk/codemod v6
+
 npx @ai-sdk/codemod upgrade
 ```
 
@@ -117,6 +119,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/replace-content-with-parts`                                       | Transforms v5/replace content with parts                                       |
 | `v5/replace-datastream-to-uimessagestream`                            | Transforms v5/replace datastream to uimessagestream                            |
 | `v5/replace-experimental-provider-metadata`                           | Transforms v5/replace experimental provider metadata                           |
+| `v5/replace-fal-snake-case`                                           | Transforms v5/replace fal snake case                                           |
 | `v5/replace-image-type-with-file-type`                                | Transforms v5/replace image type with file type                                |
 | `v5/replace-llamaindex-adapter`                                       | Transforms v5/replace llamaindex adapter                                       |
 | `v5/replace-oncompletion-with-onfinal`                                | Transforms v5/replace oncompletion with onfinal                                |
@@ -134,6 +137,13 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/restructure-source-stream-parts`                                  | Transforms v5/restructure source stream parts                                  |
 | `v5/rsc-package`                                                      | Transforms v5/rsc package                                                      |
 
+### General Codemods
+
+| Codemod                                 | Description                                      |
+| --------------------------------------- | ------------------------------------------------ |
+| `v6/rename-mock-v2-to-v3`               | Transforms v6/rename mock v2 to v3               |
+| `v6/rename-text-embedding-to-embedding` | Transforms v6/rename text embedding to embedding |
+
 ## CLI Options
 
 ### Commands
@@ -144,9 +154,10 @@ npx @ai-sdk/codemod@beta <command> [options]
 
 **Available Commands:**
 
-- `upgrade` - Apply all codemods (v4 + v5)
+- `upgrade` - Apply all codemods (v4 + v5 + v6)
 - `v4` - Apply v4 codemods (v3 → v4 migration)
 - `v5` - Apply v5 codemods (v4 → v5 migration)
+- `v6` - Apply v6 codemods (v5 → v6 migration)
 - `<codemod-name> <path>` - Apply specific codemod
 
 ### Global Options
@@ -166,6 +177,9 @@ npx @ai-sdk/codemod@beta --dry v4
 
 # Preview v5 changes only
 npx @ai-sdk/codemod@beta --dry v5
+
+# Preview v6 changes only
+npx @ai-sdk/codemod@beta --dry v6
 
 # Show verbose output for specific codemod
 npx @ai-sdk/codemod@beta --verbose v4/remove-experimental-ai-fn-exports src/
@@ -236,10 +250,13 @@ pnpm test:watch
 
 ## Version Compatibility
 
-- **AI SDK 5.0**: All codemods in this package
+- **AI SDK 6.0**: All codemods in this package
+- **AI SDK 5.0**: Use v4 + v5 codemods
 - **AI SDK 4.x**: Use `@ai-sdk/codemod@1.x`
 - **AI SDK 3.x**: Manual migration required
 
 ---
 
-For more detailed migration information, see the [AI SDK 5.0 Migration Guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-5-0).
+For more detailed migration information, see:
+
+- [AI SDK 6.0 Migration Guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-6-0)

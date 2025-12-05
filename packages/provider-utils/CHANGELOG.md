@@ -1,5 +1,77 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider@3.0.0-beta.21
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- 03849b0: move DelayedPromise into provider utils
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+
 ## 4.0.0-beta.33
 
 ### Patch Changes
