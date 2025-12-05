@@ -106,7 +106,7 @@ describe('validateAndApplyToolInputOverrides', () => {
     expect(result.invalidToolErrors).toMatchInlineSnapshot(`
       [
         {
-          "dynamic": true,
+          "dynamic": undefined,
           "error": "Tool 'calculator' does not allow input modification.",
           "input": {
             "expression": "2+2",
@@ -149,7 +149,7 @@ describe('validateAndApplyToolInputOverrides', () => {
     expect(result.invalidToolErrors).toMatchInlineSnapshot(`
       [
         {
-          "dynamic": true,
+          "dynamic": undefined,
           "error": "Tool 'timer' does not allow input modification.",
           "input": {
             "duration": 120,

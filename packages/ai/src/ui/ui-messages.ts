@@ -307,7 +307,6 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
-        override?: { input: asUITool<TOOL>['input'] };
       };
     }
 );
@@ -415,7 +414,6 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
-        override?: { input: unknown };
       };
     }
 );
