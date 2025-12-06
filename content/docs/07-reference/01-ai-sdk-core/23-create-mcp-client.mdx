@@ -108,6 +108,13 @@ It currently does not support accepting notifications from an MCP server, and cu
                       description:
                         'Optional OAuth provider for authorization to access protected remote MCP servers.',
                     },
+                    {
+                      name: 'fetch',
+                      type: 'FetchFunction',
+                      isOptional: true,
+                      description:
+                        'Custom fetch implementation. You can use it as a middleware to intercept requests, or to provide a custom fetch implementation for e.g. testing.',
+                    },
                   ],
                 },
               ],

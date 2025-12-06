@@ -1,3 +1,4 @@
+import { FetchFunction } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage } from './json-rpc-message';
 import { SseMCPTransport } from './mcp-sse-transport';
@@ -58,6 +59,12 @@ export type MCPTransportConfig = {
    * An optional OAuth client provider to use for authentication for MCP servers.
    */
   authProvider?: OAuthClientProvider;
+
+  /**
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
+  fetch?: FetchFunction;
 };
 
 export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
