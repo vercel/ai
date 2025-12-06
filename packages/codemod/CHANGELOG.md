@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- 9f3216e: feat(codemod): add remaining codemods for v5 -> v6 migration
+
 ## 3.0.0-beta.3
 
 ### Patch Changes
