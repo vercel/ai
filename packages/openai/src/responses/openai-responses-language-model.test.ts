@@ -2896,10 +2896,9 @@ describe('OpenAIResponsesLanguageModel', () => {
                   },
                   {
                     type: 'file_citation',
-                    start_index: 20,
-                    end_index: 30,
                     file_id: 'file-abc123',
-                    quote: 'This is a quote from the file',
+                    filename: 'resource1.json',
+                    index: 123,
                   },
                 ],
               },
@@ -2945,10 +2944,9 @@ describe('OpenAIResponsesLanguageModel', () => {
                     "url": "https://example.com",
                   },
                   {
-                    "end_index": 30,
                     "file_id": "file-abc123",
-                    "quote": "This is a quote from the file",
-                    "start_index": 20,
+                    "filename": "resource1.json",
+                    "index": 123,
                     "type": "file_citation",
                   },
                 ],
@@ -2966,16 +2964,18 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://example.com",
           },
           {
-            "filename": "file-abc123",
+            "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
               "openai": {
                 "fileId": "file-abc123",
+                "index": 123,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
-            "title": "This is a quote from the file",
+            "title": "resource1.json",
             "type": "source",
           },
         ]
@@ -3007,10 +3007,9 @@ describe('OpenAIResponsesLanguageModel', () => {
                 annotations: [
                   {
                     type: 'file_citation',
-                    start_index: 0,
-                    end_index: 20,
                     file_id: 'file-xyz789',
-                    quote: 'Important information from document',
+                    filename: 'resource1.json',
+                    index: 123,
                   },
                 ],
               },
@@ -3049,10 +3048,9 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "annotations": [
                   {
-                    "end_index": 20,
                     "file_id": "file-xyz789",
-                    "quote": "Important information from document",
-                    "start_index": 0,
+                    "filename": "resource1.json",
+                    "index": 123,
                     "type": "file_citation",
                   },
                 ],
@@ -3063,16 +3061,18 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text",
           },
           {
-            "filename": "file-xyz789",
+            "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
               "openai": {
                 "fileId": "file-xyz789",
+                "index": 123,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
-            "title": "Important information from document",
+            "title": "resource1.json",
             "type": "source",
           },
         ]
@@ -3176,6 +3176,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-YRcoCqn3Fo2K4JgraG",
+                "index": 145,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -3189,6 +3191,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-YRcoCqn3Fo2K4JgraG",
+                "index": 192,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -3272,7 +3276,6 @@ describe('OpenAIResponsesLanguageModel', () => {
                     "end_index": 10,
                     "file_id": "file-container",
                     "filename": "data.csv",
-                    "index": 2,
                     "start_index": 0,
                     "type": "container_file_citation",
                   },
@@ -3291,7 +3294,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "containerId": "cntr_test",
                 "fileId": "file-container",
-                "index": 2,
+                "type": "container_file_citation",
               },
             },
             "sourceType": "document",
@@ -3386,6 +3389,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "fileId": "file-path-123",
                 "index": 0,
+                "type": "file_path",
               },
             },
             "sourceType": "document",
@@ -5256,10 +5260,10 @@ describe('OpenAIResponsesLanguageModel', () => {
         chunks: [
           `data:{"type":"response.content_part.added","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
           `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL","start_index":123,"end_index":234}}\n\n`,
-          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"file-abc123","quote":"This is a quote from the file"}}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_123","object":"response","created_at":1234567890,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o","output":[{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":0},"output_tokens":50,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":150},"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","index":123,"file_id":"file-abc123","filename":"resource1.json"}}\n\n`,
+          `data:{"type":"response.content_part.done","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","index":123,"file_id":"file-abc123","filename":"resource1.json"}]}}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","index":123,"file_id":"file-abc123","filename":"resource1.json"}]}]}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_123","object":"response","created_at":1234567890,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o","output":[{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","index":123,"file_id":"file-abc123","filename":"resource1.json"}]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":0},"output_tokens":50,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":150},"user":null,"metadata":{}}}\n\n`,
           'data: [DONE]\n\n',
         ],
       };
@@ -5285,16 +5289,18 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://example.com",
           },
           {
-            "filename": "file-abc123",
+            "filename": "resource1.json",
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
               "openai": {
                 "fileId": "file-abc123",
+                "index": 123,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
-            "title": "This is a quote from the file",
+            "title": "resource1.json",
             "type": "source",
           },
           {
@@ -5311,7 +5317,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                   },
                   {
                     "file_id": "file-abc123",
-                    "quote": "This is a quote from the file",
+                    "filename": "resource1.json",
+                    "index": 123,
                     "type": "file_citation",
                   },
                 ],
@@ -5371,6 +5378,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-YRcoCqn3Fo2K4JgraG",
+                "index": 145,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -5384,6 +5393,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "file-YRcoCqn3Fo2K4JgraG",
+                "index": 192,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -5585,6 +5596,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               "openai": {
                 "containerId": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
                 "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                "type": "container_file_citation",
               },
             },
             "sourceType": "document",
@@ -5635,8 +5647,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data:${JSON.stringify({ type: 'response.content_part.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', text: '', annotations: [] } })}\n\n`,
-          `data:${JSON.stringify({ type: 'response.output_text.annotation.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, annotation_index: 0, annotation: { type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' } })}\n\n`,
-          `data:${JSON.stringify({ type: 'response.content_part.done', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', annotations: [{ type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.output_text.annotation.added', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, annotation_index: 0, annotation: { type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1', index: 123 } })}\n\n`,
+          `data:${JSON.stringify({ type: 'response.content_part.done', item_id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', output_index: 0, content_index: 0, part: { type: 'output_text', annotations: [{ type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1', index: 123 }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." } })}\n\n`,
           `data:${JSON.stringify({ type: 'response.output_item.done', output_index: 0, item: { id: 'msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9', type: 'message', status: 'completed', content: [{ type: 'output_text', annotations: [{ type: 'file_path', file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1' }], logprobs: [], text: "Heres a simulation of rolling two fair six-sided dice 10,000 times. Each trial sums the two dice.\n\nResults\n- Total sum of all 10,000 trials: 69,868\n- Average sum per trial: 6.9868\n- Minimum sum observed: 2\n- Maximum sum observed: 12\n- Sample of the first 20 trial sums: 6, 7, 2, 5, 5, 11, 4, 8, 10, 7, 5, 8, 8, 7, 10, 8, 9, 5, 4, 7\n\nFull data\n- You can download all 10,000 sums as a CSV file here: [Download the sums CSV](sandbox:/mnt/data/roll2dice_sums_10000.csv)\n\nIf you'd like, I can also provide a frequency distribution, histogram, or export the data in another format (JSON, Excel, etc.)." }], role: 'assistant' } })}\n\n`,
           `data:${JSON.stringify({
             type: 'response.completed',
@@ -5719,6 +5731,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                         {
                           type: 'file_path',
                           file_id: 'cfile_68c2e7084ab48191a67824aa1f4c90f1',
+                          index: 123,
                         },
                       ],
                       logprobs: [],
@@ -5777,6 +5790,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "providerMetadata": {
               "openai": {
                 "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                "index": 123,
+                "type": "file_path",
               },
             },
             "sourceType": "document",
@@ -5790,6 +5805,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "annotations": [
                   {
                     "file_id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                    "index": 123,
                     "type": "file_path",
                   },
                 ],
