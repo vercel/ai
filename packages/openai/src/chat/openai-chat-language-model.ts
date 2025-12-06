@@ -326,11 +326,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
     // tool calls:
     for (const toolCall of choice.message.tool_calls ?? []) {
+      // normalize empty/whitespace arguments to empty object:
+      const normalizedArguments =
+        toolCall.function.arguments.trim() || '{}';
+
       content.push({
         type: 'tool-call' as const,
         toolCallId: toolCall.id ?? generateId(),
         toolName: toolCall.function.name,
-        input: toolCall.function.arguments!,
+        input: normalizedArguments,
       });
     }
 
@@ -592,6 +596,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                     // check if tool call is complete
                     // (some providers send the full tool call in one chunk):
                     if (isParsableJson(toolCall.function.arguments)) {
+                      // normalize empty/whitespace arguments to empty object:
+                      const normalizedArguments =
+                        toolCall.function.arguments.trim() || '{}';
+
                       controller.enqueue({
                         type: 'tool-input-end',
                         id: toolCall.id,
@@ -601,7 +609,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                         type: 'tool-call',
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
+                        input: normalizedArguments,
                       });
                       toolCall.hasFinished = true;
                     }
@@ -635,6 +643,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                   toolCall.function?.arguments != null &&
                   isParsableJson(toolCall.function.arguments)
                 ) {
+                  // normalize empty/whitespace arguments to empty object:
+                  const normalizedArguments =
+                    toolCall.function.arguments.trim() || '{}';
+
                   controller.enqueue({
                     type: 'tool-input-end',
                     id: toolCall.id,
@@ -644,7 +656,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                     type: 'tool-call',
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
+                    input: normalizedArguments,
                   });
                   toolCall.hasFinished = true;
                 }
@@ -666,6 +678,31 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
+            // process any pending tool calls that haven't finished yet:
+            for (const toolCall of toolCalls) {
+              if (
+                !toolCall.hasFinished &&
+                toolCall.function?.name != null &&
+                toolCall.function?.arguments != null
+              ) {
+                // normalize empty/whitespace arguments to empty object:
+                const normalizedArguments =
+                  toolCall.function.arguments.trim() || '{}';
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCall.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: toolCall.id ?? generateId(),
+                  toolName: toolCall.function.name,
+                  input: normalizedArguments,
+                });
+              }
+            }
+
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
