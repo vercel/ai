@@ -1,6 +1,5 @@
 export {
   generateText,
-  type GenerateTextOnFinishCallback,
   type GenerateTextOnStepFinishCallback,
 } from './generate-text';
 export type { ContentPart } from './content-part';
