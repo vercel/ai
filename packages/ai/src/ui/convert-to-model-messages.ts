@@ -162,6 +162,9 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   mediaType: part.mediaType,
                   filename: part.filename,
                   data: part.url,
+                  ...(part.providerMetadata != null
+                    ? { providerOptions: part.providerMetadata }
+                    : {}),
                 });
               } else if (isReasoningUIPart(part)) {
                 content.push({
