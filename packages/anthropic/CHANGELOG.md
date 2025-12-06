@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 0ae783e: feat(anthropic): add the new tool search tools
+
 ## 3.0.0-beta.74
 
 ### Patch Changes
