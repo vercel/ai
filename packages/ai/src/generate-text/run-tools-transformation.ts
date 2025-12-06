@@ -118,7 +118,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-  system: string | SystemModelMessage | undefined;
+  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
