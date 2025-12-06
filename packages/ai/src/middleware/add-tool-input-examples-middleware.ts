@@ -12,10 +12,10 @@ function defaultFormatExample(example: { input: JSONObject }): string {
  * property. The middleware serializes examples into the tool's description text.
  *
  * @param options - Configuration options for the middleware.
- * @param options.examplesPrefix - A prefix to prepend before the examples.
- * @param options.formatExample - Optional custom formatter for each example.
+ * @param options.prefix - A prefix to prepend before the examples. Default: 'Input Examples:'
+ * @param options.format - Optional custom formatter for each example.
  *   Receives the example object and its index. Default: JSON.stringify(example.input)
- * @param options.removeInputExamples - Whether to remove the inputExamples property
+ * @param options.remove - Whether to remove the inputExamples property
  *   after adding them to the description. Default: true
  *
  * @example
@@ -24,35 +24,33 @@ function defaultFormatExample(example: { input: JSONObject }): string {
  *
  * const model = wrapLanguageModel({
  *   model: yourModel,
- *   middleware: addToolInputExamplesMiddleware({
- *     examplesPrefix: 'Input Examples:',
- *   }),
+ *   middleware: addToolInputExamplesMiddleware(),
  * });
  * ```
  */
 export function addToolInputExamplesMiddleware({
-  examplesPrefix,
-  formatExample = defaultFormatExample,
-  removeInputExamples = true,
+  prefix = 'Input Examples:',
+  format = defaultFormatExample,
+  remove = true,
 }: {
   /**
-   * A prefix/header to prepend before the examples.
+   * A prefix to prepend before the examples.
    */
-  examplesPrefix: string;
+  prefix?: string;
 
   /**
    * Optional custom formatter for each example.
    * Receives the example object and its index.
    * Default: JSON.stringify(example.input)
    */
-  formatExample?: (example: { input: JSONObject }, index: number) => string;
+  format?: (example: { input: JSONObject }, index: number) => string;
 
   /**
    * Whether to remove the inputExamples property after adding them to the description.
    * Default: true
    */
-  removeInputExamples?: boolean;
-}): LanguageModelMiddleware {
+  remove?: boolean;
+} = {}): LanguageModelMiddleware {
   return {
     specificationVersion: 'v3',
     transformParams: async ({ params }) => {
@@ -67,10 +65,10 @@ export function addToolInputExamplesMiddleware({
         }
 
         const formattedExamples = tool.inputExamples
-          .map((example, index) => formatExample(example, index))
+          .map((example, index) => format(example, index))
           .join('\n');
 
-        const examplesSection = `${examplesPrefix}\n${formattedExamples}`;
+        const examplesSection = `${prefix}\n${formattedExamples}`;
 
         const toolDescription = tool.description
           ? `${tool.description}\n\n${examplesSection}`
@@ -79,7 +77,7 @@ export function addToolInputExamplesMiddleware({
         return {
           ...tool,
           description: toolDescription,
-          inputExamples: removeInputExamples ? undefined : tool.inputExamples,
+          inputExamples: remove ? undefined : tool.inputExamples,
         } satisfies LanguageModelV3FunctionTool;
       });
 
