@@ -1,5 +1,192 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/openai-compatible@2.0.0-beta.44
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/openai-compatible@2.0.0-beta.43
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/openai-compatible@2.0.0-beta.42
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/openai-compatible@2.0.0-beta.41
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/openai-compatible@2.0.0-beta.40
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/openai-compatible@2.0.0-beta.39
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.38
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 8514146: add grok-4-1 model IDs
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/openai-compatible@2.0.0-beta.37
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 3.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/openai-compatible@2.0.0-beta.36
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 3.0.0-beta.42
+
+### Patch Changes
+
+- b39ec2c: Fix Responses API validation errors for server-side tools (web_search, x_search, code_execution). Add missing custom_tool_call type and streaming event schemas.
+
+## 3.0.0-beta.41
+
+### Patch Changes
+
+- 248b540: fix(xai): responses model fixes
+
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/openai-compatible@2.0.0-beta.35
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- 4b4c37b: fix(xai): add cache input tokens
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- 8a2c18e: fix(provider/xai): remove json schema unsupported warning
+
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/openai-compatible@2.0.0-beta.34
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - @ai-sdk/openai-compatible@2.0.0-beta.33
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/openai-compatible@2.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- 5ad1bbe: feat: xai server-side tool calling
+
+## 3.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+  - @ai-sdk/openai-compatible@2.0.0-beta.31
+
+## 3.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/openai-compatible@2.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+  - @ai-sdk/openai-compatible@2.0.0-beta.29
+
 ## 3.0.0-beta.30
 
 ### Patch Changes

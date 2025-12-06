@@ -6,11 +6,12 @@ description: Learn about tool calling and multi-step calls (using stopWhen) with
 # Tool Calling
 
 As covered under Foundations, [tools](/docs/foundations/tools) are objects that can be called by the model to perform a specific task.
-AI SDK Core tools contain three elements:
+AI SDK Core tools contain several core elements:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schemas) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the inputs from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
+- **`strict`**: _(optional, boolean)_ Enables strict tool calling when supported by the provider
 
 <Note className="mb-2">
   You can use the [`tool`](/docs/reference/ai-sdk-core/tool) helper function to
@@ -21,10 +22,11 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool } from 'ai';
+import { generateText, tool, stopWhen } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -37,6 +39,7 @@ const result = await generateText({
       }),
     }),
   },
+  stopWhen: stepCountIs(5),
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -49,6 +52,59 @@ const result = await generateText({
 Tool calling is not restricted to only text generation.
 You can also use it to render user interfaces (Generative UI).
 
+## Strict Mode
+
+When enabled, language model providers that support strict tool calling will only generate tool calls that are valid according to your defined `inputSchema`.
+This increases the reliability of tool calling.
+However, not all schemas may be supported in strict mode, and what is supported depends on the specific provider.
+
+By default, strict mode is disabled. You can enable it per-tool by setting `strict: true`:
+
+```ts
+tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  strict: true, // Enable strict validation for this tool
+  execute: async ({ location }) => ({
+    // ...
+  }),
+});
+```
+
+<Note>
+  Not all providers or models support strict mode. For those that do not, this
+  option is ignored.
+</Note>
+
+## Input Examples
+
+You can specify example inputs for your tools to help guide the model on how input data should be structured.
+When supported by providers, input examples can help when JSON schema itself does not fully specify the intended
+usage or when there are optional values.
+
+```ts
+tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  inputExamples: [
+    { input: { location: 'San Francisco' } },
+    { input: { location: 'London' } },
+  ],
+  execute: async ({ location }) => {
+    // ...
+  },
+});
+```
+
+<Note>
+  Only the Anthropic providers supports tool input examples natively. Other
+  providers ignore the setting.
+</Note>
+
 ## Multi-Step Calls (using stopWhen)
 
 With the `stopWhen` setting, you can enable multi-step calls in `generateText` and `streamText`. When `stopWhen` is set and the model generates a tool call, the AI SDK will trigger a new generation passing in the tool result until there are no further tool calls or the stopping condition is met.
@@ -58,7 +114,7 @@ With the `stopWhen` setting, you can enable multi-step calls in `generateText` a
   results.
 </Note>
 
-By default, when you use `generateText` or `streamText`, it triggers a single generation. This works well for many use cases where you can rely on the model's training data to generate a response. However, when you provide tools, the model now has the choice to either generate a normal text response, or generate a tool call. If the model generates a tool call, it's generation is complete and that step is finished.
+By default, when you use `generateText` or `streamText`, it triggers a single generation. This works well for many use cases where you can rely on the model's training data to generate a response. However, when you provide tools, the model now has the choice to either generate a normal text response, or generate a tool call. If the model generates a tool call, its generation is complete and that step is finished.
 
 You may want the model to generate text after the tool has been executed, either to summarize the tool results in the context of the users query. In many cases, you may also want the model to use multiple tools in a single response. This is where multi-step calls come in.
 
@@ -79,9 +135,10 @@ In the following example, there are two steps:
 ```ts highlight="18-19"
 import { z } from 'zod';
 import { generateText, tool, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { text, steps } = await generateText({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -111,9 +168,10 @@ It contains all the text, tool calls, tool results, and more from each step.
 
 ```ts highlight="3,9-10"
 import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { steps } = await generateText({
-  model: openai('gpt-4o'),
+  model: __MODEL__,
   stopWhen: stepCountIs(10),
   // ...
 });
@@ -256,7 +314,7 @@ When using both static and dynamic tools, use the `dynamic` flag for type narrow
 
 ```ts
 const result = await generateText({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     // Static tool with known types
     weather: weatherTool,
@@ -332,9 +390,10 @@ It supports the following settings:
 ```ts highlight="18"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -435,9 +494,10 @@ You can access them in the second parameter of the `execute` function and e.g. a
 ```ts highlight="6,11,14"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'openai/gpt-4.1',
+  model: __MODEL__,
   abortSignal: myAbortSignal, // signal that will be forwarded to tools
   tools: {
     weather: tool({
@@ -476,6 +536,49 @@ const result = await generateText({
 });
 ```
 
+## Tool Input Lifecycle Hooks
+
+The following tool input lifecycle hooks are available:
+
+- **`onInputStart`**: Called when the model starts generating the input (arguments) for the tool call
+- **`onInputDelta`**: Called for each chunk of text as the input is streamed
+- **`onInputAvailable`**: Called when the complete input is available and validated
+
+`onInputStart` and `onInputDelta` are only called in streaming contexts (when using `streamText`). They are not called when using `generateText`.
+
+### Example
+
+```ts highlight="15-23"
+import { streamText, tool } from 'ai';
+__PROVIDER_IMPORT__;
+import { z } from 'zod';
+
+const result = streamText({
+  model: __MODEL__,
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        temperature: 72 + Math.floor(Math.random() * 21) - 10,
+      }),
+      onInputStart: () => {
+        console.log('Tool call starting');
+      },
+      onInputDelta: ({ inputTextDelta }) => {
+        console.log('Received input chunk:', inputTextDelta);
+      },
+      onInputAvailable: ({ input }) => {
+        console.log('Complete input:', input);
+      },
+    }),
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
 ## Types
 
 Modularizing your code often requires defining types to ensure type safety and reusability.
@@ -494,8 +597,8 @@ and `TypedToolResult<TOOLS extends ToolSet>` can be used to
 extract the tool call and tool result types from the tools.
 
 ```ts highlight="18-19,23-24"
-import { openai } from '@ai-sdk/openai';
 import { TypedToolCall, TypedToolResult, generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const myToolSet = {
@@ -520,7 +623,7 @@ async function generateSomething(prompt: string): Promise<{
   toolResults: Array<MyToolResult>; // typed tool results
 }> {
   return generateText({
-    model: openai('gpt-4.1'),
+    model: __MODEL__,
     tools: myToolSet,
     prompt,
   });
@@ -647,7 +750,7 @@ const result = await generateText({
     const tool = tools[toolCall.toolName as keyof typeof tools];
 
     const { object: repairedArgs } = await generateObject({
-      model: openai('gpt-4.1'),
+      model: __MODEL__,
       schema: tool.inputSchema,
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +
@@ -741,9 +844,10 @@ By default, the value is `undefined` and all tools are active.
 ```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { text } = await generateText({
-  model: openai('gpt-4.1'),
+  model: __MODEL__,
   tools: myToolSet,
   activeTools: ['firstTool'],
 });
@@ -766,7 +870,7 @@ Here is an example for converting a screenshot into a content part:
 
 ```ts highlight="22-27"
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: __MODEL__,
   tools: {
     computer: anthropic.tools.computer_20241022({
       // ...

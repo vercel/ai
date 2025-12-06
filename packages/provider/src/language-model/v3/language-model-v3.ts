@@ -1,7 +1,6 @@
-import { SharedV3Headers } from '../../shared';
+import { SharedV3Headers, SharedV3Warning } from '../../shared';
 import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 import { LanguageModelV3CallOptions } from './language-model-v3-call-options';
-import { LanguageModelV3CallWarning } from './language-model-v3-call-warning';
 import { LanguageModelV3Content } from './language-model-v3-content';
 import { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
 import { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
@@ -100,7 +99,7 @@ Response HTTP body.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings: Array<LanguageModelV3CallWarning>;
+    warnings: Array<SharedV3Warning>;
   }>;
 
   /**

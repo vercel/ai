@@ -1,5 +1,110 @@
 # @ai-sdk/valibot
 
+## 2.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+
+## 2.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 2.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+
+## 2.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+
+## 2.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+
+## 2.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
+## 2.0.0-beta.37
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 2.0.0-beta.36
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 2.0.0-beta.35
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 2.0.0-beta.34
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 2.0.0-beta.33
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+
+## 2.0.0-beta.29
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 2.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+
 ## 2.0.0-beta.27
 
 ### Patch Changes

@@ -62,6 +62,12 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 
   generateId?: () => string;
+
+  /**
+   * Custom provider name
+   * Defaults to 'anthropic.messages'.
+   */
+  name?: string;
 }
 
 /**
@@ -77,6 +83,8 @@ export function createAnthropic(
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
     ) ?? 'https://api.anthropic.com/v1';
+
+  const providerName = options.name ?? 'anthropic.messages';
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -94,7 +102,7 @@ export function createAnthropic(
 
   const createChatModel = (modelId: AnthropicMessagesModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {
-      provider: 'anthropic.messages',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -119,8 +127,8 @@ export function createAnthropic(
   provider.chat = createChatModel;
   provider.messages = createChatModel;
 
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });

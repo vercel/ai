@@ -9,6 +9,7 @@ The `pruneMessages` function is used to prune or filter an array of `ModelMessag
 
 ```ts filename="app/api/chat/route.ts"
 import { pruneMessages, streamText } from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: 'openai/gpt-4o',
+    model: __MODEL__,
     messages: prunedMessages,
   });
 

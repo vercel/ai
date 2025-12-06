@@ -1,4 +1,7 @@
-import { EmbeddingModelCallOptions } from '@ai-sdk/provider';
+import {
+  EmbeddingModelCallOptions,
+  EmbeddingModelV3Middleware,
+} from '@ai-sdk/provider';
 import { wrapEmbeddingModel } from '../middleware/wrap-embedding-model';
 import { describe, it, expect, vi } from 'vitest';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
@@ -166,7 +169,7 @@ describe('wrapEmbeddingModel', () => {
       },
     });
 
-    const params: EmbeddingModelCallOptions<string> = {
+    const params: EmbeddingModelCallOptions = {
       values: [
         'sunny day at the beach',
         'rainy afternoon in the city',
@@ -202,7 +205,7 @@ describe('wrapEmbeddingModel', () => {
       },
     });
 
-    const params: EmbeddingModelCallOptions<string> = {
+    const params: EmbeddingModelCallOptions = {
       values: [
         'sunny day at the beach',
         'rainy afternoon in the city',
@@ -249,7 +252,7 @@ describe('wrapEmbeddingModel', () => {
         ],
       });
 
-      const params: EmbeddingModelCallOptions<string> = {
+      const params: EmbeddingModelCallOptions = {
         values: [
           'sunny day at the beach',
           'rainy afternoon in the city',
@@ -310,7 +313,7 @@ describe('wrapEmbeddingModel', () => {
         ],
       });
 
-      const params: EmbeddingModelCallOptions<string> = {
+      const params: EmbeddingModelCallOptions = {
         values: [
           'sunny day at the beach',
           'rainy afternoon in the city',
@@ -324,6 +327,32 @@ describe('wrapEmbeddingModel', () => {
       expect(result).toBe('wrapEmbed1(wrapEmbed2(final generate result))');
       expect(wrapEmbed1).toHaveBeenCalled();
       expect(wrapEmbed2).toHaveBeenCalled();
+    });
+
+    it('should not mutate the middleware array argument', async () => {
+      const middleware1 = {
+        specificationVersion: 'v3',
+        wrapStream: vi.fn(),
+      };
+
+      const middleware2 = {
+        specificationVersion: 'v3',
+        wrapStream: vi.fn(),
+      };
+
+      const middlewares = [
+        middleware1,
+        middleware2,
+      ] as EmbeddingModelV3Middleware[];
+
+      wrapEmbeddingModel({
+        model: new MockEmbeddingModelV3(),
+        middleware: middlewares,
+      });
+
+      expect(middlewares.length).toBe(2);
+      expect(middlewares[0]).toBe(middleware1);
+      expect(middlewares[1]).toBe(middleware2);
     });
   });
 });

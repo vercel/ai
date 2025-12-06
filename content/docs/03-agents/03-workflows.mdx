@@ -41,10 +41,11 @@ The simplest workflow pattern executes steps in a predefined order. Each step's 
 
 ```ts
 import { generateText, generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 async function generateMarketingCopy(input: string) {
-  const model = 'openai/gpt-4o';
+  const model = __MODEL__;
 
   // First step: Generate marketing copy
   const { text: copy } = await generateText({
@@ -96,10 +97,11 @@ This pattern lets the model decide which path to take through a workflow based o
 
 ```ts
 import { generateObject, generateText } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 async function handleCustomerQuery(query: string) {
-  const model = 'openai/gpt-4o';
+  const model = __MODEL__;
 
   // First step: Classify the query type
   const { object: classification } = await generateObject({
@@ -146,11 +148,12 @@ Break down tasks into independent subtasks that execute simultaneously. This pat
 
 ```ts
 import { generateText, generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 // Example: Parallel code review with multiple specialized reviewers
 async function parallelCodeReview(code: string) {
-  const model = 'openai/gpt-4o';
+  const model = __MODEL__;
 
   // Run parallel reviews
   const [securityReview, performanceReview, maintainabilityReview] =
@@ -219,12 +222,13 @@ A primary model (orchestrator) coordinates the execution of specialized workers.
 
 ```ts
 import { generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 async function implementFeature(featureRequest: string) {
   // Orchestrator: Plan the implementation
   const { object: implementationPlan } = await generateObject({
-    model: 'openai/o4-mini',
+    model: __MODEL__,
     schema: z.object({
       files: z.array(
         z.object({
@@ -255,7 +259,7 @@ async function implementFeature(featureRequest: string) {
       }[file.changeType];
 
       const { object: change } = await generateObject({
-        model: 'openai/gpt-4o',
+        model: __MODEL__,
         schema: z.object({
           explanation: z.string(),
           code: z.string(),
@@ -288,6 +292,7 @@ Add quality control to workflows with dedicated evaluation steps that assess int
 
 ```ts
 import { generateText, generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 async function translateWithFeedback(text: string, targetLanguage: string) {
@@ -297,7 +302,7 @@ async function translateWithFeedback(text: string, targetLanguage: string) {
 
   // Initial translation
   const { text: translation } = await generateText({
-    model: 'openai/gpt-4o-mini', // use small model for first attempt
+    model: __MODEL__,
     system: 'You are an expert literary translator.',
     prompt: `Translate this text to ${targetLanguage}, preserving tone and cultural nuances:
     ${text}`,
@@ -309,7 +314,7 @@ async function translateWithFeedback(text: string, targetLanguage: string) {
   while (iterations < MAX_ITERATIONS) {
     // Evaluate current translation
     const { object: evaluation } = await generateObject({
-      model: 'openai/gpt-4o', // use a larger model to evaluate
+      model: __MODEL__,
       schema: z.object({
         qualityScore: z.number().min(1).max(10),
         preservesTone: z.boolean(),
@@ -343,7 +348,7 @@ async function translateWithFeedback(text: string, targetLanguage: string) {
 
     // Generate improved translation based on feedback
     const { text: improvedTranslation } = await generateText({
-      model: 'openai/gpt-4o', // use a larger model
+      model: __MODEL__,
       system: 'You are an expert literary translator.',
       prompt: `Improve this translation based on the following feedback:
       ${evaluation.specificIssues.join('\n')}

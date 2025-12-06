@@ -1,5 +1,297 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- ef739fa: fix(openai): refactor apply-patch tool
+
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- cad6445: feat(openai); adding OpenAI's new shell tool
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- b60d2e2: fix(openai): allow open_page action type url to be nullish
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 2c0a758: chore(openai): add JSDoc to responses options
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- d270a5d: chore(openai): update tests for apply-patch tool to use snapshots
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- 88edc28: feat (provider/openai): include more image generation response metadata
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 73d9883: chore(openai): enable strict json by default
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- 88fc415: feat(openai): add the new provider 'apply_patch' tool
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- 1d0de66: refactoring(provider/openai): simplify code
+
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- d86b52f: distinguish between OpenAI and Azure in Responses API providerMetadata
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- 38a4035: added support for external_web_access parameter on web_search tool
+
+## 3.0.0-beta.64
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 3.0.0-beta.63
+
+### Patch Changes
+
+- 423ba08: Set the annotations from the Responses API to doStream
+
+## 3.0.0-beta.62
+
+### Patch Changes
+
+- 64aa48f: Azure OpenAI enabled web-search-preview
+
+## 3.0.0-beta.61
+
+### Patch Changes
+
+- 23f132b: fix: error schema for Responses API
+
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 0877683: feat(provider/openai): support conversations api
+
+## 3.0.0-beta.59
+
+### Patch Changes
+
+- d0f1baf: feat(openai): Add support for 'promptCacheRetention: 24h' for gpt5.1 series
+
+## 3.0.0-beta.58
+
+### Patch Changes
+
+- 79b4e46: feat(openai): add 'gpt-5.1' modelID
+
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- 831b6cc: feat(openai): adding provider mcp tool for openai
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- 40d5419: feat(openai): add `o3-deep-research` and `o4-mini-deep-research` models
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- dae2185: fix(openai): extract meta data from first chunk that contains any
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- 348fd10: fix(openai): treat unknown models as reasoning
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- b82987c: feat(openai): support openai code-interpreter annotations
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- 0273b74: fix(openai): add support for sources type 'api'
+
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 60f4775: fix: remove code for unsuported o1-mini and o1-preview models
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- fd47df5: fix(openai): revised_prompt sometimes returns null, causing errors
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+
 ## 3.0.0-beta.43
 
 ### Patch Changes

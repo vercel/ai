@@ -1,7 +1,13 @@
 import { Output } from './output';
 
-export type InferGenerateOutput<OUTPUT extends Output> =
-  OUTPUT extends Output<infer T, any> ? T : never;
+/**
+ * Infers the complete output type from the output specification.
+ */
+export type InferCompleteOutput<OUTPUT extends Output> =
+  OUTPUT extends Output<infer COMPLETE_OUTPUT, any> ? COMPLETE_OUTPUT : never;
 
-export type InferStreamOutput<OUTPUT extends Output> =
-  OUTPUT extends Output<any, infer P> ? P : never;
+/**
+ * Infers the partial output type from the output specification.
+ */
+export type InferPartialOutput<OUTPUT extends Output> =
+  OUTPUT extends Output<any, infer PARTIAL_OUTPUT> ? PARTIAL_OUTPUT : never;

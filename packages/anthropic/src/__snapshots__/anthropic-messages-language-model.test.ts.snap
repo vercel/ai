@@ -78,7 +78,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -99,7 +98,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -155,7 +153,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "type": "tool-call",
     },
     {
-      "providerExecuted": true,
       "result": {
         "is_file_update": false,
         "type": "text_editor_code_execution_create_result",
@@ -176,7 +173,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "type": "tool-call",
     },
     {
-      "providerExecuted": true,
       "result": {
         "content": [
           {
@@ -237,7 +233,6 @@ DataFrame preview:
       "type": "tool-call",
     },
     {
-      "providerExecuted": true,
       "result": {
         "content": [
           {
@@ -648,7 +643,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should incl
   {
     "dynamic": true,
     "isError": false,
-    "providerExecuted": true,
     "providerMetadata": {
       "anthropic": {
         "serverName": "echo",
@@ -699,7 +693,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text res
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": {
         "citations": undefined,
@@ -798,7 +791,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text res
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": {
         "citations": undefined,
@@ -858,7 +850,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavaila
   },
   {
     "isError": true,
-    "providerExecuted": true,
     "result": {
       "errorCode": "unavailable",
       "type": "web_fetch_tool_result_error",
@@ -884,7 +875,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": [
       {
         "encryptedContent": "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",
@@ -1093,7 +1083,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": [],
     "toolCallId": "srvtoolu_01HyorfKHSCsjCUVH6WHcNUC",
     "toolName": "web_search",
@@ -1147,7 +1136,7 @@ For the most current breaking tech news today, I'd recommend checking major tech
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > agent skills > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > agent skills > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -1249,7 +1238,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > agent skills >
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": "---
 name: PowerPoint Suite
@@ -1364,7 +1352,6 @@ You need raw XML access for: comments, speaker notes, slide layouts, animations,
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": "# HTML to PowerPoint Guide
 
@@ -1680,7 +1667,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -1987,7 +1973,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -2409,7 +2394,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -2626,7 +2610,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -2821,7 +2804,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -2896,7 +2878,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -3107,7 +3088,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "lines": [
         "   display: flex; align-items: center; justify-content: center;",
@@ -3187,7 +3167,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -3593,7 +3572,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "lines": [
         " .footer-text {",
@@ -3681,7 +3659,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -4174,7 +4151,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "lines": [
         "   display: flex; align-items: center; justify-content: center;",
@@ -4290,7 +4266,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -4424,7 +4399,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 1,
@@ -4562,7 +4536,6 @@ Error: PDF conversion failed
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [
         {
@@ -4871,7 +4844,7 @@ The presentation has",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
 [
   {
     "type": "stream-start",
@@ -9385,7 +9358,6 @@ Let's",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -9480,7 +9452,6 @@ Let's",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [
         {
@@ -9654,7 +9625,6 @@ CALCULATION COMPLETE!
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [
         {
@@ -9922,7 +9892,7 @@ Error message: Unexpected end of JSON input],
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -10959,7 +10929,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -11039,7 +11008,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -11216,7 +11184,627 @@ The Fibonacci sequence starts with 0, ",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "{"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "characters"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":[{"name":"Th",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Iron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "heart","class":"warrior","description",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "":"A battle",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-scar",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "red veteran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " steel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "gray hair and a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prominent",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " scar across his left eye.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Wiel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ding a massive two",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-handed sword passe",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d down through his family for",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generations,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Theron fights",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with discipl",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ined precision h",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oned through decades",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of combat. Despite",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his gruff exterior, he harb",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ors a deep sense of honor and prot",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ects the weak",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " without",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hesitation.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ""},{"name":"Lyra",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Star",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "weaver","class":"mage","",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "description":"A young",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "digy in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " arcane arts with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flowing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silver ro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bes ador",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ned with celest",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ial patterns",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Her",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " eyes",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " g",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "low f",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aintly blue",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " when",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chann",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eling powerful",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sp",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ells.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lyra special",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "izes in ele",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "mental magic an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d ast",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ral div",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ination, having",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " studie",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d at",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the Gran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d Academy since",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " childhoo",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d. She is",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " curious",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and ide",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "alistic, often getting",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " while",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pursuing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " forbidden",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " knowledge."},{"name":"R",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ook",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Shadow",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ep",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "","class":"thief","description":"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "A nim",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ble and cun",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ning r",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ogue who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " moves through",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shadows",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a whis",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "per in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the night. With",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " jet",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-black hair,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " leather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " armor,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and an array of lock",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "picks an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d daggers hidden on",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his person, Rook makes his",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " living liber",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ating treas",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ures from those",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " he",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deems unworthy of",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " them",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Behin",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d his coc",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ky smile",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lies a trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d past and a strict",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " personal",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " code about",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deserves to be",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rob",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bed."}]}",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 313,
+          "output_tokens": 305,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 313,
+      "outputTokens": 305,
+      "totalTokens": 618,
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > mcp servers > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11244,7 +11832,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > 
   {
     "dynamic": true,
     "isError": false,
-    "providerExecuted": true,
     "providerMetadata": {
       "anthropic": {
         "serverName": "echo",
@@ -11321,7 +11908,7 @@ It simply echoed back",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool > txt response > should stream web search tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > web fetch tool > txt response > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11720,7 +12307,7 @@ The page also discusses",
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search tool > should stream web search tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11769,7 +12356,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": [
       {
         "encryptedContent": "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",

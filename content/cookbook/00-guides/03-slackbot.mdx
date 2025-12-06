@@ -318,15 +318,15 @@ The core of our application is the `generateResponse` function in `lib/generate-
 Here's how to implement it:
 
 ```typescript filename="lib/generate-response.ts"
-import { openai } from '@ai-sdk/openai';
 import { generateText, ModelMessage } from 'ai';
+__PROVIDER_IMPORT__;
 
 export const generateResponse = async (
   messages: ModelMessage[],
   updateStatus?: (status: string) => void,
 ) => {
   const { text } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: __MODEL__,
     system: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}`,
@@ -340,7 +340,7 @@ export const generateResponse = async (
 
 This basic implementation:
 
-1. Uses the AI SDK's `generateText` function to call OpenAI's `gpt-4o` model
+1. Uses the AI SDK's `generateText` function to call Anthropic's `claude-sonnet-4.5` model
 2. Provides a system prompt to guide the model's behavior
 3. Formats the response for Slack's markdown format
 
@@ -349,8 +349,8 @@ This basic implementation:
 The real power of the AI SDK comes from tools that enable your bot to perform actions. Let's add two useful tools:
 
 ```typescript filename="lib/generate-response.ts"
-import { openai } from '@ai-sdk/openai';
 import { generateText, tool, ModelMessage, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 import { exa } from './utils';
 
@@ -359,7 +359,7 @@ export const generateResponse = async (
   updateStatus?: (status: string) => void,
 ) => {
   const { text } = await generateText({
-    model: openai('gpt-4o'),
+    model: __MODEL__,
     system: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}

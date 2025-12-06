@@ -7,7 +7,12 @@ import {
   ListResourceTemplatesResult,
   ListResourcesResult,
   ReadResourceResult,
+  ListPromptsResult,
+  GetPromptResult,
+  Configuration,
+  ElicitationRequestSchema,
 } from './types';
+import { JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,
   afterEach,
@@ -85,6 +90,38 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should expose _meta field from MCP tool definition', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'tool-with-meta',
+              description: 'A tool with metadata',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  input: { type: 'string' },
+                },
+              },
+              _meta: {
+                'openai/outputTemplate': '{{result}}',
+              },
+            },
+          ],
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['tool-with-meta'];
+
+    expect(tool._meta?.['openai/outputTemplate']).toBe('{{result}}');
+  });
+
   it('should list resources from the server', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -146,6 +183,80 @@ describe('MCPClient', () => {
         },
       ]
     `);
+  });
+
+  it('should list prompts from the server', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const prompts = await client.listPrompts();
+
+    expectTypeOf(prompts).toEqualTypeOf<ListPromptsResult>();
+
+    expect(prompts.prompts).toMatchInlineSnapshot(`
+      [
+        {
+          "arguments": [
+            {
+              "description": "The code to review",
+              "name": "code",
+              "required": true,
+            },
+          ],
+          "description": "Asks the LLM to analyze code quality and suggest improvements",
+          "name": "code_review",
+          "title": "Request Code Review",
+        },
+      ]
+    `);
+  });
+
+  it('should get a prompt by name', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const prompt = await client.getPrompt({
+      name: 'code_review',
+      arguments: { code: 'print(42)' },
+    });
+
+    expectTypeOf(prompt).toEqualTypeOf<GetPromptResult>();
+
+    expect(prompt).toMatchInlineSnapshot(`
+      {
+        "description": "Code review prompt",
+        "messages": [
+          {
+            "content": {
+              "text": "Please review this code:\nfunction add(a, b) { return a + b; }",
+              "type": "text",
+            },
+            "role": "user",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should throw if the server does not support prompts', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          resources: [],
+          prompts: [],
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    await expect(client.listPrompts()).rejects.toThrow(MCPClientError);
+    await expect(client.getPrompt({ name: 'code_review' })).rejects.toThrow(
+      MCPClientError,
+    );
   });
 
   it('should return typed AI SDK compatible tool set when schemas are provided', async () => {
@@ -365,6 +476,75 @@ describe('MCPClient', () => {
     );
   });
 
+  describe('elicitation support', () => {
+    it('should handle elicitation requests from the server', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+        capabilities: {
+          elicitation: {},
+        },
+      });
+
+      const transportInstance = createMockTransport.mock.results.at(-1)
+        ?.value as MockMCPTransport;
+      const sendSpy = vi.spyOn(transportInstance, 'send');
+      const handler = vi.fn(async () => ({
+        action: 'accept' as const,
+        content: {
+          name: 'octocat',
+        },
+      }));
+
+      client.onElicitationRequest(ElicitationRequestSchema, handler);
+
+      const elicitationRequest = {
+        jsonrpc: '2.0' as const,
+        id: 42,
+        method: 'elicitation/create' as const,
+        params: {
+          message: 'Please provide your GitHub username',
+          requestedSchema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      };
+
+      transportInstance.onmessage?.(elicitationRequest);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          params: {
+            message: elicitationRequest.params.message,
+            requestedSchema: elicitationRequest.params.requestedSchema,
+          },
+        }),
+      );
+
+      const elicitationResponse = sendSpy.mock.calls.find(
+        ([message]) =>
+          'result' in message && message.id === elicitationRequest.id,
+      );
+
+      expect(elicitationResponse?.[0]).toMatchObject({
+        jsonrpc: '2.0',
+        id: elicitationRequest.id,
+        result: {
+          action: 'accept',
+          content: {
+            name: 'octocat',
+          },
+        },
+      });
+    });
+  });
+
   it('should use onUncaughtError callback if provided', async () => {
     const onUncaughtError = vi.fn();
     const mockTransport = new MockMCPTransport({
@@ -452,5 +632,46 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should use custom client version when provided', async () => {
+    const mockTransport = new MockMCPTransport();
+    let capturedClientInfo: { name: string; version: string } | undefined;
+
+    const originalSend = mockTransport.send.bind(mockTransport);
+    mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
+      if (message.method === 'initialize' && message.params) {
+        capturedClientInfo = message.params.clientInfo as Configuration;
+      }
+      return originalSend(message);
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+      version: '2.5.0',
+    });
+
+    expect(capturedClientInfo).toBeDefined();
+    expect(capturedClientInfo?.version).toBe('2.5.0');
+  });
+
+  it('should use default version when not provided', async () => {
+    const mockTransport = new MockMCPTransport();
+    let capturedClientInfo: { name: string; version: string } | undefined;
+
+    const originalSend = mockTransport.send.bind(mockTransport);
+    mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
+      if (message.method === 'initialize' && message.params) {
+        capturedClientInfo = message.params.clientInfo as Configuration;
+      }
+      return originalSend(message);
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    expect(capturedClientInfo).toBeDefined();
+    expect(capturedClientInfo?.version).toBe('1.0.0');
   });
 });

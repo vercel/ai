@@ -17,12 +17,13 @@ To resolve this issue, convert the incoming messages to the `ModelMessage` forma
 ```tsx highlight="9"
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
   });
 

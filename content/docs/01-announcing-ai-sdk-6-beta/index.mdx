@@ -41,7 +41,7 @@ npm install ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta
 
 ## What's New in AI SDK 6?
 
-AI SDK 6 introduces three flagship features (with more to come soon!):
+AI SDK 6 introduces several features (with more to come soon!):
 
 ### Agent Abstraction
 
@@ -50,6 +50,14 @@ A new unified interface for building agents with full control over execution flo
 ### Tool Execution Approval
 
 Request user confirmation before executing tools, enabling native human-in-the-loop patterns.
+
+### Structured Output (Stable)
+
+Generate structured data alongside tool calling with `generateText` and `streamText` - now stable and production-ready.
+
+### Reranking Support
+
+Improve search relevance by reordering documents based on their relationship to a query using specialized reranking models.
 
 ### Image Editing Support
 
@@ -64,12 +72,12 @@ AI SDK 6 introduces a powerful new `Agent` interface that provides a standardize
 The `ToolLoopAgent` class provides a default implementation out of the box:
 
 ```typescript
-import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 import { weatherTool } from '@/tool/weather';
 
 export const weatherAgent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: __MODEL__,
   instructions: 'You are a helpful weather assistant.',
   tools: {
     weather: weatherTool,
@@ -88,6 +96,57 @@ The agent automatically handles the tool execution loop:
 2. Executes any requested tool calls
 3. Adds results back to the conversation
 4. Repeats until complete (default `stopWhen: stepCountIs(20)`)
+
+### Configuring Call Options
+
+Call options let you pass type-safe runtime inputs to dynamically configure your agents. Use them to inject retrieved documents for RAG, select models based on request complexity, customize tool behavior per request, or adjust any agent setting based on context.
+
+Without call options, you'd need to create multiple agents or handle configuration logic outside the agent. With call options, you define a schema once and modify agent behavior at runtime:
+
+```typescript
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+import { z } from 'zod';
+
+const supportAgent = new ToolLoopAgent({
+  model: __MODEL__,
+  callOptionsSchema: z.object({
+    userId: z.string(),
+    accountType: z.enum(['free', 'pro', 'enterprise']),
+  }),
+  instructions: 'You are a helpful customer support agent.',
+  prepareCall: ({ options, ...settings }) => ({
+    ...settings,
+    instructions:
+      settings.instructions +
+      `\nUser context:
+- Account type: ${options.accountType}
+- User ID: ${options.userId}
+
+Adjust your response based on the user's account level.`,
+  }),
+});
+
+// Pass options when calling the agent
+const result = await supportAgent.generate({
+  prompt: 'How do I upgrade my account?',
+  options: {
+    userId: 'user_123',
+    accountType: 'free',
+  },
+});
+```
+
+The `options` parameter is type-safe and will error if you don't provide it or pass incorrect types.
+
+Call options enable dynamic agent configuration for several scenarios:
+
+- **RAG**: Fetch relevant documents and inject them into prompts at runtime
+- **Dynamic model selection**: Choose faster or more capable models based on request complexity
+- **Tool configuration**: Adjust tools per request
+- **Provider options**: Set reasoning effort, temperature, or other provider-specific settings dynamically
+
+Learn more in the [Configuring Call Options](/docs/agents/configuring-call-options) documentation.
 
 ### UI Integration
 
@@ -242,6 +301,174 @@ const { messages, addToolApprovalResponse } = useChat({
   sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
 });
 ```
+
+## Structured Output (Stable)
+
+AI SDK 6 stabilizes structured output support for agents, enabling you to generate structured data alongside multi-step tool calling.
+
+Previously, you could only generate structured outputs with `generateObject` and `streamObject`, which didn't support tool calling. Now `ToolLoopAgent` (and `generateText` / `streamText`) can combine both capabilities using the `output` parameter:
+
+```typescript
+import { Output, ToolLoopAgent, tool } from 'ai';
+__PROVIDER_IMPORT__;
+import { z } from 'zod';
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        city: z.string(),
+      }),
+      execute: async ({ city }) => {
+        return { temperature: 72, condition: 'sunny' };
+      },
+    }),
+  },
+  output: Output.object({
+    schema: z.object({
+      summary: z.string(),
+      temperature: z.number(),
+      recommendation: z.string(),
+    }),
+  }),
+});
+
+const { output } = await agent.generate({
+  prompt: 'What is the weather in San Francisco and what should I wear?',
+});
+// The agent calls the weather tool AND returns structured output
+console.log(output);
+// {
+//   summary: "It's sunny in San Francisco",
+//   temperature: 72,
+//   recommendation: "Wear light clothing and sunglasses"
+// }
+```
+
+### Output Types
+
+The `Output` object provides multiple strategies for structured generation:
+
+- **`Output.object()`**: Generate structured objects with Zod schemas
+- **`Output.array()`**: Generate arrays of structured objects
+- **`Output.choice()`**: Select from a specific set of options
+- **`Output.text()`**: Generate plain text (default behavior)
+
+### Streaming Structured Output
+
+Use `agent.stream()` to stream structured output as it's being generated:
+
+```typescript
+import { ToolLoopAgent, Output } from 'ai';
+__PROVIDER_IMPORT__;
+import { z } from 'zod';
+
+const profileAgent = new ToolLoopAgent({
+  model: __MODEL__,
+  instructions: 'Generate realistic person profiles.',
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+      occupation: z.string(),
+    }),
+  }),
+});
+
+const { partialOutputStream } = await profileAgent.stream({
+  prompt: 'Generate a person profile.',
+});
+
+for await (const partial of partialOutputStream) {
+  console.log(partial);
+  // { name: "John" }
+  // { name: "John", age: 30 }
+  // { name: "John", age: 30, occupation: "Engineer" }
+}
+```
+
+### Support in `generateText` and `streamText`
+
+Structured outputs are also supported in `generateText` and `streamText` functions, allowing you to use this feature outside of agents when needed.
+
+<Note>
+  When using structured output with `generateText` or `streamText`, you must
+  configure multiple steps with `stopWhen` because generating the structured
+  output is itself a step. For example: `stopWhen: stepCountIs(2)` to allow tool
+  calling and output generation.
+</Note>
+
+## Reranking Support
+
+AI SDK 6 introduces native support for reranking, a technique that improves search relevance by reordering documents based on their relationship to a query.
+
+Unlike embedding-based similarity search, reranking models are specifically trained to understand query-document relationships, producing more accurate relevance scores:
+
+```typescript
+import { rerank } from 'ai';
+import { cohere } from '@ai-sdk/cohere';
+
+const documents = [
+  'sunny day at the beach',
+  'rainy afternoon in the city',
+  'snowy night in the mountains',
+];
+
+const { ranking } = await rerank({
+  model: cohere.reranking('rerank-v3.5'),
+  documents,
+  query: 'talk about rain',
+  topN: 2,
+});
+
+console.log(ranking);
+// [
+//   { originalIndex: 1, score: 0.9, document: 'rainy afternoon in the city' },
+//   { originalIndex: 0, score: 0.3, document: 'sunny day at the beach' }
+// ]
+```
+
+### Structured Document Reranking
+
+Reranking also supports structured documents, making it ideal for searching through databases, emails, or other structured content:
+
+```typescript
+import { rerank } from 'ai';
+import { cohere } from '@ai-sdk/cohere';
+
+const documents = [
+  {
+    from: 'Paul Doe',
+    subject: 'Follow-up',
+    text: 'We are happy to give you a discount of 20% on your next order.',
+  },
+  {
+    from: 'John McGill',
+    subject: 'Missing Info',
+    text: 'Sorry, but here is the pricing information from Oracle: $5000/month',
+  },
+];
+
+const { rerankedDocuments } = await rerank({
+  model: cohere.reranking('rerank-v3.5'),
+  documents,
+  query: 'Which pricing did we get from Oracle?',
+  topN: 1,
+});
+
+console.log(rerankedDocuments[0]);
+// { from: 'John McGill', subject: 'Missing Info', text: '...' }
+```
+
+### Supported Providers
+
+Several providers offer reranking models:
+
+- [Cohere](/providers/ai-sdk-providers/cohere#reranking-models)
+- [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#reranking-models)
+- [Together.ai](/providers/ai-sdk-providers/togetherai#reranking-models)
 
 ## Image Editing Support
 

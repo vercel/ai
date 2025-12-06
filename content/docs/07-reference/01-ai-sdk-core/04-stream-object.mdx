@@ -12,12 +12,12 @@ It can be used to force the language model to return structured data, e.g. for i
 #### Example: stream an object using a schema
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4.1'),
+  model: __MODEL__,
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -40,12 +40,12 @@ For arrays, you specify the schema of the array items.
 You can use `elementStream` to get the stream of complete array elements.
 
 ```ts highlight="7,18"
-import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: openai('gpt-4.1'),
+  model: __MODEL__,
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -65,11 +65,10 @@ for await (const hero of elementStream) {
 #### Example: generate JSON without a schema
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: openai('gpt-4.1'),
+  model: __MODEL__,
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -89,7 +88,7 @@ and provide the list of possible values in the `enum` parameter.
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: 'openai/gpt-4.1',
+  model: __MODEL__,
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -122,14 +121,6 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       description: "The type of output to generate. Defaults to 'object'.",
     },
     {
-      name: 'mode',
-      type: "'auto' | 'json' | 'tool'",
-      description:
-        "The mode to use for object generation. Not every model supports all modes. \
-        Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. \
-        Must be 'json' for 'no-schema' output.",
-    },
-    {
       name: 'schema',
       type: 'Zod Schema | JSON Schema',
       description:
@@ -156,7 +147,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
         Not available with 'no-schema' or 'enum' output.",
     },
     {
-      name: 'system',
+      name: 'system | SystemModelMessage | SystemModelMessage[]',
       type: 'string',
       description:
         'The system prompt to use that specifies the behavior of the model.',
@@ -663,7 +654,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'warnings',
-              type: 'CallWarning[] | undefined',
+              type: 'Warning[] | undefined',
               description:
                 'Warnings from the model provider (e.g. unsupported settings).',
             },

@@ -44,14 +44,20 @@ export default function OpenAIWebSearchView({
                   <ul className="mt-1 list-disc pl-5 break-all">
                     {output.sources.map((s, i) => (
                       <li key={i}>
-                        <a
-                          href={s.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline hover:text-blue-700"
-                        >
-                          {s.url}
-                        </a>
+                        {s.type === 'url' ? (
+                          <a
+                            href={s.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-blue-700"
+                          >
+                            {s.url}
+                          </a>
+                        ) : (
+                          <span className="inline-block bg-blue-100 text-blue-900 rounded px-2 py-0.5 text-xs font-mono">
+                            API: {s.name}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -68,17 +74,19 @@ export default function OpenAIWebSearchView({
                 </span>
                 Opened a page
               </div>
-              <div className="pl-5 text-sm text-green-900 break-all">
-                <span className="font-semibold">URL:</span>{' '}
-                <a
-                  href={output.action.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-green-700"
-                >
-                  {output.action.url}
-                </a>
-              </div>
+              {output.action.url && (
+                <div className="pl-5 text-sm text-green-900 break-all">
+                  <span className="font-semibold">URL:</span>{' '}
+                  <a
+                    href={output.action.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-green-700"
+                  >
+                    {output.action.url}
+                  </a>
+                </div>
+              )}
             </div>
           );
         case 'find':
@@ -90,22 +98,24 @@ export default function OpenAIWebSearchView({
                 </span>
                 Searched for pattern in page
               </div>
+              {output.action.url && (
+                <div className="pl-5 text-sm text-yellow-900 break-all">
+                  <span className="font-semibold">URL:</span>{' '}
+                  <a
+                    href={output.action.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-yellow-700"
+                  >
+                    {output.action.url}
+                  </a>
+                </div>
+              )}
               <div className="pl-5 text-sm text-yellow-900">
                 <span className="font-semibold">Pattern:</span>{' '}
                 <span className="inline-block bg-white border border-yellow-100 rounded px-2 py-0.5 font-mono">
                   {output.action.pattern}
                 </span>
-              </div>
-              <div className="pl-5 text-sm text-yellow-900 break-all">
-                <span className="font-semibold">In URL:</span>{' '}
-                <a
-                  href={output.action.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-yellow-700"
-                >
-                  {output.action.url}
-                </a>
               </div>
             </div>
           );

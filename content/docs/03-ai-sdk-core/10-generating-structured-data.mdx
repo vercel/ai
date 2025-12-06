@@ -31,10 +31,11 @@ The schema is also used to validate the generated data, ensuring type safety and
 
 ```ts
 import { generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: 'openai/gpt-4.1',
+  model: __MODEL__,
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -125,10 +126,11 @@ With `streamObject`, you can also stream the generated array elements using `ele
 
 ```ts highlight="7,18"
 import { streamObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: 'openai/gpt-4.1',
+  model: __MODEL__,
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -155,9 +157,10 @@ and provide a list of possible values in the `enum` parameter.
 
 ```ts highlight="5-6"
 import { generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { object } = await generateObject({
-  model: 'openai/gpt-4.1',
+  model: __MODEL__,
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -176,9 +179,10 @@ and omit the schema parameter.
 
 ```ts highlight="6"
 import { generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { object } = await generateObject({
-  model: 'openai/gpt-4.1',
+  model: __MODEL__,
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -190,10 +194,11 @@ You can optionally specify a name and description for the schema. These are used
 
 ```ts highlight="6-7"
 import { generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: 'openai/gpt-4.1',
+  model: __MODEL__,
   schemaName: 'Recipe',
   schemaDescription: 'A recipe for a dish.',
   schema: z.object({
@@ -308,6 +313,8 @@ You can generate structured data with `generateText` and `streamText` by using t
 <Note>
   Some models, e.g. those by OpenAI, support structured outputs and tool calling
   at the same time. This is only possible with `generateText` and `streamText`.
+  You need to specify a `stopCondition` with that allows more than a single
+  stepCount if you want to use tools and structured outputs together.
 </Note>
 
 ### `generateText`
@@ -443,6 +450,29 @@ const { output } = await generateText({
 You can provide any set of string options, and the output will always be a single string value that matches one of the specified options. The SDK validates that the result matches one of your options, and will throw if the model returns something invalid.
 
 This is especially useful for making classification-style generations or forcing valid values for API compatibility.
+
+#### `Output.json()`
+
+Use `Output.json()` when you want to generate and parse unstructured JSON values from the model, without enforcing a specific schema. This is useful if you want to capture arbitrary objects, flexible structures, or when you want to rely on the model's natural output rather than rigid validation.
+
+```ts
+const { output } = await generateText({
+  // ...
+  output: Output.json(),
+  prompt:
+    'For each city, return the current temperature and weather condition as a JSON object.',
+});
+
+// output could be any valid JSON, for example:
+// {
+//   "San Francisco": { "temperature": 70, "condition": "Sunny" },
+//   "Paris": { "temperature": 65, "condition": "Cloudy" }
+// }
+```
+
+With `Output.json`, the SDK only checks that the response is valid JSON; it doesn't validate the structure or types of the values. If you need schema validation, use the `.object` or `.array` outputs instead.
+
+This makes `Output.json()` ideal for custom or dynamic data structures, prototyping, working with unpredictable model output, or extracting information when you don't have a strict schema.
 
 ## More Examples
 

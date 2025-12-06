@@ -54,7 +54,7 @@ import { ChatMessage } from './api/chat/route';
 
 export default function Chat() {
   const [input, setInput] = useState('');
-  const { messages, sendMessage, addToolResult } = useChat<ChatMessage>({
+  const { messages, sendMessage, addToolOutput } = useChat<ChatMessage>({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -67,7 +67,7 @@ export default function Chat() {
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
 
         // No await - avoids potential deadlocks
-        addToolResult({
+        addToolOutput({
           tool: 'getLocation',
           toolCallId: toolCall.toolCallId,
           output: cities[Math.floor(Math.random() * cities.length)],
@@ -100,7 +100,7 @@ export default function Chat() {
                           <button
                             className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                             onClick={() =>
-                              addToolResult({
+                              addToolOutput({
                                 tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'Yes, confirmed.',
@@ -112,7 +112,7 @@ export default function Chat() {
                           <button
                             className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                             onClick={() =>
-                              addToolResult({
+                              addToolOutput({
                                 tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'No, denied',
@@ -205,7 +205,6 @@ export default function Chat() {
 ## Server
 
 ```tsx filename='api/chat.ts'
-import { openai } from '@ai-sdk/openai';
 import {
   type InferUITools,
   type ToolSet,
@@ -261,7 +260,7 @@ export async function POST(request: Request) {
   const { messages }: { messages: ChatMessage[] } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4.1'),
+    model: 'openai/gpt-4.1',
     messages: convertToModelMessages(messages),
     tools,
     stopWhen: stepCountIs(5),

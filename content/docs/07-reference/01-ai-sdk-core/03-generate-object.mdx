@@ -12,12 +12,12 @@ It can be used to force the language model to return structured data, e.g. for i
 #### Example: generate an object using a schema
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: __MODEL__,
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -36,12 +36,12 @@ console.log(JSON.stringify(object, null, 2));
 For arrays, you specify the schema of the array items.
 
 ```ts highlight="7"
-import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: __MODEL__,
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -63,7 +63,7 @@ and provide the list of possible values in the `enum` parameter.
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: 'openai/gpt-4.1',
+  model: __MODEL__,
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -76,11 +76,10 @@ const { object } = await generateObject({
 #### Example: generate JSON without a schema
 
 ```ts highlight="6"
-import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.1'),
+  model: __MODEL__,
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -107,14 +106,6 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
       name: 'output',
       type: "'object' | 'array' | 'enum' | 'no-schema' | undefined",
       description: "The type of output to generate. Defaults to 'object'.",
-    },
-    {
-      name: 'mode',
-      type: "'auto' | 'json' | 'tool'",
-      description:
-        "The mode to use for object generation. Not every model supports all modes. \
-        Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. \
-        Must be 'json' for 'no-schema' output.",
     },
     {
       name: 'schema',
@@ -151,7 +142,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'system',
-      type: 'string',
+      type: 'string | SystemModelMessage | SystemModelMessage[]',
       description:
         'The system prompt to use that specifies the behavior of the model.',
     },
@@ -695,7 +686,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'warnings',
-      type: 'CallWarning[] | undefined',
+      type: 'Warning[] | undefined',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },

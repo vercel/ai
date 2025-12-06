@@ -3,7 +3,7 @@ import {
   LanguageModelV3CallOptions,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -2077,7 +2077,7 @@ describe('generateText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderTool)[]
         | undefined;
 
       await generateText({
@@ -2619,9 +2619,8 @@ describe('generateText', () => {
           }),
           tools: {
             web_search: {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'test.web_search',
-              name: 'web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
               args: {},
@@ -2778,7 +2777,7 @@ describe('generateText', () => {
   });
 
   describe('options.output', () => {
-    describe('no output', () => {
+    describe('text output (default)', () => {
       it('should throw error when accessing output', async () => {
         const result = await generateText({
           model: new MockLanguageModelV3({
@@ -2790,9 +2789,7 @@ describe('generateText', () => {
           prompt: 'prompt',
         });
 
-        expect(() => {
-          result.output;
-        }).toThrow('No output specified');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
     });
 
@@ -3138,7 +3135,7 @@ describe('generateText', () => {
       // output should be undefined when finish reason is tool-calls
       expect(() => {
         result.output;
-      }).toThrow('No output specified');
+      }).toThrow('No output generated');
 
       // But tool calls should work normally
       expect(result.toolCalls).toHaveLength(1);
@@ -3501,6 +3498,8 @@ describe('generateText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
               "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -3758,8 +3757,8 @@ describe('generateText', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting' as const,
-          setting: 'temperature',
+          type: 'unsupported' as const,
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];

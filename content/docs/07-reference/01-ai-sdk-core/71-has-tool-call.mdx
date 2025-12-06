@@ -10,11 +10,11 @@ Creates a stop condition that stops when a specific tool is called.
 This function is used with `stopWhen` in `generateText` and `streamText` to control when a tool-calling loop should stop based on whether a particular tool has been invoked.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateText, hasToolCall } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: __MODEL__,
   tools: {
     weather: weatherTool,
     finalAnswer: finalAnswerTool,

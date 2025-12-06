@@ -9,6 +9,8 @@ Creates a lightweight Model Context Protocol (MCP) client that connects to an MC
 
 - **Tools**: Automatic conversion between MCP tools and AI SDK tools
 - **Resources**: Methods to list, read, and discover resource templates from MCP servers
+- **Prompts**: Methods to list available prompts and retrieve prompt messages
+- **Elicitation**: Support for handling server requests for additional input during tool execution
 
 It currently does not support accepting notifications from an MCP server, and custom configuration of the client.
 
@@ -124,6 +126,13 @@ This feature is experimental and may change or be removed in the future.
               isOptional: true,
               description: 'Handler for uncaught errors',
             },
+            {
+              name: 'capabilities',
+              type: 'ClientCapabilities',
+              isOptional: true,
+              description:
+                'Optional client capabilities to advertise during initialization. For example, set { elicitation: {} } to enable handling elicitation requests from the server.',
+            },
           ],
         },
       ],
@@ -236,6 +245,96 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
       ],
     },
     {
+      name: 'listPrompts',
+      type: `async (options?: {
+        params?: PaginatedRequest['params'];
+        options?: RequestOptions;
+      }) => Promise<ListPromptsResult>`,
+      description: 'Lists available prompts from the MCP server.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'params',
+              type: "PaginatedRequest['params']",
+              isOptional: true,
+              description: 'Optional pagination parameters including cursor.',
+            },
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'getPrompt',
+      type: `async (args: {
+        name: string;
+        arguments?: Record<string, unknown>;
+        options?: RequestOptions;
+      }) => Promise<GetPromptResult>`,
+      description: 'Retrieves a prompt by name, optionally passing arguments.',
+      properties: [
+        {
+          type: 'args',
+          parameters: [
+            {
+              name: 'name',
+              type: 'string',
+              description: 'Prompt name to retrieve.',
+            },
+            {
+              name: 'arguments',
+              type: 'Record<string, unknown>',
+              isOptional: true,
+              description: 'Optional arguments to fill into the prompt.',
+            },
+            {
+              name: 'options',
+              type: 'RequestOptions',
+              isOptional: true,
+              description:
+                'Optional request options including signal and timeout.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'onElicitationRequest',
+      type: `(
+        schema: typeof ElicitationRequestSchema,
+        handler: (request: ElicitationRequest) => Promise<ElicitResult> | ElicitResult
+      ) => void`,
+      description:
+        'Registers a handler for elicitation requests from the MCP server. The handler receives requests when the server needs additional input during tool execution.',
+      properties: [
+        {
+          type: 'parameters',
+          parameters: [
+            {
+              name: 'schema',
+              type: 'typeof ElicitationRequestSchema',
+              description:
+                'The schema to validate requests against. Must be ElicitationRequestSchema.',
+            },
+            {
+              name: 'handler',
+              type: '(request: ElicitationRequest) => Promise<ElicitResult> | ElicitResult',
+              description:
+                'A function that handles the elicitation request. The request contains a message and requestedSchema. The handler must return an object with an action ("accept", "decline", or "cancel") and optionally content when accepting.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'close',
       type: 'async () => void',
       description:
@@ -247,14 +346,16 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
 ## Example
 
 ```typescript
-import { experimental_createMCPClient, generateText } from '@ai-sdk/mcp';
+import {
+  experimental_createMCPClient as createMCPClient,
+  generateText,
+} from '@ai-sdk/mcp';
 import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
-import { openai } from '@ai-sdk/openai';
 
 let client;
 
 try {
-  client = await experimental_createMCPClient({
+  client = await createMCPClient({
     transport: new Experimental_StdioMCPTransport({
       command: 'node server.js',
     }),
@@ -263,7 +364,7 @@ try {
   const tools = await client.tools();
 
   const response = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: __MODEL__,
     tools,
     messages: [{ role: 'user', content: 'Query the data' }],
   });

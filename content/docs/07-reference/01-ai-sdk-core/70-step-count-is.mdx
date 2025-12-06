@@ -10,11 +10,11 @@ Creates a stop condition that stops when the number of steps reaches a specified
 This function is used with `stopWhen` in `generateText` and `streamText` to control when a tool-calling loop should stop based on the number of steps executed.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: __MODEL__,
   tools: {
     // your tools
   },

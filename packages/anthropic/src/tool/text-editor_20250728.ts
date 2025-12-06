@@ -1,4 +1,4 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
+import { createProviderToolFactory } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
@@ -24,7 +24,7 @@ const textEditor_20250728InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderDefinedToolFactory<
+const factory = createProviderToolFactory<
   {
     /**
      * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`.
@@ -70,7 +70,6 @@ const factory = createProviderDefinedToolFactory<
   }
 >({
   id: 'anthropic.text_editor_20250728',
-  name: 'str_replace_based_edit_tool',
   inputSchema: textEditor_20250728InputSchema,
 });
 

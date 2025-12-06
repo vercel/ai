@@ -44,20 +44,9 @@ Creates a model for image generation.
    */
   generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
-  /**
-@deprecated Use `textEmbedding()` instead.
-   */
-  embedding(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
 
-  textEmbedding(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
-
-  textEmbeddingModel(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embeddingModel(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
 
   tools: typeof googleTools;
 }
@@ -90,6 +79,12 @@ or to provide a custom fetch implementation for e.g. testing.
 Optional function to generate a unique ID for each request.
      */
   generateId?: () => string;
+
+  /**
+   * Custom provider name
+   * Defaults to 'google.generative-ai'.
+   */
+  name?: string;
 }
 
 /**
@@ -101,6 +96,8 @@ export function createGoogleGenerativeAI(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
     'https://generativelanguage.googleapis.com/v1beta';
+
+  const providerName = options.name ?? 'google.generative-ai';
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -117,7 +114,7 @@ export function createGoogleGenerativeAI(
 
   const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
     new GoogleGenerativeAILanguageModel(modelId, {
-      provider: 'google.generative-ai',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
@@ -138,7 +135,7 @@ export function createGoogleGenerativeAI(
 
   const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
     new GoogleGenerativeAIEmbeddingModel(modelId, {
-      provider: 'google.generative-ai',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -149,7 +146,7 @@ export function createGoogleGenerativeAI(
     settings: GoogleGenerativeAIImageSettings = {},
   ) =>
     new GoogleGenerativeAIImageModel(modelId, settings, {
-      provider: 'google.generative-ai',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -170,11 +167,11 @@ export function createGoogleGenerativeAI(
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
   provider.embedding = createEmbeddingModel;
-  provider.textEmbedding = createEmbeddingModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.tools = googleTools;
+
   return provider as GoogleGenerativeAIProvider;
 }
 

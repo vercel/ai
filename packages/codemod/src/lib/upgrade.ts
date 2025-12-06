@@ -58,6 +58,7 @@ const bundle = [
   'v5/rename-todatastreamresponse-to-touimessagestreamresponse',
   'v5/rename-tool-parameters-to-inputschema',
   'v5/replace-bedrock-snake-case',
+  'v5/replace-fal-snake-case',
   'v5/replace-content-with-parts',
   'v5/replace-experimental-provider-metadata',
   'v5/replace-image-type-with-file-type',
@@ -78,14 +79,18 @@ const bundle = [
   'v5/rsc-package',
   'v5/move-tool-invocations-to-parts',
   'v5/not-implemented/pattern',
+  'v5/rename-addtoolresult-to-addtooloutput',
+  'v6/rename-text-embedding-to-embedding',
+  'v6/rename-mock-v2-to-v3',
 ];
 
 const log = debug('codemod:upgrade');
 const error = debug('codemod:upgrade:error');
 
-// Extract v4 and v5 codemods from the bundle
+// Extract v4, v5, and v6 codemods from the bundle
 const v4Bundle = bundle.filter(codemod => codemod.startsWith('v4/'));
 const v5Bundle = bundle.filter(codemod => codemod.startsWith('v5/'));
+const v6Bundle = bundle.filter(codemod => codemod.startsWith('v6/'));
 
 function runCodemods(
   codemods: string[],
@@ -141,6 +146,10 @@ export function upgradeV4(options: TransformOptions) {
 
 export function upgradeV5(options: TransformOptions) {
   runCodemods(v5Bundle, options, 'v5');
+}
+
+export function upgradeV6(options: TransformOptions) {
+  runCodemods(v6Bundle, options, 'v6');
 }
 
 export function upgrade(options: TransformOptions) {

@@ -3,7 +3,7 @@ import { defaultEmbeddingSettingsMiddleware } from './default-embedding-settings
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { describe, it, expect } from 'vitest';
 
-const params: EmbeddingModelCallOptions<string> = {
+const params: EmbeddingModelCallOptions = {
   values: ['hello world'],
 };
 

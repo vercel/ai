@@ -161,7 +161,7 @@ export function createVertex(
 
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
-  provider.textEmbeddingModel = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.tools = googleVertexTools;

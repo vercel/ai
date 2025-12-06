@@ -16,6 +16,7 @@ vi.mock('@ai-sdk/google/internal', () => ({
   googleTools: {
     googleSearch: vi.fn(),
     urlContext: vi.fn(),
+    fileSearch: vi.fn(),
     codeExecution: vi.fn(),
   },
 }));
@@ -65,7 +66,7 @@ describe('google-vertex-provider', () => {
       project: 'test-project',
       location: 'test-location',
     });
-    provider.textEmbeddingModel('test-embedding-model');
+    provider.embeddingModel('test-embedding-model');
 
     expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
       'test-embedding-model',
@@ -184,7 +185,7 @@ describe('google-vertex-provider', () => {
       project: 'test-project',
       location: 'global',
     });
-    provider.textEmbeddingModel('test-embedding-model');
+    provider.embeddingModel('test-embedding-model');
 
     expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
       'test-embedding-model',

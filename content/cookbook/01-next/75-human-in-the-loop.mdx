@@ -69,7 +69,6 @@ export default function Chat() {
 On the backend, create a route handler (API Route) that returns a `UIMessageStreamResponse`. Within the execute function of `createUIMessageStream`, call `streamText` and pass in the converted `messages` (sent from the client). Finally, merge the resulting generation into the `UIMessageStream`.
 
 ```ts filename="api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
@@ -88,7 +87,7 @@ export async function POST(req: Request) {
     originalMessages: messages,
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         messages: convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
@@ -137,7 +136,6 @@ At a high level, you will:
 To implement HITL functionality, you start by omitting the `execute` function from the tool definition. This allows the frontend to intercept the tool call and handle the responsibility of adding the final tool result to the tool call.
 
 ```ts filename="api/chat/route.ts" highlight="19"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
@@ -155,7 +153,7 @@ export async function POST(req: Request) {
     originalMessages: messages,
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         messages: convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
@@ -185,7 +183,7 @@ export async function POST(req: Request) {
 
 On the frontend, you map through the messages, either rendering the message content or checking for tool invocations and rendering custom UI.
 
-You can check if the tool requiring confirmation has been called and, if so, present options to either confirm or deny the proposed tool call. This confirmation is done using the `addToolResult` function to create a tool result and append it to the associated tool call.
+You can check if the tool requiring confirmation has been called and, if so, present options to either confirm or deny the proposed tool call. This confirmation is done using the `addToolOutput` function to create a tool result and append it to the associated tool call.
 
 ```tsx filename="app/page.tsx"
 'use client';
@@ -195,7 +193,7 @@ import { DefaultChatTransport, isToolUIPart, getToolName } from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, addToolResult, sendMessage } = useChat({
+  const { messages, addToolOutput, sendMessage } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -227,7 +225,7 @@ export default function Chat() {
                       <div>
                         <button
                           onClick={async () => {
-                            await addToolResult({
+                            await addToolOutput({
                               toolCallId,
                               tool: toolName,
                               output: 'Yes, confirmed.',
@@ -239,7 +237,7 @@ export default function Chat() {
                         </button>
                         <button
                           onClick={async () => {
-                            await addToolResult({
+                            await addToolOutput({
                               toolCallId,
                               tool: toolName,
                               output: 'No, denied.',
@@ -281,16 +279,15 @@ export default function Chat() {
 ```
 
 <Note>
-  The `sendMessage()` function after `addToolResult` will trigger a call to your
+  The `sendMessage()` function after `addToolOutput` will trigger a call to your
   route handler.
 </Note>
 
 ### Handle Confirmation Response
 
-Adding a tool result and sending the message will trigger another call to your route handler. Before sending the new messages to the language model, you pull out the last message and map through the message parts to see if the tool requiring confirmation was called and whether it's in a "result" state. If those conditions are met, you check the confirmation state (the tool result state that you set on the frontend with the `addToolResult` function).
+Adding a tool result and sending the message will trigger another call to your route handler. Before sending the new messages to the language model, you pull out the last message and map through the message parts to see if the tool requiring confirmation was called and whether it's in a "result" state. If those conditions are met, you check the confirmation state (the tool result state that you set on the frontend with the `addToolOutput` function).
 
 ```ts filename="api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
@@ -363,7 +360,7 @@ export async function POST(req: Request) {
       );
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         messages: convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
@@ -388,7 +385,7 @@ async function executeWeatherTool({ city }: { city: string }) {
 }
 ```
 
-In this implementation, you use simple strings like "Yes, the user confirmed" or "No, the user declined" as states. If confirmed, you execute the tool. If declined, you do not execute the tool. In both cases, you update the tool result from the arbitrary data you sent with the `addToolResult` function to either the result of the execute function or an "Execution declined" statement. You send the updated tool result back to the frontend to maintain state synchronization.
+In this implementation, you use simple strings like "Yes, the user confirmed" or "No, the user declined" as states. If confirmed, you execute the tool. If declined, you do not execute the tool. In both cases, you update the tool result from the arbitrary data you sent with the `addToolOutput` function to either the result of the execute function or an "Execution declined" statement. You send the updated tool result back to the frontend to maintain state synchronization.
 
 After handling the tool result, your API route continues. This triggers another generation with the updated tool result, allowing the LLM to continue attempting to solve the query.
 
@@ -454,7 +451,7 @@ export type HumanInTheLoopUIMessage = UIMessage<
 import {
   convertToModelMessages,
   Tool,
-  ToolCallOptions,
+  ToolExecutionOptions,
   ToolSet,
   UIMessageStreamWriter,
   getToolName,
@@ -504,7 +501,7 @@ export async function processToolCalls<
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
       args: ExecutableTools[K] extends Tool<infer P> ? P : never,
-      context: ToolCallOptions,
+      context: ToolExecutionOptions,
     ) => Promise<any>;
   },
 ): Promise<HumanInTheLoopUIMessage[]> {
@@ -593,7 +590,6 @@ Finally, you declare a function called `getToolsRequiringConfirmation` that take
 Update your route handler to use the `processToolCalls` utility function.
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
@@ -635,7 +631,7 @@ export async function POST(req: Request) {
       );
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         messages: convertToModelMessages(processedMessages),
         tools,
         stopWhen: stepCountIs(5),
@@ -666,7 +662,7 @@ import { useState } from 'react';
 import { HumanInTheLoopUIMessage, MyTools } from '../api/chat/types';
 
 export default function Chat() {
-  const { messages, addToolResult, sendMessage } =
+  const { messages, addToolOutput, sendMessage } =
     useChat<HumanInTheLoopUIMessage>({
       transport: new DefaultChatTransport({
         api: '/api/chat',
@@ -716,7 +712,7 @@ export default function Chat() {
                       <button
                         className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                         onClick={async () => {
-                          await addToolResult({
+                          await addToolOutput({
                             toolCallId,
                             tool: toolName,
                             output: APPROVAL.YES,
@@ -729,7 +725,7 @@ export default function Chat() {
                       <button
                         className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                         onClick={async () => {
-                          await addToolResult({
+                          await addToolOutput({
                             toolCallId,
                             tool: toolName,
                             output: APPROVAL.NO,

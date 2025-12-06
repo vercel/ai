@@ -2,20 +2,22 @@ import { ImageModelV3, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
+  DefaultGeneratedFile,
+  GeneratedFile,
+} from '../generate-text/generated-file';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveImageModel } from '../model/resolve-model';
+import type { ImageModel } from '../types/image-model';
+import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
+import { addImageModelUsage, ImageModelUsage } from '../types/usage';
+import { Warning } from '../types/warning';
+import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import {
-  DefaultGeneratedFile,
-  GeneratedFile,
-} from '../generate-text/generated-file';
-import { ImageGenerationWarning } from '../types/image-model';
-import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { GenerateImageResult } from './generate-image-result';
-import { logWarnings } from '../logger/log-warnings';
 import { VERSION } from '../version';
+import { GenerateImageResult } from './generate-image-result';
 
 /**
 Generates images using an image model.
@@ -35,7 +37,7 @@ as body parameters.
 @returns A result object that contains the generated images.
  */
 export async function generateImage({
-  model,
+  model: modelArg,
   prompt,
   n = 1,
   maxImagesPerCall,
@@ -50,7 +52,7 @@ export async function generateImage({
   /**
 The image model to use.
      */
-  model: ImageModelV3;
+  model: ImageModel;
 
   /**
 The prompt that should be used to generate the image.
@@ -116,13 +118,7 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
-  if (model.specificationVersion !== 'v3') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
-  }
+  const model = resolveImageModel(modelArg);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -169,9 +165,14 @@ Only applicable for HTTP-based providers.
 
   // collect result images, warnings, and response metadata
   const images: Array<DefaultGeneratedFile> = [];
-  const warnings: Array<ImageGenerationWarning> = [];
+  const warnings: Array<Warning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
   const providerMetadata: ImageModelV3ProviderMetadata = {};
+  let totalUsage: ImageModelUsage = {
+    inputTokens: undefined,
+    outputTokens: undefined,
+    totalTokens: undefined,
+  };
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -188,14 +189,38 @@ Only applicable for HTTP-based providers.
     );
     warnings.push(...result.warnings);
 
+    if (result.usage != null) {
+      totalUsage = addImageModelUsage(totalUsage, result.usage);
+    }
+
     if (result.providerMetadata) {
       for (const [providerName, metadata] of Object.entries<{
         images: unknown;
       }>(result.providerMetadata)) {
-        providerMetadata[providerName] ??= { images: [] };
-        providerMetadata[providerName].images.push(
-          ...result.providerMetadata[providerName].images,
-        );
+        if (providerName === 'gateway') {
+          const currentEntry = providerMetadata[providerName];
+          if (currentEntry != null && typeof currentEntry === 'object') {
+            providerMetadata[providerName] = {
+              ...(currentEntry as object),
+              ...metadata,
+            } as ImageModelV3ProviderMetadata[string];
+          } else {
+            providerMetadata[providerName] =
+              metadata as ImageModelV3ProviderMetadata[string];
+          }
+          const imagesValue = (
+            providerMetadata[providerName] as { images?: unknown }
+          ).images;
+          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
+            delete (providerMetadata[providerName] as { images?: unknown })
+              .images;
+          }
+        } else {
+          providerMetadata[providerName] ??= { images: [] };
+          providerMetadata[providerName].images.push(
+            ...result.providerMetadata[providerName].images,
+          );
+        }
       }
     }
 
@@ -213,25 +238,29 @@ Only applicable for HTTP-based providers.
     warnings,
     responses,
     providerMetadata,
+    usage: totalUsage,
   });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
-  readonly warnings: Array<ImageGenerationWarning>;
+  readonly warnings: Array<Warning>;
   readonly responses: Array<ImageModelResponseMetadata>;
   readonly providerMetadata: ImageModelV3ProviderMetadata;
+  readonly usage: ImageModelUsage;
 
   constructor(options: {
     images: Array<GeneratedFile>;
-    warnings: Array<ImageGenerationWarning>;
+    warnings: Array<Warning>;
     responses: Array<ImageModelResponseMetadata>;
     providerMetadata: ImageModelV3ProviderMetadata;
+    usage: ImageModelUsage;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata;
+    this.usage = options.usage;
   }
 
   get image() {

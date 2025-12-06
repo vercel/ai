@@ -33,7 +33,7 @@ createFeatureTestSuite({
     ],
     embeddingModels: [
       createEmbeddingModelWithCapabilities(
-        provider.textEmbeddingModel('nomic-ai/nomic-embed-text-v1.5'),
+        provider.embeddingModel('nomic-ai/nomic-embed-text-v1.5'),
       ),
     ],
     imageModels: [
