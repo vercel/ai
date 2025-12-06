@@ -27,7 +27,6 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { ImageModelV3File } from '../../../provider/src/image-model/v3/image-model-v3-file';
 
 type Prompt =
   | string
