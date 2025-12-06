@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.135
+
+### Patch Changes
+
+- afe7093: feat: add middleware for tool input examples
+
 ## 6.0.0-beta.134
 
 ### Patch Changes
