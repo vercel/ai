@@ -1,5 +1,8 @@
-export { generateText } from './generate-text';
-export type { GenerateTextOnStepFinishCallback } from './generate-text';
+export {
+  generateText,
+  type GenerateTextOnStepFinishCallback,
+} from './generate-text';
+export type { ContentPart } from './content-part';
 export type { GenerateTextResult } from './generate-text-result';
 export type {
   GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v5
