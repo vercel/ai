@@ -777,7 +777,7 @@ describe('HuggingFaceResponsesLanguageModel', () => {
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
-    it('should warn about tool messages', async () => {
+    it('should not warn about tool messages', async () => {
       const { warnings } = await createModel(
         'deepseek-ai/DeepSeek-V3-0324',
       ).doGenerate({
@@ -796,14 +796,57 @@ describe('HuggingFaceResponsesLanguageModel', () => {
         ],
       });
 
-      expect(warnings).toMatchInlineSnapshot(`
-        [
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  it('should convert tool messages to function_call_output in request body', async () => {
+    server.urls['https://router.huggingface.co/v1/responses'].response = {
+      type: 'json-value',
+      body: {
+        id: 'resp_test',
+        model: 'deepseek-ai/DeepSeek-V3-0324',
+        object: 'response',
+        created_at: 1741257730,
+        status: 'completed',
+        error: null,
+        tools: [],
+        temperature: 1.0,
+        top_p: 1.0,
+        usage: { input_tokens: 10, output_tokens: 10, total_tokens: 20 },
+        output: [
           {
-            "feature": "tool messages",
-            "type": "unsupported",
+            id: 'msg_response',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [{ type: 'output_text', text: 'Got it!' }],
           },
-        ]
-      `);
+        ],
+      },
+    };
+
+    await createModel('deepseek-ai/DeepSeek-V3-0324').doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_123',
+              toolName: 'test',
+              output: { type: 'text', value: 'test result' },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.input).toContainEqual({
+      type: 'function_call_output',
+      call_id: 'call_123',
+      output: 'test result',
     });
   });
 
