@@ -18,7 +18,7 @@ import { ToolSet } from './tool-set';
  * @param options.error - The error that occurred while parsing the tool call.
  */
 export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
-  system: string | SystemModelMessage | undefined;
+  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   toolCall: LanguageModelV3ToolCall;
   tools: TOOLS;

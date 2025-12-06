@@ -8,7 +8,7 @@ export type Prompt = {
   /**
 System message to include in the prompt. Can be used with `prompt` or `messages`.
    */
-  system?: string | SystemModelMessage;
+  system?: string | SystemModelMessage | Array<SystemModelMessage>;
 } & (
   | {
       /**
