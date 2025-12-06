@@ -39,9 +39,20 @@ The Supermemory provider is available in the `@supermemory/tools` module. You ca
 
 You can obtain your Supermemory API key for free at [https://console.supermemory.ai](https://console.supermemory.ai).
 
-There are two ways to integrate Supermemory with your AI applications:
+There are three ways to integrate Supermemory with your AI applications:
 
-**1. Using Supermemory Tools**
+**1. Using the withSupermemory Middleware (Recommended)**
+
+Use the `withSupermemory` middleware for automatic memory integration:
+
+```typescript
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+const modelWithMemory = withSupermemory(openai('gpt-4'), 'user-id');
+```
+
+**2. Using Supermemory Tools**
 
 Import and use Supermemory tools with your existing AI SDK setup:
 
@@ -49,7 +60,7 @@ Import and use Supermemory tools with your existing AI SDK setup:
 import { supermemoryTools } from '@supermemory/tools/ai-sdk';
 ```
 
-**2. Using the Memory Router**
+**3. Using the Memory Router**
 
 Use the Memory Router for direct integration with language model providers:
 
@@ -70,52 +81,117 @@ const supermemoryRouter = createAnthropic({
 
 Here are examples of using Supermemory with the AI SDK:
 
-### `generateText` with Tools
+### AI SDK Middleware with Supermemory
 
-```javascript
+- `withSupermemory` will take advantage supermemory profile v4 endpoint personalized based on container tag
+- Make sure you have `SUPERMEMORY_API_KEY` in env
+
+```typescript
 import { generateText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
-import { supermemoryTools } from '@supermemory/tools/ai-sdk';
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
 
-const openai = createOpenAI({
-  apiKey: 'YOUR_OPENAI_KEY',
+const modelWithMemory = withSupermemory(openai('gpt-5'), 'user_id_life');
+
+const result = await generateText({
+  model: modelWithMemory,
+  messages: [{ role: 'user', content: 'where do i live?' }],
 });
 
-const { text } = await generateText({
-  model: openai('gpt-4-turbo'),
-  prompt: 'Remember that my name is Alice',
-  tools: supermemoryTools('YOUR_SUPERMEMORY_KEY'),
-});
-
-console.log(text);
+console.log(result.text);
 ```
 
-### `streamText` with Automatic Memory
+### Conversation Grouping
 
-```javascript
-import { streamText } from 'ai';
+Use the `conversationId` option to group messages into a single document for contextual memory generation:
+
+```typescript
+import { generateText } from 'ai';
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+const modelWithMemory = withSupermemory(openai('gpt-5'), 'user_id_life', {
+  conversationId: 'conversation-456',
+});
+
+const result = await generateText({
+  model: modelWithMemory,
+  messages: [{ role: 'user', content: 'where do i live?' }],
+});
+
+console.log(result.text);
+```
+
+### Automatic Memory Capture
+
+The middleware can automatically save user messages as memories:
+
+**Always Save Memories** - Automatically stores every user message as a memory:
+
+```typescript
+import { generateText } from 'ai';
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+const modelWithAutoSave = withSupermemory(openai('gpt-4'), 'user-123', {
+  addMemory: 'always',
+});
+
+const result = await generateText({
+  model: modelWithAutoSave,
+  messages: [
+    { role: 'user', content: 'I prefer React with TypeScript for my projects' },
+  ],
+});
+// This message will be automatically saved as a memory
+```
+
+**Never Save Memories (Default)** - Only retrieves memories without storing new ones:
+
+```typescript
+const modelWithNoSave = withSupermemory(openai('gpt-4'), 'user-123');
+```
+
+### Using Supermemory Tools
+
+```typescript
+import {
+  supermemoryTools,
+  searchMemoriesTool,
+  addMemoryTool,
+} from '@supermemory/tools/ai-sdk';
 import { createOpenAI } from '@ai-sdk/openai';
-import { supermemoryTools } from '@supermemory/tools/ai-sdk';
+import { generateText } from 'ai';
 
 const openai = createOpenAI({
-  apiKey: 'YOUR_OPENAI_KEY',
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
-const result = streamText({
-  model: openai('gpt-4'),
-  prompt: 'What are my dietary preferences?',
-  tools: supermemoryTools('YOUR_SUPERMEMORY_KEY'),
+// Create all tools
+const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+  containerTags: ['your-user-id'],
 });
 
-// The AI will automatically call searchMemories tool
-// Example tool call:
-// searchMemories({ informationToGet: "dietary preferences and restrictions" })
-// OR
-// addMemory({ memory: "User is allergic to peanuts" })
+// Use with AI SDK
+const result = await generateText({
+  model: openai('gpt-5'),
+  messages: [
+    {
+      role: 'user',
+      content: 'What do you remember about my preferences?',
+    },
+  ],
+  tools,
+});
 
-for await (const chunk of result.textStream) {
-  console.log(chunk);
-}
+// Or create individual tools
+const searchTool = searchMemoriesTool(process.env.SUPERMEMORY_API_KEY!, {
+  projectId: 'your-project-id',
+});
+
+const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
+  projectId: 'your-project-id',
+});
 ```
 
 ### Using Memory Router
@@ -138,6 +214,111 @@ const result = streamText({
   messages: [
     { role: 'user', content: 'Hello! Remember that I love TypeScript.' },
   ],
+});
+```
+
+## Advanced Features
+
+### Verbose Mode
+
+Enable verbose logging to see detailed information about memory search and transformation:
+
+```typescript
+import { generateText } from 'ai';
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+const modelWithMemory = withSupermemory(openai('gpt-5'), 'user_id_life', {
+  verbose: true,
+});
+
+const result = await generateText({
+  model: modelWithMemory,
+  messages: [{ role: 'user', content: 'where do i live?' }],
+});
+
+console.log(result.text);
+```
+
+When verbose mode is enabled, you'll see console output like:
+
+```
+[supermemory] Searching memories for container: user_id_life
+[supermemory] User message: where do i live?
+[supermemory] System prompt exists: false
+[supermemory] Found 3 memories
+[supermemory] Memory content: You live in San Francisco, California. Your address is 123 Main Street...
+[supermemory] Creating new system prompt with memories
+```
+
+### Memory Search Modes
+
+The middleware supports different modes for memory retrieval:
+
+**Profile Mode (Default)** - Retrieves user profile memories without query filtering:
+
+```typescript
+import { generateText } from 'ai';
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+// Uses profile mode by default - gets all user profile memories
+const modelWithMemory = withSupermemory(openai('gpt-4'), 'user-123');
+
+// Explicitly specify profile mode
+const modelWithProfile = withSupermemory(openai('gpt-4'), 'user-123', {
+  mode: 'profile',
+});
+
+const result = await generateText({
+  model: modelWithMemory,
+  messages: [{ role: 'user', content: 'What do you know about me?' }],
+});
+```
+
+**Query Mode** - Searches memories based on the user's message:
+
+```typescript
+import { generateText } from 'ai';
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+const modelWithQuery = withSupermemory(openai('gpt-4'), 'user-123', {
+  mode: 'query',
+});
+
+const result = await generateText({
+  model: modelWithQuery,
+  messages: [
+    { role: 'user', content: "What's my favorite programming language?" },
+  ],
+});
+```
+
+**Full Mode** - Combines both profile and query results:
+
+```typescript
+import { generateText } from 'ai';
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+const modelWithFull = withSupermemory(openai('gpt-4'), 'user-123', {
+  mode: 'full',
+});
+
+const result = await generateText({
+  model: modelWithFull,
+  messages: [{ role: 'user', content: 'Tell me about my preferences' }],
+});
+```
+
+**Combined Options** - Use verbose logging with specific modes and memory storage:
+
+```typescript
+const modelWithOptions = withSupermemory(openai('gpt-4'), 'user-123', {
+  mode: 'profile',
+  addMemory: 'always',
+  verbose: true,
 });
 ```
 
