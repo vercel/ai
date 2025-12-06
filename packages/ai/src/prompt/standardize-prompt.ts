@@ -7,6 +7,7 @@ import {
 import { z } from 'zod/v4';
 import { modelMessageSchema } from './message';
 import { Prompt } from './prompt';
+import { asArray } from '../util/as-array';
 
 export type StandardizedPrompt = {
   /**
@@ -41,18 +42,13 @@ export async function standardizePrompt(
   if (
     prompt.system != null &&
     typeof prompt.system !== 'string' &&
-    !(Array.isArray(prompt.system)
-      ? prompt.system.every(
-          message =>
-            typeof message === 'object' &&
-            message !== null &&
-            'role' in message &&
-            message.role === 'system',
-        )
-      : typeof prompt.system === 'object' &&
-        prompt.system !== null &&
-        'role' in prompt.system &&
-        prompt.system.role === 'system')
+    !asArray(prompt.system).every(
+      message =>
+        typeof message === 'object' &&
+        message !== null &&
+        'role' in message &&
+        message.role === 'system',
+    )
   ) {
     throw new InvalidPromptError({
       prompt,
