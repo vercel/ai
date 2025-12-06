@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { MCPClientError } from '../error/mcp-client-error';
 import { SseMCPTransport } from './mcp-sse-transport';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
 describe('SseMCPTransport', () => {
@@ -229,6 +229,43 @@ describe('SseMCPTransport', () => {
     expect((error as Error).message).toContain(
       'MCP SSE Transport Error: 500 Internal Server Error',
     );
+  });
+
+  it('should use custom fetch', async () => {
+    const mockFetch = vi.fn(fetch);
+
+    transport = new SseMCPTransport({
+      url: 'http://localhost:3000/sse',
+      fetch: mockFetch,
+    });
+
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const connectPromise = transport.start();
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+    await connectPromise;
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    const message = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    await transport.send(message);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    await transport.close();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
   it('should send custom headers with all requests', async () => {

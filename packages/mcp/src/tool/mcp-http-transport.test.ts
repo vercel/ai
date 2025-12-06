@@ -243,6 +243,39 @@ describe('HttpMCPTransport', () => {
     expect((error as Error).message).toContain('Failed to parse message');
   });
 
+  it('should use custom fetch', async () => {
+    const mockFetch = vi.fn(fetch);
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      fetch: mockFetch,
+    });
+
+    await transport.start();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    const message = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    const messagePromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    await transport.send(message);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    await messagePromise;
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    await transport.close();
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
   it('should send custom headers with all requests', async () => {
     const controller = new TestResponseController();
 
