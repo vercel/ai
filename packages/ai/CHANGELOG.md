@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.134
+
+### Patch Changes
+
+- 686103c: chore(ai): export ContentPart type
+
 ## 6.0.0-beta.133
 
 ### Patch Changes
