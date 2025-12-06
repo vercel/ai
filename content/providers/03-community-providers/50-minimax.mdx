@@ -1,0 +1,238 @@
+---
+title: MiniMax
+description: Learn how to use MiniMax's models with the AI SDK.
+---
+
+# MiniMax Provider
+
+[vercel-minimax-ai-provider](https://github.com/MiniMax-AI/vercel-minimax-ai-provider) is a community provider that provides language model support for the AI SDK, including access to the latest [MiniMax-M2 model](https://platform.minimax.io/docs/guides/text-generation) from [MiniMax](https://www.minimax.io/).
+
+API keys can be obtained from the [MiniMax Platform](https://platform.minimax.io/user-center/basic-information/interface-key).
+
+## Setup
+
+The MiniMax provider is available via the `vercel-minimax-ai-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add vercel-minimax-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install vercel-minimax-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add vercel-minimax-ai-provider" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add vercel-minimax-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+The MiniMax provider supports two API compatibility modes:
+
+### Anthropic-Compatible API (Default)
+
+You can import the default provider instance `minimax` from `vercel-minimax-ai-provider`:
+
+```ts
+import { minimax } from 'vercel-minimax-ai-provider';
+```
+
+Or explicitly use the Anthropic-compatible instance:
+
+```ts
+import { minimaxAnthropic } from 'vercel-minimax-ai-provider';
+```
+
+### OpenAI-Compatible API
+
+For OpenAI-compatible API format:
+
+```ts
+import { minimaxOpenAI } from 'vercel-minimax-ai-provider';
+```
+
+## Custom Configuration
+
+For custom configuration, you can use the `createMinimax` (Anthropic-compatible) or `createMinimaxOpenAI` (OpenAI-compatible) functions:
+
+### Anthropic-Compatible Configuration (Default)
+
+```ts
+import { createMinimax } from 'vercel-minimax-ai-provider';
+
+const minimax = createMinimax({
+  apiKey: process.env.MINIMAX_API_KEY ?? ''
+});
+```
+
+### OpenAI-Compatible Configuration
+
+```ts
+import { createMinimaxOpenAI } from 'vercel-minimax-ai-provider';
+
+const minimaxOpenAI = createMinimaxOpenAI({
+  apiKey: process.env.MINIMAX_API_KEY ?? ''
+});
+```
+
+### Configuration Options
+
+You can use the following optional settings to customize the MiniMax provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  - Anthropic-compatible default: `https://api.minimax.io/anthropic/v1`
+  - OpenAI-compatible default: `https://api.minimax.io/v1`
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `MINIMAX_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+### Anthropic-Compatible (Default)
+
+```ts
+import { minimax } from 'vercel-minimax-ai-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: minimax('MiniMax-M2'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+### OpenAI-Compatible
+
+```ts
+import { minimaxOpenAI } from 'vercel-minimax-ai-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: minimaxOpenAI('MiniMax-M2'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+You can also use the `.chat()` or `.languageModel()` factory methods:
+
+```ts
+// Default (Anthropic-compatible):
+const model = minimax.chat('MiniMax-M2');
+// or
+const model = minimax.languageModel('MiniMax-M2');
+
+// For OpenAI-compatible:
+const openaiModel = minimaxOpenAI.chat('MiniMax-M2');
+// or
+const openaiModel = minimaxOpenAI.languageModel('MiniMax-M2');
+```
+
+MiniMax language models can be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+## API Compatibility
+
+MiniMax provides two API formats. Both are included in this package:
+
+### When to Use Each Format
+
+- **Anthropic-Compatible** (`minimax`, default): Provides better support for advanced features and is recommended for new projects.
+- **OpenAI-Compatible** (`minimaxOpenAI`): Use this if you're migrating from OpenAI or prefer the OpenAI API format.
+
+### Key Differences
+
+The main difference is the API request/response format:
+
+- **Anthropic format** (default): Uses Anthropic Messages API format with `anthropic-version` header
+- **OpenAI format**: Uses standard OpenAI chat completion format
+
+Both formats access the same MiniMax models with the same capabilities.
+
+## Available Models
+
+MiniMax offers two model variants:
+
+| Model Name | Description |
+| ---------- | ----------- |
+| `MiniMax-M2` | Agentic capabilities, Advanced reasoning |
+| `MiniMax-M2-Stable` | High concurrency and commercial use |
+
+Both models share the same API interface and usage patterns.
+
+## Model Capabilities
+
+| Model         | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      |
+| ------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `MiniMax-M2`  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `MiniMax-M2-Stable`  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  Please see the [MiniMax docs](https://platform.minimax.io/docs/api-reference/text-intro) for a full list
+  of available models and their capabilities. The provider accepts any model ID as a
+  string for forward compatibility.
+</Note>
+
+## Example Usage
+
+### Basic Text Generation
+
+```ts
+import { minimax } from 'vercel-minimax-ai-provider';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: minimax('MiniMax-M2'),
+  prompt: 'Explain quantum computing in simple terms.',
+});
+
+console.log(result.text);
+```
+
+### Streaming
+
+```ts
+import { minimax } from 'vercel-minimax-ai-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: minimax('MiniMax-M2'),
+  prompt: 'Write a short story about a robot learning to paint.',
+});
+
+for await (const chunk of result.textStream) {
+  console.log(chunk);
+}
+```
+
+### Using MiniMax-M2-Stable for Production
+
+```ts
+import { minimax } from 'vercel-minimax-ai-provider';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: minimax('MiniMax-M2-Stable'),
+  prompt: 'Write a short story about a robot learning to paint.',
+});
+
+console.log(result.text);
+```
+
+
