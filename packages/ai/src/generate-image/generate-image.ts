@@ -1,5 +1,13 @@
-import { ImageModelV3, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  ImageModelV3,
+  ImageModelV3CallOptions,
+  ImageModelV3ProviderMetadata,
+} from '@ai-sdk/provider';
+import {
+  DataContent,
+  ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
@@ -18,6 +26,16 @@ import {
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { GenerateImageResult } from './generate-image-result';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
+import { ImageModelV3File } from '../../../provider/src/image-model/v3/image-model-v3-file';
+
+type Prompt =
+  | string
+  | {
+      images: Array<DataContent>;
+      text?: string;
+      mask?: DataContent;
+    };
 
 /**
 Generates images using an image model.
@@ -38,7 +56,7 @@ as body parameters.
  */
 export async function generateImage({
   model: modelArg,
-  prompt,
+  prompt: promptArg,
   n = 1,
   maxImagesPerCall,
   size,
@@ -57,7 +75,7 @@ The image model to use.
   /**
 The prompt that should be used to generate the image.
    */
-  prompt: string;
+  prompt: Prompt;
 
   /**
 Number of images to generate.
@@ -148,9 +166,13 @@ Only applicable for HTTP-based providers.
 
   const results = await Promise.all(
     callImageCounts.map(async callImageCount =>
-      retry(() =>
-        model.doGenerate({
+      retry(() => {
+        const { prompt, files, mask } = normalizePrompt(promptArg)
+
+        return model.doGenerate({
           prompt,
+          files,
+          mask,
           n: callImageCount,
           abortSignal,
           headers: headersWithUserAgent,
@@ -158,8 +180,8 @@ Only applicable for HTTP-based providers.
           aspectRatio,
           seed,
           providerOptions: providerOptions ?? {},
-        }),
-      ),
+        });
+      }),
     ),
   );
 
@@ -278,4 +300,36 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
   return model.maxImagesPerCall({
     modelId: model.modelId,
   });
+}
+
+function normalizePrompt(
+  prompt: Prompt,
+): Pick<ImageModelV3CallOptions, 'prompt' | 'files' | 'mask'> {
+  if (typeof prompt === 'string') {
+    return { prompt, files: undefined, mask: undefined };
+  }
+
+  return {
+    prompt: prompt.text,
+    files: prompt.images.map(image => ({
+      type: 'file' as const,
+      data: convertDataContentToUint8Array(image),
+      mediaType:
+        detectMediaType({
+          data: convertDataContentToUint8Array(image),
+          signatures: imageMediaTypeSignatures,
+        }) || 'image/png',
+    })),
+    mask: prompt.mask
+      ? {
+          type: 'file' as const,
+          data: convertDataContentToUint8Array(prompt.mask),
+          mediaType:
+            detectMediaType({
+              data: convertDataContentToUint8Array(prompt.mask),
+              signatures: imageMediaTypeSignatures,
+            }) || 'image/png',
+        }
+      : undefined,
+  };
 }
