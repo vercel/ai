@@ -9,6 +9,8 @@ import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { textEditor_20250728 } from './tool/text-editor_20250728';
+import { toolSearchBm25_20251119 } from './tool/tool-search-bm25_20251119';
+import { toolSearchRegex_20251119 } from './tool/tool-search-regex_20251119';
 import { webFetch_20250910 } from './tool/web-fetch-20250910';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 
@@ -147,4 +149,34 @@ export const anthropicTools = {
    * @param userLocation - Optional user location information to provide geographically relevant search results.
    */
   webSearch_20250305,
+
+  /**
+   * Creates a tool search tool that uses regex patterns to find tools.
+   *
+   * The tool search tool enables Claude to work with hundreds or thousands of tools
+   * by dynamically discovering and loading them on-demand. Instead of loading all
+   * tool definitions into the context window upfront, Claude searches your tool
+   * catalog and loads only the tools it needs.
+   *
+   * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
+   * to mark them for deferred loading.
+   *
+   * Supported models: Claude Opus 4.5, Claude Sonnet 4.5
+   */
+  toolSearchRegex_20251119,
+
+  /**
+   * Creates a tool search tool that uses BM25 (natural language) to find tools.
+   *
+   * The tool search tool enables Claude to work with hundreds or thousands of tools
+   * by dynamically discovering and loading them on-demand. Instead of loading all
+   * tool definitions into the context window upfront, Claude searches your tool
+   * catalog and loads only the tools it needs.
+   *
+   * Use `providerOptions: { anthropic: { deferLoading: true } }` on other tools
+   * to mark them for deferred loading.
+   *
+   * Supported models: Claude Opus 4.5, Claude Sonnet 4.5
+   */
+  toolSearchBm25_20251119,
 };
