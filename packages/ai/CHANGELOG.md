@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.136
+
+### Patch Changes
+
+- 3d83f38: chore(ai): improve addToolInputExamplesMiddleware
+
 ## 6.0.0-beta.135
 
 ### Patch Changes
