@@ -13,10 +13,10 @@ async function main() {
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
       middleware: addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-        formatExample: (example, index) =>
+        prefix: 'Examples:',
+        format: (example, index) =>
           `${index + 1}. ${JSON.stringify(example.input)}`,
-        removeInputExamples: true,
+        remove: true,
       }),
     }),
     tools: {

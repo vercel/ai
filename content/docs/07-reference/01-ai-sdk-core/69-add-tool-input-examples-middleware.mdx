@@ -1,19 +1,11 @@
 ---
 title: addToolInputExamplesMiddleware
-description: Middleware that adds tool input examples to tool descriptions
+description: Middleware that appends tool input examples to tool descriptions.
 ---
 
-# `addToolInputExamplesMiddleware()`
+# `addToolInputExamplesMiddleware`
 
-`addToolInputExamplesMiddleware` is a middleware function that adds tool input examples to tool descriptions. This is useful for providers that don't natively support the `inputExamples` property on tools. The middleware serializes the examples into the tool's description text so models can still benefit from seeing example inputs.
-
-```ts
-import { addToolInputExamplesMiddleware } from 'ai';
-
-const middleware = addToolInputExamplesMiddleware({
-  examplesPrefix: 'Input Examples:',
-});
-```
+`addToolInputExamplesMiddleware` is a middleware function that appends input examples to tool descriptions. This is especially useful for language model providers that **do not natively support the `inputExamples` property**—the middleware serializes and injects the examples into the tool's `description` so models can learn from them.
 
 ## Import
 
@@ -22,44 +14,57 @@ const middleware = addToolInputExamplesMiddleware({
   prompt={false}
 />
 
-## API Signature
+## API
+
+### Signature
+
+```ts
+function addToolInputExamplesMiddleware(options?: {
+  prefix?: string;
+  format?: (example: { input: JSONObject }, index: number) => string;
+  remove?: boolean;
+}): LanguageModelMiddleware;
+```
 
 ### Parameters
 
 <PropertiesTable
   content={[
     {
-      name: 'examplesPrefix',
+      name: 'prefix',
       type: 'string',
-      isOptional: false,
-      description: 'A prefix text to prepend before the examples.',
+      isOptional: true,
+      description:
+        "A prefix prepended before the input examples section. Defaults to `'Input Examples:'`.",
     },
     {
-      name: 'formatExample',
+      name: 'format',
       type: '(example: { input: JSONObject }, index: number) => string',
       isOptional: true,
       description:
-        'A custom formatter function for each example. Receives the example object and its index. Defaults to JSON.stringify(example.input).',
+        'Optional custom formatter for each example. Receives the example object and its index. Default: JSON.stringify(example.input).',
     },
     {
-      name: 'removeInputExamples',
+      name: 'remove',
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether to remove the inputExamples property from the tool after adding them to the description. Defaults to true.',
+        'Whether to remove the `inputExamples` property from the tool after adding them to the description. Default: true.',
     },
   ]}
 />
 
 ### Returns
 
-Returns a middleware object that:
+A [LanguageModelMiddleware](/docs/03-ai-sdk-core/40-middleware) that:
 
-- Appends formatted `inputExamples` examples to the tool's description
-- Optionally removes the `inputExamples` property from tools (default behavior)
-- Passes through provider tools and tools without examples unchanged
+- Locates function tools with an `inputExamples` property.
+- Serializes each input example (by default as JSON, or using your custom formatter).
+- Prepends a section at the end of the tool description containing all formatted examples, prefixed by the `prefix`.
+- Removes the `inputExamples` property from the tool (unless `remove: false`).
+- Passes through all other tools (including those without examples) unchanged.
 
-### Usage Example
+## Usage Example
 
 ```ts
 import {
@@ -74,8 +79,8 @@ import { z } from 'zod';
 const model = wrapLanguageModel({
   model: openai('gpt-4o'),
   middleware: addToolInputExamplesMiddleware({
-    examplesPrefix: 'Input Examples:',
-    formatExample: (example, index) =>
+    prefix: 'Input Examples:',
+    format: (example, index) =>
       `${index + 1}. ${JSON.stringify(example.input)}`,
   }),
 });
@@ -85,9 +90,7 @@ const result = await generateText({
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
-      inputSchema: z.object({
-        location: z.string(),
-      }),
+      inputSchema: z.object({ location: z.string() }),
       inputExamples: [
         { input: { location: 'San Francisco' } },
         { input: { location: 'London' } },
@@ -100,7 +103,53 @@ const result = await generateText({
 
 ## How It Works
 
-1. Takes tools that have `inputExamples` defined
-2. Formats each example as JSON (or using your custom `formatExample` function)
-3. Appends the formatted examples to the tool's description with the `examplesPrefix` prefix
-4. Removes the `inputExamples` property to prevent duplication (unless `removeInputExamples` is set to `false`)
+1. For every function tool that defines `inputExamples`, the middleware:
+
+   - Formats each example with the `format` function (default: JSON.stringify).
+   - Builds a section like:
+
+     ```
+     Input Examples:
+     {"location":"San Francisco"}
+     {"location":"London"}
+     ```
+
+   - Appends this section to the end of the tool's `description`.
+
+2. By default, it removes the `inputExamples` property after appending to prevent duplication (can be disabled with `remove: false`).
+3. Tools without input examples or non-function tools are left unmodified.
+
+> **Tip:** This middleware is especially useful with providers such as OpenAI or Anthropic, where native support for `inputExamples` is not available.
+
+## Example effect
+
+If your original tool definition is:
+
+```ts
+{
+  type: 'function',
+  name: 'weather',
+  description: 'Get the weather in a location',
+  inputSchema: { ... },
+  inputExamples: [
+    { input: { location: 'San Francisco' } },
+    { input: { location: 'London' } }
+  ]
+}
+```
+
+After applying the middleware (with default settings), the tool passed to the model will look like:
+
+```ts
+{
+  type: 'function',
+  name: 'weather',
+  description: `Get the weather in a location
+
+Input Examples:
+{"location":"San Francisco"}
+{"location":"London"}`,
+  inputSchema: { ... }
+  // inputExamples is removed by default
+}
+```
