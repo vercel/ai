@@ -537,7 +537,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
               toolInvocation.state = 'approval-requested';
-              toolInvocation.approval = { id: chunk.approvalId };
+              toolInvocation.approval = {
+                id: chunk.approvalId,
+                allowsInputEditing: chunk.allowsInputEditing,
+              };
               write();
               break;
             }

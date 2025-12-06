@@ -25,6 +25,7 @@ const weatherTool = tool({
     temperature: 72 + Math.floor(Math.random() * 21) - 10,
   }),
   needsApproval: true,
+  allowsInputEditing: true,
 });
 
 run(async () => {
@@ -61,14 +62,28 @@ run(async () => {
       if (part.type === 'tool-approval-request') {
         if (part.toolCall.toolName === 'weather' && !part.toolCall.dynamic) {
           const answer = await terminal.question(
-            `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n)?`,
+            `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n/e)?`,
           );
+
+          const approved = ['y', 'yes', 'e', 'edit'].includes(
+            answer.toLowerCase(),
+          );
+          const edit = ['e', 'edit'].includes(answer.toLowerCase());
+
+          let override = undefined;
+
+          if (edit) {
+            const newLocation = await terminal.question(
+              `Enter new location (current: ${part.toolCall.input.location}): `,
+            );
+            override = { input: { location: newLocation } };
+          }
 
           approvals.push({
             type: 'tool-approval-response',
             approvalId: part.approvalId,
-            approved:
-              answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
+            approved,
+            override,
           });
         }
       }

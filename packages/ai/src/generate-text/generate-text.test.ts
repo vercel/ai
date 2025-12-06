@@ -3928,6 +3928,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
+              "allowsInputEditing": undefined,
               "approvalId": "id-1",
               "toolCall": {
                 "input": {
@@ -3962,6 +3963,7 @@ describe('generateText', () => {
                   "type": "tool-call",
                 },
                 {
+                  "allowsInputEditing": undefined,
                   "approvalId": "id-1",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
@@ -4066,6 +4068,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
             {
+              "allowsInputEditing": undefined,
               "approvalId": "id-1",
               "toolCall": {
                 "input": {
@@ -4110,6 +4113,7 @@ describe('generateText', () => {
                   "type": "tool-call",
                 },
                 {
+                  "allowsInputEditing": undefined,
                   "approvalId": "id-1",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
