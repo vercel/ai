@@ -77,7 +77,7 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const model = wrapLanguageModel({
-  model: openai('gpt-4o'),
+  model: __MODEL__,
   middleware: addToolInputExamplesMiddleware({
     prefix: 'Input Examples:',
     format: (example, index) =>
