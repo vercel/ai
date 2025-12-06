@@ -4,6 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import Link from 'next/link';
 import ChatInput from '@/components/chat-input';
+import { Streamdown } from 'streamdown';
 
 export function Chat({
   id,
@@ -43,7 +44,9 @@ export function Chat({
             {message.parts.map((part, partIndex) => {
               if (part.type === 'text') {
                 return (
-                  <div key={`${message.id}-${partIndex}`}>{part.text}</div>
+                  <Streamdown key={`${message.id}-${partIndex}`}>
+                    {part.text}
+                  </Streamdown>
                 );
               }
             })}

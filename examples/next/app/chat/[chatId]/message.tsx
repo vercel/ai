@@ -1,5 +1,6 @@
 import type { MyUIMessage } from '@/util/chat-schema';
 import { ChatStatus } from 'ai';
+import { Streamdown } from 'streamdown';
 
 export default function Message({
   message,
@@ -32,8 +33,10 @@ export default function Message({
       <div className="font-semibold">{isUser ? 'User:' : 'AI:'}</div>
       <div>
         {message.parts
-          .map(part => (part.type === 'text' ? part.text : ''))
-          .join('')}
+          .filter(part => part.type === 'text')
+          .map((part, index) => (
+            <Streamdown key={index}>{part.text}</Streamdown>
+          ))}
       </div>
       {message.role === 'user' && (
         <>

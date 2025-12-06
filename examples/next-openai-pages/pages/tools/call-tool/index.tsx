@@ -1,6 +1,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart } from 'ai';
 import { useState } from 'react';
+import { Streamdown } from 'streamdown';
 
 export default function Page() {
   const [input, setInput] = useState('');
@@ -17,7 +18,7 @@ export default function Page() {
 
             {message.parts.map((part, index) => {
               if (part.type === 'text') {
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               } else if (isToolUIPart(part)) {
                 return <div key={index}>{JSON.stringify(part.input)}</div>;
               }

@@ -5,6 +5,7 @@ import FetchPDFView from '@/components/tool/fetch-pdf-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { OpenAIFetchPdfCustomToolMessage } from '@/agent/openai-fetch-pdf-custom-tool-agent';
+import { Streamdown } from 'streamdown';
 
 export default function TestOpenAIFileGenerationPDF() {
   const { status, sendMessage, messages } =
@@ -26,7 +27,7 @@ export default function TestOpenAIFileGenerationPDF() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               case 'tool-fetchPdf':
                 return <FetchPDFView key={index} invocation={part} />;
             }
