@@ -116,10 +116,11 @@ Then, you can import and pass it into `generateText`, `streamText`, or your agen
 
 ```ts
 import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { webSearch } from '@exalabs/ai-sdk';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
@@ -146,10 +147,11 @@ Then, you can import and pass the tools into `generateText`, `streamText`, or yo
 
 ```ts
 import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
@@ -178,10 +180,11 @@ Then, you can import and pass it into `generateText`, `streamText`, or your agen
 
 ```ts
 import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { perplexitySearch } from '@perplexity-ai/ai-sdk';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4-5',
+  model: __MODEL__,
   prompt:
     'What are the latest AI developments? Use search to find current information.',
   tools: {
@@ -211,10 +214,11 @@ Then, you can import and pass it into `generateText`, `streamText`, or your agen
 
 ```ts
 import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { tavilySearch, tavilyExtract } from '@tavily/ai-sdk';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   prompt: 'When was the latest update to the AI SDK?',
   tools: {
     webSearch: tavilySearch(),
@@ -242,6 +246,7 @@ pnpm install exa-js
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 import Exa from 'exa-js';
 
@@ -267,7 +272,7 @@ export const webSearch = tool({
 });
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5', // can be any model that supports tools
+  model: __MODEL__, // can be any model that supports tools
   prompt: 'What happened in San Francisco last week?',
   tools: {
     webSearch,
@@ -286,6 +291,7 @@ pnpm install @mendable/firecrawl-js
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 import FirecrawlApp from '@mendable/firecrawl-js';
 import 'dotenv/config';
@@ -318,7 +324,7 @@ export const webSearch = tool({
 
 const main = async () => {
   const { text } = await generateText({
-    model: 'anthropic/claude-sonnet-4.5', // can be any model that supports tools
+    model: __MODEL__, // can be any model that supports tools
     prompt: 'Get the latest blog post from vercel.com/blog',
     tools: {
       webSearch,
