@@ -218,7 +218,10 @@ const dpiConfig = buildDpiMaskingProvider({
   entities: [
     'profile-email',
     'profile-person',
-    { type: 'profile-phone', replacement_strategy: { method: 'constant', value: 'REDACTED' } },
+    {
+      type: 'profile-phone',
+      replacement_strategy: { method: 'constant', value: 'REDACTED' },
+    },
   ],
 });
 
