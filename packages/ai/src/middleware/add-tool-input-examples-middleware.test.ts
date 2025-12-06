@@ -1,5 +1,5 @@
 import { JSONObject, LanguageModelV3CallOptions } from '@ai-sdk/provider';
-import { addToolInputExamplesMiddleware } from './tool-input-examples-middleware';
+import { addToolInputExamplesMiddleware } from './add-tool-input-examples-middleware';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { describe, it, expect } from 'vitest';
 
