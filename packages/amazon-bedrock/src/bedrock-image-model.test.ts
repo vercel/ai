@@ -44,6 +44,8 @@ describe('doGenerate', () => {
   it('should pass the model and the settings', async () => {
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -94,6 +96,8 @@ describe('doGenerate', () => {
 
     await modelWithHeaders.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -121,6 +125,8 @@ describe('doGenerate', () => {
   it('should return warnings for unsupported settings', async () => {
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: '1:1',
@@ -142,6 +148,8 @@ describe('doGenerate', () => {
   it('should extract the generated images', async () => {
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -165,6 +173,8 @@ describe('doGenerate', () => {
 
     const result = await customModel.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -187,6 +197,8 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -208,6 +220,8 @@ describe('doGenerate', () => {
   it('should pass the style parameter when provided', async () => {
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -243,6 +257,8 @@ describe('doGenerate', () => {
   it('should not include style parameter when not provided', async () => {
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,

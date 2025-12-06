@@ -59,6 +59,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x768',
       aspectRatio: '3:4',
@@ -90,6 +92,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -115,6 +119,8 @@ describe('doGenerate', () => {
 
     await provider.image('black-forest-labs/flux-schnell').doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -145,6 +151,8 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -169,6 +177,8 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -201,6 +211,8 @@ describe('doGenerate', () => {
 
     const result = await modelWithTimestamp.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -257,6 +269,8 @@ describe('doGenerate', () => {
 
     const result = await modelWithTimestamp.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -284,6 +298,8 @@ describe('doGenerate', () => {
 
     await versionedModel.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,

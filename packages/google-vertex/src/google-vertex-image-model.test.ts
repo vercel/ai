@@ -68,6 +68,8 @@ describe('GoogleVertexImageModel', () => {
 
       await provider.imageModel('imagen-3.0-generate-002').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -104,6 +106,8 @@ describe('GoogleVertexImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -119,6 +123,8 @@ describe('GoogleVertexImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -140,6 +146,8 @@ describe('GoogleVertexImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -161,6 +169,8 @@ describe('GoogleVertexImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -182,6 +192,8 @@ describe('GoogleVertexImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '1:1',
@@ -209,6 +221,8 @@ describe('GoogleVertexImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: '1:1',
@@ -251,6 +265,8 @@ describe('GoogleVertexImageModel', () => {
 
       const result = await customModel.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -276,6 +292,8 @@ describe('GoogleVertexImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -299,6 +317,8 @@ describe('GoogleVertexImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: '16:9',
@@ -332,6 +352,8 @@ describe('GoogleVertexImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -385,6 +407,8 @@ describe('GoogleVertexImageModel', () => {
 
         const result = await imagen4Model.doGenerate({
           prompt: 'A beautiful sunset over mountains',
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: '16:9',
@@ -411,6 +435,8 @@ describe('GoogleVertexImageModel', () => {
 
         await imagen4Model.doGenerate({
           prompt: 'test imagen 4 prompt',
+          files: undefined,
+          mask: undefined,
           n: 2,
           size: undefined,
           aspectRatio: '1:1',
@@ -468,6 +494,8 @@ describe('GoogleVertexImageModel', () => {
 
         const result = await imagen4FastModel.doGenerate({
           prompt: 'A quick sketch of a cat',
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: '3:4',
@@ -518,6 +546,8 @@ describe('GoogleVertexImageModel', () => {
 
         const result = await imagen4UltraModel.doGenerate({
           prompt: 'A highly detailed photorealistic portrait',
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: '4:3',
@@ -545,6 +575,8 @@ describe('GoogleVertexImageModel', () => {
 
         await imagen4UltraModel.doGenerate({
           prompt: 'comprehensive test prompt',
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,

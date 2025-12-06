@@ -34,6 +34,8 @@ function createBasicModel({
 function createDefaultGenerateParams(overrides = {}): ImageModelV3CallOptions {
   return {
     prompt: 'A photorealistic astronaut riding a horse',
+    files: undefined,
+    mask: undefined,
     n: 1,
     size: '1024x1024',
     aspectRatio: undefined,

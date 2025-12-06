@@ -65,6 +65,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -115,6 +117,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -130,6 +134,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -151,6 +157,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -172,6 +180,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '1:1',
@@ -198,6 +208,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: '1:1',
@@ -246,6 +258,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const result = await customModel.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -271,6 +285,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -294,6 +310,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: '16:9',

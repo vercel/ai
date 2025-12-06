@@ -45,6 +45,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       seed: 42,
@@ -69,6 +71,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       seed: 42,
@@ -91,6 +95,8 @@ describe('doGenerate', () => {
 
     await modelWithHeaders.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -123,6 +129,8 @@ describe('doGenerate', () => {
     await expect(
       model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -140,6 +148,8 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: '1:1',
@@ -165,6 +175,8 @@ describe('doGenerate', () => {
 
     const generatePromise = model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -187,6 +199,8 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -219,6 +233,8 @@ describe('doGenerate', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,

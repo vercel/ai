@@ -57,6 +57,8 @@ describe('FalImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -78,6 +80,8 @@ describe('FalImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -109,6 +113,8 @@ describe('FalImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -153,6 +159,8 @@ describe('FalImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -176,6 +184,8 @@ describe('FalImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         headers: {
@@ -212,6 +222,8 @@ describe('FalImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -234,6 +246,8 @@ describe('FalImageModel', () => {
 
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -291,6 +305,8 @@ describe('FalImageModel', () => {
         const model = createBasicModel();
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -351,6 +367,8 @@ describe('FalImageModel', () => {
         const model = createBasicModel();
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -402,6 +420,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -437,6 +457,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         providerOptions: {},
         size: undefined,
@@ -474,6 +496,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -523,6 +547,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -569,6 +595,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,

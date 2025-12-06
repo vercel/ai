@@ -44,6 +44,8 @@ describe('DeepInfraImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -65,6 +67,8 @@ describe('DeepInfraImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -87,6 +91,8 @@ describe('DeepInfraImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -119,6 +125,8 @@ describe('DeepInfraImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -133,6 +141,8 @@ describe('DeepInfraImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x768',
         aspectRatio: undefined,
@@ -155,6 +165,8 @@ describe('DeepInfraImageModel', () => {
 
       const generatePromise = model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -178,6 +190,8 @@ describe('DeepInfraImageModel', () => {
 
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -206,6 +220,8 @@ describe('DeepInfraImageModel', () => {
         const model = createBasicModel();
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,

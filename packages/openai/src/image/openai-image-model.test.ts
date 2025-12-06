@@ -46,6 +46,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -77,6 +79,8 @@ describe('doGenerate', () => {
 
     await provider.image('dall-e-3').doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -105,6 +109,8 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       aspectRatio: undefined,
@@ -120,6 +126,8 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: '1:1',
@@ -171,6 +179,8 @@ describe('doGenerate', () => {
 
     const result = await customModel.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -196,6 +206,8 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -220,6 +232,8 @@ describe('doGenerate', () => {
     const gptImageModel = provider.image('gpt-image-1');
     await gptImageModel.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -255,6 +269,8 @@ describe('doGenerate', () => {
 
     const result = await provider.image('gpt-image-1').doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -284,6 +300,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -301,6 +319,8 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,
@@ -356,6 +376,8 @@ describe('doGenerate', () => {
 
     const result = await provider.image('gpt-image-1').doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       aspectRatio: undefined,

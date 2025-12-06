@@ -58,6 +58,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -79,6 +81,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -101,6 +105,8 @@ describe('FireworksImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -127,6 +133,8 @@ describe('FireworksImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -154,6 +162,8 @@ describe('FireworksImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -176,6 +186,8 @@ describe('FireworksImageModel', () => {
 
       await sizeModel.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x768',
         aspectRatio: undefined,
@@ -198,6 +210,8 @@ describe('FireworksImageModel', () => {
 
         const result1 = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: '1:1',
@@ -221,6 +235,8 @@ describe('FireworksImageModel', () => {
 
         const result2 = await sizeModel.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: '1:1',
@@ -246,6 +262,8 @@ describe('FireworksImageModel', () => {
 
       const generatePromise = model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -274,6 +292,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -289,6 +309,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 42,
         size: undefined,
         aspectRatio: undefined,
@@ -311,6 +333,8 @@ describe('FireworksImageModel', () => {
 
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -338,6 +362,8 @@ describe('FireworksImageModel', () => {
         const model = createBasicModel();
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
