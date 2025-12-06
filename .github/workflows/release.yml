@@ -9,7 +9,7 @@ on:
       - '.github/workflows/release.yml'
   workflow_dispatch:
 
-concurrency: 
+concurrency:
   group: 'release'
   cancel-in-progress: false
 
@@ -19,6 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     # do not attempt running in forks
     if: github.repository_owner == 'vercel'
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
     steps:
       - name: Create access token for GitHub App
         uses: actions/create-github-app-token@v2
@@ -68,3 +72,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
+          NPM_CONFIG_PROVENANCE: true
