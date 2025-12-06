@@ -12,7 +12,7 @@ export type StandardizedPrompt = {
   /**
    * System message.
    */
-  system?: string | SystemModelMessage;
+  system?: string | SystemModelMessage | Array<SystemModelMessage>;
 
   /**
    * Messages.
@@ -41,12 +41,23 @@ export async function standardizePrompt(
   if (
     prompt.system != null &&
     typeof prompt.system !== 'string' &&
-    'role' in prompt.system &&
-    prompt.system.role !== 'system'
+    !(Array.isArray(prompt.system)
+      ? prompt.system.every(
+          message =>
+            typeof message === 'object' &&
+            message !== null &&
+            'role' in message &&
+            message.role === 'system',
+        )
+      : typeof prompt.system === 'object' &&
+        prompt.system !== null &&
+        'role' in prompt.system &&
+        prompt.system.role === 'system')
   ) {
     throw new InvalidPromptError({
       prompt,
-      message: 'system must be a string',
+      message:
+        'system must be a string, SystemModelMessage, or array of SystemModelMessage',
     });
   }
 
