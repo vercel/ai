@@ -43,7 +43,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
     return {
-      args: this.maybeEncodeFileParts(optionsWithoutSignal),
+      args: this.preparePrompt(optionsWithoutSignal),
       warnings: [],
     };
   }
@@ -170,13 +170,17 @@ export class GatewayLanguageModel implements LanguageModelV3 {
   }
 
   /**
-   * Encodes file parts in the prompt to base64. Mutates the passed options
-   * instance directly to avoid copying the file data.
-   * @param options - The options to encode.
-   * @returns The options with the file parts encoded.
+   * Prepares the prompt by encoding file parts and converting unsupported
+   * tool result types. Mutates the passed options instance directly.
+   * @param options - The options to prepare.
+   * @returns The prepared options.
    */
-  private maybeEncodeFileParts(options: LanguageModelV3CallOptions) {
+  private preparePrompt(options: LanguageModelV3CallOptions) {
     for (const message of options.prompt) {
+      if (typeof message.content === 'string') {
+        continue;
+      }
+
       for (const part of message.content) {
         if (this.isFilePart(part)) {
           const filePart = part as LanguageModelV3FilePart;
@@ -190,6 +194,27 @@ export class GatewayLanguageModel implements LanguageModelV3 {
               `data:${filePart.mediaType || 'application/octet-stream'};base64,${base64Data}`,
             );
           }
+        }
+
+        // Convert execution-denied tool results to text (Gateway API doesn't support this type)
+        if (
+          message.role === 'tool' &&
+          typeof part === 'object' &&
+          part !== null &&
+          'type' in part &&
+          part.type === 'tool-result' &&
+          'output' in part &&
+          part.output &&
+          typeof part.output === 'object' &&
+          'type' in part.output &&
+          (part.output as { type: string }).type === 'execution-denied'
+        ) {
+          (part.output as unknown) = {
+            type: 'text',
+            value:
+              (part.output as { reason?: string }).reason ??
+              'Tool execution denied.',
+          };
         }
       }
     }
