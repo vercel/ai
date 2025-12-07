@@ -28,6 +28,7 @@ export type GatewayModelId =
   | 'anthropic/claude-opus-4.5'
   | 'anthropic/claude-sonnet-4'
   | 'anthropic/claude-sonnet-4.5'
+  | 'arcee-ai/trinity-mini'
   | 'cohere/command-a'
   | 'deepseek/deepseek-r1'
   | 'deepseek/deepseek-v3'

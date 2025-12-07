@@ -1,7 +1,7 @@
 import {
+  APICallError,
   JSONObject,
   LanguageModelV3,
-  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
@@ -11,14 +11,14 @@ import {
   LanguageModelV3ToolCall,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
-  APICallError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  DelayedPromise,
+  createToolNameMapping,
   FetchFunction,
   generateId,
   InferSchema,
@@ -224,12 +224,34 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
 
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'anthropic.code_execution_20250522': 'code_execution',
+        'anthropic.code_execution_20250825': 'code_execution',
+        'anthropic.computer_20241022': 'computer',
+        'anthropic.computer_20250124': 'computer',
+        'anthropic.text_editor_20241022': 'str_replace_editor',
+        'anthropic.text_editor_20250124': 'str_replace_editor',
+        'anthropic.text_editor_20250429': 'str_replace_based_edit_tool',
+        'anthropic.text_editor_20250728': 'str_replace_based_edit_tool',
+        'anthropic.bash_20241022': 'bash',
+        'anthropic.bash_20250124': 'bash',
+        'anthropic.memory_20250818': 'memory',
+        'anthropic.web_search_20250305': 'web_search',
+        'anthropic.web_fetch_20250910': 'web_fetch',
+        'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
+        'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
+      },
+    });
+
     const { prompt: messagesPrompt, betas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
         cacheControlValidator,
+        toolNameMapping,
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
@@ -409,12 +431,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             toolChoice: { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,
+            supportsStructuredOutput,
           }
         : {
             tools: tools ?? [],
             toolChoice,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
+            supportsStructuredOutput,
           },
     );
 
@@ -431,6 +455,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
       betas: new Set([...betas, ...toolsBetas, ...userSuppliedBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
+      toolNameMapping,
     };
   }
 
@@ -523,11 +548,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args, warnings, betas, usesJsonResponseTool } = await this.getArgs({
-      ...options,
-      stream: false,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
-    });
+    const { args, warnings, betas, usesJsonResponseTool, toolNameMapping } =
+      await this.getArgs({
+        ...options,
+        stream: false,
+        userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      });
 
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
@@ -632,7 +658,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
-              toolName: 'code_execution',
+              toolName: toolNameMapping.toCustomToolName('code_execution'),
               input: JSON.stringify({ type: part.name, ...part.input }),
               providerExecuted: true,
             });
@@ -644,7 +670,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
-              toolName: part.name,
+              toolName: toolNameMapping.toCustomToolName(part.name),
+              input: JSON.stringify(part.input),
+              providerExecuted: true,
+            });
+          } else if (
+            part.name === 'tool_search_tool_regex' ||
+            part.name === 'tool_search_tool_bm25'
+          ) {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName(part.name),
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
@@ -687,7 +724,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'web_fetch',
+              toolName: toolNameMapping.toCustomToolName('web_fetch'),
               result: {
                 type: 'web_fetch_result',
                 url: part.content.url,
@@ -708,7 +745,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'web_fetch',
+              toolName: toolNameMapping.toCustomToolName('web_fetch'),
               isError: true,
               result: {
                 type: 'web_fetch_tool_result_error',
@@ -723,7 +760,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'web_search',
+              toolName: toolNameMapping.toCustomToolName('web_search'),
               result: part.content.map(result => ({
                 url: result.url,
                 title: result.title,
@@ -751,7 +788,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'web_search',
+              toolName: toolNameMapping.toCustomToolName('web_search'),
               isError: true,
               result: {
                 type: 'web_search_tool_result_error',
@@ -768,7 +805,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'code_execution',
+              toolName: toolNameMapping.toCustomToolName('code_execution'),
               result: {
                 type: part.content.type,
                 stdout: part.content.stdout,
@@ -780,7 +817,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: 'code_execution',
+              toolName: toolNameMapping.toCustomToolName('code_execution'),
               isError: true,
               result: {
                 type: 'code_execution_tool_result_error',
@@ -797,9 +834,36 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.tool_use_id,
-            toolName: 'code_execution',
+            toolName: toolNameMapping.toCustomToolName('code_execution'),
             result: part.content,
           });
+          break;
+        }
+
+        // tool search tool results:
+        case 'tool_search_tool_result': {
+          if (part.content.type === 'tool_search_tool_search_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              result: part.content.tool_references.map(ref => ({
+                type: ref.type,
+                toolName: ref.tool_name,
+              })),
+            });
+          } else {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              isError: true,
+              result: {
+                type: 'tool_search_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+            });
+          }
           break;
         }
       }
@@ -856,6 +920,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       warnings,
       betas,
       usesJsonResponseTool,
+      toolNameMapping,
     } = await this.getArgs({
       ...options,
       stream: true,
@@ -894,6 +959,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           input: string;
           providerExecuted?: boolean;
           firstDelta: boolean;
+          providerToolName?: string;
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -916,18 +982,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | 'code_execution_tool_result'
       | 'text_editor_code_execution_tool_result'
       | 'bash_code_execution_tool_result'
+      | 'tool_search_tool_result'
       | 'mcp_tool_use'
       | 'mcp_tool_result'
       | undefined = undefined;
 
     const generateId = this.generateId;
-    let isFirstChunk = true;
-    let stream: ReadableStream<LanguageModelV3StreamPart> | undefined =
-      undefined;
-
-    const returnPromise = new DelayedPromise<
-      Awaited<ReturnType<LanguageModelV3['doStream']>>
-    >();
 
     const transformedStream = response.pipeThrough(
       new TransformStream<
@@ -938,16 +998,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           controller.enqueue({ type: 'stream-start', warnings });
         },
 
-        async flush() {
-          if (returnPromise.isPending()) {
-            returnPromise.resolve({
-              stream: stream!,
-              request: { body },
-              response: { headers: responseHeaders },
-            });
-          }
-        },
-
         transform(chunk, controller) {
           if (options.includeRawChunks) {
             controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
@@ -956,38 +1006,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           if (!chunk.success) {
             controller.enqueue({ type: 'error', error: chunk.error });
             return;
-          }
-
-          // The Anthropic API returns 200 responses when there are overloaded errors.
-          // We handle the case where the first chunk is an error here and transform
-          // it into an APICallError.
-          if (isFirstChunk) {
-            if (chunk.value.type === 'error') {
-              returnPromise.reject(
-                new APICallError({
-                  message: chunk.value.error.message,
-                  url,
-                  requestBodyValues: body,
-                  statusCode:
-                    chunk.value.error.type === 'overloaded_error' ? 529 : 500,
-                  responseHeaders,
-                  responseBody: JSON.stringify(chunk.value.error),
-                  isRetryable: chunk.value.error.type === 'overloaded_error',
-                }),
-              );
-
-              // close the stream:
-              controller.terminate();
-              return;
-            }
-
-            isFirstChunk = false;
-
-            returnPromise.resolve({
-              stream: stream!,
-              request: { body },
-              response: { headers: responseHeaders },
-            });
           }
 
           const value = chunk.value;
@@ -1085,26 +1103,54 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       'bash_code_execution',
                     ].includes(part.name)
                   ) {
-                    contentBlocks[value.index] = {
-                      type: 'tool-call',
-                      toolCallId: part.id,
-                      toolName: part.name,
-                      input: '',
-                      providerExecuted: true,
-                      firstDelta: true,
-                    };
-
                     // map tool names for the code execution 20250825 tool:
-                    const mappedToolName =
+                    const providerToolName =
                       part.name === 'text_editor_code_execution' ||
                       part.name === 'bash_code_execution'
                         ? 'code_execution'
                         : part.name;
 
+                    const customToolName =
+                      toolNameMapping.toCustomToolName(providerToolName);
+
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: '',
+                      providerExecuted: true,
+                      firstDelta: true,
+                      providerToolName: part.name,
+                    };
+
                     controller.enqueue({
                       type: 'tool-input-start',
                       id: part.id,
-                      toolName: mappedToolName,
+                      toolName: customToolName,
+                      providerExecuted: true,
+                    });
+                  } else if (
+                    part.name === 'tool_search_tool_regex' ||
+                    part.name === 'tool_search_tool_bm25'
+                  ) {
+                    const customToolName = toolNameMapping.toCustomToolName(
+                      part.name,
+                    );
+
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: '',
+                      providerExecuted: true,
+                      firstDelta: true,
+                      providerToolName: part.name,
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: customToolName,
                       providerExecuted: true,
                     });
                   }
@@ -1117,7 +1163,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'web_fetch',
+                      toolName: toolNameMapping.toCustomToolName('web_fetch'),
                       result: {
                         type: 'web_fetch_result',
                         url: part.content.url,
@@ -1140,7 +1186,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'web_fetch',
+                      toolName: toolNameMapping.toCustomToolName('web_fetch'),
                       isError: true,
                       result: {
                         type: 'web_fetch_tool_result_error',
@@ -1157,7 +1203,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'web_search',
+                      toolName: toolNameMapping.toCustomToolName('web_search'),
                       result: part.content.map(result => ({
                         url: result.url,
                         title: result.title,
@@ -1185,7 +1231,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'web_search',
+                      toolName: toolNameMapping.toCustomToolName('web_search'),
                       isError: true,
                       result: {
                         type: 'web_search_tool_result_error',
@@ -1202,7 +1248,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'code_execution',
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
                       result: {
                         type: part.content.type,
                         stdout: part.content.stdout,
@@ -1216,7 +1263,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: 'code_execution',
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
                       isError: true,
                       result: {
                         type: 'code_execution_tool_result_error',
@@ -1234,9 +1282,37 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-result',
                     toolCallId: part.tool_use_id,
-                    toolName: 'code_execution',
+                    toolName:
+                      toolNameMapping.toCustomToolName('code_execution'),
                     result: part.content,
                   });
+                  return;
+                }
+
+                // tool search tool results:
+                case 'tool_search_tool_result': {
+                  if (part.content.type === 'tool_search_tool_search_result') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      result: part.content.tool_references.map(ref => ({
+                        type: ref.type,
+                        toolName: ref.tool_name,
+                      })),
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      isError: true,
+                      result: {
+                        type: 'tool_search_tool_result_error',
+                        errorCode: part.content.error_code,
+                      },
+                    });
+                  }
                   return;
                 }
 
@@ -1316,19 +1392,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         id: contentBlock.toolCallId,
                       });
 
-                      // map tool names for the code execution 20250825 tool:
-                      const toolName =
-                        contentBlock.toolName ===
-                          'text_editor_code_execution' ||
-                        contentBlock.toolName === 'bash_code_execution'
-                          ? 'code_execution'
-                          : contentBlock.toolName;
-
                       controller.enqueue({
                         type: 'tool-call',
                         toolCallId: contentBlock.toolCallId,
-                        toolName,
-                        input: contentBlock.input,
+                        toolName: contentBlock.toolName,
+                        input:
+                          contentBlock.input === '' ? '{}' : contentBlock.input,
                         providerExecuted: contentBlock.providerExecuted,
                       });
                     }
@@ -1420,10 +1489,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     // the type to the delta and change the tool name.
                     if (
                       contentBlock.firstDelta &&
-                      (contentBlock.toolName === 'bash_code_execution' ||
-                        contentBlock.toolName === 'text_editor_code_execution')
+                      (contentBlock.providerToolName ===
+                        'bash_code_execution' ||
+                        contentBlock.providerToolName ===
+                          'text_editor_code_execution')
                     ) {
-                      delta = `{"type": "${contentBlock.toolName}",${delta.substring(1)}`;
+                      delta = `{"type": "${contentBlock.providerToolName}",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({
@@ -1548,29 +1619,46 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }),
     );
 
-    // The first chunk needs to be pulled to check if it is an error.
+    // The first chunk needs to be pulled immediately to check if it is an error
     const [streamForFirstChunk, streamForConsumer] = transformedStream.tee();
-    stream = streamForConsumer;
-    const reader = streamForFirstChunk.getReader();
-    (async () => {
-      try {
-        const { done } = await reader.read();
-        if (!done) {
-          // First chunk processed, now cancel this branch so it doesn't affect closure
-          await reader.cancel();
-        }
-      } catch (error) {
-        try {
-          await reader.cancel();
-        } catch {
-          // Ignore cancel errors
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    })();
 
-    return returnPromise.promise;
+    const firstChunkReader = streamForFirstChunk.getReader();
+    try {
+      await firstChunkReader.read(); // streamStart comes first, ignored
+
+      let result = await firstChunkReader.read();
+
+      // when raw chunks are enabled, the first chunk is a raw chunk, so we need to read the next chunk
+      if (result.value?.type === 'raw') {
+        result = await firstChunkReader.read();
+      }
+
+      // The Anthropic API returns 200 responses when there are overloaded errors.
+      // We handle the case where the first chunk is an error here and transform
+      // it into an APICallError.
+      if (result.value?.type === 'error') {
+        const error = result.value.error as { message: string; type: string };
+
+        throw new APICallError({
+          message: error.message,
+          url,
+          requestBodyValues: body,
+          statusCode: error.type === 'overloaded_error' ? 529 : 500,
+          responseHeaders,
+          responseBody: JSON.stringify(error),
+          isRetryable: error.type === 'overloaded_error',
+        });
+      }
+    } finally {
+      firstChunkReader.cancel().catch(() => {});
+      firstChunkReader.releaseLock();
+    }
+
+    return {
+      stream: streamForConsumer,
+      request: { body },
+      response: { headers: responseHeaders },
+    };
   }
 }
 

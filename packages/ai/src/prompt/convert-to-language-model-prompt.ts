@@ -28,6 +28,7 @@ import {
 import { convertToLanguageModelV3DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
+import { asArray } from '../util/as-array';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -48,13 +49,11 @@ export async function convertToLanguageModelPrompt({
     ...(prompt.system != null
       ? typeof prompt.system === 'string'
         ? [{ role: 'system' as const, content: prompt.system }]
-        : [
-            {
-              role: 'system' as const,
-              content: prompt.system.content,
-              providerOptions: prompt.system.providerOptions,
-            },
-          ]
+        : asArray(prompt.system).map(message => ({
+            role: 'system' as const,
+            content: message.content,
+            providerOptions: message.providerOptions,
+          }))
       : []),
     ...prompt.messages.map(message =>
       convertToLanguageModelMessage({ message, downloadedAssets }),

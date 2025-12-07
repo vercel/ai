@@ -49,17 +49,19 @@ export default function AzureWebSearchPreviewView({
                 </span>
                 Opened a page
               </div>
-              <div className="pl-5 text-sm text-green-900 break-all">
-                <span className="font-semibold">URL:</span>{' '}
-                <a
-                  href={output.action.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-green-700"
-                >
-                  {output.action.url}
-                </a>
-              </div>
+              {output.action.url && (
+                <div className="pl-5 text-sm text-green-900 break-all">
+                  <span className="font-semibold">URL:</span>{' '}
+                  <a
+                    href={output.action.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-green-700"
+                  >
+                    {output.action.url}
+                  </a>
+                </div>
+              )}
             </div>
           );
         case 'find':
@@ -71,22 +73,24 @@ export default function AzureWebSearchPreviewView({
                 </span>
                 Searched for pattern in page
               </div>
+              {output.action.url && (
+                <div className="pl-5 text-sm text-yellow-900 break-all">
+                  <span className="font-semibold">URL:</span>{' '}
+                  <a
+                    href={output.action.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-yellow-700"
+                  >
+                    {output.action.url}
+                  </a>
+                </div>
+              )}
               <div className="pl-5 text-sm text-yellow-900">
                 <span className="font-semibold">Pattern:</span>{' '}
                 <span className="inline-block bg-white border border-yellow-100 rounded px-2 py-0.5 font-mono">
                   {output.action.pattern}
                 </span>
-              </div>
-              <div className="pl-5 text-sm text-yellow-900 break-all">
-                <span className="font-semibold">In URL:</span>{' '}
-                <a
-                  href={output.action.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-yellow-700"
-                >
-                  {output.action.url}
-                </a>
               </div>
             </div>
           );

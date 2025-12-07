@@ -250,6 +250,43 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should keep temperature and topP for gpt-5.1 models when reasoning effort is none', async () => {
+        const { warnings } = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.5,
+          topP: 0.3,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'none',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.1",
+            "reasoning": {
+              "effort": "none",
+            },
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
+
+        expect(warnings).toMatchInlineSnapshot(`[]`);
+      });
+
       it('should remove unsupported settings for o1', async () => {
         const { warnings } = await createModel('o1').doGenerate({
           prompt: [
@@ -373,7 +410,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -1103,7 +1140,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -1113,7 +1150,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send responseFormat json_schema format with strictSchemas false', async () => {
+      it('should send responseFormat json_schema format with strictJsonSchema false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: {
             type: 'json',
@@ -1130,8 +1167,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
-              strictSchemas: false,
-            },
+              strictJsonSchema: false,
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
@@ -2382,6 +2419,54 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-tool.1');
+
+        result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.1",
+            "tools": [
+              {
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include shell tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
     describe('web search sources schema resilience', () => {
       it('should accept api-type sources without throwing', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -2719,25 +2804,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         it('should include apply_patch tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
-        });
-
-        it('should parse create_file operation correctly', () => {
-          const toolCall = result.content.find(
-            item =>
-              item.type === 'tool-call' && item.toolName === 'apply_patch',
-          );
-          expect(toolCall).toBeDefined();
-          if (toolCall && toolCall.type === 'tool-call') {
-            const input = JSON.parse(toolCall.input);
-            expect(input).toMatchObject({
-              callId: 'call_CdXiGtcRl49Q6Ek20tG9lYOr',
-              operation: {
-                type: 'create_file',
-                path: 'shopping-checklist.md',
-                diff: expect.stringContaining('Shopping Checklist'),
-              },
-            });
-          }
         });
       });
     });
@@ -4070,6 +4136,28 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool', () => {
+      it('should stream shell tool results', async () => {
+        prepareChunksFixtureResponse('openai-shell-tool.1');
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
     describe('mcp tool', () => {
       it('should stream mcp tool results (list tools, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-mcp-tool.1');
@@ -5043,24 +5131,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         });
 
-        const parts = await convertReadableStreamToArray(stream);
-        const toolCallParts = parts.filter(
-          part => part.type === 'tool-call' && part.toolName === 'apply_patch',
-        );
-
-        expect(toolCallParts.length).toBeGreaterThan(0);
-        const toolCall = toolCallParts[0];
-        if (toolCall && toolCall.type === 'tool-call') {
-          const input = JSON.parse(toolCall.input);
-          expect(input).toMatchObject({
-            callId: 'call_kA46f91ZwocQyMCKyyZqRyC5',
-            operation: {
-              type: 'create_file',
-              path: 'shopping-checklist.md',
-              diff: expect.stringContaining('Shopping Checklist'),
-            },
-          });
-        }
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
     });
   });

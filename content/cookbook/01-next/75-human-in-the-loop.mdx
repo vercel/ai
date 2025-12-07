@@ -451,7 +451,7 @@ export type HumanInTheLoopUIMessage = UIMessage<
 import {
   convertToModelMessages,
   Tool,
-  ToolCallOptions,
+  ToolExecutionOptions,
   ToolSet,
   UIMessageStreamWriter,
   getToolName,
@@ -501,7 +501,7 @@ export async function processToolCalls<
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
       args: ExecutableTools[K] extends Tool<infer P> ? P : never,
-      context: ToolCallOptions,
+      context: ToolExecutionOptions,
     ) => Promise<any>;
   },
 ): Promise<HumanInTheLoopUIMessage[]> {

@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+
 ## 3.0.0-beta.22
 
 ### Patch Changes
