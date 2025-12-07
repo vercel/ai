@@ -1,5 +1,14 @@
 # @ai-sdk/rsc
 
+## 2.0.0-beta.140
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - ai@6.0.0-beta.138
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
 ## 2.0.0-beta.139
 
 ### Patch Changes
