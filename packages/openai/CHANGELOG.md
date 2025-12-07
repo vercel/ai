@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- 0153bfa: fix(openai): fix parameter exclusion logic
+
 ## 3.0.0-beta.85
 
 ### Patch Changes
