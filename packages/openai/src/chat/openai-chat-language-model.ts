@@ -1,5 +1,6 @@
 import {
   InvalidResponseDataError,
+<<<<<<< HEAD
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
@@ -8,6 +9,16 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
+=======
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -21,6 +32,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+<<<<<<< HEAD
+=======
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -87,7 +102,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         schema: openaiChatLanguageModelOptions,
       })) ?? {};
 
+<<<<<<< HEAD
     const structuredOutputs = openaiOptions.structuredOutputs ?? true;
+=======
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 
     if (topK != null) {
       warnings.push({
@@ -112,7 +131,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
-        systemMessageMode: getSystemMessageMode(this.modelId),
+        systemMessageMode: modelCapabilities.systemMessageMode,
       },
     );
 
@@ -182,9 +201,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       messages,
     };
 
-    if (isReasoningModel(this.modelId)) {
+    if (modelCapabilities.isReasoningModel) {
       // remove unsupported settings for reasoning models
       // see https://platform.openai.com/docs/guides/reasoning#limitations
+<<<<<<< HEAD
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
@@ -200,7 +220,40 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           setting: 'topP',
           details: 'topP is not supported for reasoning models',
         });
+=======
+
+      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
+      if (
+        openaiOptions.reasoningEffort !== 'none' ||
+        !modelCapabilities.supportsNonReasoningParameters
+      ) {
+        if (baseArgs.temperature != null) {
+          baseArgs.temperature = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'temperature',
+            details: 'temperature is not supported for reasoning models',
+          });
+        }
+        if (baseArgs.top_p != null) {
+          baseArgs.top_p = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'topP',
+            details: 'topP is not supported for reasoning models',
+          });
+        }
+        if (baseArgs.logprobs != null) {
+          baseArgs.logprobs = undefined;
+          warnings.push({
+            type: 'other',
+            message: 'logprobs is not supported for reasoning models',
+          });
+        }
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
       }
+
       if (baseArgs.frequency_penalty != null) {
         baseArgs.frequency_penalty = undefined;
         warnings.push({
@@ -224,13 +277,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           message: 'logitBias is not supported for reasoning models',
         });
       }
-      if (baseArgs.logprobs != null) {
-        baseArgs.logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'logprobs is not supported for reasoning models',
-        });
-      }
+
       if (baseArgs.top_logprobs != null) {
         baseArgs.top_logprobs = undefined;
         warnings.push({
@@ -264,7 +311,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     // Validate flex processing support
     if (
       openaiOptions.serviceTier === 'flex' &&
-      !supportsFlexProcessing(this.modelId)
+      !modelCapabilities.supportsFlexProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -278,7 +325,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     // Validate priority processing support
     if (
       openaiOptions.serviceTier === 'priority' &&
-      !supportsPriorityProcessing(this.modelId)
+      !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -703,6 +750,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     };
   }
 }
+<<<<<<< HEAD
 
 function isReasoningModel(modelId: string) {
   return (
@@ -762,3 +810,5 @@ const reasoningModels = {
     systemMessageMode: 'developer',
   },
 } as const;
+=======
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))

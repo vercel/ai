@@ -46,6 +46,10 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+<<<<<<< HEAD
+=======
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -82,9 +86,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     responseFormat,
+<<<<<<< HEAD
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
     const modelConfig = getResponsesModelConfig(this.modelId);
+=======
+  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+    const warnings: SharedV3Warning[] = [];
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
@@ -129,7 +139,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
+<<<<<<< HEAD
         systemMessageMode: modelConfig.systemMessageMode,
+=======
+        toolNameMapping,
+        systemMessageMode: modelCapabilities.systemMessageMode,
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -191,7 +206,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const store = openaiOptions?.store;
 
     // store defaults to true in the OpenAI responses API, so check for false exactly:
-    if (store === false && modelConfig.isReasoningModel) {
+    if (store === false && modelCapabilities.isReasoningModel) {
       addInclude('reasoning.encrypted_content');
     }
 
@@ -240,7 +255,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       truncation: openaiOptions?.truncation,
 
       // model-specific settings:
-      ...(modelConfig.isReasoningModel &&
+      ...(modelCapabilities.isReasoningModel &&
         (openaiOptions?.reasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
@@ -254,7 +269,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }),
     };
 
-    if (modelConfig.isReasoningModel) {
+    if (
+      modelCapabilities.isReasoningModel ||
+      (openaiOptions?.reasoningEffort === 'none' &&
+        modelCapabilities.supportsNonReasoningParameters)
+    ) {
       // remove unsupported settings for reasoning models
       // see https://platform.openai.com/docs/guides/reasoning#limitations
       if (baseArgs.temperature != null) {
@@ -295,7 +314,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // Validate flex processing support
     if (
       openaiOptions?.serviceTier === 'flex' &&
-      !modelConfig.supportsFlexProcessing
+      !modelCapabilities.supportsFlexProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -310,7 +329,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // Validate priority processing support
     if (
       openaiOptions?.serviceTier === 'priority' &&
-      !modelConfig.supportsPriorityProcessing
+      !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -1389,6 +1408,7 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
+<<<<<<< HEAD
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -1444,6 +1464,8 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   };
 }
 
+=======
+>>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction,
 ): InferValidator<typeof webSearchOutputSchema> {
