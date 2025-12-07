@@ -46,10 +46,7 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-<<<<<<< HEAD
-=======
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
->>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -86,15 +83,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     responseFormat,
-<<<<<<< HEAD
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
-    const modelConfig = getResponsesModelConfig(this.modelId);
-=======
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
->>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
@@ -139,12 +130,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
-<<<<<<< HEAD
-        systemMessageMode: modelConfig.systemMessageMode,
-=======
-        toolNameMapping,
         systemMessageMode: modelCapabilities.systemMessageMode,
->>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -1408,64 +1394,6 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
-<<<<<<< HEAD
-type ResponsesModelConfig = {
-  isReasoningModel: boolean;
-  systemMessageMode: 'remove' | 'system' | 'developer';
-  supportsFlexProcessing: boolean;
-  supportsPriorityProcessing: boolean;
-};
-
-function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
-  const supportsFlexProcessing =
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
-  const supportsPriorityProcessing =
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') &&
-      !modelId.startsWith('gpt-5-nano') &&
-      !modelId.startsWith('gpt-5-chat')) ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini');
-  const defaults = {
-    systemMessageMode: 'system' as const,
-    supportsFlexProcessing,
-    supportsPriorityProcessing,
-  };
-
-  // gpt-5-chat models are non-reasoning
-  if (modelId.startsWith('gpt-5-chat')) {
-    return {
-      ...defaults,
-      isReasoningModel: false,
-    };
-  }
-
-  // o series reasoning models:
-  if (
-    modelId.startsWith('o') ||
-    modelId.startsWith('gpt-5') ||
-    modelId.startsWith('codex-') ||
-    modelId.startsWith('computer-use')
-  ) {
-    return {
-      ...defaults,
-      isReasoningModel: true,
-      systemMessageMode: 'developer',
-    };
-  }
-
-  // gpt models:
-  return {
-    ...defaults,
-    isReasoningModel: false,
-  };
-}
-
-=======
->>>>>>> 78f813e6b (fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1 (#10940))
 function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction,
 ): InferValidator<typeof webSearchOutputSchema> {
