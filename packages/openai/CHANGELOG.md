@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.79
+
+### Patch Changes
+
+- 5b6aa88: fix(openai): fix parameter exclusion logic
+
 ## 2.0.78
 
 ### Patch Changes
