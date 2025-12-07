@@ -122,14 +122,22 @@ functionality that can be fully encapsulated in the provider.
   providerOptions?: ProviderOptions;
 
   /**
-The schema of the input that the tool expects. The language model will use this to generate the input.
-It is also used to validate the output of the language model.
-Use descriptions to make the input understandable for the language model.
+   * The schema of the input that the tool expects.
+   * The language model will use this to generate the input.
+   * It is also used to validate the output of the language model.
+   *
+   * You can use descriptions on the schema properties to make the input understandable for the language model.
    */
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
-Whether the tool needs approval before it can be executed.
+   * An optional list of input examples that show the language
+   * model what the input should look like.
+   */
+  inputExamples?: Array<{ input: INPUT }>;
+
+  /**
+   * Whether the tool needs approval before it can be executed.
    */
   needsApproval?:
     | boolean

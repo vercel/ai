@@ -209,11 +209,12 @@ export function createBaseten(
         const embeddings = response.data.map((item: any) => item.embedding);
 
         return {
-          embeddings: embeddings,
+          embeddings,
           usage: response.usage
             ? { tokens: response.usage.total_tokens }
             : undefined,
           response: { headers: {}, body: response },
+          warnings: [],
         };
       };
 
