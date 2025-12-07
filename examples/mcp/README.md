@@ -43,6 +43,7 @@ Available examples/folders:
 - `elicitation` - MCP elicitation example
 - `elicitation-multi-step` - MCP multi-step elicitation example
 - `elicitation-ui` - MCP elicitation with UI (server only)
+- `sse-custom-fetch` - SSE Transport with custom fetch (Legacy)
 
 Example usage:
 
@@ -64,3 +65,17 @@ pnpm server:elicitation-ui
 ```
 
 and then start the dev server in a new terminal in `examples/next-openai` and navigate to `localhost:3000/mcp-elicitation`
+
+## SSE Transport with custom fetch (Legacy)
+
+Start server
+
+```sh
+pnpm server:sse
+```
+
+Run example:
+
+```sh
+pnpm client:sse-custom-fetch
+```
