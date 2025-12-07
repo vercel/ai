@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 2.0.109
+
+### Patch Changes
+
+- 4520a7f: Fix subscribeToMessages callback dependency in useChat
+
 ## 2.0.108
 
 ### Patch Changes
