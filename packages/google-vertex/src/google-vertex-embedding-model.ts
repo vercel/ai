@@ -95,6 +95,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
     });
 
     return {
+      warnings: [],
       embeddings: response.predictions.map(
         prediction => prediction.embeddings.values,
       ),
